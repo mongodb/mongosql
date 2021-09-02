@@ -36,7 +36,8 @@ tests:
   - description: for expression with determined types, asserted type must be among those types
     current_db: "foo"
     query: "SELECT v1::!DOUBLE AS v1 FROM bar_schema"
-    error: "v1 cannot be asserted to DOUBLE type"
+    should_compile: false
+    algebrize_error: "v1 cannot be asserted to DOUBLE type"
 
   - description: correctness test for type assertion in schema mode
     current_db: "foo"

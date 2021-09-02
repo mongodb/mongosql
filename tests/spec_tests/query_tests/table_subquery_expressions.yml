@@ -865,14 +865,17 @@ tests:
   - description: IN Operator fails if it has different degree on both sides
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v IN(SELECT * FROM target)"
-    error: "Operand should contain 1 column(s)"
+    should_compile: false
+    algebrize_error: "Operand should contain 1 column(s)"
 
   - description: ANY Operator fails if it has different degree on both sides
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <> ANY(SELECT * FROM target)"
-    error: "Operand should contain 1 column(s)"
+    should_compile: false
+    algebrize_error: "Operand should contain 1 column(s)"
 
   - description: ALL Operator fails if it has different degree on both sides
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT * FROM target)"
-    error: "Operand should contain 1 column(s)"
+    should_compile: false
+    algebrize_error: "Operand should contain 1 column(s)"

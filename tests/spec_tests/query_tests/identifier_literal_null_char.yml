@@ -1,5 +1,5 @@
 ---
 tests:
   - description: "Identifiers cannot contain null character literal"
-    error: "error: identifiers may not contain the null character \0"
-    query: "SELECT ab FROM foo"
+    query: "SELECT `\x00` FROM foo"
+    parse_error: "identifiers may not contain the null character \x00"

@@ -6,15 +6,18 @@ catalog_environment:
 tests:
   - description: Cannot use duplicate implicit aliases for fields
     query: "SELECT a, a FROM [{'a': 1}] arr"
-    error: "error: alias 'a' used two times"
+    should_compile: false
+    algebrize_error: "alias 'a' used two times"
 
   - description: Cannot use duplicate explicit aliases for fields
     query: "SELECT a AS alias, a AS alias FROM [{'a': 1}] arr"
-    error: "error: alias 'alias' used two times"
+    should_compile: false
+    algebrize_error: "alias 'alias' used two times"
 
   - description: Cannot use duplicate generated aliases for fields
     query: "SELECT a AS _2, a+1 FROM [{'a': 1}] arr"
-    error: "error: alias '_2' used two times"
+    should_compile: false
+    algebrize_error: "alias '_2' used two times"
 
   - description: Can use different aliases for same field
     query: "SELECT VALUE {'a1': a, 'a2': a} FROM [{'a': 1}] arr"
@@ -26,11 +29,13 @@ tests:
 
   - description: Cannot use duplicate implicit aliases for collections
     query: "SELECT * FROM foo, foo"
-    error: "error: alias 'foo' used two times"
+    should_compile: false
+    algebrize_error: "alias 'foo' used two times"
 
   - description: Cannot use duplicate explicit aliases for collections
     query: "SELECT * FROM foo AS alias, foo AS alias"
-    error: "error: alias 'alias' used two times"
+    should_compile: false
+    algebrize_error: "alias 'alias' used two times"
 
   - description: Can use different alias for same collection
     current_db: db

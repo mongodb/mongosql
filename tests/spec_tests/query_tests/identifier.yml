@@ -17,7 +17,8 @@ tests:
 
   - description: Undelimited identifier starting with digit is not parsed as an identifier
     query: "SELECT 1a FROM [{'1a': 2}] arr"
-    error: "error: undelimited identifiers may not start with a digit"
+    should_compile: false
+    parse_error: "undelimited identifiers may not start with a digit"
 
   - description: Delimited identifier starting with digit is an identifier
     query: "SELECT VALUE {'1a': `1a`} FROM [{'1a': 2}] arr"
@@ -54,7 +55,8 @@ tests:
 
   - description: Undelimited identifier with non-ASCII characters is invalid
     query: "SELECT VALUE {'αβγ': αβγ} FROM [{'αβγ': 1}] arr"
-    error: "error: undelimited identifiers should only contain alphanumerics"
+    should_compile: false
+    parse_error: "undelimited identifiers should only contain alphanumerics"
     
   - description: Delimited identifier with non-ASCII characters
     query: "SELECT VALUE {'αβγ': `αβγ`} FROM [{'αβγ': 1}] arr"
@@ -87,10 +89,6 @@ tests:
       - {'__bot': {'a': 1, 'A': 2}}
       - {'__bot': {'a': 3}}
       - {'__bot': {'A': 4}}
-
-  - description: Identifiers cannot contain null character (hex)
-    query: "SELECT a\x00b FROM foo"
-    error: "error: identifiers may not contain the null character \x00"
 
   - description: Empty identifiers
     query: "SELECT VALUE {'empty': ``} FROM [{'': 2}] AS arr"

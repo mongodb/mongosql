@@ -13,4 +13,5 @@ tests:
   
   - description: parentheses are not allowed on any data source except a derived table
     query: "SELECT * FROM (ternary) AS ternary"
-    error: "parse error: unexpected <identifier> 'ternary' after '(', expected 'SELECT'"
+    should_compile: false
+    parse_error: "unexpected <identifier> 'ternary' after '(', expected 'SELECT'"

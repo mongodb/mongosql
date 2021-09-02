@@ -115,12 +115,14 @@ tests:
   - description: scalar subquery fails if it cannot prove that it statically returns a single row
     current_db: foo
     query: "SELECT VALUE {'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep.`_id` = emp.department_id)} FROM employees_w_schema AS emp"
-    error: "Scalar subquery must be statically proved to return only one value"
+    should_compile: false
+    algebrize_error: "Scalar subquery must be statically proved to return only one value"
 
   - description: scalar subquery fails if it cannot prove that it statically returns a single column
     current_db: foo
     query: "SELECT VALUE {'department_name': (SELECT * FROM department_w_schema AS dep WHERE dep.id = emp.department_id LIMIT 1)} FROM employees_w_schema AS emp"
-    error: "Scalar subquery must be statically proved to return only one value"
+    should_compile: false
+    algebrize_error: "Scalar subquery must be statically proved to return only one value"
 
   - description: cardinality of 1 should be inferrable from array datasource
     current_db: foo
@@ -215,15 +217,11 @@ tests:
       - {'__bot': {'name': 'c', 'department_name': 'd1'}}
       - {'__bot': {'name': 'd', 'department_name': 'd2'}}
 
-  - description: SELECT VALUE is not supported in subquery expressions
-    current_db: foo
-    query: "SELECT VALUE {'average_salary': (SELECT VALUE {'a': arr.a} FROM [{a: 4}] AS arr)} FROM employees AS emp"
-    error: "SELECT VALUE is not supported in subquery expressions"
-
   - description: an empty array datasource does not have a degree of one
     current_db: foo
     query: "SELECT VALUE {'sub': (SELECT * FROM [] AS arr)} FROM employees AS emp"
-    error: "subquery expressions must have a degree of 1"
+    should_compile: false
+    algebrize_error: "subquery expressions must have a degree of 1"
 
   - description: allow select star if we can statically prove the degree is equal to one
     current_db: foo

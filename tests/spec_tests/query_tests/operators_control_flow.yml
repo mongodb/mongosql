@@ -89,7 +89,8 @@ tests:
 
   - description: Simple CASE expression - Static type mismatch for case operand and when operand
     query: "SELECT VALUE { 'r': CASE 1 WHEN '2' THEN '2' ELSE NULL END } FROM [{}] AS _dual"
-    error: "error: type mismatch in CASE expression, operands must have comparable types (found STRING and INT)"
+    should_compile: false
+    algebrize_error: "type mismatch in CASE expression, operands must have comparable types (found STRING and INT)"
 
   - description: Searched CASE expression - No WHEN condition evalutes to TRUE, return ELSE result
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' WHEN c THEN 'c' ELSE 'none' END } FROM bar AS bar"

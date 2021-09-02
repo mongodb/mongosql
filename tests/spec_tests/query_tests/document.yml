@@ -42,11 +42,13 @@ tests:
 
   - description: SELECT non-empty document literal with invalid (non-string) keys
     query: "SELECT {1: 1, 2: 2}"
-    error: "error: invalid key 1: keys must be type string"
+    should_compile: false
+    parse_error: "invalid key 1: keys must be type string"
 
   - description: FROM non-empty document literal with invalid (non-string) keys
     query: "SELECT * FROM [{1: 1, 2: 2}]"
-    error: "error: invalid key 1: keys must be type string"
+    should_compile: false
+    parse_error: "invalid key 1: keys must be type string"
 
   - description: Dot notation field access from literal document
     query: "SELECT VALUE {'a': {'a': 1, 'b': 2}.a} FROM [{}] AS _dual"
@@ -74,7 +76,8 @@ tests:
 
   - description: Dot notation field access from statically known non-document
     query: "SELECT 1.a"
-    error: "error: cannot use field access on non-document types"
+    should_compile: false
+    parse_error: "unexpected 'a' in double"
 
   - description: Dot notation field access from expression that evaluates to non-document at runtime
     current_db: foo
@@ -127,7 +130,8 @@ tests:
 
   - description: Bracket notation field access from statically known non-document
     query: "SELECT 1['a']"
-    error: "error: cannot use field access on non-document types"
+    should_compile: false
+    algebrize_error: "cannot use field access on non-document types"
 
   - description: Bracket notation SELECT field called star
     query: "SELECT VALUE {'*': a['*']} FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}] AS arr"
@@ -139,7 +143,8 @@ tests:
 
   - description: Bracket notation non-string expression is invalid
     query: "SELECT a[1] FROM [{'a': {'1': 100}}]"
-    error: "error: field access expression must statically evaluate to string"
+    should_compile: false
+    algebrize_error: "field access expression must statically evaluate to string"
 
   - description: Bracket notation CAST to STRING expression
     query: "SELECT {'_1': a[CAST(b AS STRING)]} FROM [{'a': {'c': 100}, 'b': 'c'}] AS arr"

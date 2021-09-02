@@ -19,4 +19,5 @@ tests:
 
   - description: describe is a keyword
     query: "SELECT describe"
-    error: "unexpected 'describe'"
+    should_compile: false
+    parse_error: "unexpected 'describe'"

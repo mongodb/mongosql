@@ -39,22 +39,26 @@ tests:
   - description: Limit number must be positive
     current_db: foo
     query: "SELECT * FROM bar ORDER BY a LIMIT -1"
-    error: "LIMIT must be positive"
+    should_compile: false
+    parse_error: "LIMIT must be positive"
 
   - description: Limit number must be integer
     current_db: foo
     query: "SELECT * FROM bar ORDER BY a LIMIT 1.1"
-    error: "LIMIT must be an integer number"
+    should_compile: false
+    parse_error: "LIMIT must be an integer number"
 
   - description: Offset number must be positive
     current_db: foo
     query: "SELECT * FROM bar ORDER BY a OFFSET -1"
-    error: "OFFSET must be positive"
+    should_compile: false
+    parse_error: "OFFSET must be positive"
 
   - description: Offset number must be integer
     current_db: foo
     query: "SELECT * FROM bar ORDER BY a OFFSET 1.1"
-    error: "OFFSET must be an integer number"
+    should_compile: false
+    parse_error: "OFFSET must be an integer number"
 
   - description: Select with limit and offset
     current_db: foo

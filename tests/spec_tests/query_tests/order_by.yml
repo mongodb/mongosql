@@ -133,7 +133,8 @@ tests:
   - description: sort keys must be mutually comparable types
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo ORDER BY a ASC"
-    error: "sort keys must be mutually comparable types"
+    should_compile: false
+    algebrize_error: "sort keys must be mutually comparable types"
 
   - description: column references in sort keys can be qualified with table name after select star
     current_db: mydb
@@ -196,23 +197,28 @@ tests:
   - description: ordering by ambiguous column reference is an error
     current_db: mydb
     query: "SELECT VALUES {'a': a}, bar.* FROM bar AS bar ORDER BY a ASC"
-    error: "ambiguous sort key 'a'"
+    should_compile: false
+    algebrize_error: "ambiguous sort key 'a'"
 
   - description: ordering by qualified column reference is an error if qualifier is not in scope
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM nullAndMissing AS n ORDER BY n.a ASC"
-    error: "unknown datasource 'n' in sort key 'n.a'"
+    should_compile: false
+    algebrize_error: "unknown datasource 'n' in sort key 'n.a'"
 
   - description: ordering by a non-integer constant expression is an error
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo ORDER BY 1.0 DESC"
-    error: "sort key must be a column reference or integer column index"
+    should_compile: false
+    algebrize_error: "sort key must be a column reference or integer column index"
 
   - description: ordering by a complex expression is an error
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo ORDER BY 1 + 2 DESC"
-    error: "sort key must be a column reference or integer column index"
+    should_compile: false
+    algebrize_error: "sort key must be a column reference or integer column index"
 
   - description: ordering by a negative number is an error because it is a complex expr
     query: "SELECT a FROM foo ORDER BY -1"
-    error: "sort key must be a column reference or integer column index"
+    should_compile: false
+    algebrize_error: "sort key must be a column reference or integer column index"

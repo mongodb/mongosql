@@ -115,7 +115,8 @@ tests:
   - description: unqualified references are ambiguous when there are multiple datasources without schemata
     current_db: 'foo'
     query: "SELECT VALUE {'a': bar} FROM foo.coll AS coll JOIN foo.coll AS coll2"
-    error: "Reference 'bar' is ambiguous"
+    should_compile: false
+    algebrize_error: "Reference 'bar' is ambiguous"
 
   - description: qualified reference is not ambiguous with multiple datasources
     current_db: 'foo'
@@ -154,40 +155,48 @@ tests:
   - description: unqualified collection references do not resolve to collections in other databases
     current_db: 'foo2'
     query: "SELECT * FROM nested AS nested"
-    error: "Unknown collection 'nested' in current database 'foo2'"
+    should_compile: false
+    algebrize_error: "Unknown collection 'nested' in current database 'foo2'"
 
   - description: unqualified references are still ambiguous when there are multiple datasources with schema that have the same field names
     query: "SELECT VALUE {'a': bar} FROM foo.schema_coll AS coll JOIN foo.schema_coll AS coll2"
-    error: "Reference 'bar' is ambiguous"
+    should_compile: false
+    algebrize_error: "Reference 'bar' is ambiguous"
 
   - description: unqualified collection reference will error if collection not found in current database
     current_db: 'foo'
     query: "SELECT * FROM car AS car"
-    error: "Unknown collection 'car' in current database 'foo'"
+    should_compile: false
+    algebrize_error: "Unknown collection 'car' in current database 'foo'"
 
   - description: qualified collection reference in FROM clause will error if collection not found in specified database
     current_db: 'foo'
     query: "SELECT * FROM foo.car AS car"
-    error: "Unknown collection 'car' in database 'foo'"
+    should_compile: false
+    algebrize_error: "Unknown collection 'car' in database 'foo'"
 
   - description: qualified collection reference in FROM clause will error if database not found
     current_db: 'foo'
     query: "SELECT * FROM test.car AS car"
-    error: "Unknown database 'test'"
+    should_compile: false
+    algebrize_error: "Unknown database 'test'"
 
   - description: nonexistent field references fail with a schema
     query: "SELECT VALUE {'bar': foo.coll.bar} FROM foo.schema_coll AS coll"
-    error: "Unknown qualfication or field 'foo'"
+    should_compile: false
+    algebrize_error: "Unknown qualification or field 'foo'"
 
   - description: there are no field references in FROM clauses
     current_db: foo
     query: "SELECT * FROM foo.bar AS bar"
-    error: "Unknown collection bar in datasource 'foo'"
+    should_compile: false
+    algebrize_error: "Unknown collection bar in datasource 'foo'"
 
   - description: a qualfied reference in a FROM clause can have no more than two parts
     current_db: 'foo'
     query: "SELECT * FROM foo.bar.bar AS bar"
-    error: "Collection references cannot have more than 2 parts, found 'foo.bar.bar' with 3 parts"
+    should_compile: false
+    parse_error: "Collection references cannot have more than 2 parts, found 'foo.bar.bar' with 3 parts"
 
   - description: c.a refers to a in baz.a in the subquery and bar.a in the outer query
     current_db: 'foo'
@@ -198,7 +207,8 @@ tests:
   - description: with a qualified reference, the highest scope number for repeated qualifiers is chosen
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT q.bar FROM schema_foo AS q)} FROM schema_coll AS q"
-    error: "datasource 'q' does not contain field 'bar'"
+    should_compile: false
+    algebrize_error: "datasource 'q' does not contain field 'bar'"
 
   - description: with an unqualified reference, CANNOT contain sub and MUST contain outer query, the datasource resolves to the outer query
     current_db: foo
@@ -219,17 +229,20 @@ tests:
   - description: with an unqualified reference and CANNOT contain sub and CANNOT contain outer query, the datasource cannot be found
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT x FROM schema_coll AS q limit 1)} FROM schema_foo AS q"
-    error: "reference 'x' does not exist in any in scope datasource: 'schema_coll', 'schema_foo'"
+    should_compile: false
+    algebrize_error: "reference 'x' does not exist in any in scope datasource: 'schema_coll', 'schema_foo'"
 
   - description: with an unqualified reference and MAY contain sub and MAY contain outer query, the datasource is ambiguous
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q limit 1)} FROM coll AS q"
-    error: "ambiguous reference 'bar' MAY exist in datasource 'baz' or datasource 'coll'"
+    should_compile: false
+    algebrize_error: "ambiguous reference 'bar' MAY exist in datasource 'baz' or datasource 'coll'"
 
   - description: with an unqualified reference and MAY contain sub and MUST contain outer query, the datasource is ambiguous
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q limit 1)} FROM schema_coll AS q"
-    error: "ambiguous reference 'bar' MAY exist in datasource 'baz', but MUST exist in datasource 'schema_coll'"
+    should_compile: false
+    algebrize_error: "ambiguous reference 'bar' MAY exist in datasource 'baz', but MUST exist in datasource 'schema_coll'"
 
   - description: with an unqualified reference and MAY contain sub and CANNOT contain outer query, the datasource that MAY contain the field is chosen
     current_db: foo

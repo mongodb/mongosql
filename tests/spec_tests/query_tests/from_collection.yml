@@ -42,4 +42,5 @@ tests:
 
   - description: collection references may have at most two parts
     query: "SELECT * FROM a.b.c"
-    error: "parse error"
+    should_compile: false
+    parse_error: "collection data sources can only have database qualification"

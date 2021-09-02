@@ -63,7 +63,8 @@ tests:
 
   - description: WHERE must be statically determined to be a BOOLEAN
     query: "SELECT * FROM [{'a': 1}] AS arr WHERE a"
-    error:  "WHERE clause expression must be BOOLEAN. Try changing to 'WHERE CAST(a AS BOOLEAN)'"
+    should_compile: false
+    algebrize_error:  "WHERE clause expression must be BOOLEAN. Try changing to 'WHERE CAST(a AS BOOLEAN)'"
 
   - description: WHERE statically determined to be BOOLEAN from literal
     query: "SELECT * FROM [{'a': true}] AS arr WHERE a"
@@ -88,4 +89,5 @@ tests:
   - description: WHERE must be statically determined to be a BOOLEAN and no schema for bar2
     query: "SELECT * FROM bar2 WHERE NOT foo"
     current_db: foo
-    error:  "WHERE clause expression must be BOOLEAN. Try changing to 'WHERE CAST(NOT foo AS BOOLEAN)'"
+    should_compile: false
+    algebrize_error:  "WHERE clause expression must be BOOLEAN. Try changing to 'WHERE CAST(NOT foo AS BOOLEAN)'"

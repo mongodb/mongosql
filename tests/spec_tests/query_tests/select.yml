@@ -8,72 +8,62 @@ tests:
   - description: key names in SELECT VALUE document must be unique
     current_db: mydb
     query: "SELECT VALUE {'a': a, 'a': a} FROM foo AS f"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    error: "Column aliases must be unique. Found 'a' 2 times"
+    should_compile: false
+    algebrize_error: "Column aliases must be unique. Found 'a' 2 times"
 
   - description: star cannot be used in conjunction with other select expressions
     current_db: mydb
     query: "SELECT *, a FROM foo AS f"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    error: "star cannot be used in conjunction with other select expressions"
+    should_compile: false
+    parse_error: "star cannot be used in conjunction with other select expressions"
 
   - description: star cannot be used in SELECT VALUE
     current_db: mydb
     query: "SELECT VALUE * FROM foo AS f"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    error: "star cannot be used in SELECT VALUE"
+    should_compile: false
+    parse_error: "star cannot be used in SELECT VALUE"
 
   - description: star is not an ordinary expression
     current_db: mydb
     query: "SELECT VALUE {'a': *} FROM foo AS f"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    error: "parse error: expected <expr>, found STAR"
+    should_compile: false
+    parse_error: "expected <expr>, found STAR"
 
   - description: substar is not an ordinary expression
     current_db: mydb
     query: "SELECT VALUE {'a': foo.*} FROM foo AS foo"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    error: "parse error: expected <ident>, found STAR"
+    should_compile: false
+    parse_error: "expected <ident>, found STAR"
 
   - description: aliases disallowed for substar expressions in SELECT VALUE
     current_db: mydb
     query: "SELECT VALUE t.* AS a FROM foo AS f"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    error: "parse error: unexpected AS"
+    should_compile: false
+    parse_error: "unexpected AS"
 
   - description: aliases disallowed for substar expressions in standard SELECT
     current_db: mydb
     query: "SELECT t.* AS a FROM foo AS f"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    error: "parse error: unexpected AS"
+    should_compile: false
+    parse_error: "unexpected AS"
 
   - description: aliases disallowed for document expressions in SELECT VALUE
     current_db: mydb
     query: "SELECT VALUE {'a': 1} AS a FROM foo AS f"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    error: "parse error: unexpected AS"
+    should_compile: false
+    parse_error: "unexpected AS"
 
   - description: duplicate datasource names disallowed in SELECT VALUES
     current_db: mydb
     query: "SELECT VALUES f.*, f.* FROM foo AS f"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    error: "duplicate datasource name 'foo'"
+    should_compile: false
+    algebrize_error: "duplicate datasource name 'foo'"
 
   - description: non-document expressions disallowed in SELECT VALUE
     current_db: mydb
     query: "SELECT VALUE [a, b] FROM foo"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    error: "SELECT VALUE only accepts document expressions"
+    should_compile: false
+    parse_error: "SELECT VALUE only accepts document expressions"
 
   - description: simple star correctness test
     current_db: mydb
@@ -129,6 +119,5 @@ tests:
   - description: SELECT VALUES may create unmaterializable binding tuples
     current_db: mydb
     query: "SELECT VALUES {'a': a.a}, a.* FROM foo AS a"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    error: "cannot materialize binding tuple with duplicate fields"
+    should_compile: false
+    algebrize_error: "cannot materialize binding tuple with duplicate fields"

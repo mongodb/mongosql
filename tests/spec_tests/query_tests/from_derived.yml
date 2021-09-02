@@ -18,23 +18,28 @@ tests:
 
   - description: derived table cannot reference other datasources in same FROM clause
     query: "SELECT * FROM [{'x': 1}] AS foo CROSS JOIN (SELECT * FROM [{'x': 1}] AS bar WHERE foo.x = bar.x) AS derived"
-    error: "no field 'foo' in datasource 'bar'"
+    should_compile: false
+    algebrize_error: "no field 'foo' in datasource 'bar'"
 
   - description: derived table must have alias
     query: "SELECT * FROM (SELECT * FROM [{a: 1}] AS arr)"
-    error: "parse error: expected <alias>, found EOI"
+    should_compile: false
+    parse_error: "expected <alias>, found EOI"
 
   - description: datasource names in derived table are not visible outside of derived table query
     query: "SELECT derived.foo.x FROM (SELECT * FROM [{'x': 1}] AS foo, [{'a': 1}] AS bar) AS derived"
-    error: "Unknown field 'foo'"
+    should_compile: false
+    algebrize_error: "Unknown field 'foo'"
 
   - description: derived table query with data sources that statically have ambiguous field must report a static error
     query: "SELECT * FROM (SELECT * FROM [{'x': 1, 'y': 2}] AS foo, [{'a': 1, 'x': 3}] AS bar) AS derived"
-    error: "Ambiguous field 'x' in derived table"
+    should_compile: false
+    algebrize_error: "Ambiguous field 'x' in derived table"
 
   - description: derived table can result in ambiguous fields when the datasource fields are not enumerable and must report a static error
     query: "SELECT * FROM (SELECT * FROM foo AS foo, bar AS bar) AS derived"
-    error: "The keys of datasources 'foo', 'bar' are not enumerable, and may be ambiguous. Try replacing 'SELECT *' with direct references, or providing schemata for 'foo', 'bar'"
+    should_compile: false
+    algebrize_error: "The keys of datasources 'foo', 'bar' are not enumerable, and may be ambiguous. Try replacing 'SELECT *' with direct references, or providing schemata for 'foo', 'bar'"
 
   - description: there is no ambiguity with one schema-less datasource in a derived table
     current_db: test

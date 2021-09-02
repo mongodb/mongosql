@@ -133,12 +133,14 @@ tests:
   - description: natural join is not supported
     current_db: mydb
     query: "SELECT * FROM bar NATURAL JOIN coll"
-    error: "natural join is not supported"
+    should_compile: false
+    parse_error: "natural join is not supported"
 
   - description: join predicate must be statically determined to be a BOOLEAN
     current_db: mydb
     query: "SELECT * FROM bar INNER JOIN coll ON 123"
-    error: "join predicate must be boolean"
+    should_compile: false
+    algebrize_error: "join predicate must be boolean"
 
   - description: join predicates can contain complex expressions
     current_db: mydb
@@ -164,7 +166,8 @@ tests:
   - description: join predicates can only reference datasource names from their own join
     current_db: mydb
     query: "SELECT * FROM [{'v': 1}] AS a INNER JOIN ([{'v': 1}] AS b INNER JOIN [{'v': 1}] AS c ON a.v = b.v)"
-    error: "unknown field 'a.v'"
+    should_compile: false
+    algebrize_error: "unknown field 'a.v'"
 
   - description: join predicates can reference columns by table-qualified names
     current_db: mydb
@@ -210,7 +213,8 @@ tests:
 
   - description: a join datasource cannot be given an alias
     query: "SELECT * FROM (foo.bar CROSS JOIN foo.coll) AS x"
-    error: "Whatever parse error our parser gives us"
+    should_compile: false
+    parse_error: "a join datasource cannot be given an alias"
 
   - description: joins are left-associative
     current_db: mydb
@@ -251,7 +255,8 @@ tests:
   - description: all datasource names in FROM clause must be unique
     current_db: mydb
     query: "SELECT * FROM coll CROSS JOIN coll"
-    error: "Aliases in FROM CLAUSE must be unique, found 2 instances of `coll`"
+    should_compile: false
+    algebrize_error: "Aliases in FROM CLAUSE must be unique, found 2 instances of `coll`"
 
   - description: cross database join correctness test
     current_db: mydb

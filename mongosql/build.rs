@@ -93,11 +93,12 @@ fn gen_test(test_type: &str, file_paths: Vec<String>) {
             let map = test.as_hash().unwrap();
             let description = map.get(&Yaml::from_str("description")).unwrap();
             let query = map.get(&Yaml::from_str("query")).unwrap();
-            let err = map.get(&Yaml::from_str("error"));
+            let parse_err = map.get(&Yaml::from_str("parse_error"));
+            let algebrize_err = map.get(&Yaml::from_str("algebrize_error"));
             let skip_reason = map.get(&Yaml::from_str("skip_reason"));
 
             // Skip tests that have the fields "error" and/or "skip_reason"
-            if err.is_some() || skip_reason.is_some() {
+            if parse_err.is_some() || algebrize_err.is_some() || skip_reason.is_some() {
                 continue;
             }
 

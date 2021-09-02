@@ -159,7 +159,8 @@ tests:
 
     - description: group keys must be mutually comparable types
       query: "SELECT * FROM foo.poly AS a GROUP BY {'out': a.a} AS doc"
-      error: "all possible group key values must have mutually comparable types"
+      should_compile: false
+      algebrize_error: "all possible group key values must have mutually comparable types"
 
     - description: GROUP BY keys may be table-qualified
       query: "SELECT * FROM foo.poly AS a GROUP by a.a.a::!INT AS a"
@@ -245,7 +246,8 @@ tests:
 
     - description: top-level field reference keys cannot be referenced by qualified name if aliased
       query: "SELECT VALUE {'a': bar.a} FROM foo.bar GROUP BY bar.a AS a"
-      error: "unknown field 'bar'"
+      should_compile: false
+      algebrize_error: "unknown field 'bar'"
 
     - description: GROUP BY keys may be document field references
       query: "SELECT * FROM foo.poly AS b GROUP by a.a.a::!INT AS a"
@@ -290,15 +292,18 @@ tests:
 
     - description: argument to DISTINCT aggregation function must have statically determined type that is mutually comparable
       query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS suma"
-      error: "Argument to DISTINCT aggregation function must have statically proveably mutually comparable type"
+      should_compile: false
+      algebrize_error: "Argument to DISTINCT aggregation function must have statically provably mutually comparable type"
 
     - description: argument to DISTINCT aggregation function cannot have type DOCUMENT
       query: "SELECT * FROM foo.poly AS poly GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::!DOCUMENT) AS suma"
-      error: "Argument to DISTINCT aggregation function must have statically proveably mutually comparable type"
+      should_compile: false
+      algebrize_error: "Argument to DISTINCT aggregation function must have statically provably mutually comparable type"
 
     - description: argument to DISTINCT aggregation function cannot have type ARRAY
       query: "SELECT * FROM foo.poly AS poly GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::!ARRAY) AS suma"
-      error: "Argument to DISTINCT aggregation function must have statically proveably mutually comparable type"
+      should_compile: false
+      algebrize_error: "Argument to DISTINCT aggregation function must have statically provably mutually comparable type"
 
     - description: correctness test for DISTINCT and non-DISTINCT aggregation over same field
       query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS dsuma, SUM(a) AS suma"
@@ -357,19 +362,23 @@ tests:
 
     - description: AGGREGATE expressions must be aggregation functions not arbitrary expressions
       query: "SELECT * FROM foo.bar AS bar GROUP BY a::!INT AS a AGGREGATE 1 + SUM(a)"
-      error: "Expressions in AGGREGATE phrase must be aggregation function applications not arbitrary expressions"
+      should_compile: false
+      algebrize_error: "Expressions in AGGREGATE phrase must be aggregation function applications not arbitrary expressions"
 
     - description: AGGREGATE expressions must be aggregation functions not scalar functions
-      query: "SELECT * FROM foo.bar AS bar GROUP BY a::!INT AS a AGGREGATE COS(a)"
-      error: "Expressions in AGGREGATE phrase must be aggregation function applications not scalar function applications"
+      query: "SELECT * FROM foo.bar AS bar GROUP BY a::!INT AS a AGGREGATE UPPER(a)"
+      should_compile: false
+      algebrize_error: "Expressions in AGGREGATE phrase must be aggregation function applications not scalar function applications"
 
     - description: field reference a is undefined in GROUP BY
       query: "SELECT VALUE {'a': a, 'sb': sb} FROM foo.bar AS bar GROUP BY c AS c AGGREGATE SUM(b) AS sb"
-      error: "No such field a"
+      should_compile: false
+      algebrize_error: "No such field a"
 
     - description: Aggregation functions are not allowed in SELECT VALUE
       query: "SELECT VALUE {'suma': SUM(a + 2) } FROM bar AS bar GROUP BY b::!INT AS b"
-      error: "Aggregation functions are not allowed in SELECT VALUE clause"
+      should_compile: false
+      algebrize_error: "Aggregation functions are not allowed in SELECT VALUE clause"
 
     - description: HAVING without GROUP BY works as a WHERE clause but happens after the WHERE clause
       query: "SELECT * FROM foo.bar AS bar WHERE a < 15 HAVING a > 5"
@@ -422,7 +431,8 @@ tests:
 
     - description: ADD_TO_ARRAY star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(*) AS garr"
-      error: "* is not an allowed argument to ADD_TO_ARRAY"
+      should_compile: false
+      algebrize_error: "* is not an allowed argument to ADD_TO_ARRAY"
 
     - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in DECIMAL)
       query: "SELECT VALUE {'gset' : gset} FROM (SELECT * FROM foo.numerics AS numerics ORDER BY _id ASC) AS _numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
@@ -458,11 +468,13 @@ tests:
 
     - description: ADD_TO_SET star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE ADD_TO_SET(*) AS gset"
-      error: "* is not an allowed argument to ADD_TO_SET"
+      should_compile: false
+      algebrize_error: "* is not an allowed argument to ADD_TO_SET"
 
     - description: ADD_TO_SET requires all elements have statically mutually comparable type
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE ADD_TO_SET(a) AS gset"
-      error: "Argument to ADD_TO_SET must have statically mutually comparable type"
+      should_compile: false
+      algebrize_error: "Argument to ADD_TO_SET must have statically mutually comparable type"
 
     - description: ADD_TO_SET correctness test
       query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_SET(a.a::!INT) AS gset"
@@ -512,11 +524,13 @@ tests:
 
     - description: AVG star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE AVG(*) AS gavg"
-      error: "* is not an allowed argument to AVG"
+      should_compile: false
+      algebrize_error: "* is not an allowed argument to AVG"
 
     - description: AVG requires a statically numeric argument
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE AVG(a) AS gavg"
-      error: "Argument to AVG must be statically determined as NUMERIC"
+      should_compile: false
+      algebrize_error: "Argument to AVG must be statically determined as NUMERIC"
 
     - description: COUNT correctness test
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE COUNT(a) AS gcount"
@@ -611,7 +625,8 @@ tests:
 
     - description: FIRST star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE FIRST(*) AS gfirst"
-      error: "* is not an allowed argument to FIRST"
+      should_compile: false
+      algebrize_error: "* is not an allowed argument to FIRST"
 
     - description: LAST correctness test
       query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a::!INT AS a AGGREGATE LAST(a) AS glast"
@@ -646,7 +661,8 @@ tests:
 
     - description: LAST star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE LAST(*) AS glast"
-      error: "* is not an allowed argument to LAST"
+      should_compile: false
+      algebrize_error: "* is not an allowed argument to LAST"
 
     - description: MAX correctness test
       query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MAX(b) AS gmax"
@@ -665,11 +681,13 @@ tests:
 
     - description: MAX star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MAX(*) AS gmax"
-      error: "* is not an allowed argument to MAX"
+      should_compile: false
+      algebrize_error: "* is not an allowed argument to MAX"
 
     - description: MAX must have statically mutually comparable type
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MAX(a) AS gmax"
-      error: "Argument to MAX must have statically mutually comparable type"
+      should_compile: false
+      algebrize_error: "Argument to MAX must have statically mutually comparable type"
 
     - description: MERGE_DOCUMENTS correctness test
       query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly2 AS poly2 ORDER BY _id) AS arr GROUP BY a.a::!INT AS a, MERGE_DOCUMENTS(a::!DOCUMENT) AS gmerge"
@@ -700,11 +718,13 @@ tests:
 
     - description: MERGE_DOCUMENTS star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MERGE_DOCUMENTS(*) AS gmerge"
-      error: "* is not an allowed argument to MERGE_DOCUMENTS"
+      should_compile: false
+      algebrize_error: "* is not an allowed argument to MERGE_DOCUMENTS"
 
     - description: MERGE_DOCUMENTS requires a statically document argument
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MERGE_DOCUMENTS(a) AS gmerge"
-      error: "Argument to MERGE_DOCUMENTS must be statically determined as DOCUMENT"
+      should_compile: false
+      algebrize_error: "Argument to MERGE_DOCUMENTS must be statically determined as DOCUMENT"
 
     - description: MIN correctness test
       query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MIN(b) AS gmin"
@@ -723,11 +743,13 @@ tests:
 
     - description: MIN star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MIN(*) AS gmin"
-      error: "* is not an allowed argument to MIN"
+      should_compile: false
+      algebrize_error: "* is not an allowed argument to MIN"
 
     - description: MIN must have statically mutually comparable type
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MIN(a) AS gmin"
-      error: "Argument to MIN must have statically mutually comparable type"
+      should_compile: false
+      algebrize_error: "Argument to MIN must have statically mutually comparable type"
 
     - description: STDDEV_POP correctness test
       query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE STDDEV_POP(a::!DOUBLE) AS gstdp"
@@ -755,11 +777,13 @@ tests:
 
     - description: STDDEV_POP star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE STDDEV_POP(*) AS gstdp"
-      error: "* is not an allowed argument to STDDEV_POP"
+      should_compile: false
+      algebrize_error: "* is not an allowed argument to STDDEV_POP"
 
     - description: STDDEV_POP requires a statically numeric argument
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE STDDEV_POP(a) AS gstdp"
-      error: "Argument to STDDEV_POP must be statically determined as NUMERIC"
+      should_compile: false
+      algebrize_error: "Argument to STDDEV_POP must be statically determined as NUMERIC"
 
     - description: STDDEV_SAMP correctness test
       query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE STDDEV_SAMP(a::!DOUBLE) as gstds"
@@ -787,11 +811,13 @@ tests:
 
     - description: STDDEV_SAMP star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE STDDEV_SAMP(*) AS gstds"
-      error: "* is not an allowed argument to STDDEV_SAMP"
+      should_compile: false
+      algebrize_error: "* is not an allowed argument to STDDEV_SAMP"
 
     - description: STDDEV_SAMP requires a statically numeric argument
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE STDDEV_SAMP(a) AS gstds"
-      error: "Argument to STDDEV_SAMP must be statically determined as NUMERIC"
+      should_compile: false
+      algebrize_error: "Argument to STDDEV_SAMP must be statically determined as NUMERIC"
 
     - description: SUM correctness test
       query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE SUM(a::!DOUBLE) AS gsum"
@@ -819,8 +845,10 @@ tests:
 
     - description: SUM star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE SUM(*) AS gsum"
-      error: "* is not an allowed argument to SUM"
+      should_compile: false
+      algebrize_error: "* is not an allowed argument to SUM"
 
     - description: SUM requires a statically numeric argument
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE SUM(a) AS gsum"
-      error: "Argument to SUM must be statically determined as NUMERIC"
+      should_compile: false
+      algebrize_error: "Argument to SUM must be statically determined as NUMERIC"
