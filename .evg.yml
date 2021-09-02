@@ -1285,9 +1285,10 @@ tasks:
   name: test-kill-queries
   tags: ["test", "config"]
 
-- <<: *run-make-target
-  name: test-kill-queries-ssl
-  tags: ["test", "config", "mongo-ssl"]
+# Disabled: see BI-2482
+# - <<: *run-make-target
+#   name: test-kill-queries-ssl
+#   tags: ["test", "config", "mongo-ssl"]
 
 - <<: *run-make-target
   name: test-kill-queries-auth
@@ -1305,9 +1306,10 @@ tasks:
   name: test-kill-queries-admin-user
   tags: ["test", "config"]
 
-- <<: *run-make-target
-  name: test-kill-queries-4.0
-  tags: ["test", "config"]
+# Disabled: see BI-2482
+# - <<: *run-make-target
+#   name: test-kill-queries-4.0
+#   tags: ["test", "config"]
 
 - <<: *run-make-target
   name: test-kill-queries-4.2
