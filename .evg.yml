@@ -1554,9 +1554,10 @@ tasks:
   name: test-gssapi-with-wrong-username-without-password-with-keytab
   tags: ["test", "config", "gssapi", "skip-windows"]
 
-- <<: *run-make-target
-  name: test-gssapi-with-correct-username-and-password-without-cache
-  tags: ["test", "config", "gssapi", "skip-windows", "gssapi-skip-macos"]
+# Disabled: see BI-2656
+# - <<: *run-make-target
+#   name: test-gssapi-with-correct-username-and-password-without-cache
+#   tags: ["test", "config", "gssapi", "skip-windows", "gssapi-skip-macos"]
 
 - <<: *run-make-target
   name: test-gssapi-with-correct-username-wrong-password-without-cache
@@ -1570,9 +1571,10 @@ tasks:
   name: test-gssapi-with-correct-username-and-password-wrong-cache
   tags: ["test", "config", "gssapi", "skip-windows"]
 
-- <<: *run-make-target
-  name: test-gssapi-with-correct-username-without-password-with-cache
-  tags: ["test", "config", "gssapi", "skip-windows", "gssapi-skip-macos"]
+# Disabled: see BI-2656
+# - <<: *run-make-target
+#   name: test-gssapi-with-correct-username-without-password-with-cache
+#   tags: ["test", "config", "gssapi", "skip-windows", "gssapi-skip-macos"]
 
 - <<: *run-make-target
   name: test-gssapi-with-correct-username-wrong-password-with-cache
