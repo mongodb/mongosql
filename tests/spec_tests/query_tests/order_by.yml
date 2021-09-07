@@ -1,4 +1,4 @@
-catalog_environment:
+catalog_data:
   mydb:
     foo:
       - {'_id': 0, 'a': 1, 'b': 'def'}
@@ -17,38 +17,34 @@ catalog_environment:
       - {'_id': 1, 'a': 1}
       - {'_id': 2, 'a': null}
 
-schema_environment:
+catalog_schema:
   {
     'mydb': {
       'bar': {
-        '$jsonSchema': {
-          'bsonType': 'object',
-          'properties': {
-            '_id': {
-              'bsonType': 'int'
-            },
-            'a': {
-              'bsonType': 'int'
-            },
-            'b': {
-              'bsonType': 'object',
-              'properties': {
-                'c': {
-                  'bsonType': 'int'
-                }
+        'bsonType': 'object',
+        'properties': {
+          '_id': {
+            'bsonType': 'int'
+          },
+          'a': {
+            'bsonType': 'int'
+          },
+          'b': {
+            'bsonType': 'object',
+            'properties': {
+              'c': {
+                'bsonType': 'int'
               }
-            },
-          }
+            }
+          },
         }
       },
       'nullAndMissing': {
-        '$jsonSchema': {
-          'bsonType': "object",
-          'properties': {
-            'a': {
-              'bsonType': "null"
-            },
-          }
+        'bsonType': "object",
+        'properties': {
+          'a': {
+            'bsonType': "null"
+          },
         }
       }
     }

@@ -1,4 +1,4 @@
-catalog_environment:
+catalog_data:
   foo:
     coll:
       - {'_id': 1, 'bar': 11, 'car': 12}
@@ -23,31 +23,27 @@ catalog_environment:
     coll:
       - {'_id': 1, 'a': 1, 'b': 2}
 
-schema_environment:
+catalog_schema:
   {
     'foo': {
       'schema_coll': {
-        '$jsonSchema': {
-          'bsonType': "object",
-          'additionalProperties': false,
-          'properties': {
-            'bar': {
-              'bsonType': "double"
-            },
-            'car': {
-              'bsonType': "double"
-            }
+        'bsonType': "object",
+        'additionalProperties': false,
+        'properties': {
+          'bar': {
+            'bsonType': "int"
+          },
+          'car': {
+            'bsonType': "int"
           }
         }
       },
       'schema_foo': {
-        '$jsonSchema': {
-          'bsonType': "object",
-          'additionalProperties': false,
-          'properties': {
-            'baz': {
-              'bsonType': "double"
-            }
+        'bsonType': "object",
+        'additionalProperties': false,
+        'properties': {
+          'baz': {
+            'bsonType': "int"
           }
         }
       }

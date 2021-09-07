@@ -1,4 +1,4 @@
-catalog_environment:
+catalog_data:
   foo:
     unary:
       - { "_id": 0, "a": { "$numberInt": "1" } }
@@ -54,44 +54,49 @@ catalog_environment:
       - { "_id": 3, "a": { "$numberLong": "5" }, "b": { "$numberInt": "2" } }
       - { "_id": 4, "a": { "$numberLong": "5" }, "b": { "$numberLong": "2" } }
 
-schema_environment:
+catalog_schema:
   {
     "foo": {
       "unary": {
-        "$jsonSchema": {
-          "bsonType": "object",
-          "properties": {
-            "_id": {
-              "bsonType": "int"
-            },
-            "a": {
-              "anyOf": [
+        "bsonType": "object",
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
               { "bsonType": "int" },
+              { "bsonType": "long" },
+              { "bsonType": "double" },
+              { "bsonType": "decimal" },
               { "bsonType": "null" }
-              ]
-            }
+            ]
           }
         }
       },
       "binary": {
-        "$jsonSchema": {
-          "bsonType": "object",
-          "properties": {
-            "_id": {
-              "bsonType": "int"
-            },
-            "a": {
-              "anyOf": [
+        "bsonType": "object",
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
               { "bsonType": "int" },
+              { "bsonType": "long" },
+              { "bsonType": "double" },
+              { "bsonType": "decimal" },
               { "bsonType": "null" }
-              ]
-            },
-            "b": {
-              "anyOf": [
+            ]
+          },
+          "b": {
+            "anyOf": [
               { "bsonType": "int" },
+              { "bsonType": "long" },
+              { "bsonType": "double" },
+              { "bsonType": "decimal" },
               { "bsonType": "null" }
-              ]
-            }
+            ]
           }
         }
       }

@@ -1,4 +1,4 @@
-catalog_environment:
+catalog_data:
   foo:
     ternary:
       - { "_id": 0, "a": 6, "b": 2, "c": 11 }

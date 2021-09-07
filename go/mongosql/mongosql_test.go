@@ -8,6 +8,7 @@ import (
 	"github.com/10gen/mongosql-rs/go/mongosql"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 func TestVersion(t *testing.T) {
@@ -31,8 +32,9 @@ func TestVersion(t *testing.T) {
 
 func TestTranslate(t *testing.T) {
 	translation, err := mongosql.Translate(mongosql.TranslationArgs{
-		DB:  "bar",
-		SQL: "select * from foo",
+		DB:            "bar",
+		SQL:           "select * from foo",
+		CatalogSchema: nil,
 	})
 	if err != nil {
 		t.Fatalf("expected err to be nil, got '%s'", err)
@@ -82,8 +84,9 @@ func TestTranslate(t *testing.T) {
 
 func TestTranslateError(t *testing.T) {
 	_, err := mongosql.Translate(mongosql.TranslationArgs{
-		DB:  "bar",
-		SQL: "notavalidquery",
+		DB:            "bar",
+		SQL:           "notavalidquery",
+		CatalogSchema: nil,
 	})
 
 	if err == nil {
@@ -97,8 +100,9 @@ func TestTranslateError(t *testing.T) {
 
 func TestTranslatePanic(t *testing.T) {
 	_, err := mongosql.Translate(mongosql.TranslationArgs{
-		DB:  "__test_panic",
-		SQL: "__test_panic",
+		DB:            "__test_panic",
+		SQL:           "__test_panic",
+		CatalogSchema: nil,
 	})
 
 	if err == nil {
@@ -107,5 +111,104 @@ func TestTranslatePanic(t *testing.T) {
 
 	if !strings.Contains(err.Error(), "caught panic during translation: panic thrown") {
 		t.Fatalf("error message did not contain expected text: %q", err.Error())
+	}
+}
+
+func TestCatalogSchema(t *testing.T) {
+	schema := bson.M{
+		"bsonType": "object",
+		"properties": bson.M{
+			"a": bson.M{"bsonType": "double"},
+		},
+	}
+
+	bytes, err := bson.Marshal(&schema)
+	if err != nil {
+		t.Fatalf("failed to marshal: %v", err)
+	}
+
+	catalogSchema := map[string]map[string]bsoncore.Document{
+		"bar": {"foo": bsoncore.Document(bytes)},
+	}
+
+	_, err = mongosql.Translate(mongosql.TranslationArgs{
+		DB:            "bar",
+		SQL:           "select * from foo",
+		CatalogSchema: catalogSchema,
+	})
+	if err != nil {
+		t.Fatalf("expected err to be nil, got '%s'", err)
+	}
+}
+
+func generateTestSchema() (bsoncore.Document, error) {
+	schema := bson.M{
+		"bsonType": "object",
+		"properties": bson.M{
+			"a": bson.M{"bsonType": "double"},
+		},
+	}
+	bytes, err := bson.Marshal(&schema)
+	if err != nil {
+		return nil, err
+	}
+	return bytes, nil
+}
+
+func TestCatalogSchemaMultipleCollections(t *testing.T) {
+	schema, err := generateTestSchema()
+	if err != nil {
+		if err != nil {
+			t.Fatalf("expected err to be nil, got '%s'", err)
+		}
+	}
+
+	catalogSchema := map[string]map[string]bsoncore.Document{
+		"foo": {"bar": schema, "baz": schema},
+	}
+
+	_, err = mongosql.Translate(mongosql.TranslationArgs{
+		DB:            "bar",
+		SQL:           "select * from foo",
+		CatalogSchema: catalogSchema,
+	})
+	if err != nil {
+		t.Fatalf("expected err to be nil, got '%s'", err)
+	}
+}
+
+func TestCatalogSchemaMultipleNamespaces(t *testing.T) {
+	schema, err := generateTestSchema()
+	if err != nil {
+		if err != nil {
+			t.Fatalf("expected err to be nil, got '%s'", err)
+		}
+	}
+
+	catalogSchema := map[string]map[string]bsoncore.Document{
+		"bar": {"foo": schema},
+		"baz": {"foo": schema},
+	}
+
+	_, err = mongosql.Translate(mongosql.TranslationArgs{
+		DB:            "bar",
+		SQL:           "select * from foo",
+		CatalogSchema: catalogSchema,
+	})
+	if err != nil {
+		t.Fatalf("expected err to be nil, got '%s'", err)
+	}
+}
+
+func TestCatalogSchemaEmpty(t *testing.T) {
+	catalogSchema := map[string]map[string]bsoncore.Document{}
+
+	_, err := mongosql.Translate(mongosql.TranslationArgs{
+		DB:            "bar",
+		SQL:           "select * from foo",
+		CatalogSchema: catalogSchema,
+	})
+	if err != nil {
+		t.Fatalf("expected err to be nil, got '%s'", err)
 	}
 }

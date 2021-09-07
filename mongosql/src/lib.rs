@@ -1,13 +1,15 @@
 mod algebrizer;
 mod ast;
+pub mod catalog;
 mod codegen;
 mod ir;
-mod json_schema;
+pub mod json_schema;
 mod parser;
 mod result;
-mod schema;
+pub mod schema;
 mod util;
-use crate::{algebrizer::Algebrizer, parser::Parser, result::Result};
+
+use crate::{algebrizer::Algebrizer, catalog::Catalog, parser::Parser, result::Result};
 
 /// Contains all the information needed to execute the MQL translation of a SQL query.
 #[derive(Debug)]
@@ -30,16 +32,15 @@ impl From<codegen::MqlTranslation> for Translation {
 }
 
 /// Returns the MQL translation for the provided SQL query in the
-/// specified db. Currently a stub implementation that returns a
-/// hard-coded result.
-pub fn translate_sql(current_db: &str, sql: &str) -> Result<Translation> {
+/// specified db.
+pub fn translate_sql(current_db: &str, sql: &str, catalog: &Catalog) -> Result<Translation> {
     // parse the query and apply syntactic rewrites
     let p = Parser::new();
     let ast = p.parse_query(sql)?;
     let ast = ast::rewrites::rewrite_query(ast)?;
 
     // construct the algebrizer and use it to build an ir plan
-    let algebrizer = Algebrizer::new(current_db.to_string(), 0u16);
+    let algebrizer = Algebrizer::new(current_db.to_string(), catalog, 0u16);
     let plan = algebrizer.algebrize_query(ast)?;
 
     // flatten variadic function

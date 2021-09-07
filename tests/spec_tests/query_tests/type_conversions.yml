@@ -1,4 +1,4 @@
-catalog_environment:
+catalog_data:
   foo:
     doubles:
       - {'_id': 0, 'v': {'$numberDouble': '0'}}

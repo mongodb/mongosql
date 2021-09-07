@@ -1,4 +1,5 @@
 use crate::{
+    catalog::*,
     ir::{binding_tuple::Key, *},
     map,
     schema::{
@@ -58,14 +59,23 @@ pub enum Error {
 }
 
 #[derive(Debug, Clone)]
-pub struct SchemaInferenceState {
+pub struct SchemaInferenceState<'a> {
     pub scope_level: u16,
     pub env: SchemaEnvironment,
+    pub catalog: &'a Catalog,
 }
 
-impl SchemaInferenceState {
-    pub fn new(scope_level: u16, env: SchemaEnvironment) -> SchemaInferenceState {
-        SchemaInferenceState { scope_level, env }
+impl<'a> SchemaInferenceState<'a> {
+    pub fn new(
+        scope_level: u16,
+        env: SchemaEnvironment,
+        catalog: &'a Catalog,
+    ) -> SchemaInferenceState {
+        SchemaInferenceState {
+            scope_level,
+            env,
+            catalog,
+        }
     }
 
     pub fn with_merged_schema_env(
@@ -76,6 +86,7 @@ impl SchemaInferenceState {
             env: env
                 .with_merged_mappings(self.env.clone())
                 .map_err(|e| Error::DuplicateKey(e.key))?,
+            catalog: self.catalog,
             scope_level: self.scope_level,
         })
     }
@@ -84,6 +95,7 @@ impl SchemaInferenceState {
         SchemaInferenceState {
             scope_level: self.scope_level + 1,
             env: self.env.clone(),
+            catalog: self.catalog,
         }
     }
 }
@@ -298,15 +310,22 @@ impl Stage {
                     })?;
                 Ok(source_result_set)
             }
-            Stage::Collection(c) => Ok(ResultSet {
-                schema_env: map! {
-                    // we know the top level elements of a collection must be a Document,
-                    // but we do not know what kind, so we return ANY_DOCUMENT.
-                    (c.collection.clone(), state.scope_level).into() => ANY_DOCUMENT.clone(),
-                },
-                min_size: 0,
-                max_size: None,
-            }),
+            Stage::Collection(c) => {
+                let schema = match state.catalog.get_schema_for_namespace(&Namespace {
+                    db: c.db.clone(),
+                    collection: c.collection.clone(),
+                }) {
+                    Some(s) => s.clone(),
+                    None => ANY_DOCUMENT.clone(),
+                };
+                Ok(ResultSet {
+                    schema_env: map! {
+                        (c.collection.clone(), state.scope_level).into() => schema,
+                    },
+                    min_size: 0,
+                    max_size: None,
+                })
+            }
             Stage::Array(a) => {
                 let array_items_schema = Expression::array_items_schema(&a.array, state)?;
                 if array_items_schema.satisfies(&ANY_DOCUMENT) == Satisfaction::Must {
@@ -328,9 +347,9 @@ impl Stage {
             Stage::Join(j) => {
                 let left_result_set = j.left.schema(state)?;
                 let right_result_set = j.right.schema(state)?;
-                let state = state
-                    .with_merged_schema_env(left_result_set.schema_env.clone())?
-                    .with_merged_schema_env(right_result_set.schema_env.clone())?;
+
+                let state = state.with_merged_schema_env(left_result_set.schema_env.clone())?;
+                let state = state.with_merged_schema_env(right_result_set.schema_env.clone())?;
                 if let Some(e) = &j.condition {
                     let cond_schema = e.schema(&state)?;
                     if cond_schema.satisfies(&BOOLEAN_OR_NULLISH) != Satisfaction::Must {
@@ -500,6 +519,7 @@ impl SubqueryExpr {
         let schema = self.output_expr.schema(&SchemaInferenceState {
             scope_level: state.scope_level + 1,
             env: result_set.schema_env,
+            catalog: state.catalog,
         })?;
 
         // The subquery's result set MUST have a cardinality of 0 or 1. The returned schema

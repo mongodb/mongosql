@@ -1,9 +1,13 @@
+use mongosql::{catalog::*, json_schema, schema};
 use std::{
+    collections::BTreeMap,
+    convert::TryFrom,
     ffi::{CStr, CString, NulError},
     os::raw,
     panic,
     string::FromUtf8Error,
 };
+
 mod version;
 
 /// Returns the semantic version of this library as a C string.
@@ -15,15 +19,16 @@ pub extern "C" fn version() -> *mut raw::c_char {
 
 /// Returns an extjson-encoded version of
 /// [Translation](/mongosql/struct.Translation.html) for the provided
-/// SQL query and database.
+/// SQL query, database, and catalog schema.
 #[no_mangle]
 pub extern "C" fn translate(
     current_db: *const libc::c_char,
     sql: *const libc::c_char,
+    catalog: *const libc::c_char,
 ) -> *const raw::c_char {
     let previous_hook = panic::take_hook();
     panic::set_hook(Box::new(|_| {}));
-    let result = panic::catch_unwind(|| translate_sql_bson_base64(current_db, sql));
+    let result = panic::catch_unwind(|| translate_sql_bson_base64(current_db, sql, catalog));
     panic::set_hook(previous_hook);
 
     let payload = match result {
@@ -48,11 +53,15 @@ pub extern "C" fn translate(
 fn translate_sql_bson_base64(
     current_db: *const libc::c_char,
     sql: *const libc::c_char,
+    catalog: *const libc::c_char,
 ) -> Result<mongosql::Translation, String> {
     let current_db =
         from_extern_string(current_db).map_err(|_| "current_db not valid UTF-8".to_string())?;
     let sql =
         from_extern_string(sql).map_err(|_| "sql query string not valid UTF-8".to_string())?;
+    let catalog_str = from_extern_string(catalog)
+        .map_err(|_| "catalog schema string not valid UTF-8".to_string())?;
+    let catalog = build_catalog(catalog_str.as_str())?;
 
     // used for testing purpose
     #[cfg(feature = "test")]
@@ -62,7 +71,43 @@ fn translate_sql_bson_base64(
         }
     }
 
-    mongosql::translate_sql(&current_db, &sql).map_err(|e| format!("{}", e))
+    mongosql::translate_sql(&current_db, &sql, &catalog).map_err(|e| format!("{}", e))
+}
+
+/// Converts the given base64-encoded bson document into a Catalog.
+pub fn build_catalog(base_64_doc: &str) -> Result<Catalog, String> {
+    let bson_doc_bytes = base64::decode(base_64_doc)
+        .map_err(|e| format!("failed to decode base64 string: {}", e))?;
+    let bson_doc = bson::Document::from_reader(&mut bson_doc_bytes.as_slice())
+        .map_err(|e| format!("failed to read from byte stream: {}", e))?;
+    let json_schemas: BTreeMap<String, BTreeMap<String, json_schema::Schema>> =
+        bson::from_bson(bson::Bson::from(bson_doc)).map_err(|e| {
+            format!(
+                "failed to convert BSON document to json_schema::Schema: {}",
+                e
+            )
+        })?;
+    let catalog = json_schemas
+        .into_iter()
+        .flat_map(|(db, db_schema)| {
+            db_schema.into_iter().map(move |(collection, json_schema)| {
+                let mongosql_schema = schema::Schema::try_from(json_schema).map_err(|e| {
+                    format!(
+                        "failed to add JSON schema for collection {}.{} to the catalog: {}",
+                        db, collection, e
+                    )
+                })?;
+                Ok((
+                    Namespace {
+                        db: db.clone(),
+                        collection,
+                    },
+                    mongosql_schema,
+                ))
+            })
+        })
+        .collect::<Result<Catalog, String>>()?;
+    Ok(catalog)
 }
 
 /// Returns a base64-encoded BSON document representing the payload

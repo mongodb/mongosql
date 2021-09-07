@@ -3,6 +3,7 @@ package mongosql
 import (
 	"encoding/base64"
 	"fmt"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 
 	"github.com/10gen/mongosql-rs/go/internal/desugarer"
 	"go.mongodb.org/mongo-driver/bson"
@@ -15,12 +16,15 @@ func Version() string {
 	return version()
 }
 
-// TranslationArgs contains the arguments that
+// TranslationArgs contains the arguments to the translation engine.
 type TranslationArgs struct {
-	// db represents the current database in which the sql query was run
+	// DB represents the current database in which the sql query was run
 	DB string
-	// sql is a string containing the sql query
+	// SQL is a string containing the sql query
 	SQL string
+	// CatalogSchema maps namespaces to JSON Schemas that describe the
+	// shape of the documents in the namespace.
+	CatalogSchema map[string]map[string]bsoncore.Document
 }
 
 // Translation represents the result of translating a sql query to
@@ -43,7 +47,10 @@ type Translation struct {
 // error if the translation failed. If the returned error is non-nil,
 // the returned Translation should be disregarded.
 func Translate(args TranslationArgs) (Translation, error) {
-	base64TranslationResult := callTranslate(args)
+	base64TranslationResult, err := callTranslate(args)
+	if err != nil {
+		return Translation{}, err
+	}
 
 	translationResult := struct {
 		Db         string   `bson:"target_db"`

@@ -1,4 +1,5 @@
 use crate::{
+    catalog::Catalog,
     ir::{definitions::*, schema::SchemaInferenceState, visitor::Visitor},
     schema::{Atomic, Satisfaction, Schema, SchemaEnvironment},
     set,
@@ -9,9 +10,11 @@ use lazy_static::lazy_static;
 struct ConstantFoldExprVisitor;
 
 lazy_static! {
-    static ref EMPTY_STATE: SchemaInferenceState = SchemaInferenceState {
+    static ref DEFAULT_CATALOG: Catalog = Catalog::default();
+    static ref EMPTY_STATE: SchemaInferenceState<'static> = SchemaInferenceState {
         scope_level: 0u16,
         env: SchemaEnvironment::default(),
+        catalog: &DEFAULT_CATALOG,
     };
 }
 

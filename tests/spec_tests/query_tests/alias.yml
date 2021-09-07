@@ -1,4 +1,4 @@
-catalog_environment:
+catalog_data:
   db:
     foo:
       - {'_id': 0, 'a': 1, 'b': 2}

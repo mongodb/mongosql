@@ -1,4 +1,4 @@
-catalog_environment:
+catalog_data:
   foo:
     unary:
       - { "_id": 0, "a": true }
@@ -23,44 +23,40 @@ catalog_environment:
       - { "_id": 14, "b": null }
       - { "_id": 15 }
 
-schema_environment:
+catalog_schema:
   {
     "foo": {
       "unary": {
-        "$jsonSchema": {
-          "bsonType": "object",
-          "properties": {
-            "_id": {
-              "bsonType": "int"
-            },
-            "a": {
-              "anyOf": [
-                { "bsonType": "bool" },
-                { "bsonType": "null" }
-              ]
-            }
+        "bsonType": "object",
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": "null" }
+            ]
           }
         }
       },
       "binary": {
-        "$jsonSchema": {
-          "bsonType": "object",
-          "properties": {
-            "_id": {
-              "bsonType": "int"
-            },
-            "a": {
-              "anyOf": [
-                { "bsonType": "bool" },
-                { "bsonType": "null" }
-              ]
-            },
-            "b": {
-              "anyOf": [
-                { "bsonType": "bool" },
-                { "bsonType": "null" }
-              ]
-            }
+        "bsonType": "object",
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": "null" }
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "bool" },
+              { "bsonType": "null" }
+            ]
           }
         }
       }

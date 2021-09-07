@@ -9,6 +9,9 @@ package mongosql
 */
 import "C"
 import (
+	"encoding/base64"
+	"fmt"
+	"go.mongodb.org/mongo-driver/bson"
 	"unsafe"
 )
 
@@ -26,16 +29,24 @@ func version() string {
 // passes the provided TranslationArgs to the c translation library,
 // and returns the string returned by the c library (a base64-encoded
 // bson document representing the result of the translation).
-func callTranslate(args TranslationArgs) string {
+func callTranslate(args TranslationArgs) (string, error) {
 	cSQL := C.CString(args.SQL)
 	cDB := C.CString(args.DB)
 
-	cTranslationBase64 := C.translate(cDB, cSQL)
+	// Convert the catalog schema into a base64-encoded bson document
+	catalogSchemaBson, err := bson.Marshal(args.CatalogSchema)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal catalog schema to BSON: %w", err)
+	}
+	cCatalogSchema := C.CString(base64.StdEncoding.EncodeToString(catalogSchemaBson))
+
+	cTranslationBase64 := C.translate(cDB, cSQL, cCatalogSchema)
 	translationBase64 := C.GoString(cTranslationBase64)
 
 	C.free(unsafe.Pointer(cSQL))
 	C.free(unsafe.Pointer(cDB))
+	C.free(unsafe.Pointer(cCatalogSchema))
 	C.free(unsafe.Pointer(cTranslationBase64))
 
-	return translationBase64
+	return translationBase64, nil
 }

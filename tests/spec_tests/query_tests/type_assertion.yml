@@ -1,4 +1,4 @@
-catalog_environment:
+catalog_data:
   foo:
     bar:
       - { _id: {"$numberInt": "1"}, v1: "abc"}
@@ -9,24 +9,22 @@ catalog_environment:
       - { _id: {"$numberInt": "2"}, v1: {"$numberInt": "2"}}
       - { _id: {"$numberInt": "3"}, v1: null}
 
-schema_environment:
+catalog_schema:
   {
     "foo": {
       "bar_schema": {
-        "$jsonSchema": {
-          "bsonType": "object",
-          "properties": {
-            "_id": {
-              "bsonType": "int"
-            },
-            "v1": {
-              "anyOf": [
+        "bsonType": "object",
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v1": {
+            "anyOf": [
               { "bsonType": "string" },
               { "bsonType": "int" },
               { "bsonType": "null" }
-              ]
-            },
-          }
+            ]
+          },
         }
       }
     }

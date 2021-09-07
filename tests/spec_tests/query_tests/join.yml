@@ -1,4 +1,4 @@
-catalog_environment:
+catalog_data:
   'mydb':
     'bar':
       - { '_id': 0, 'foo': 1 }
@@ -12,33 +12,27 @@ catalog_environment:
     'foo':
       - { '_id': 0, 'x': 1 }
 
-schema_environment:
+catalog_schema:
   {
     'mydb': {
       'bar': {
-        '$jsonSchema': {
-          'bsonType': "object",
-          'properties': {
-            'foo': { 'bsonType': "double" },
-          }
+        'bsonType': "object",
+        'properties': {
+          'foo': { 'bsonType': "double" },
         }
       },
       'bar2': {
-        '$jsonSchema': {
-          'bsonType': "object",
-          'properties': {
-            'foo': { 'bsonType': "double" },
-            'baz': { 'bsonType': "double" },
-          }
+        'bsonType': "object",
+        'properties': {
+          'foo': { 'bsonType': "double" },
+          'baz': { 'bsonType': "double" },
         }
       },
       'coll': {
-        '$jsonSchema': {
-          'bsonType': "object",
-          'properties': {
-            'bar': { 'bsonType': "double" },
-            'car': { 'bsonType': "double" },
-          }
+        'bsonType': "object",
+        'properties': {
+          'bar': { 'bsonType': "double" },
+          'car': { 'bsonType': "double" },
         }
       },
     }

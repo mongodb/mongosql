@@ -1,4 +1,4 @@
-catalog_environment:
+catalog_data:
   foo:
     bar:
       - {'_id': 0, 'a': {'$numberInt': '1'}, 'b': {'$numberInt': '2'}, 'c': {'$numberInt': '3'}}

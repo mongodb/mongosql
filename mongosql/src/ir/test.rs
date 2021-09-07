@@ -10,12 +10,12 @@ macro_rules! test_schema {
     ($func_name:ident, match $expected:pat, $input:expr, $schema_env:expr,) => {
         #[test]
         fn $func_name() {
-            use crate::ir::schema::SchemaInferenceState;
+            use crate::{ir::schema::SchemaInferenceState, catalog::Catalog};
 
             let input = $input;
             let schema_env = $schema_env;
-
-            let state = SchemaInferenceState::new(0u16, schema_env);
+            let catalog = Catalog::default();
+            let state = SchemaInferenceState::new(0u16, schema_env, &catalog);
             let actual = input.schema(&state);
 
             assert!(matches!(actual, $expected));
@@ -32,16 +32,32 @@ macro_rules! test_schema {
     ($func_name:ident, $expected:expr, $input:expr, $schema_env:expr,) => {
         #[test]
         fn $func_name() {
-            use crate::ir::schema::SchemaInferenceState;
+            use crate::{ir::schema::SchemaInferenceState, catalog::Catalog};
 
             let expected = $expected;
             let input = $input;
             let schema_env = $schema_env;
+            let catalog = Catalog::default();
 
-            let state = SchemaInferenceState::new(0u16, schema_env);
+            let state = SchemaInferenceState::new(0u16, schema_env, &catalog);
             let actual = input.schema(&state);
 
             assert_eq!(expected, actual);
+        }
+    };
+    ($func_name:ident, $expected:expr, $input:expr, $schema_env:expr, $catalog:expr,) => {
+        #[test]
+        fn $func_name() {
+            use crate::ir::schema::SchemaInferenceState;
+
+            let input = $input;
+            let schema_env = $schema_env;
+            let catalog = $catalog;
+
+            let state = SchemaInferenceState::new(0u16, schema_env, &catalog);
+            let actual = input.schema(&state);
+
+            assert_eq!(actual, $expected);
         }
     };
 }
@@ -74,6 +90,7 @@ macro_rules! test_flatten_variadic_functions {
 
 mod schema {
     use crate::{
+        catalog::*,
         ir::{binding_tuple::DatasourceName::Bottom, schema::*, *},
         map,
         schema::*,
@@ -3355,6 +3372,43 @@ mod schema {
                 ("bar3", 0u16).into() =>
                     Expression::Reference(("foo", 0u16).into()),
             }
+        }),
+    );
+
+    test_schema!(
+        namespace_in_catalog,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("bar", 0u16).into() => Schema::Atomic(Atomic::Integer),
+            },
+            min_size: 0,
+            max_size: None,
+        }),
+        Stage::Collection(Collection {
+            db: "foo".into(),
+            collection: "bar".into(),
+        }),
+        SchemaEnvironment::default(),
+        &Catalog::new(map! {
+            Namespace {db: "foo".into(), collection: "bar".into()} => Schema::Atomic(Atomic::Integer)
+        }),
+    );
+    test_schema!(
+        namespace_not_in_catalog,
+        Ok(ResultSet {
+            schema_env: map! {
+                ("baz", 0u16).into() => crate::schema::ANY_DOCUMENT.clone()
+            },
+            min_size: 0,
+            max_size: None,
+        }),
+        Stage::Collection(Collection {
+            db: "foo".into(),
+            collection: "baz".into(),
+        }),
+        SchemaEnvironment::default(),
+        &Catalog::new(map! {
+            Namespace {db: "foo".into(), collection: "bar".into()} => Schema::Atomic(Atomic::Integer)
         }),
     );
 

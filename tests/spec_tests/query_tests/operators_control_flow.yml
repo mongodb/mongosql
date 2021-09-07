@@ -1,28 +1,26 @@
-catalog_environment:
+catalog_data:
   foo:
     bar:
       - { "_id": 0, "a": 2, "b": null }
 
-schema_environment:
+catalog_schema:
   {
     "foo": {
       "bar": {
-        "$jsonSchema": {
-          "bsonType": "object",
-          "properties": {
-            "a": {
-              "bsonType": "int"
-            },
-            "b": {
-              "anyOf": [
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "anyOf": [
               { "bsonType": "int" },
               { "bsonType": "null" }
-              ]
-            },
-            "c": {
-              "bsonType": "int"
-            },
-          }
+            ]
+          },
+          "c": {
+            "bsonType": "int"
+          },
         }
       }
     }

@@ -9,9 +9,11 @@ use crate::{
     set,
 };
 use lazy_static::lazy_static;
-use std::collections::{BTreeMap, BTreeSet};
-use std::convert::TryFrom;
-use std::str::FromStr;
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    convert::TryFrom,
+    str::FromStr,
+};
 
 pub type SchemaEnvironment = BindingTuple<Schema>;
 

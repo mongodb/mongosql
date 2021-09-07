@@ -1,4 +1,4 @@
-catalog_environment:
+catalog_data:
   foo:
     bar:
       - {'_id': 0, 'foo': true}
@@ -6,17 +6,15 @@ catalog_environment:
     baz:
       - {'_id': 0, 'foo': true}
 
-schema_environment:
+catalog_schema:
     {
         "foo": {
             "bar": {
-                "$jsonSchema": {
-                    "bsonType": "object",
-                    "required": ["foo"],
-                    "properties": {
-                        "foo": {"bsonType": "boolean"}
-                    }
-                }
+              "bsonType": "object",
+              "required": [ "foo" ],
+              "properties": {
+                "foo": { "bsonType": "boolean" }
+              }
             }
         }
     }

@@ -1,4 +1,4 @@
-catalog_environment:
+catalog_data:
   foo:
     bar:
       - {'_id': 1, 'v': 1}
@@ -12,38 +12,34 @@ catalog_environment:
       - {'_id': 2, 'a': 3}
       - {'_id': 3, 'a': null}
 
-schema_environment:
+catalog_schema:
   {
     'foo': {
       'bar': {
-        '$jsonSchema': {
-          'bsonType': "object",
-          'properties': {
-            '_id': {
-              'bsonType': "int"
-            },
-            'v': {
-              'anyOf': [
+        'bsonType': "object",
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'v': {
+            'anyOf': [
               { 'bsonType': "int" },
               { 'bsonType': "null" }
-              ]
-            }
+            ]
           }
         }
       },
       'target': {
-        '$jsonSchema': {
-          'bsonType': "object",
-          'properties': {
-            '_id': {
-              'bsonType': "int"
-            },
-            'a': {
-              'anyOf': [
+        'bsonType': "object",
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'a': {
+            'anyOf': [
               { 'bsonType': "int" },
               { 'bsonType': "null" }
-              ]
-            }
+            ]
           }
         }
       }

@@ -9,8 +9,12 @@ macro_rules! test_algebrize {
     ($func_name:ident, $method:ident, $expected:expr, $ast:expr $(,)?) => {
         #[test]
         fn $func_name() {
-            use crate::algebrizer::{Algebrizer, Error};
-            let algebrizer = Algebrizer::new("test".into(), 0u16);
+            use crate::{
+                algebrizer::{Algebrizer, Error},
+                catalog::Catalog,
+            };
+            let catalog = Catalog::default();
+            let algebrizer = Algebrizer::new("test".into(), &catalog, 0u16);
             let expected: Result<_, Error> = $expected;
             let res: Result<_, Error> = algebrizer.$method($ast);
             assert_eq!(expected, res);
@@ -19,8 +23,12 @@ macro_rules! test_algebrize {
     ($func_name:ident, $method:ident, $expected:expr, $ast:expr, $source:expr $(,)?) => {
         #[test]
         fn $func_name() {
-            use crate::algebrizer::{Algebrizer, Error};
-            let algebrizer = Algebrizer::new("test".into(), 0u16);
+            use crate::{
+                algebrizer::{Algebrizer, Error},
+                catalog::Catalog,
+            };
+            let catalog = Catalog::default();
+            let algebrizer = Algebrizer::new("test".into(), &catalog, 0u16);
             let expected: Result<_, Error> = $expected;
             let res: Result<_, Error> = algebrizer.$method($ast, $source);
             assert_eq!(expected, res);
@@ -29,8 +37,12 @@ macro_rules! test_algebrize {
     ($func_name:ident, $method:ident, source = $source:expr, expected = $expected:expr, input = $ast:expr, env = $env:expr $(,)?) => {
         #[test]
         fn $func_name() {
-            use crate::algebrizer::{Algebrizer, Error};
-            let algebrizer = Algebrizer::with_schema_env("test".into(), $env, 1u16);
+            use crate::{
+                algebrizer::{Algebrizer, Error},
+                catalog::Catalog,
+            };
+            let catalog = Catalog::default();
+            let algebrizer = Algebrizer::with_schema_env("test".into(), $env, &catalog, 1u16);
             let expected: Result<_, Error> = $expected;
             let res: Result<_, Error> = algebrizer.$method($ast, $source);
             assert_eq!(expected, res);
@@ -45,8 +57,10 @@ macro_rules! test_algebrize_with_env {
             use crate::{
                 algebrizer::{Algebrizer, Error},
                 ast,
+                catalog::Catalog,
             };
-            let algebrizer = Algebrizer::with_schema_env("test".into(), $env, 1u16);
+            let catalog = Catalog::default();
+            let algebrizer = Algebrizer::with_schema_env("test".into(), $env, &catalog, 1u16);
             let expected: Result<_, Error> = $expected;
             let res: Result<_, Error> = algebrizer.$method($ast);
             assert_eq!(expected, res);

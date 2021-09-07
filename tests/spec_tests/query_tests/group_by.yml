@@ -1,4 +1,4 @@
-catalog_environment:
+catalog_data:
   foo:
     bar:
       - {'_id': {'$numberInt': '1'}, 'a': {'$numberInt': '1'},'b': {'$numberInt': '2'},'c': {'$numberInt': '3'}}
@@ -42,53 +42,46 @@ catalog_environment:
       - {'_id': {'$numberInt': '2'}, 'a': {'$numberDouble': '3.0'}}
       - {'_id': {'$numberInt': '3'}, 'a': {'$numberInt': '3'}}
 
-schema_environment:
+catalog_schema:
   {
     'foo': {
       'numerics': {
-        '$jsonSchema': {
-          'bsonType': 'object',
-          'required': [ '_id', 'a' ],
-          'properties': {
-            '_id': { 'bsonType': 'int' },
-            'a': {
-              'anyOf':
-                [
-                  { 'bsonType': 'int' },
-                  { 'bsonType': 'double' },
-                  { 'bsonType': 'decimal128' }
-                ]
-            }
+        'bsonType': 'object',
+        'required': [ '_id', 'a' ],
+        'properties': {
+          '_id': { 'bsonType': 'int' },
+          'a': {
+            'anyOf':
+              [
+                { 'bsonType': 'int' },
+                { 'bsonType': 'double' },
+                { 'bsonType': 'decimal128' }
+              ]
           }
         },
         'bar': {
-          '$jsonSchema': {
-            'bsonType': 'object',
-            'required': [ '_id', 'a', 'b', 'c' ],
-            'properties': {
-              '_id': { 'bsonType': 'int' },
-              'a': { 'bsonType': 'int' },
-              'b': { 'bsonType': 'int' },
-              'c': { 'bsonType': 'int' },
-            }
+          'bsonType': 'object',
+          'required': [ '_id', 'a', 'b', 'c' ],
+          'properties': {
+            '_id': { 'bsonType': 'int' },
+            'a': { 'bsonType': 'int' },
+            'b': { 'bsonType': 'int' },
+            'c': { 'bsonType': 'int' },
           }
         },
         'nullAndMissing': {
-          '$jsonSchema': {
-            'bsonType': 'object',
-            'required': [ '_id', 'n' ],
-            'properties': {
-              '_id': { 'bsonType': 'int' },
-              'n': {
-                'anyOf':
-                  [
-                    { 'bsonType': 'int' },
-                    { 'bsonType': 'null' }
-                  ]
-              }
+          'bsonType': 'object',
+          'required': [ '_id', 'n' ],
+          'properties': {
+            '_id': { 'bsonType': 'int' },
+            'n': {
+              'anyOf':
+                [
+                  { 'bsonType': 'int' },
+                  { 'bsonType': 'null' }
+                ]
             }
           }
-
         }
       }
     }

@@ -1,22 +1,20 @@
-catalog_environment:
+catalog_data:
   foo:
     bar:
       - {'_id': 0, 'arr': [1, 2, 3], 'd': 2.3, 'i': 2}
 
-schema_environment:
+catalog_schema:
   {
     'foo': {
       'bar': {
-        '$jsonSchema': {
-          'bsonType': "object",
-          'properties': {
-            'd': {
-              'bsonType': "double"
-            },
-            'i': {
-              'bsonType': "int"
-            },
-          }
+        'bsonType': "object",
+        'properties': {
+          'd': {
+            'bsonType': "double"
+          },
+          'i': {
+            'bsonType': "int"
+          },
         }
       }
     }

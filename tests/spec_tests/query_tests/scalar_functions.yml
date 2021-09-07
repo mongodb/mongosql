@@ -1,4 +1,4 @@
-catalog_environment:
+catalog_data:
   foo:
     nullif:
       - {'_id': 0, 'v1': 'a', 'v2': 'a'}
@@ -83,142 +83,128 @@ catalog_environment:
       - {'_id': 9, 'substr': ' ', 'str': null}
       - {'_id': 10, 'substr': ' '}
 
-schema_environment:
+catalog_schema:
   {
     "foo": {
       "nullif": {
-        "$jsonSchema": {
-          "bsonType": "object",
-          "properties": {
-            "_id": {
-              "bsonType": "int"
-            },
-            "v1": {
-              "anyOf": [
+        "bsonType": "object",
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v1": {
+            "anyOf": [
               { "bsonType": "string" },
               { "bsonType": "null" }
-              ]
-            },
-            "v2": {
-              "anyOf": [
+            ]
+          },
+          "v2": {
+            "anyOf": [
               { "bsonType": "string" },
               { "bsonType": "null" }
-              ]
-            }
+            ]
           }
         }
       },
       "size": {
-        "$jsonSchema": {
-          "bsonType": "object",
-          "properties": {
-            "_id": {
-              "bsonType": "int"
-            },
-            "a": {
-              "anyOf": [
-                { "bsonType": "array" },
-                { "bsonType": "null" }
-              ]
-            }
+        "bsonType": "object",
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "array" },
+              { "bsonType": "null" }
+            ]
           }
         }
       },
       "length": {
-        "$jsonSchema": {
-          "bsonType": "object",
-          "properties": {
-            "_id": {
-              "bsonType": "int"
-            },
-            "a": {
-              "anyOf": [
-                { "bsonType": "string" },
-                { "bsonType": "null" }
-              ]
-            }
+        "bsonType": "object",
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": "null" }
+            ]
           }
         }
       },
       "nullAndMissing": {
-        "$jsonSchema": {
-          "bsonType": "object",
-          "properties": {
-            "_id": {
-              "bsonType": "int"
-            },
-            "d": {
-              "anyOf": [
-                { "bsonType": "date" },
-                { "bsonType": "null" }
-              ]
-            }
+        "bsonType": "object",
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "d": {
+            "anyOf": [
+              { "bsonType": "date" },
+              { "bsonType": "null" }
+            ]
           }
         }
       },
       "substring": {
-        "$jsonSchema": {
-          "bsonType": "object",
-          "properties": {
-            "_id": {
-              "bsonType": "int"
-            },
-            "str": {
-              "anyOf": [
-                { "bsonType": "string" },
-                { "bsonType": "null" }
-              ]
-            },
-            "start": {
-              "anyOf": [
-                { "bsonType": "int" },
-                { "bsonType": "null" }
-              ]
-            },
-            "length": {
-              "anyOf": [
-                { "bsonType": "int" },
-                { "bsonType": "null" }
-              ]
-            }
+        "bsonType": "object",
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "str": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": "null" }
+            ]
+          },
+          "start": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "null" }
+            ]
+          },
+          "length": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "null" }
+            ]
           }
         }
       },
       "fold": {
-        "$jsonSchema": {
-          "bsonType": "object",
-          "properties": {
-            "_id": {
-              "bsonType": "int"
-            },
-            "s": {
-              "anyOf": [
-                { "bsonType": "string" },
-                { "bsonType": "null" }
-              ]
-            }
+        "bsonType": "object",
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "s": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": "null" }
+            ]
           }
         }
       },
       "trim": {
-        "$jsonSchema": {
-          "bsonType": "object",
-          "properties": {
-            "_id": {
-              "bsonType": "int"
-            },
-            "substr": {
-              "anyOf": [
-                { "bsonType": "string" },
-                { "bsonType": "null" }
-              ]
-            },
-            "str": {
-              "anyOf": [
-                { "bsonType": "string" },
-                { "bsonType": "null" }
-              ]
-            }
+        "bsonType": "object",
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "substr": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": "null" }
+            ]
+          },
+          "str": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": "null" }
+            ]
           }
         }
       }
