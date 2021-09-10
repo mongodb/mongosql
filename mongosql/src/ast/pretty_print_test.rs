@@ -100,6 +100,19 @@ query_printer_test!(
     "SELECT foo.* FROM bar.foo AS foo",
     "SeLeCT foo.* from bar.foo foo"
 );
+
+query_printer_test!(
+    select_from_delimited_db_collection_and_alias,
+    "SELECT * FROM `db%`.`coll%` AS `a%&`",
+    "SELECT * FROM `db%`.`coll%` AS `a%&`"
+);
+
+query_printer_test!(
+    select_from_delimited_collection,
+    "SELECT * FROM db.`coll%` AS a",
+    "SELECT * FROM db.`coll%` AS a"
+);
+
 query_printer_test!(
     select_from_qualified_collection_with_delimited_alias,
     "SELECT foo.* FROM bar.foo AS `f\"o\"o`",

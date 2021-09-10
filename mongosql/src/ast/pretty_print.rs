@@ -187,7 +187,7 @@ impl Display for CollectionSource {
                 "{}.",
                 identifier_to_string(x.as_str())
             )),
-            self.collection,
+            identifier_to_string(self.collection.as_str()),
             self.alias.as_ref().map_or("".to_string(), |x| format!(
                 " AS {}",
                 identifier_to_string(x)
