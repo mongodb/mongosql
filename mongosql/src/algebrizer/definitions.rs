@@ -194,14 +194,14 @@ impl TryFrom<crate::ast::BinaryOp> for ir::SubqueryComparisonOp {
 
 #[derive(Debug, Clone)]
 pub struct Algebrizer<'a> {
-    current_db: String,
+    current_db: &'a str,
     schema_env: SchemaEnvironment,
     catalog: &'a Catalog,
     scope_level: u16,
 }
 
 impl<'a> Algebrizer<'a> {
-    pub fn new(current_db: String, catalog: &'a Catalog, scope_level: u16) -> Self {
+    pub fn new(current_db: &'a str, catalog: &'a Catalog, scope_level: u16) -> Self {
         Self::with_schema_env(
             current_db,
             SchemaEnvironment::default(),
@@ -211,7 +211,7 @@ impl<'a> Algebrizer<'a> {
     }
 
     pub fn with_schema_env(
-        current_db: String,
+        current_db: &'a str,
         schema_env: SchemaEnvironment,
         catalog: &'a Catalog,
         scope_level: u16,
@@ -234,7 +234,7 @@ impl<'a> Algebrizer<'a> {
 
     pub fn subquery_algebrizer(&self) -> Self {
         Self {
-            current_db: self.current_db.clone(),
+            current_db: self.current_db,
             schema_env: self.schema_env.clone(),
             catalog: self.catalog,
             scope_level: self.scope_level + 1,
@@ -377,7 +377,7 @@ impl<'a> Algebrizer<'a> {
             }
             ast::Datasource::Collection(c) => {
                 let src = ir::Stage::Collection(ir::Collection {
-                    db: c.database.unwrap_or_else(|| self.current_db.clone()),
+                    db: c.database.unwrap_or_else(|| self.current_db.to_string()),
                     collection: c.collection.clone(),
                 });
                 let stage = match c.alias {
@@ -437,7 +437,7 @@ impl<'a> Algebrizer<'a> {
             }
             ast::Datasource::Derived(d) => {
                 let derived_algebrizer =
-                    Algebrizer::new(self.current_db.clone(), self.catalog, self.scope_level + 1);
+                    Algebrizer::new(self.current_db, self.catalog, self.scope_level + 1);
                 let src = derived_algebrizer.algebrize_query(*d.query)?;
                 let src_resultset = src.schema(&derived_algebrizer.schema_inference_state())?;
                 let expression = map! {

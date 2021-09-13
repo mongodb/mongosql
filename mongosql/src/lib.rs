@@ -40,7 +40,7 @@ pub fn translate_sql(current_db: &str, sql: &str, catalog: &Catalog) -> Result<T
     let ast = ast::rewrites::rewrite_query(ast)?;
 
     // construct the algebrizer and use it to build an ir plan
-    let algebrizer = Algebrizer::new(current_db.to_string(), catalog, 0u16);
+    let algebrizer = Algebrizer::new(current_db, catalog, 0u16);
     let plan = algebrizer.algebrize_query(ast)?;
 
     // flatten variadic function
