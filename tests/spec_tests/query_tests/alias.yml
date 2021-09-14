@@ -27,6 +27,14 @@ tests:
     result:
       - {'__bot': {'a1': 1, 'a2': 1}}
 
+  - description: _id is a valid alias for datasources
+    query: "SELECT * FROM [{'a': 1}] _id"
+    translation:
+      - {'$documents': [{'a': 1}]}
+      - {'$project': {'_id': '$$ROOT'}}
+    result:
+      - {'_id': {'a': 1}}
+
   - description: Cannot use duplicate implicit aliases for collections
     query: "SELECT * FROM foo, foo"
     should_compile: false

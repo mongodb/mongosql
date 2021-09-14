@@ -308,7 +308,14 @@ impl MqlCodeGenerator {
                 mapping_registry: MappingRegistry(
                     map! {(&c.collection, self.scope_level).into() => c.collection.clone()},
                 ),
-                pipeline: vec![doc! {"$project": {"_id": 0, &c.collection: "$$ROOT"}}],
+                // It is not technically possible to have a collection named _id in a mongod
+                // instance, but it may be possible in datalake or other future instantiations
+                // of the mongo protocol, so we make sure that a collection with name _id is
+                // supported.
+                pipeline: vec![match c.collection.as_str() {
+                    "_id" => doc! {"$project": {"_id": "$$ROOT"}},
+                    _ => doc! {"$project": {"_id": 0, &c.collection: "$$ROOT"}},
+                }],
             }),
             Array(arr) => {
                 let mapping_registry = MappingRegistry(
@@ -323,16 +330,13 @@ impl MqlCodeGenerator {
                     database: None,
                     collection: None,
                     mapping_registry,
-                    pipeline: match arr.alias.as_ref() {
-                        "_id" => vec![
-                            doc! {"$documents": Bson::Array(docs)},
-                            doc! {"$project": {"_id": "$$ROOT"}},
-                        ],
-                        x => vec![
-                            doc! {"$documents": Bson::Array(docs)},
-                            doc! {"$project": {"_id": 0, x: "$$ROOT"}},
-                        ],
-                    },
+                    pipeline: vec![
+                        doc! {"$documents": Bson::Array(docs)},
+                        match arr.alias.as_ref() {
+                            "_id" => doc! {"$project": {"_id": "$$ROOT"}},
+                            x => doc! {"$project": {"_id": 0, x: "$$ROOT"}},
+                        },
+                    ],
                 })
             }
             Join(join) => {
@@ -476,18 +480,27 @@ impl MqlCodeGenerator {
                             Some(datasource) => {
                                 let stripped_ds =
                                     datasource.strip_prefix('$').unwrap_or(datasource);
-
-                                match project_body.get_mut(stripped_ds) {
-                                    // We can safely unwrap here since `doc` will always be a
-                                    // Bson::Document.
-                                    Some(doc) => doc
-                                        .as_document_mut()
-                                        .unwrap()
-                                        .insert(fa.field.clone(), format!("$_id.{}", alias)),
-                                    None => project_body.insert(
+                                // _id will be 0 instead of a Document. We assume it is
+                                // always a Document in the else.
+                                if stripped_ds == "_id" {
+                                    project_body.insert(
                                         stripped_ds,
                                         bson::bson! {{fa.field.clone(): format!("$_id.{}", alias)}},
-                                    ),
+                                    )
+                                } else {
+                                    match project_body.get_mut(stripped_ds) {
+	                                    // We can safely unwrap here since `doc` will always be a
+	                                    // Bson::Document.
+	                                    Some(doc) => {
+	                                        doc
+	                                        .as_document_mut()
+	                                        .unwrap()
+	                                        .insert(fa.field.clone(), format!("$_id.{}", alias))}
+	                                    None => project_body.insert(
+	                                        stripped_ds,
+	                                        bson::bson! {{fa.field.clone(): format!("$_id.{}", alias)}},
+	                                    ),
+	                                }
                                 }
                             }
                             None => return Err(Error::InvalidGroupKey),

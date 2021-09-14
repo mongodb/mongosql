@@ -87,6 +87,20 @@ mod collection {
             collection: "col".to_string(),
         }),
     );
+    test_codegen_plan!(
+        collection_named_id,
+        Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("_id".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": "$$ROOT"}},
+            ],
+        }),
+        Stage::Collection(Collection {
+            db: "mydb".to_string(),
+            collection: "_id".to_string(),
+        }),
+    );
 }
 
 mod array_stage {
@@ -1833,6 +1847,81 @@ mod group_by {
             keys: vec![AliasedExpression {
                 alias: Some("f".into()),
                 inner: Expression::Reference(("foo", 0u16).into()),
+            }],
+            aggregations: vec![],
+        }),
+    );
+    test_codegen_plan!(
+        user_defined_id_group_should_work,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"_id": "$foo"}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"_id": "$_id._id"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: vec![AliasedExpression {
+                alias: Some("_id".into()),
+                inner: Expression::Reference(("foo", 0u16).into()),
+            }],
+            aggregations: vec![],
+        }),
+    );
+    test_codegen_plan!(
+        pass_through_id_group_should_work,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"__unaliasedKey1": "$foo._id"}}},
+                bson::doc!{"$project": {"_id": 0, "foo": {"_id": "$_id.__unaliasedKey1"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source: SOURCE_IR.clone(),
+            keys: vec![AliasedExpression {
+                alias: None,
+                inner: Expression::FieldAccess(
+                    FieldAccess{
+                        expr: Expression::Reference(("foo", 0u16).into()).into(),
+                        field: "_id".into(),
+                    }),
+            }],
+            aggregations: vec![],
+        }),
+    );
+    test_codegen_plan!(
+        unaliased_id_datasource_group_key_should_not_remove_id_in_project,
+        Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$project": {"_id": "$foo"}},
+                bson::doc!{"$group": {"_id": {"__unaliasedKey1": "$_id.a"}}},
+                bson::doc!{"$project": {"_id": {"a": "$_id.__unaliasedKey1"}}},
+            ],
+        }),
+        Stage::Group(Group {
+            source:Box::new(Stage::Project(Project {
+                source: SOURCE_IR.clone(),
+                expression: map! {
+                    ("_id", 0u16).into() =>
+                        Expression::Reference(("foo", 0u16).into())
+                }
+            },)),
+            keys: vec![AliasedExpression {
+                alias: None,
+                inner: Expression::FieldAccess(
+                    FieldAccess{
+                        expr: Expression::Reference(("_id", 0u16).into()).into(),
+                        field: "a".into(),
+                    }),
             }],
             aggregations: vec![],
         }),
