@@ -118,6 +118,32 @@ functions:
           ${prepare_shell}
           gofmt -s -d .
 
+  "check go mod tidy":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs/go
+        script: |
+          ${prepare_shell}
+
+          # save original files
+          cp go.mod go.mod.original
+          cp go.sum go.sum.original
+
+          # tidy files and save tidied versions
+          go mod tidy
+          cp go.mod go.mod.tidied
+          cp go.sum go.sum.tidied
+
+          # restore original files
+          rm go.mod && cp go.mod.original go.mod
+          rm go.sum && cp go.sum.original go.sum
+
+          # fail if tidying changed files
+          diff go.mod.original go.mod.tidied || exit 1
+          diff go.sum.original go.sum.tidied || exit 1
+
   "check rustfmt":
     - command: shell.exec
       type: test
@@ -315,6 +341,10 @@ tasks:
     commands:
       - func: "check gofmt"
 
+  - name: gomodtidy
+    commands:
+      - func: "check go mod tidy"
+
   - name: compile
     commands:
       - func: "install rust toolchain"
@@ -361,6 +391,7 @@ buildvariants:
       - name: clippy
       - name: rustfmt
       - name: gofmt
+      - name: gomodtidy
 
   - name: ubuntu1804
     display_name: "Ubuntu 18.04"
