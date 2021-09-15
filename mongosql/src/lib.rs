@@ -7,7 +7,7 @@ pub mod json_schema;
 mod parser;
 mod result;
 pub mod schema;
-mod util;
+pub mod util;
 
 use crate::{algebrizer::Algebrizer, catalog::Catalog, parser::Parser, result::Result};
 

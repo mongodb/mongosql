@@ -105,10 +105,6 @@ impl<T> BindingTuple<T> {
         self.0.iter()
     }
 
-    pub fn into_iter(self) -> IntoIter<Key, T> {
-        self.0.into_iter()
-    }
-
     pub fn merge(&mut self, other: BindingTuple<T>) -> Result<(), DuplicateKeyError> {
         for (k, v) in other.0.into_iter() {
             if self.0.insert(k.clone(), v).is_some() {
@@ -124,6 +120,15 @@ impl<T> BindingTuple<T> {
     ) -> Result<Self, DuplicateKeyError> {
         self.merge(mappings)?;
         Ok(self)
+    }
+}
+
+impl<T> IntoIterator for BindingTuple<T> {
+    type Item = (Key, T);
+    type IntoIter = IntoIter<Key, T>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 

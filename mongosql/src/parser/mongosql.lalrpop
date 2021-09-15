@@ -341,7 +341,8 @@ Trim: TrimExpr = {
 }
 
 DocumentExpr: Expression = {
-  LEFT_CURLY_BRACE <l:CommaStar<(<String> COLON <Expression>)>> RIGHT_CURLY_BRACE => Expression::Document(l.into_iter().collect())
+  LEFT_CURLY_BRACE <l:CommaStar<(<String> COLON <Expression>)>> RIGHT_CURLY_BRACE =>
+  		Expression::Document(l.into_iter().map(|(k,v)| DocumentPair{key: k, value: v}).collect())
 }
 
 // This production uses Tier12Expr instead of Expression to avoid shift-reduce conflicts

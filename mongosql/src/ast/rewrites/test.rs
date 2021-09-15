@@ -17,7 +17,7 @@ macro_rules! test_rewrite {
 
             let actual = pass.apply(query).map(|q| format!("{}", q));
 
-            assert_eq!(actual, expected);
+            assert_eq!(expected, actual);
         }
     };
 }

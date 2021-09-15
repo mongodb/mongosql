@@ -415,7 +415,7 @@ impl Display for Expression {
                 f,
                 "{{{}}}",
                 d.iter()
-                    .map(|(k, v)| format!("'{}': {}", k, v))
+                    .map(|kv| format!("'{}': {}", kv.key, kv.value))
                     .collect::<Vec<_>>()
                     .join(", ")
             ),

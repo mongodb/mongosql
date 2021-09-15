@@ -1,4 +1,7 @@
-use crate::module::submodule::{ast, visitor::Visitor};
+use crate::{
+    module::submodule::{ast, visitor::Visitor},
+    util::unique_linked_hash_map::UniqueLinkedHashMap,
+};
 
 use linked_hash_map::LinkedHashMap;
 
@@ -321,6 +324,51 @@ fn hash_tree_atom_visitor_test() {
             );
             m
         },
+
+        branch_ul1: {
+            let mut m = UniqueLinkedHashMap::new();
+            m.insert(
+                "unique_linked_hello1".to_string(),
+                "unique_linked_world1".to_string(),
+            )
+            .unwrap();
+            m
+        },
+        branch_ul2: {
+            let mut m = UniqueLinkedHashMap::new();
+            m.insert(
+                Box::new(Atom {
+                    name: "unique_linked_hello2".to_string(),
+                }),
+                "unique_linked_world2".to_string(),
+            )
+            .unwrap();
+            m
+        },
+        branch_ul3: {
+            let mut m = UniqueLinkedHashMap::new();
+            m.insert(
+                "unique_linked_hello3".to_string(),
+                Box::new(Atom {
+                    name: "unique_linked_world3".to_string(),
+                }),
+            )
+            .unwrap();
+            m
+        },
+        branch_ul4: {
+            let mut m = UniqueLinkedHashMap::new();
+            m.insert(
+                Box::new(Atom {
+                    name: "unique_linked_hello4".to_string(),
+                }),
+                Box::new(Atom {
+                    name: "unique_linked_world4".to_string(),
+                }),
+            )
+            .unwrap();
+            m
+        },
     };
 
     v.visit_hash_tree(e);
@@ -335,6 +383,10 @@ fn hash_tree_atom_visitor_test() {
             "linked_world3".to_string(),
             "linked_hello4".to_string(),
             "linked_world4".to_string(),
+            "unique_linked_hello2".to_string(),
+            "unique_linked_world3".to_string(),
+            "unique_linked_hello4".to_string(),
+            "unique_linked_world4".to_string(),
         ],
         v.atom_names
     );

@@ -3,7 +3,6 @@ use crate::ast::{
     rewrites::{Error, Pass, Result},
     visitor::Visitor,
 };
-use linked_hash_map::LinkedHashMap;
 
 /// Rewrites non-VALUE SELECT to SELECT VALUE.
 pub struct SelectRewritePass;
@@ -65,7 +64,7 @@ impl Visitor for SelectRewriteVisitor {
         // Store all substar expressions in a vector and all non-substar expressions in a single map,
         // where the alias is the key and the expression is the value. There's no need to rewrite
         // SelectValuesExpressions or queries of the form `select *`.
-        let mut map: LinkedHashMap<String, Expression> = LinkedHashMap::new();
+        let mut v: Vec<ast::DocumentPair> = Vec::new();
         let mut substar_exprs: Vec<SelectValuesExpression> = vec![];
         let mut rewrite = true;
         match node.clone() {
@@ -79,7 +78,10 @@ impl Visitor for SelectRewriteVisitor {
                             match aliased.alias {
                                 None => self.error = Some(Error::NoAliasForSelectExpression),
                                 Some(alias) => {
-                                    map.insert(alias, aliased.expr);
+                                    v.push(ast::DocumentPair {
+                                        key: alias,
+                                        value: aliased.expr,
+                                    });
                                 }
                             };
                         }
@@ -105,10 +107,8 @@ impl Visitor for SelectRewriteVisitor {
         // Return a vector of SelectValuesExpressions that includes the map of non-substar expressions
         // followed by the substar expressions.
         let mut array = vec![];
-        if !map.is_empty() {
-            array.push(SelectValuesExpression::Expression(Expression::Document(
-                map,
-            )));
+        if !v.is_empty() {
+            array.push(SelectValuesExpression::Expression(Expression::Document(v)));
         };
         array.append(&mut substar_exprs);
         SelectBody::Values(array)

@@ -8,7 +8,7 @@ use crate::{
     },
     map,
     schema::{Satisfaction, SchemaEnvironment},
-    util::are_literal,
+    util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
 use std::{collections::BTreeSet, convert::TryFrom};
 use thiserror::Error;
@@ -77,6 +77,8 @@ pub enum Error {
     InvalidSubqueryDegree,
     #[error("invalid subquery comparison operator: {0}")]
     InvalidSubqueryComparisonOp(&'static str),
+    #[error("found duplicate document key {0:?}")]
+    DuplicateDocumentKey(String),
 }
 
 impl TryFrom<ast::BinaryOp> for ir::ScalarFunction {
@@ -361,7 +363,7 @@ impl<'a> Algebrizer<'a> {
         match ast_node {
             ast::Datasource::Array(a) => {
                 let (ve, alias) = (a.array, a.alias);
-                let (ve, array_is_literal) = are_literal(ve);
+                let (ve, array_is_literal) = ast::visitors::are_literal(ve);
                 if !array_is_literal {
                     return Err(Error::ArrayDatasourceMustBeLiteral);
                 }
@@ -571,10 +573,16 @@ impl<'a> Algebrizer<'a> {
                     source.schema(&self.schema_inference_state())?.schema_env,
                 )?;
 
+                let mut group_clause_aliases = UniqueLinkedHashMap::new();
                 let keys = ast_expr
                     .keys
                     .into_iter()
                     .map(|ast_key| {
+                        if let Some(ref alias) = ast_key.alias {
+                            group_clause_aliases
+                                .insert(alias.clone(), ())
+                                .map_err(|e| Error::DuplicateDocumentKey(e.get_key_name()))?;
+                        }
                         Ok(ir::AliasedExpression {
                             alias: ast_key.alias,
                             inner: expression_algebrizer.algebrize_expression(ast_key.expr)?,
@@ -587,6 +595,13 @@ impl<'a> Algebrizer<'a> {
                     .into_iter()
                     .enumerate()
                     .map(|(index, ast_agg)| {
+                        if let Some(ref alias) = ast_agg.alias {
+                            group_clause_aliases
+                                .insert(alias.clone(), ())
+                                .map_err(|e| Error::DuplicateDocumentKey(e.get_key_name()))?;
+                        } else {
+                            return Err(Error::AggregationFunctionHasNoAlias(index));
+                        }
                         Ok(ir::AliasedAggregation {
                             inner: match ast_agg.expr {
                                 ast::Expression::Function(f) => {
@@ -594,9 +609,7 @@ impl<'a> Algebrizer<'a> {
                                 }
                                 _ => Err(Error::NonAggregationInPlaceOfAggregation(index)),
                             }?,
-                            alias: ast_agg
-                                .alias
-                                .ok_or(Error::AggregationFunctionHasNoAlias(index))?,
+                            alias: ast_agg.alias.unwrap(),
                         })
                     })
                     .collect::<Result<_>>()?;
@@ -654,11 +667,16 @@ impl<'a> Algebrizer<'a> {
                     .map(|e| self.algebrize_expression(e))
                     .collect::<Result<_>>()?,
             )),
-            ast::Expression::Document(d) => Ok(ir::Expression::Document(
-                d.into_iter()
-                    .map(|(k, e)| Ok((k, self.algebrize_expression(e)?)))
-                    .collect::<Result<_>>()?,
-            )),
+            ast::Expression::Document(d) => Ok(ir::Expression::Document({
+                let algebrized = d
+                    .into_iter()
+                    .map(|kv| Ok((kv.key, self.algebrize_expression(kv.value)?)))
+                    .collect::<Result<Vec<_>>>()?;
+                let mut out = UniqueLinkedHashMap::new();
+                out.insert_many(algebrized.into_iter())
+                    .map_err(|e| Error::DuplicateDocumentKey(e.get_key_name()))?;
+                out
+            })),
             // If we ever see Identifier in algebrize_expression it must be an unqualified
             // reference, because we do not recurse on the expr field of Subpath if it is an
             // Identifier

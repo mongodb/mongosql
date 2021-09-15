@@ -1,10 +1,17 @@
-use std::collections::{BTreeMap, HashMap};
-
+use crate::util::unique_linked_hash_map::UniqueLinkedHashMap;
 use linked_hash_map::LinkedHashMap;
+use std::collections::{BTreeMap, HashMap};
+use std::fmt;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Atom {
     pub name: String,
+}
+
+impl fmt::Display for Atom {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self)
+    }
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -61,4 +68,9 @@ pub struct HashTree {
     pub branch_l2: LinkedHashMap<Box<Atom>, String>,
     pub branch_l3: LinkedHashMap<String, Box<Atom>>,
     pub branch_l4: LinkedHashMap<Box<Atom>, Box<Atom>>,
+
+    pub branch_ul1: UniqueLinkedHashMap<String, String>,
+    pub branch_ul2: UniqueLinkedHashMap<Box<Atom>, String>,
+    pub branch_ul3: UniqueLinkedHashMap<String, Box<Atom>>,
+    pub branch_ul4: UniqueLinkedHashMap<Box<Atom>, Box<Atom>>,
 }

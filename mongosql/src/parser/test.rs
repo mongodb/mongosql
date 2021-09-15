@@ -1849,20 +1849,7 @@ mod subquery {
 }
 
 mod document {
-    use crate::ast::*;
-    use crate::parser::Parser;
-    use linked_hash_map::LinkedHashMap;
-    macro_rules! map(
-  { $($key:expr => $value:expr),+ } => {
-    {
-      let mut m = LinkedHashMap::new();
-      $(
-        m.insert($key, $value);
-      )+
-      m
-    }
-  };
-);
+    use crate::{ast::*, multimap, parser::Parser};
 
     should_parse!(empty_doc_literal, true, "select {}");
     should_parse!(doc_literal, true, "select {'a':1, 'b':2}");
@@ -1910,9 +1897,9 @@ mod document {
             expr: Box::new(Expression::Subpath(SubpathExpr {
                 expr: Box::new(Expression::Subpath(SubpathExpr {
                     expr: Box::new(Expression::Document(
-                        map! {"a".to_string() => Expression::Document(
-                            map!{"b".to_string() => Expression::Document(
-                                map!{"c".to_string() => Expression::Literal(Literal::Integer(100))}
+                        multimap! {"a".to_string() => Expression::Document(
+                            multimap!{"b".to_string() => Expression::Document(
+                                multimap!{"c".to_string() => Expression::Literal(Literal::Integer(100))}
                             )}
                         )}
                     )),

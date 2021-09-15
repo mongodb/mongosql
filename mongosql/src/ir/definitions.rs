@@ -1,5 +1,7 @@
-use crate::ir::binding_tuple::{BindingTuple, Key};
-use linked_hash_map::LinkedHashMap;
+use crate::{
+    ir::binding_tuple::{BindingTuple, Key},
+    util::unique_linked_hash_map::UniqueLinkedHashMap,
+};
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Stage {
@@ -127,7 +129,7 @@ pub enum Expression {
     Literal(Literal),
     Reference(Key),
     Array(Vec<Expression>),
-    Document(LinkedHashMap<String, Expression>),
+    Document(UniqueLinkedHashMap<String, Expression>),
     ScalarFunction(ScalarFunctionApplication),
     Cast(CastExpr),
     SearchedCase(SearchedCaseExpr),

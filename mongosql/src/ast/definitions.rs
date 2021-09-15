@@ -1,5 +1,18 @@
-use linked_hash_map::LinkedHashMap;
 use std::convert::TryFrom;
+
+#[macro_export]
+macro_rules! multimap {
+	($($key:expr => $val:expr),* $(,)?) => {
+		std::iter::Iterator::collect(std::array::IntoIter::new([
+			$({
+				crate::ast::DocumentPair {
+                                    key: $key,
+                                    value: $val,
+                                }
+			},)*
+		]))
+	};
+}
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Query {
@@ -142,7 +155,7 @@ pub enum Expression {
     Subquery(Box<Query>),
     Exists(Box<Query>),
     SubqueryComparison(SubqueryComparisonExpr),
-    Document(LinkedHashMap<String, Expression>),
+    Document(Vec<DocumentPair>),
     Access(AccessExpr),
     Subpath(SubpathExpr),
     Identifier(String),
@@ -151,6 +164,12 @@ pub enum Expression {
     Literal(Literal),
     Tuple(Vec<Expression>),
     TypeAssertion(TypeAssertionExpr),
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct DocumentPair {
+    pub key: String,
+    pub value: Expression,
 }
 
 #[derive(PartialEq, Debug, Clone)]

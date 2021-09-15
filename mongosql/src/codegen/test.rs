@@ -160,7 +160,7 @@ mod project {
             binding_tuple::{DatasourceName, Key},
             *,
         },
-        map,
+        map, unchecked_unique_linked_hash_map,
     };
 
     test_codegen_plan!(
@@ -181,7 +181,7 @@ mod project {
                 ("c", 0u16).into() => Expression::Literal(Literal::Integer(3)),
             },
             source: Stage::Array(Array {
-                array: vec![Expression::Document(map!{})],
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map!{})],
                 alias: "arr".to_string(),
             }).into(),
         }),
@@ -201,7 +201,7 @@ mod project {
         Stage::Project(Project {
             expression: map! {},
             source: Stage::Array(Array {
-                array: vec![Expression::Document(map!{})],
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map!{})],
                 alias: "arr".to_string(),
             }).into(),
         }),
@@ -223,7 +223,7 @@ mod project {
                 ("foo", 0u16).into() => Expression::Reference(("arr", 0u16).into()),
             },
             source: Stage::Array(Array {
-                array: vec![Expression::Document(map!{})],
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map!{})],
                 alias: "arr".to_string(),
             }).into(),
         }),
@@ -246,7 +246,7 @@ mod project {
                 ("foo", 0u16).into() => Expression::Literal(Literal::Double(44.0)),
             },
             source: Stage::Array(Array {
-                array: vec![Expression::Document(map!{})],
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map!{})],
                 alias: "arr".to_string(),
             }).into(),
         }),
@@ -278,7 +278,7 @@ mod project {
                 ("_____bot", 0u16).into() => Expression::Literal(Literal::Double(45.0)),
             },
             source: Stage::Array(Array {
-                array: vec![Expression::Document(map!{"a".into() => Expression::Literal(Literal::Integer(42))})],
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map!{"a".into() => Expression::Literal(Literal::Integer(42))})],
                 alias: "__bot".to_string(),
             }).into(),
         }),
@@ -292,7 +292,7 @@ mod project {
                 ("a.b", 0u16).into() => Expression::Literal(Literal::Integer(1)),
             },
             source: Stage::Array(Array {
-                array: vec![Expression::Document(map! {})],
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map! {})],
                 alias: "arr".to_string(),
             })
             .into(),
@@ -307,7 +307,7 @@ mod project {
                 ("$a", 0u16).into() => Expression::Literal(Literal::Integer(1)),
             },
             source: Stage::Array(Array {
-                array: vec![Expression::Document(map! {})],
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map! {})],
                 alias: "arr".to_string(),
             })
             .into(),
@@ -343,7 +343,7 @@ mod sort {
     use crate::{
         codegen::Error,
         ir::{Expression::Reference, SortSpecification::*, *},
-        map,
+        unchecked_unique_linked_hash_map,
     };
 
     test_codegen_plan!(
@@ -468,7 +468,7 @@ mod sort {
         Stage::Sort(Sort {
             specs: vec![Asc(Expression::FieldAccess(FieldAccess {
                 expr: Expression::Document(
-                    map! {"a".into() => Expression::Literal(Literal::Integer(1))}
+                    unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(1))}
                 )
                 .into(),
                 field: "sub".to_string(),
@@ -591,22 +591,28 @@ mod document {
     use crate::{
         codegen::Error,
         ir::{Expression::*, Literal},
-        map,
+        unchecked_unique_linked_hash_map,
     };
     use bson::bson;
 
-    test_codegen_expr!(empty, Ok(bson!({"$literal": {}})), Document(map! {}),);
+    test_codegen_expr!(
+        empty,
+        Ok(bson!({"$literal": {}})),
+        Document(unchecked_unique_linked_hash_map! {}),
+    );
     test_codegen_expr!(
         non_empty,
         Ok(bson!({"foo": {"$literal": 1}})),
-        Document(map! {"foo".to_string() => Literal(Literal::Integer(1)),}),
+        Document(
+            unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Literal::Integer(1)),}
+        ),
     );
     test_codegen_expr!(
         nested,
         Ok(bson!({"foo": {"$literal": 1}, "bar": {"baz": {"$literal": 2}}})),
-        Document(map! {
+        Document(unchecked_unique_linked_hash_map! {
             "foo".to_string() => Literal(Literal::Integer(1)),
-            "bar".to_string() => Document(map!{
+            "bar".to_string() => Document(unchecked_unique_linked_hash_map!{
                 "baz".to_string() => Literal(Literal::Integer(2))
             }),
         }),
@@ -614,17 +620,21 @@ mod document {
     test_codegen_expr!(
         dollar_prefixed_key_disallowed,
         Err(Error::DotsOrDollarsInDocumentKey),
-        Document(map! {"$foo".to_string() => Literal(Literal::Integer(1)),}),
+        Document(
+            unchecked_unique_linked_hash_map! {"$foo".to_string() => Literal(Literal::Integer(1)),}
+        ),
     );
     test_codegen_expr!(
         key_containing_dot_disallowed,
         Err(Error::DotsOrDollarsInDocumentKey),
-        Document(map! {"foo.bar".to_string() => Literal(Literal::Integer(1)),}),
+        Document(
+            unchecked_unique_linked_hash_map! {"foo.bar".to_string() => Literal(Literal::Integer(1)),}
+        ),
     );
 }
 
 mod field_access {
-    use crate::{codegen::mql::MappingRegistry, ir::*, map};
+    use crate::{codegen::mql::MappingRegistry, ir::*, unchecked_unique_linked_hash_map};
     use bson::Bson;
 
     test_codegen_expr!(
@@ -665,7 +675,7 @@ mod field_access {
         }})),
         Expression::FieldAccess(FieldAccess {
             expr: Expression::Document(
-                map! {"a".into() => Expression::Literal(Literal::Integer(1))}
+                unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(1))}
             )
             .into(),
             field: "sub".to_string(),
@@ -1814,7 +1824,7 @@ mod function {
 }
 
 mod group_by {
-    use crate::{codegen::Error, ir::definitions::*, map};
+    use crate::{codegen::Error, ir::definitions::*, map, unchecked_unique_linked_hash_map};
     use lazy_static::lazy_static;
 
     lazy_static! {
@@ -2048,7 +2058,7 @@ mod group_by {
                 alias: None,
                 inner: Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Document(
-                        map! {"a".into() => Expression::Literal(Literal::Integer(1))}
+                        unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(1))}
                     )),
                     field: "sub".to_string(),
                 })
@@ -2412,7 +2422,7 @@ mod subquery {
     use crate::{
         codegen::{mql::MappingRegistry, Error},
         ir::{binding_tuple::DatasourceName::Bottom, SubqueryModifier::*, *},
-        map,
+        map, unchecked_unique_linked_hash_map,
     };
     test_codegen_expr!(
         exists_uncorrelated,
@@ -2453,7 +2463,7 @@ mod subquery {
                 collection: "bar".into(),
             })),
             expression: map! {
-                (Bottom, 1u16).into() => Expression::Document(map! {
+                (Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                     "a".into() => Expression::FieldAccess(FieldAccess{
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                         field: "a".into()
@@ -2511,7 +2521,7 @@ mod subquery {
                     collection: "bar".into(),
                 })),
                 expression: map! {
-                    (Bottom, 1u16).into() => Expression::Document(map! {
+                    (Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::FieldAccess(FieldAccess{
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                             field: "a".into()
@@ -2670,7 +2680,7 @@ mod subquery {
                         collection: "bar".into(),
                     })),
                     expression: map! {
-                        (Bottom, 1u16).into() => Expression::Document(map! {
+                        (Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                             "a".into() => Expression::FieldAccess(FieldAccess{
                                 expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                                 field: "a".into()
@@ -2698,7 +2708,7 @@ mod subquery {
                     collection: "bar".into(),
                 })),
                 expression: map! {
-                    (Bottom, 1u16).into() => Expression::Document(map! {
+                    (Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::FieldAccess(FieldAccess{
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                             field: "a".into()

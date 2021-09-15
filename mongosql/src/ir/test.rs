@@ -94,14 +94,15 @@ mod schema {
         ir::{binding_tuple::DatasourceName::Bottom, schema::*, *},
         map,
         schema::*,
-        set,
+        set, unchecked_unique_linked_hash_map,
     };
     use lazy_static::lazy_static;
 
     lazy_static! {
-        pub static ref TEST_DOCUMENT_A: Expression = Expression::Document(map! {
-            "a".into() => Expression::Literal(Literal::Integer(1))
-        });
+        pub static ref TEST_DOCUMENT_A: Expression =
+            Expression::Document(unchecked_unique_linked_hash_map! {
+                "a".into() => Expression::Literal(Literal::Integer(1))
+            });
         pub static ref TEST_DOCUMENT_SCHEMA_A: Schema = Schema::Document(Document {
             keys: map! {
                 "a".into() => Schema::Atomic(Atomic::Integer),
@@ -109,9 +110,10 @@ mod schema {
             required: set! {"a".into()},
             additional_properties: false,
         });
-        pub static ref TEST_DOCUMENT_B: Expression = Expression::Document(map! {
-            "b".into() => Expression::Literal(Literal::Integer(1))
-        });
+        pub static ref TEST_DOCUMENT_B: Expression =
+            Expression::Document(unchecked_unique_linked_hash_map! {
+                "b".into() => Expression::Literal(Literal::Integer(1))
+            });
         pub static ref TEST_DOCUMENT_SCHEMA_B: Schema = Schema::Document(Document {
             keys: map! {
                 "b".into() => Schema::Atomic(Atomic::Integer),
@@ -119,9 +121,10 @@ mod schema {
             required: set! {"b".into()},
             additional_properties: false,
         });
-        pub static ref TEST_DOCUMENT_C: Expression = Expression::Document(map! {
-            "c".into() => Expression::Literal(Literal::Integer(1))
-        });
+        pub static ref TEST_DOCUMENT_C: Expression =
+            Expression::Document(unchecked_unique_linked_hash_map! {
+                "c".into() => Expression::Literal(Literal::Integer(1))
+            });
         pub static ref TEST_DOCUMENT_SCHEMA_C: Schema = Schema::Document(Document {
             keys: map! {
                 "c".into() => Schema::Atomic(Atomic::Integer),
@@ -216,10 +219,12 @@ mod schema {
                 additional_properties: false,
             })
         ])))),
-        Expression::Array(vec![Expression::Document(map! {
-            "foo".into() => Expression::Reference(("a", 0u16).into()),
-            "bar".into() => Expression::Reference(("b", 0u16).into()),
-        }),]),
+        Expression::Array(vec![Expression::Document(
+            unchecked_unique_linked_hash_map! {
+                "foo".into() => Expression::Reference(("a", 0u16).into()),
+                "bar".into() => Expression::Reference(("b", 0u16).into()),
+            }
+        ),]),
         map! {
             ("a", 0u16).into() => Schema::Missing,
             ("b", 0u16).into() => Schema::Atomic(Atomic::String),
@@ -243,7 +248,7 @@ mod schema {
             })
         ])))),
         Expression::Array(vec![Expression::Document(
-            map! {"b".into() => Expression::Reference(("a", 0u16).into())},
+            unchecked_unique_linked_hash_map! {"b".into() => Expression::Reference(("a", 0u16).into())},
         )]),
         map! {("a", 0u16).into() =>
         Schema::AnyOf(set![
@@ -309,7 +314,7 @@ mod schema {
             required: set! {},
             additional_properties: false,
         })),
-        Expression::Document(map! {}),
+        Expression::Document(unchecked_unique_linked_hash_map! {}),
     );
     test_schema!(
         document_literal_all_required,
@@ -328,7 +333,7 @@ mod schema {
             },
             additional_properties: false,
         })),
-        Expression::Document(map! {
+        Expression::Document(unchecked_unique_linked_hash_map! {
             "a".to_string() => Expression::Literal(Literal::String("Hello".to_string())),
             "b".to_string() => Expression::Literal(Literal::String("World".to_string())),
             "c".to_string() => Expression::Literal(Literal::Null),
@@ -349,7 +354,7 @@ mod schema {
             },
             additional_properties: false,
         })),
-        Expression::Document(map! {
+        Expression::Document(unchecked_unique_linked_hash_map! {
             "a".to_string() => Expression::Literal(Literal::String("Hello".to_string())),
             "b".to_string() => Expression::Reference(("b", 0u16).into()),
             "c".to_string() => Expression::Literal(Literal::Null),
@@ -3268,7 +3273,7 @@ mod schema {
             max_size: Some(1),
         }),
         Stage::Array(Array {
-            array: vec![Expression::Document(map! {})],
+            array: vec![Expression::Document(unchecked_unique_linked_hash_map! {})],
             alias: "foo".into(),
         }),
     );
@@ -3307,7 +3312,7 @@ mod schema {
             max_size: Some(1),
         }),
         Stage::Array(Array {
-            array: vec![Expression::Document(map! {
+            array: vec![Expression::Document(unchecked_unique_linked_hash_map! {
                 "bar".into() => Expression::Literal(Literal::Integer(1))
             })],
             alias: "foo".into(),
@@ -3336,10 +3341,10 @@ mod schema {
         }),
         Stage::Array(Array {
             array: vec![
-                Expression::Document(map! {
+                Expression::Document(unchecked_unique_linked_hash_map! {
                 "bar".into() => Expression::Literal(Literal::Integer(1))
                 }),
-                Expression::Document(map! {
+                Expression::Document(unchecked_unique_linked_hash_map! {
                 "car".into() => Expression::Literal(Literal::Integer(1))
                 })
             ],
@@ -3417,7 +3422,7 @@ mod schema {
             ir::{schema::Error, *},
             map,
             schema::{Atomic, ResultSet, Schema},
-            set,
+            set, unchecked_unique_linked_hash_map,
         };
 
         const TRUE: Expression = Expression::Literal(Literal::Boolean(true));
@@ -3521,7 +3526,7 @@ mod schema {
                 condition: TRUE,
                 source: Stage::Array(Array {
                     alias: "arr".into(),
-                    array: vec![Expression::Document(map!{"a".into() => Expression::Literal(Literal::Null),})],
+                    array: vec![Expression::Document(unchecked_unique_linked_hash_map!{"a".into() => Expression::Literal(Literal::Null),})],
                 }).into(),
             }),
         );
@@ -3807,13 +3812,13 @@ mod schema {
             limit: 2,
             source: Box::new(Stage::Array(Array {
                 array: vec![
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(1))
                     }),
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(2))
                     }),
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(3))
                     })
                 ],
@@ -3832,13 +3837,13 @@ mod schema {
             limit: 10,
             source: Box::new(Stage::Array(Array {
                 array: vec![
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(1))
                     }),
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(2))
                     }),
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(3))
                     })
                 ],
@@ -3874,13 +3879,13 @@ mod schema {
             offset: 1,
             source: Box::new(Stage::Array(Array {
                 array: vec![
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(1))
                     }),
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(2))
                     }),
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(3))
                     })
                 ],
@@ -3899,13 +3904,13 @@ mod schema {
             offset: 10,
             source: Box::new(Stage::Array(Array {
                 array: vec![
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(1))
                     }),
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(2))
                     }),
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(3))
                     })
                 ],
@@ -3933,7 +3938,7 @@ mod schema {
                 collection: "foo".into(),
             })),
             expression: map! {
-                (Bottom, 1u16).into() => Expression::Document(map! {
+                (Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                     "a".into() => Expression::FieldAccess(FieldAccess{
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                         field: "a".into()
@@ -3994,7 +3999,7 @@ mod schema {
                     collection: "foo".into(),
                 })),
                 expression: map! {
-                    (Bottom, 1u16).into() => Expression::Document(map! {
+                    (Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                         "_1".into() => Expression::Literal(Literal::Integer(5))
                     })
                 }
@@ -4020,7 +4025,7 @@ mod schema {
                     alias: "bar".into(),
                 })),
                 expression: map! {
-                    (Bottom, 1u16).into() => Expression::Document(map! {
+                    (Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::FieldAccess(FieldAccess{
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                             field: "a".into()
@@ -4054,7 +4059,7 @@ mod schema {
                     collection: "bar".into(),
                 })),
                 expression: map! {
-                    (Bottom, 1u16).into() => Expression::Document(map! {
+                    (Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::FieldAccess(FieldAccess{
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                             field: "a".into()
@@ -4097,7 +4102,7 @@ mod schema {
                 field: "a".into()
             })),
             subquery: Box::new(Stage::Array(Array {
-                array: vec![Expression::Document(map! {
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map! {
                     "a".into() => Expression::Literal(Literal::Integer(5))
                 }),],
                 alias: "foo".into(),
@@ -4129,10 +4134,10 @@ mod schema {
             })),
             subquery: Box::new(Stage::Array(Array {
                 array: vec![
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(5))
                     }),
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(6))
                     })
                 ],
@@ -4155,7 +4160,7 @@ mod schema {
                     field: "a".into()
                 })),
                 subquery: Box::new(Stage::Array(Array {
-                    array: vec![Expression::Document(map! {
+                    array: vec![Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(5))
                     })],
                     alias: "foo".into(),
@@ -4181,7 +4186,7 @@ mod schema {
                     field: "a".into()
                 })),
                 subquery: Box::new(Stage::Array(Array {
-                    array: vec![Expression::Document(map! {
+                    array: vec![Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(5))
                     })],
                     alias: "foo".into(),
@@ -4359,23 +4364,23 @@ mod schema {
             join_type: JoinType::Inner,
             left: Box::new(Stage::Array(Array {
                 array: vec![
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(1))
                     }),
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(2))
                     }),
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(3))
                     })
                 ],
                 alias: "foo".into(),
             })),
             right: Box::new(Stage::Array(Array {
-                array: vec![Expression::Document(map! {
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map! {
                         "b".into() => Expression::Literal(Literal::Integer(5))
                     }),
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "b".into() => Expression::Literal(Literal::Integer(6))
                     }),
                 ],
@@ -4395,23 +4400,23 @@ mod schema {
             join_type: JoinType::Inner,
             left: Box::new(Stage::Array(Array {
                 array: vec![
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(1))
                     }),
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(2))
                     }),
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::Literal(Literal::Integer(3))
                     })
                 ],
                 alias: "foo".into(),
             })),
             right: Box::new(Stage::Array(Array {
-                array: vec![Expression::Document(map! {
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map! {
                         "b".into() => Expression::Literal(Literal::Integer(5))
                     }),
-                    Expression::Document(map! {
+                    Expression::Document(unchecked_unique_linked_hash_map! {
                         "b".into() => Expression::Literal(Literal::Integer(6))
                     }),
                 ],
@@ -4504,7 +4509,7 @@ mod schema {
         Stage::Join(Join {
             join_type: JoinType::Left,
             left: Box::new(Stage::Array(Array {
-                array: vec![Expression::Document(map! {
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map! {
                     "a".into() => Expression::Literal(Literal::Boolean(true))
                 })],
                 alias: "foo".into(),
@@ -4532,7 +4537,7 @@ mod schema {
                 alias: "foo".into(),
             })),
             right: Box::new(Stage::Array(Array {
-                array: vec![Expression::Document(map! {
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map! {
                     "b".into() => Expression::Literal(Literal::Boolean(true))
                 })],
                 alias: "bar".into(),
@@ -4574,7 +4579,7 @@ mod schema {
                     }))
                 }),),
                 expression: map! {
-                    (Bottom, 1u16).into() => Expression::Document(map! {
+                    (Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::FieldAccess(FieldAccess{
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                             field: "a".into()
@@ -4972,7 +4977,7 @@ mod schema {
 }
 
 mod constant_folding {
-    use crate::{ir::definitions::*, map};
+    use crate::{ir::definitions::*, unchecked_unique_linked_hash_map};
     lazy_static::lazy_static! {
         static ref TEST_SOURCE: Stage = Stage::Collection(Collection {
             db: "test".into(),
@@ -6516,7 +6521,7 @@ mod constant_folding {
         Stage::Array(Array {
             alias: "".into(),
             array: vec![Expression::Document(
-                map! {"a".into() => Expression::Literal(Literal::Integer(0)),
+                unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(0)),
                 "b".into() => Expression::Literal(Literal::Integer(0)),
                 "c".into() => Expression::Literal(Literal::Integer(2))}
             )]
@@ -6527,11 +6532,11 @@ mod constant_folding {
                 function: ScalarFunction::MergeObjects,
                 args: vec![
                     Expression::Document(
-                        map! {"a".into() => Expression::Literal(Literal::Integer(0)),
+                        unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(0)),
                         "b".into() => Expression::Literal(Literal::Integer(1))}
                     ),
                     Expression::Document(
-                        map! {"b".into() => Expression::Literal(Literal::Integer(0)),
+                        unchecked_unique_linked_hash_map! {"b".into() => Expression::Literal(Literal::Integer(0)),
                         "c".into() => Expression::Literal(Literal::Integer(2))}
                     )
                 ]
@@ -6546,7 +6551,7 @@ mod constant_folding {
                 function: ScalarFunction::MergeObjects,
                 args: vec![
                     Expression::Document(
-                        map! {"a".into() => Expression::Literal(Literal::Integer(0)),
+                        unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(0)),
                         "b".into() => Expression::Literal(Literal::Integer(1))}
                     ),
                     Expression::Reference(("a", 0u16).into())
@@ -6559,7 +6564,7 @@ mod constant_folding {
                 function: ScalarFunction::MergeObjects,
                 args: vec![
                     Expression::Document(
-                        map! {"a".into() => Expression::Literal(Literal::Integer(0)),
+                        unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(0)),
                         "b".into() => Expression::Literal(Literal::Integer(1))}
                     ),
                     Expression::Reference(("a", 0u16).into())
@@ -6571,7 +6576,7 @@ mod constant_folding {
         merge_objects_empty,
         Stage::Array(Array {
             alias: "".into(),
-            array: vec![Expression::Document(map! {})]
+            array: vec![Expression::Document(unchecked_unique_linked_hash_map! {})]
         }),
         Stage::Array(Array {
             alias: "".into(),
@@ -6589,7 +6594,7 @@ mod constant_folding {
                 function: ScalarFunction::MergeObjects,
                 args: vec![
                     Expression::Document(
-                        map! {"a".into() => Expression::Literal(Literal::Integer(0)),
+                        unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(0)),
                         "b".into() => Expression::Literal(Literal::Integer(0)),
                         "c".into() => Expression::Literal(Literal::Integer(2))}
                     ),
@@ -6603,11 +6608,11 @@ mod constant_folding {
                 function: ScalarFunction::MergeObjects,
                 args: vec![
                     Expression::Document(
-                        map! {"a".into() => Expression::Literal(Literal::Integer(0)),
+                        unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(0)),
                         "b".into() => Expression::Literal(Literal::Integer(1))}
                     ),
                     Expression::Document(
-                        map! {"b".into() => Expression::Literal(Literal::Integer(0)),
+                        unchecked_unique_linked_hash_map! {"b".into() => Expression::Literal(Literal::Integer(0)),
                         "c".into() => Expression::Literal(Literal::Integer(2))}
                     ),
                     Expression::Reference(("a", 0u16).into())
@@ -6661,7 +6666,7 @@ mod constant_folding {
                 function: ScalarFunction::ComputedFieldAccess,
                 args: vec![
                     Expression::Document(
-                        map! {"a".into() => Expression::Literal(Literal::Integer(2))}
+                        unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(2))}
                     ),
                     Expression::Literal(Literal::String("a".into()))
                 ]
@@ -6676,7 +6681,7 @@ mod constant_folding {
                 function: ScalarFunction::ComputedFieldAccess,
                 args: vec![
                     Expression::Document(
-                        map! {"a".into() => Expression::Literal(Literal::Integer(2))}
+                        unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(2))}
                     ),
                     Expression::Literal(Literal::String("b".into()))
                 ]
@@ -6688,7 +6693,7 @@ mod constant_folding {
                 function: ScalarFunction::ComputedFieldAccess,
                 args: vec![
                     Expression::Document(
-                        map! {"a".into() => Expression::Literal(Literal::Integer(2))}
+                        unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(2))}
                     ),
                     Expression::Literal(Literal::String("b".into()))
                 ]
@@ -7033,14 +7038,14 @@ mod constant_folding {
         Stage::Array(Array {
             alias: "".into(),
             array: vec![Expression::Document(
-                map! {"a".into() => Expression::Literal(Literal::Integer(1))}
+                unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(1))}
             )]
         }),
         Stage::Array(Array {
             alias: "".into(),
             array: vec![Expression::Cast(CastExpr {
                 expr: Expression::Document(
-                    map! {"a".into() => Expression::Literal(Literal::Integer(1))}
+                    unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(1))}
                 )
                 .into(),
                 to: Type::Document,
@@ -7426,7 +7431,7 @@ mod constant_folding {
             alias: "".into(),
             array: vec![Expression::FieldAccess(FieldAccess {
                 expr: Expression::Document(
-                    map! {"a".into() => Expression::Literal(Literal::Integer(0))}
+                    unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(0))}
                 )
                 .into(),
                 field: "a".into()
@@ -7439,7 +7444,7 @@ mod constant_folding {
             alias: "".into(),
             array: vec![Expression::FieldAccess(FieldAccess {
                 expr: Expression::Document(
-                    map! {"a".into() => Expression::Literal(Literal::Integer(0))}
+                    unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(0))}
                 )
                 .into(),
                 field: "b".into()
@@ -7449,7 +7454,7 @@ mod constant_folding {
             alias: "".into(),
             array: vec![Expression::FieldAccess(FieldAccess {
                 expr: Expression::Document(
-                    map! {"a".into() => Expression::Literal(Literal::Integer(0))}
+                    unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(0))}
                 )
                 .into(),
                 field: "b".into()

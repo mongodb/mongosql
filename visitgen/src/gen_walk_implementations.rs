@@ -180,6 +180,12 @@ fn gen_walk_visit_type(type_set: &HashSet<String>, ty: &Type, field_name: &str) 
                 generic_args,
                 "linked_hash_map::LinkedHashMap",
             ),
+            "UniqueLinkedHashMap" => gen_walk_visit_unique_map(
+                type_set,
+                field_name,
+                generic_args,
+                "crate::util::unique_linked_hash_map::UniqueLinkedHashMap",
+            ),
             "Option" => gen_walk_visit_option(type_set, field_name, generic_args),
             "Vec" => gen_walk_visit_vec(type_set, field_name, generic_args),
             // We just move this type as is, we don't have a way to visit it
@@ -204,6 +210,57 @@ fn gen_walk_visit_box(
         format!(
             "Box::new({})",
             gen_walk_visit_type(type_set, box_type, &(format!("(*{})", field_name))),
+        )
+    } else {
+        field_name.to_owned()
+    }
+}
+
+fn gen_walk_visit_unique_map(
+    type_set: &HashSet<String>,
+    field_name: &str,
+    generic_args: Option<&Punctuated<GenericArgument, Comma>>,
+    map_type_name: &str,
+) -> String {
+    let generic_args = generic_args.expect("HashMap found with no generic arguments");
+    if generic_args.len() != 2 {
+        panic!("nonsensical HashMap definition without two generic arguments")
+    }
+    let key_generic = generic_args.first().expect("impossible failure");
+    let key_type_name = get_generic_name(key_generic);
+    let key_special =
+        type_set.contains(&key_type_name) || COMPOUND_TYPES.contains(&key_type_name as &str);
+
+    let value_generic = generic_args.last().expect("impossible failure");
+    let value_type_name = get_generic_name(value_generic);
+    let value_special =
+        type_set.contains(&value_type_name) || COMPOUND_TYPES.contains(&value_type_name as &str);
+
+    if key_special {
+        let key_type = get_generic_type(key_generic);
+        if value_special {
+            let value_type = get_generic_type(value_generic);
+            format!(
+                "{{let mut out = {}::new(); out.insert_many({}.into_iter().map(|(map_k, map_v)| ({}, {}))).unwrap(); out}}",
+                map_type_name,
+                field_name,
+                gen_walk_visit_type(type_set, key_type, "map_k"),
+                gen_walk_visit_type(type_set, value_type, "map_v"),
+            )
+        } else {
+            format!(
+                "{{let mut out = {}::new(); out.insert_many({}.into_iter().map(|(map_k, map_v)| ({}, map_v))).unwrap(); out}}",
+                map_type_name,
+                field_name,
+                gen_walk_visit_type(type_set, key_type, "map_k"),
+            )
+        }
+    } else if value_special {
+        let value_type = get_generic_type(value_generic);
+        format!("{{let mut out = {}::new(); out.insert_many({}.into_iter().map(|(map_k, map_v)| (map_k, {}))).unwrap(); out}}",
+            map_type_name,
+            field_name,
+            gen_walk_visit_type(type_set, value_type, "map_v"),
         )
     } else {
         field_name.to_owned()

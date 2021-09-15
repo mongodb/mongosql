@@ -597,26 +597,27 @@ impl ConstantFoldExprVisitor {
 
     // Constant folds the merge objects function
     fn fold_merge_objects_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
-        use crate::map;
-        use linked_hash_map::LinkedHashMap;
-        let mut result_doc: LinkedHashMap<String, Expression> = map! {};
+        use crate::util::unique_linked_hash_map::UniqueLinkedHashMap;
+        // This is one case where it is actually not correct to Error if we have duplicate keys,
+        // as that is allowed in the semantics of merge_objects.
+        let mut result_doc = linked_hash_map::LinkedHashMap::new();
         for (i, expr) in sf.args.clone().into_iter().enumerate() {
             if let Expression::Document(map) = expr {
-                for (key, value) in map {
+                for (key, value) in map.iter() {
                     result_doc.insert(key.clone(), value.clone());
                 }
             } else {
                 return Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::MergeObjects,
                     args: [
-                        vec![Expression::Document(result_doc)],
+                        vec![Expression::Document(result_doc.into())],
                         sf.args.into_iter().skip(i).collect(),
                     ]
                     .concat(),
                 });
             }
         }
-        Expression::Document(result_doc)
+        Expression::Document(UniqueLinkedHashMap::from(result_doc))
     }
 
     // Constant folds the slice function

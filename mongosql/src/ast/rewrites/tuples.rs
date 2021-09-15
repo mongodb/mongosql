@@ -3,19 +3,19 @@ use crate::ast::{
     rewrites::{Pass, Result},
     visitor::Visitor,
 };
-use linked_hash_map::LinkedHashMap;
 
 /// Finds all expressions of the form `<expr> IN (<e1>, <e2>, ...)` and rewrites them to `<expr> = ANY (SELECT _1 FROM [{'_1': <e1>}, {'_1': <e2>}, ...] AS _arr)`.
 pub struct InTupleRewritePass;
 
 impl Pass for InTupleRewritePass {
     fn apply(&self, query: ast::Query) -> Result<ast::Query> {
-        let mut visitor = InTupleRewriteVisitor;
+        let mut visitor = InTupleRewriteVisitor::default();
         Ok(query.walk(&mut visitor))
     }
 }
 
 /// The visitor that performs the rewrites for the `InTupleRewritePass`.
+#[derive(Default)]
 struct InTupleRewriteVisitor;
 
 impl Visitor for InTupleRewriteVisitor {
@@ -62,9 +62,10 @@ impl Visitor for InTupleRewriteVisitor {
         let array = tuple_elems
             .into_iter()
             .map(|expr| {
-                let mut map = LinkedHashMap::new();
-                map.insert("_1".to_string(), expr);
-                Expression::Document(map)
+                Expression::Document(vec![ast::DocumentPair {
+                    key: "_1".to_string(),
+                    value: expr,
+                }])
             })
             .collect();
 

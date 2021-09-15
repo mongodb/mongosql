@@ -8,8 +8,8 @@ use crate::{
         INTEGER_OR_NULLISH, NULLISH, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
     },
     set,
+    util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
-use linked_hash_map::LinkedHashMap;
 use std::cmp::min;
 use std::collections::{BTreeMap, BTreeSet};
 use thiserror::Error;
@@ -697,7 +697,7 @@ impl Expression {
     /// For document literals, we infer the most restrictive schema possible. This means
     /// that additional_properties are not allowed.
     fn document_schema(
-        d: &LinkedHashMap<String, Expression>,
+        d: &UniqueLinkedHashMap<String, Expression>,
         state: &SchemaInferenceState,
     ) -> Result<Schema, Error> {
         let (mut keys, mut required) = (BTreeMap::new(), BTreeSet::new());

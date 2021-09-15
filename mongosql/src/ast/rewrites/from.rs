@@ -3,7 +3,6 @@ use crate::ast::{
     rewrites::{Pass, Result},
     visitor::Visitor,
 };
-use linked_hash_map::LinkedHashMap;
 
 /// Finds each select query without a FROM clause and rewrites it to have an explicit `FROM [{}] AS _dual`.
 pub struct ImplicitFromRewritePass;
@@ -23,7 +22,7 @@ impl Visitor for ImplicitFromRewriteVisitor {
         use ast::*;
         let node = node.walk(self);
         let dual_source = Datasource::Array(ArraySource {
-            array: vec![Expression::Document(LinkedHashMap::new())],
+            array: vec![Expression::Document(Vec::new())],
             alias: "_dual".to_string(),
         });
         SelectQuery {
