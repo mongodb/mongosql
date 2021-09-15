@@ -118,6 +118,24 @@ functions:
           ${prepare_shell}
           gofmt -s -d .
 
+  "check goimports":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs/go
+        script: |
+          ${prepare_shell}
+          go get golang.org/x/tools/cmd/goimports
+          if [[ $("$GOPATH/bin/goimports" -l .) ]]; then
+              echo "some files not formatted according to goimports"
+              "$GOPATH/bin/goimports" -d -e .
+              exit 1
+          else
+              echo "files all formatted according to goimports"
+              exit 0
+          fi
+
   "check go mod tidy":
     - command: shell.exec
       type: test
@@ -341,6 +359,10 @@ tasks:
     commands:
       - func: "check gofmt"
 
+  - name: goimports
+    commands:
+      - func: "check goimports"
+
   - name: gomodtidy
     commands:
       - func: "check go mod tidy"
@@ -391,6 +413,7 @@ buildvariants:
       - name: clippy
       - name: rustfmt
       - name: gofmt
+      - name: goimports
       - name: gomodtidy
 
   - name: ubuntu1804

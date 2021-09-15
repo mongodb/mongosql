@@ -2,6 +2,7 @@ package desugarer
 
 import (
 	"fmt"
+
 	"github.com/10gen/mongoast/ast"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 )

@@ -1,4 +1,5 @@
-//+build darwin linux
+//go:build darwin || linux
+// +build darwin linux
 
 package mongosql
 
@@ -11,8 +12,9 @@ import "C"
 import (
 	"encoding/base64"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
 	"unsafe"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // version returns the version of the underlying c translation

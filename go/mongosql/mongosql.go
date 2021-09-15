@@ -3,6 +3,7 @@ package mongosql
 import (
 	"encoding/base64"
 	"fmt"
+
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 
 	"github.com/10gen/mongosql-rs/go/internal/desugarer"

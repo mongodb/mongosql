@@ -3,9 +3,10 @@ package mongosql
 import (
 	"encoding/base64"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson"
 	"syscall"
 	"unsafe"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 var versionProc *syscall.LazyProc
