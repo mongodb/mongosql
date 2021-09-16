@@ -103,7 +103,7 @@ def parse_options(args):
     try:
         if any(map(lambda xform: '\\' in xform, opts.transformations)):
             raise Exception("All transformations should use Unix style paths with '/' separators")
-        opts.transformations = map(lambda xform: xform.split('=',1), opts.transformations)
+        opts.transformations = list(map(lambda xform: xform.split('=',1), opts.transformations))
     except Exception as e:
         parser.error(e)
 
