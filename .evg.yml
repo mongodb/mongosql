@@ -1215,7 +1215,7 @@ tasks:
 
 - <<: *run-make-target
   name: test-sample-auth-failure-4.0
-  tags: ["test", "config"]
+  tags: ["test", "config", "4.0"]
 
 - <<: *run-make-target
   name: test-sample-auth-failure-4.2
@@ -1318,7 +1318,7 @@ tasks:
 
 - <<: *run-make-target
   name: test-join-sharded-collection-4.0
-  tags: ["test", "config"]
+  tags: ["test", "config", "4.0"]
 
 - <<: *run-make-target
   name: test-join-sharded-collection-4.2
@@ -1330,7 +1330,7 @@ tasks:
 
 - <<: *run-make-target
   name: test-join-sharded-view-4.0
-  tags: ["test", "config"]
+  tags: ["test", "config", "4.0"]
 
 - <<: *run-make-target
   name: test-join-sharded-view-4.2
@@ -1346,7 +1346,7 @@ tasks:
 
 - <<: *run-make-target
   name: test-count-on-sharded-collection-4.0
-  tags: ["test", "config"]
+  tags: ["test", "config", "4.0"]
 
 - <<: *run-make-target
   name: test-count-on-sharded-collection-4.2
@@ -1358,7 +1358,7 @@ tasks:
 
 - <<: *run-make-target
   name: test-count-on-sharded-view-4.0
-  tags: ["test", "config"]
+  tags: ["test", "config", "4.0"]
 
 - <<: *run-make-target
   name: test-count-on-sharded-view-4.2
@@ -1370,7 +1370,7 @@ tasks:
 
 - <<: *run-make-target
   name: test-count-on-sharded-view-on-view-4.0
-  tags: ["test", "config"]
+  tags: ["test", "config", "4.0"]
 
 - <<: *run-make-target
   name: test-count-on-sharded-view-on-view-4.2
@@ -1426,7 +1426,7 @@ tasks:
 
 - <<: *run-make-target
   name: test-mongo-auth-sample-no-creds-4.0
-  tags: ["test", "config"]
+  tags: ["test", "config", "4.0"]
 
 - <<: *run-make-target
   name: test-mongo-auth-sample-no-creds-4.2
@@ -1438,7 +1438,7 @@ tasks:
 
 - <<: *run-make-target
   name: test-mongo-auth-sample-wrong-admin-creds-4.0
-  tags: ["test", "config"]
+  tags: ["test", "config", "4.0"]
 
 - <<: *run-make-target
   name: test-mongo-auth-sample-wrong-admin-creds-4.2
@@ -1450,7 +1450,7 @@ tasks:
 
 - <<: *run-make-target
   name: test-mongo-auth-sample-no-roles-4.0
-  tags: ["test", "config"]
+  tags: ["test", "config", "4.0"]
 
 - <<: *run-make-target
   name: test-mongo-auth-sample-no-roles-4.2
@@ -1466,7 +1466,7 @@ tasks:
 
 - <<: *run-make-target
   name: test-mongo-auth-sample-no-listdatabases-wildcard-db-4.0
-  tags: ["test", "config"]
+  tags: ["test", "config", "4.0"]
 
 - <<: *run-make-target
   name: test-mongo-auth-sample-no-listdatabases-wildcard-db-4.2
@@ -1648,12 +1648,12 @@ axes:
   display_name: OS
   values:
 
-  - id: ubuntu2004-64
-    display_name: Ubuntu 20.04
+  - id: ubuntu1804-64
+    display_name: Ubuntu 18.04
     run_on:
-    - ubuntu2004
+    - ubuntu1804
     variables:
-      _variant: ubuntu2004
+      _variant: ubuntu1804
 
   - id: osx
     display_name: macOS 10.14
@@ -1784,12 +1784,12 @@ axes:
     variables:
       _variant: ubuntu1604
 
-  - id: ubuntu1804-64
-    display_name: Ubuntu 18.04
+  - id: ubuntu2004-64
+    display_name: Ubuntu 20.04
     run_on:
-    - ubuntu1804
+    - ubuntu2004
     variables:
-      _variant: ubuntu1804
+      _variant: ubuntu2004
 
   - id: ubuntu1804-arm64
     display_name: Ubuntu 18.04 arm
@@ -1886,10 +1886,10 @@ buildvariants:
     mongodb_version: "*"
     mongodb_topology: "*"
   exclude_spec:
-  - os_full_matrix: ["osx", "ubuntu2004-64"]
+  - os_full_matrix: ["osx", "ubuntu1804-64"]
     mongodb_version: ["4.0", "4.2", "4.4", "5.0"]
     mongodb_topology: ["standalone", "replica-set", "sharded-cluster"]
-  - os_full_matrix: ["osx", "ubuntu2004-64"]
+  - os_full_matrix: ["osx", "ubuntu1804-64"]
     mongodb_version: "latest"
     mongodb_topology: ["replica-set", "sharded-cluster"]
   rules:
@@ -1962,6 +1962,13 @@ buildvariants:
       - "osx"
     then:
       remove_tasks: [".mongo-tls", "test-kill-queries-replica-set", "test-sampling-does-not-hang-after-election"]
+  - if:
+      os_full_matrix:
+      - "ubuntu1804-64"
+    then:
+      remove_tasks:
+        - ".4.0"  # mongodb 4.0 is not available on ubuntu1804
+        - "test-mongo-ssl-fips"  # Disabled: see BI-2661
 
 - name: race-detector
   display_name: Race Detector (RHEL 7.0)
@@ -1976,11 +1983,11 @@ buildvariants:
 - name: dependencies
   display_name: Inter-project Dependencies
   expansions:
-    _variant: rhel62
+    _variant: macos
     _mongo_auth: true
     _client_auth: true
   run_on:
-  - rhel62
+  - macos-1014
   tasks:
   - jdbc-auth-scram1
   - jdbc-auth-scram256

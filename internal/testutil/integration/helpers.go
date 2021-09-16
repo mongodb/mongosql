@@ -6,6 +6,7 @@ import (
 	"database/sql/driver"
 	"fmt"
 	"math"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -555,6 +556,18 @@ func runIntegrationTest(t *testing.T, test *TestCase, serverVersion []uint8) {
 		if !procutil.VersionAtLeast(serverVersion, minRequiredVersion) {
 			t.Skipf("skipping test with min_server_version=%v against MongoDB %v",
 				test.MinServerVersion, serverVersion)
+		}
+	}
+
+	if test.MaxServerVersion != "" {
+		maxRequiredVersion, err := procutil.VersionToSlice(test.MaxServerVersion)
+		if err != nil {
+			t.Fatalf("error getting test max_server_version: %v", err)
+		}
+
+		if procutil.VersionAtLeast(serverVersion, maxRequiredVersion) && !reflect.DeepEqual(maxRequiredVersion, serverVersion) {
+			t.Skipf("skipping test with max_server_version=%v against MongoDB %v",
+				test.MaxServerVersion, serverVersion)
 		}
 	}
 

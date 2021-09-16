@@ -459,6 +459,8 @@ testcases:
       - [',,,,,,,,']
     expected_types: [varchar]
     id: group_concat_empty_strings
+    #BI-2659: remove max_server_version
+    max_server_version: 4.5
     sql: select group_concat(lpadTest.s) from lpadTest join lpadTest as b where lpadTest.s = ""
 
   - db: functions_test
@@ -467,6 +469,8 @@ testcases:
       - ['']
     expected_types: [varchar]
     id: group_concat_empty_strings_empty_separator
+    #BI-2659: remove max_server_version
+    max_server_version: 4.5
     sql: select group_concat(lpadTest.s separator "") from lpadTest join lpadTest as b where lpadTest.s = ""
 
   - db: functions_test
@@ -501,6 +505,8 @@ testcases:
       - ['0']
     expected_types: [varchar]
     id: group_concat_distinct
+    #BI-2659: remove max_server_version
+    max_server_version: 4.5
     sql: select group_concat(distinct scalar._id) from scalar join scalar b where scalar._id=0
 
   - db: functions_test
@@ -509,6 +515,8 @@ testcases:
       - ['01']
     expected_types: [varchar]
     id: group_concat_distinct_multiple_args
+    #BI-2659: remove max_server_version
+    max_server_version: 4.5
     sql: select group_concat(distinct scalar._id, scalar.a) from scalar join scalar b where scalar._id=0
 
   - db: functions_test

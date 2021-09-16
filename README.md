@@ -79,6 +79,10 @@ mysql
 There are three different categories into which the BI Connector's tests fall:
 unit tests, integration tests, and end-to-end (e2e) tests.
 
+### Test Automation Concerns
+When a new major version of MongoDB is released, the `LATEST` variable at the top of
+`testdata/bin/download-mongodb.sh` must be updated.
+
 ### Unit Tests
 Most of the packages in this repository include unit tests.
 To run all unit tests, run `go test -v ./...`

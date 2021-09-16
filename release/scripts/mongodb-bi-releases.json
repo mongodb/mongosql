@@ -160,7 +160,7 @@
       {
          "arch": "x86_64",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1804-64"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~UBUNTU1804-64_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
          },
          "edition": "enterprise",
          "packages": [],
@@ -187,7 +187,7 @@
       {
          "arch": "x86_64",
          "archive": {
-            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~UBUNTU2004-64_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU2004-64"
          },
          "edition": "enterprise",
          "packages": [],

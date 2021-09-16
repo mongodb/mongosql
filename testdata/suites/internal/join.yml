@@ -1264,6 +1264,8 @@ testcases:
       - [1, 10]
     expected_types: [int, int]
     id: cross_join_3
+    #BI-2659: remove max_server_version
+    max_server_version: 4.5
     sql: select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a = join_3.d and join_2.c = 10
 
   - db: join_test
@@ -1273,6 +1275,8 @@ testcases:
       - [1, 1]
     expected_types: [int, int]
     id: cross_join_4
+    #BI-2659: remove max_server_version
+    max_server_version: 4.5
     sql: select join_1.a, s.d from join_1 cross join (select join_2.d from join_2) s cross join join_3 where join_1.a = s.d and s.d = 1 and join_3.c > 22
 
   - db: join_test
@@ -1283,6 +1287,8 @@ testcases:
       - [3, 11]
     expected_types: [int, int]
     id: cross_join_5
+    #BI-2659: remove max_server_version
+    max_server_version: 4.5
     sql: select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a < join_2.d + 3 and join_1.a < 5 and join_3.a = 14
 
   - db: join_test
@@ -1321,6 +1327,8 @@ testcases:
       - [1, null]
     expected_types: [int, int]
     id: cross_join_9
+    #BI-2659: remove max_server_version
+    max_server_version: 4.5
     sql: select join_1.a, join_1.b from join_1, join_2, (select join_1.a, join_2.c from join_1, join_2, join_3 where join_1.a = join_3.d) res where join_1.a = res.a and join_2.d = 1
 
   - db: join_test
@@ -1331,6 +1339,8 @@ testcases:
       - [null]
     expected_types: [int]
     id: cross_join_10
+    #BI-2659: remove max_server_version
+    max_server_version: 4.5
     sql: select join_2.d from join_1 inner join join_2, (select join_1.a, join_2.c from join_1,  join_2, join_3 where join_1.a = join_3.d) res where join_1.a = res.a and res.c = 11
 
   - db: join_test
@@ -1391,6 +1401,8 @@ testcases:
       - [1, 1, 0, 0]
     expected_types: [int, int, int, int]
     id: using_multipleClauses
+    #BI-2659: remove max_server_version
+    max_server_version: 4.5
     sql: select join_2._id, join_3._id, join_4._id, join_5._id from join_2 join join_3 using (_id) join join_4 join join_5 using (b)
 
   - db: join_test

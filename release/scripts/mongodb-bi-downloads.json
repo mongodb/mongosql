@@ -71,7 +71,7 @@
     },
     {
       "name": "Ubuntu 18.04 x64",
-      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU1804-64"
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~UBUNTU1804-64_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
     },
     {
       "name": "Ubuntu 18.04 ARM",
@@ -83,7 +83,7 @@
     },
     {
       "name": "Ubuntu 20.04 x64",
-      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/FULL_MATRIX__OS_FULL_MATRIX~UBUNTU2004-64_MONGODB_VERSION~LATEST_MONGODB_TOPOLOGY~STANDALONE"
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/SINGLE_VARIANT__OS_SINGLE_VARIANT~UBUNTU2004-64"
     },
     {
       "name": "Ubuntu 20.04 ARM",

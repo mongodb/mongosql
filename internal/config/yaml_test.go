@@ -789,7 +789,7 @@ mongodb:
 	yaml := fmt.Sprintf(`
 __exec: "cat %s"
 type: "yaml"
-`, tmpFile.Name())
+`, strings.Replace(tmpFile.Name(), "\\", "\\\\", -1))
 	err = ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
@@ -1313,7 +1313,7 @@ __exec: "cat %s"
 type: "yaml"
 digest: %q
 digest_key: %q
-`, tmpFile.Name(), hashYaml, digestKey)
+`, strings.Replace(tmpFile.Name(), "\\", "\\\\", -1), hashYaml, digestKey)
 	err = ParseYaml(cfg, bytes.NewBufferString(yaml), cfg.ConfigExpand)
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)

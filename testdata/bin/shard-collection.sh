@@ -10,7 +10,7 @@
     if [ -z "$SHARD_KEY" ]; then
         SHARD_KEY="{_id: 1}"
     fi
-    cmd="db.$COLLECTION.ensureIndex($SHARD_KEY); sh.enableSharding(\"$DATABASE\"); sh.shardCollection(\"$DATABASE.$COLLECTION\", $SHARD_KEY);"
+    cmd="db.$COLLECTION.createIndex($SHARD_KEY); sh.enableSharding(\"$DATABASE\"); sh.shardCollection(\"$DATABASE.$COLLECTION\", $SHARD_KEY);"
 
     set +o errexit
 

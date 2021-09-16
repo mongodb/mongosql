@@ -117,7 +117,7 @@ test-mongo-auth-sample-no-roles-latest: test-auth-empty-schema-available
 
 # when correct admin credentials are provided but the user does not have the listDatabases action,
 # we expect the connection to succeed as long as none of the database selectors use wildcards
-test-mongo-auth-sample-no-listdatabases-literal-db: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/version/4.0,mongo/other-user/no-listdatabases,sqlproxy/schema/mapping-majority,sqlproxy/schema/ns-literal-db,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
+test-mongo-auth-sample-no-listdatabases-literal-db: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/version/4.2,mongo/other-user/no-listdatabases,sqlproxy/schema/mapping-majority,sqlproxy/schema/ns-literal-db,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/cleartext,client/ssl/require,client/auth/creds
 test-mongo-auth-sample-no-listdatabases-literal-db: NO_FLUSH_SCHEMA := 1
 test-mongo-auth-sample-no-listdatabases-literal-db: EXPECTED_DB_COUNT := 4
 test-mongo-auth-sample-no-listdatabases-literal-db: test-auth-schema-available

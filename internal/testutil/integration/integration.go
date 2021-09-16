@@ -39,6 +39,7 @@ type TestCase struct {
 	VerificationSQL       string                 `yaml:"verify"`
 	Description           string                 `yaml:"description"`
 	MinServerVersion      string                 `yaml:"min_server_version"`
+	MaxServerVersion      string                 `yaml:"max_server_version"`
 	ExactServerVersion    string                 `yaml:"exact_server_version"`
 	ExpectedError         string                 `yaml:"expected_error"`
 	ExpectedErrorContains string                 `yaml:"expected_error_contains"`

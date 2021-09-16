@@ -25,7 +25,7 @@ test-cleartext-auth-ssl: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo
 test-cleartext-auth-ssl: test-connect-success
 
 # accept SCRAM-SHA-256 cleartext auth attempt for ssl connection
-test-cleartext-auth-ssl-scram-sha-256: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/version/4.0,mongo/other-user/root,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/auth/scram-sha-256-mechanism,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/other-user-creds-scram-sha-256,client/auth/cleartext,client/ssl/require
+test-cleartext-auth-ssl-scram-sha-256: INFRASTRUCTURE_CONFIG := $(INFRASTRUCTURE_CONFIG),mongo/auth,mongo/version/4.2,mongo/other-user/root,sqlproxy/auth/admin-creds-other-user,sqlproxy/auth/enabled,sqlproxy/auth/scram-sha-256-mechanism,sqlproxy/ssl/allow,sqlproxy/ssl/pem,client/auth/other-user-creds-scram-sha-256,client/auth/cleartext,client/ssl/require
 test-cleartext-auth-ssl-scram-sha-256: MECHANISM := SCRAM-SHA-256
 test-cleartext-auth-ssl-scram-sha-256: run-mongodb _create-test-user build-mongosqld run-mongosqld _test-connect-success
 
