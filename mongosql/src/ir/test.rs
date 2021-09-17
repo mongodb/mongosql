@@ -91,7 +91,7 @@ macro_rules! test_flatten_variadic_functions {
 mod schema {
     use crate::{
         catalog::*,
-        ir::{binding_tuple::DatasourceName::Bottom, schema::*, *},
+        ir::{binding_tuple::DatasourceName::Bottom, schema::Error as ir_error, *},
         map,
         schema::*,
         set, unchecked_unique_linked_hash_map,
@@ -166,7 +166,7 @@ mod schema {
     );
     test_schema!(
         reference_does_not_exist_in_schema_env,
-        Err(Error::DatasourceNotFoundInSchemaEnv(("a", 0u16).into())),
+        Err(ir_error::DatasourceNotFoundInSchemaEnv(("a", 0u16).into())),
         Expression::Reference(("a", 0u16).into()),
     );
     test_schema!(
@@ -369,7 +369,7 @@ mod schema {
     // FieldAccess
     test_schema!(
         field_access_accessee_cannot_be_document,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "FieldAccess",
             required: crate::schema::ANY_DOCUMENT.clone(),
             found: Schema::Atomic(Atomic::Long),
@@ -381,7 +381,7 @@ mod schema {
     );
     test_schema!(
         field_access_field_must_not_exist_not_in_document,
-        Err(Error::AccessMissingField("foo".to_string())),
+        Err(ir_error::AccessMissingField("foo".to_string())),
         Expression::FieldAccess(FieldAccess {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
             field: "foo".to_string(),
@@ -483,7 +483,7 @@ mod schema {
     // General function schema checking.
     test_schema!(
         arg_may_satisfy_schema_is_not_sufficient,
-        Err(schema::Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Pos",
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::AnyOf(set![
@@ -533,7 +533,7 @@ mod schema {
     );
     test_schema!(
         unary_pos_requires_one_arg,
-        Err(Error::IncorrectArgumentCount {
+        Err(ir_error::IncorrectArgumentCount {
             name: "Pos",
             required: 1,
             found: 0
@@ -545,7 +545,7 @@ mod schema {
     );
     test_schema!(
         unary_neg_requires_one_arg,
-        Err(Error::IncorrectArgumentCount {
+        Err(ir_error::IncorrectArgumentCount {
             name: "Neg",
             required: 1,
             found: 2
@@ -562,7 +562,7 @@ mod schema {
     // Substring function.
     test_schema!(
         substring_requires_string_for_first_arg,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Substring",
             required: STRING_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer),
@@ -578,7 +578,7 @@ mod schema {
     );
     test_schema!(
         substring_requires_integer_for_second_arg,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Substring",
             required: INTEGER_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
@@ -594,7 +594,7 @@ mod schema {
     );
     test_schema!(
         substring_requires_integer_for_third_arg,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Substring",
             required: INTEGER_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
@@ -663,7 +663,7 @@ mod schema {
     // Like function type correctness
     test_schema!(
         like_first_arg_not_string_or_nullish_is_error,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Like",
             required: STRING_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
@@ -677,7 +677,7 @@ mod schema {
     );
     test_schema!(
         like_second_arg_not_string_or_nullish_is_error,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Like",
             required: STRING_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
@@ -739,7 +739,7 @@ mod schema {
     // And tests.
     test_schema!(
         and_first_arg_is_not_bool_is_error,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "And",
             required: BOOLEAN_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
@@ -755,7 +755,7 @@ mod schema {
     );
     test_schema!(
         and_second_arg_is_not_bool_is_error,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "And",
             required: BOOLEAN_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
@@ -827,7 +827,7 @@ mod schema {
     // Or tests.
     test_schema!(
         or_first_arg_is_not_bool_is_error,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Or",
             required: BOOLEAN_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
@@ -843,7 +843,7 @@ mod schema {
     );
     test_schema!(
         or_second_arg_is_not_bool_is_error,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Or",
             required: BOOLEAN_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
@@ -915,7 +915,7 @@ mod schema {
     // Not tests.
     test_schema!(
         not_arg_is_not_bool_is_error,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Not",
             required: BOOLEAN_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
@@ -1492,7 +1492,7 @@ mod schema {
     //AggregationFunction schema checking.
     test_schema!(
         max_args_must_be_comparable,
-        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+        Err(ir_error::AggregationArgumentMustBeSelfComparable(
             "Max".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1505,7 +1505,7 @@ mod schema {
     );
     test_schema!(
         min_args_must_be_comparable,
-        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+        Err(ir_error::AggregationArgumentMustBeSelfComparable(
             "Min".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1519,7 +1519,7 @@ mod schema {
 
     test_schema!(
         distinct_sum_args_must_be_comparable,
-        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+        Err(ir_error::AggregationArgumentMustBeSelfComparable(
             "Sum DISTINCT".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1532,7 +1532,7 @@ mod schema {
     );
     test_schema!(
         distinct_count_args_must_be_comparable,
-        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+        Err(ir_error::AggregationArgumentMustBeSelfComparable(
             "Count DISTINCT".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1545,7 +1545,7 @@ mod schema {
     );
     test_schema!(
         distinct_first_args_must_be_comparable,
-        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+        Err(ir_error::AggregationArgumentMustBeSelfComparable(
             "First DISTINCT".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1558,7 +1558,7 @@ mod schema {
     );
     test_schema!(
         distinct_last_args_must_be_comparable,
-        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+        Err(ir_error::AggregationArgumentMustBeSelfComparable(
             "Last DISTINCT".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1571,7 +1571,7 @@ mod schema {
     );
     test_schema!(
         distinct_stddevpop_args_must_be_comparable,
-        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+        Err(ir_error::AggregationArgumentMustBeSelfComparable(
             "StddevPop DISTINCT".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1584,7 +1584,7 @@ mod schema {
     );
     test_schema!(
         distinct_stddevsamp_args_must_be_comparable,
-        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+        Err(ir_error::AggregationArgumentMustBeSelfComparable(
             "StddevSamp DISTINCT".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1597,7 +1597,7 @@ mod schema {
     );
     test_schema!(
         distinct_max_args_must_be_comparable,
-        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+        Err(ir_error::AggregationArgumentMustBeSelfComparable(
             "Max DISTINCT".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1610,7 +1610,7 @@ mod schema {
     );
     test_schema!(
         distinct_min_args_must_be_comparable,
-        Err(schema::Error::AggregationArgumentMustBeSelfComparable(
+        Err(ir_error::AggregationArgumentMustBeSelfComparable(
             "Min DISTINCT".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1649,7 +1649,7 @@ mod schema {
 
     test_schema!(
         arg_to_sum_must_be_numeric,
-        Err(schema::Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Sum",
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::AnyOf(set![
@@ -1709,7 +1709,7 @@ mod schema {
 
     test_schema!(
         arg_to_mergedocuments_must_be_document,
-        Err(schema::Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "MergeDocuments",
             required: ANY_DOCUMENT.clone(),
             found: Schema::AnyOf(set![
@@ -1748,7 +1748,7 @@ mod schema {
 
     test_schema!(
         arg_to_avg_must_be_numeric,
-        Err(schema::Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Avg",
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::AnyOf(set![
@@ -1810,7 +1810,7 @@ mod schema {
 
     test_schema!(
         arg_to_stddev_pop_must_be_numeric,
-        Err(schema::Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "StddevPop",
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::AnyOf(set![
@@ -1872,7 +1872,7 @@ mod schema {
 
     test_schema!(
         arg_to_stddev_samp_must_be_numeric,
-        Err(schema::Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "StddevSamp",
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::AnyOf(set![
@@ -2263,7 +2263,7 @@ mod schema {
     // Arithmetic function errors.
     test_schema!(
         sub_requires_exactly_two_args,
-        Err(Error::IncorrectArgumentCount {
+        Err(ir_error::IncorrectArgumentCount {
             name: "Sub",
             required: 2,
             found: 1
@@ -2275,7 +2275,7 @@ mod schema {
     );
     test_schema!(
         div_requires_exactly_two_args,
-        Err(Error::IncorrectArgumentCount {
+        Err(ir_error::IncorrectArgumentCount {
             name: "Div",
             required: 2,
             found: 3
@@ -2291,7 +2291,7 @@ mod schema {
     );
     test_schema!(
         fixed_arg_arithmetic_first_arg_must_be_number,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Sub",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -2313,7 +2313,7 @@ mod schema {
     );
     test_schema!(
         fixed_arg_arithmetic_second_arg_must_be_number,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Div",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -2335,7 +2335,7 @@ mod schema {
     );
     test_schema!(
         variadic_arg_arithmetic_all_args_must_be_numbers,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Add",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -2362,7 +2362,7 @@ mod schema {
     // Comparison operators.
     test_schema!(
         comp_op_requires_exactly_two_args,
-        Err(Error::IncorrectArgumentCount {
+        Err(ir_error::IncorrectArgumentCount {
             name: "Lt",
             required: 2,
             found: 1
@@ -2374,7 +2374,7 @@ mod schema {
     );
     test_schema!(
         comp_op_requires_a_valid_comparison,
-        Err(Error::InvalidComparison(
+        Err(ir_error::InvalidComparison(
             "Lte",
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
@@ -2428,7 +2428,7 @@ mod schema {
     // Between function.
     test_schema!(
         between_requires_exactly_three_args,
-        Err(Error::IncorrectArgumentCount {
+        Err(ir_error::IncorrectArgumentCount {
             name: "Between",
             required: 3,
             found: 1
@@ -2440,7 +2440,7 @@ mod schema {
     );
     test_schema!(
         between_requires_a_valid_comparison_between_first_and_second_args,
-        Err(Error::InvalidComparison(
+        Err(ir_error::InvalidComparison(
             "Between",
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
@@ -2456,7 +2456,7 @@ mod schema {
     );
     test_schema!(
         between_requires_a_valid_comparison_between_first_and_third_args,
-        Err(Error::InvalidComparison(
+        Err(ir_error::InvalidComparison(
             "Between",
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
@@ -2528,7 +2528,7 @@ mod schema {
 
     test_schema!(
         merge_object_args_must_be_documents,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "MergeObjects",
             required: ANY_DOCUMENT.clone(),
             found: Schema::Atomic(Atomic::String),
@@ -2549,7 +2549,7 @@ mod schema {
     );
     test_schema!(
         merge_objects_not_ok_to_be_multiple_any_document,
-        Err(Error::CannotMergeObjects(
+        Err(ir_error::CannotMergeObjects(
             ANY_DOCUMENT.clone(),
             ANY_DOCUMENT.clone(),
             Satisfaction::May,
@@ -2565,7 +2565,7 @@ mod schema {
     );
     test_schema!(
         merge_object_args_must_have_disjoint_keys,
-        Err(Error::CannotMergeObjects(
+        Err(ir_error::CannotMergeObjects(
             Schema::Document(Document {
                 keys: map! {"a".into() => Schema::Atomic(Atomic::Integer) },
                 required: set! {"a".into()},
@@ -2739,7 +2739,7 @@ mod schema {
     // ComputedFieldAccess Function
     test_schema!(
         computed_field_access_requires_two_args,
-        Err(Error::IncorrectArgumentCount {
+        Err(ir_error::IncorrectArgumentCount {
             name: "ComputedFieldAccess",
             required: 2,
             found: 3
@@ -2755,7 +2755,7 @@ mod schema {
     );
     test_schema!(
         computed_field_access_first_arg_must_not_be_document,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "ComputedFieldAccess",
             required: ANY_DOCUMENT.clone(),
             found: Schema::Atomic(Atomic::Long),
@@ -2770,7 +2770,7 @@ mod schema {
     );
     test_schema!(
         computed_field_access_first_arg_may_be_document,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "ComputedFieldAccess",
             required: ANY_DOCUMENT.clone(),
             found: Schema::AnyOf(set![ANY_DOCUMENT.clone(), Schema::Missing]),
@@ -2786,7 +2786,7 @@ mod schema {
     );
     test_schema!(
         computed_field_access_second_arg_must_not_be_string,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "ComputedFieldAccess",
             required: Schema::Atomic(Atomic::String),
             found: Schema::Atomic(Atomic::Long),
@@ -2802,7 +2802,7 @@ mod schema {
     );
     test_schema!(
         computed_field_access_second_arg_may_be_string,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "ComputedFieldAccess",
             required: Schema::Atomic(Atomic::String),
             found: Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing]),
@@ -2841,7 +2841,7 @@ mod schema {
     );
     test_schema!(
         current_timestamp_integer_arg_should_be_removed_in_algebrization,
-        Err(Error::IncorrectArgumentCount {
+        Err(ir_error::IncorrectArgumentCount {
             name: "CurrentTimestamp",
             required: 0,
             found: 1
@@ -2855,7 +2855,7 @@ mod schema {
     // NullIf function.
     test_schema!(
         nullif_requires_two_args,
-        Err(Error::IncorrectArgumentCount {
+        Err(ir_error::IncorrectArgumentCount {
             name: "NullIf",
             required: 2,
             found: 1,
@@ -2867,7 +2867,7 @@ mod schema {
     );
     test_schema!(
         nullif_cannot_compare_numeric_with_non_numeric,
-        Err(Error::InvalidComparison(
+        Err(ir_error::InvalidComparison(
             "NullIf",
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String)
@@ -2882,7 +2882,7 @@ mod schema {
     );
     test_schema!(
         nullif_types_must_be_identical_if_non_numeric,
-        Err(Error::InvalidComparison(
+        Err(ir_error::InvalidComparison(
             "NullIf",
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::String)
@@ -2897,7 +2897,7 @@ mod schema {
     );
     test_schema!(
         nullif_args_cannot_be_potentially_comparable,
-        Err(Error::InvalidComparison(
+        Err(ir_error::InvalidComparison(
             "NullIf",
             Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -2990,7 +2990,7 @@ mod schema {
     // Coalesce function.
     test_schema!(
         coalesce_requires_at_least_one_arg,
-        Err(Error::IncorrectArgumentCount {
+        Err(ir_error::IncorrectArgumentCount {
             name: "Coalesce",
             required: 1,
             found: 0,
@@ -3039,7 +3039,7 @@ mod schema {
     // Slice function.
     test_schema!(
         slice_requires_more_than_one_arg,
-        Err(Error::IncorrectArgumentCount {
+        Err(ir_error::IncorrectArgumentCount {
             name: "Slice",
             required: 2,
             found: 1,
@@ -3052,7 +3052,7 @@ mod schema {
     );
     test_schema!(
         slice_requires_fewer_than_four_arg,
-        Err(Error::IncorrectArgumentCount {
+        Err(ir_error::IncorrectArgumentCount {
             name: "Slice",
             required: 2,
             found: 4,
@@ -3070,7 +3070,7 @@ mod schema {
     );
     test_schema!(
         slice_with_two_args_requires_an_array_for_the_first_arg,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Slice",
             required: ANY_ARRAY.clone(),
             found: Schema::Atomic(Atomic::String),
@@ -3085,7 +3085,7 @@ mod schema {
     );
     test_schema!(
         slice_with_two_args_requires_an_integer_for_the_second_arg,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Slice",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -3105,7 +3105,7 @@ mod schema {
     );
     test_schema!(
         slice_with_three_args_requires_an_array_for_the_first_arg,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Slice",
             required: ANY_ARRAY.clone(),
             found: Schema::Atomic(Atomic::String),
@@ -3121,7 +3121,7 @@ mod schema {
     );
     test_schema!(
         slice_with_three_args_requires_an_integer_for_the_second_arg,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Slice",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -3142,7 +3142,7 @@ mod schema {
     );
     test_schema!(
         slice_with_three_args_requires_an_integer_for_the_third_arg,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Slice",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -3190,7 +3190,7 @@ mod schema {
     // Size function.
     test_schema!(
         size_requires_one_arg,
-        Err(Error::IncorrectArgumentCount {
+        Err(ir_error::IncorrectArgumentCount {
             name: "Size",
             required: 1,
             found: 0,
@@ -3202,7 +3202,7 @@ mod schema {
     );
     test_schema!(
         size_requires_array_arg,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "Size",
             required: Schema::AnyOf(set![
                 ANY_ARRAY.clone(),
@@ -3279,7 +3279,7 @@ mod schema {
     );
     test_schema!(
         literal_array_items_datasource_schema,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "array datasource items",
             required: ANY_DOCUMENT.clone(),
             found: Schema::AnyOf(set![
@@ -3419,7 +3419,7 @@ mod schema {
 
     mod filter {
         use crate::{
-            ir::{schema::Error, *},
+            ir::{schema::Error as ir_error, *},
             map,
             schema::{Atomic, ResultSet, Schema},
             set, unchecked_unique_linked_hash_map,
@@ -3460,7 +3460,7 @@ mod schema {
         );
         test_schema!(
             non_boolean_condition_disallowed,
-            Err(Error::SchemaChecking {
+            Err(ir_error::SchemaChecking {
                 name: "filter condition",
                 required: Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Boolean),
@@ -3476,7 +3476,7 @@ mod schema {
         );
         test_schema!(
             possible_non_boolean_condition_disallowed,
-            Err(Error::SchemaChecking {
+            Err(ir_error::SchemaChecking {
                 name: "filter condition",
                 required: Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Boolean),
@@ -3495,7 +3495,7 @@ mod schema {
         );
         test_schema!(
             source_fails_schema_check,
-            match Err(Error::SchemaChecking {
+            match Err(ir_error::SchemaChecking {
                 name: "array datasource items",
                 ..
             }),
@@ -3509,7 +3509,9 @@ mod schema {
         );
         test_schema!(
             condition_fails_schema_check,
-            Err(Error::DatasourceNotFoundInSchemaEnv(("abc", 0u16).into())),
+            Err(ir_error::DatasourceNotFoundInSchemaEnv(
+                ("abc", 0u16).into()
+            )),
             Stage::Filter(Filter {
                 source: Box::new(TEST_SOURCE.clone()),
                 condition: Expression::Reference(("abc", 0u16).into()),
@@ -3673,7 +3675,7 @@ mod schema {
     );
     test_schema!(
         assert_expr_to_impossible_type,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "::!",
             required: Schema::Atomic(Atomic::String),
             found: Schema::Atomic(Atomic::Integer),
@@ -3687,7 +3689,7 @@ mod schema {
     // Searched Case
     test_schema!(
         searched_case_when_branch_condition_must_be_boolean_or_nullish,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "SearchedCase",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Boolean),
@@ -3737,7 +3739,7 @@ mod schema {
     // Simple Case
     test_schema!(
         simple_case_when_branch_operand_must_be_comparable_with_case_operand,
-        Err(Error::InvalidComparison(
+        Err(ir_error::InvalidComparison(
             "SimpleCase",
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Integer),
@@ -3959,7 +3961,7 @@ mod schema {
 
     test_schema!(
         exists_invalid_expression,
-        Err(Error::IncorrectArgumentCount {
+        Err(ir_error::IncorrectArgumentCount {
             name: "Div",
             required: 2,
             found: 3
@@ -3987,7 +3989,7 @@ mod schema {
 
     test_schema!(
         subquery_output_expr_violates_type_constraints,
-        Err(Error::AccessMissingField("_2".into())),
+        Err(ir_error::AccessMissingField("_2".into())),
         Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
@@ -4047,7 +4049,9 @@ mod schema {
 
     test_schema!(
         subquery_output_expr_correlated_datasource,
-        Err(Error::DatasourceNotFoundInSchemaEnv(("foo", 0u16).into())),
+        Err(ir_error::DatasourceNotFoundInSchemaEnv(
+            ("foo", 0u16).into()
+        )),
         Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference(("foo", 0u16).into())),
@@ -4113,7 +4117,7 @@ mod schema {
     // Analogous SQL query: "SELECT (SELECT * FROM foo)"
     test_schema!(
         subquery_cardinality_may_be_1,
-        Err(Error::InvalidSubqueryCardinality),
+        Err(ir_error::InvalidSubqueryCardinality),
         Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::Reference(("foo", 1u16).into())),
             subquery: Box::new(Stage::Collection(Collection {
@@ -4126,7 +4130,7 @@ mod schema {
     // Analogous SQL query: "SELECT (SELECT * FROM [{'a': 5}, {'a': 6}] AS foo)"
     test_schema!(
         subquery_expression_cardinality_gt_one,
-        Err(Error::InvalidSubqueryCardinality),
+        Err(ir_error::InvalidSubqueryCardinality),
         Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference(("foo", 1u16).into())),
@@ -4171,7 +4175,7 @@ mod schema {
 
     test_schema!(
         incomparable_argument_and_output_expr,
-        Err(Error::InvalidComparison(
+        Err(ir_error::InvalidComparison(
             "subquery comparison",
             Schema::Atomic(Atomic::String),
             Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]),
@@ -4469,7 +4473,7 @@ mod schema {
     );
     test_schema!(
         join_duplicate_datasource_names,
-        Err(Error::DuplicateKey(("foo", 0u16).into())),
+        Err(ir_error::DuplicateKey(("foo", 0u16).into())),
         Stage::Join(Join {
             join_type: JoinType::Inner,
             left: Box::new(Stage::Array(Array {
@@ -4485,7 +4489,7 @@ mod schema {
     );
     test_schema!(
         invalid_join_condition,
-        Err(Error::SchemaChecking {
+        Err(ir_error::SchemaChecking {
             name: "join condition",
             required: BOOLEAN_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer),
@@ -4601,11 +4605,12 @@ mod schema {
 
     mod sort {
         use crate::{
-            ir::{schema::*, *},
+            ir::{schema::Error as ir_error, *},
             map,
             schema::*,
             set,
         };
+
         test_schema!(
             comparable_schemas,
             Ok(ResultSet {
@@ -4644,7 +4649,7 @@ mod schema {
         );
         test_schema!(
             incomparable_schemas,
-            Err(Error::SortKeyNotSelfComparable(
+            Err(ir_error::SortKeyNotSelfComparable(
                 1,
                 Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Integer),
@@ -4680,7 +4685,7 @@ mod schema {
         );
         test_schema!(
             mix_comparable_and_incomparable_schemas,
-            Err(Error::SortKeyNotSelfComparable(
+            Err(ir_error::SortKeyNotSelfComparable(
                 0,
                 Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Integer),
@@ -4714,7 +4719,7 @@ mod schema {
 
     mod group_by {
         use crate::{
-            ir::{binding_tuple::Key, schema::*, *},
+            ir::{binding_tuple::Key, schema::Error as ir_error, *},
             map,
             schema::*,
             set,
@@ -4766,7 +4771,7 @@ mod schema {
         );
         test_schema!(
             key_schemas_not_all_self_comparable,
-            Err(Error::GroupKeyNotSelfComparable(
+            Err(ir_error::GroupKeyNotSelfComparable(
                 1,
                 Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Integer),

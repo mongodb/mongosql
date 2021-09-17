@@ -1,7 +1,6 @@
 use crate::{
     ir::{
         binding_tuple::{self, BindingTuple},
-        schema::Error,
         Type, TypeOrMissing,
     },
     json_schema, map,
@@ -14,6 +13,15 @@ use std::{
     convert::TryFrom,
     str::FromStr,
 };
+use thiserror::Error;
+
+#[derive(Debug, Error, PartialEq)]
+pub enum Error {
+    #[error("is not a valid BSON type")]
+    InvalidBSONType(),
+    #[error("invalid combination of fields")]
+    InvalidCombinationOfFields(),
+}
 
 pub type SchemaEnvironment = BindingTuple<Schema>;
 
@@ -125,10 +133,7 @@ impl FromStr for Atomic {
             "timestamp" => Ok(Atomic::Timestamp),
             "minKey" => Ok(Atomic::MinKey),
             "maxKey" => Ok(Atomic::MaxKey),
-            _ => Err(Error::InvalidJsonSchema(format!(
-                "{} is not a valid BSON type",
-                s
-            ))),
+            _ => Err(Error::InvalidBSONType()),
         }
     }
 }
@@ -659,9 +664,7 @@ impl TryFrom<json_schema::Schema> for Schema {
                     .map(Schema::try_from)
                     .collect::<Result<BTreeSet<Schema>, _>>()?,
             )),
-            _ => Err(Error::InvalidJsonSchema(
-                "invalid combination of fields".into(),
-            )),
+            _ => Err(Error::InvalidCombinationOfFields()),
         }
     }
 }

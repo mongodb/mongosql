@@ -17,10 +17,10 @@ mod satisfaction_ord {
 
 mod from_json {
     use crate::{
-        ir::schema::Error,
         json_schema,
         json_schema::BsonType,
         map, schema,
+        schema::definitions::Error,
         schema::{Atomic::*, Document, Schema::*},
         set,
     };
@@ -47,9 +47,7 @@ mod from_json {
 
     test_from_json_schema!(
         invalid_bson_type,
-        Err(Error::InvalidJsonSchema(
-            "blah is not a valid BSON type".to_string()
-        )),
+        Err(Error::InvalidBSONType()),
         json_schema::Schema {
             bson_type: Some(BsonType::Single("blah".to_string())),
             ..Default::default()
@@ -88,9 +86,7 @@ mod from_json {
 
     test_from_json_schema!(
         one_of_invalid_nested_bson,
-        Err(Error::InvalidJsonSchema(
-            "blah is not a valid BSON type".to_string()
-        )),
+        Err(Error::InvalidBSONType()),
         json_schema::Schema {
             one_of: Some(vec![
                 json_schema::Schema {
@@ -108,9 +104,7 @@ mod from_json {
 
     test_from_json_schema!(
         one_of_invalid_extra_fields,
-        Err(Error::InvalidJsonSchema(
-            "invalid combination of fields".to_string()
-        )),
+        Err(Error::InvalidCombinationOfFields()),
         json_schema::Schema {
             bson_type: Some(BsonType::Single("int".to_string())),
             one_of: Some(vec![json_schema::Schema {

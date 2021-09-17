@@ -42,8 +42,6 @@ pub enum Error {
     CannotMergeObjects(Schema, Schema, Satisfaction),
     #[error("cannot access field {0} because it does not exist")]
     AccessMissingField(String),
-    #[error("invalid JSON schema: {0}")]
-    InvalidJsonSchema(String),
     #[error("cardinality of the subquery's result set may be greater than 1")]
     InvalidSubqueryCardinality,
     #[error("cannot create schema environment with duplicate datasource: {0:?}")]
