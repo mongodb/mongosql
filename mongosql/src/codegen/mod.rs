@@ -26,6 +26,10 @@ pub enum Error {
     InvalidSortKey,
     #[error("field paths can only be generated for Reference and FieldAccess exprs")]
     NoFieldPathForExpr,
+    #[error("limit ({0}) cannot be converted to i64")]
+    LimitOutOfI64Range(u64),
+    #[error("offset ({0}) cannot be converted to i64")]
+    OffsetOutOfI64Range(u64),
 }
 
 pub fn generate_mql(plan: ir::Stage) -> Result<MqlTranslation> {

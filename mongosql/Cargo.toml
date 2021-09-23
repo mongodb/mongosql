@@ -5,7 +5,7 @@ authors = ["Ryan Chipman <ryan@ryanchipman.com>", "Patrick Meredith <pmeredit@pr
 edition = "2018"
 
 [dependencies]
-bson = "1"
+bson = "2"
 lalrpop-util = "0.19.4"
 lazy_static = "1"
 linked-hash-map = "0.5.4"

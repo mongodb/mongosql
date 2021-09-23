@@ -78,10 +78,8 @@ fn translate_sql_bson_base64(
 pub fn build_catalog(base_64_doc: &str) -> Result<Catalog, String> {
     let bson_doc_bytes = base64::decode(base_64_doc)
         .map_err(|e| format!("failed to decode base64 string: {}", e))?;
-    let bson_doc = bson::Document::from_reader(&mut bson_doc_bytes.as_slice())
-        .map_err(|e| format!("failed to read from byte stream: {}", e))?;
     let json_schemas: BTreeMap<String, BTreeMap<String, json_schema::Schema>> =
-        bson::from_bson(bson::Bson::from(bson_doc)).map_err(|e| {
+        bson::from_reader(&mut bson_doc_bytes.as_slice()).map_err(|e| {
             format!(
                 "failed to convert BSON document to json_schema::Schema: {}",
                 e
@@ -119,12 +117,7 @@ fn translation_success_payload(t: mongosql::Translation) -> String {
         "pipeline": t.pipeline,
     };
 
-    let mut buf = Vec::new();
-    translation
-        .to_writer(&mut buf)
-        .expect("serializing bson to bytes failed");
-
-    base64::encode(buf)
+    base64::encode(bson::to_vec(&translation).expect("serializing bson to bytes failed"))
 }
 
 /// Returns a base64-encoded BSON document representing the payload

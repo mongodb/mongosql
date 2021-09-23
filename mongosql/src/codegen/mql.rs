@@ -10,7 +10,7 @@ use crate::{
 use bson::Bson;
 use std::{
     collections::{BTreeMap, BTreeSet},
-    convert::From,
+    convert::{From, TryFrom},
 };
 
 #[derive(PartialEq, Debug, Clone)]
@@ -295,12 +295,19 @@ impl MqlCodeGenerator {
                     .with_additional_stage(doc! {"$project": project_body}))
             }
             Group(g) => self.codegen_group_by(g),
-            Limit(l) => Ok(self
-                .codegen_stage(*l.source)?
-                .with_additional_stage(doc! {"$limit": l.limit})),
-            Offset(o) => Ok(self
-                .codegen_stage(*o.source)?
-                .with_additional_stage(doc! {"$skip": o.offset})),
+            Limit(l) => {
+                let limit = i64::try_from(l.limit).or(Err(Error::LimitOutOfI64Range(l.limit)))?;
+                Ok(self
+                    .codegen_stage(*l.source)?
+                    .with_additional_stage(doc! {"$limit": limit}))
+            }
+            Offset(o) => {
+                let offset =
+                    i64::try_from(o.offset).or(Err(Error::OffsetOutOfI64Range(o.offset)))?;
+                Ok(self
+                    .codegen_stage(*o.source)?
+                    .with_additional_stage(doc! {"$skip": offset}))
+            }
             Sort(s) => self.codegen_sort(s),
             Collection(c) => Ok(MqlTranslation {
                 database: Some(c.db),

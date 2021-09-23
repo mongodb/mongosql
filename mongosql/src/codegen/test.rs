@@ -484,7 +484,7 @@ mod sort {
 }
 
 mod limit_offset {
-    use crate::ir::*;
+    use crate::{codegen::Error, ir::*};
 
     test_codegen_plan!(
         limit_simple,
@@ -493,7 +493,7 @@ mod limit_offset {
             collection: Some("col".to_string()),
             pipeline: vec![
                 bson::doc!{"$project": {"_id": 0, "col": "$$ROOT"}},
-                bson::doc!{"$limit": 1u64},
+                bson::doc!{"$limit": 1i64},
             ],
         }),
         Stage::Limit(Limit {
@@ -504,7 +504,18 @@ mod limit_offset {
             }).into(),
         }),
     );
-
+    test_codegen_plan!(
+        limit_out_of_i64_range,
+        Err(Error::LimitOutOfI64Range(u64::MAX)),
+        Stage::Limit(Limit {
+            limit: u64::MAX,
+            source: Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            })
+            .into(),
+        }),
+    );
     test_codegen_plan!(
         offset_simple,
         Ok({
@@ -512,7 +523,7 @@ mod limit_offset {
             collection: Some("col".to_string()),
             pipeline: vec![
                 bson::doc!{"$project": {"_id": 0, "col": "$$ROOT"}},
-                bson::doc!{"$skip": 1u64},
+                bson::doc!{"$skip": 1i64},
             ],
         }),
         Stage::Offset(Offset {
@@ -521,6 +532,18 @@ mod limit_offset {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
             }).into(),
+        }),
+    );
+    test_codegen_plan!(
+        offset_out_of_i64_range,
+        Err(Error::OffsetOutOfI64Range(u64::MAX)),
+        Stage::Offset(Offset {
+            offset: u64::MAX,
+            source: Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            })
+            .into(),
         }),
     );
 }

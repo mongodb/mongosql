@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 base64 = "0.13"
-bson = "1"
+bson = "2"
 libc = "0.2"
 mongosql = { path = "../mongosql" }
 
