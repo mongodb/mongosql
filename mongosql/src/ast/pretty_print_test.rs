@@ -372,6 +372,12 @@ expression_printer_test!(
 );
 
 expression_printer_test!(type_assert, "true AND x::!INT", "true AND (x::!INT)");
+expression_printer_test!(type_bson_date, "x::!TIMESTAMP", "x::!TIMESTAMP");
+expression_printer_test!(
+    type_bson_timestamp,
+    "x::!BSON_TIMESTAMP",
+    "x::!BSON_TIMESTAMP"
+);
 
 expression_printer_test!(tuple, "(a, b, c)", "(a, b, c)");
 
@@ -391,8 +397,8 @@ expression_printer_test!(
     "(4 + foo)::boolean"
 );
 expression_printer_test!(
-    cast_sigil_datetime,
-    "CAST(4 + foo AS BSON_DATE)",
+    cast_sigil_bson_date,
+    "CAST(4 + foo AS TIMESTAMP)",
     "(4 + foo)::bson_date"
 );
 expression_printer_test!(
@@ -474,9 +480,9 @@ expression_printer_test!(
     "(4 + foo)::symbol"
 );
 expression_printer_test!(
-    cast_sigil_timestamp,
-    "CAST(4 + foo AS BSON_DATE)",
-    "(4 + foo)::timestamp"
+    cast_sigil_bson_timestamp,
+    "CAST(4 + foo AS BSON_TIMESTAMP)",
+    "(4 + foo)::bson_timestamp"
 );
 expression_printer_test!(
     cast_sigil_undefined,

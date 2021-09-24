@@ -573,7 +573,7 @@ impl Display for Type {
                 Type::Array => "ARRAY",
                 Type::BinData => "BINDATA",
                 Type::Boolean => "BOOLEAN",
-                Type::Datetime => "BSON_DATE",
+                Type::Datetime => "TIMESTAMP",
                 Type::DbPointer => "DBPOINTER",
                 Type::Decimal128 => "DECIMAL",
                 Type::Document => "DOCUMENT",
@@ -589,7 +589,7 @@ impl Display for Type {
                 Type::RegularExpression => "REGEX",
                 Type::String => "STRING",
                 Type::Symbol => "SYMBOL",
-                Type::Timestamp => "TIMESTAMP",
+                Type::Timestamp => "BSON_TIMESTAMP",
                 Type::Undefined => "UNDEFINED",
             }
         )
