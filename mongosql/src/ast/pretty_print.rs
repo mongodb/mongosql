@@ -500,15 +500,13 @@ impl Display for FunctionExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self.function {
             FunctionName::Position => fmt_position(f, &self.args),
-            _ => {
-                let quantifier = self.set_quantifier.unwrap_or(SetQuantifier::All);
-                match quantifier {
-                    SetQuantifier::Distinct => {
-                        write!(f, "{}(DISTINCT {})", self.function, self.args)
-                    }
-                    SetQuantifier::All => write!(f, "{}({})", self.function, self.args),
+            _ => match self.set_quantifier {
+                Some(SetQuantifier::Distinct) => {
+                    write!(f, "{}(DISTINCT {})", self.function, self.args)
                 }
-            }
+                Some(SetQuantifier::All) => write!(f, "{}(ALL {})", self.function, self.args),
+                None => write!(f, "{}({})", self.function, self.args),
+            },
         }
     }
 }

@@ -620,6 +620,8 @@ expression_printer_test!(
     "COALESCE(bar, foo + bar, hello * 3)",
     "COALESCE(bar, foo+bar, hello*3)"
 );
+expression_printer_test!(function_distinct, "AVG(DISTINCT x)", "AvG(DiSTINCT x)");
+expression_printer_test!(function_all, "AVG(ALL x)", "AvG(AlL x)");
 expression_printer_test!(function_sub, "4 - SUM(bar)", "4 - SUM(bar)");
 expression_printer_test!(
     function_extract_day,
