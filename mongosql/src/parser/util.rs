@@ -3,7 +3,7 @@ use std::str::FromStr;
 
 /// process_delimited_ident removes the outer delimiters from an identifier and
 /// processes any escaped delimiters.
-pub(crate) fn process_delimited_ident(value: &str) -> String {
+pub fn process_delimited_ident(value: &str) -> String {
     let delimiter = value.chars().next().unwrap_or_default();
     let trimmed_value = value[1..value.len() - 1].to_string();
     if delimiter == '\"' {
@@ -15,7 +15,7 @@ pub(crate) fn process_delimited_ident(value: &str) -> String {
     }
 }
 
-pub(crate) fn parse_between_expr(
+pub fn parse_between_expr(
     e1: Box<Expression>,
     e2: Expression,
     not: bool,
@@ -49,7 +49,7 @@ pub(crate) fn parse_between_expr(
     }
 }
 
-pub(crate) fn parse_position_func(e: Expression) -> Result<FunctionExpr, LalrpopError<'static>> {
+pub fn parse_position_func(e: Expression) -> Result<FunctionExpr, LalrpopError<'static>> {
     match e {
         Expression::Binary(BinaryExpr { left, op, right }) => {
             if op != BinaryOp::In {
@@ -68,7 +68,7 @@ pub(crate) fn parse_position_func(e: Expression) -> Result<FunctionExpr, Lalrpop
     }
 }
 
-pub(crate) fn parse_sort_key(e: Expression) -> Result<SortKey, LalrpopError<'static>> {
+pub fn parse_sort_key(e: Expression) -> Result<SortKey, LalrpopError<'static>> {
     match e {
         Expression::Identifier(_) => Ok(SortKey::Simple(e)),
         Expression::Subpath(SubpathExpr {
@@ -89,9 +89,7 @@ pub(crate) fn parse_sort_key(e: Expression) -> Result<SortKey, LalrpopError<'sta
     }
 }
 
-pub(crate) fn parse_simple_datasource(
-    ae: AliasedExpr,
-) -> Result<Datasource, LalrpopError<'static>> {
+pub fn parse_simple_datasource(ae: AliasedExpr) -> Result<Datasource, LalrpopError<'static>> {
     match ae {
         AliasedExpr {
             expr: Expression::Identifier(collection),
@@ -148,11 +146,11 @@ pub(crate) fn parse_simple_datasource(
 }
 
 impl Expression {
-    pub(crate) fn is_identifier(&self) -> bool {
+    pub fn is_identifier(&self) -> bool {
         matches!(self, Expression::Identifier(_))
     }
 
-    pub(crate) fn take_identifier_name(self) -> Option<String> {
+    pub fn take_identifier_name(self) -> Option<String> {
         match self {
             Expression::Identifier(s) => Some(s),
             _ => None,

@@ -25,7 +25,7 @@ lazy_static! {
 
 /// gen_walk_implementations generates all the walk method implementations for
 /// an entire file.
-pub(crate) fn gen_walk_implementations(module_path: &[&str], types: &[EnumOrStruct]) {
+pub fn gen_walk_implementations(module_path: &[&str], types: &[EnumOrStruct]) {
     use std::env;
     use std::fs;
     use std::path::PathBuf;

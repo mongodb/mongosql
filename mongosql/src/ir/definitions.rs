@@ -282,7 +282,7 @@ pub enum ScalarFunction {
 
 impl ScalarFunction {
     /// Returns a string of the function enum.
-    pub(crate) fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             ScalarFunction::Add => "Add",
             ScalarFunction::And => "And",

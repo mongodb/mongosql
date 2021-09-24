@@ -7,4 +7,4 @@ mod util;
 #[cfg(test)]
 mod test;
 
-pub(crate) use lalrpop::{Error, Parser};
+pub use lalrpop::{Error, Parser};

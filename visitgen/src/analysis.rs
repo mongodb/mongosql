@@ -6,13 +6,13 @@ use syn::{
 /// EnumOrStruct represents either
 /// an enum or struct in syn. Currently
 /// we only generated visitors for enums and structs.
-pub(crate) enum EnumOrStruct {
+pub enum EnumOrStruct {
     Enum(Box<ItemEnum>),
     Struct(Box<ItemStruct>),
 }
 
 impl EnumOrStruct {
-    pub(crate) fn get_name(&self) -> String {
+    pub fn get_name(&self) -> String {
         match self {
             EnumOrStruct::Enum(e) => e.ident.to_string(),
             EnumOrStruct::Struct(s) => s.ident.to_string(),
@@ -22,7 +22,7 @@ impl EnumOrStruct {
 
 /// collect_types collects all the types in a given rust file. We currently
 /// do not support cross-file Visitor implementations.
-pub(crate) fn collect_types(file_name: &str) -> Vec<EnumOrStruct> {
+pub fn collect_types(file_name: &str) -> Vec<EnumOrStruct> {
     use std::fs;
     use std::io::Read;
 
@@ -54,13 +54,13 @@ pub(crate) fn collect_types(file_name: &str) -> Vec<EnumOrStruct> {
     type_vis.types
 }
 
-pub(crate) fn get_generic_name(g: &GenericArgument) -> String {
+pub fn get_generic_name(g: &GenericArgument) -> String {
     let t = get_generic_type(g);
     let (type_name, _) = get_relevant_type_info(t);
     type_name
 }
 
-pub(crate) fn get_generic_type(g: &GenericArgument) -> &Type {
+pub fn get_generic_type(g: &GenericArgument) -> &Type {
     match g {
         GenericArgument::Type(t) => t,
         _ => panic!("unsupported generic argument"),
@@ -69,9 +69,7 @@ pub(crate) fn get_generic_type(g: &GenericArgument) -> &Type {
 
 /// get_relevant_type_info gets all of the type info for a syn::Type
 /// that we need for generating Visitor traits and walk methods.
-pub(crate) fn get_relevant_type_info(
-    ty: &Type,
-) -> (String, Option<&Punctuated<GenericArgument, Comma>>) {
+pub fn get_relevant_type_info(ty: &Type) -> (String, Option<&Punctuated<GenericArgument, Comma>>) {
     match ty {
         Type::Path(p) => {
             let ty = p

@@ -1,5 +1,5 @@
 mod mql;
-pub(crate) use mql::MqlTranslation;
+pub use mql::MqlTranslation;
 use mql::{MappingRegistry, MqlCodeGenerator};
 
 use crate::ir;

@@ -320,7 +320,7 @@ impl TryFrom<&str> for FunctionName {
 
 impl FunctionName {
     /// Returns a capitalized string representing the function name enum.
-    pub(crate) fn as_str(&self) -> &'static str {
+    pub fn as_str(&self) -> &'static str {
         match self {
             // Keep in sync with `FunctionName::try_from` above.
             FunctionName::AddToArray => "ADD_TO_ARRAY",
@@ -351,7 +351,7 @@ impl FunctionName {
     }
 
     /// Returns true if the `FunctionName` is any of the aggregation functions, and false otherwise.
-    pub(crate) fn is_aggregation_function(&self) -> bool {
+    pub fn is_aggregation_function(&self) -> bool {
         match self {
             FunctionName::AddToArray
             | FunctionName::AddToSet

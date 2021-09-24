@@ -1,7 +1,7 @@
 use crate::{analysis::EnumOrStruct, util::convert_to_snake_case};
 
 /// gen_visitor_trait generates the Visitor trait for a rust file.
-pub(crate) fn gen_visitor_trait(module_path: &[&str], types: &[EnumOrStruct]) {
+pub fn gen_visitor_trait(module_path: &[&str], types: &[EnumOrStruct]) {
     use std::env;
     use std::fs;
     use std::path::PathBuf;
