@@ -760,7 +760,9 @@ impl MqlCodeGenerator {
                     Neg => bson::bson!({
                         "$multiply" : [
                              self.codegen_expression(sa.args[0].clone())?,
-                             Bson::Int32(-1),
+                             {"$literal":
+                                 Bson::Int32(-1),
+                             },
                         ]
                     }),
                     ComputedFieldAccess => {
@@ -774,7 +776,9 @@ impl MqlCodeGenerator {
                     BitLength => bson::bson!({
                         "$multiply" : [
                             { sa.function.mql_op().unwrap(): self.codegen_expression(sa.args[0].clone())?},
-                             Bson::Int32(8),
+                            {"$literal":
+                                Bson::Int32(8),
+                            },
                         ]
                     }),
                     BTrim | LTrim | RTrim => bson::bson!({

@@ -1259,7 +1259,7 @@ mod function {
             mr
         },
         Ok(bson::bson! ({"$multiply": [
-            "$f", -1
+            "$f", {"$literal": -1}
         ]})),
         ScalarFunction(ScalarFunctionApplication {
             function: Neg,
@@ -1645,7 +1645,7 @@ mod function {
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(bson!({"$multiply": [{"$sqlStrLenBytes": "$f"}, 8]})),
+        Ok(bson!({"$multiply": [{"$sqlStrLenBytes": "$f"}, {"$literal": 8}]})),
         ScalarFunction(ScalarFunctionApplication {
             function: BitLength,
             args: vec![Expression::Reference(("f", 0u16).into()),],
