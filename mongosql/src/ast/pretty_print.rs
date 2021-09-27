@@ -332,6 +332,24 @@ enum ExpressionTier {
     BottomExpr,
 }
 
+impl ExpressionTier {
+    fn format_sub_expr(&self, sub_expr: &Expression) -> String {
+        if *self >= sub_expr.get_tier() {
+            format!("({})", sub_expr)
+        } else {
+            format!("{}", sub_expr)
+        }
+    }
+
+    fn strict_format_sub_expr(&self, sub_expr: &Expression) -> String {
+        if *self > sub_expr.get_tier() {
+            format!("({})", sub_expr)
+        } else {
+            format!("{}", sub_expr)
+        }
+    }
+}
+
 impl BinaryExpr {
     fn get_tier(&self) -> ExpressionTier {
         use BinaryOp::*;
@@ -354,20 +372,52 @@ impl UnaryExpr {
     }
 }
 
+impl LikeExpr {
+    fn get_tier(&self) -> ExpressionTier {
+        ExpressionTier::Tier1Expr
+    }
+}
+
+impl IsExpr {
+    fn get_tier(&self) -> ExpressionTier {
+        ExpressionTier::Tier2Expr
+    }
+}
+
+impl BetweenExpr {
+    fn get_tier(&self) -> ExpressionTier {
+        ExpressionTier::Tier3Expr
+    }
+}
+
+impl SubqueryComparisonExpr {
+    fn get_tier(&self) -> ExpressionTier {
+        ExpressionTier::Tier7Expr
+    }
+}
+
+impl TypeAssertionExpr {
+    fn get_tier(&self) -> ExpressionTier {
+        ExpressionTier::Tier12Expr
+    }
+}
+
 impl Expression {
     fn get_tier(&self) -> ExpressionTier {
         use Expression::*;
         use ExpressionTier::*;
         match self {
-            Like(_) => Tier1Expr,
-            Is(_) => Tier2Expr,
-            Between(_) => Tier3Expr,
-            SubqueryComparison(_) => Tier7Expr,
+            Like(l) => l.get_tier(),
+            Is(i) => i.get_tier(),
+            Between(b) => b.get_tier(),
+            SubqueryComparison(s) => s.get_tier(),
             Binary(b) => b.get_tier(),
             Unary(u) => u.get_tier(),
-            TypeAssertion(_) => Tier12Expr,
+            TypeAssertion(t) => t.get_tier(),
             Subpath(s) => s.get_tier(),
             Access(a) => a.get_tier(),
+            // formatting for all the following is handled specially and will never conditionally
+            // wrap arguments in parentheses
             Array(_) | Case(_) | Cast(_) | Document(_) | Exists(_) | Function(_) | Trim(_)
             | Extract(_) | Identifier(_) | Literal(_) | Subquery(_) | Tuple(_) => BottomExpr,
         }
@@ -438,21 +488,26 @@ impl Display for Expression {
 
 impl Display for IsExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let formatted_expr = self.get_tier().format_sub_expr(&self.expr);
         match self.target_type {
-            TypeOrMissing::Missing => write!(f, "{} IS MISSING", self.expr),
-            TypeOrMissing::Type(t) => write!(f, "{} IS {}", self.expr, t),
-            TypeOrMissing::Number => write!(f, "{} IS NUMBER", self.expr),
+            TypeOrMissing::Missing => write!(f, "{} IS MISSING", formatted_expr),
+            TypeOrMissing::Type(t) => write!(f, "{} IS {}", formatted_expr, t),
+            TypeOrMissing::Number => write!(f, "{} IS NUMBER", formatted_expr),
         }
     }
 }
 
 impl Display for LikeExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let (formatted_expr, formatted_pattern) = (
+            self.get_tier().strict_format_sub_expr(&self.expr),
+            self.get_tier().format_sub_expr(&self.pattern),
+        );
         write!(
             f,
             "{} LIKE {}{}",
-            self.expr,
-            self.pattern,
+            formatted_expr,
+            formatted_pattern,
             self.escape
                 .as_ref()
                 .map_or("".to_string(), |x| format!(" ESCAPE '{}'", x))
@@ -462,7 +517,8 @@ impl Display for LikeExpr {
 
 impl Display for TypeAssertionExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}::!{}", self.expr, self.target_type)
+        let formatted_expr = self.get_tier().format_sub_expr(&self.expr);
+        write!(f, "{}::!{}", formatted_expr, self.target_type)
     }
 }
 
@@ -485,22 +541,16 @@ impl Display for CastExpr {
 
 impl Display for AccessExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        if self.expr.get_tier() < self.get_tier() {
-            write!(f, "({})[{}]", self.expr, self.subfield)
-        } else {
-            write!(f, "{}[{}]", self.expr, self.subfield)
-        }
+        let formatted_expr = self.get_tier().strict_format_sub_expr(&*self.expr);
+        write!(f, "{}[{}]", formatted_expr, self.subfield)
     }
 }
 
 impl Display for SubpathExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         let subpath = identifier_to_string(&self.subpath);
-        if self.expr.get_tier() < self.get_tier() {
-            write!(f, "({}).{}", self.expr, subpath)
-        } else {
-            write!(f, "{}.{}", self.expr, subpath)
-        }
+        let formatted_expr = self.get_tier().strict_format_sub_expr(&*self.expr);
+        write!(f, "{}.{}", formatted_expr, subpath)
     }
 }
 
@@ -553,10 +603,11 @@ impl Display for FunctionArguments {
 
 impl Display for SubqueryComparisonExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        let formatted_expr = self.get_tier().format_sub_expr(&self.expr);
         write!(
             f,
             "{} {} {}({})",
-            self.expr, self.op, self.quantifier, self.subquery
+            formatted_expr, self.op, self.quantifier, self.subquery
         )
     }
 }
@@ -628,7 +679,17 @@ impl Display for TrimSpec {
 
 impl Display for BetweenExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{} BETWEEN {} AND {}", self.expr, self.min, self.max)
+        let tier = self.get_tier();
+        let (formatted_expr, formatted_min, formatted_max) = (
+            tier.format_sub_expr(&*self.expr),
+            tier.format_sub_expr(&*self.min),
+            tier.format_sub_expr(&*self.max),
+        );
+        write!(
+            f,
+            "{} BETWEEN {} AND {}",
+            formatted_expr, formatted_min, formatted_max
+        )
     }
 }
 
@@ -700,11 +761,8 @@ impl Display for UnaryExpr {
         if self.op == UnaryOp::Pos {
             return write!(f, "{}", self.expr);
         }
-        if self.expr.get_tier() < self.get_tier() {
-            write!(f, "{}({})", self.op, self.expr)
-        } else {
-            write!(f, "{}{}", self.op, self.expr)
-        }
+        let formatted_expr = self.get_tier().strict_format_sub_expr(&*self.expr);
+        write!(f, "{}{}", self.op, formatted_expr)
     }
 }
 
@@ -750,20 +808,15 @@ impl Display for TrimExpr {
 
 impl Display for BinaryExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let paren_format = |x: &Expression| {
-            if self.get_tier() > x.get_tier() {
-                format!("({})", x)
-            } else {
-                format!("{}", x)
-            }
-        };
-        write!(
-            f,
-            "{} {} {}",
-            paren_format(self.left.as_ref()),
-            self.op,
-            paren_format(self.right.as_ref()),
-        )
+        let tier = self.get_tier();
+        // This assumes all binary operators are left associative, which is currently true.
+        // Right associative operators would need to use strict_format_sub_expr on the right
+        // argument.
+        let (formatted_left, formatted_right) = (
+            tier.strict_format_sub_expr(&*self.left),
+            tier.format_sub_expr(&*self.right),
+        );
+        write!(f, "{} {} {}", formatted_left, self.op, formatted_right,)
     }
 }
 

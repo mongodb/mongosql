@@ -7,7 +7,7 @@ macro_rules! query_printer_test {
         fn $func_name() {
             let res = Parser::new().parse_query($input).unwrap();
             let out = format!("{}", res);
-            assert_eq!(out, $should_print_as);
+            assert_eq!($should_print_as, out);
         }
     };
 }
@@ -335,7 +335,7 @@ macro_rules! expression_printer_test {
             let res = Parser::new().parse_expression($input).unwrap();
             let res = SingleTupleRewriteVisitor {}.visit_expression(res);
             let out = format!("{}", res);
-            assert_eq!(out, $should_print_as);
+            assert_eq!($should_print_as, out);
         }
     };
 }
@@ -809,4 +809,77 @@ expression_printer_test!(
     subquery_neq2_all,
     "x <> ALL(SELECT * UNION SELECT *)",
     "x!=ALL(SELECT * UNION SELECT *)"
+);
+
+// precedence tests
+expression_printer_test!(unary_is_lower_prec_than_assert, "(-x)::!INT", "(-x)::!INT");
+expression_printer_test!(
+    is_is_lower_prec_than_between,
+    "x BETWEEN y AND (z IS INT)",
+    "x BETWEEN y AND (z IS INT)"
+);
+expression_printer_test!(
+    between_is_higher_prec_than_is,
+    "x BETWEEN y AND z IS INT",
+    "(x BETWEEN y AND z) IS INT"
+);
+expression_printer_test!(
+    is_is_higher_prec_than_like,
+    "(x LIKE y) IS BOOLEAN",
+    "(x LIKE y) IS BOOL"
+);
+expression_printer_test!(
+    is_is_equal_prec_to_is,
+    "(x IS BOOLEAN) IS BOOLEAN",
+    "(x IS BOOL) IS BOOL"
+);
+expression_printer_test!(
+    like_is_lower_prec_than_concat,
+    "x LIKE 'bar' || 'foo'",
+    "x LIKE ('bar' || 'foo')"
+);
+expression_printer_test!(
+    subquery_comparison_is_higher_prec_than_and,
+    "true AND x = (SELECT * FROM foo)",
+    "TRuE AND (x = (SELECT * FrOM foo))"
+);
+expression_printer_test!(
+    subquery_comparison_is_lower_prec_than_add,
+    "42 + (x = (SELECT * FROM foo))",
+    "42 + (x = (SELECT * FrOM foo))"
+);
+expression_printer_test!(
+    assoc_bin_op_prints_without_explicit_parens,
+    "3 + 4 + 5",
+    "(3 + 4) + 5"
+);
+expression_printer_test!(
+    same_tier_bin_op_prints_without_explicit_parens,
+    "3 + 4 - 5",
+    "(3 + 4) - 5"
+);
+expression_printer_test!(
+    different_tier_bin_op_prints_with_explicit_parens,
+    "(3 + 4) * 5",
+    "(3 + 4) * 5"
+);
+expression_printer_test!(
+    associative_like_expression_should_not_need_explicit_parens,
+    "'hello' LIKE 'hello' LIKE 'world'",
+    "'hello' LIKE 'hello' LIKE 'world'"
+);
+expression_printer_test!(
+    associative_like_pattern_needs_explicit_parens,
+    "'hello' LIKE ('hello' LIKE 'world')",
+    "'hello' LIKE ('hello' LIKE 'world')"
+);
+expression_printer_test!(
+    associative_like_expression_with_escape_should_not_need_explicit_parens,
+    "'hello' LIKE 'hello' ESCAPE '_' LIKE 'world' ESCAPE '_'",
+    "'hello' LIKE 'hello' ESCAPE '_' LIKE 'world' ESCAPE '_'"
+);
+expression_printer_test!(
+    associative_like_pattern_with_escape_needs_explicit_parens,
+    "'hello' LIKE ('hello' LIKE 'world' ESCAPE '_') ESCAPE '_'",
+    "'hello' LIKE ('hello' LIKE 'world' ESCAPE '_') ESCAPE '_'"
 );
