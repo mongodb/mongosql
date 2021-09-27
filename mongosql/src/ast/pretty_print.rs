@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter, Result};
+use std::fmt::{Display, Error, Formatter, Result};
 
 use crate::ast::*;
 
@@ -21,6 +21,10 @@ impl Display for Query {
 
 impl Display for SetQuery {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        // TODO: SQL-499: Address fallibility of AST pretty printer
+        if matches!(self.right.as_ref(), Query::Set(_)) {
+            return Err(Error {});
+        }
         write!(f, "{} {} {}", self.left, self.op, self.right)
     }
 }
@@ -209,6 +213,10 @@ impl Display for DerivedSource {
 
 impl Display for JoinSource {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        // TODO: SQL-499: Address fallibility of AST pretty printer
+        if matches!(self.right.as_ref(), Datasource::Join(_)) {
+            return Err(Error {});
+        }
         write!(
             f,
             "{} {} JOIN {}{}",

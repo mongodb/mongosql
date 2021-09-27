@@ -1,4 +1,5 @@
 use std::convert::TryFrom;
+use variant_count::VariantCount;
 
 #[macro_export]
 macro_rules! multimap {
@@ -14,7 +15,7 @@ macro_rules! multimap {
 	};
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum Query {
     Select(SelectQuery),
     Set(SetQuery),
@@ -39,7 +40,7 @@ pub struct SetQuery {
     pub right: Box<Query>,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
 pub enum SetOperator {
     Union,
     UnionAll,
@@ -51,25 +52,25 @@ pub struct SelectClause {
     pub body: SelectBody,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
 pub enum SetQuantifier {
     All,
     Distinct,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum SelectBody {
     Standard(Vec<SelectExpression>),
     Values(Vec<SelectValuesExpression>),
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum SelectValuesExpression {
     Expression(Expression),
     Substar(SubstarExpr),
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum SelectExpression {
     Star,
     Substar(SubstarExpr),
@@ -92,7 +93,7 @@ where
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum Datasource {
     Array(ArraySource),
     Collection(CollectionSource),
@@ -133,7 +134,7 @@ pub struct JoinSource {
     pub condition: Option<Expression>,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
 pub enum JoinType {
     Left,
     Right,
@@ -141,7 +142,7 @@ pub enum JoinType {
     Inner,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum Expression {
     Binary(BinaryExpr),
     Unary(UnaryExpr),
@@ -213,7 +214,7 @@ pub struct WhenBranch {
     pub then: Box<Expression>,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
 pub enum SubqueryQuantifier {
     All,
     Any,
@@ -247,7 +248,7 @@ pub struct TrimExpr {
     pub arg: Box<Expression>,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
 pub enum FunctionName {
     // Aggregation functions.
     AddToArray,
@@ -382,13 +383,13 @@ impl FunctionName {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum FunctionArguments {
     Star,
     Args(Vec<Expression>),
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
 pub enum ExtractSpec {
     Year,
     Month,
@@ -398,7 +399,7 @@ pub enum ExtractSpec {
     Second,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
 pub enum TrimSpec {
     Leading,
     Trailing,
@@ -417,7 +418,7 @@ pub struct SubpathExpr {
     pub subpath: String,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
 pub enum TypeOrMissing {
     Type(Type),
     Number,
@@ -443,14 +444,14 @@ pub struct TypeAssertionExpr {
     pub target_type: Type,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
 pub enum UnaryOp {
     Pos,
     Neg,
     Not,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
 pub enum BinaryOp {
     Add,
     And,
@@ -509,19 +510,19 @@ pub struct SortSpec {
     pub direction: SortDirection,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum SortKey {
     Simple(Expression),
     Positional(u32),
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
 pub enum SortDirection {
     Asc,
     Desc,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum Literal {
     Null,
     Boolean(bool),
@@ -531,7 +532,7 @@ pub enum Literal {
     Double(f64),
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
 pub enum Type {
     Array,
     BinData,

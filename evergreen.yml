@@ -286,7 +286,17 @@ functions:
         working_dir: mongosql-rs
         script: |
           ${prepare_shell}
-          cargo test
+          cargo test -- --skip fuzz_test
+
+  "run rust fuzz tests":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          cargo test fuzz_test
 
   "upload c library":
     - command: s3.put
@@ -378,6 +388,12 @@ tasks:
       - func: "install rust toolchain"
       - func: "run rust tests"
 
+  - name: test-rust-fuzz
+    tags: ["fuzz"]
+    commands:
+      - func: "install rust toolchain"
+      - func: "run rust fuzz tests"
+
   - name: test-go
     depends_on:
       - name: compile
@@ -422,6 +438,7 @@ buildvariants:
     tasks:
       - name: compile
       - name: test-rust
+      - name: test-rust-fuzz
       - name: test-go
 
   - name: rhel76
@@ -430,6 +447,7 @@ buildvariants:
     tasks:
       - name: compile
       - name: test-rust
+      - name: test-rust-fuzz
       - name: test-go
 
   - name: macos
@@ -438,6 +456,7 @@ buildvariants:
     tasks:
       - name: compile
       - name: test-rust
+      - name: test-rust-fuzz
       - name: test-go
 
   - name: windows
@@ -446,6 +465,7 @@ buildvariants:
     tasks:
       - name: compile
       - name: test-rust
+      - name: test-rust-fuzz
       - name: test-go
 
   - name: release

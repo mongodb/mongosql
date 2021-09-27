@@ -19,6 +19,24 @@ the code.
 
 ## Rust testing
 
+There are two types of tests for the Rust code: unit tests and fuzz tests. Fuzz tests should
+always exist in (sub)modules named `fuzz_test`, so this common name is used as a filter for
+running the tests. Since fuzz testing may take a long time and may unexpectedly fail, one can
+choose to run just the unit tests or just the fuzz tests.
+
+The [Rust handbook](https://doc.rust-lang.org/cargo/commands/cargo-test.html) has full guidelines
+on how to use `cargo test`. Below are suggested ways of running the different sets of tests.
+
+### Unit testing 
+
+`cargo test -- --skip fuzz_test` from the main directory
+
+### Fuzz testing
+
+`cargo test fuzz_test` from the main directory
+
+### All testing
+
 `cargo test` from the main directory
 
 ## Go testing

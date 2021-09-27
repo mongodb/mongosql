@@ -2,3 +2,4 @@ target/
 mongosqlrun
 .idea
 .DS_Store
+.vscode
