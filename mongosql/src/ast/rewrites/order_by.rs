@@ -53,10 +53,10 @@ impl PositionalSortKeyRewriteVisitor {
         // Return the alias contained in the referenced select expr, erroring if the select expr or its alias don't exist.
         let alias = match self.select_exprs.as_ref().unwrap().get(position - 1) {
             None => Err(Error::PositionalSortKeyOutOfRange(position)),
-            Some(SelectExpression::Aliased(AliasedExpr {
+            Some(SelectExpression::Expression(OptionallyAliasedExpr::Aliased(AliasedExpr {
                 expr: _,
-                alias: Some(alias),
-            })) => Ok(alias),
+                alias,
+            }))) => Ok(alias),
             Some(_) => Err(Error::NoAliasForSortKeyAtPosition(position)),
         };
         match alias {

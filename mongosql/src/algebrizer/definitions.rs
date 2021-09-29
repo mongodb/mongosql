@@ -57,8 +57,6 @@ pub enum Error {
     NonAggregationInPlaceOfAggregation(usize),
     #[error("aggregation functions must have exactly one argument")]
     AggregationFunctionMustHaveOneArgument,
-    #[error("aggregation function at position {0} has no alias")]
-    AggregationFunctionHasNoAlias(usize),
     #[error("scalar functions cannot be DISTINCT")]
     DistinctScalarFunction,
     #[error("derived table datasources {2:?} have overlapping keys, schemata: {0:?} and {1:?}")]
@@ -577,16 +575,19 @@ impl<'a> Algebrizer<'a> {
                 let keys = ast_expr
                     .keys
                     .into_iter()
-                    .map(|ast_key| {
-                        if let Some(ref alias) = ast_key.alias {
+                    .map(|ast_key| match ast_key {
+                        ast::OptionallyAliasedExpr::Aliased(ast_key) => {
                             group_clause_aliases
-                                .insert(alias.clone(), ())
+                                .insert(ast_key.alias.clone(), ())
                                 .map_err(|e| Error::DuplicateDocumentKey(e.get_key_name()))?;
+                            Ok(ir::OptionallyAliasedExpr::Aliased(ir::AliasedExpr {
+                                alias: ast_key.alias,
+                                expr: expression_algebrizer.algebrize_expression(ast_key.expr)?,
+                            }))
                         }
-                        Ok(ir::AliasedExpression {
-                            alias: ast_key.alias,
-                            inner: expression_algebrizer.algebrize_expression(ast_key.expr)?,
-                        })
+                        ast::OptionallyAliasedExpr::Unaliased(expr) => expression_algebrizer
+                            .algebrize_expression(expr)
+                            .map(ir::OptionallyAliasedExpr::Unaliased),
                     })
                     .collect::<Result<_>>()?;
 
@@ -595,21 +596,17 @@ impl<'a> Algebrizer<'a> {
                     .into_iter()
                     .enumerate()
                     .map(|(index, ast_agg)| {
-                        if let Some(ref alias) = ast_agg.alias {
-                            group_clause_aliases
-                                .insert(alias.clone(), ())
-                                .map_err(|e| Error::DuplicateDocumentKey(e.get_key_name()))?;
-                        } else {
-                            return Err(Error::AggregationFunctionHasNoAlias(index));
-                        }
+                        group_clause_aliases
+                            .insert(ast_agg.alias.clone(), ())
+                            .map_err(|e| Error::DuplicateDocumentKey(e.get_key_name()))?;
                         Ok(ir::AliasedAggregation {
-                            inner: match ast_agg.expr {
+                            agg_expr: match ast_agg.expr {
                                 ast::Expression::Function(f) => {
                                     expression_algebrizer.algebrize_aggregation(f)
                                 }
                                 _ => Err(Error::NonAggregationInPlaceOfAggregation(index)),
                             }?,
-                            alias: ast_agg.alias.unwrap(),
+                            alias: ast_agg.alias,
                         })
                     })
                     .collect::<Result<_>>()?;

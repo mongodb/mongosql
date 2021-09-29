@@ -25,74 +25,51 @@ struct AddAliasRewriteVisitor {
 }
 
 impl AddAliasRewriteVisitor {
-    /// update_alias will either generate an alias for the given AliasedExpr if it is missing one, or
-    /// return the AliasedExpr as is. If the expression is a simple or compound identifier, set the
-    /// alias to the identifier sans its qualifiers, if any. Otherwise, generate an alias of the form
-    /// _<counter>.
-    fn update_alias(&mut self, aliased_expr: ast::AliasedExpr) -> ast::AliasedExpr {
+    /// update_alias will generate an alias for the given Expression.  If the expression is a
+    /// simple or compound identifier, set the alias to the identifier sans its qualifiers, if any.
+    /// Otherwise, generate an alias of the form _<counter>.
+    fn update_alias(&mut self, expr: ast::Expression) -> ast::OptionallyAliasedExpr {
         use ast::*;
-        let AliasedExpr { expr, alias } = aliased_expr.clone();
-        match alias {
-            // Don't modify a user-supplied alias
-            Some(_) => {
-                // Increment the counter to preserve the relative ordering of aliases
-                self.counter += 1;
-                aliased_expr
-            }
-            None => {
-                let new_alias = match expr {
-                    Expression::Subpath(SubpathExpr {
-                        expr: _,
-                        ref subpath,
-                    }) => Some(subpath.to_string()),
-                    Expression::Identifier(ref id) => Some(id.to_string()),
-                    _ => Some(format!("_{}", self.counter)),
-                };
-                self.counter += 1;
-                AliasedExpr {
-                    expr,
-                    alias: new_alias,
-                }
-            }
-        }
+        let new_alias = match expr {
+            Expression::Subpath(SubpathExpr {
+                expr: _,
+                ref subpath,
+            }) => subpath.to_string(),
+            Expression::Identifier(ref id) => id.to_string(),
+            _ => format!("_{}", self.counter),
+        };
+        OptionallyAliasedExpr::Aliased(AliasedExpr {
+            expr,
+            alias: new_alias,
+        })
     }
 
     /// update_group_by_alias will generate an alias of the form _groupKey<counter> for the given
-    /// AliasedExpr if it is (1) missing an alias and (2) in a GroupByClause where the relevant
-    /// GROUP BY key is a non-reference expression. If both conditions are false, the AliasedExpr will
-    /// be returned as is.
-    fn update_group_by_alias(&mut self, aliased_expr: ast::AliasedExpr) -> ast::AliasedExpr {
+    /// Expression if it is (1) missing an alias and (2) in a GroupByClause where the relevant
+    /// GROUP BY key is a non-reference expression. If both conditions are false, the Expression
+    /// will be returned without an alias.
+    fn update_group_by_alias(&mut self, expr: ast::Expression) -> ast::OptionallyAliasedExpr {
         use ast::*;
-        let AliasedExpr { expr, alias } = aliased_expr.clone();
-        match alias {
-            // Don't modify a user-supplied alias
-            Some(_) => {
-                // Increment the counter to preserve the relative ordering of aliases
-                self.counter += 1;
-                aliased_expr
-            }
-            None => {
-                let new_alias = match expr {
-                    Expression::Subpath(SubpathExpr {
-                        ref expr,
-                        ref subpath,
-                    }) => {
-                        // Don't generate aliases for GROUP BY references with a single dot;
-                        // these expressions only get disambiguated during algebrization
-                        match **expr {
-                            Expression::Identifier(_) => None,
-                            _ => Some(subpath.to_string()),
-                        }
-                    }
-                    Expression::Identifier(_) => None,
-                    _ => Some(format!("_groupKey{}", self.counter)),
-                };
-                self.counter += 1;
-                AliasedExpr {
-                    expr,
-                    alias: new_alias,
+        match expr {
+            Expression::Subpath(SubpathExpr {
+                expr: ref sub_expr,
+                ref subpath,
+            }) => {
+                // Don't generate aliases for GROUP BY references with a single dot;
+                // these expressions only get disambiguated during algebrization
+                match **sub_expr {
+                    Expression::Identifier(_) => ast::OptionallyAliasedExpr::Unaliased(expr),
+                    _ => ast::OptionallyAliasedExpr::Aliased(AliasedExpr {
+                        alias: subpath.to_string(),
+                        expr,
+                    }),
                 }
             }
+            Expression::Identifier(_) => ast::OptionallyAliasedExpr::Unaliased(expr),
+            _ => ast::OptionallyAliasedExpr::Aliased(AliasedExpr {
+                expr,
+                alias: format!("_groupKey{}", self.counter),
+            }),
         }
     }
 }
@@ -134,12 +111,22 @@ impl Visitor for AddAliasRewriteVisitor {
         node
     }
 
-    fn visit_aliased_expr(&mut self, node: ast::AliasedExpr) -> ast::AliasedExpr {
+    fn visit_optionally_aliased_expr(
+        &mut self,
+        node: ast::OptionallyAliasedExpr,
+    ) -> ast::OptionallyAliasedExpr {
         let node = node.walk(self);
-        if self.is_group_by {
-            self.update_group_by_alias(node)
-        } else {
-            self.update_alias(node)
-        }
+        let ret = match node {
+            ast::OptionallyAliasedExpr::Aliased(_) => node,
+            ast::OptionallyAliasedExpr::Unaliased(e) => {
+                if self.is_group_by {
+                    self.update_group_by_alias(e)
+                } else {
+                    self.update_alias(e)
+                }
+            }
+        };
+        self.counter += 1;
+        ret
     }
 }

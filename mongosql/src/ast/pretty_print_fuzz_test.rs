@@ -218,7 +218,7 @@ mod arbitrary {
             match g.choose(rng).unwrap() {
                 0 => Self::Star,
                 1 => Self::Substar(SubstarExpr::arbitrary(g)),
-                2 => Self::Aliased(AliasedExpr::arbitrary(g)),
+                2 => Self::Expression(OptionallyAliasedExpr::arbitrary(g)),
                 _ => panic!("missing SelectExpression variant(s)"),
             }
         }
@@ -275,11 +275,22 @@ mod arbitrary {
         }
     }
 
+    impl Arbitrary for OptionallyAliasedExpr {
+        fn arbitrary(g: &mut Gen) -> Self {
+            let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
+            match g.choose(rng).unwrap() {
+                0 => Self::Aliased(AliasedExpr::arbitrary(g)),
+                1 => Self::Unaliased(Expression::arbitrary(g)),
+                _ => panic!("missing OptionallyAliasedExpr variant(s)"),
+            }
+        }
+    }
+
     impl Arbitrary for AliasedExpr {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
                 expr: Expression::arbitrary(g),
-                alias: arbitrary_optional_string(g),
+                alias: arbitrary_string(),
             }
         }
     }
@@ -689,7 +700,7 @@ mod arbitrary {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
                 keys: (0..rand_len(MIN_CLAUSE_EXPRS, MAX_CLAUSE_EXPRS))
-                    .map(|_| AliasedExpr::arbitrary(g))
+                    .map(|_| OptionallyAliasedExpr::arbitrary(g))
                     .collect(),
                 aggregations: (0..rand_len(MIN_CLAUSE_EXPRS, MAX_CLAUSE_EXPRS))
                     .map(|_| AliasedExpr::arbitrary(g))

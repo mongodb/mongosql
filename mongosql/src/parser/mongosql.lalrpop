@@ -48,7 +48,7 @@ FromClause: Datasource = {
 }
 
 SimpleDatasource: Datasource = {
-    <ae: AliasedExpr> =>? parse_simple_datasource(ae)
+    <ae: OptionallyAliasedExpr> =>? parse_simple_datasource(ae)
 }
 
 JoinDatasource: Datasource = {
@@ -91,7 +91,9 @@ WhereClause: Expression = {
 }
 
 GroupByClause: GroupByClause = {
-  GROUP BY <k:CommaPlus<AliasedExpr>> <a:(AGGREGATE <CommaPlus<AliasedExpr>>)?> => GroupByClause{keys:k, aggregations:a.unwrap_or(vec![])}
+  GROUP BY <k:CommaPlus<OptionallyAliasedExpr>>
+           <a:(AGGREGATE <CommaPlus<AliasedExpr>>)?> =>
+                 GroupByClause{keys:k, aggregations:a.unwrap_or(vec![])}
 }
 
 HavingClause: Expression = {
@@ -153,11 +155,20 @@ SelectValuesExpression: SelectValuesExpression = {
 SelectExpression: SelectExpression = {
   STAR => SelectExpression::Star,
   SubstarExpr => SelectExpression::Substar(<>),
-  AliasedExpr => SelectExpression::Aliased(<>),
+  OptionallyAliasedExpr => SelectExpression::Expression(<>),
 };
 
+OptionallyAliasedExpr: OptionallyAliasedExpr = {
+  <e:Expression> <a:(AS? <Identifier>)?> => {
+        match a {
+            Some(alias) => OptionallyAliasedExpr::Aliased(AliasedExpr{expr:e, alias}),
+            None => OptionallyAliasedExpr::Unaliased(e),
+        }
+  }
+}
+
 AliasedExpr: AliasedExpr = {
-  <e:Expression> <a:(AS? <Identifier>)?> => AliasedExpr{expr:e, alias:a}
+  <e:Expression> <a:(AS? <Identifier>)> => AliasedExpr{expr:e, alias:a}
 };
 
 SubstarExpr: SubstarExpr = {

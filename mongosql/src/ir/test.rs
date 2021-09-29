@@ -4886,23 +4886,22 @@ mod schema {
                 keys: vec![GROUP_ALIASED_REF.clone(), GROUP_NON_ALIASED_REF.clone(),],
                 aggregations: vec![AliasedAggregation {
                     alias: "agg".to_string(),
-                    inner: AggregationExpr::CountStar(false),
+                    agg_expr: AggregationExpr::CountStar(false),
                 }]
             });
-            static ref GROUP_ALIASED_REF: AliasedExpression = AliasedExpression {
-                alias: Some("A".into()),
-                inner: Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                    field: "a".into(),
-                })
-            };
-            static ref GROUP_NON_ALIASED_REF: AliasedExpression = AliasedExpression {
-                alias: None,
-                inner: Expression::FieldAccess(FieldAccess {
+            static ref GROUP_ALIASED_REF: OptionallyAliasedExpr =
+                OptionallyAliasedExpr::Aliased(AliasedExpr {
+                    alias: "A".into(),
+                    expr: Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into(),
+                    })
+                });
+            static ref GROUP_NON_ALIASED_REF: OptionallyAliasedExpr =
+                OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                     field: "b".into(),
-                })
-            };
+                }));
         }
 
         test_schema!(
@@ -5019,14 +5018,14 @@ mod schema {
                     collection: "bar".into()
                 })),
                 keys: vec![
-                    AliasedExpression {
-                        alias: Some("a".into()),
-                        inner: Expression::Literal(Literal::Integer(1)),
-                    },
-                    AliasedExpression {
-                        alias: Some("b".into()),
-                        inner: Expression::Literal(Literal::String("abc".into())),
-                    }
+                    OptionallyAliasedExpr::Aliased(AliasedExpr {
+                        alias: "a".into(),
+                        expr: Expression::Literal(Literal::Integer(1)),
+                    }),
+                    OptionallyAliasedExpr::Aliased(AliasedExpr {
+                        alias: "b".into(),
+                        expr: Expression::Literal(Literal::String("abc".into())),
+                    })
                 ],
                 aggregations: vec![],
             }),
@@ -5043,17 +5042,14 @@ mod schema {
                     collection: "bar".into()
                 })),
                 keys: vec![
-                    AliasedExpression {
-                        alias: Some("literal".into()),
-                        inner: Expression::Literal(Literal::Integer(1)),
-                    },
-                    AliasedExpression {
-                        alias: None,
-                        inner: Expression::FieldAccess(FieldAccess {
+                    OptionallyAliasedExpr::Aliased(AliasedExpr {
+                        alias: "literal".into(),
+                        expr: Expression::Literal(Literal::Integer(1)),
+                    }),
+                    OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                             field: "a".into(),
-                        })
-                    },
+                    }))
                 ],
                 aggregations: vec![],
             }),
@@ -5105,14 +5101,14 @@ mod schema {
                     db: "test".into(),
                     collection: "bar".into()
                 })),
-                keys: vec![AliasedExpression {
-                    alias: Some("literal".into()),
-                    inner: Expression::Literal(Literal::Integer(1)),
-                }],
+                keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
+                    alias: "literal".into(),
+                    expr: Expression::Literal(Literal::Integer(1)),
+                })],
                 aggregations: vec![
                     AliasedAggregation {
                         alias: "A".to_string(),
-                        inner: AggregationExpr::Function(AggregationFunctionApplication {
+                        agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                             function: AggregationFunction::First,
                             distinct: false,
                             arg: Expression::Literal(Literal::Boolean(true)).into(),
@@ -5120,7 +5116,7 @@ mod schema {
                     },
                     AliasedAggregation {
                         alias: "B".to_string(),
-                        inner: AggregationExpr::Function(AggregationFunctionApplication {
+                        agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                             function: AggregationFunction::First,
                             distinct: false,
                             arg: Expression::Literal(Literal::String("abc".into())).into(),

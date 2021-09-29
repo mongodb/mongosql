@@ -162,7 +162,7 @@ impl Stage {
                 let max_size = if g
                     .keys
                     .iter()
-                    .all(|key| matches!(key.inner, Expression::Literal(_)))
+                    .all(|key| matches!(key.get_expr(), Expression::Literal(_)))
                 {
                     Some(1)
                 } else {
@@ -186,7 +186,7 @@ impl Stage {
                     .map(|(index, key)| {
                         // Schema check the group key and upconvert Missing to Null.
                         let group_key_schema = key
-                            .inner
+                            .get_expr()
                             .schema(&state)
                             .map(|s| s.upconvert_missing_to_null())?;
 
@@ -196,16 +196,16 @@ impl Stage {
                         }
 
                         // Get the SchemaEnvironment BindingTuple key and its associated schema.
-                        let (schema_env_key, schema_env_schema) = match &key.alias {
+                        let (schema_env_key, schema_env_schema) = match key {
                             // If the group key has an alias, bind a document containing that alias
                             // and the group key's schema to the Bottom datasource.
-                            Some(a) => (
+                            OptionallyAliasedExpr::Aliased(AliasedExpr { expr: _, ref alias }) => (
                                 Key::bot(state.scope_level),
-                                schema_binding_doc(a.clone(), group_key_schema),
+                                schema_binding_doc(alias.clone(), group_key_schema),
                             ),
                             // Otherwise for a field access group key, bind a document containing the
                             // field access string and the group key's schema to the Reference datasource.
-                            None => match &key.inner {
+                            OptionallyAliasedExpr::Unaliased(ref expr) => match expr {
                                 Expression::FieldAccess(f) => match f.expr.as_ref() {
                                     Expression::Reference(r) => (
                                         r.clone(),
@@ -243,7 +243,7 @@ impl Stage {
                     // Bind a document containing each aggregation function's alias
                     // and the aggregation function schema to the Bottom datasource.
                     .map(|aliased_agg| {
-                        let agg_schema = aliased_agg.inner.schema(&state)?;
+                        let agg_schema = aliased_agg.agg_expr.schema(&state)?;
                         Ok((
                             Key::bot(state.scope_level),
                             schema_binding_doc(aliased_agg.alias.clone(), agg_schema),

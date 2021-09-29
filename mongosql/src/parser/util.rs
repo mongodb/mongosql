@@ -89,58 +89,43 @@ pub fn parse_sort_key(e: Expression) -> Result<SortKey, LalrpopError<'static>> {
     }
 }
 
-pub fn parse_simple_datasource(ae: AliasedExpr) -> Result<Datasource, LalrpopError<'static>> {
-    match ae {
-        AliasedExpr {
-            expr: Expression::Identifier(collection),
-            alias,
-        } => Ok(Datasource::Collection(CollectionSource {
+pub fn parse_simple_datasource(
+    ae: OptionallyAliasedExpr,
+) -> Result<Datasource, LalrpopError<'static>> {
+    let (expr, alias) = ae.take_fields();
+    match expr {
+        Expression::Identifier(collection) => Ok(Datasource::Collection(CollectionSource {
             database: None,
             collection,
             alias,
         })),
-        AliasedExpr {
-            expr: Expression::Array(array),
-            alias: Some(a),
-        } => Ok(Datasource::Array(ArraySource { array, alias: a })),
-        AliasedExpr {
-            expr: Expression::Array(_),
-            alias: None,
-        } => Err(LalrpopError::from(
-            "array datasources must have aliases".to_string(),
-        )),
-        AliasedExpr {
-            expr: Expression::Subquery(query),
-            alias: Some(a),
-        } => Ok(Datasource::Derived(DerivedSource { query, alias: a })),
-        AliasedExpr {
-            expr: Expression::Subquery(_),
-            alias: None,
-        } => Err(LalrpopError::from(
-            "derived query datasources must have aliases".to_string(),
-        )),
-        AliasedExpr {
-            expr:
-                Expression::Subpath(SubpathExpr {
-                    expr: possible_db,
-                    subpath: collection,
-                }),
-            alias,
-        } if (*possible_db).is_identifier() => Ok(Datasource::Collection(CollectionSource {
+        Expression::Array(array) => alias.map_or(
+            Err(LalrpopError::from(
+                "array datasources must have aliases".to_string(),
+            )),
+            |alias| Ok(Datasource::Array(ArraySource { array, alias })),
+        ),
+        Expression::Subquery(query) => alias.map_or(
+            Err(LalrpopError::from(
+                "derived query datasources must have aliases".to_string(),
+            )),
+            |alias| Ok(Datasource::Derived(DerivedSource { query, alias })),
+        ),
+        Expression::Subpath(SubpathExpr {
+            expr: possible_db,
+            subpath: collection,
+        }) if (*possible_db).is_identifier() => Ok(Datasource::Collection(CollectionSource {
             database: Some(possible_db.take_identifier_name().unwrap()),
             collection,
             alias,
         })),
-        AliasedExpr {
-            expr: Expression::Subpath(_),
-            alias: _,
-        } => Err(LalrpopError::from(format!(
+        Expression::Subpath(_) => Err(LalrpopError::from(format!(
             "collection data sources can only have database qualification, found: {}",
-            ae.expr,
+            expr,
         ))),
         _ => Err(LalrpopError::from(format!(
             "found unsupported expression used as datasource: {}",
-            ae.expr,
+            expr,
         ))),
     }
 }

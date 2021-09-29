@@ -254,34 +254,7 @@ mod aggregate {
         identical_funcs_in_group_by_key_list_and_agg_list_gives_key_error,
         AggregateRewritePass,
         Err(Error::AggregationFunctionInGroupByKeyList),
-        "SELECT * FROM foo GROUP BY SUM(x) AGGREGATE SUM(x)",
-    );
-
-    // Error if an expression is found after `AGGREGATE` without an alias.
-    // Ensuring that the expression is an aggregation function occurs during `GROUP BY` algebrization.
-    test_rewrite!(
-        non_agg_expression_in_group_by_agg_list_with_no_alias_gives_error,
-        AggregateRewritePass,
-        Err(Error::AggregateInGroupByAggListNotAliased),
-        "SELECT * FROM foo GROUP BY x AGGREGATE 1 + 2",
-    );
-    test_rewrite!(
-        one_func_in_group_by_agg_list_with_no_alias_gives_error,
-        AggregateRewritePass,
-        Err(Error::AggregateInGroupByAggListNotAliased),
-        "SELECT * FROM foo GROUP BY x AGGREGATE SUM(x)",
-    );
-    test_rewrite!(
-        identical_funcs_in_select_clause_and_group_by_agg_list_with_no_alias_gives_error,
-        AggregateRewritePass,
-        Err(Error::AggregateInGroupByAggListNotAliased),
-        "SELECT SUM(x) FROM foo GROUP BY x AGGREGATE SUM(x)",
-    );
-    test_rewrite!(
-        one_func_in_group_by_agg_list_in_subquery_with_no_alias_gives_error,
-        AggregateRewritePass,
-        Err(Error::AggregateInGroupByAggListNotAliased),
-        "SELECT SUM(x) FROM (SELECT * FROM foo GROUP BY x AGGREGATE SUM(x)) AS z",
+        "SELECT * FROM foo GROUP BY SUM(x) AGGREGATE SUM(x) AS sumx",
     );
 
     // Error if an aggregation function is found after `AGGREGATE` and elsewhere in query.
@@ -597,10 +570,16 @@ mod add_alias {
         "SELECT 1 + 2, (SELECT 3 + a, 4 + b FROM (SELECT 5+6) AS sub), 7+8",
     );
     test_rewrite!(
-        group_by_subquery,
+        group_by_in_subquery,
         AddAliasRewritePass,
         Ok("SELECT 1 + 2 AS _1, (SELECT * FROM bar AS bar GROUP BY a, c + d AS _groupKey2) AS _2, b AS b FROM foo AS foo GROUP BY b + e AS _groupKey1, d"),
         "SELECT 1 + 2, (SELECT * FROM bar AS bar GROUP BY a, c + d), b FROM foo AS foo GROUP BY b + e, d",
+    );
+    test_rewrite!(
+        group_by_with_subquery_key,
+        AddAliasRewritePass,
+        Ok("SELECT a + b AS _1, b AS b GROUP BY a, (SELECT a + b AS _1, c + d AS _2) AS _groupKey2, c, c * d AS _groupKey4, e"),
+        "SELECT a + b, b GROUP BY a, (SELECT a + b, c + d), c, c * d, e",
     );
 }
 

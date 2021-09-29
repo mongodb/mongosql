@@ -32,20 +32,42 @@ pub struct Project {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Group {
     pub source: Box<Stage>,
-    pub keys: Vec<AliasedExpression>,
+    pub keys: Vec<OptionallyAliasedExpr>,
     pub aggregations: Vec<AliasedAggregation>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct AliasedExpression {
-    pub alias: Option<String>,
-    pub inner: Expression,
+pub struct AliasedExpr {
+    pub alias: String,
+    pub expr: Expression,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum OptionallyAliasedExpr {
+    Aliased(AliasedExpr),
+    Unaliased(Expression),
+}
+
+impl OptionallyAliasedExpr {
+    pub fn get_expr(&self) -> &Expression {
+        match self {
+            OptionallyAliasedExpr::Aliased(AliasedExpr { alias: _, expr }) => expr,
+            OptionallyAliasedExpr::Unaliased(expr) => expr,
+        }
+    }
+
+    pub fn get_alias(&self) -> Option<&str> {
+        match self {
+            OptionallyAliasedExpr::Aliased(AliasedExpr { alias, expr: _ }) => Some(alias.as_str()),
+            OptionallyAliasedExpr::Unaliased(_) => None,
+        }
+    }
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct AliasedAggregation {
     pub alias: String,
-    pub inner: AggregationExpr,
+    pub agg_expr: AggregationExpr,
 }
 
 #[derive(PartialEq, Debug, Clone)]

@@ -108,10 +108,9 @@ mod select {
         Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                    expr: Expression::Identifier("foo".to_string()),
-                    alias: None
-                })])
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("foo".to_string()))
+                )])
             },
             from_clause: None,
             where_clause: None,
@@ -128,10 +127,9 @@ mod select {
         Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                    expr: Expression::Identifier("foo".to_string()),
-                    alias: None
-                })])
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("foo".to_string()),)
+                )])
             },
             from_clause: None,
             where_clause: None,
@@ -148,10 +146,9 @@ mod select {
         Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                    expr: Expression::Identifier("foo".to_string()),
-                    alias: None
-                })])
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("foo".to_string()),)
+                )])
             },
             from_clause: None,
             where_clause: None,
@@ -168,10 +165,9 @@ mod select {
         Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                    expr: Expression::Identifier("fo`o``".to_string()),
-                    alias: None
-                })])
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("fo`o``".to_string()),)
+                )])
             },
             from_clause: None,
             where_clause: None,
@@ -188,10 +184,11 @@ mod select {
         Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                    expr: Expression::Identifier(r#"fo"o"""#.to_string()),
-                    alias: None
-                })])
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier(
+                        r#"fo"o"""#.to_string()
+                    ),)
+                )])
             },
             from_clause: None,
             where_clause: None,
@@ -208,10 +205,11 @@ mod select {
         Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                    expr: Expression::Identifier(r#"fo""o"#.to_string()),
-                    alias: None
-                })])
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier(
+                        r#"fo""o"#.to_string()
+                    ),)
+                )])
             },
             from_clause: None,
             where_clause: None,
@@ -228,10 +226,9 @@ mod select {
         Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                    expr: Expression::Identifier("fo``o".to_string()),
-                    alias: None
-                })])
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("fo``o".to_string()),)
+                )])
             },
             from_clause: None,
             where_clause: None,
@@ -267,10 +264,11 @@ mod query {
                 left: Box::new(Query::Select(SelectQuery {
                     select_clause: SelectClause {
                         set_quantifier: SetQuantifier::All,
-                        body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                            expr: Expression::Identifier("a".to_string()),
-                            alias: None
-                        })])
+                        body: SelectBody::Standard(vec![SelectExpression::Expression(
+                            OptionallyAliasedExpr::Unaliased(Expression::Identifier(
+                                "a".to_string()
+                            ),)
+                        )])
                     },
                     from_clause: None,
                     where_clause: None,
@@ -284,10 +282,11 @@ mod query {
                 right: Box::new(Query::Select(SelectQuery {
                     select_clause: SelectClause {
                         set_quantifier: SetQuantifier::All,
-                        body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                            expr: Expression::Identifier("b".to_string()),
-                            alias: None
-                        })])
+                        body: SelectBody::Standard(vec![SelectExpression::Expression(
+                            OptionallyAliasedExpr::Unaliased(Expression::Identifier(
+                                "b".to_string()
+                            ),)
+                        )])
                     },
                     from_clause: None,
                     where_clause: None,
@@ -302,10 +301,9 @@ mod query {
             right: Box::new(Query::Select(SelectQuery {
                 select_clause: SelectClause {
                     set_quantifier: SetQuantifier::All,
-                    body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                        expr: Expression::Identifier("c".to_string()),
-                        alias: None
-                    })])
+                    body: SelectBody::Standard(vec![SelectExpression::Expression(
+                        OptionallyAliasedExpr::Unaliased(Expression::Identifier("c".to_string()),)
+                    )])
                 },
                 from_clause: None,
                 where_clause: None,
@@ -622,14 +620,19 @@ mod group_by {
     should_parse!(none, false, "select * group by");
     should_parse!(aggregate_none, false, "select * group by a aggregate");
     should_parse!(
-        aggregate_no_alias,
-        true,
-        "select * group by a aggregate sum()"
-    );
-    should_parse!(
         aggregate_no_args,
         true,
         "select * group by a aggregate sum() as b"
+    );
+    should_parse!(
+        aggregate_no_alias,
+        false,
+        "select * group by a aggregate sum()"
+    );
+    should_parse!(
+        aggregate_second_no_alias,
+        false,
+        "select * group by a aggregate sum(a) AS a, AVG(b), sum(c)"
     );
 
     validate_query_ast!(
@@ -644,14 +647,8 @@ mod group_by {
             where_clause: None,
             group_by_clause: Some(GroupByClause {
                 keys: vec![
-                    AliasedExpr {
-                        expr: Expression::Identifier("a".to_string()),
-                        alias: None,
-                    },
-                    AliasedExpr {
-                        expr: Expression::Identifier("b".to_string()),
-                        alias: None,
-                    }
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("a".to_string())),
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("b".to_string()))
                 ],
                 aggregations: vec![AliasedExpr {
                     expr: Expression::Function(FunctionExpr {
@@ -661,7 +658,7 @@ mod group_by {
                         )]),
                         set_quantifier: Some(SetQuantifier::Distinct),
                     }),
-                    alias: Some("c".to_string()),
+                    alias: "c".to_string(),
                 }]
             }),
             having_clause: None,
@@ -695,10 +692,9 @@ mod having {
             from_clause: None,
             where_clause: None,
             group_by_clause: Some(GroupByClause {
-                keys: vec![AliasedExpr {
-                    expr: Expression::Identifier("a".to_string()),
-                    alias: None,
-                },],
+                keys: vec![OptionallyAliasedExpr::Unaliased(Expression::Identifier(
+                    "a".to_string()
+                ),)],
                 aggregations: vec![]
             }),
             having_clause: Some(Expression::Binary(BinaryExpr {
@@ -1781,10 +1777,9 @@ mod subquery {
             subquery: Box::new(Query::Select(SelectQuery {
                 select_clause: SelectClause {
                     set_quantifier: SetQuantifier::All,
-                    body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                        expr: Expression::Identifier("a".to_string()),
-                        alias: None
-                    })])
+                    body: SelectBody::Standard(vec![SelectExpression::Expression(
+                        OptionallyAliasedExpr::Unaliased(Expression::Identifier("a".to_string()),)
+                    )])
                 },
                 from_clause: None,
                 where_clause: None,
@@ -1806,10 +1801,9 @@ mod subquery {
             right: Box::new(Expression::Subquery(Box::new(Query::Select(SelectQuery {
                 select_clause: SelectClause {
                     set_quantifier: SetQuantifier::All,
-                    body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                        expr: Expression::Identifier("a".to_string()),
-                        alias: None
-                    })])
+                    body: SelectBody::Standard(vec![SelectExpression::Expression(
+                        OptionallyAliasedExpr::Unaliased(Expression::Identifier("a".to_string()),)
+                    )])
                 },
                 from_clause: None,
                 where_clause: None,
@@ -1831,10 +1825,9 @@ mod subquery {
             right: Box::new(Expression::Subquery(Box::new(Query::Select(SelectQuery {
                 select_clause: SelectClause {
                     set_quantifier: SetQuantifier::All,
-                    body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                        expr: Expression::Identifier("a".to_string()),
-                        alias: None
-                    })])
+                    body: SelectBody::Standard(vec![SelectExpression::Expression(
+                        OptionallyAliasedExpr::Unaliased(Expression::Identifier("a".to_string()),)
+                    )])
                 },
                 from_clause: None,
                 where_clause: None,
@@ -1974,10 +1967,9 @@ mod comments {
         Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                    expr: Expression::Identifier("foo".to_string()),
-                    alias: None
-                })])
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("foo".to_string()),)
+                )])
             },
             from_clause: None,
             where_clause: None,
@@ -1996,10 +1988,9 @@ mod comments {
         Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                    expr: Expression::Identifier("foo".to_string()),
-                    alias: None
-                })])
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("foo".to_string()),)
+                )])
             },
             from_clause: None,
             where_clause: None,
@@ -2017,10 +2008,9 @@ mod comments {
         Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                    expr: Expression::Identifier("foo".to_string()),
-                    alias: None
-                })])
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("foo".to_string()),)
+                )])
             },
             from_clause: None,
             where_clause: None,
@@ -2040,10 +2030,9 @@ mod comments {
         Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                    expr: Expression::Identifier("foo".to_string()),
-                    alias: None
-                })])
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("foo".to_string()),)
+                )])
             },
             from_clause: None,
             where_clause: None,
@@ -2062,10 +2051,9 @@ mod comments {
         Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                    expr: Expression::Identifier("foo".to_string()),
-                    alias: None
-                })])
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("foo".to_string()),)
+                )])
             },
             from_clause: None,
             where_clause: None,
@@ -2086,10 +2074,9 @@ mod comments {
         Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                    expr: Expression::Identifier("foo".to_string()),
-                    alias: None
-                })])
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("foo".to_string()),)
+                )])
             },
             from_clause: None,
             where_clause: None,

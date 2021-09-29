@@ -74,13 +74,18 @@ impl Visitor for SelectRewriteVisitor {
                         SelectExpression::Substar(substar) => {
                             substar_exprs.push((SelectValuesExpression::Substar(substar)).clone())
                         }
-                        SelectExpression::Aliased(aliased) => {
-                            match aliased.alias {
-                                None => self.error = Some(Error::NoAliasForSelectExpression),
-                                Some(alias) => {
+                        SelectExpression::Expression(expr) => {
+                            match expr {
+                                ast::OptionallyAliasedExpr::Unaliased(_) => {
+                                    self.error = Some(Error::NoAliasForSelectExpression)
+                                }
+                                ast::OptionallyAliasedExpr::Aliased(AliasedExpr {
+                                    expr,
+                                    alias,
+                                }) => {
                                     v.push(ast::DocumentPair {
                                         key: alias,
-                                        value: aliased.expr,
+                                        value: expr,
                                     });
                                 }
                             };

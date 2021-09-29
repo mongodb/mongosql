@@ -74,7 +74,7 @@ pub enum SelectValuesExpression {
 pub enum SelectExpression {
     Star,
     Substar(SubstarExpr),
-    Aliased(AliasedExpr),
+    Expression(OptionallyAliasedExpr),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -123,7 +123,36 @@ pub struct DerivedSource {
 #[derive(PartialEq, Debug, Clone)]
 pub struct AliasedExpr {
     pub expr: Expression,
-    pub alias: Option<String>,
+    pub alias: String,
+}
+
+#[derive(PartialEq, Debug, Clone, VariantCount)]
+pub enum OptionallyAliasedExpr {
+    Aliased(AliasedExpr),
+    Unaliased(Expression),
+}
+
+impl OptionallyAliasedExpr {
+    pub fn get_expr(&self) -> &Expression {
+        match self {
+            OptionallyAliasedExpr::Aliased(AliasedExpr { alias: _, expr }) => expr,
+            OptionallyAliasedExpr::Unaliased(expr) => expr,
+        }
+    }
+
+    pub fn get_alias(&self) -> Option<&str> {
+        match self {
+            OptionallyAliasedExpr::Aliased(AliasedExpr { alias, expr: _ }) => Some(alias.as_str()),
+            OptionallyAliasedExpr::Unaliased(_) => None,
+        }
+    }
+
+    pub fn take_fields(self) -> (Expression, Option<String>) {
+        match self {
+            OptionallyAliasedExpr::Aliased(AliasedExpr { alias, expr }) => (expr, Some(alias)),
+            OptionallyAliasedExpr::Unaliased(expr) => (expr, None),
+        }
+    }
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -495,7 +524,7 @@ impl BinaryOp {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct GroupByClause {
-    pub keys: Vec<AliasedExpr>,
+    pub keys: Vec<OptionallyAliasedExpr>,
     pub aggregations: Vec<AliasedExpr>,
 }
 

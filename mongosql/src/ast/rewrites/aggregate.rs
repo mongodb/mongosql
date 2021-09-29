@@ -123,7 +123,7 @@ impl Visitor for AggregateUsageCheckVisitor {
         let keys = node
             .keys
             .into_iter()
-            .map(|vec_x| self.visit_aliased_expr(vec_x))
+            .map(|vec_x| self.visit_optionally_aliased_expr(vec_x))
             .collect::<Vec<_>>();
         self.in_group_by_key_list = false;
 
@@ -142,14 +142,6 @@ impl Visitor for AggregateUsageCheckVisitor {
         if self.error.is_some() {
             return a;
         }
-
-        // It is not valid to have an unaliased aggregation function
-        // in a `GROUP BY` aggregation function list.
-        if self.in_group_by_agg_func_list && a.alias.is_none() {
-            self.error = Some(Error::AggregateInGroupByAggListNotAliased);
-            return a;
-        }
-
         a.walk(self)
     }
 
@@ -228,10 +220,9 @@ impl Visitor for AggregateAliasingVisitor {
         // Otherwise, create a new key list only containing the `NULL` literal.
         let keys = match node.group_by_clause {
             Some(g) => g.keys,
-            None => vec![AliasedExpr {
-                expr: Expression::Literal(Literal::Null),
-                alias: None,
-            }],
+            None => vec![OptionallyAliasedExpr::Unaliased(Expression::Literal(
+                Literal::Null,
+            ))],
         };
 
         // Return a select query containing a new `GROUP BY` clause with the aggregation function aliases.
@@ -255,7 +246,7 @@ impl Visitor for AggregateAliasingVisitor {
         let keys = node
             .keys
             .into_iter()
-            .map(|vec_x| self.visit_aliased_expr(vec_x))
+            .map(|vec_x| self.visit_optionally_aliased_expr(vec_x))
             .collect::<Vec<_>>();
 
         self.in_group_by_agg_func_list = true;
@@ -289,7 +280,7 @@ impl Visitor for AggregateAliasingVisitor {
                 match self.agg_funcs.get(&func_key) {
                     // We can safely unwrap the alias here because any value retrieved
                     // from `agg_funcs` would have been previously inserted with an alias.
-                    Some(x) => Expression::Identifier(x.alias.clone().unwrap()),
+                    Some(x) => Expression::Identifier(x.alias.clone()),
                     None => {
                         let new_agg_alias = format!("_agg{}", self.next_agg_id);
                         self.next_agg_id += 1;
@@ -297,7 +288,7 @@ impl Visitor for AggregateAliasingVisitor {
                             func_key,
                             AliasedExpr {
                                 expr: Expression::Function(f),
-                                alias: Some(new_agg_alias.clone()),
+                                alias: new_agg_alias.clone(),
                             },
                         );
                         Expression::Identifier(new_agg_alias)

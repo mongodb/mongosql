@@ -1855,13 +1855,14 @@ mod group_by {
             db: "test".into(),
             collection: "foo".into(),
         }));
-        static ref KEY_FOO_A: Vec<AliasedExpression> = vec![AliasedExpression {
-            alias: Some("foo_a".to_string()),
-            inner: Expression::FieldAccess(FieldAccess {
-                expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                field: "a".into()
-            }),
-        },];
+        static ref KEY_FOO_A: Vec<OptionallyAliasedExpr> =
+            vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
+                alias: "foo_a".to_string(),
+                expr: Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                    field: "a".into()
+                }),
+            })];
     }
 
     test_codegen_plan!(
@@ -1877,10 +1878,10 @@ mod group_by {
         }),
         Stage::Group(Group {
             source: SOURCE_IR.clone(),
-            keys: vec![AliasedExpression {
-                alias: Some("f".into()),
-                inner: Expression::Reference(("foo", 0u16).into()),
-            }],
+            keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
+                alias: "f".into(),
+                expr: Expression::Reference(("foo", 0u16).into()),
+            })],
             aggregations: vec![],
         }),
     );
@@ -1897,10 +1898,10 @@ mod group_by {
         }),
         Stage::Group(Group {
             source: SOURCE_IR.clone(),
-            keys: vec![AliasedExpression {
-                alias: Some("_id".into()),
-                inner: Expression::Reference(("foo", 0u16).into()),
-            }],
+            keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
+                alias: "_id".into(),
+                expr: Expression::Reference(("foo", 0u16).into()),
+            })],
             aggregations: vec![],
         }),
     );
@@ -1917,14 +1918,13 @@ mod group_by {
         }),
         Stage::Group(Group {
             source: SOURCE_IR.clone(),
-            keys: vec![AliasedExpression {
-                alias: None,
-                inner: Expression::FieldAccess(
+            keys: vec![OptionallyAliasedExpr::Unaliased(
+                Expression::FieldAccess(
                     FieldAccess{
                         expr: Expression::Reference(("foo", 0u16).into()).into(),
                         field: "_id".into(),
                     }),
-            }],
+            )],
             aggregations: vec![],
         }),
     );
@@ -1948,14 +1948,14 @@ mod group_by {
                         Expression::Reference(("foo", 0u16).into())
                 }
             },)),
-            keys: vec![AliasedExpression {
-                alias: None,
-                inner: Expression::FieldAccess(
+            keys: vec![OptionallyAliasedExpr::Unaliased(
+                Expression::FieldAccess(
                     FieldAccess{
                         expr: Expression::Reference(("_id", 0u16).into()).into(),
                         field: "a".into(),
-                    }),
-            }],
+                    }
+                )
+            )],
             aggregations: vec![],
         }),
     );
@@ -1989,19 +1989,17 @@ mod group_by {
         }),
         Stage::Group(Group {
             source: SOURCE_IR.clone(),
-            keys: vec![AliasedExpression {
-                alias: None,
-                inner: Expression::FieldAccess(FieldAccess {
+            keys: vec![OptionallyAliasedExpr::Unaliased(
+                Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                     field: "a".into()
                 }),
-            },AliasedExpression {
-                alias: None,
-                inner: Expression::FieldAccess(FieldAccess {
+            ), OptionallyAliasedExpr::Unaliased(
+                Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                     field: "b".into()
                 }),
-            },],
+            )],
             aggregations: vec![],
         }),
     );
@@ -2018,27 +2016,26 @@ mod group_by {
         }),
         Stage::Group(Group {
             source: SOURCE_IR.clone(),
-            keys: vec![AliasedExpression {
-                alias: Some("foo_a".to_string()),
-                inner: Expression::FieldAccess(FieldAccess {
+            keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
+                alias: "foo_a".to_string(),
+                expr: Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                     field: "a".into()
                 }),
-            },
-            AliasedExpression {
-                alias: None,
-                inner: Expression::FieldAccess(FieldAccess {
+            }),
+            OptionallyAliasedExpr::Unaliased(
+                Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                     field: "b".into()
                 }),
-            },
-            AliasedExpression {
-                alias: Some("foo_c".to_string()),
-                inner: Expression::FieldAccess(FieldAccess {
+            ),
+            OptionallyAliasedExpr::Aliased(AliasedExpr {
+                alias: "foo_c".to_string(),
+                expr: Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                     field: "c".into()
                 }),
-            }],
+            })],
             aggregations: vec![],
         }),
     );
@@ -2055,20 +2052,20 @@ mod group_by {
         }),
         Stage::Group(Group {
             source: SOURCE_IR.clone(),
-            keys: vec![AliasedExpression {
-                alias: Some("__unaliasedKey2".to_string()),
-                inner: Expression::FieldAccess(FieldAccess {
+            keys: vec![
+                OptionallyAliasedExpr::Aliased(AliasedExpr {
+                alias: "__unaliasedKey2".to_string(),
+                expr: Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                     field: "a".into()
                 }),
-            },
-            AliasedExpression {
-                alias: None,
-                inner: Expression::FieldAccess(FieldAccess {
+            }),
+            OptionallyAliasedExpr::Unaliased(
+                Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                     field: "b".into()
                 }),
-            }],
+            )],
             aggregations: vec![],
         }),
     );
@@ -2077,15 +2074,14 @@ mod group_by {
         Err(Error::InvalidGroupKey),
         Stage::Group(Group {
             source: SOURCE_IR.clone(),
-            keys: vec![AliasedExpression {
-                alias: None,
-                inner: Expression::FieldAccess(FieldAccess {
+            keys: vec![OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(
+                FieldAccess {
                     expr: Box::new(Expression::Document(
                         unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(1))}
                     )),
                     field: "sub".to_string(),
-                })
-            }],
+                }
+            ))],
             aggregations: vec![],
         }),
     );
@@ -2105,7 +2101,7 @@ mod group_by {
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
-                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::AddToArray,
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
@@ -2132,7 +2128,7 @@ mod group_by {
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
-                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::Avg,
                     distinct: false,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
@@ -2159,7 +2155,7 @@ mod group_by {
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
-                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::Count,
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
@@ -2186,7 +2182,7 @@ mod group_by {
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
-                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::First,
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
@@ -2213,7 +2209,7 @@ mod group_by {
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
-                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::Last,
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
@@ -2240,7 +2236,7 @@ mod group_by {
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
-                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::Max,
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
@@ -2267,7 +2263,7 @@ mod group_by {
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
-                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::MergeDocuments,
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
@@ -2294,7 +2290,7 @@ mod group_by {
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
-                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::Min,
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
@@ -2321,7 +2317,7 @@ mod group_by {
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
-                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::StddevPop,
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
@@ -2348,7 +2344,7 @@ mod group_by {
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
-                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::StddevSamp,
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
@@ -2375,7 +2371,7 @@ mod group_by {
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
-                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::Sum,
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
@@ -2402,7 +2398,7 @@ mod group_by {
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
-                inner: AggregationExpr::CountStar(true)
+                agg_expr: AggregationExpr::CountStar(true)
             }],
         }),
     );
@@ -2419,16 +2415,16 @@ mod group_by {
         }),
         Stage::Group(Group {
             source: SOURCE_IR.clone(),
-            keys: vec![AliasedExpression {
-                alias: Some("__id".to_string()),
-                inner: Expression::FieldAccess(FieldAccess {
+            keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
+                alias: "__id".to_string(),
+                expr: Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                     field: "a".into()
                 }),
-            },],
+            })],
             aggregations: vec![AliasedAggregation {
                 alias: "_id".into(),
-                inner: AggregationExpr::Function(AggregationFunctionApplication {
+                agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::Sum,
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {

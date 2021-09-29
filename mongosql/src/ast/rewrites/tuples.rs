@@ -52,10 +52,9 @@ impl Visitor for InTupleRewriteVisitor {
         // Build the AST for a FROM clause representing `SELECT _1`.
         let select_clause = SelectClause {
             set_quantifier: SetQuantifier::All,
-            body: SelectBody::Standard(vec![SelectExpression::Aliased(AliasedExpr {
-                expr: Expression::Identifier("_1".to_string()),
-                alias: None,
-            })]),
+            body: SelectBody::Standard(vec![SelectExpression::Expression(
+                OptionallyAliasedExpr::Unaliased(Expression::Identifier("_1".to_string())),
+            )]),
         };
 
         // Build a Vec of documents `{'_1': <expr>}` for each `<expr>` in `tuple_elems`.

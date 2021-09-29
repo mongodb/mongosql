@@ -460,24 +460,27 @@ impl MqlCodeGenerator {
         let unique_aliases = group
             .keys
             .iter()
-            .filter_map(|k| k.alias.clone())
+            .filter_map(|k| k.get_alias().map(String::from))
             .collect::<BTreeSet<String>>();
 
         for key in group.keys {
             // Project each key under the __bot namespace, unless the key is an unaliased
             // compound identifier, in which case it should be nested under its original
             // namespace and field name.
-            let key_alias = match key.alias {
-                Some(ref alias) => {
+            let (expr, key_alias) = match key {
+                ir::OptionallyAliasedExpr::Aliased(ir::AliasedExpr {
+                    ref expr,
+                    ref alias,
+                }) => {
                     bot_body.insert(alias, format!("$_id.{}", alias));
-                    alias.to_string()
+                    (expr.clone(), alias.to_string())
                 }
-                None => {
+                ir::OptionallyAliasedExpr::Unaliased(expr) => {
                     let alias = MqlCodeGenerator::get_unique_alias(
                         unique_aliases.clone(),
                         format!("__unaliasedKey{}", counter),
                     );
-                    if let ir::Expression::FieldAccess(ref fa) = key.inner {
+                    if let ir::Expression::FieldAccess(ref fa) = expr {
                         // Throw an error if the FieldAccess expr doesn't resolve to a
                         // compound identifier.
                         match expression_generator
@@ -513,13 +516,10 @@ impl MqlCodeGenerator {
                             None => return Err(Error::InvalidGroupKey),
                         };
                     };
-                    alias
+                    (expr, alias)
                 }
             };
-            group_keys.insert(
-                key_alias,
-                expression_generator.codegen_expression(key.inner)?,
-            );
+            group_keys.insert(key_alias, expression_generator.codegen_expression(expr)?);
             counter += 1;
         }
         let mut group_body = doc! {
@@ -532,7 +532,7 @@ impl MqlCodeGenerator {
         unique_aliases.insert("_id".into());
 
         for agg in group.aggregations {
-            let agg_func_doc = match agg.inner {
+            let agg_func_doc = match agg.agg_expr {
                 AggregationExpr::CountStar(distinct) => {
                     doc! {"$sqlCount": {
                         "var": "$$ROOT".to_string(),

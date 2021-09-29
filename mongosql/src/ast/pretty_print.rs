@@ -122,7 +122,7 @@ impl Display for SelectExpression {
         match self {
             SelectExpression::Star => write!(f, "*"),
             SelectExpression::Substar(s) => write!(f, "{}", s),
-            SelectExpression::Aliased(ae) => write!(f, "{}", ae),
+            SelectExpression::Expression(e) => write!(f, "{}", e),
         }
     }
 }
@@ -133,16 +133,22 @@ impl Display for SubstarExpr {
     }
 }
 
+impl Display for OptionallyAliasedExpr {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        match self {
+            OptionallyAliasedExpr::Aliased(ae) => write!(f, "{}", ae),
+            OptionallyAliasedExpr::Unaliased(e) => write!(f, "{}", e),
+        }
+    }
+}
+
 impl Display for AliasedExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         write!(
             f,
-            "{}{}",
+            "{} AS {}",
             self.expr,
-            self.alias.as_ref().map_or("".to_string(), |x| format!(
-                " AS {}",
-                identifier_to_string(x)
-            ))
+            identifier_to_string(self.alias.as_ref())
         )
     }
 }
