@@ -88,6 +88,30 @@ macro_rules! test_flatten_variadic_functions {
     };
 }
 
+macro_rules! test_retain {
+    ($func_name:ident, $expected:expr, $input:expr) => {
+        #[test]
+        fn $func_name() {
+            use crate::ir::schema::retain;
+            let expected = $expected;
+            let actual = retain(&$input);
+            assert_eq!(actual, expected);
+        }
+    };
+}
+
+macro_rules! test_max_numeric {
+    ($func_name:ident, $expected:expr, $input1:expr, $input2:expr) => {
+        #[test]
+        fn $func_name() {
+            use crate::ir::schema::max_numeric;
+            let expected = $expected;
+            let actual = max_numeric(&$input1, &$input2);
+            assert_eq!(actual, expected);
+        }
+    };
+}
+
 mod schema {
     use crate::{
         catalog::*,
@@ -1668,8 +1692,11 @@ mod schema {
         ])},
     );
     test_schema!(
-        sum_of_int_and_long_is_long,
-        Ok(Schema::Atomic(Atomic::Long)),
+        sum_of_int_and_long_is_int_long,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+        ])),
         AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Sum,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
@@ -1681,8 +1708,11 @@ mod schema {
         ])},
     );
     test_schema!(
-        sum_of_int_and_double_is_double,
-        Ok(Schema::Atomic(Atomic::Double)),
+        sum_of_int_and_double_is_int_double,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Double),
+        ])),
         AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Sum,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
@@ -1694,8 +1724,11 @@ mod schema {
         ])},
     );
     test_schema!(
-        sum_of_int_and_decimal_is_decimal,
-        Ok(Schema::Atomic(Atomic::Decimal)),
+        sum_of_int_and_decimal_is_int_decimal,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Decimal),
+        ])),
         AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Sum,
             arg: Box::new(Expression::Reference(("bar", 0u16).into())),
@@ -2127,9 +2160,42 @@ mod schema {
             ],
         }),
     );
+
     test_schema!(
-        arithmetic_decimal_takes_priority_in_any_of_must_be_numeric,
-        Ok(Schema::Atomic(Atomic::Decimal)),
+        arithmetic_results_in_any_numeric,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Add,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Reference(("foo", 0u16).into()),
+            ],
+        }),
+        map! {
+            ("bar", 0u16).into() =>Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Integer),
+            ]),
+            ("foo", 0u16).into() =>Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Integer),
+            ]),
+
+        },
+    );
+
+    test_schema!(
+        arithmetic_decimal_double_takes_priority_in_any_of_must_be_numeric,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
+        ])),
         Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Mul,
             args: vec![
@@ -2154,9 +2220,10 @@ mod schema {
         },
     );
     test_schema!(
-        arithmetic_decimal_takes_priority_in_any_of_may_be_null,
+        arithmetic_decimal_double_takes_priority_in_any_of_may_be_null,
         Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
             Schema::Atomic(Atomic::Null),
         ])),
         Expression::ScalarFunction(ScalarFunctionApplication {
@@ -2207,9 +2274,10 @@ mod schema {
         },
     );
     test_schema!(
-        arithmetic_decimal_takes_priority_in_any_of_may_be_missing,
+        arithmetic_decimal_double_takes_priority_in_any_of_may_be_missing,
         Ok(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
             Schema::Atomic(Atomic::Null),
         ])),
         Expression::ScalarFunction(ScalarFunctionApplication {
@@ -2256,6 +2324,89 @@ mod schema {
             ("baz", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Long),
                 Schema::Atomic(Atomic::Double),
+            ]),
+        },
+    );
+
+    test_schema!(
+        arithmetic_nested_anyof,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Integer),
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Add,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Reference(("foo", 0u16).into()),
+            ],
+        }),
+        map! {
+            ("bar", 0u16).into() =>Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Integer),
+                Schema::AnyOf(set! [
+                    Schema::Atomic(Atomic::Double),
+                    Schema::AnyOf(set! [
+                    Schema::Atomic(Atomic::Decimal),
+                    Schema::Atomic(Atomic::Long)
+                    ]),
+                ]),
+            ]),
+            ("foo", 0u16).into() => Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Long),
+            ]),
+
+        },
+    );
+
+    test_schema!(
+        arithmetic_anyof_and_atomic,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Add,
+            args: vec![
+                Expression::Reference(("bar", 0u16).into()),
+                Expression::Reference(("foo", 0u16).into()),
+            ],
+        }),
+        map! {
+            ("bar", 0u16).into() =>Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Long),
+            ]),
+            ("foo", 0u16).into() => Schema::Atomic(Atomic::Double),
+        },
+    );
+
+    test_schema!(
+        arithmetic_atomic_and_anyof,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
+        ])),
+        Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Add,
+            args: vec![
+                Expression::Reference(("foo", 0u16).into()),
+                Expression::Reference(("bar", 0u16).into()),
+            ],
+        }),
+        map! {
+            ("foo", 0u16).into() => Schema::Atomic(Atomic::Double),
+            ("bar", 0u16).into() =>Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Long),
             ]),
         },
     );
@@ -7756,5 +7907,144 @@ mod flatten_node {
                 ]
             }),
         }),
+    );
+}
+
+mod arithmetic_retain {
+    use crate::{schema::*, set};
+
+    test_retain!(
+        atomics_retain_dominant,
+        Ok(Schema::Atomic(Atomic::Decimal)),
+        set![
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Integer),
+        ]
+    );
+
+    test_retain!(
+        atomic_anyof_retains_any_gte_atomic,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+        ])),
+        set![
+            Schema::Atomic(Atomic::Double),
+            Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Decimal),
+            ])
+        ]
+    );
+
+    test_retain!(
+        anyof_atomic_retains_any_gte_atomic,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Decimal),
+        ])),
+        set![
+            Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Decimal),
+            ]),
+            Schema::Atomic(Atomic::Long),
+        ]
+    );
+
+    test_retain!(
+        anyof_anyof_retains_dominant_result_of_all_possible_pairs,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+        ])),
+        set![
+            Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Decimal),
+            ]),
+            Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+            ]),
+        ]
+    );
+
+    test_retain!(
+        anyof_atomic_anyof_retains_dominant_result_of_all_possible_pairs,
+        Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Decimal),
+        ])),
+        set![
+            Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Decimal),
+            ]),
+            Schema::Atomic(Atomic::Double),
+            Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+            ]),
+        ]
+    );
+}
+
+mod max_numeric {
+    use crate::schema::*;
+    test_max_numeric!(
+        integer_returned,
+        Ok(Schema::Atomic(Atomic::Integer)),
+        Schema::Atomic(Atomic::Integer),
+        Schema::Atomic(Atomic::Integer)
+    );
+
+    test_max_numeric!(
+        long_takes_priority_over_integer,
+        Ok(Schema::Atomic(Atomic::Long)),
+        Schema::Atomic(Atomic::Long),
+        Schema::Atomic(Atomic::Integer)
+    );
+
+    test_max_numeric!(
+        double_takes_priority_over_long,
+        Ok(Schema::Atomic(Atomic::Double)),
+        Schema::Atomic(Atomic::Long),
+        Schema::Atomic(Atomic::Double)
+    );
+
+    test_max_numeric!(
+        double_takes_priority_over_integer,
+        Ok(Schema::Atomic(Atomic::Double)),
+        Schema::Atomic(Atomic::Integer),
+        Schema::Atomic(Atomic::Double)
+    );
+
+    test_max_numeric!(
+        decimal_takes_priority_over_double,
+        Ok(Schema::Atomic(Atomic::Decimal)),
+        Schema::Atomic(Atomic::Decimal),
+        Schema::Atomic(Atomic::Double)
+    );
+
+    test_max_numeric!(
+        decimal_takes_priority_over_long,
+        Ok(Schema::Atomic(Atomic::Decimal)),
+        Schema::Atomic(Atomic::Decimal),
+        Schema::Atomic(Atomic::Long)
+    );
+
+    test_max_numeric!(
+        decimal_takes_priority_over_integer,
+        Ok(Schema::Atomic(Atomic::Decimal)),
+        Schema::Atomic(Atomic::Decimal),
+        Schema::Atomic(Atomic::Integer)
     );
 }

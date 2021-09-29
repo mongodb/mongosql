@@ -92,8 +92,8 @@ pub enum Schema {
 pub enum Atomic {
     String,
     Integer,
-    Double,
     Long,
+    Double,
     Decimal,
     BinData,
     ObjectId,

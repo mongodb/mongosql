@@ -745,6 +745,70 @@ impl ScalarFunctionApplication {
     }
 }
 
+/// retain is responsible for iterating through all schemas and retaining
+/// the dominant numerics. Iteration allows for early termination if
+/// certain heuristics are met such as encountering Atomic(Decimal) yields
+/// Atomic(Decimal)
+pub(crate) fn retain(schemas: &BTreeSet<Schema>) -> Result<Schema, Error> {
+    use schema::{Atomic::*, Schema::*};
+    fn retain_aux(atomic: &Schema, anyof: &BTreeSet<Schema>) -> Schema {
+        let mut anyof = anyof.clone();
+        let mut retained = anyof.split_off(atomic);
+        if retained.is_empty() {
+            return atomic.clone();
+        }
+        if !anyof.is_empty() {
+            retained.insert(atomic.clone());
+        }
+        Schema::simplify(&AnyOf(retained))
+    }
+
+    if schemas.is_empty() {
+        return Ok(Schema::Atomic(Integer));
+    }
+    let mut result = schemas.iter().next().unwrap().clone();
+
+    for schema in schemas.iter() {
+        if *schema == Schema::Atomic(Decimal) {
+            return Ok(Schema::Atomic(Decimal));
+        }
+        match (result, schema) {
+            (Atomic(a1), Atomic(a2)) => {
+                result = max_numeric(&Schema::Atomic(a1), &Schema::Atomic(*a2)).unwrap();
+            }
+            (Atomic(at), AnyOf(ao)) => {
+                result = retain_aux(&Schema::Atomic(at), ao);
+            }
+            (AnyOf(ao), Atomic(at)) => {
+                result = retain_aux(&Schema::Atomic(*at), &ao);
+            }
+            (AnyOf(ao1), AnyOf(ao2)) => {
+                let mut current_result = <BTreeSet<Schema>>::new();
+                for anyof in ao1.iter() {
+                    if let Atomic(at) = anyof {
+                        current_result.insert(retain_aux(&Schema::Atomic(*at), ao2));
+                    }
+                }
+                result = Schema::simplify(&AnyOf(current_result));
+            }
+            _ => unreachable!(),
+        }
+    }
+    Ok(result)
+}
+
+/// Compares two atomics and returns max numeric type
+pub(crate) fn max_numeric(a1: &Schema, a2: &Schema) -> Result<Schema, Error> {
+    use schema::{Atomic::*, Schema::*};
+    Ok(match (a1, a2) {
+        (Atomic(Decimal), _) | (_, Atomic(Decimal)) => Atomic(Decimal),
+        (Atomic(Double), _) | (_, Atomic(Double)) => Atomic(Double),
+        (Atomic(Long), _) | (_, Atomic(Long)) => Atomic(Long),
+        (Atomic(Integer), _) | (_, Atomic(Integer)) => Atomic(Integer),
+        _ => unreachable!(),
+    })
+}
+
 trait SQLFunction {
     /// Returns the schema for an arithmetic function, maximizing the Numeric type
     /// based on the total order: Integer < Long < Double < Decimal.
@@ -754,51 +818,34 @@ trait SQLFunction {
     /// Maxed Numeric Schema.
     fn get_arithmetic_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
         use schema::{Atomic::*, Schema::*};
-        // get_arithmetic_schema_aux is responsible for unwinding AnyOf into a single Atomic
-        // Numeric Schema, maximizing along the total order defined above. Since AnyOf
-        // may contain AnyOf, it must be recursive.
+
         fn get_arithmetic_schema_aux(schemas: &[Schema]) -> Result<Schema, Error> {
-            schemas
+            let schemas_collected: BTreeSet<_> = schemas
                 .iter()
-                // map each viable Schema type into a single Atomic({Integer, Long,
-                // Double, Decimal})
+                .map(Schema::simplify)
+                // Remove Missing and Null from the schemas since the inclusion of Null
+                // in the output is handled by schema_check_variadic_args below.
+                .filter(|s| !matches!(s, Missing) && !matches!(s, Atomic(Null)))
                 .map(|s| match s {
-                    // this is a conservative simplification, if the schema for one argument
-                    // is AnyOf(Null, Integer, Decimal) we will just set this argument to
-                    // Decimal. This avoids the exponential blow up that we would get from
-                    // a tighter Schema bound.
-                    AnyOf(ao) => get_arithmetic_schema_aux(&ao.iter().cloned().collect::<Vec<_>>()),
-                    // Nullability is handled by schema_check_variadic_args, so we
-                    // replace Missing and Null with Integer as that is the minimal
-                    // Numeric type with respect to the above defined total order.
-                    Missing | Atomic(Null) => Ok(Atomic(Integer)),
-                    Atomic(a) if a.is_numeric() => Ok(s.clone()),
-                    // Other Schema are impossible due to schema_check_variadic_args.
+                    AnyOf(ao) => AnyOf(
+                        ao.into_iter()
+                            .filter(|sch| !matches!(sch, Missing) && !matches!(sch, Atomic(Null)))
+                            .collect::<BTreeSet<_>>(),
+                    ),
+                    Atomic(a) if a.is_numeric() => s.clone(),
                     _ => unreachable!(),
                 })
-                // reduce the Atomic numerics into the maximum
-                .reduce(|s1, s2| {
-                    Ok(match (s1?, s2?) {
-                        (Atomic(Decimal), _) | (_, Atomic(Decimal)) => Atomic(Decimal),
-                        (Atomic(Double), _) | (_, Atomic(Double)) => Atomic(Double),
-                        (Atomic(Long), _) | (_, Atomic(Long)) => Atomic(Long),
-                        (Atomic(Integer), _) | (_, Atomic(Integer)) => Atomic(Integer),
-                        _ => unreachable!(),
-                    })
-                })
-                // The result Schema of any arithmetic function that has no arguments
-                // is Integer because it is the minimal Numeric Schema with respect to
-                // the predefined total order.
-                .unwrap_or(Ok(Schema::Atomic(Integer)))
+                .collect::<BTreeSet<_>>();
+            retain(&schemas_collected)
         }
 
         match self.schema_check_variadic_args(arg_schemas, NUMERIC_OR_NULLISH.clone())? {
             Satisfaction::Must => Ok(Atomic(Null)),
             Satisfaction::Not => get_arithmetic_schema_aux(arg_schemas),
-            Satisfaction::May => Ok(AnyOf(set![
+            Satisfaction::May => Ok(Schema::simplify(&AnyOf(set![
                 get_arithmetic_schema_aux(arg_schemas)?,
                 Atomic(Null),
-            ])),
+            ]))),
         }
     }
 
