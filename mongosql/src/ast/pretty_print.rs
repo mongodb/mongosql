@@ -764,9 +764,6 @@ impl Display for Literal {
 
 impl Display for UnaryExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        if self.op == UnaryOp::Pos {
-            return write!(f, "{}", self.expr);
-        }
         let formatted_expr = self.get_tier().strict_format_sub_expr(&*self.expr);
         write!(f, "{}{}", self.op, formatted_expr)
     }
@@ -778,7 +775,7 @@ impl Display for UnaryOp {
             f,
             "{}",
             match self {
-                UnaryOp::Pos => "",
+                UnaryOp::Pos => "+",
                 UnaryOp::Neg => "-",
                 UnaryOp::Not => "NOT ",
             }

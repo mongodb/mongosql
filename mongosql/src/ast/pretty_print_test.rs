@@ -525,11 +525,11 @@ expression_printer_test!(
 );
 expression_printer_test!(unary_neg, "-3", "- 3");
 expression_printer_test!(unary_neg_parens, "-(3 + 4)", "-(3+4)");
-expression_printer_test!(unary_pos, "3", "+ (3)");
-expression_printer_test!(unary_pos_parens, "3 + 4", "+(3+4)");
+expression_printer_test!(unary_pos, "+3", "+ (3)");
+expression_printer_test!(unary_pos_parens, "+(3 + 4)", "+(3+4)");
 expression_printer_test!(
     unary_negative_sub_function,
-    "4 - SUM(bar)",
+    "4 - +SUM(bar)",
     "4 - + SUM(bar)"
 );
 expression_printer_test!(
