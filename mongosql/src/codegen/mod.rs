@@ -1,6 +1,6 @@
 mod mql;
-pub use mql::MqlTranslation;
-use mql::{MappingRegistry, MqlCodeGenerator};
+use mql::MqlCodeGenerator;
+pub use mql::{MqlMappingRegistry, MqlTranslation};
 
 use crate::ir;
 use thiserror::Error;
@@ -34,7 +34,7 @@ pub enum Error {
 
 pub fn generate_mql(plan: ir::Stage) -> Result<MqlTranslation> {
     let cg = MqlCodeGenerator {
-        mapping_registry: MappingRegistry::new(),
+        mapping_registry: MqlMappingRegistry::new(),
         scope_level: 0u16,
     };
     cg.codegen_stage(plan)

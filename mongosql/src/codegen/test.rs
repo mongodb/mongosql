@@ -63,7 +63,7 @@ macro_rules! test_codegen_expr {
     ($func_name:ident, $expected:expr, $input:expr,) => {
         test_codegen_expr!(
             $func_name,
-            crate::codegen::mql::MappingRegistry::default(),
+            crate::codegen::mql::MqlMappingRegistry::default(),
             $expected,
             $input,
         );
@@ -566,14 +566,14 @@ mod literal {
 
 mod reference {
     use crate::{
-        codegen::{mql::MappingRegistry, Error},
+        codegen::{mql::MqlMappingRegistry, Error},
         ir::Expression::*,
     };
     use bson::Bson;
 
     test_codegen_expr!(
         not_found,
-        MappingRegistry::default(),
+        MqlMappingRegistry::default(),
         Err(Error::ReferenceNotFound(("f", 0u16).into())),
         Reference(("f", 0u16).into()),
     );
@@ -581,7 +581,7 @@ mod reference {
     test_codegen_expr!(
         found,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -657,13 +657,13 @@ mod document {
 }
 
 mod field_access {
-    use crate::{codegen::mql::MappingRegistry, ir::*, unchecked_unique_linked_hash_map};
+    use crate::{codegen::mql::MqlMappingRegistry, ir::*, unchecked_unique_linked_hash_map};
     use bson::Bson;
 
     test_codegen_expr!(
         reference,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -676,7 +676,7 @@ mod field_access {
     test_codegen_expr!(
         field_access,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -719,7 +719,7 @@ mod field_access {
     test_codegen_expr!(
         dollar_prefixed_field,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -732,7 +732,7 @@ mod field_access {
     test_codegen_expr!(
         field_contains_dollar,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -745,7 +745,7 @@ mod field_access {
     test_codegen_expr!(
         field_contains_dot,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1145,7 +1145,7 @@ mod union {
 
 mod function {
     use crate::{
-        codegen::{mql::MappingRegistry, Error},
+        codegen::{mql::MqlMappingRegistry, Error},
         ir::{definitions::*, Expression::*, Literal, ScalarFunction::*},
     };
     use bson::bson;
@@ -1153,7 +1153,7 @@ mod function {
     test_codegen_expr!(
         concat_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1169,7 +1169,7 @@ mod function {
     test_codegen_expr!(
         like_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("input", 0u16), "input");
             mr.insert(("pattern", 0u16), "pattern");
             mr
@@ -1188,7 +1188,7 @@ mod function {
     test_codegen_expr!(
         is_number_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1201,7 +1201,7 @@ mod function {
     test_codegen_expr!(
         is_null_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1215,7 +1215,7 @@ mod function {
     test_codegen_expr!(
         is_missing_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1228,7 +1228,7 @@ mod function {
     test_codegen_expr!(
         is_type_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1241,7 +1241,7 @@ mod function {
     test_codegen_expr!(
         pos_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1254,7 +1254,7 @@ mod function {
     test_codegen_expr!(
         neg_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1269,7 +1269,7 @@ mod function {
     test_codegen_expr!(
         add_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f1", 0u16), "f1");
             mr.insert(("f2", 0u16), "f2");
             mr
@@ -1289,7 +1289,7 @@ mod function {
     test_codegen_expr!(
         sub_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1307,7 +1307,7 @@ mod function {
     test_codegen_expr!(
         mult_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f1", 0u16), "f1");
             mr.insert(("f2", 0u16), "f2");
             mr
@@ -1327,7 +1327,7 @@ mod function {
     test_codegen_expr!(
         div_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1345,7 +1345,7 @@ mod function {
     test_codegen_expr!(
         lt_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1363,7 +1363,7 @@ mod function {
     test_codegen_expr!(
         lte_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1381,7 +1381,7 @@ mod function {
     test_codegen_expr!(
         ne_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1399,7 +1399,7 @@ mod function {
     test_codegen_expr!(
         eq_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1417,7 +1417,7 @@ mod function {
     test_codegen_expr!(
         gt_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1435,7 +1435,7 @@ mod function {
     test_codegen_expr!(
         gte_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1453,7 +1453,7 @@ mod function {
     test_codegen_expr!(
         between_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1472,7 +1472,7 @@ mod function {
     test_codegen_expr!(
         not_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1485,7 +1485,7 @@ mod function {
     test_codegen_expr!(
         and_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f1", 0u16), "f1");
             mr.insert(("f2", 0u16), "f2");
             mr
@@ -1505,7 +1505,7 @@ mod function {
     test_codegen_expr!(
         or_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f1", 0u16), "f1");
             mr.insert(("f2", 0u16), "f2");
             mr
@@ -1525,7 +1525,7 @@ mod function {
     test_codegen_expr!(
         nullif_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f1", 0u16), "f1");
             mr.insert(("f2", 0u16), "f2");
             mr
@@ -1545,7 +1545,7 @@ mod function {
     test_codegen_expr!(
         coalesce_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f1", 0u16), "f1");
             mr.insert(("f2", 0u16), "f2");
             mr
@@ -1565,7 +1565,7 @@ mod function {
     test_codegen_expr!(
         slice_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1584,7 +1584,7 @@ mod function {
     test_codegen_expr!(
         size_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1597,7 +1597,7 @@ mod function {
     test_codegen_expr!(
         position_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1615,7 +1615,7 @@ mod function {
     test_codegen_expr!(
         charlen_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1628,7 +1628,7 @@ mod function {
     test_codegen_expr!(
         octetlen_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1641,7 +1641,7 @@ mod function {
     test_codegen_expr!(
         bitlen_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1654,7 +1654,7 @@ mod function {
     test_codegen_expr!(
         substring_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1671,7 +1671,7 @@ mod function {
     test_codegen_expr!(
         upper_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1684,7 +1684,7 @@ mod function {
     test_codegen_expr!(
         lower_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1705,7 +1705,7 @@ mod function {
     test_codegen_expr!(
         ltrim_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1721,7 +1721,7 @@ mod function {
     test_codegen_expr!(
         rtrim_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1737,7 +1737,7 @@ mod function {
     test_codegen_expr!(
         trim_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1753,7 +1753,7 @@ mod function {
     test_codegen_expr!(
         extract_year_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1766,7 +1766,7 @@ mod function {
     test_codegen_expr!(
         extract_month_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1779,7 +1779,7 @@ mod function {
     test_codegen_expr!(
         extract_day_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1792,7 +1792,7 @@ mod function {
     test_codegen_expr!(
         extract_hour_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1805,7 +1805,7 @@ mod function {
     test_codegen_expr!(
         extract_minute_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1818,7 +1818,7 @@ mod function {
     test_codegen_expr!(
         extract_second_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -1831,7 +1831,7 @@ mod function {
     test_codegen_expr!(
         computedfieldaccess_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
@@ -2439,7 +2439,7 @@ mod group_by {
 
 mod subquery {
     use crate::{
-        codegen::{mql::MappingRegistry, Error},
+        codegen::{mql::MqlMappingRegistry, Error},
         ir::{binding_tuple::DatasourceName::Bottom, SubqueryModifier::*, *},
         map, unchecked_unique_linked_hash_map,
     };
@@ -2461,7 +2461,7 @@ mod subquery {
     test_codegen_expr!(
         exists_correlated,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("foo", 0u16), "foo");
             mr
         },
@@ -2513,7 +2513,7 @@ mod subquery {
     test_codegen_expr!(
         subquery_expr_correlated,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("foo", 0u16), "foo");
             mr
         },
@@ -2662,7 +2662,7 @@ mod subquery {
     test_codegen_expr!(
         subquery_comparison_correlated,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("foo", 0u16), "foo");
             mr.insert(("x", 0u16), "x");
             mr
@@ -2713,7 +2713,7 @@ mod subquery {
     test_codegen_expr!(
         invalid_output_expr,
         {
-            let mut mr = MappingRegistry::default();
+            let mut mr = MqlMappingRegistry::default();
             mr.insert(("foo", 0u16), "foo");
             mr.insert(("x", 0u16), "x");
             mr

@@ -8,8 +8,14 @@ mod parser;
 mod result;
 pub mod schema;
 mod util;
-
-use crate::{algebrizer::Algebrizer, catalog::Catalog, parser::Parser, result::Result};
+use crate::{
+    algebrizer::Algebrizer,
+    catalog::Catalog,
+    parser::Parser,
+    result::Result,
+    schema::{Schema, SchemaEnvironment},
+};
+use std::convert::TryFrom;
 
 /// Contains all the information needed to execute the MQL translation of a SQL query.
 #[derive(Debug)]
@@ -17,16 +23,26 @@ pub struct Translation {
     pub target_db: Option<String>,
     pub target_collection: Option<String>,
     pub pipeline: bson::Bson,
+    pub result_set_schema: json_schema::Schema,
 }
 
-impl From<codegen::MqlTranslation> for Translation {
-    fn from(t: codegen::MqlTranslation) -> Self {
-        let pipeline =
-            bson::Bson::Array(t.pipeline.into_iter().map(bson::Bson::Document).collect());
+impl Translation {
+    fn new(
+        result_set_schema: json_schema::Schema,
+        mql_translation: codegen::MqlTranslation,
+    ) -> Self {
+        let pipeline = bson::Bson::Array(
+            mql_translation
+                .pipeline
+                .into_iter()
+                .map(bson::Bson::Document)
+                .collect(),
+        );
         Self {
-            target_db: t.database,
-            target_collection: t.collection,
+            target_db: mql_translation.database,
+            target_collection: mql_translation.collection,
             pipeline,
+            result_set_schema,
         }
     }
 }
@@ -49,7 +65,39 @@ pub fn translate_sql(current_db: &str, sql: &str, catalog: &Catalog) -> Result<T
     // constant fold stages
     let plan = ir::constant_folding::fold_constants(plan);
 
+    // get the schema_env for the plan
+    let schema_env = plan
+        .schema(&algebrizer.schema_inference_state())?
+        .schema_env;
+
     // generate mql from the ir plan
-    let translation = codegen::generate_mql(plan)?;
-    Ok(translation.into())
+    let mql_translation = codegen::generate_mql(plan)?;
+    Ok(Translation::new(
+        mql_schema_env_to_json_schema(schema_env, &mql_translation.mapping_registry)?,
+        mql_translation,
+    ))
+}
+
+// mql_schema_env_to_json_schema converts a SchemaEnvironment to a json_schema::Schema with an
+// MqlMappingRegistry.  It will not work with any other codegen backends
+fn mql_schema_env_to_json_schema(
+    schema_env: SchemaEnvironment,
+    mapping_registry: &codegen::MqlMappingRegistry,
+) -> Result<json_schema::Schema> {
+    let keys: std::collections::BTreeMap<String, Schema> = schema_env
+        .into_iter()
+        .map(|(k, v)| {
+            let mql_name = mapping_registry.get(&k);
+            match mql_name {
+                Some(mql_name) => Ok((mql_name.clone(), v)),
+                None => Err(result::Error::Codegen(codegen::Error::ReferenceNotFound(k))),
+            }
+        })
+        .collect::<Result<_>>()?;
+    json_schema::Schema::try_from(Schema::simplify(&Schema::Document(schema::Document {
+        required: keys.keys().cloned().collect(),
+        keys,
+        additional_properties: false,
+    })))
+    .map_err(result::Error::JsonSchemaConversion)
 }

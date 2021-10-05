@@ -11,6 +11,22 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
+func checkResultSetSchema(t *testing.T, expected bson.D, found bsoncore.Document) {
+	var foundResultSetSchema bson.D
+	val := bson.RawValue{
+		Type:  bsontype.EmbeddedDocument,
+		Value: found,
+	}
+	err := val.Unmarshal(&foundResultSetSchema)
+	if err != nil {
+		t.Fatalf("failed to unmarshal bson '%s'", err)
+	}
+
+	if !reflect.DeepEqual(expected, foundResultSetSchema) {
+		t.Fatalf("expected resultset schema to be equal, but they weren't:\n%s\nand\n%s", expected, foundResultSetSchema)
+	}
+}
+
 func TestVersion(t *testing.T) {
 	v := mongosql.Version()
 
@@ -80,6 +96,22 @@ func TestTranslate(t *testing.T) {
 	if !reflect.DeepEqual(expectedStage1, pipeline[1]) {
 		t.Fatalf("expected stages to be equal, but they weren't:\n%s\nand\n%s", expectedStage1, pipeline[1])
 	}
+
+	expectedResultSetSchema := bson.D{
+		{"bsonType", "object"},
+		{"properties", bson.D{
+			{"foo", bson.D{
+				{"bsonType", "object"},
+				{"properties", bson.D{}},
+				{"required", bson.A{}},
+				{"additionalProperties", true},
+			}},
+		}},
+		{"required", bson.A{"foo"}},
+		{"additionalProperties", false},
+	}
+
+	checkResultSetSchema(t, expectedResultSetSchema, translation.ResultSetSchema)
 }
 
 func TestTranslateError(t *testing.T) {
@@ -131,7 +163,7 @@ func TestCatalogSchema(t *testing.T) {
 		"bar": {"foo": bsoncore.Document(bytes)},
 	}
 
-	_, err = mongosql.Translate(mongosql.TranslationArgs{
+	translation, err := mongosql.Translate(mongosql.TranslationArgs{
 		DB:            "bar",
 		SQL:           "select * from foo",
 		CatalogSchema: catalogSchema,
@@ -139,6 +171,24 @@ func TestCatalogSchema(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected err to be nil, got '%s'", err)
 	}
+
+	expectedResultSetSchema := bson.D{
+		{"bsonType", "object"},
+		{"properties", bson.D{
+			{"foo", bson.D{
+				{"bsonType", "object"},
+				{"properties", bson.D{
+					{"a", bson.D{{"bsonType", "double"}}},
+				}},
+				{"required", bson.A{}},
+				{"additionalProperties", true},
+			}},
+		}},
+		{"required", bson.A{"foo"}},
+		{"additionalProperties", false},
+	}
+
+	checkResultSetSchema(t, expectedResultSetSchema, translation.ResultSetSchema)
 }
 
 func generateTestSchema() (bsoncore.Document, error) {
@@ -167,7 +217,7 @@ func TestCatalogSchemaMultipleCollections(t *testing.T) {
 		"foo": {"bar": schema, "baz": schema},
 	}
 
-	_, err = mongosql.Translate(mongosql.TranslationArgs{
+	translation, err := mongosql.Translate(mongosql.TranslationArgs{
 		DB:            "bar",
 		SQL:           "select * from foo",
 		CatalogSchema: catalogSchema,
@@ -175,6 +225,22 @@ func TestCatalogSchemaMultipleCollections(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected err to be nil, got '%s'", err)
 	}
+
+	expectedResultSetSchema := bson.D{
+		{"bsonType", "object"},
+		{"properties", bson.D{
+			{"foo", bson.D{
+				{"bsonType", "object"},
+				{"properties", bson.D{}},
+				{"required", bson.A{}},
+				{"additionalProperties", true},
+			}},
+		}},
+		{"required", bson.A{"foo"}},
+		{"additionalProperties", false},
+	}
+
+	checkResultSetSchema(t, expectedResultSetSchema, translation.ResultSetSchema)
 }
 
 func TestCatalogSchemaMultipleNamespaces(t *testing.T) {
@@ -190,7 +256,7 @@ func TestCatalogSchemaMultipleNamespaces(t *testing.T) {
 		"baz": {"foo": schema},
 	}
 
-	_, err = mongosql.Translate(mongosql.TranslationArgs{
+	translation, err := mongosql.Translate(mongosql.TranslationArgs{
 		DB:            "bar",
 		SQL:           "select * from foo",
 		CatalogSchema: catalogSchema,
@@ -198,12 +264,30 @@ func TestCatalogSchemaMultipleNamespaces(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected err to be nil, got '%s'", err)
 	}
+
+	expectedResultSetSchema := bson.D{
+		{"bsonType", "object"},
+		{"properties", bson.D{
+			{"foo", bson.D{
+				{"bsonType", "object"},
+				{"properties", bson.D{
+					{"a", bson.D{{"bsonType", "double"}}},
+				}},
+				{"required", bson.A{}},
+				{"additionalProperties", true},
+			}},
+		}},
+		{"required", bson.A{"foo"}},
+		{"additionalProperties", false},
+	}
+
+	checkResultSetSchema(t, expectedResultSetSchema, translation.ResultSetSchema)
 }
 
 func TestCatalogSchemaEmpty(t *testing.T) {
 	catalogSchema := map[string]map[string]bsoncore.Document{}
 
-	_, err := mongosql.Translate(mongosql.TranslationArgs{
+	translation, err := mongosql.Translate(mongosql.TranslationArgs{
 		DB:            "bar",
 		SQL:           "select * from foo",
 		CatalogSchema: catalogSchema,
@@ -211,4 +295,20 @@ func TestCatalogSchemaEmpty(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected err to be nil, got '%s'", err)
 	}
+
+	expectedResultSetSchema := bson.D{
+		{"bsonType", "object"},
+		{"properties", bson.D{
+			{"foo", bson.D{
+				{"bsonType", "object"},
+				{"properties", bson.D{}},
+				{"required", bson.A{}},
+				{"additionalProperties", true},
+			}},
+		}},
+		{"required", bson.A{"foo"}},
+		{"additionalProperties", false},
+	}
+
+	checkResultSetSchema(t, expectedResultSetSchema, translation.ResultSetSchema)
 }

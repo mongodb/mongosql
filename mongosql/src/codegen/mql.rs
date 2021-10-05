@@ -14,11 +14,11 @@ use std::{
 };
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct MappingRegistry(BTreeMap<Key, String>);
+pub struct MqlMappingRegistry(BTreeMap<Key, String>);
 
-impl MappingRegistry {
+impl MqlMappingRegistry {
     pub fn new() -> Self {
-        MappingRegistry(BTreeMap::new())
+        MqlMappingRegistry(BTreeMap::new())
     }
 
     pub fn get(&self, k: &Key) -> Option<&String> {
@@ -29,13 +29,13 @@ impl MappingRegistry {
         self.0.insert(k.into(), v.into())
     }
 
-    pub fn merge(&mut self, other: MappingRegistry) -> &mut Self {
+    pub fn merge(&mut self, other: MqlMappingRegistry) -> &mut Self {
         self.0.extend(other.0.into_iter());
         self
     }
 }
 
-impl Default for MappingRegistry {
+impl Default for MqlMappingRegistry {
     fn default() -> Self {
         Self::new()
     }
@@ -45,7 +45,7 @@ impl Default for MappingRegistry {
 pub struct MqlTranslation {
     pub database: Option<String>,
     pub collection: Option<String>,
-    pub mapping_registry: MappingRegistry,
+    pub mapping_registry: MqlMappingRegistry,
     pub pipeline: Vec<bson::Document>,
 }
 
@@ -55,7 +55,7 @@ impl MqlTranslation {
         self
     }
 
-    fn with_mapping_registry(self, mapping_registry: MappingRegistry) -> Self {
+    fn with_mapping_registry(self, mapping_registry: MqlMappingRegistry) -> Self {
         MqlTranslation {
             mapping_registry,
             ..self
@@ -82,7 +82,7 @@ impl MqlTranslation {
 
 #[derive(Clone)]
 pub struct MqlCodeGenerator {
-    pub mapping_registry: MappingRegistry,
+    pub mapping_registry: MqlMappingRegistry,
     pub scope_level: u16,
 }
 
@@ -224,9 +224,9 @@ impl MqlCodeGenerator {
     /// the resulting $let document along with a new mapping registry that contains the
     /// generated names. Naming conflicts are resolved by prepending underscores until the
     /// generated name is unique.
-    fn generate_let_bindings(self) -> Result<(bson::Document, MappingRegistry)> {
+    fn generate_let_bindings(self) -> Result<(bson::Document, MqlMappingRegistry)> {
         let mut let_bindings: bson::Document = map![];
-        let new_mapping_registry = MappingRegistry(
+        let new_mapping_registry = MqlMappingRegistry(
             self.mapping_registry
                 .0
                 .into_iter()
@@ -272,7 +272,7 @@ impl MqlCodeGenerator {
                 // stage. It should only contain mappings for the names
                 // defined by the $project, because $project kills all
                 // other values, anyway.
-                let mut output_registry = MappingRegistry::new();
+                let mut output_registry = MqlMappingRegistry::new();
                 let unique_bot_name = MqlCodeGenerator::get_unique_bot_name(&p.expression);
                 // we need to project away _id unless the query maps _id some other way.
                 // {_id: 0} will be overwritten if _id is defined in the project expression.
@@ -312,7 +312,7 @@ impl MqlCodeGenerator {
             Collection(c) => Ok(MqlTranslation {
                 database: Some(c.db),
                 collection: Some(c.collection.clone()),
-                mapping_registry: MappingRegistry(
+                mapping_registry: MqlMappingRegistry(
                     map! {(&c.collection, self.scope_level).into() => c.collection.clone()},
                 ),
                 // It is not technically possible to have a collection named _id in a mongod
@@ -325,7 +325,7 @@ impl MqlCodeGenerator {
                 }],
             }),
             Array(arr) => {
-                let mapping_registry = MappingRegistry(
+                let mapping_registry = MqlMappingRegistry(
                     map! {(&arr.alias, self.scope_level).into() => arr.alias.clone()},
                 );
                 let docs = arr
@@ -396,7 +396,7 @@ impl MqlCodeGenerator {
                             join_generator.generate_let_bindings()?;
                         let expression_generator = self
                             .clone()
-                            .with_merged_mappings(MappingRegistry(left_registry.0))
+                            .with_merged_mappings(MqlMappingRegistry(left_registry.0))
                             .with_merged_mappings(right.mapping_registry);
                         let cond = expression_generator.codegen_expression(expr)?;
                         let cond_doc = doc! {"$match" : {"$expr": cond}};
@@ -437,7 +437,7 @@ impl MqlCodeGenerator {
         }
     }
 
-    fn with_merged_mappings(mut self, mappings: MappingRegistry) -> Self {
+    fn with_merged_mappings(mut self, mappings: MqlMappingRegistry) -> Self {
         self.mapping_registry.merge(mappings);
         self
     }

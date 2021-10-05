@@ -11,6 +11,129 @@ mod satisfaction_ord {
     }
 }
 
+mod to_bson {
+    use crate::{
+        map,
+        schema::{Atomic, Document, Schema},
+        set,
+    };
+    use bson::bson;
+    macro_rules! test_schema_to_bson {
+        ($func_name:ident, $bson_doc:expr, $resultset_schema:expr) => {
+            #[test]
+            fn $func_name() {
+                use std::convert::TryFrom;
+                let b = bson::to_bson(
+                    &crate::json_schema::Schema::try_from($resultset_schema).unwrap(),
+                )
+                .unwrap();
+                assert_eq!($bson_doc, b);
+            }
+        };
+    }
+
+    test_schema_to_bson!(
+        all_types_in_three_name_spaces,
+        bson! {{"bsonType": "object",
+             "properties": {
+                 "bar": {
+                     "bsonType": "object",
+                     "properties": {
+                         "a": {},
+                         "b": {"anyOf": []},
+                         "c": {"bsonType":  "string"},
+                         "e": {"bsonType":  "int"},
+                         "f": {"bsonType":  "double"},
+                         "g": {"bsonType":  "long"},
+                         "h": {"bsonType":  "decimal"},
+                         "i": {"bsonType":  "binData"},
+                         "j": {"bsonType":  "objectId"},
+                         "k": {"bsonType":  "bool"},
+                         "l": {"bsonType":  "date"},
+                         "m": {"bsonType":  "null"},
+                         "n": {"bsonType":  "regex"},
+                         "o": {"bsonType":  "dbPointer"},
+                         "p": {"bsonType":  "javascript"},
+                         "q": {"bsonType":  "symbol"},
+                         "r": {"bsonType":  "javascriptWithScope"},
+                         "s": {"bsonType":  "timestamp"},
+                         "t": {"bsonType":  "minKey"},
+                         "u": {"bsonType":  "maxKey"},
+                         "v": {
+                                 "bsonType": "array",
+                                 "items": {
+                                     "anyOf": [
+                                         {"bsonType":  "string"},
+                                         {"bsonType":  "null"},
+                                     ]
+                                 },
+                         },
+                         "w": {
+                             "anyOf": [
+                                 {"bsonType": "null"},
+                                 {
+                                     "bsonType": "object",
+                                     "properties":  {},
+                                     "required": [],
+                                     "additionalProperties": true,
+                                 },
+                             ]
+                         },
+                     },
+                     "required": ["a", "b", "c"],
+                     "additionalProperties": false,
+                 },
+             },
+             "required": [],
+             "additionalProperties": false,
+        }},
+        Schema::Document(Document {
+            keys: map! {
+                "bar".into() => Schema::Document(Document {
+                     keys: map!{
+                         "a".into() => Schema::Any,
+                         "b".into() => Schema::Unsat,
+                         "c".into() => Schema::Atomic(Atomic::String),
+                         "e".into() => Schema::Atomic(Atomic::Integer),
+                         "f".into() => Schema::Atomic(Atomic::Double),
+                         "g".into() => Schema::Atomic(Atomic::Long),
+                         "h".into() => Schema::Atomic(Atomic::Decimal),
+                         "i".into() => Schema::Atomic(Atomic::BinData),
+                         "j".into() => Schema::Atomic(Atomic::ObjectId),
+                         "k".into() => Schema::Atomic(Atomic::Boolean),
+                         "l".into() => Schema::Atomic(Atomic::Date),
+                         "m".into() => Schema::Atomic(Atomic::Null),
+                         "n".into() => Schema::Atomic(Atomic::Regex),
+                         "o".into() => Schema::Atomic(Atomic::DbPointer),
+                         "p".into() => Schema::Atomic(Atomic::Javascript),
+                         "q".into() => Schema::Atomic(Atomic::Symbol),
+                         "r".into() => Schema::Atomic(Atomic::JavascriptWithScope),
+                         "s".into() => Schema::Atomic(Atomic::Timestamp),
+                         "t".into() => Schema::Atomic(Atomic::MinKey),
+                         "u".into() => Schema::Atomic(Atomic::MaxKey),
+                         "v".into() => Schema::Array(Box::new(Schema::AnyOf(set![
+                                 Schema::Atomic(Atomic::String),
+                                 Schema::Atomic(Atomic::Null)
+                         ]))),
+                         "w".into() => Schema::AnyOf(set![
+                                 Schema::Document(Document {
+                                     keys: map!{},
+                                     required: set![],
+                                     additional_properties: true,
+                                 }),
+                                 Schema::Atomic(Atomic::Null),
+                         ]),
+                      },
+                      required: set!["a".into(), "b".into(), "c".into()],
+                      additional_properties: false,
+                 }),
+            },
+            required: set![],
+            additional_properties: false,
+        })
+    );
+}
+
 // +-------------------+
 // | JSON schema tests |
 // +-------------------+
@@ -31,7 +154,7 @@ mod from_json {
             #[test]
             fn $func_name() {
                 let s = schema::Schema::try_from($json_schema);
-                assert_eq!(s, $schema_schema);
+                assert_eq!($schema_schema, s);
             }
         };
     }
@@ -1721,9 +1844,9 @@ mod simplify {
         Document(Document {
             keys: map![
                 "a".to_string() => AnyOf(set![
-                Missing,
-                Atomic(String),
-                Atomic(Integer)
+                    Atomic(Null),
+                    Atomic(String),
+                    Atomic(Integer)
             ])
                 ],
             required: set!["a".to_string()],
@@ -1732,11 +1855,60 @@ mod simplify {
         Document(Document {
             keys: map![
                 "a".to_string() => AnyOf(set![
-                AnyOf(set![Missing, Atomic(String)]),
+                AnyOf(set![Atomic(Null), Atomic(String)]),
                 Atomic(Integer)
             ]),
                             ],
             required: set!["a".to_string()],
+            additional_properties: true,
+        })
+    );
+    test_simplify!(
+        missing_in_documents,
+        Document(Document {
+            keys: map![
+                "a".to_string() => AnyOf(set![
+                Atomic(String),
+                Atomic(Integer)
+            ]),
+            "b".to_string() => Atomic(String),
+                    "d".to_string() => Document(
+                        Document {
+                            keys: map![
+                                "ia".to_string() => AnyOf(set![Atomic(String)]),
+                            ],
+                            required: set![],
+                            additional_properties: false,
+                        }
+                    ),
+                ],
+            required: set!["b".to_string(), "d".to_string()],
+            additional_properties: true,
+        }),
+        Document(Document {
+            keys: map![
+                    "a".to_string() => AnyOf(set![
+                        AnyOf(set![Missing, Atomic(String)]),
+                        Atomic(Integer)
+                    ]),
+                    "b".to_string() => Atomic(String),
+                    "c".to_string() => Missing,
+                    "d".to_string() => Document(
+                        Document {
+                            keys: map![
+                                "ia".to_string() => AnyOf(set![Missing, Atomic(String)]),
+                            ],
+                            required: set!["ia".to_string()],
+                            additional_properties: false,
+                        }
+                    ),
+            ],
+            required: set![
+                "a".to_string(),
+                "b".to_string(),
+                "c".to_string(),
+                "d".to_string()
+            ],
             additional_properties: true,
         })
     );

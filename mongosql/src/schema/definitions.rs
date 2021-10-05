@@ -181,6 +181,123 @@ impl TryFrom<json_schema::Schema> for Document {
     }
 }
 
+impl TryFrom<Document> for json_schema::Schema {
+    type Error = Error;
+
+    fn try_from(v: Document) -> Result<Self, Self::Error> {
+        Ok(json_schema::Schema {
+            bson_type: Some(json_schema::BsonType::Single("object".to_string())),
+            properties: Some(
+                v.keys
+                    .into_iter()
+                    .map(|(k, v)| match json_schema::Schema::try_from(v) {
+                        Ok(s) => Ok((k, s)),
+                        Err(e) => Err(e),
+                    })
+                    .collect::<Result<_, _>>()?,
+            ),
+            required: Some(v.required.into_iter().collect()),
+            additional_properties: Some(v.additional_properties),
+            items: None,
+            any_of: None,
+            one_of: None,
+        })
+    }
+}
+
+impl From<Atomic> for json_schema::Schema {
+    fn from(v: Atomic) -> Self {
+        json_schema::Schema {
+            bson_type: Some(json_schema::BsonType::Single(v.into())),
+            properties: None,
+            required: None,
+            additional_properties: None,
+            items: None,
+            any_of: None,
+            one_of: None,
+        }
+    }
+}
+
+impl From<Atomic> for String {
+    fn from(v: Atomic) -> Self {
+        use self::Atomic::*;
+        match v {
+            Decimal => "decimal",
+            Double => "double",
+            Integer => "int",
+            Long => "long",
+            String => "string",
+            BinData => "binData",
+            ObjectId => "objectId",
+            Boolean => "bool",
+            Date => "date",
+            Null => "null",
+            Regex => "regex",
+            DbPointer => "dbPointer",
+            Javascript => "javascript",
+            Symbol => "symbol",
+            JavascriptWithScope => "javascriptWithScope",
+            Timestamp => "timestamp",
+            MinKey => "minKey",
+            MaxKey => "maxKey",
+        }
+        .to_string()
+    }
+}
+
+impl TryFrom<Schema> for json_schema::Schema {
+    type Error = Error;
+
+    fn try_from(v: Schema) -> Result<Self, Self::Error> {
+        Ok(match v {
+            Schema::Any => json_schema::Schema {
+                bson_type: None,
+                properties: None,
+                required: None,
+                additional_properties: None,
+                items: None,
+                any_of: None,
+                one_of: None,
+            },
+            Schema::Unsat => json_schema::Schema {
+                bson_type: None,
+                properties: None,
+                required: None,
+                additional_properties: None,
+                items: None,
+                any_of: Some(vec![]),
+                one_of: None,
+            },
+            Schema::Missing => return Err(Error::InvalidBSONType()),
+            Schema::Atomic(a) => a.into(),
+            Schema::AnyOf(ao) => json_schema::Schema {
+                bson_type: None,
+                properties: None,
+                required: None,
+                additional_properties: None,
+                items: None,
+                any_of: Some(
+                    ao.into_iter()
+                        .map(json_schema::Schema::try_from)
+                        .collect::<Result<_, _>>()?,
+                ),
+                one_of: None,
+            },
+            Schema::Array(a) => json_schema::Schema {
+                bson_type: Some(json_schema::BsonType::Single("array".to_string())),
+                properties: None,
+                required: None,
+                additional_properties: None,
+                items: Some(Box::new(json_schema::Schema::try_from(*a)?)),
+                any_of: None,
+                one_of: None,
+            },
+            Schema::Document(d) => json_schema::Schema::try_from(d)?,
+        })
+    }
+}
+
 lazy_static! {
     // Special Document Schemas.
     pub static ref ANY_DOCUMENT: Schema = Schema::Document(Document::any());
@@ -250,6 +367,22 @@ impl Satisfaction {
 impl Schema {
     /// returns a simplified version of this schema.
     pub fn simplify(schema: &Schema) -> Schema {
+        // remove_missing removes all Missing types from the given Schema. It should
+        // never be called on a Schema that Must satisfy Missing, and the argument Schema
+        // must always be pre-simplified, so there is never a nested AnyOf.
+        fn remove_missing(s: Schema) -> Schema {
+            match s {
+                Schema::Missing => unreachable!(),
+                Schema::Any
+                | Schema::Unsat
+                | Schema::Document(_)
+                | Schema::Array(_)
+                | Schema::Atomic(_) => s,
+                Schema::AnyOf(ao) => {
+                    Schema::AnyOf(ao.into_iter().filter(|x| x != &Schema::Missing).collect())
+                }
+            }
+        }
         match schema {
             Schema::AnyOf(a) => {
                 let ret: BTreeSet<Schema> = a
@@ -271,15 +404,31 @@ impl Schema {
                 }
             }
             Schema::Array(arr) => Schema::Array(Box::new(Schema::simplify(arr))),
-            Schema::Document(d) => Schema::Document(Document {
-                keys: d
-                    .keys
-                    .iter()
-                    .map(|(k, s)| (k.clone(), Schema::simplify(s)))
-                    .collect(),
-                required: d.required.clone(),
-                ..*d
-            }),
+            Schema::Document(d) => {
+                let mut missing_keys = BTreeSet::new();
+                Schema::Document(Document {
+                    keys: d
+                        .keys
+                        .iter()
+                        .filter_map(|(k, s)| {
+                            let s = Schema::simplify(s);
+                            match s.satisfies(&Schema::Missing) {
+                                Satisfaction::Not => Some((k.clone(), s)),
+                                Satisfaction::May => {
+                                    missing_keys.insert(k.clone());
+                                    Some((k.clone(), remove_missing(s)))
+                                }
+                                Satisfaction::Must => {
+                                    missing_keys.insert(k.clone());
+                                    None
+                                }
+                            }
+                        })
+                        .collect(),
+                    required: d.required.difference(&missing_keys).cloned().collect(),
+                    ..*d
+                })
+            }
             Schema::Atomic(_) => schema.clone(),
             Schema::Any => Schema::Any,
             Schema::Unsat => Schema::Unsat,

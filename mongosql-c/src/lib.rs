@@ -115,6 +115,7 @@ fn translation_success_payload(t: mongosql::Translation) -> String {
         "target_db": t.target_db.unwrap_or_else(|| "".to_string()),
         "target_collection": t.target_collection.unwrap_or_else(|| "".to_string()),
         "pipeline": t.pipeline,
+        "result_set_schema": &bson::to_bson(&t.result_set_schema).expect("failed to convert result_set_schema to bson"),
     };
 
     base64::encode(bson::to_vec(&translation).expect("serializing bson to bytes failed"))

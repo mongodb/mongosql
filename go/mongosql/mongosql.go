@@ -42,6 +42,9 @@ type Translation struct {
 	// Pipeline is the array representing the aggregation pipeline
 	// serialized to BSON
 	Pipeline []byte
+	// ResultSetSchema is a JSON Schema document that describes
+	// the documents returned by this Translation
+	ResultSetSchema bsoncore.Document
 }
 
 // Translate accepts TranslationArgs, returning a Translation and an
@@ -54,10 +57,11 @@ func Translate(args TranslationArgs) (Translation, error) {
 	}
 
 	translationResult := struct {
-		Db         string   `bson:"target_db"`
-		Collection string   `bson:"target_collection"`
-		Pipeline   []bson.D `bson:"pipeline"`
-		Error      string   `bson:"error"`
+		Db              string            `bson:"target_db"`
+		Collection      string            `bson:"target_collection"`
+		Pipeline        []bson.D          `bson:"pipeline"`
+		Error           string            `bson:"error"`
+		ResultSetSchema bsoncore.Document `bson:"result_set_schema"`
 	}{}
 
 	translationBytes, err := base64.StdEncoding.DecodeString(base64TranslationResult)
@@ -92,5 +96,6 @@ func Translate(args TranslationArgs) (Translation, error) {
 		TargetDB:         translationResult.Db,
 		TargetCollection: translationResult.Collection,
 		Pipeline:         pipelineBytes,
+		ResultSetSchema:  translationResult.ResultSetSchema,
 	}, nil
 }
