@@ -1,12 +1,12 @@
 macro_rules! test_codegen_plan {
     (
 		$func_name:ident,
-		Ok({
+		expected = Ok({
 			database: $expected_db:expr,
 			collection: $expected_collection:expr,
 			pipeline: $expected_pipeline:expr,
 		}),
-		$input: expr,
+		input = $input: expr,
 	) => {
         #[test]
         fn $func_name() {
@@ -30,7 +30,7 @@ macro_rules! test_codegen_plan {
         }
     };
 
-    ($func_name:ident, Err($expected_err:expr), $input:expr,) => {
+    ($func_name:ident, expected = Err($expected_err:expr), input = $input:expr,) => {
         #[test]
         fn $func_name() {
             use crate::codegen::generate_mql;
@@ -44,13 +44,16 @@ macro_rules! test_codegen_plan {
 }
 
 macro_rules! test_codegen_expr {
-    ($func_name:ident, $mapping_registry:expr, $expected:expr, $input:expr,) => {
+    ($func_name:ident, expected = $expected:expr, input = $input:expr, $(mapping_registry = $mapping_registry:expr,)?) => {
         #[test]
         fn $func_name() {
-            use crate::codegen::mql::MqlCodeGenerator;
-            let mapping_registry = $mapping_registry;
+            use crate::codegen::mql::{MqlCodeGenerator, MqlMappingRegistry};
             let expected = $expected;
             let input = $input;
+
+            #[allow(unused_mut, unused_assignments)]
+            let mut mapping_registry = MqlMappingRegistry::default();
+            $(mapping_registry = $mapping_registry;)?
 
             let gen = MqlCodeGenerator {
                 mapping_registry,
@@ -59,15 +62,6 @@ macro_rules! test_codegen_expr {
             assert_eq!(expected, gen.codegen_expression(input));
         }
     };
-
-    ($func_name:ident, $expected:expr, $input:expr,) => {
-        test_codegen_expr!(
-            $func_name,
-            crate::codegen::mql::MqlMappingRegistry::default(),
-            $expected,
-            $input,
-        );
-    };
 }
 
 mod collection {
@@ -75,28 +69,28 @@ mod collection {
 
     test_codegen_plan!(
         simple,
-        Ok({
+        expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
                 bson::doc!{"$project": {"_id": 0, "col": "$$ROOT"}},
             ],
         }),
-        Stage::Collection(Collection {
+        input = Stage::Collection(Collection {
             db: "mydb".to_string(),
             collection: "col".to_string(),
         }),
     );
     test_codegen_plan!(
         collection_named_id,
-        Ok({
+        expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("_id".to_string()),
             pipeline: vec![
                 bson::doc!{"$project": {"_id": "$$ROOT"}},
             ],
         }),
-        Stage::Collection(Collection {
+        input = Stage::Collection(Collection {
             db: "mydb".to_string(),
             collection: "_id".to_string(),
         }),
@@ -108,7 +102,7 @@ mod array_stage {
 
     test_codegen_plan!(
         empty,
-        Ok({
+        expected = Ok({
             database: None,
             collection: None,
             pipeline: vec![
@@ -116,14 +110,14 @@ mod array_stage {
                 bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
             ],
         }),
-        Stage::Array(Array {
+        input = Stage::Array(Array {
             array: vec![],
             alias: "arr".to_string(),
         }),
     );
     test_codegen_plan!(
         empty_id_alias,
-        Ok({
+        expected = Ok({
             database: None,
             collection: None,
             pipeline: vec![
@@ -131,14 +125,14 @@ mod array_stage {
                 bson::doc!{"$project": {"_id": "$$ROOT"}},
             ],
         }),
-        Stage::Array(Array {
+        input = Stage::Array(Array {
             array: vec![],
             alias: "_id".to_string(),
         }),
     );
     test_codegen_plan!(
         non_empty,
-        Ok({
+        expected = Ok({
             database: None,
             collection: None,
             pipeline: vec![
@@ -146,7 +140,7 @@ mod array_stage {
                 bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
             ],
         }),
-        Stage::Array(Array {
+        input = Stage::Array(Array {
             array: vec![Expression::Literal(Literal::Boolean(false))],
             alias: "arr".to_string(),
         }),
@@ -165,7 +159,7 @@ mod project {
 
     test_codegen_plan!(
         simple,
-        Ok({
+        expected = Ok({
             database: None,
             collection: None,
             pipeline: vec![
@@ -174,7 +168,7 @@ mod project {
                 bson::doc!{"$project": {"_id": 0, "a": {"$literal": 1}, "b": {"$literal": 2}, "c": {"$literal": 3}}},
             ],
         }),
-        Stage::Project(Project {
+        input = Stage::Project(Project {
             expression: map! {
                 ("a", 0u16).into() => Expression::Literal(Literal::Integer(1)),
                 ("b", 0u16).into() => Expression::Literal(Literal::Integer(2)),
@@ -189,7 +183,7 @@ mod project {
 
     test_codegen_plan!(
         empty,
-        Ok({
+        expected = Ok({
             database: None,
             collection: None,
             pipeline: vec![
@@ -198,7 +192,7 @@ mod project {
                 bson::doc!{"$project": {"_id": 0}},
             ],
         }),
-        Stage::Project(Project {
+        input = Stage::Project(Project {
             expression: map! {},
             source: Stage::Array(Array {
                 array: vec![Expression::Document(unchecked_unique_linked_hash_map!{})],
@@ -209,7 +203,7 @@ mod project {
 
     test_codegen_plan!(
         source_bindings_available_in_project,
-        Ok({
+        expected = Ok({
             database: None,
             collection: None,
             pipeline: vec![
@@ -218,7 +212,7 @@ mod project {
                 bson::doc!{"$project": {"_id": 0, "foo": "$arr"}},
             ],
         }),
-        Stage::Project(Project {
+        input = Stage::Project(Project {
             expression: map! {
                 ("foo", 0u16).into() => Expression::Reference(("arr", 0u16).into()),
             },
@@ -231,7 +225,7 @@ mod project {
 
     test_codegen_plan!(
         user_defined_id_projection,
-        Ok({
+        expected = Ok({
             database: None,
             collection: None,
             pipeline: vec![
@@ -240,7 +234,7 @@ mod project {
                 bson::doc!{"$project": {"_id": {"$literal": 42.0}, "foo": {"$literal": 44.0}}},
             ],
         }),
-        Stage::Project(Project {
+        input = Stage::Project(Project {
             expression: map! {
                 ("_id", 0u16).into() => Expression::Literal(Literal::Double(42.0)),
                 ("foo", 0u16).into() => Expression::Literal(Literal::Double(44.0)),
@@ -254,7 +248,7 @@ mod project {
 
     test_codegen_plan!(
         user_bot_conflict,
-        Ok({
+        expected = Ok({
             database: None,
             collection: None,
             pipeline: vec![
@@ -270,7 +264,7 @@ mod project {
                 }},
             ],
         }),
-        Stage::Project(Project {
+        input = Stage::Project(Project {
             expression: map! {
                 Key{ datasource: DatasourceName::Bottom, scope: 0u16 } => Expression::Reference(("__bot", 0u16).into()),
                 ("__bot", 0u16).into() => Expression::Literal(Literal::Double(43.0)),
@@ -286,8 +280,8 @@ mod project {
 
     test_codegen_plan!(
         dot_project_field,
-        Err(Error::DotsOrDollarsInProjectField),
-        Stage::Project(Project {
+        expected = Err(Error::DotsOrDollarsInProjectField),
+        input = Stage::Project(Project {
             expression: map! {
                 ("a.b", 0u16).into() => Expression::Literal(Literal::Integer(1)),
             },
@@ -301,8 +295,8 @@ mod project {
 
     test_codegen_plan!(
         dollar_project_field,
-        Err(Error::DotsOrDollarsInProjectField),
-        Stage::Project(Project {
+        expected = Err(Error::DotsOrDollarsInProjectField),
+        input = Stage::Project(Project {
             expression: map! {
                 ("$a", 0u16).into() => Expression::Literal(Literal::Integer(1)),
             },
@@ -320,7 +314,7 @@ mod filter {
 
     test_codegen_plan!(
         simple,
-        Ok({
+        expected = Ok({
             database: None,
             collection: None,
             pipeline: vec![
@@ -329,7 +323,7 @@ mod filter {
                 bson::doc!{"$match": {"$expr": {"$literal": true}}},
             ],
         }),
-        Stage::Filter(Filter {
+        input = Stage::Filter(Filter {
             condition: Expression::Literal(Literal::Boolean(true)),
             source: Stage::Array(Array {
                 array: vec![],
@@ -348,7 +342,7 @@ mod sort {
 
     test_codegen_plan!(
         empty,
-        Ok({
+        expected = Ok({
             database: None,
             collection: None,
             pipeline: vec![
@@ -357,7 +351,7 @@ mod sort {
                 bson::doc!{"$sort": {}},
             ],
         }),
-        Stage::Sort(Sort {
+        input = Stage::Sort(Sort {
             specs: vec![],
             source: Stage::Array(Array {
                 array: vec![],
@@ -367,7 +361,7 @@ mod sort {
     );
     test_codegen_plan!(
         single_spec_asc,
-        Ok({
+        expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
@@ -375,7 +369,7 @@ mod sort {
                 bson::doc!{"$sort": {"col": 1}},
             ],
         }),
-        Stage::Sort(Sort {
+        input = Stage::Sort(Sort {
             specs: vec![Asc(Reference(("col", 0u16).into()).into())],
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
@@ -385,7 +379,7 @@ mod sort {
     );
     test_codegen_plan!(
         single_spec_dsc,
-        Ok({
+        expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
@@ -393,7 +387,7 @@ mod sort {
                 bson::doc!{"$sort": {"col": -1}},
             ],
         }),
-        Stage::Sort(Sort {
+        input = Stage::Sort(Sort {
             specs: vec![Desc(Reference(("col", 0u16).into()).into())],
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
@@ -403,7 +397,7 @@ mod sort {
     );
     test_codegen_plan!(
         multi_spec,
-        Ok({
+        expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
@@ -411,7 +405,7 @@ mod sort {
                 bson::doc!{"$sort": {"col": 1, "col.a": -1}},
             ],
         }),
-        Stage::Sort(Sort {
+        input = Stage::Sort(Sort {
             specs: vec![
                 Asc(Reference(("col", 0u16).into()).into()),
                 Desc(
@@ -429,7 +423,7 @@ mod sort {
     );
     test_codegen_plan!(
         compound_ident,
-        Ok({
+        expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
@@ -437,7 +431,7 @@ mod sort {
                 bson::doc!{"$sort": {"col.f": 1}},
             ],
         }),
-        Stage::Sort(Sort {
+        input = Stage::Sort(Sort {
             specs: vec![Asc(
                 Expression::FieldAccess(FieldAccess{
                     field: "f".to_string(),
@@ -452,8 +446,8 @@ mod sort {
     );
     test_codegen_plan!(
         other_expr,
-        Err(Error::InvalidSortKey),
-        Stage::Sort(Sort {
+        expected = Err(Error::InvalidSortKey),
+        input = Stage::Sort(Sort {
             specs: vec![Asc(Expression::Literal(Literal::Integer(1)).into())],
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
@@ -464,8 +458,8 @@ mod sort {
     );
     test_codegen_plan!(
         non_ident_field_reference,
-        Err(Error::InvalidSortKey),
-        Stage::Sort(Sort {
+        expected = Err(Error::InvalidSortKey),
+        input = Stage::Sort(Sort {
             specs: vec![Asc(Expression::FieldAccess(FieldAccess {
                 expr: Expression::Document(
                     unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(1))}
@@ -488,7 +482,7 @@ mod limit_offset {
 
     test_codegen_plan!(
         limit_simple,
-        Ok({
+        expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
@@ -496,7 +490,7 @@ mod limit_offset {
                 bson::doc!{"$limit": 1i64},
             ],
         }),
-        Stage::Limit(Limit {
+        input = Stage::Limit(Limit {
             limit: 1,
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
@@ -506,8 +500,8 @@ mod limit_offset {
     );
     test_codegen_plan!(
         limit_out_of_i64_range,
-        Err(Error::LimitOutOfI64Range(u64::MAX)),
-        Stage::Limit(Limit {
+        expected = Err(Error::LimitOutOfI64Range(u64::MAX)),
+        input = Stage::Limit(Limit {
             limit: u64::MAX,
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
@@ -518,7 +512,7 @@ mod limit_offset {
     );
     test_codegen_plan!(
         offset_simple,
-        Ok({
+        expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
@@ -526,7 +520,7 @@ mod limit_offset {
                 bson::doc!{"$skip": 1i64},
             ],
         }),
-        Stage::Offset(Offset {
+        input = Stage::Offset(Offset {
             offset: 1,
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
@@ -536,8 +530,8 @@ mod limit_offset {
     );
     test_codegen_plan!(
         offset_out_of_i64_range,
-        Err(Error::OffsetOutOfI64Range(u64::MAX)),
-        Stage::Offset(Offset {
+        expected = Err(Error::OffsetOutOfI64Range(u64::MAX)),
+        input = Stage::Offset(Offset {
             offset: u64::MAX,
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
@@ -552,41 +546,57 @@ mod literal {
     use crate::ir::{Expression::*, Literal::*};
     use bson::{bson, Bson};
 
-    test_codegen_expr!(null, Ok(bson!({ "$literal": Bson::Null })), Literal(Null),);
-    test_codegen_expr!(bool, Ok(bson!({"$literal": true})), Literal(Boolean(true)),);
+    test_codegen_expr!(
+        null,
+        expected = Ok(bson!({ "$literal": Bson::Null })),
+        input = Literal(Null),
+    );
+    test_codegen_expr!(
+        bool,
+        expected = Ok(bson!({"$literal": true})),
+        input = Literal(Boolean(true)),
+    );
     test_codegen_expr!(
         string,
-        Ok(bson!({"$literal": "abc"})),
-        Literal(String("abc".into())),
+        expected = Ok(bson!({"$literal": "abc"})),
+        input = Literal(String("abc".into())),
     );
-    test_codegen_expr!(int, Ok(bson!({"$literal": 5_i32})), Literal(Integer(5)),);
-    test_codegen_expr!(long, Ok(bson!({"$literal": 6_i64})), Literal(Long(6)),);
-    test_codegen_expr!(double, Ok(bson!({"$literal": 7.0})), Literal(Double(7.0)),);
+    test_codegen_expr!(
+        int,
+        expected = Ok(bson!({"$literal": 5_i32})),
+        input = Literal(Integer(5)),
+    );
+    test_codegen_expr!(
+        long,
+        expected = Ok(bson!({"$literal": 6_i64})),
+        input = Literal(Long(6)),
+    );
+    test_codegen_expr!(
+        double,
+        expected = Ok(bson!({"$literal": 7.0})),
+        input = Literal(Double(7.0)),
+    );
 }
 
 mod reference {
-    use crate::{
-        codegen::{mql::MqlMappingRegistry, Error},
-        ir::Expression::*,
-    };
+    use crate::{codegen::Error, ir::Expression::*};
     use bson::Bson;
 
     test_codegen_expr!(
         not_found,
-        MqlMappingRegistry::default(),
-        Err(Error::ReferenceNotFound(("f", 0u16).into())),
-        Reference(("f", 0u16).into()),
+        expected = Err(Error::ReferenceNotFound(("f", 0u16).into())),
+        input = Reference(("f", 0u16).into()),
     );
 
     test_codegen_expr!(
         found,
-        {
+        expected = Ok(Bson::String("$f".into())),
+        input = Reference(("f", 0u16).into()),
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(Bson::String("$f".into())),
-        Reference(("f", 0u16).into()),
     );
 }
 
@@ -594,16 +604,16 @@ mod array {
     use crate::ir::{Expression::*, Literal};
     use bson::bson;
 
-    test_codegen_expr!(empty, Ok(bson!([])), Array(vec![]),);
+    test_codegen_expr!(empty, expected = Ok(bson!([])), input = Array(vec![]),);
     test_codegen_expr!(
         non_empty,
-        Ok(bson!([{"$literal": "abc"}])),
-        Array(vec![Literal(Literal::String("abc".into()))]),
+        expected = Ok(bson!([{"$literal": "abc"}])),
+        input = Array(vec![Literal(Literal::String("abc".into()))]),
     );
     test_codegen_expr!(
         nested,
-        Ok(bson!([{ "$literal": null }, [{ "$literal": null }]])),
-        Array(vec![
+        expected = Ok(bson!([{ "$literal": null }, [{ "$literal": null }]])),
+        input = Array(vec![
             Literal(Literal::Null),
             Array(vec![Literal(Literal::Null)])
         ]),
@@ -620,20 +630,20 @@ mod document {
 
     test_codegen_expr!(
         empty,
-        Ok(bson!({"$literal": {}})),
-        Document(unchecked_unique_linked_hash_map! {}),
+        expected = Ok(bson!({"$literal": {}})),
+        input = Document(unchecked_unique_linked_hash_map! {}),
     );
     test_codegen_expr!(
         non_empty,
-        Ok(bson!({"foo": {"$literal": 1}})),
-        Document(
+        expected = Ok(bson!({"foo": {"$literal": 1}})),
+        input = Document(
             unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Literal::Integer(1)),}
         ),
     );
     test_codegen_expr!(
         nested,
-        Ok(bson!({"foo": {"$literal": 1}, "bar": {"baz": {"$literal": 2}}})),
-        Document(unchecked_unique_linked_hash_map! {
+        expected = Ok(bson!({"foo": {"$literal": 1}, "bar": {"baz": {"$literal": 2}}})),
+        input = Document(unchecked_unique_linked_hash_map! {
             "foo".to_string() => Literal(Literal::Integer(1)),
             "bar".to_string() => Document(unchecked_unique_linked_hash_map!{
                 "baz".to_string() => Literal(Literal::Integer(2))
@@ -642,46 +652,41 @@ mod document {
     );
     test_codegen_expr!(
         dollar_prefixed_key_disallowed,
-        Err(Error::DotsOrDollarsInDocumentKey),
-        Document(
+        expected = Err(Error::DotsOrDollarsInDocumentKey),
+        input = Document(
             unchecked_unique_linked_hash_map! {"$foo".to_string() => Literal(Literal::Integer(1)),}
         ),
     );
     test_codegen_expr!(
         key_containing_dot_disallowed,
-        Err(Error::DotsOrDollarsInDocumentKey),
-        Document(
+        expected = Err(Error::DotsOrDollarsInDocumentKey),
+        input = Document(
             unchecked_unique_linked_hash_map! {"foo.bar".to_string() => Literal(Literal::Integer(1)),}
         ),
     );
 }
 
 mod field_access {
-    use crate::{codegen::mql::MqlMappingRegistry, ir::*, unchecked_unique_linked_hash_map};
+    use crate::{ir::*, unchecked_unique_linked_hash_map};
     use bson::Bson;
 
     test_codegen_expr!(
         reference,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(Bson::String("$f.sub".to_string())),
-        Expression::FieldAccess(FieldAccess {
+        expected = Ok(Bson::String("$f.sub".to_string())),
+        input = Expression::FieldAccess(FieldAccess {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             field: "sub".to_string(),
         }),
-    );
-    test_codegen_expr!(
-        field_access,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(Bson::String("$f.sub.sub".to_string())),
-        Expression::FieldAccess(FieldAccess {
+    );
+    test_codegen_expr!(
+        field_access,
+        expected = Ok(Bson::String("$f.sub.sub".to_string())),
+        input = Expression::FieldAccess(FieldAccess {
             field: "sub".to_string(),
             expr: Expression::FieldAccess(FieldAccess {
                 expr: Expression::Reference(("f", 0u16).into()).into(),
@@ -689,14 +694,19 @@ mod field_access {
             })
             .into(),
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         expr,
-        Ok(bson::bson!({"$getField": {
+        expected = Ok(bson::bson!({"$getField": {
             "field": "sub",
             "input": {"a": {"$literal": 1}},
         }})),
-        Expression::FieldAccess(FieldAccess {
+        input = Expression::FieldAccess(FieldAccess {
             expr: Expression::Document(
                 unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(1))}
             )
@@ -707,53 +717,53 @@ mod field_access {
 
     test_codegen_expr!(
         success_on_non_reference_expr,
-        Ok(bson::bson!({"$getField": {
+        expected = Ok(bson::bson!({"$getField": {
             "field": "sub",
             "input": {"$literal": "f"},
         }})),
-        Expression::FieldAccess(FieldAccess {
+        input = Expression::FieldAccess(FieldAccess {
             expr: Expression::Literal(Literal::String("f".into())).into(),
             field: "sub".to_string(),
         }),
     );
     test_codegen_expr!(
         dollar_prefixed_field,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson::bson!({"$getField": {"field": "$sub", "input": "$f"}})),
-        Expression::FieldAccess(FieldAccess {
+        expected = Ok(bson::bson!({"$getField": {"field": "$sub", "input": "$f"}})),
+        input = Expression::FieldAccess(FieldAccess {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             field: "$sub".to_string(),
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         field_contains_dollar,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(Bson::String("$f.s$ub".to_string())),
-        Expression::FieldAccess(FieldAccess {
+        expected = Ok(Bson::String("$f.s$ub".to_string())),
+        input = Expression::FieldAccess(FieldAccess {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             field: "s$ub".to_string(),
         }),
-    );
-    test_codegen_expr!(
-        field_contains_dot,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(bson::bson!({"$getField": {"field": "s.ub", "input": "$f"}})),
-        Expression::FieldAccess(FieldAccess {
+    );
+    test_codegen_expr!(
+        field_contains_dot,
+        expected = Ok(bson::bson!({"$getField": {"field": "s.ub", "input": "$f"}})),
+        input = Expression::FieldAccess(FieldAccess {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             field: "s.ub".to_string(),
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
 }
 
@@ -761,11 +771,11 @@ mod searched_case_expression {
     use crate::ir::*;
     test_codegen_expr!(
         one_case,
-        Ok(bson::bson!({"$switch": 
+        expected = Ok(bson::bson!({"$switch": 
             {"branches": [{"case": {"$literal": true}, 
                                             "then": {"$literal": "first case"}}],
             "default": {"$literal": "else case"}}})),
-        Expression::SearchedCase(SearchedCaseExpr {
+        input = Expression::SearchedCase(SearchedCaseExpr {
             when_branch: vec![WhenBranch {
                 when: Box::new(Expression::Literal(Literal::Boolean(true))),
                 then: Box::new(Expression::Literal(Literal::String(
@@ -780,12 +790,12 @@ mod searched_case_expression {
 
     test_codegen_expr!(
         multiple_cases,
-        Ok(bson::bson!({"$switch": 
+        expected = Ok(bson::bson!({"$switch": 
             {"branches": [{"case": {"$literal": false}, "then": {"$literal": "first case"}},
             {"case": {"$literal": true}, "then": {"$literal": "second case"}},
             {"case": {"$literal": true}, "then": {"$literal": "third case"}}],
             "default": {"$literal": "else case"}}})),
-        Expression::SearchedCase(SearchedCaseExpr {
+        input = Expression::SearchedCase(SearchedCaseExpr {
             when_branch: vec![
                 WhenBranch {
                     when: Box::new(Expression::Literal(Literal::Boolean(false))),
@@ -817,13 +827,13 @@ mod simple_case_expression {
     use crate::ir::*;
     test_codegen_expr!(
         one_case,
-        Ok(
+        expected = Ok(
             bson::bson!({"$let": {"vars": {"target": {"$literal": "co"}}}, "in": {"$switch": 
             {"branches": [{"case": {"$sqlEq": ["$$target", {"$literal": true}]}, 
                                             "then": {"$literal": "true case"}}],
             "default": {"$literal": "else case"}}}})
         ),
-        Expression::SimpleCase(SimpleCaseExpr {
+        input = Expression::SimpleCase(SimpleCaseExpr {
             expr: Box::new(Expression::Literal(Literal::String("co".to_string()))),
             when_branch: vec![WhenBranch {
                 when: Box::new(Expression::Literal(Literal::Boolean(true))),
@@ -838,7 +848,7 @@ mod simple_case_expression {
     );
     test_codegen_expr!(
         multiple_cases,
-        Ok(
+        expected = Ok(
             bson::bson!({"$let": {"vars": {"target": {"$literal": "co"}}}, "in": {"$switch": 
             {"branches": [{"case": {"$sqlEq": ["$$target", {"$literal": false}]}, 
                                             "then": {"$literal": "first case"}},
@@ -848,7 +858,7 @@ mod simple_case_expression {
                                             "then": {"$literal": "third case"}}],
             "default": {"$literal": "else case"}}}})
         ),
-        Expression::SimpleCase(SimpleCaseExpr {
+        input = Expression::SimpleCase(SimpleCaseExpr {
             expr: Box::new(Expression::Literal(Literal::String("co".to_string()))),
             when_branch: vec![
                 WhenBranch {
@@ -882,13 +892,13 @@ mod join {
 
     test_codegen_plan!(
         join_simple,
-        Ok({
+        expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}},
             bson::doc!{"$join": {"collection": "col2", "joinType": "inner", "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}]}}],
         }),
-        Stage::Join(Join {
+        input = Stage::Join(Join {
             condition: None,
             left: Stage::Collection(Collection {
                 db: "mydb".to_string(),
@@ -903,7 +913,7 @@ mod join {
     );
     test_codegen_plan!(
         join_left_different_databases,
-        Ok({
+        expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}}, bson::doc!{
@@ -916,7 +926,7 @@ mod join {
                 "condition": {"$match": {"$expr": {"$literal": true}}}
             }}],
         }),
-        Stage::Join(Join {
+        input = Stage::Join(Join {
             condition: Some(Expression::Literal(Literal::Boolean(true))),
             left: Stage::Collection(Collection {
                 db: "mydb".to_string(),
@@ -931,7 +941,7 @@ mod join {
     );
     test_codegen_plan!(
         join_on_array,
-        Ok({
+        expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}}, bson::doc!{
@@ -943,7 +953,7 @@ mod join {
                 ],
             }}],
         }),
-        Stage::Join(Join {
+        input = Stage::Join(Join {
             condition: None,
             left: Stage::Collection(Collection {
                 db: "mydb".to_string(),
@@ -958,7 +968,7 @@ mod join {
     );
     test_codegen_plan!(
         join_condition_references_left,
-        Ok({
+        expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}}, bson::doc!{
@@ -971,7 +981,7 @@ mod join {
                 "condition": {"$match": {"$expr": "$$col_0"}}
             }}],
         }),
-        Stage::Join(Join {
+        input = Stage::Join(Join {
             condition: Some(Expression::Reference(("col", 0u16).into())),
             left: Stage::Collection(Collection {
                 db: "mydb".to_string(),
@@ -986,7 +996,7 @@ mod join {
     );
     test_codegen_plan!(
         join_condition_references_right,
-        Ok({
+        expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}}, bson::doc!{
@@ -999,7 +1009,7 @@ mod join {
                 "condition": {"$match": {"$expr": "$col2"}}
             }}],
         }),
-        Stage::Join(Join {
+        input = Stage::Join(Join {
             condition: Some(Expression::Reference(("col2", 0u16).into())),
             left: Stage::Collection(Collection {
                 db: "mydb".to_string(),
@@ -1019,13 +1029,13 @@ mod union {
 
     test_codegen_plan!(
         collection_union_all_collection,
-        Ok({
+        expected = Ok({
             database: Some("foo".to_string()),
             collection: Some("a".to_string()),
             pipeline: vec![bson::doc!{"$project": {"_id" : 0, "a": "$$ROOT"}},
                 bson::doc!{"$unionWith": {"coll": "b", "pipeline": [{"$project": {"_id": 0, "b": "$$ROOT"}}]}}],
         }),
-        Stage::Set(Set {
+        input = Stage::Set(Set {
             operation: SetOperation::UnionAll,
             left: Stage::Collection(Collection {
                 db: "foo".to_string(),
@@ -1039,7 +1049,7 @@ mod union {
     );
     test_codegen_plan!(
         array_union_all_array,
-        Ok({
+        expected = Ok({
             database: None,
             collection: None,
             pipeline: vec![
@@ -1050,7 +1060,7 @@ mod union {
                     {"$project": {"_id": 0, "arr2": "$$ROOT"}},
                 ]}}],
         }),
-        Stage::Set(Set {
+        input = Stage::Set(Set {
             operation: SetOperation::UnionAll,
             left: Stage::Array(Array {
                 array: vec![Expression::Literal(Literal::Integer(1))],
@@ -1064,7 +1074,7 @@ mod union {
     );
     test_codegen_plan!(
         array_union_all_collection,
-        Ok({
+        expected = Ok({
             database: None,
             collection: None,
             pipeline: vec![
@@ -1072,7 +1082,7 @@ mod union {
                 bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
                 bson::doc!{"$unionWith": {"coll": "b", "pipeline": [{"$project": {"_id": 0, "b": "$$ROOT"}}]}}],
         }),
-        Stage::Set(Set {
+        input = Stage::Set(Set {
             operation: SetOperation::UnionAll,
             left: Stage::Array(Array {
                 array: vec![Expression::Literal(Literal::Integer(1))],
@@ -1086,7 +1096,7 @@ mod union {
     );
     test_codegen_plan!(
         collection_union_all_array,
-        Ok({
+        expected = Ok({
             database: Some("foo".to_string()),
             collection: Some("a".to_string()),
             pipeline: vec![bson::doc!{"$project": {"_id" : 0, "a": "$$ROOT"}},
@@ -1095,7 +1105,7 @@ mod union {
                     bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
                 ]}}],
         }),
-        Stage::Set(Set {
+        input = Stage::Set(Set {
             operation: SetOperation::UnionAll,
             left: Stage::Collection(Collection {
                 db: "foo".to_string(),
@@ -1109,7 +1119,7 @@ mod union {
     );
     test_codegen_plan!(
         collection_union_all_with_nested_union_all,
-        Ok({
+        expected = Ok({
             database: Some("foo".to_string()),
             collection: Some("a".to_string()),
             pipeline: vec![bson::doc!{"$project": {"_id" : 0, "a": "$$ROOT"}},
@@ -1122,7 +1132,7 @@ mod union {
                 ]}}
             ],
         }),
-        Stage::Set(Set {
+        input = Stage::Set(Set {
             operation: SetOperation::UnionAll,
             left: Stage::Collection(Collection {
                 db: "foo".to_string(),
@@ -1145,139 +1155,133 @@ mod union {
 
 mod function {
     use crate::{
-        codegen::{mql::MqlMappingRegistry, Error},
+        codegen::Error,
         ir::{definitions::*, Expression::*, Literal, ScalarFunction::*},
     };
     use bson::bson;
 
     test_codegen_expr!(
         concat_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson::bson! ({"$concat": ["$f", {"$literal": "bar"}]})),
-        ScalarFunction(ScalarFunctionApplication {
+        expected = Ok(bson::bson! ({"$concat": ["$f", {"$literal": "bar"}]})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Concat,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
                 Expression::Literal(Literal::String("bar".to_string())),
             ],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         like_expr,
-        {
+        expected = Ok(bson!({"$like": {
+            "input": "$input",
+            "pattern": "$pattern",
+            "escape": "escape",
+        }})),
+        input = Like(LikeExpr {
+            expr: Expression::Reference(("input", 0u16).into()).into(),
+            pattern: Expression::Reference(("pattern", 0u16).into()).into(),
+            escape: Some("escape".to_string()),
+        }),
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("input", 0u16), "input");
             mr.insert(("pattern", 0u16), "pattern");
             mr
         },
-        Ok(bson!({"$like": {
-            "input": "$input",
-            "pattern": "$pattern",
-            "escape": "escape",
-        }})),
-        Like(LikeExpr {
-            expr: Expression::Reference(("input", 0u16).into()).into(),
-            pattern: Expression::Reference(("pattern", 0u16).into()).into(),
-            escape: Some("escape".to_string()),
-        }),
     );
     test_codegen_expr!(
         is_number_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!({"$isNumber": "$f"})),
-        Expression::Is(IsExpr {
+        expected = Ok(bson!({"$isNumber": "$f"})),
+        input = Expression::Is(IsExpr {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             target_type: TypeOrMissing::Number,
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         is_null_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!({"$or": [{"$eq": [{"$type": "$f"}, "missing"]},
+        expected = Ok(bson!({"$or": [{"$eq": [{"$type": "$f"}, "missing"]},
                                 {"$eq": [{"$type": "$f"}, "null"]}]})),
-        Expression::Is(IsExpr {
+        input = Expression::Is(IsExpr {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             target_type: TypeOrMissing::Type(Type::Null),
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         is_missing_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!({"$eq": [{"$type": "$f"}, "missing"]})),
-        Expression::Is(IsExpr {
+        expected = Ok(bson!({"$eq": [{"$type": "$f"}, "missing"]})),
+        input = Expression::Is(IsExpr {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             target_type: TypeOrMissing::Missing,
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         is_type_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!({"$eq": [{"$type": "$f"}, "double"]})),
-        Expression::Is(IsExpr {
+        expected = Ok(bson!({"$eq": [{"$type": "$f"}, "double"]})),
+        input = Expression::Is(IsExpr {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             target_type: TypeOrMissing::Type(Type::Double),
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         pos_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!("$f")),
-        ScalarFunction(ScalarFunctionApplication {
+        expected = Ok(bson!("$f")),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Pos,
             args: vec![Expression::Reference(("f", 0u16).into()),],
         }),
-    );
-    test_codegen_expr!(
-        neg_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(bson::bson! ({"$multiply": [
+    );
+    test_codegen_expr!(
+        neg_expr,
+        expected = Ok(bson::bson! ({"$multiply": [
             "$f", {"$literal": -1}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Neg,
             args: vec![Expression::Reference(("f", 0u16).into()),],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         add_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f1", 0u16), "f1");
-            mr.insert(("f2", 0u16), "f2");
-            mr
-        },
-        Ok(bson::bson! ({"$add": [
+        expected = Ok(bson::bson! ({"$add": [
             "$f1", "$f2", {"$literal": 1}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Add,
             args: vec![
                 Expression::Reference(("f1", 0u16).into()),
@@ -1285,37 +1289,37 @@ mod function {
                 Expression::Literal(Literal::Integer(1))
             ],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f1", 0u16), "f1");
+            mr.insert(("f2", 0u16), "f2");
+            mr
+        },
     );
     test_codegen_expr!(
         sub_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson::bson! ({"$subtract": [
+        expected = Ok(bson::bson! ({"$subtract": [
             "$f", {"$literal": 1}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Sub,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
                 Expression::Literal(Literal::Integer(1))
             ],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         mult_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f1", 0u16), "f1");
-            mr.insert(("f2", 0u16), "f2");
-            mr
-        },
-        Ok(bson::bson! ({"$multiply": [
+        expected = Ok(bson::bson! ({"$multiply": [
             "$f1", "$f2", {"$literal": 1}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Mul,
             args: vec![
                 Expression::Reference(("f1", 0u16).into()),
@@ -1323,144 +1327,145 @@ mod function {
                 Expression::Literal(Literal::Integer(1))
             ],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f1", 0u16), "f1");
+            mr.insert(("f2", 0u16), "f2");
+            mr
+        },
     );
     test_codegen_expr!(
         div_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson::bson! ({"$sqlDivide": [
+        expected = Ok(bson::bson! ({"$sqlDivide": [
             "$f", {"$literal": 1}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Div,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
                 Expression::Literal(Literal::Integer(1))
             ],
         }),
-    );
-    test_codegen_expr!(
-        lt_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(bson::bson! ({"$sqlLt": [
+    );
+    test_codegen_expr!(
+        lt_expr,
+        expected = Ok(bson::bson! ({"$sqlLt": [
             "$f", {"$literal": 1}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Lt,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
                 Expression::Literal(Literal::Integer(1))
             ],
         }),
-    );
-    test_codegen_expr!(
-        lte_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(bson::bson! ({"$sqlLte": [
+    );
+    test_codegen_expr!(
+        lte_expr,
+        expected = Ok(bson::bson! ({"$sqlLte": [
             "$f", {"$literal": 1}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Lte,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
                 Expression::Literal(Literal::Integer(1))
             ],
         }),
-    );
-    test_codegen_expr!(
-        ne_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(bson::bson! ({"$sqlNe": [
+    );
+    test_codegen_expr!(
+        ne_expr,
+        expected = Ok(bson::bson! ({"$sqlNe": [
             "$f", {"$literal": 1}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Neq,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
                 Expression::Literal(Literal::Integer(1))
             ],
         }),
-    );
-    test_codegen_expr!(
-        eq_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(bson::bson! ({"$sqlEq": [
+    );
+    test_codegen_expr!(
+        eq_expr,
+        expected = Ok(bson::bson! ({"$sqlEq": [
             "$f", {"$literal": 1}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Eq,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
                 Expression::Literal(Literal::Integer(1))
             ],
         }),
-    );
-    test_codegen_expr!(
-        gt_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(bson::bson! ({"$sqlGt": [
+    );
+    test_codegen_expr!(
+        gt_expr,
+        expected = Ok(bson::bson! ({"$sqlGt": [
             "$f", {"$literal": 1}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Gt,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
                 Expression::Literal(Literal::Integer(1))
             ],
         }),
-    );
-    test_codegen_expr!(
-        gte_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(bson::bson! ({"$sqlGte": [
+    );
+    test_codegen_expr!(
+        gte_expr,
+        expected = Ok(bson::bson! ({"$sqlGte": [
             "$f", {"$literal": 1}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Gte,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
                 Expression::Literal(Literal::Integer(1))
             ],
         }),
-    );
-    test_codegen_expr!(
-        between_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(bson::bson! ({"$sqlBetween": [
+    );
+    test_codegen_expr!(
+        between_expr,
+        expected = Ok(bson::bson! ({"$sqlBetween": [
             "$f", {"$literal": 1}, {"$literal": 10}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Between,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
@@ -1468,32 +1473,31 @@ mod function {
                 Expression::Literal(Literal::Integer(10))
             ],
         }),
-    );
-    test_codegen_expr!(
-        not_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(bson!({"$sqlNot": ["$f"]})),
-        ScalarFunction(ScalarFunctionApplication {
+    );
+    test_codegen_expr!(
+        not_expr,
+        expected = Ok(bson!({"$sqlNot": ["$f"]})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Not,
             args: vec![Expression::Reference(("f", 0u16).into()),],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         and_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f1", 0u16), "f1");
-            mr.insert(("f2", 0u16), "f2");
-            mr
-        },
-        Ok(bson::bson! ({"$sqlAnd": [
+        expected = Ok(bson::bson! ({"$sqlAnd": [
             "$f1", "$f2", {"$literal": true}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: And,
             args: vec![
                 Expression::Reference(("f1", 0u16).into()),
@@ -1501,19 +1505,19 @@ mod function {
                 Expression::Literal(Literal::Boolean(true))
             ],
         }),
-    );
-    test_codegen_expr!(
-        or_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f1", 0u16), "f1");
             mr.insert(("f2", 0u16), "f2");
             mr
         },
-        Ok(bson::bson! ({"$sqlOr": [
+    );
+    test_codegen_expr!(
+        or_expr,
+        expected = Ok(bson::bson! ({"$sqlOr": [
             "$f1", "$f2", {"$literal": true}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Or,
             args: vec![
                 Expression::Reference(("f1", 0u16).into()),
@@ -1521,19 +1525,19 @@ mod function {
                 Expression::Literal(Literal::Boolean(true))
             ],
         }),
-    );
-    test_codegen_expr!(
-        nullif_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f1", 0u16), "f1");
             mr.insert(("f2", 0u16), "f2");
             mr
         },
-        Ok(bson::bson! ({"$nullIf": [
+    );
+    test_codegen_expr!(
+        nullif_expr,
+        expected = Ok(bson::bson! ({"$nullIf": [
             "$f1", "$f2", {"$literal": 1}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: NullIf,
             args: vec![
                 Expression::Reference(("f1", 0u16).into()),
@@ -1541,19 +1545,19 @@ mod function {
                 Expression::Literal(Literal::Integer(1))
             ],
         }),
-    );
-    test_codegen_expr!(
-        coalesce_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f1", 0u16), "f1");
             mr.insert(("f2", 0u16), "f2");
             mr
         },
-        Ok(bson::bson! ({"$coalesce": [
+    );
+    test_codegen_expr!(
+        coalesce_expr,
+        expected = Ok(bson::bson! ({"$coalesce": [
             "$f1", "$f2", {"$literal": 1}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Coalesce,
             args: vec![
                 Expression::Reference(("f1", 0u16).into()),
@@ -1561,18 +1565,19 @@ mod function {
                 Expression::Literal(Literal::Integer(1))
             ],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f1", 0u16), "f1");
+            mr.insert(("f2", 0u16), "f2");
+            mr
+        },
     );
     test_codegen_expr!(
         slice_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson::bson! ({"$sqlSlice": [
+        expected = Ok(bson::bson! ({"$sqlSlice": [
             "$f", {"$literal": 1}, {"$literal": 1}
         ]})),
-        ScalarFunction(ScalarFunctionApplication {
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Slice,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
@@ -1580,29 +1585,31 @@ mod function {
                 Expression::Literal(Literal::Integer(1))
             ],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         size_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!({"$sqlSize": "$f"})),
-        ScalarFunction(ScalarFunctionApplication {
+        expected = Ok(bson!({"$sqlSize": "$f"})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Size,
             args: vec![Expression::Reference(("f", 0u16).into()),],
         }),
-    );
-    test_codegen_expr!(
-        position_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(bson!({"$sqlIndexOfCP": [ "$f", {"$literal": "a"}, {"$literal": 1}, {"$literal": 10}]})),
-        ScalarFunction(ScalarFunctionApplication {
+    );
+    test_codegen_expr!(
+        position_expr,
+        expected = Ok(
+            bson!({"$sqlIndexOfCP": [ "$f", {"$literal": "a"}, {"$literal": 1}, {"$literal": 10}]})
+        ),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Position,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
@@ -1611,55 +1618,55 @@ mod function {
                 Expression::Literal(Literal::Integer(10)),
             ],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         charlen_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!({"$sqlStrLenCP": "$f"})),
-        ScalarFunction(ScalarFunctionApplication {
+        expected = Ok(bson!({"$sqlStrLenCP": "$f"})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: CharLength,
             args: vec![Expression::Reference(("f", 0u16).into()),],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         octetlen_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!({"$sqlStrLenBytes": "$f"})),
-        ScalarFunction(ScalarFunctionApplication {
+        expected = Ok(bson!({"$sqlStrLenBytes": "$f"})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: OctetLength,
             args: vec![Expression::Reference(("f", 0u16).into()),],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         bitlen_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!({"$multiply": [{"$sqlStrLenBytes": "$f"}, {"$literal": 8}]})),
-        ScalarFunction(ScalarFunctionApplication {
+        expected = Ok(bson!({"$multiply": [{"$sqlStrLenBytes": "$f"}, {"$literal": 8}]})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: BitLength,
             args: vec![Expression::Reference(("f", 0u16).into()),],
         }),
-    );
-    test_codegen_expr!(
-        substring_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(bson!({"$sqlSubstrCP": ["$f", {"$literal": 1}, {"$literal": 10}]})),
-        ScalarFunction(ScalarFunctionApplication {
+    );
+    test_codegen_expr!(
+        substring_expr,
+        expected = Ok(bson!({"$sqlSubstrCP": ["$f", {"$literal": 1}, {"$literal": 10}]})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Substring,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
@@ -1667,182 +1674,187 @@ mod function {
                 Expression::Literal(Literal::Integer(10)),
             ],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         upper_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!({"$sqlToUpper": "$f"})),
-        ScalarFunction(ScalarFunctionApplication {
+        expected = Ok(bson!({"$sqlToUpper": "$f"})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Upper,
             args: vec![Expression::Reference(("f", 0u16).into()),],
         }),
-    );
-    test_codegen_expr!(
-        lower_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(bson!({"$sqlToLower": "$f"})),
-        ScalarFunction(ScalarFunctionApplication {
+    );
+    test_codegen_expr!(
+        lower_expr,
+        expected = Ok(bson!({"$sqlToLower": "$f"})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Lower,
             args: vec![Expression::Reference(("f", 0u16).into()),],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         currenttimestamp_expr,
-        Ok(bson!("$$NOW")),
-        ScalarFunction(ScalarFunctionApplication {
+        expected = Ok(bson!("$$NOW")),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: CurrentTimestamp,
             args: vec![],
         }),
     );
     test_codegen_expr!(
         ltrim_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!({"$ltrim": {"input": "$f", "chars": {"$literal": "a"}}})),
-        ScalarFunction(ScalarFunctionApplication {
+        expected = Ok(bson!({"$ltrim": {"input": "$f", "chars": {"$literal": "a"}}})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: LTrim,
             args: vec![
                 Expression::Literal(Literal::String("a".to_string())),
                 Expression::Reference(("f", 0u16).into()),
             ],
         }),
-    );
-    test_codegen_expr!(
-        rtrim_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(bson!({"$rtrim": {"input": "$f", "chars": {"$literal": "a"}}})),
-        ScalarFunction(ScalarFunctionApplication {
+    );
+    test_codegen_expr!(
+        rtrim_expr,
+        expected = Ok(bson!({"$rtrim": {"input": "$f", "chars": {"$literal": "a"}}})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: RTrim,
             args: vec![
                 Expression::Literal(Literal::String("a".to_string())),
                 Expression::Reference(("f", 0u16).into()),
             ],
         }),
-    );
-    test_codegen_expr!(
-        trim_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Ok(bson!({"$trim": {"input": "$f", "chars": {"$literal": "a"}}})),
-        ScalarFunction(ScalarFunctionApplication {
+    );
+    test_codegen_expr!(
+        trim_expr,
+        expected = Ok(bson!({"$trim": {"input": "$f", "chars": {"$literal": "a"}}})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: BTrim,
             args: vec![
                 Expression::Literal(Literal::String("a".to_string())),
                 Expression::Reference(("f", 0u16).into()),
             ],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         extract_year_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!({"$year": "$f"})),
-        ScalarFunction(ScalarFunctionApplication {
+        expected = Ok(bson!({"$year": "$f"})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Year,
             args: vec![Expression::Reference(("f", 0u16).into()),],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         extract_month_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!({"$month": "$f"})),
-        ScalarFunction(ScalarFunctionApplication {
+        expected = Ok(bson!({"$month": "$f"})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Month,
             args: vec![Expression::Reference(("f", 0u16).into()),],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         extract_day_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!({"$day": "$f"})),
-        ScalarFunction(ScalarFunctionApplication {
+        expected = Ok(bson!({"$day": "$f"})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Day,
             args: vec![Expression::Reference(("f", 0u16).into()),],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         extract_hour_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!({"$hour": "$f"})),
-        ScalarFunction(ScalarFunctionApplication {
+        expected = Ok(bson!({"$hour": "$f"})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Hour,
             args: vec![Expression::Reference(("f", 0u16).into()),],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         extract_minute_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!({"$minute": "$f"})),
-        ScalarFunction(ScalarFunctionApplication {
+        expected = Ok(bson!({"$minute": "$f"})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Minute,
             args: vec![Expression::Reference(("f", 0u16).into()),],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
     test_codegen_expr!(
         extract_second_expr,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
-            mr
-        },
-        Ok(bson!({"$second": "$f"})),
-        ScalarFunction(ScalarFunctionApplication {
+        expected = Ok(bson!({"$second": "$f"})),
+        input = ScalarFunction(ScalarFunctionApplication {
             function: Second,
             args: vec![Expression::Reference(("f", 0u16).into()),],
         }),
-    );
-    test_codegen_expr!(
-        computedfieldaccess_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
             mr
         },
-        Err(Error::UnsupportedFunction(ComputedFieldAccess)),
-        Expression::ScalarFunction(ScalarFunctionApplication {
+    );
+    test_codegen_expr!(
+        computedfieldaccess_expr,
+        expected = Err(Error::UnsupportedFunction(ComputedFieldAccess)),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ComputedFieldAccess,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
                 Expression::Literal(Literal::Long(42)),
             ],
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
     );
 }
 
@@ -1867,7 +1879,7 @@ mod group_by {
 
     test_codegen_plan!(
         simple,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -1876,7 +1888,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "__bot": {"f": "$_id.f"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "f".into(),
@@ -1887,7 +1899,7 @@ mod group_by {
     );
     test_codegen_plan!(
         user_defined_id_group_should_work,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -1896,7 +1908,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "__bot": {"_id": "$_id._id"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "_id".into(),
@@ -1907,7 +1919,7 @@ mod group_by {
     );
     test_codegen_plan!(
         pass_through_id_group_should_work,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -1916,7 +1928,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": {"_id": "$_id.__unaliasedKey1"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: vec![OptionallyAliasedExpr::Unaliased(
                 Expression::FieldAccess(
@@ -1930,7 +1942,7 @@ mod group_by {
     );
     test_codegen_plan!(
         unaliased_id_datasource_group_key_should_not_remove_id_in_project,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -1940,7 +1952,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": {"a": "$_id.__unaliasedKey1"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source:Box::new(Stage::Project(Project {
                 source: SOURCE_IR.clone(),
                 expression: map! {
@@ -1961,7 +1973,7 @@ mod group_by {
     );
     test_codegen_plan!(
         aliased_compound_ident,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -1970,7 +1982,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: KEY_FOO_A.clone(),
             aggregations: vec![],
@@ -1978,7 +1990,7 @@ mod group_by {
     );
     test_codegen_plan!(
         unaliased_compound_idents,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -1987,7 +1999,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": {"a": "$_id.__unaliasedKey1", "b": "$_id.__unaliasedKey2"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: vec![OptionallyAliasedExpr::Unaliased(
                 Expression::FieldAccess(FieldAccess {
@@ -2005,7 +2017,7 @@ mod group_by {
     );
     test_codegen_plan!(
         mix_aliased_and_unaliased_keys,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -2014,7 +2026,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": {"b": "$_id.__unaliasedKey2"}, "__bot": {"foo_a": "$_id.foo_a", "foo_c": "$_id.foo_c"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "foo_a".to_string(),
@@ -2041,7 +2053,7 @@ mod group_by {
     );
     test_codegen_plan!(
         duplicate_generated_alias,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -2050,7 +2062,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": {"b": "$_id.___unaliasedKey2"}, "__bot": {"__unaliasedKey2": "$_id.__unaliasedKey2"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: vec![
                 OptionallyAliasedExpr::Aliased(AliasedExpr {
@@ -2071,8 +2083,8 @@ mod group_by {
     );
     test_codegen_plan!(
         invalid_group_key_field_access,
-        Err(Error::InvalidGroupKey),
-        Stage::Group(Group {
+        expected = Err(Error::InvalidGroupKey),
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: vec![OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(
                 FieldAccess {
@@ -2087,7 +2099,7 @@ mod group_by {
     );
     test_codegen_plan!(
         add_to_array,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -2096,7 +2108,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
@@ -2114,7 +2126,7 @@ mod group_by {
     );
     test_codegen_plan!(
         avg,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -2123,7 +2135,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
@@ -2141,7 +2153,7 @@ mod group_by {
     );
     test_codegen_plan!(
         count,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -2150,7 +2162,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
@@ -2168,7 +2180,7 @@ mod group_by {
     );
     test_codegen_plan!(
         first,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -2177,7 +2189,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
@@ -2195,7 +2207,7 @@ mod group_by {
     );
     test_codegen_plan!(
         last,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -2204,7 +2216,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
@@ -2222,7 +2234,7 @@ mod group_by {
     );
     test_codegen_plan!(
         max,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -2231,7 +2243,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
@@ -2249,7 +2261,7 @@ mod group_by {
     );
     test_codegen_plan!(
         merge_documents,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -2258,7 +2270,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
@@ -2276,7 +2288,7 @@ mod group_by {
     );
     test_codegen_plan!(
         min,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -2285,7 +2297,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
@@ -2303,7 +2315,7 @@ mod group_by {
     );
     test_codegen_plan!(
         std_dev_pop,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -2312,7 +2324,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
@@ -2330,7 +2342,7 @@ mod group_by {
     );
     test_codegen_plan!(
         std_dev_samp,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -2339,7 +2351,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
@@ -2357,7 +2369,7 @@ mod group_by {
     );
     test_codegen_plan!(
         sum,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -2366,7 +2378,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
@@ -2384,7 +2396,7 @@ mod group_by {
     );
     test_codegen_plan!(
         count_star,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -2393,7 +2405,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: KEY_FOO_A.clone(),
             aggregations: vec![AliasedAggregation {
@@ -2404,7 +2416,7 @@ mod group_by {
     );
     test_codegen_plan!(
         agg_alias_underscore_id,
-        Ok({
+        expected = Ok({
             database: Some("test".to_string()),
             collection: Some("foo".to_string()),
             pipeline: vec![
@@ -2413,7 +2425,7 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "__bot": {"__id": "$_id.__id", "_id": "$__id"}}},
             ],
         }),
-        Stage::Group(Group {
+        input = Stage::Group(Group {
             source: SOURCE_IR.clone(),
             keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "__id".to_string(),
@@ -2439,13 +2451,13 @@ mod group_by {
 
 mod subquery {
     use crate::{
-        codegen::{mql::MqlMappingRegistry, Error},
+        codegen::Error,
         ir::{binding_tuple::DatasourceName::Bottom, SubqueryModifier::*, *},
         map, unchecked_unique_linked_hash_map,
     };
     test_codegen_expr!(
         exists_uncorrelated,
-        Ok(bson::bson!(
+        expected = Ok(bson::bson!(
             {"$subqueryExists": {
                 "db": "test",
                 "collection": "foo",
@@ -2453,19 +2465,14 @@ mod subquery {
                 "pipeline": [{"$project": {"_id": 0,"foo": "$$ROOT"}},]
             }}
         )),
-        Expression::Exists(Box::new(Stage::Collection(Collection {
+        input = Expression::Exists(Box::new(Stage::Collection(Collection {
             db: "test".into(),
             collection: "foo".into(),
         }))),
     );
     test_codegen_expr!(
         exists_correlated,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("foo", 0u16), "foo");
-            mr
-        },
-        Ok(bson::bson!(
+        expected = Ok(bson::bson!(
             {"$subqueryExists": {
                 "db": "test",
                 "collection": "bar",
@@ -2476,7 +2483,7 @@ mod subquery {
                 ]
             }}
         )),
-        Expression::Exists(Box::new(Stage::Project(Project {
+        input = Expression::Exists(Box::new(Stage::Project(Project {
             source: Box::new(Stage::Collection(Collection {
                 db: "test".into(),
                 collection: "bar".into(),
@@ -2490,10 +2497,15 @@ mod subquery {
                 })
             }
         }))),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("foo", 0u16), "foo");
+            mr
+        },
     );
     test_codegen_expr!(
         subquery_expr_uncorrelated,
-        Ok(bson::bson!(
+        expected = Ok(bson::bson!(
             {"$subquery": {
                 "db": "test",
                 "collection": "foo",
@@ -2502,7 +2514,7 @@ mod subquery {
                 "pipeline": [{"$project": {"_id": 0,"foo": "$$ROOT"}},]
             }}
         )),
-        Expression::Subquery(SubqueryExpr {
+        input = Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::Reference(("foo", 1u16).into())),
             subquery: Box::new(Stage::Collection(Collection {
                 db: "test".into(),
@@ -2512,12 +2524,7 @@ mod subquery {
     );
     test_codegen_expr!(
         subquery_expr_correlated,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("foo", 0u16), "foo");
-            mr
-        },
-        Ok(bson::bson!(
+        expected = Ok(bson::bson!(
             {"$subquery": {
                 "db": "test",
                 "collection": "bar",
@@ -2529,7 +2536,7 @@ mod subquery {
                 ]
             }}
         )),
-        Expression::Subquery(SubqueryExpr {
+        input = Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
                 field: "a".into()
@@ -2549,16 +2556,21 @@ mod subquery {
                 }
             }))
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("foo", 0u16), "foo");
+            mr
+        },
     );
     test_codegen_expr!(
         subquery_expr_no_db_or_coll,
-        Ok(bson::bson!(
+        expected = Ok(bson::bson!(
             {"$subquery": {"let": {},"outputPath": ["arr"],"pipeline": [
                 {"$documents": []},
                 {"$project": {"_id": 0, "arr": "$$ROOT"}},
             ]}}
         )),
-        Expression::Subquery(SubqueryExpr {
+        input = Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::Reference(("arr", 1u16).into())),
             subquery: Box::new(Stage::Array(Array {
                 array: vec![],
@@ -2568,7 +2580,7 @@ mod subquery {
     );
     test_codegen_expr!(
         output_expr_field_contains_dot,
-        Ok(bson::bson!(
+        expected = Ok(bson::bson!(
             {"$subquery": {
                 "db": "test",
                 "collection": "foo",
@@ -2580,7 +2592,7 @@ mod subquery {
                 ]
             }}
         )),
-        Expression::Subquery(SubqueryExpr {
+        input = Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference(("foo", 1u16).into())),
                 field: "bar.a".into()
@@ -2603,7 +2615,7 @@ mod subquery {
     // this one, though, since a subquery expression's degree must be exactly 1.
     test_codegen_expr!(
         use_datasource_mql_name,
-        Ok(bson::bson!(
+        expected = Ok(bson::bson!(
             {"$subquery": {
                 "db": "test",
                 "collection": "__bot",
@@ -2615,7 +2627,7 @@ mod subquery {
                 ]
             }}
         )),
-        Expression::Subquery(SubqueryExpr {
+        input = Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
             subquery: Box::new(Stage::Project(Project {
                 expression: map! {
@@ -2632,7 +2644,7 @@ mod subquery {
     );
     test_codegen_expr!(
         subquery_comparison_uncorrelated,
-        Ok(bson::bson!(
+        expected = Ok(bson::bson!(
             {"$subqueryComparison": {
                 "op": "eq",
                 "modifier": "any",
@@ -2646,7 +2658,7 @@ mod subquery {
                 }
             }}
         )),
-        Expression::SubqueryComparison(SubqueryComparison {
+        input = Expression::SubqueryComparison(SubqueryComparison {
             operator: SubqueryComparisonOp::Eq,
             modifier: Any,
             argument: Box::new(Expression::Literal(Literal::Integer(5))),
@@ -2661,13 +2673,7 @@ mod subquery {
     );
     test_codegen_expr!(
         subquery_comparison_correlated,
-        {
-            let mut mr = MqlMappingRegistry::default();
-            mr.insert(("foo", 0u16), "foo");
-            mr.insert(("x", 0u16), "x");
-            mr
-        },
-        Ok(bson::bson!(
+        expected = Ok(bson::bson!(
             {"$subqueryComparison": {
                 "op": "eq",
                 "modifier": "any",
@@ -2684,7 +2690,7 @@ mod subquery {
                 }
             }}
         )),
-        Expression::SubqueryComparison(SubqueryComparison {
+        input = Expression::SubqueryComparison(SubqueryComparison {
             operator: SubqueryComparisonOp::Eq,
             modifier: Any,
             argument: Box::new(Expression::Reference(("x", 0u16).into())),
@@ -2709,17 +2715,17 @@ mod subquery {
                 }))
             }
         }),
-    );
-    test_codegen_expr!(
-        invalid_output_expr,
-        {
+        mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("foo", 0u16), "foo");
             mr.insert(("x", 0u16), "x");
             mr
         },
-        Err(Error::NoFieldPathForExpr),
-        Expression::Subquery(SubqueryExpr {
+    );
+    test_codegen_expr!(
+        invalid_output_expr,
+        expected = Err(Error::NoFieldPathForExpr),
+        input = Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::Literal(Literal::Integer(5))),
             subquery: Box::new(Stage::Project(Project {
                 source: Box::new(Stage::Collection(Collection {
@@ -2736,5 +2742,11 @@ mod subquery {
                 }
             }))
         }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("foo", 0u16), "foo");
+            mr.insert(("x", 0u16), "x");
+            mr
+        },
     );
 }
