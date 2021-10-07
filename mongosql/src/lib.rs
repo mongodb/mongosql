@@ -24,11 +24,13 @@ pub struct Translation {
     pub target_collection: Option<String>,
     pub pipeline: bson::Bson,
     pub result_set_schema: json_schema::Schema,
+    pub namespaces: Vec<ir::namespace::Namespace>,
 }
 
 impl Translation {
     fn new(
         result_set_schema: json_schema::Schema,
+        namespaces: Vec<ir::namespace::Namespace>,
         mql_translation: codegen::MqlTranslation,
     ) -> Self {
         let pipeline = bson::Bson::Array(
@@ -43,6 +45,7 @@ impl Translation {
             target_collection: mql_translation.collection,
             pipeline,
             result_set_schema,
+            namespaces,
         }
     }
 }
@@ -65,6 +68,8 @@ pub fn translate_sql(current_db: &str, sql: &str, catalog: &Catalog) -> Result<T
     // constant fold stages
     let plan = ir::constant_folding::fold_constants(plan);
 
+    let namespaces = ir::namespace::get_namespaces(plan.clone());
+
     // get the schema_env for the plan
     let schema_env = plan
         .schema(&algebrizer.schema_inference_state())?
@@ -74,6 +79,7 @@ pub fn translate_sql(current_db: &str, sql: &str, catalog: &Catalog) -> Result<T
     let mql_translation = codegen::generate_mql(plan)?;
     Ok(Translation::new(
         mql_schema_env_to_json_schema(schema_env, &mql_translation.mapping_registry)?,
+        namespaces,
         mql_translation,
     ))
 }

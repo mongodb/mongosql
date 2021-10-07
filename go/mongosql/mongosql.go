@@ -45,6 +45,10 @@ type Translation struct {
 	// ResultSetSchema is a JSON Schema document that describes
 	// the documents returned by this Translation
 	ResultSetSchema bsoncore.Document
+
+	// namespaces is the list of namespaces referenced by the
+	// SQL query from which this Translation is built
+	namespaces []Namespace
 }
 
 // Translate accepts TranslationArgs, returning a Translation and an
@@ -62,6 +66,7 @@ func Translate(args TranslationArgs) (Translation, error) {
 		Pipeline        []bson.D          `bson:"pipeline"`
 		Error           string            `bson:"error"`
 		ResultSetSchema bsoncore.Document `bson:"result_set_schema"`
+		Namespaces      []Namespace       `bson:"namespaces"`
 	}{}
 
 	translationBytes, err := base64.StdEncoding.DecodeString(base64TranslationResult)
@@ -97,5 +102,30 @@ func Translate(args TranslationArgs) (Translation, error) {
 		TargetCollection: translationResult.Collection,
 		Pipeline:         pipelineBytes,
 		ResultSetSchema:  translationResult.ResultSetSchema,
+		namespaces:       translationResult.Namespaces,
 	}, nil
+}
+
+// Namespace represents a MongoDB collection namespace.
+type Namespace struct {
+	// Database is the database component of the namespace
+	Database string `bson:"database"`
+	// Collection is the collection component of the namespace
+	Collection string `bson:"collection"`
+}
+
+// GetNamespaces returns the Namespaces referenced in the provided
+// sqlStatement. Unqualified collections in the statement are assumed
+// to be in the provided database.
+func GetNamespaces(dbName, sqlStatement string) ([]Namespace, error) {
+	translation, err := Translate(TranslationArgs{
+		DB:            dbName,
+		SQL:           sqlStatement,
+		CatalogSchema: nil,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return translation.namespaces, nil
 }
