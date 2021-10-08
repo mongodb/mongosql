@@ -16,7 +16,6 @@ are not limited to) the following:
 
 - Changing the name of a variant
 - Changing the name of a buildvariant matrix or axis
-- Moving a variant to a different matrix
 
 For example, any of the above changes will necessitate updating the URL templates in the release
 JSON template files.
@@ -26,16 +25,13 @@ This section describes the process for adding support for a new platform.
 
 ### Add evergreen variant
 Using a similar naming scheme to the existing variants, add an
-evergreen variant for the new platform.
+evergreen variant for the new platform by adding a new entry to the
+`os` matrix.
 
 Make sure to check the [evergreen distros
 page](https://evergreen.mongodb.com/distros) to confirm the distro
 name, since distro naming conventions are not consistent and generally
 can't be relied upon.
-
-Generally, new variants should be added to the `os_single_variant`
-matrix, which is used for most of our platforms and runs a smaller
-subset of our correctness tests.
 
 ### Update `platforms.sh`
 In [platforms.sh](./testdata/bin/platforms.sh), do the following:

@@ -1,5 +1,13 @@
 # BI Connector
 
+## Runbook
+The [`runbook/`](./runbook) directory contains markdown files with
+step-by-step instructions for a number of BI Connector processes:
+
+- [Releasing the BI Connector](./runbook/release.md)
+- [Adding or Removing Platforms](./runbook/platforms.md)
+- [Adding or Removing MongoDB Version Support](./runbook/mongodb-versions.md)
+
 ## Components
 `mongosqld` - The proxy process.
 

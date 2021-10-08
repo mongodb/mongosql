@@ -1645,22 +1645,9 @@ tasks:
 
 axes:
 
-- id: os_full_matrix
+- id: os
   display_name: OS
   values:
-
-  - id: ubuntu1804-64
-    display_name: Ubuntu 18.04
-    run_on:
-    - ubuntu1804
-    variables:
-      _variant: ubuntu1804
-
-  - id: osx
-    display_name: macOS 10.14
-    run_on: macos-1014
-    variables:
-      _variant: macos
 
   - id: windows
     display_name: Windows 64
@@ -1669,9 +1656,11 @@ axes:
     variables:
       _variant: windows
 
-- id: os_single_variant
-  display_name: OS
-  values:
+  - id: osx
+    display_name: macOS 10.14
+    run_on: macos-1014
+    variables:
+      _variant: macos
 
   - id: debian81
     display_name: Debian 8.1 (nightly)
@@ -1785,6 +1774,13 @@ axes:
     variables:
       _variant: ubuntu1604
 
+  - id: ubuntu1804-64
+    display_name: Ubuntu 18.04
+    run_on:
+    - ubuntu1804
+    variables:
+      _variant: ubuntu1804
+
   - id: ubuntu2004-64
     display_name: Ubuntu 20.04
     run_on:
@@ -1840,24 +1836,20 @@ axes:
 - id: mongodb_version
   display_name: MongoDB Version
   values:
-  - id: latest
-    display_name: MongoDB Latest
-    variables:
-      _mongodb_version: latest
   - id: 5.0
-    display_name: MongoDB 5.0
+    display_name: 5.0
     variables:
       _mongodb_version: 5.0
   - id: 4.4
-    display_name: MongoDB 4.4
+    display_name: 4.4
     variables:
       _mongodb_version: 4.4
   - id: 4.2
-    display_name: MongoDB 4.2
+    display_name: 4.2
     variables:
       _mongodb_version: 4.2
   - id: 4.0
-    display_name: MongoDB 4.0
+    display_name: 4.0
     variables:
       _mongodb_version: 4.0
 
@@ -1879,66 +1871,53 @@ axes:
 
 buildvariants:
 
-- matrix_name: full_matrix
-  display_name: "${os_full_matrix} (${mongodb_version}) (${mongodb_topology})"
+- matrix_name: mongodb_versions
+  display_name: "MongoDB Version ${mongodb_version}"
   tasks: [".test !.nopushdown !.config !.oneoff-task !module-tests"]
   matrix_spec:
-    os_full_matrix: "*"
+    os: windows
     mongodb_version: "*"
-    mongodb_topology: "*"
-  exclude_spec:
-  - os_full_matrix: ["osx", "ubuntu1804-64"]
-    mongodb_version: ["4.0", "4.2", "4.4", "5.0"]
-    mongodb_topology: ["standalone", "replica-set", "sharded-cluster"]
-  - os_full_matrix: ["osx", "ubuntu1804-64"]
-    mongodb_version: "latest"
-    mongodb_topology: ["replica-set", "sharded-cluster"]
-  rules:
-  - if:
-      os_full_matrix: "osx"
-      mongodb_version: "latest"
-      mongodb_topology: "standalone"
-    then:
-      add_tasks:
-        - .nopushdown
-        - name: module-tests
-        - name: compile
-        - name: sign
-          run_on: macos-1014-codesign
-      set:
-        tags: ["packager"]
-  - if:
-      os_full_matrix: "!osx"
-      mongodb_version: "latest"
-      mongodb_topology: "standalone"
-    then:
-      add_tasks:
-        - .nopushdown
-        - name: module-tests
-        - name: compile
-        - name: sign
-          run_on: amazon1-2018
-      set:
-        tags: ["packager"]
+    mongodb_topology: standalone
 
-- matrix_name: single_variant
-  display_name: "${os_single_variant}"
+- matrix_name: mongodb_topologies
+  display_name: "MongoDB Topology ${mongodb_topology}"
+  tasks: [".test !.nopushdown !.config !.oneoff-task !module-tests"]
+  matrix_spec:
+    os: windows
+    mongodb_version: 5.0
+    mongodb_topology: "*"
+
+- matrix_name: release_platforms
+  display_name: " ${os}"
   tags: ["packager"]
   tasks:
     - name: compile
-    - name: sign
-      run_on: amazon1-2018
   matrix_spec:
-    os_single_variant: "*"
+    os: "*"
   rules:
     - if:
-        os_single_variant:
+        os:
           - debian10
           - rhel80
           - suse15-64
           - ubi-8
+          - windows
+          - osx
+          - ubuntu1804-64
       then:
         add_tasks: [ ".test !.config !.oneoff-task"]
+    - if:
+        os: osx
+      then:
+        add_tasks:
+          - name: sign
+            run_on: macos-1014-codesign
+    - if:
+        os: '!osx'
+      then:
+        add_tasks:
+          - name: sign
+            run_on: amazon1-2018
 
 # We are disabling .tls tests on Windows because currently there
 # is no built version of openssl that supports mysql with starttls.
@@ -1946,26 +1925,29 @@ buildvariants:
 # is 0.98 and that does not support TLS 1.1 or TLS 1.2 (needed for tests)
 # and we currently have no way to point to a specific version of openssl
 # to compile mongosqld with.
-- matrix_name: config-tests
-  display_name: "End-to-End Tests (${os_full_matrix})"
+- matrix_name: e2e
+  display_name: "End-to-End Tests (${os})"
   tasks:
     - ".test .config !.gssapi"
   matrix_spec:
-    os_full_matrix: "*"
+    os:
+      - windows
+      - osx
+      - ubuntu1804-64
   rules:
   - if:
-      os_full_matrix:
-      - "windows"
+      os:
+      - windows
     then:
       remove_tasks: [".tls", ".skip-windows"]
   - if:
-      os_full_matrix:
-      - "osx"
+      os:
+      - osx
     then:
       remove_tasks: [".mongo-tls", "test-kill-queries-replica-set", "test-sampling-does-not-hang-after-election"]
   - if:
-      os_full_matrix:
-      - "ubuntu1804-64"
+      os:
+      - ubuntu1804-64
     then:
       remove_tasks:
         - ".4.0"  # mongodb 4.0 is not available on ubuntu1804
@@ -2030,7 +2012,7 @@ buildvariants:
     - ".test .config .gssapi !.skip-windows"
 
 - name: code-quality
-  display_name: Code Quality (Amazon Linux)
+  display_name: '  Code Quality'
   expansions:
     _variant: amazon
   run_on:
@@ -2039,7 +2021,7 @@ buildvariants:
     - name: ".code-quality"
 
 - name: linux-64-amazon-ami-release
-  display_name: ~ Release Manager
+  display_name: '~ Release Manager'
   expansions:
     _variant: amazon
   run_on:
