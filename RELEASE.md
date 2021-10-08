@@ -68,5 +68,9 @@ Send a release announcement email to the [biconnector-announcements](https://gro
 ### Close Release Ticket
 Move the JIRA ticket tracking this release to the "Closed" state.
 
+### Ensure next release ticket and fixVersion created
+Ensure that a JIRA ticket tracking the next release has been created
+and is assigned the appropriate fixVersion.
+
 ### Ensure Downstream Tickets Created
 Ensure that downstream tickets have been created in the CLOUDP/DOCSP projects and linked to the release ticket.

@@ -755,6 +755,7 @@ tasks:
         var_target: "test-jdbc-auth-scram256"
 
 - name: release
+  tags: ["cq-skip"]
   depends_on:
   - name: sign
     variant: '.packager'
