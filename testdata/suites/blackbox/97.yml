@@ -20,3 +20,4 @@ testcases:
       - [West, 4]
     expected_types: [varchar, int]
     sql: SELECT `Market` AS `none_Market_nk`, QUARTER(`Date`) AS `qr_Date_ok` FROM Starbucks GROUP BY `Market`, QUARTER(`Date`) ORDER BY 1, 2
+    unordered: true

@@ -80,3 +80,4 @@ testcases:
       - [Zyzzy Zzuyzyzyk, 5052539]
     expected_types: [varchar, int]
     sql: SELECT `Customer Name` AS `none_Customer_Name_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok` FROM Staples GROUP BY `Customer Name` HAVING (AVG(`Discount`) < 0.070000000000000007) ORDER BY 1, 2
+    unordered: true

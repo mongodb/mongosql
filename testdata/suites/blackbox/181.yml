@@ -6,3 +6,4 @@ testcases:
       - [NO COSIGN]
     expected_types: [varchar]
     sql: SELECT `App_CoSign` AS `none_App_CoSign_nk` FROM Loan GROUP BY `App_CoSign` ORDER BY 1 ASC
+    unordered: true

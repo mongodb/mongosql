@@ -181,3 +181,4 @@ testcases:
       - [Wisconsin, 70, 180]
     expected_types: [varchar, int, int]
     sql: SELECT `State` AS `none_State_nk`, `Profit` AS `sum_Profit_ok`, `Sales` AS `sum_Sales_ok` FROM Starbucks WHERE ((((YEAR(`Date`) * 10000) + (MONTH(`Date`) * 100)) + DAYOFMONTH(`Date`)) = 19980101) ORDER BY 1, 2, 3
+    unordered: true

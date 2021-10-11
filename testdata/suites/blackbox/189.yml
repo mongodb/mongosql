@@ -1540,3 +1540,4 @@ testcases:
       - [September, 42]
     expected_types: [varchar, int]
     sql: SELECT `MONTH` AS `none_MONTH_nk`,   `AUTOTHEFT` AS `sum_AUTOTHEFT_ok` FROM SeattleCrime ORDER BY 1, 2
+    unordered: true

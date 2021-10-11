@@ -4,3 +4,4 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     sql: SELECT `State` AS `none_State_nk` FROM Starbucks WHERE (`State` IS NULL) ORDER BY 1 LIMIT 1
+    unordered: true

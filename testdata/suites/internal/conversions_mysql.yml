@@ -35,6 +35,7 @@ testcases:
     expected_types: [int]
     id: int_data_assertion
     sql: select value from `int`
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -72,6 +73,7 @@ testcases:
     expected_types: [int, varchar]
     id: int_to_binary
     sql: select value, convert(value, BINARY) as converted from `int`
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -109,6 +111,7 @@ testcases:
     expected_types: [int, varchar]
     id: int_to_char
     sql: select value, convert(value, CHAR) as converted from `int`
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -146,6 +149,7 @@ testcases:
     expected_types: [int, varchar]
     id: int_to_date
     sql: select value, convert(value, DATE) as converted from `int`
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -183,6 +187,7 @@ testcases:
     expected_types: [int, varchar]
     id: int_to_date_func
     sql: select value, date(value) as converted from `int`
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -220,6 +225,7 @@ testcases:
     expected_types: [int, varchar]
     id: int_to_datetime
     sql: select value, convert(value, DATETIME) as converted from `int`
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -257,6 +263,7 @@ testcases:
     expected_types: [int, varchar]
     id: int_to_datetime_func
     sql: select value, timestamp(value) as converted from `int`
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -294,6 +301,7 @@ testcases:
     expected_types: [int, varchar]
     id: int_to_time
     sql: select value, convert(value, TIME) as converted from `int`
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -331,6 +339,7 @@ testcases:
     expected_types: [int, float]
     id: int_to_decimal
     sql: select value, convert(value, DECIMAL) as converted from `int`
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -368,6 +377,7 @@ testcases:
     expected_types: [int, int]
     id: int_to_signed
     sql: select value, convert(value, SIGNED) as converted from `int`
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -405,6 +415,7 @@ testcases:
     expected_types: [int, int]
     id: int_to_integer
     sql: select value, convert(value, INTEGER) as converted from `int`
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -428,6 +439,7 @@ testcases:
     expected_types: [float]
     id: float_data_assertion
     sql: select value from float
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -451,6 +463,7 @@ testcases:
     expected_types: [float, varchar]
     id: float_to_binary
     sql: select value, convert(value, BINARY) as converted from float
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -474,6 +487,7 @@ testcases:
     expected_types: [float, varchar]
     id: float_to_char
     sql: select value, convert(cast(value as float), CHAR) as converted from float
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -497,6 +511,7 @@ testcases:
     expected_types: [float, varchar]
     id: float_to_date
     sql: select value, convert(value, DATE) as converted from float
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -520,6 +535,7 @@ testcases:
     expected_types: [float, varchar]
     id: float_to_date_func
     sql: select value, date(value) as converted from float
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -543,6 +559,7 @@ testcases:
     expected_types: [float, varchar]
     id: float_to_datetime
     sql: select value, convert(value, DATETIME) as converted from float
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -566,6 +583,7 @@ testcases:
     expected_types: [float, varchar]
     id: float_to_datetime_func
     sql: select value, timestamp(value) as converted from float
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -589,6 +607,7 @@ testcases:
     expected_types: [float, varchar]
     id: float_to_time
     sql: select value, convert(value, TIME) as converted from float
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -612,6 +631,7 @@ testcases:
     expected_types: [float, float]
     id: float_to_decimal
     sql: select value, convert(value, DECIMAL) as converted from float
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -635,6 +655,7 @@ testcases:
     expected_types: [float, int]
     id: float_to_signed
     sql: select value, convert(value, SIGNED) as converted from float
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -658,6 +679,7 @@ testcases:
     expected_types: [decimal]
     id: decimal_data_assertion
     sql: select value from decimal
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -681,6 +703,7 @@ testcases:
     expected_types: [decimal, varchar]
     id: decimal_to_binary
     sql: select value, convert(value, BINARY) as converted from decimal
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -704,6 +727,7 @@ testcases:
     expected_types: [decimal, varchar]
     id: decimal_to_char
     sql: select value, convert(value, CHAR) as converted from decimal
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -727,6 +751,7 @@ testcases:
     expected_types: [decimal, varchar]
     id: decimal_to_date
     sql: select value, convert(value, DATE) as converted from decimal
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -750,6 +775,7 @@ testcases:
     expected_types: [decimal, varchar]
     id: decimal_to_date_func
     sql: select value, date(value) as converted from decimal
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -773,6 +799,7 @@ testcases:
     expected_types: [decimal, varchar]
     id: decimal_to_datetime
     sql: select value, convert(value, DATETIME) as converted from decimal
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -796,6 +823,7 @@ testcases:
     expected_types: [decimal, varchar]
     id: decimal_to_datetime_func
     sql: select value, timestamp(value) as converted from decimal
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -819,6 +847,7 @@ testcases:
     expected_types: [decimal, varchar]
     id: decimal_to_time
     sql: select value, convert(value, TIME) as converted from decimal
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -842,6 +871,7 @@ testcases:
     expected_types: [decimal, int]
     id: decimal_to_signed
     sql: select value, convert(value, SIGNED) as converted from decimal
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -853,6 +883,7 @@ testcases:
     expected_types: [varchar]
     id: datetime_data_assertion
     sql: select value from datetime
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -864,6 +895,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: datetime_to_binary
     sql: select value, convert(value, BINARY) as converted from datetime
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -875,6 +907,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: datetime_to_char
     sql: select value, convert(value, CHAR) as converted from datetime
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -886,6 +919,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: datetime_to_date
     sql: select value, convert(value, DATE) as converted from datetime
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -897,6 +931,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: datetime_to_date_func
     sql: select value, date(value) as converted from datetime
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -908,6 +943,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: datetime_to_datetime
     sql: select value, convert(value, DATETIME) as converted from datetime
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -919,6 +955,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: datetime_to_datetime_func
     sql: select value, timestamp(value) as converted from datetime
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -930,6 +967,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: datetime_to_time
     sql: select value, convert(value, TIME) as converted from datetime
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -941,6 +979,7 @@ testcases:
     expected_types: [varchar, float]
     id: datetime_to_decimal
     sql: select value, convert(value, DECIMAL) as converted from datetime
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -952,6 +991,7 @@ testcases:
     expected_types: [varchar, int]
     id: datetime_to_signed
     sql: select value, convert(value, SIGNED) as converted from datetime
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -963,6 +1003,7 @@ testcases:
     expected_types: [varchar, int]
     id: datetime_to_signed
     sql: select value, convert(value, OBJECTID) as converted from datetime
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -974,6 +1015,7 @@ testcases:
     expected_types: [varchar]
     id: date_data_assertion
     sql: select DATE(value) as value from date
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -985,6 +1027,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: date_to_binary
     sql: select DATE(value) as value, convert(DATE(value), BINARY) as converted from date
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -996,6 +1039,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: date_to_char
     sql: select DATE(value) as value, convert(DATE(value), CHAR) as converted from date
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1007,6 +1051,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: date_to_date
     sql: select DATE(value) as value, convert(DATE(value), DATE) as converted from date
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1018,6 +1063,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: date_to_date_func
     sql: select DATE(value) as value, date(DATE(value)) as converted from date
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1029,6 +1075,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: date_to_datetime
     sql: select DATE(value) as value, convert(DATE(value), DATETIME) as converted from date
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1040,6 +1087,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: date_to_datetime_func
     sql: select DATE(value) as value, timestamp(DATE(value)) as converted from date
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1051,6 +1099,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: date_to_time
     sql: select DATE(value) as value, convert(DATE(value), TIME) as converted from date
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1062,6 +1111,7 @@ testcases:
     expected_types: [varchar, float]
     id: date_to_decimal
     sql: select DATE(value) as value, convert(DATE(value), DECIMAL) as converted from date
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1073,6 +1123,7 @@ testcases:
     expected_types: [varchar, int]
     id: date_to_signed
     sql: select DATE(value) as value, convert(DATE(value), SIGNED) as converted from date
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1084,6 +1135,7 @@ testcases:
     expected_types: [varchar, int]
     id: date_to_objectid
     sql: select DATE(value) as value, convert(DATE(value), OBJECTID) as converted from date
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1095,6 +1147,7 @@ testcases:
     expected_types: [varchar]
     id: objectid_data_assertion
     sql: select value from objectid
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1106,6 +1159,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: objectid_to_binary
     sql: select value, convert(value, BINARY) as converted from objectid
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1117,6 +1171,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: objectid_to_char
     sql: select value, convert(value, CHAR) as converted from objectid
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1128,6 +1183,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: objectid_to_date
     sql: select value, convert(value, DATE) as converted from objectid
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1139,6 +1195,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: objectid_to_date_func
     sql: select value, date(value) as converted from objectid
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1150,6 +1207,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: objectid_to_datetime
     sql: select value, convert(value, DATETIME) as converted from objectid
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1161,6 +1219,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: objectid_to_datetime_func
     sql: select value, timestamp(value) as converted from objectid
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1172,6 +1231,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: objectid_to_time
     sql: select value, convert(value, TIME) as converted from objectid
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1183,6 +1243,7 @@ testcases:
     expected_types: [varchar, float]
     id: objectid_to_decimal
     sql: select value, convert(value, DECIMAL) as converted from objectid
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1194,6 +1255,7 @@ testcases:
     expected_types: [varchar, int]
     id: objectid_to_signed
     sql: select value, convert(value, SIGNED) as converted from objectid
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1205,6 +1267,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: objectid_to_objectid
     sql: select value, convert(value, OBJECTID) as converted from objectid
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1217,6 +1280,7 @@ testcases:
     expected_types: [int, int]
     id: bool_to_integer
     sql: select value, convert(value, integer) as converted from bool
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1229,6 +1293,7 @@ testcases:
     expected_types: [int]
     id: bool_data_assertion
     sql: select value from bool
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1241,6 +1306,7 @@ testcases:
     expected_types: [int, varchar]
     id: bool_to_binary
     sql: select value, convert(value, BINARY) as converted from bool
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1253,6 +1319,7 @@ testcases:
     expected_types: [int, varchar]
     id: bool_to_char
     sql: select value, convert(value, CHAR) as converted from bool
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1265,6 +1332,7 @@ testcases:
     expected_types: [int, varchar]
     id: bool_to_time
     sql: select value, convert(value, TIME) as converted from bool
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1277,6 +1345,7 @@ testcases:
     expected_types: [int, float]
     id: bool_to_decimal
     sql: select value, convert(value, DECIMAL) as converted from bool
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1289,6 +1358,7 @@ testcases:
     expected_types: [int, int]
     id: bool_to_signed
     sql: select value, convert(value, integer) as converted from bool
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1301,6 +1371,7 @@ testcases:
     expected_types: [int, varchar]
     id: bool_to_objectid
     sql: select value, convert(value, OBJECTID) as converted from bool
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1367,6 +1438,7 @@ testcases:
     expected_types: [varchar]
     id: varchar_data_assertion
     sql: select value from string
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1433,6 +1505,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: varchar_to_binary
     sql: select value, convert(value, BINARY) as converted from string
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1499,6 +1572,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: varchar_to_char
     sql: select value, convert(value, CHAR) as converted from string
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1565,6 +1639,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: varchar_to_date
     sql: select value, convert(value, DATE) as converted from string
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1631,6 +1706,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: varchar_to_date_func
     sql: select value, date(value) as converted from string
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1697,6 +1773,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: varchar_to_datetime
     sql: select value, convert(value, DATETIME) as converted from string
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1763,6 +1840,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: varchar_to_datetime_func
     sql: select value, timestamp(value) as converted from string
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1829,6 +1907,7 @@ testcases:
     expected_types: [varchar, decimal]
     id: varchar_to_decimal
     sql: select value, convert(value, DECIMAL) as converted from string
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1895,6 +1974,7 @@ testcases:
     expected_types: [varchar, int]
     id: varchar_to_signed
     sql: select value, convert(value, SIGNED) as converted from string
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: conversions_test
@@ -1961,4 +2041,5 @@ testcases:
     expected_types: [varchar, varchar]
     id: varchar_to_objectid
     sql: select value, convert(value, OBJECTID) as converted from string
+    unordered: true
     variables: {type_conversion_mode: mysql}

@@ -37,3 +37,4 @@ testcases:
       - [104913, WEST, Daniel Champ]
     expected_types: [float, varchar, varchar]
     sql: SELECT AVG(`Employee Salary`) AS `avg_Employee_Salary_ok`,   `Call Center Region` AS `none_Call_Center_Region_nk`,   `Employee Name` AS `none_Employee_Name_nk` FROM Staples GROUP BY `Call Center Region`,   `Employee Name` HAVING ((AVG(`Employee Salary`) >= 102499.99999999898) AND (AVG(`Employee Salary`) <= 110000.00000000111)) ORDER BY 1, 2, 3
+    unordered: true

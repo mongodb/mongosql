@@ -10,6 +10,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '0'
     sql: explain set_1
+    unordered: true
 
   - db: explain_test
     description: explain entire table
@@ -19,6 +20,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '1'
     sql: explain set_1 a
+    unordered: true
 
   - db: explain_test
     description: explain entire table
@@ -29,6 +31,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '2'
     sql: explain set_1 'a%'
+    unordered: true
 
   - db: explain_test
     description: explain entire table
@@ -38,6 +41,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '3'
     sql: describe set_1 a
+    unordered: true
 
   - db: explain_test
     description: explain entire table
@@ -47,6 +51,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '4'
     sql: desc set_1 a
+    unordered: true
 
   - db: join_test
     description: explain query
@@ -58,6 +63,7 @@ testcases:
     min_server_version: '4.3'
     pushdown_only: true
     sql: explain select _id+_id from (select _id from join_2 union select _id from join_3) b
+    unordered: true
 
   - db: join_test
     description: explain query
@@ -69,6 +75,7 @@ testcases:
     min_server_version: '4.3'
     pushdown_only: true
     sql: explain select _id+_id from (select _id from join_2 union select _id from join_3) b order by _id limit 10
+    unordered: true
 
   - db: explain_test
     description: explain query
@@ -79,6 +86,7 @@ testcases:
     id: '7'
     pushdown_only: true
     sql: desc select * from set_1
+    unordered: true
 
   - db: union_test
     description: explain query
@@ -90,6 +98,7 @@ testcases:
     min_server_version: '4.3'
     pushdown_only: true
     sql: describe select * from union_1 a union select * from union_2 b
+    unordered: true
 
   - db: join_test
     description: explain query
@@ -101,6 +110,7 @@ testcases:
     id: '9'
     pushdown_only: true
     sql: explain select join_1._id, a from join_1 left join join_2 on join_1._id = join_2._id
+    unordered: true
 
   - db: explain_test
     description: explain query
@@ -111,6 +121,7 @@ testcases:
     id: '10'
     pushdown_only: true
     sql: explain select a from set_1 where a = 3
+    unordered: true
 
   - db: join_test
     description: explain query
@@ -121,6 +132,7 @@ testcases:
     id: '12'
     pushdown_only: true
     sql: explain select join_1.a, join_2.c from join_1, join_2 where join_1.a = join_2.d
+    unordered: true
 
   - db: join_test
     description: explain query
@@ -131,3 +143,4 @@ testcases:
     id: '13'
     pushdown_only: true
     sql: explain select join_1.a, bar.d from join_1 inner join (select join_2.c, join_2.d from join_2 where join_2.d = 1) bar on join_1.a = bar.d where bar.c = 10
+    unordered: true

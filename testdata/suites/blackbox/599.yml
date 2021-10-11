@@ -102,3 +102,4 @@ testcases:
       - ['2001-08-28 00:00:00', 5-LOW, 42604, COMPUTER PAPER, 12]
     expected_types: [varchar, varchar, int, varchar, int]
     sql: SELECT `Order Date` AS `none_Order_Date_ok`,   `Order Priority` AS `none_Order_Priority_nk`,   `PID` AS `none_PID_ok`,   `Prod Type3` AS `none_Prod_TypeD_nk`,   `Fill Time` AS `sum_Fill_Time_ok` FROM Staples WHERE (((`Order Date` >= '2001-01-01') AND (`Order Date` <= '2001-09-01')) AND (`Order Priority` = '5-LOW') AND (`Product Container` IN ('SMALL BOX', 'SMALL PACK', 'WRAP BAG')) AND (`Product In Stock` = 'YES')) ORDER BY 1, 2, 3, 4, 5
+    unordered: true

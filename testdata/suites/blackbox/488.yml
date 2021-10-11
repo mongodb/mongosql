@@ -6,3 +6,4 @@ testcases:
       - [221519, 153701.27268291984, 418668.1002277897, 1999]
     expected_types: [int, float, float, int]
     sql: SELECT SUM(CONVERT(`Margin`, SQL_BIGINT)) AS `sum_Margin_ok`, SUM(`Profit`) AS `sum_Profit_ok`, SUM(`Sales`) AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY YEAR(`Date`) ORDER BY 1, 2, 3, 4
+    unordered: true

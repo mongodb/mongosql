@@ -19,3 +19,4 @@ testcases:
       - [72285.35993843865, West, Herbal Tea, 76666]
     expected_types: [float, varchar, varchar, int]
     sql: SELECT SUM(`Sales`) AS `TEMP_TC___DABICEAGEJ__A_`, `Market` AS `none_Market_nk`, `Product Type` AS `none_Product_Type_nk`, SUM(CONVERT(`Additions`, SQL_BIGINT)) AS `sum_Additions_ok` FROM Starbucks GROUP BY `Market`, `Product Type` ORDER BY 1, 2, 3, 4
+    unordered: true

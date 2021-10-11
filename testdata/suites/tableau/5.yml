@@ -299,3 +299,4 @@ testcases:
       - [35991]
     expected_types: [int]
     sql: SELECT flights201406.origin_city_market_id AS origin_city_market_id FROM tableau.flights201406 flights201406 GROUP BY 1 ORDER BY 1
+    unordered: true

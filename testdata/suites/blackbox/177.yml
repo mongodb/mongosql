@@ -54,3 +54,4 @@ testcases:
       - [55.833333333333336, 44]
     expected_types: [float, int]
     sql: SELECT AVG(CONVERT(`Length`, SQL_DOUBLE)) AS `avg_Length_ok`, `Case` AS `none_Case_ok` FROM Fischeriris GROUP BY `Case` ORDER BY 1, 2
+    unordered: true

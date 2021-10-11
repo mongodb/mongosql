@@ -15231,3 +15231,4 @@ testcases:
       - [Zoilo Versalles]
     expected_types: [varchar]
     sql: SELECT (CASE WHEN (`Player` IN ('Aaron Boone', 'Aaron Clapp', 'Aaron Cook', 'Aaron Fultz', 'Aaron Guiel', 'Aaron Harang', 'Aaron Holbert', 'Aaron Ledesma', 'Aaron Myette', 'Aaron Pointer', 'Aaron Robinson', 'Aaron Rowand', 'Aaron Scheffer', 'Aaron Sele', 'Aaron Small', 'Aaron Taylor', 'Aaron Ward')) THEN 'Aaron Boone' ELSE `Player` END) AS `Player__group_` FROM Batters GROUP BY (CASE WHEN (`Player` IN ('Aaron Boone', 'Aaron Clapp', 'Aaron Cook', 'Aaron Fultz', 'Aaron Guiel', 'Aaron Harang', 'Aaron Holbert', 'Aaron Ledesma', 'Aaron Myette', 'Aaron Pointer', 'Aaron Robinson', 'Aaron Rowand', 'Aaron Scheffer', 'Aaron Sele', 'Aaron Small', 'Aaron Taylor', 'Aaron Ward')) THEN 'Aaron Boone' ELSE `Player` END) ORDER BY 1
+    unordered: true

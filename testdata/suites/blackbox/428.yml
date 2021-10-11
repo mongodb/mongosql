@@ -33,3 +33,4 @@ testcases:
       - [87528.14, 284242.16, Shui Tom, HOME OFFICE]
     expected_types: [float, float, varchar, varchar]
     sql: SELECT SUM(`Gross Profit`) AS `TEMP_Average__Margin__BGGJAIHIBF__A_`,   SUM(`Sales Total`) AS `TEMP_Average__Margin__DFHEEHHCA__A_`,   `Customer Name` AS `none_Customer_Name_nk`,   `Customer Segment` AS `none_Customer_Segment_nk` FROM Staples WHERE ((`Customer Segment` IN ('CONSUMER', 'CORPORATE', 'HOME OFFICE')) AND (`Customer State` = 'WASHINGTON')) GROUP BY `Customer Name`,   `Customer Segment` ORDER BY 1, 2, 3, 4
+    unordered: true

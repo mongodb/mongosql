@@ -11,3 +11,4 @@ testcases:
       - [WRAP BAG]
     expected_types: [varchar]
     sql: SELECT `Product Container` AS `none_Product_Container_nk` FROM Staples GROUP BY `Product Container` ORDER BY 1 ASC
+    unordered: true

@@ -9,6 +9,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: describe_weeks_monomorphic
     sql: describe weeks
+    unordered: true
 
   - db: polymorphic_data_test
     description: test that we find the correct type lattice least upper bound for each column
@@ -23,6 +24,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: describe_scalar_type_lattice
     sql: describe scalar_types
+    unordered: true
 
   - db: polymorphic_data_test
     description: test that we find the correct type lattice least upper bound for each column
@@ -38,6 +40,7 @@ testcases:
     id: describe_scalar_type_lattice_majority
     skip: true
     sql: describe scalar_types
+    unordered: true
 
   - db: polymorphic_data_test
     description: show all the values in the scalar_types table
@@ -50,6 +53,7 @@ testcases:
     expected_types: [int, float, varchar, varchar, varchar, varchar]
     id: select_scalar_type_lattice
     sql: select * from scalar_types
+    unordered: true
 
   - db: polymorphic_data_test
     description: show supremum column with polymorphic_type_conversion_mode=fast
@@ -63,6 +67,7 @@ testcases:
     id: select_scalar_type_lattice_fast
     pushdown_only: true
     sql: select supremum from scalar_types
+    unordered: true
     variables: {polymorphic_type_conversion_mode: fast, type_conversion_mode: mongosql}
 
   - db: polymorphic_data_test
@@ -77,6 +82,7 @@ testcases:
     id: select_scalar_type_lattice_safe
     pushdown_only: true
     sql: select supremum from scalar_types
+    unordered: true
     variables: {polymorphic_type_conversion_mode: safe, type_conversion_mode: mongosql}
 
   - db: polymorphic_data_test
@@ -91,6 +97,7 @@ testcases:
     id: select_scalar_majority
     skip: true
     sql: select * from scalar_types
+    unordered: true
 
   - db: polymorphic_data_test
     description: show that object-scalar conflict works
@@ -101,6 +108,7 @@ testcases:
     expected_types: [int, varchar, varchar, int]
     id: select_simple_object_conflict
     sql: select * from simple_object_conflict
+    unordered: true
 
   - db: polymorphic_data_test
     description: show that array-scalar conflict works
@@ -111,6 +119,7 @@ testcases:
     expected_types: [int]
     id: select_simple_array_conflict
     sql: select * from simple_array_conflict
+    unordered: true
 
   - db: polymorphic_data_test
     description: show that array-scalar conflict works
@@ -122,6 +131,7 @@ testcases:
     expected_types: [int, varchar, int]
     id: select_simple_array_conflict_a
     sql: select * from simple_array_conflict_a
+    unordered: true
 
   - db: polymorphic_data_test
     description: show that array conflicts with overlapping field paths work
@@ -133,6 +143,7 @@ testcases:
     expected_types: [int]
     id: select_array_path_conflicts
     sql: select * from array_path_conflicts
+    unordered: true
 
   - db: polymorphic_data_test
     description: show that array conflicts with overlapping field paths work
@@ -144,6 +155,7 @@ testcases:
     expected_types: [int, varchar, int, int]
     id: select_array_path_conflicts_a
     sql: select * from array_path_conflicts_a
+    unordered: true
 
   - db: polymorphic_data_test
     description: show that we correctly generate unique names in our pipelines
@@ -154,6 +166,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: select_rename_clash
     sql: select * from rename_clash
+    unordered: true
 
   - db: polymorphic_data_test
     description: show that array conflicts with nested arrays work
@@ -165,6 +178,7 @@ testcases:
     expected_types: [int]
     id: select_nested_array_conflicts
     sql: select * from nested_array_conflicts
+    unordered: true
 
   - db: polymorphic_data_test
     description: show that array conflicts with nested arrays work
@@ -180,6 +194,7 @@ testcases:
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, int, int]
     id: select_nested_array_conflicts_a
     sql: select * from nested_array_conflicts_a
+    unordered: true
 
   - db: polymorphic_data_test
     description: show that conflicts at multiple depths work
@@ -190,6 +205,7 @@ testcases:
     expected_types: [int, int, int, int, int, varchar, varchar]
     id: select_nested_objects_conflicts
     sql: select * from nested_objects_conflicts
+    unordered: true
 
   - db: polymorphic_data_test
     description: show that array conflicts with nested arrays and object conflicts work
@@ -200,6 +216,7 @@ testcases:
     expected_types: [int]
     id: select_nested_objects_array_conflicts
     sql: select * from nested_objects_array_conflicts
+    unordered: true
 
   - db: polymorphic_data_test
     description: show that array conflicts with nested arrays and object conflicts work
@@ -212,6 +229,7 @@ testcases:
     expected_types: [int, int, int, varchar, int]
     id: select_nested_objects_array_conflicts_a
     sql: select * from nested_objects_array_conflicts_a
+    unordered: true
 
   - db: polymorphic_data_test
     description: a large amount of conflicts
@@ -226,6 +244,7 @@ testcases:
     expected_types: [int, int, int]
     id: select_complex_conflicts
     sql: select * from complex_conflicts
+    unordered: true
 
   - db: polymorphic_data_test
     description: a large amount of conflicts
@@ -247,6 +266,7 @@ testcases:
     expected_types: [int, varchar, int, int, varchar, varchar, int, int]
     id: select_complex_conflicts_a_a2
     sql: select * from complex_conflicts_a_a2
+    unordered: true
 
   - db: polymorphic_data_test
     description: a large amount of conflicts
@@ -261,6 +281,7 @@ testcases:
     expected_types: [int, int, int]
     id: select_complex_conflicts_b_b2
     sql: select * from complex_conflicts_b_b2
+    unordered: true
 
   - db: polymorphic_data_test
     description: a large amount of conflicts
@@ -277,6 +298,7 @@ testcases:
     expected_types: [int, varchar]
     id: select_design_doc_example
     sql: select * from design_doc_example
+    unordered: true
 
   - db: polymorphic_data_test
     description: a large amount of conflicts
@@ -298,6 +320,7 @@ testcases:
     expected_types: [int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, int, int]
     id: select_design_doc_example_a
     sql: select * from design_doc_example_a
+    unordered: true
 
   - db: polymorphic_data_test
     description: a large amount of conflicts
@@ -320,6 +343,7 @@ testcases:
     expected_types: [int, varchar, int, int, int]
     id: select_design_doc_example_a_B
     sql: select * from design_doc_example_a_B
+    unordered: true
 
   - db: polymorphic_data_test
     description: a large amount of conflicts
@@ -330,6 +354,7 @@ testcases:
     expected_types: [int, varchar, int]
     id: select_design_doc_example_c
     sql: select * from design_doc_example_c
+    unordered: true
 
   - db: information_schema
     description: show the comments for each column of the scalar_types table
@@ -344,6 +369,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: show_scalar_types_column_comment
     sql: select column_name, column_comment from COLUMNS where table_name = 'scalar_types'
+    unordered: true
 
   - db: information_schema
     description: show the comments for the design_doc_example_table
@@ -356,6 +382,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: show_design_doc_example_table_comment
     sql: select table_name, table_comment from TABLES where table_name like '%design_doc_example%'
+    unordered: true
 
   - db: polymorphic_data_test
     description: select embedded docs as strings with type_conversion_mode=safe
@@ -377,6 +404,7 @@ testcases:
     expected_types: [varchar]
     id: select_embedded_docs_as_strings_safe
     sql: select a from design_doc_example_a
+    unordered: true
     variables: {polymorphic_type_conversion_mode: safe, pushdown: 1, type_conversion_mode: mongosql}
 
   - db: polymorphic_data_test
@@ -399,6 +427,7 @@ testcases:
     expected_types: [int, varchar]
     id: select_all_unmappable_types
     sql: select * from all_unmappable_types
+    unordered: true
 
   - db: polymorphic_data_test
     description: show that we properly generate under conflict matches and unwinds
@@ -409,6 +438,7 @@ testcases:
     expected_types: [int, varchar, int]
     id: under_conflict_unwind
     sql: select * from bi_2151_a_b_c
+    unordered: true
 
   - db: polymorphic_data_test
     description: show that objects in array-object conflicts are now treated as array items
@@ -419,6 +449,7 @@ testcases:
     expected_types: [int]
     id: array_object_conflict_bug
     sql: select * from array_object_conflict_bug
+    unordered: true
 
   - db: polymorphic_data_test
     description: show that objects in array-object conflicts are now treated as array items
@@ -430,3 +461,4 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: array_object_conflict_bug_p
     sql: select * from array_object_conflict_bug_p
+    unordered: true

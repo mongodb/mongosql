@@ -24,3 +24,4 @@ testcases:
       - [Wisconsin, 6552, 8701.861353801742]
     expected_types: [varchar, int, float]
     sql: SELECT `State` AS `none_State_nk`, SUM(CONVERT(`Marketing`, SQL_BIGINT)) AS `sum_Marketing_ok`, SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks GROUP BY `State` ORDER BY 1, 2, 3
+    unordered: true

@@ -24,3 +24,4 @@ testcases:
       - [Wisconsin]
     expected_types: [varchar]
     sql: SELECT `State` AS `none_State_nk` FROM Starbucks GROUP BY `State` ORDER BY 1
+    unordered: true

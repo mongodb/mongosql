@@ -504,3 +504,4 @@ testcases:
       - [WISCONSIN, TECHNOLOGY, WRAP BAG, 0.59]
     expected_types: [varchar, varchar, varchar, float]
     sql: SELECT `Customer State` AS `none_Customer_State_nk`,   `Prod Type1` AS `none_Prod_TypeB_nk`,   `Product Container` AS `none_Product_Container_nk`,   SUM(`Discount`) AS `sum_Discount_ok` FROM Staples GROUP BY `Customer State`,   `Prod Type1`,   `Product Container` ORDER BY 1, 2, 3, 4
+    unordered: true

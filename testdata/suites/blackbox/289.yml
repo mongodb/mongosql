@@ -316,3 +316,4 @@ testcases:
       - ['1999-12-01 00:00:00', Regular Espresso, 4, 1999]
     expected_types: [varchar, varchar, int, int]
     sql: SELECT `Date` AS `none_Date_ok`, `Product` AS `none_Product_nk`, QUARTER(`Date`) AS `qr_Date_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY `Date`, `Product`, QUARTER(`Date`), YEAR(`Date`) ORDER BY 1, 2, 3, 4
+    unordered: true

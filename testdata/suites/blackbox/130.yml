@@ -4,3 +4,4 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     sql: SELECT `Product Name` AS `none_Product_Name_nk` FROM Staples WHERE (`Product Name` IS NULL) ORDER BY 1 LIMIT 1
+    unordered: true

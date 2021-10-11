@@ -21,3 +21,4 @@ testcases:
       - [two, 3, key01, two]
     expected_types: [varchar, int, varchar, varchar]
     sql: SELECT `str2` AS `TEMP_z_min_strC___DJJCFEABJH__A_`, LENGTH(`str2`) AS `min_len_strC__ok`, `key` AS `none_key_nk`, `str2` AS `none_strC_nk` FROM Calcs ORDER BY 1, 2, 3, 4
+    unordered: true

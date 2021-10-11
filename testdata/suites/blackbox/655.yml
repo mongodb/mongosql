@@ -17,3 +17,4 @@ testcases:
       - [Regular Espresso, 9500, 10398]
     expected_types: [varchar, int, int]
     sql: SELECT `Product` AS `none_Product_nk`, SUM(CONVERT(`Budget COGS`, SQL_BIGINT)) AS `sum_Budget_COGS_ok`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok` FROM Starbucks GROUP BY `Product` ORDER BY 1, 2, 3
+    unordered: true

@@ -6,3 +6,4 @@ testcases:
       - [1999]
     expected_types: [int]
     sql: SELECT YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY YEAR(`Date`) ORDER BY 1
+    unordered: true

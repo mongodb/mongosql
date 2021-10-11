@@ -4,3 +4,4 @@ testcases:
     expected_results: []
     expected_types: [varchar, varchar, varchar]
     sql: SELECT `PID` AS `none_PID_ok`,   `Gross Profit` AS `sum_Gross_Profit_ok`,   `Sales Total` AS `sum_Sales_Total_ok` FROM Staples WHERE (0 <> 0) ORDER BY 1, 2, 3
+    unordered: true

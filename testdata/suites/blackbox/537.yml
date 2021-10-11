@@ -22,3 +22,4 @@ testcases:
       - [TECHNOLOGY, 70601, 2001]
     expected_types: [varchar, int, int]
     sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk`, SUM(CONVERT(`Receive Time`, SQL_BIGINT)) AS `sum_Receive_Time_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Prod Type1`, YEAR(`Order Date`) ORDER BY 1, 2, 3
+    unordered: true

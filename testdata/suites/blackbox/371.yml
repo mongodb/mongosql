@@ -17,3 +17,4 @@ testcases:
       - [two, -9.31]
     expected_types: [varchar, float]
     sql: SELECT `str2` AS `none_strC_nk`,   SUM(`num3`) AS `sum_numD_ok` FROM Calcs WHERE ((`str2` >= 'eight') AND (`str2` <= 'two')) GROUP BY `str2` ORDER BY 1, 2
+    unordered: true

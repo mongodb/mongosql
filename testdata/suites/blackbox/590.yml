@@ -21,3 +21,4 @@ testcases:
       - [TELEPHONES AND COMMUNICATION]
     expected_types: [varchar]
     sql: SELECT `Prod Type2` AS `none_Prod_TypeC_nk` FROM Staples GROUP BY `Prod Type2` ORDER BY 1 ASC
+    unordered: true

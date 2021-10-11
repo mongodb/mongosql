@@ -4,3 +4,4 @@ testcases:
     expected_results: []
     expected_types: [varchar, varchar, varchar, varchar, varchar]
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `Customer Name` AS `none_Customer_Name_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok`, SUM(CONVERT(`Order Quantity`, SQL_BIGINT)) AS `sum_Order_Quantity_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples WHERE (0 <> 0) GROUP BY `Call Center Region`, `Customer Name`, YEAR(`Order Date`) ORDER BY 1, 2, 3, 4, 5
+    unordered: true

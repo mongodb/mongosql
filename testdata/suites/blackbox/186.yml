@@ -4,3 +4,4 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     sql: SELECT `MONTH` AS `none_MONTH_nk` FROM SeattleCrime WHERE (`MONTH` IS NULL) ORDER BY 1 LIMIT 1
+    unordered: true

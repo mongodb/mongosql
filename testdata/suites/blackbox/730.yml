@@ -21,3 +21,4 @@ testcases:
       - [3, key09]
     expected_types: [int, varchar]
     sql: SELECT `int1` AS `none_intB_nk`,   `key` AS `none_key_nk` FROM Calcs ORDER BY 1, 2
+    unordered: true

@@ -220,3 +220,4 @@ testcases:
       - [WEST, SMALL BUSINESS, TECHNOLOGY, 384333.38, 2002]
     expected_types: [varchar, varchar, varchar, float, int]
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `Customer Segment` AS `none_Customer_Segment_nk`, `Prod Type1` AS `none_Prod_TypeB_nk`, SUM(`Sales Total`) AS `sum_Sales_Total_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Call Center Region`, `Customer Segment`, `Prod Type1`, YEAR(`Order Date`) ORDER BY 1, 2, 3, 4, 5
+    unordered: true

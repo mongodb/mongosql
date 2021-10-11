@@ -21,3 +21,4 @@ testcases:
       - [key16, null]
     expected_types: [varchar, varchar]
     sql: SELECT `key` AS `none_key_nk`,   NULL AS `none_z_null_nk` FROM Calcs ORDER BY 1, 2
+    unordered: true

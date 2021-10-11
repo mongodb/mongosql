@@ -129,3 +129,4 @@ testcases:
       - [Software, SY, 11892.9, 1994]
     expected_types: [varchar, varchar, float, int]
     sql: SELECT `Industry` AS `none_Industry_nk`, `Ticker` AS `none_Ticker_nk`, SUM(`Close_Price`) AS `sum_Close_Price_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Securities GROUP BY `Industry`, `Ticker`, YEAR(`Date`) ORDER BY 1, 2, 3, 4
+    unordered: true

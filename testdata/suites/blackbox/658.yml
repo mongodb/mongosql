@@ -4,3 +4,4 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     sql: SELECT `Market` AS `none_Market_nk` FROM Starbucks GROUP BY `Market` HAVING (SUM(CONVERT(`COGS`, SQL_BIGINT)) < 1000) ORDER BY 1
+    unordered: true

@@ -8,6 +8,7 @@ testcases:
     expected_types: [int]
     id: cte_basic
     sql: with cte1 as (select a from cte where a > 3) select * from cte1
+    unordered: true
 
   - db: cte_test
     description: cte on union
@@ -25,6 +26,7 @@ testcases:
     expected_error: 'Error 1146: Table ''cte_test.cte1'' doesn''t exist'
     id: cte_union_parenthesization
     sql: (with cte1 as (select a from cte where a < 4) select * from cte1 where a > 2) UNION select * from cte1 where a < 2
+    unordered: true
 
   - db: cte_test
     description: union cte in second select
@@ -49,6 +51,7 @@ testcases:
     expected_types: [int]
     id: cte_referenced_twice
     sql: with cte1 as (select a from cte) select * from cte1 where a <= all(select a from cte1)
+    unordered: true
 
   - db: cte_test
     description: nested cte, testing scope problems
@@ -58,6 +61,7 @@ testcases:
     expected_types: [int]
     id: nested_cte
     sql: with cte1 as (select a from cte) select a from cte1 where a >= all(with cte2 as (select a from cte where a > 100000) select a from cte);
+    unordered: true
 
   - db: cte_test
     description: multiple ctes
@@ -116,6 +120,7 @@ testcases:
     expected_types: [int]
     id: cte_reference_eachother
     sql: with cte1 as (select a, b from cte), cte2 as (select b from cte1) select * from cte2
+    unordered: true
 
   - db: cte_test
     description: using the same name as an existing table overrides the table's name
@@ -126,12 +131,14 @@ testcases:
     expected_types: [int, int]
     id: cte_name_override
     sql: with cte as (select a,b from cte where a > 2) select * from cte
+    unordered: true
 
   - db: cte_test
     description: cannot have two aliases on the same level with the same name
     expected_error: 'Error 1066: Not unique table/alias: ''cte1'''
     id: cte_nonunique_names
     sql: with cte1 as (select a from cte), cte1 as (select b from cte) select * from cte1
+    unordered: true
 
   - db: cte_test
     description: you can override aliases at different levels
@@ -142,6 +149,7 @@ testcases:
     expected_types: [int]
     id: cte_name_override_levels
     sql: with cte1 as (select a from cte) select a from cte1 where a >= all(with cte1 as (select b from cte) select * from cte1)
+    unordered: true
 
   - db: cte_test
     description: override while using the original table name in the selection
@@ -151,6 +159,7 @@ testcases:
     expected_types: [int]
     id: cte_override_original_table
     sql: with cte1 as (select a from cte) select a from cte1 where a >= all(with cte1 as (select a from cte1) select * from cte1)
+    unordered: true
 
   - db: cte_test
     description: ctes don't belong to the database's namespace
@@ -163,18 +172,21 @@ testcases:
     expected_types: [int, int, int]
     id: cte_db_in_front
     sql: with cte as (select a from cte) select * from cte_test.cte
+    unordered: true
 
   - db: cte_test
     description: using database namespace in front of ctename causes error if table doesn't exist
     expected_error: 'Error 1146: Table ''cte_test.cte1'' doesn''t exist'
     id: cte_db_err
     sql: with cte1 as (select a from cte) select * from cte_test.cte1
+    unordered: true
 
   - db: cte_test
     description: provide good error message when user tells us the CTE is recursive
     expected_error: 'Error 1864: Recursive CTEs are not supported'
     id: cte_recursive_err
     sql: WITH RECURSIVE cte AS ( SELECT 1 AS n, 'abc' AS str UNION ALL SELECT n + 1, CONCAT(str, str) FROM cte WHERE n < 3 ) SELECT * FROM cte
+    unordered: true
 
   - db: cte_test
     description: declaring a cte, but not using it shouldn't cause a problem
@@ -187,12 +199,14 @@ testcases:
     expected_types: [int, int, int]
     id: declared_cte_no_use
     sql: with cte1 as (select a from cte) select * from cte
+    unordered: true
 
   - db: cte_test
     description: cte names appear not to be case-sensitive in MySQL
     expected_error: 'Error 1066: Not unique table/alias: ''cte1'''
     id: cte_capitalization
     sql: with cte1 as (select a from cte), CTE1 as (select b from cte) select * from cte1
+    unordered: true
 
   - db: cte_test
     description: Referencing an aliased CTE. Bug discovered when running expeditors tests.
@@ -204,3 +218,4 @@ testcases:
     expected_types: [int]
     id: cte_aliased
     sql: with cte1 as (select * from cte) select a from cte1 c where c.a > 1
+    unordered: true

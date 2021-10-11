@@ -76,3 +76,4 @@ testcases:
       - [12, West, 4770, 5303, 1982, 1999]
     expected_types: [int, varchar, int, int, int, int]
     sql: SELECT MONTH(`Date`) AS `mn_Date_ok`, `Market` AS `none_Market_nk`, SUM(CONVERT(`Budget COGS`, SQL_BIGINT)) AS `sum_Budget_COGS_ok`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok`, SUM(CONVERT(`Marketing`, SQL_BIGINT)) AS `sum_Marketing_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE ((`Market` >= 'East') AND (`Market` <= 'West')) GROUP BY MONTH(`Date`), `Market`, YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5, 6
+    unordered: true

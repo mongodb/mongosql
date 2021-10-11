@@ -58,3 +58,4 @@ testcases:
       - [WEST, TECHNOLOGY, 'YES', REGULAR AIR, 2303379.74]
     expected_types: [varchar, varchar, varchar, varchar, float]
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`,   `Prod Type1` AS `none_Prod_TypeB_nk`,   `Product In Stock` AS `none_Product_In_Stock_nk`,   `Ship Mode` AS `none_Ship_Mode_nk`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples GROUP BY `Call Center Region`,   `Prod Type1`,   `Product In Stock`,   `Ship Mode` ORDER BY 1, 2, 3, 4, 5
+    unordered: true

@@ -22,3 +22,4 @@ testcases:
       - [567.7627395348836, CENTRAL, 1999]
     expected_types: [float, varchar, int]
     sql: SELECT AVG(`Gross Profit`) AS `avg_Gross_Profit_ok`, `Supplier Region` AS `none_Supplier_Region_nk`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Supplier Region`, YEAR(`Order Date`) ORDER BY 1, 2, 3
+    unordered: true

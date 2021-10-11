@@ -21,3 +21,4 @@ testcases:
       - ['2004-06-19', key04, 8.32, "2004-06-198.32"]
     expected_types: [varchar, varchar, float, varchar]
     sql: SELECT DATE(`date0`) AS `none_dateA_ok`, `key` AS `none_key_nk`, `num4` AS `none_numE_nk`, CONCAT(DATE(`date0`), `num4`) AS `none_z_date_plus_num_ok` FROM Calcs ORDER BY 1, 2, 3, 4
+    unordered: true

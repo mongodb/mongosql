@@ -11,3 +11,4 @@ testcases:
       - [South, Herbal Tea, 6700, 5773.554173468691]
     expected_types: [varchar, varchar, int, float]
     sql: SELECT `Market` AS `none_Market_nk`, `Product Type` AS `none_Product_Type_nk`, SUM(CONVERT(`Budget Profit`, SQL_BIGINT)) AS `sum_Budget_Profit_ok`, SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks WHERE (`Market` IN ('East', 'South')) GROUP BY `Market`, `Product Type` ORDER BY 1, 2, 3, 4
+    unordered: true

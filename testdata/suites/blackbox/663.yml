@@ -24,3 +24,4 @@ testcases:
       - [West, Washington, 11401.246920012452]
     expected_types: [varchar, varchar, float]
     sql: SELECT `Market` AS `none_Market_nk`,   `State` AS `none_State_nk`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks GROUP BY `Market`,   `State` ORDER BY 1, 2, 3
+    unordered: true

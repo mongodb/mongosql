@@ -8,3 +8,4 @@ testcases:
       - [West, 43824.847372643, 139037.7206279422, 1999]
     expected_types: [varchar, float, float, int]
     sql: SELECT `Market` AS `none_Market_nk`, SUM(`Profit`) AS `sum_Profit_ok`, SUM(`Sales`) AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE (`Market` IN ('East', 'West')) GROUP BY `Market`, YEAR(`Date`) ORDER BY 1, 2, 3, 4
+    unordered: true

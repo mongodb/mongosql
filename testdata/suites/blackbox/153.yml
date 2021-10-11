@@ -220,3 +220,4 @@ testcases:
       - [TECHNOLOGY, 55137.19, '2001-01-01 00:00:00']
     expected_types: [varchar, float, varchar]
     sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk`, SUM(`Price`) AS `sum_Price_ok`, TIMESTAMPADD(SQL_TSI_DAY,FLOOR(-(DAYOFMONTH(`Order Date`) - 1)),CONVERT(`Order Date`, SQL_DATE)) AS `tmn_Order_Date_ok` FROM Staples GROUP BY `Prod Type1`, TIMESTAMPADD(SQL_TSI_DAY,FLOOR(-(DAYOFMONTH(`Order Date`) - 1)),CONVERT(`Order Date`, SQL_DATE)) ORDER BY 1, 2, 3
+    unordered: true

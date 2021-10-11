@@ -7141,3 +7141,4 @@ testcases:
       - [TELEPHONES AND COMMUNICATION, '2000-10-15 00:00:00']
     expected_types: [varchar, varchar]
     sql: SELECT `Prod Type2` AS `none_Prod_TypeC_nk`,   `Ship Date` AS `none_Ship_Date_ok` FROM Staples WHERE ((`Ship Date` >= '1999-12-17') AND (`Ship Date` <= '2000-10-15')) ORDER BY 1, 2
+    unordered: true

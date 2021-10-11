@@ -12,3 +12,4 @@ testcases:
       - [WEST PRECINCT]
     expected_types: [varchar]
     sql: SELECT `PRECINCT` AS `none_PRECINCT_nk` FROM SeattleCrime GROUP BY `PRECINCT` ORDER BY 1 ASC
+    unordered: true

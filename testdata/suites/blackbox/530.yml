@@ -15,3 +15,4 @@ testcases:
       - [4, null]
     expected_types: [int, varchar]
     sql: SELECT COUNT(`key`) AS `cnt_key_ok`, CONVERT((CASE WHEN (DAYOFMONTH(`datetime0`) < 10) THEN NULL ELSE `datetime0` END), SQL_DATE) AS `none_DATE_datetimeA__ok` FROM Calcs GROUP BY CONVERT((CASE WHEN (DAYOFMONTH(`datetime0`) < 10) THEN NULL ELSE `datetime0` END), SQL_DATE) ORDER BY 1, 2
+    unordered: true

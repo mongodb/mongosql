@@ -100,3 +100,4 @@ testcases:
       - ['1999-12-01 00:00:00', Small Market, Regular, 7950]
     expected_types: [varchar, varchar, varchar, int]
     sql: SELECT `Date` AS `none_Date_ok`, `Market Size` AS `none_Market_Size_nk`, `Type` AS `none_Type_nk`, SUM(CONVERT(`Budget Additions`, SQL_BIGINT)) AS `sum_Budget_Additions_ok` FROM Starbucks GROUP BY `Date`, `Market Size`, `Type` ORDER BY 1, 2, 3, 4
+    unordered: true

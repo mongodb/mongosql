@@ -7,3 +7,4 @@ testcases:
       - [WEST, 6724243.11]
     expected_types: [varchar, float]
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples GROUP BY `Call Center Region` ORDER BY 1, 2
+    unordered: true

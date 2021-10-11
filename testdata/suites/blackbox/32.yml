@@ -36,3 +36,4 @@ testcases:
       - [4, '1997-01-26 00:00:00', '1997-02-01 00:00:00', 7]
     expected_types: [int, varchar, varchar, int]
     sql: SELECT WEEK(`Ship Date`) AS `none_DATEPART__week__Ship_Date__ok`, TIMESTAMPADD(SQL_TSI_DAY,-(DAYOFWEEK(`Ship Date`) - 1),CONVERT(`Ship Date`, SQL_DATE)) AS `none_DATETRUNC__week__Ship_Date__ok`, `Ship Date` AS `none_Ship_Date_ok`, DAYOFWEEK(`Ship Date`) AS `wd_Ship_Date_ok` FROM Staples WHERE (`Ship Date` <=  '1997-02-01') GROUP BY WEEK(`Ship Date`), TIMESTAMPADD(SQL_TSI_DAY,-(DAYOFWEEK(`Ship Date`) - 1),CONVERT(`Ship Date`, SQL_DATE)), `Ship Date`, DAYOFWEEK(`Ship Date`) ORDER BY 1, 2, 3, 4
+    unordered: true

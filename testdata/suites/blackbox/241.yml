@@ -153,3 +153,4 @@ testcases:
       - [WEST, Zyzzy Zzuyzyzyk, 727080, 3380]
     expected_types: [varchar, varchar, int, int]
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `Customer Name` AS `none_Customer_Name_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok`, SUM(CONVERT(`Order Quantity`, SQL_BIGINT)) AS `sum_Order_Quantity_ok` FROM Staples WHERE ((`Call Center Region` NOT IN ('CENTRAL')) AND ((`Discount` >= -0.001) AND (`Discount` <= 0.215172))) GROUP BY `Call Center Region`, `Customer Name` HAVING (((COUNT(`Discount`) >= 0) AND (COUNT(`Discount`) <= 822)) AND ((SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) >= (-746)) AND (SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) <= 4074689))) ORDER BY 1, 2, 3, 4
+    unordered: true

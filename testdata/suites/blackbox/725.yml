@@ -21,3 +21,4 @@ testcases:
       - ['2004-08-02 07:59:23', key02, 2004, 2004]
     expected_types: [varchar, varchar, int, int]
     sql: SELECT `datetime0` AS `none_datetimeA_ok`, `key` AS `none_key_nk`, YEAR(`datetime0`) AS `none_z_year_ok`, YEAR(`datetime0`) AS `sum_z_datepart_year_ok` FROM Calcs ORDER BY 1, 2, 3, 4
+    unordered: true

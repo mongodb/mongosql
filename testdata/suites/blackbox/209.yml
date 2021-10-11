@@ -21,3 +21,4 @@ testcases:
       - [TECHNOLOGY, TELEPHONES AND COMMUNICATION]
     expected_types: [varchar, varchar]
     sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk` FROM Staples GROUP BY `Prod Type1`,   `Prod Type2` ORDER BY 1, 2
+    unordered: true

@@ -12,3 +12,4 @@ testcases:
       - [7, 7]
     expected_types: [int, int]
     sql: SELECT `x` AS `sum_x_ok`,   `y` AS `sum_y_ok` FROM xy WHERE (`a` = 'a') ORDER BY 1, 2
+    unordered: true

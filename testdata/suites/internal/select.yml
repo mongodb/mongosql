@@ -10,6 +10,7 @@ testcases:
     expected_types: [float]
     id: '0'
     sql: select 3.141592653589793 FROM select_sTest.select_1
+    unordered: true
 
   - db: select_sTest
     description: global *
@@ -21,6 +22,7 @@ testcases:
     expected_types: [int, int, int]
     id: '1'
     sql: select * FROM select_sTest.select_1
+    unordered: true
 
   - db: select_sTest
     description: qualified *
@@ -32,6 +34,7 @@ testcases:
     expected_types: [int, int, int]
     id: '2'
     sql: select select_1.* FROM select_STest.select_1
+    unordered: true
 
   - db: select_sTest
     description: duplicate qualified *
@@ -43,6 +46,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: '3'
     sql: select select_1.*, select_1.* FROM select_STest.SELECT_1
+    unordered: true
 
   - db: select_sTest
     description: alias qualified *
@@ -54,6 +58,7 @@ testcases:
     expected_types: [int, int, int]
     id: '4'
     sql: select f.* FROM select_Stest.sElect_1 f
+    unordered: true
 
   - db: select_sTest
     description: columns
@@ -65,6 +70,7 @@ testcases:
     expected_types: [int, int, int]
     id: '5'
     sql: select _id, a, b FROM select_StEst.select_1
+    unordered: true
 
   - db: select_sTest
     description: columns with wrong casing
@@ -76,6 +82,7 @@ testcases:
     expected_types: [int, int, int]
     id: '6'
     sql: select _ID, A, B FROM select_Stest.SELECT_1
+    unordered: true
 
   - db: select_sTest
     description: qualified columns
@@ -87,6 +94,7 @@ testcases:
     expected_types: [int, int, int]
     id: '7'
     sql: select select_1._id, select_1.a, select_1.b FROM select_Stest.select_1
+    unordered: true
 
   - db: select_sTest
     description: alias qualified columns
@@ -98,6 +106,7 @@ testcases:
     expected_types: [int, int, int]
     id: '8'
     sql: select f._id, f.a, f.b FROM select_Stest.select_1 f
+    unordered: true
 
   - db: select_sTest
     description: duplicate columns
@@ -109,6 +118,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: '9'
     sql: select _id, a, b, _id, a, b FROM select_STESt.select_1
+    unordered: true
 
   - db: select_sTest
     description: aliases
@@ -120,6 +130,7 @@ testcases:
     expected_types: [int, int, int]
     id: '10'
     sql: select _id as d, a as e, b as f FROM select_Stest.select_1
+    unordered: true
 
   - db: select_sTest
     description: aliased as another column
@@ -131,6 +142,7 @@ testcases:
     expected_types: [int, int, int]
     id: '11'
     sql: select _id as a, a as b, b as id FROM select_Stest.select_1
+    unordered: true
 
   - db: select_sTest
     description: duplicate aliases
@@ -142,6 +154,7 @@ testcases:
     expected_types: [int, int, int]
     id: '12'
     sql: select _id, a as _id, b as _id FROM select_Stest.sElEct_1
+    unordered: true
 
   - db: select_sTest
     description: aliases differing by case
@@ -153,6 +166,7 @@ testcases:
     expected_types: [int, int]
     id: '13'
     sql: select _id, a as _ID FROM select_Stest.select_1
+    unordered: true
 
   - db: select_sTest
     description: subset of columns
@@ -164,6 +178,7 @@ testcases:
     expected_types: [int, int]
     id: '14'
     sql: select _id, b FROM select_Stest.select_1
+    unordered: true
 
   - db: select_sTest
     description: subset of columns out of order
@@ -175,6 +190,7 @@ testcases:
     expected_types: [int, int]
     id: '15'
     sql: select b, _id FROM select_Stest.select_1
+    unordered: true
 
   - db: select_sTest
     description: divide
@@ -186,6 +202,7 @@ testcases:
     expected_types: [float]
     id: '16'
     sql: select a / _id FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: divide
@@ -197,6 +214,7 @@ testcases:
     expected_types: [int]
     id: '17'
     sql: select a DIV _id FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: integer division int column by literal int 1
@@ -211,6 +229,7 @@ testcases:
     expected_types: [int, int]
     id: integer_division_int_column_by_literal_int_1
     sql: select i, i div 1 from integer_division
+    unordered: true
 
   - db: select_sTest
     description: integer division int column by literal int 2
@@ -225,6 +244,7 @@ testcases:
     expected_types: [int, int]
     id: integer_division_int_column_by_literal_int_2
     sql: select i, i div 2 from integer_division
+    unordered: true
 
   - db: select_sTest
     description: integer division decimal column by literal int 1
@@ -239,6 +259,7 @@ testcases:
     expected_types: [decimal, int]
     id: integer_division_decimal_column_by_literal_int_1
     sql: select d, d div 1 from integer_division
+    unordered: true
 
   - db: select_sTest
     description: integer division decimal column by literal int 2
@@ -253,6 +274,7 @@ testcases:
     expected_types: [decimal, int]
     id: integer_division_decimal_column_by_literal_int_2
     sql: select d, d div 2 from integer_division
+    unordered: true
 
   - db: select_sTest
     description: integer division int column by literal decimal 1.2
@@ -267,6 +289,7 @@ testcases:
     expected_types: [int, int]
     id: integer_division_int_column_by_literal_decimal_1.2
     sql: select i, i div 1.2 from integer_division
+    unordered: true
 
   - db: select_sTest
     description: integer division int column by literal decimal 2.2
@@ -281,6 +304,7 @@ testcases:
     expected_types: [int, int]
     id: integer_division_int_column_by_literal_decimal_2.2
     sql: select i, i div 2.2 from integer_division
+    unordered: true
 
   - db: select_sTest
     description: integer division decimal column by literal decimal 1.2
@@ -295,6 +319,7 @@ testcases:
     expected_types: [decimal, int]
     id: integer_division_decimal_column_by_literal_decimal_1.2
     sql: select d, d div 1.2 from integer_division
+    unordered: true
 
   - db: select_sTest
     description: integer division decimal column by literal decimal 2.2
@@ -309,6 +334,7 @@ testcases:
     expected_types: [decimal, int]
     id: integer_division_decimal_column_by_literal_decimal_2.2
     sql: select d, d div 2.2 from integer_division
+    unordered: true
 
   - db: select_sTest
     description: integer division integer column by integer column
@@ -323,6 +349,7 @@ testcases:
     expected_types: [int, int, int]
     id: integer_division_integer_column_by_integer_column
     sql: select i, n1, i div n1 from integer_division
+    unordered: true
 
   - db: select_sTest
     description: integer division decimal column by integer column
@@ -337,6 +364,7 @@ testcases:
     expected_types: [decimal, int, int]
     id: integer_division_decimal_column_by_integer_column
     sql: select d, n1, d div n1 from integer_division
+    unordered: true
 
   - db: select_sTest
     description: integer division integer column by decimal column
@@ -351,6 +379,7 @@ testcases:
     expected_types: [int, decimal, int]
     id: integer_division_integer_column_by_decimal_column
     sql: select i, n2, i div n2 from integer_division
+    unordered: true
 
   - db: select_sTest
     description: integer division decimal column by decimal column
@@ -365,6 +394,7 @@ testcases:
     expected_types: [decimal, decimal, int]
     id: integer_division_decimal_column_by_decimal_column
     sql: select d, n2, d div n2 from integer_division
+    unordered: true
 
   - db: select_sTest
     description: case
@@ -376,6 +406,7 @@ testcases:
     expected_types: [varchar]
     id: '18'
     sql: select (case when a > 1 then 'gt' else 'lt' end) as p FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: case without else
@@ -387,6 +418,7 @@ testcases:
     expected_types: [varchar]
     id: '19'
     sql: select (case when a > 1 then 'gt' end) as p FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: case without else
@@ -398,6 +430,7 @@ testcases:
     expected_types: [varchar]
     id: '20'
     sql: select (case when b is null then 'n' else 'not null' end) as p FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: simple case
@@ -409,6 +442,7 @@ testcases:
     expected_types: [varchar]
     id: '21'
     sql: select (case a when 1 then 'one' else 'not one' end) as p FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: simple case
@@ -420,6 +454,7 @@ testcases:
     expected_types: [varchar]
     id: '22'
     sql: select (case a when 1 then 'one' end) as p FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: case
@@ -431,6 +466,7 @@ testcases:
     expected_types: [varchar]
     id: '23'
     sql: select (case when a > (case when b is null then 1 else 2 end) then 'gt' else 'lt' end) as p FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: case
@@ -442,6 +478,7 @@ testcases:
     expected_types: [varchar]
     id: '24'
     sql: select (case when (case when a > 1 then 'one' else 'smaller' end) = 'one' then '1' else 'less' end) as p FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: case
@@ -453,6 +490,7 @@ testcases:
     expected_types: [int]
     id: '25'
     sql: select (case when (case when (case when a > 1 then 'one' else 'smaller' end) = 'one' then '1' else 'less' end) = '1' then 1 end) as p FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: non-correlated exists
@@ -464,6 +502,7 @@ testcases:
     expected_types: [int, int]
     id: '26'
     sql: select a, exists(select 1 FROM select_STEST.select_1) as p FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: non-correlated exists
@@ -475,6 +514,7 @@ testcases:
     expected_types: [int]
     id: '27'
     sql: select exists(select 1 FROM select_Stest.select_1) as p FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: non-correlated subquery expr
@@ -486,6 +526,7 @@ testcases:
     expected_types: [int, int]
     id: nc_sq_expr
     sql: select a, (select a FROM select_1 limit 1) as b FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: non-correlated subquery expr no rows
@@ -497,18 +538,21 @@ testcases:
     expected_types: [int, int]
     id: nc_sq_expr_empty
     sql: select a, (select a FROM select_1 where false) as b FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: non-correlated subquery expr too many rows
     expected_error: 'Error 1242: Subquery returns more than 1 row'
     id: nc_sq_expr_many_rows
     sql: select a, (select a FROM select_1) as b FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: non-correlated subquery expr too many columns
     expected_error: 'Error 1241: Operand should contain 1 column(s)'
     id: nc_sq_expr_many_cols
     sql: select a, (select a, b FROM select_1 limit 1) as b FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: non-correlated nested subqueries
@@ -520,6 +564,7 @@ testcases:
     expected_types: [int, int]
     id: '29'
     sql: select a, (select a + (select a FROM select_1 limit 1) as b FROM select_1 limit 1) as b FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: correlated subquery
@@ -531,6 +576,7 @@ testcases:
     expected_types: [int, int]
     id: '30'
     sql: select a, (select a FROM select_1 where f._id = _id - 1) as b FROM select_1 f
+    unordered: true
 
   - db: select_sTest
     description: query with one matching string
@@ -540,6 +586,7 @@ testcases:
     expected_types: [int]
     id: '31'
     sql: select 'HI' like 'HI'
+    unordered: true
 
   - db: select_sTest
     description: query with no matching string
@@ -549,6 +596,7 @@ testcases:
     expected_types: [int]
     id: '32'
     sql: select 'HI' like 'PO'
+    unordered: true
 
   - db: select_sTest
     description: boolean test nested select with matching results
@@ -558,6 +606,7 @@ testcases:
     expected_types: [int]
     id: '33'
     sql: select (select 2>1) like 1
+    unordered: true
 
   - db: select_sTest
     description: matching test on node with two select statements
@@ -567,6 +616,7 @@ testcases:
     expected_types: [int]
     id: '34'
     sql: select (select 2<1) LIKE (select 4<1)
+    unordered: true
 
   - db: select_sTest
     description: query with no matching string lll
@@ -576,6 +626,7 @@ testcases:
     expected_types: [int]
     id: '35'
     sql: select (2>1) like 1
+    unordered: true
 
   - db: select_sTest
     description: binary query with one matching string
@@ -585,6 +636,7 @@ testcases:
     expected_types: [int]
     id: likebinary0
     sql: select 'HI' like binary 'HI'
+    unordered: true
 
   - db: select_sTest
     description: binary query with no matching string
@@ -594,6 +646,7 @@ testcases:
     expected_types: [int]
     id: likebinary1
     sql: select 'HI' like binary 'PO'
+    unordered: true
 
   - db: select_sTest
     description: binary boolean test nested select with matching results
@@ -603,6 +656,7 @@ testcases:
     expected_types: [int]
     id: likebinary2
     sql: select (select 2>1) like binary 1
+    unordered: true
 
   - db: select_sTest
     description: binary matching test on node with two select statements
@@ -612,6 +666,7 @@ testcases:
     expected_types: [int]
     id: likebinary3
     sql: select (select 2<1) LIKE binary (select 4<1)
+    unordered: true
 
   - db: select_sTest
     description: binary query with no matching string lll
@@ -621,6 +676,7 @@ testcases:
     expected_types: [int]
     id: likebinary4
     sql: select (2>1) like binary 1
+    unordered: true
 
   - db: select_sTest
     description: binary matching case sensitive
@@ -630,6 +686,7 @@ testcases:
     expected_types: [int]
     id: notlikebinary0
     sql: select 'A' NOT LIKE binary 'a'
+    unordered: true
 
   - db: select_sTest
     description: binary matching case insensitive
@@ -639,6 +696,7 @@ testcases:
     expected_types: [int]
     id: notlikebinary1
     sql: select 'A' NOT LIKE binary 'A'
+    unordered: true
 
   - db: select_test
     expected_names: [x, y]
@@ -660,6 +718,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: liketest0
     sql: select x, y from like_test where x like y
+    unordered: true
 
   - db: select_test
     expected_names: [x, y]
@@ -674,6 +733,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: liketest1
     sql: select x, y from like_test where y like  '%daM%' or x like '%daM%'
+    unordered: true
 
   - db: select_test
     expected_names: [x, y]
@@ -682,6 +742,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: liketest2
     sql: select x, y from like_test where y like '%daM%' or x like binary '%daM%'
+    unordered: true
 
   - db: select_test
     expected_names: [x, y]
@@ -692,6 +753,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: liketest3
     sql: select x, y from like_test where x like '%dam%' and y like binary '%am%'
+    unordered: true
 
   - db: select_test
     description: like match expression on multiline strings
@@ -702,6 +764,7 @@ testcases:
     expected_types: [varchar]
     id: liketest4
     sql: select col_1 from likeOptionWords where col_1 like 'hello_hi'
+    unordered: true
 
   - db: select_test
     expected_names: [x, y]
@@ -720,6 +783,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: likebinarytest0
     sql: select x, y from like_test where x like binary y
+    unordered: true
 
   - db: select_test
     expected_names: [x, y]
@@ -734,6 +798,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: likebinarytest1
     sql: select x, y from like_test where x like binary '%dam%'
+    unordered: true
 
   - db: select_test
     description: like expression with exact match (no wildcards)
@@ -746,6 +811,7 @@ testcases:
     expected_types: [varchar, int]
     id: like_aggregation_test_1
     sql: select col_1, col_1 like 'chicago' from likeWords
+    unordered: true
 
   - db: select_test
     description: like expression with underscores at all parts of word and no escape sequences
@@ -758,6 +824,7 @@ testcases:
     expected_types: [varchar, int]
     id: like_aggregation_test_2
     sql: select col_1, col_1 like '_h_cag_' from likeWords
+    unordered: true
 
   - db: select_test
     description: like expression with percentages at all parts of word and no escape sequences
@@ -770,6 +837,7 @@ testcases:
     expected_types: [varchar, int]
     id: like_aggregation_test_3
     sql: select col_1, col_1 like '%h%cag%' from likeWords
+    unordered: true
 
   - db: select_test
     description: like expression starting with escaped '_' wildcard
@@ -785,6 +853,7 @@ testcases:
     expected_types: [varchar, int]
     id: like_aggregation_test_4
     sql: select col_1, col_1 like '\\_%' from likeEscapeWords
+    unordered: true
 
   - db: select_test
     description: like expression with escaped '_' wildcard anywhere
@@ -800,6 +869,7 @@ testcases:
     expected_types: [varchar, int]
     id: like_aggregation_test_5
     sql: select col_1, col_1 like '%\\_%' from likeEscapeWords
+    unordered: true
 
   - db: select_test
     description: like expression with escaped '_' wildcard at the end
@@ -815,6 +885,7 @@ testcases:
     expected_types: [varchar, int]
     id: like_aggregation_test_6
     sql: select col_1, col_1 like '%\\_' from likeEscapeWords
+    unordered: true
 
   - db: select_test
     description: like expression containing an escaped '%' wildcard anywhere
@@ -830,6 +901,7 @@ testcases:
     expected_types: [varchar, int]
     id: like_aggregation_test_7
     sql: select col_1, col_1 like '%\\%%' from likeEscapeWords
+    unordered: true
 
   - db: select_test
     description: like expression ending with a backslash
@@ -845,6 +917,7 @@ testcases:
     expected_types: [varchar, int]
     id: like_aggregation_test_8
     sql: select col_1, col_1 like '%\\\\' from likeEscapeWords
+    unordered: true
 
   - db: select_test
     description: like expression with case insensitivity
@@ -860,6 +933,7 @@ testcases:
     expected_types: [varchar, int]
     id: like_aggregation_test_9
     sql: select col_1, col_1 like '\\\\ n \\_ E \\% W \\\\' from likeEscapeWords
+    unordered: true
 
   - db: select_test
     description: like expression starting with a special regex character
@@ -875,6 +949,7 @@ testcases:
     expected_types: [varchar, int]
     id: like_aggregation_test_10
     sql: select col_1, col_1 like '.*%' from likeEscapeWords
+    unordered: true
 
   - db: select_test
     description: like expression with escaped wildcard using custom escape character
@@ -890,6 +965,7 @@ testcases:
     expected_types: [varchar, int]
     id: like_aggregation_test_11
     sql: select col_1, col_1 like '%***_' escape '*' from likeEscapeWords
+    unordered: true
 
   - db: select_test
     description: like expression with escape character preceding a non-special character
@@ -905,6 +981,7 @@ testcases:
     expected_types: [varchar, int]
     id: like_aggregation_test_12
     sql: select col_1, col_1 like '%\\Y%' from likeEscapeWords
+    unordered: true
 
   - db: select_test
     description: like expression with constant input and pattern and constant-folding switched off (testing specifically for pushdown)
@@ -922,6 +999,7 @@ testcases:
     min_server_version: 4.2
     pushdown_only: true
     sql: select col_1, 'hello' like 'h_llo' as test from likeEscapeWords
+    unordered: true
     variables: {full_pushdown_exec_mode: true, optimize_evaluations: false}
 
   - db: select_test
@@ -938,6 +1016,7 @@ testcases:
     expected_types: [varchar, int]
     id: like_aggregation_test_14
     sql: select col_1, 'hello' like concat('h_','llo') as test from likeEscapeWords
+    unordered: true
     variables: {optimize_evaluations: false}
 
   - db: select_test
@@ -949,6 +1028,7 @@ testcases:
     expected_types: [varchar, int]
     id: like_aggregation_test_15
     sql: select col_1, col_1 like 'hello_hi' as test from likeOptionWords
+    unordered: true
 
   - db: select_test
     description: like expression with case-sensitive binary string as pattern
@@ -959,6 +1039,7 @@ testcases:
     expected_types: [varchar, int]
     id: like_aggregation_test_16
     sql: select col_1, col_1 like binary 'hELLo_Hi' as test from likeOptionWords
+    unordered: true
 
   - db: select_test
     description: executing like expression with column of escape characters in-memory (not supported in MySQL)
@@ -974,12 +1055,14 @@ testcases:
     expected_types: [varchar, varchar, int]
     id: like_aggregation_test_17
     sql: select col_1, col_2, col_1 like '%***_' escape col_2 as test from likeEscapeWords
+    unordered: true
 
   - db: select_test
     description: like expression with scalar function for escape char that resolves to string with length > 1
     expected_error: 'Error 1210: Incorrect arguments to ESCAPE'
     id: like_aggregation_test_18
     sql: select col_1 like '****N%' escape substring('**' from 1 for 2) from likeEscapeWords
+    unordered: true
 
   - db: select_sTest
     description: long identifier names
@@ -989,6 +1072,7 @@ testcases:
     expected_types: [int]
     id: '36'
     sql: select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat FROM select_test.select_long_names
+    unordered: true
 
   - db: select_sTest
     description: long identifier name with dot
@@ -998,6 +1082,7 @@ testcases:
     expected_types: [int]
     id: '37'
     sql: select `ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat` FROM select_test.select_long_names
+    unordered: true
 
   - db: select_sTest
     description: long identifier name with alias
@@ -1007,6 +1092,7 @@ testcases:
     expected_types: [int]
     id: '38'
     sql: select ridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeatridiculouslyLONGidentifierNameOnRepeat r FROM select_test.select_long_names
+    unordered: true
 
   - db: select_sTest
     description: lt row comparison with null
@@ -1020,6 +1106,7 @@ testcases:
     expected_types: [int]
     id: '39'
     sql: select (x, y, z) < (4, null, 9) FROM select_2
+    unordered: true
 
   - db: select_sTest
     description: triple lte row comparison with null
@@ -1033,6 +1120,7 @@ testcases:
     expected_types: [int]
     id: '40'
     sql: select (x, y, z) <= (4, 5, null) FROM select_2
+    unordered: true
 
   - db: select_sTest
     description: gte row comparison without null
@@ -1046,6 +1134,7 @@ testcases:
     expected_types: [int]
     id: '41'
     sql: select (z, x) >= (2, 6) FROM select_2
+    unordered: true
 
   - db: select_sTest
     description: gte row comparison with null
@@ -1059,6 +1148,7 @@ testcases:
     expected_types: [int]
     id: '42'
     sql: select (x, y) >= (4, null) FROM select_2
+    unordered: true
 
   - db: select_sTest
     description: triple gt row comparison without null
@@ -1072,6 +1162,7 @@ testcases:
     expected_types: [int]
     id: '43'
     sql: select (z, y, x) > (1, 5, 2) FROM select_2
+    unordered: true
 
   - db: select_sTest
     description: triple gt row comparison with null
@@ -1085,6 +1176,7 @@ testcases:
     expected_types: [int]
     id: '44'
     sql: select (z, null, x) > (1, x, 2) FROM select_2
+    unordered: true
 
   - db: select_sTest
     description: triple eq row comparison with null
@@ -1098,6 +1190,7 @@ testcases:
     expected_types: [int]
     id: '45'
     sql: select (x, y, z) = (null, null, 9) FROM select_2
+    unordered: true
 
   - db: select_sTest
     description: eq row comparison without null
@@ -1111,6 +1204,7 @@ testcases:
     expected_types: [int]
     id: '46'
     sql: select (y, x) = (1, 4) FROM select_2
+    unordered: true
 
   - db: select_sTest
     description: eq row comparison with null
@@ -1124,6 +1218,7 @@ testcases:
     expected_types: [int]
     id: '47'
     sql: select (y, x) = (1, null) FROM select_2
+    unordered: true
 
   - db: select_sTest
     description: neq row comparison without null
@@ -1137,6 +1232,7 @@ testcases:
     expected_types: [int]
     id: '48'
     sql: select (y, x-z) != (1, 2) FROM select_2
+    unordered: true
 
   - db: select_sTest
     description: neq row comparison with null
@@ -1150,6 +1246,7 @@ testcases:
     expected_types: [int]
     id: '49'
     sql: select (y+z, x-z) != (null, 4) FROM select_2
+    unordered: true
 
   - db: select_sTest
     description: nse row comparison without null
@@ -1161,6 +1258,7 @@ testcases:
     expected_types: [int]
     id: '50'
     sql: select (a, b) <=> (1, 4) FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: nse row comparison with null
@@ -1172,6 +1270,7 @@ testcases:
     expected_types: [int]
     id: '51'
     sql: select (a, b) <=> (2, NULL) FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: nse row comparison with null
@@ -1181,6 +1280,7 @@ testcases:
     expected_types: [int, int, int]
     id: '52'
     sql: select 1 <=> 1, NULL <=> NULL, 1 <=> NULL FROM dual
+    unordered: true
 
   - db: select_sTest
     description: lone custom filter predicate expression
@@ -1193,6 +1293,7 @@ testcases:
     pushdown_only: true
     skip: true
     sql: 'select y, z FROM select_2 where mfil=''{"x": {"$lte": 4}}'''
+    unordered: true
 
   - db: select_sTest
     description: custom filter with other expressions
@@ -1206,6 +1307,7 @@ testcases:
     pushdown_only: true
     skip: true
     sql: 'select y, z FROM select_2 where y = 6 or mfil=''{"x": {"$lte": 4}}'''
+    unordered: true
 
   - db: select_sTest
     description: custom filter with conjunction
@@ -1217,6 +1319,7 @@ testcases:
     pushdown_only: true
     skip: true
     sql: 'select y, z FROM select_2 where (z < 5 AND mfil=''{"_id": {"$gte": 5}}'') or _id = 3'
+    unordered: true
 
   - db: select_sTest
     description: custom filter with disjunction
@@ -1231,6 +1334,7 @@ testcases:
     pushdown_only: true
     skip: true
     sql: 'select y, z FROM select_2 where (x > 4 or mfil=''{"_id": {"$gt": 2}}'') or _id = 3'
+    unordered: true
 
   - db: select_sTest
     description: adding literals to literal max int64
@@ -1240,6 +1344,7 @@ testcases:
     expected_types: [float, float, float, float, int]
     id: arithmetic_overflow_adding_literals_to_max_int64_literal
     sql: select 9223372036854775807 + 1 as a, 9223372036854775807 + 2 as b, 9223372036854775807 + 3 as c, 9223372036854775807 + 9223372036854775807 as d, 9223372036854775807 + -9223372036854775808 as e
+    unordered: true
 
   - db: select_sTest
     description: adding columns to literal max int64
@@ -1253,6 +1358,7 @@ testcases:
     expected_types: [int, float]
     id: arithmetic_overflow_adding_columns_to_max_int64_literal
     sql: select a, 9223372036854775807 + a as result from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: adding literals to column max int64
@@ -1266,6 +1372,7 @@ testcases:
     expected_types: [float, float, float, float, int]
     id: arithmetic_overflow_adding_literals_to_max_int64_column
     sql: select maxInt + 1 as a, maxInt + 2 as b, maxInt + 3 as c, maxInt + 9223372036854775807 as d, maxInt + -9223372036854775808 as e from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: adding columns to column max int64
@@ -1279,6 +1386,7 @@ testcases:
     expected_types: [int, float]
     id: arithmetic_overflow_adding_columns_to_max_int64_column
     sql: select a, maxInt + a as result from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: subtracting literals from literal max int64
@@ -1289,6 +1397,7 @@ testcases:
     id: arithmetic_overflow_subtracting_literals_from_max_int64_literal
     skip: true
     sql: select 9223372036854775807 - 1 as a, 9223372036854775807 - 2 as b, 9223372036854775807 - 3 as c, 9223372036854775807 - 9223372036854775807 as d, 9223372036854775807 - -9223372036854775808 as e
+    unordered: true
 
   - db: select_sTest
     description: subtracting columns from literal max int64
@@ -1303,6 +1412,7 @@ testcases:
     id: arithmetic_overflow_subtracting_columns_from_max_int64_literal
     skip: true
     sql: select a, 9223372036854775807 - a as result from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: subtracting literals from column max int64
@@ -1317,6 +1427,7 @@ testcases:
     id: arithmetic_overflow_subtracting_literals_from_max_int64_column
     skip: true
     sql: select maxInt - 1 as a, maxInt - 2 as b, maxInt - 3 as c, maxInt - 9223372036854775807 as d, maxInt - -9223372036854775808 as e from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: subtracting columns from column max int64
@@ -1331,6 +1442,7 @@ testcases:
     id: arithmetic_overflow_subtracting_columns_from_max_int64_column
     skip: true
     sql: select a, maxInt - a as result from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: multiplying literals by literal max int64
@@ -1340,6 +1452,7 @@ testcases:
     expected_types: [float, float, float, float, float]
     id: arithmetic_overflow_multiplying_literals_by_max_int64_literal
     sql: select 9223372036854775807 * 1 as a, 9223372036854775807 * 2 as b, 9223372036854775807 * 3 as c, 9223372036854775807 * 9223372036854775807 as d, 9223372036854775807 * -9223372036854775808 as e
+    unordered: true
 
   - db: select_sTest
     description: multiplying columns by literal max int64
@@ -1353,6 +1466,7 @@ testcases:
     expected_types: [int, float]
     id: arithmetic_overflow_multiplying_columns_by_max_int64_literal
     sql: select a, 9223372036854775807 * a as result from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: multiplying literals by column max int64
@@ -1366,6 +1480,7 @@ testcases:
     expected_types: [float, float, float, float, float]
     id: arithmetic_overflow_multiplying_literals_by_max_int64_column
     sql: select maxInt * 1 as a, maxInt * 2 as b, maxInt * 3 as c, maxInt * 9223372036854775807 as d, maxInt * -9223372036854775808 as e from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: multiplying columns by column max int64
@@ -1379,6 +1494,7 @@ testcases:
     expected_types: [int, float]
     id: arithmetic_overflow_multiplying_columns_by_max_int64_column
     sql: select a, maxInt * a as result from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: adding literals to literal min int64
@@ -1388,6 +1504,7 @@ testcases:
     expected_types: [float, float, float, int, float]
     id: arithmetic_overflow_adding_literals_to_min_int64_literal
     sql: select -9223372036854775808 + 1 as a, -9223372036854775808 + 2 as b, -9223372036854775808 + 3 as c, -9223372036854775808 + 9223372036854775807 as d, -9223372036854775808 + -9223372036854775808 as e
+    unordered: true
 
   - db: select_sTest
     description: adding columns to literal min int64
@@ -1401,6 +1518,7 @@ testcases:
     expected_types: [int, float]
     id: arithmetic_overflow_adding_columns_to_min_int64_literal
     sql: select a, -9223372036854775808 + a as result from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: adding literals to column min int64
@@ -1414,6 +1532,7 @@ testcases:
     expected_types: [float, float, float, int, float]
     id: arithmetic_overflow_adding_literals_to_min_int64_column
     sql: select minInt + 1 as a, minInt + 2 as b, minInt + 3 as c, minInt + 9223372036854775807 as d, minInt + -9223372036854775808 as e from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: adding columns to column min int64
@@ -1427,6 +1546,7 @@ testcases:
     expected_types: [int, float]
     id: arithmetic_overflow_adding_columns_to_min_int64_column
     sql: select a, minInt + a as result from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: subtracting literals from literal min int64
@@ -1437,6 +1557,7 @@ testcases:
     id: arithmetic_overflow_subtracting_literals_from_min_int64_literal
     skip: true
     sql: select -9223372036854775808 - 1 as a, -9223372036854775808 - 2 as b, -9223372036854775808 - 3 as c, -9223372036854775808 - 9223372036854775807 as d, -9223372036854775808 - -9223372036854775808 as e
+    unordered: true
 
   - db: select_sTest
     description: subtracting columns from literal min int64
@@ -1451,6 +1572,7 @@ testcases:
     id: arithmetic_overflow_subtracting_columns_from_min_int64_literal
     skip: true
     sql: select a, -9223372036854775808 - a as result from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: subtracting literals from column min int64
@@ -1465,6 +1587,7 @@ testcases:
     id: arithmetic_overflow_subtracting_literals_from_min_int64_column
     skip: true
     sql: select minInt - 1 as a, minInt - 2 as b, minInt - 3 as c, minInt - 9223372036854775807 as d, minInt - -9223372036854775808 as e from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: subtracting columns from column min int64
@@ -1479,6 +1602,7 @@ testcases:
     id: arithmetic_overflow_subtracting_columns_from_min_int64_column
     skip: true
     sql: select a, minInt - a as result from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: multiplying literals by literal min int64
@@ -1488,6 +1612,7 @@ testcases:
     expected_types: [float, float, float, float, float]
     id: arithmetic_overflow_multiplying_literals_by_min_int64_literal
     sql: select -9223372036854775808 * 1 as a, -9223372036854775808 * 2 as b, -9223372036854775808 * 3 as c, -9223372036854775808 * 9223372036854775807 as d, -9223372036854775808 * -9223372036854775808 as e
+    unordered: true
 
   - db: select_sTest
     description: multiplying columns by literal min int64
@@ -1501,6 +1626,7 @@ testcases:
     expected_types: [int, float]
     id: arithmetic_overflow_multiplying_columns_by_min_int64_literal
     sql: select a, -9223372036854775808 * a as result from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: multiplying literals by column min int64
@@ -1514,6 +1640,7 @@ testcases:
     expected_types: [float, float, float, float, float]
     id: arithmetic_overflow_multiplying_literals_by_min_int64_column
     sql: select minInt * 1 as a, minInt * 2 as b, minInt * 3 as c, minInt * 9223372036854775807 as d, minInt * -9223372036854775808 as e from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: multiplying columns by column min int64
@@ -1527,6 +1654,7 @@ testcases:
     expected_types: [int, float]
     id: arithmetic_overflow_multiplying_columns_by_min_int64_column
     sql: select a, minInt * a as result from int_bounds
+    unordered: true
 
   - db: select_sTest
     description: adding overflowing int64 literals
@@ -1536,6 +1664,7 @@ testcases:
     expected_types: [varchar]
     id: arithmetic_overflow_adding_overflowing_int64_literals
     sql: select 9223372036854775808 + 9223372036854775808 as result
+    unordered: true
 
   - db: select_sTest
     description: adding overflowing int64 with columns
@@ -1547,6 +1676,7 @@ testcases:
     expected_types: [int, varchar]
     id: arithmetic_overflow_adding_overflowing_int64_columns
     sql: select a, 9223372036854775808 + a as result from select_1;
+    unordered: true
 
   - db: select_sTest
     description: dividing overflowing int64 literals
@@ -1556,6 +1686,7 @@ testcases:
     expected_types: [float]
     id: arithmetic_overflow_division_with_overflowing_int64_literals
     sql: select (2000 * 1000000000000000) / 9223372036854775808 as result
+    unordered: true
 
   - db: select_sTest
     description: dividing overflowing int64 columns
@@ -1567,6 +1698,7 @@ testcases:
     expected_types: [float]
     id: arithmetic_overflow_division_with_overflowing_int64_columns
     sql: select (a * 1000 * 1000000000000000) / 9223372036854775808 as result from select_1
+    unordered: true
 
   - db: select_sTest
     description: adding large floats
@@ -1576,6 +1708,7 @@ testcases:
     expected_types: [float]
     id: '58'
     sql: select 92233720368523893498439823.34232323234775807+9872389723987625167312876431927865238746234.23483287346723476 as result
+    unordered: true
 
   - db: select_sTest
     description: subtracting large floats
@@ -1585,6 +1718,7 @@ testcases:
     expected_types: [float]
     id: '59'
     sql: select -34985845873478238954892398348547834.344807-438349834894832892323238723897239876251673128483287346723476 as result
+    unordered: true
 
   - db: select_sTest
     description: multiplying large numbers
@@ -1594,6 +1728,7 @@ testcases:
     expected_types: [varchar]
     id: '61'
     sql: select 9223372036854775807*9223372036854775807 as result
+    unordered: true
 
   - db: select_sTest
     description: uuid bit fiddling
@@ -1604,6 +1739,7 @@ testcases:
     id: '62'
     skip: true
     sql: select * FROM select_test.uuid
+    unordered: true
 
   - db: select_sTest
     description: uuid where clause
@@ -1614,6 +1750,7 @@ testcases:
     id: '63'
     skip: true
     sql: select csharp FROM select_test.uuid where csharp="01020304-0506-0708-090a-0b0c0d0e0f10"
+    unordered: true
 
   - db: select_sTest
     description: join using same uuid subtype 3 encoding
@@ -1624,6 +1761,7 @@ testcases:
     id: '64'
     skip: true
     sql: select t2.java FROM select_test.uuid t1 INNER JOIN select_test.uuid t2 ON t1.java=t2.java where t1.olduuid="01020304-0506-0708-090a-0b0c0d0e0f10"
+    unordered: true
 
   - db: select_sTest
     description: nested JOIN using mixed uuid subtype 3 encodings
@@ -1634,6 +1772,7 @@ testcases:
     id: '65'
     skip: true
     sql: select s.uuid, t.java, q.csharp, r.olduuid FROM select_test.uuid q INNER JOIN select_test.uuid r ON q.java = r.java INNER JOIN select_test.uuid s ON r.csharp = s.csharp INNER JOIN select_test.uuid t ON r.olduuid = t.csharp where t.uuid = "01020304-0506-0708-090a-0b0c0d0e0f10"
+    unordered: true
 
   - db: select_sTest
     description: join using different uuid subtype 3 encodings
@@ -1644,6 +1783,7 @@ testcases:
     id: '66'
     skip: true
     sql: select t2.olduuid FROM select_test.uuid t1 INNER JOIN select_test.uuid t2 ON t1.csharp=t2.java where t1.olduuid="01020304-0506-0708-090a-0b0c0d0e0f10"
+    unordered: true
 
   - db: select_sTest
     expected_results:
@@ -1651,6 +1791,7 @@ testcases:
     expected_types: [int]
     id: '67'
     sql: SELECT COUNT(Variable_name) >= 674 FROM information_schema.session_variables
+    unordered: true
 
   - db: select_sTest
     expected_results:
@@ -1658,6 +1799,7 @@ testcases:
     expected_types: [int]
     id: '68'
     sql: SELECT COUNT(Variable_name) >= 674 FROM information_schema.global_variables
+    unordered: true
 
   - db: select_sTest
     expected_results:
@@ -1665,6 +1807,7 @@ testcases:
     expected_types: [int]
     id: '69'
     sql: SELECT COUNT(Variable_name) FROM information_schema.global_variables WHERE Variable_name LIKE '%validate%'
+    unordered: true
 
   - db: select_sTest
     expected_results:
@@ -1672,6 +1815,7 @@ testcases:
     expected_types: [int]
     id: '70'
     sql: SELECT COUNT(Variable_name) FROM information_schema.session_status
+    unordered: true
 
   - db: select_sTest
     expected_results:
@@ -1679,6 +1823,7 @@ testcases:
     expected_types: [int]
     id: '71'
     sql: SELECT COUNT(Variable_name) FROM information_schema.global_status
+    unordered: true
 
   - db: select_sTest
     expected_results:
@@ -1686,6 +1831,7 @@ testcases:
     expected_types: [int]
     id: '72'
     sql: SELECT COUNT(Variable_name) FROM information_schema.global_status WHERE Variable_name LIKE 'Qcache%'
+    unordered: true
 
   - db: select_test
     expected_names: [_id, a, b, c.x, c.z, c_idx]
@@ -1695,6 +1841,7 @@ testcases:
     expected_types: [varchar, int, int, int, int, int]
     id: '73'
     sql: select a._id, a.a, a.b, b.`c.x`, b.`c.z`, b.c_idx from select_3 a left join select_3_c b on a._id = b._id
+    unordered: true
 
   - db: select_test
     expected_names: [_id, a, b, c.x, c.z, c_idx]
@@ -1704,6 +1851,7 @@ testcases:
     expected_types: [varchar, int, int, int, int, int]
     id: '74'
     sql: SELECT a._id, a.a, a.b, b.`c.x`, b.`c.z`, b.c_idx FROM select_3 a JOIN select_3_c b ORDER BY 4
+    unordered: true
 
   - db: select_sTest
     expected_names: [c.x, c.z, c_idx, c.y]
@@ -1717,6 +1865,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: '75'
     sql: SELECT b.`c.x`, b.`c.z`, b.`c_idx`, c.`c.y` FROM select_test.select_3 a JOIN select_test.select_3_c b ON a._id=b._id JOIN select_test.select_3_c_y c ON a._id=c._id AND b.c_idx=c.c_idx ORDER BY 1, 2, 3, 4
+    unordered: true
 
   - db: select_sTest
     expected_names: [c.y_idx]
@@ -1730,6 +1879,7 @@ testcases:
     expected_types: [int]
     id: '76'
     sql: SELECT `c.y_idx` FROM select_test.select_3_c_y ORDER BY 1 DESC
+    unordered: true
 
   - db: select_sTest
     expected_names: [c.y_idx]
@@ -1741,6 +1891,7 @@ testcases:
     id: '77'
     pushdown_only: true
     sql: SELECT a.`c.y_idx` FROM select_test.select_4 b LEFT JOIN select_test.select_4_c_y a ON a._id=b._id ORDER BY 1
+    unordered: true
 
   - db: select_sTest
     expected_names: [c.y]
@@ -1752,6 +1903,7 @@ testcases:
     expected_types: [int]
     id: '78'
     sql: SELECT `c.y` FROM select_test.select_4 a JOIN select_test.select_4_c b ON a._id=b._id LEFT JOIN select_test.select_4_c_y c ON c._id=b._id and c.c_idx=b.c_idx ORDER BY 1 DESC
+    unordered: true
 
   - db: select_sTest
     expected_names: [_id, a, _id, c, c_idx, c_idx_1]
@@ -1761,6 +1913,7 @@ testcases:
     expected_types: [varchar, int, varchar, int, int, int]
     id: '79'
     sql: select * from select_test.select_5 a join select_test.select_5_c b on a._id=b._id;
+    unordered: true
 
   - db: select_sTest
     expected_names: [borough]
@@ -1769,6 +1922,7 @@ testcases:
     expected_types: [varchar]
     id: '80'
     sql: SELECT restaurants.borough AS borough FROM select_test.restaurants INNER JOIN select_test.restaurants_grades ON restaurants._id = restaurants_grades._id INNER JOIN select_test.restaurants_address_coord ON restaurants._id = restaurants_address_coord._id group by borough
+    unordered: true
 
   - db: select_sTest
     expected_names: [borough]
@@ -1777,6 +1931,7 @@ testcases:
     expected_types: [varchar]
     id: '81'
     sql: SELECT restaurants.borough AS borough FROM select_test.restaurants_address_coord INNER JOIN select_test.restaurants_grades ON restaurants_address_coord._id = restaurants_grades._id INNER JOIN select_test.restaurants ON restaurants_grades._id = restaurants._id group by borough
+    unordered: true
 
   - db: select_sTest
     description: left join nested subquery with a table
@@ -1789,6 +1944,7 @@ testcases:
     expected_types: [int]
     id: '82'
     sql: select c.y from select_1 f left join (select a.y, a.z from select_Stest.select_2 a join (select * from select_Stest.select_2) b on a.x=b.x) c  on c.z=f.a order by 1
+    unordered: true
 
   - db: select_sTest
     description: right join nested subquery with a table
@@ -1806,6 +1962,7 @@ testcases:
     expected_types: [int]
     id: '83'
     sql: select c.y from select_1 f right join (select a.y, a.z from select_Stest.select_2 a join (select * from select_Stest.select_2) b on a.x=b.x) c  on c.z=f.a order by 1
+    unordered: true
 
   - db: select_sTest
     description: inner join with a subquery on either side
@@ -1816,6 +1973,7 @@ testcases:
     expected_types: [int, int]
     id: '84'
     sql: select * from (select select_1._id from select_Stest.select_1 join (select select_2._id from select_2) select_2 on select_2._id=select_1._id) x join (select g._id from select_1 join (select * from select_2) g on g._id=select_1._id) y on x._id=y._id order by 1
+    unordered: true
 
   - db: select_sTest
     description: inner join of a 'left-joined' subquery and table
@@ -1826,6 +1984,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: '85'
     sql: select * from select_Stest.select_1 s inner join (select select_1._id from select_Stest.select_1 left join select_Stest.select_2 on select_1._id=select_2._id) r on s.a=r._id
+    unordered: true
 
   - db: select_sTest
     description: inner join of a 'right-joined' subquery and table
@@ -1836,6 +1995,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: '86'
     sql: select * from select_Stest.select_1 s inner join (select select_1._id from select_Stest.select_1 right join select_Stest.select_2 on select_1._id=select_2._id) r on s.a=r._id
+    unordered: true
 
   - db: select_sTest
     description: inner join chain with mergable tables
@@ -1845,6 +2005,7 @@ testcases:
     expected_types: [int, int]
     id: '87'
     sql: select a.a, a.b from select_test.restaurants f join select_test.select_3 a on f._id=a._id join select_test.select_3 b on a.a=b.a inner join select_test.select_3 c on c.a=b.a inner join select_test.select_1 d on c.a=b.a inner join select_test.select_5 e on e.a=a.a limit 1
+    unordered: true
 
   - db: select_sTest
     description: inner join with optimizable subquery components
@@ -1857,6 +2018,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: '88'
     sql: select * from select_Stest.select_1 f join (select a.a from select_Stest.select_1 a join (select * from select_Stest.select_2) b on a.a=b.y) c on f.a=c.a
+    unordered: true
 
   - db: select_sTest
     description: disjoint optimizable inner join subtrees
@@ -1869,6 +2031,7 @@ testcases:
     expected_types: [int, int]
     id: '89'
     sql: select f.b, e.a from select_Stest.select_1 f join (select a.a from select_Stest.select_1 a join (select * from select_Stest.select_2) b on a.a=b.y) c on f.a=c.a left join (select a.b from select_Stest.select_1 a join (select * from select_Stest.select_2) b on a.a=b.y) d on c.a=d.b right join (select a.b, a.a from select_Stest.select_1 a join (select * from select_Stest.select_2) b on a.a=b.y) e on e.a=f._id
+    unordered: true
 
   - db: select_sTest
     description: inner join with multiple mergable criteria
@@ -1878,6 +2041,7 @@ testcases:
     expected_types: [int, int, int]
     id: '90'
     sql: select a._id, a.a, a.b from select_Stest.select_1 a join select_Stest.select_2 b on a.a=b.y and a._id=b.z inner join select_Stest.select_1 c on c._id=a._id or b.x=c.b
+    unordered: true
 
   - db: select_sTest
     description: conflicted column name
@@ -1889,6 +2053,7 @@ testcases:
     expected_types: [int]
     id: '91'
     sql: select a from select_1
+    unordered: true
 
   - db: select_sTest
     description: conflicted column name with alias
@@ -1900,6 +2065,7 @@ testcases:
     expected_types: [int]
     id: '92'
     sql: select a as funny from select_1
+    unordered: true
 
   - db: select_sTest
     description: date literal conflicted with column name
@@ -1911,6 +2077,7 @@ testcases:
     expected_types: [varchar]
     id: '93'
     sql: select date '2017-01-01' from select_1
+    unordered: true
 
   - db: select_sTest
     description: date literal with alias conflicted with column name
@@ -1922,6 +2089,7 @@ testcases:
     expected_types: [varchar]
     id: '94'
     sql: select date '2017-01-01' 'funny' from select_1
+    unordered: true
 
   - db: select_sTest
     description: checking parenthesis with subquery and limit
@@ -1932,6 +2100,7 @@ testcases:
     expected_types: [int]
     id: '95'
     sql: (select stest.a FROM (select * from select_sTest.select_1) stest) order by a desc limit 2
+    unordered: true
 
   - db: select_sTest
     description: 'checking parenthesis main query '
@@ -1943,6 +2112,7 @@ testcases:
     expected_types: [int, int]
     id: '96'
     sql: (((select _id, a from select_sTest.select_1)))
+    unordered: true
 
   - db: select_sTest
     description: checking parenthesis main query and limit
@@ -1952,6 +2122,7 @@ testcases:
     expected_types: [int, int]
     id: '97'
     sql: (select _id, a from select_1) limit 1
+    unordered: true
 
   - db: select_sTest
     description: checking parenthesis main query and order by , limit
@@ -1961,6 +2132,7 @@ testcases:
     expected_types: [int, int]
     id: '98'
     sql: (select _id, a from select_1) order by a desc limit 1
+    unordered: true
 
   - db: select_sTest
     description: inner join with multiple mergable criteria and parenthesis
@@ -1970,6 +2142,7 @@ testcases:
     expected_types: [int, int, int]
     id: '99'
     sql: (select a._id, a.a, a.b from (select_Stest.select_1 a join select_Stest.select_2 b on a.a=b.y and a._id=b.z inner join select_Stest.select_1 c on c._id=a._id or b.x=c.b))
+    unordered: true
 
   - db: select_sTest
     description: checking parenthesis with subquery and limit with offset
@@ -1979,6 +2152,7 @@ testcases:
     expected_types: [int]
     id: '100'
     sql: (select stest.a FROM (select * from select_sTest.select_1) stest) order by a desc limit 1, 1
+    unordered: true
 
   - db: select_sTest
     description: 'checking parenthesis main query '
@@ -1989,6 +2163,7 @@ testcases:
     expected_types: [int, int]
     id: '101'
     sql: (((select _id, a from select_sTest.select_1))) limit 1, 2
+    unordered: true
 
   - db: select_sTest
     description: two duplicate columns in final project
@@ -2000,6 +2175,7 @@ testcases:
     expected_types: [int, int]
     id: '102'
     sql: select _id as a, a from select_1
+    unordered: true
 
   - db: select_sTest
     description: three duplicate columns in final project
@@ -2011,6 +2187,7 @@ testcases:
     expected_types: [int, int, int]
     id: '103'
     sql: select _id as a, a, b as a  from select_1
+    unordered: true
 
   - db: where_test
     description: not rlike filter on select clauses
@@ -2022,6 +2199,7 @@ testcases:
     expected_types: [int]
     id: '104'
     sql: select a RLIKE '^f.*$' from where_test.where_5
+    unordered: true
 
   - db: where_test
     description: not rlike filter
@@ -2033,6 +2211,7 @@ testcases:
     expected_types: [int]
     id: '105'
     sql: select a NOT RLIKE '^f.*$' from where_test.where_5
+    unordered: true
 
   - db: where_test
     description: not regex filter on select clauses
@@ -2044,6 +2223,7 @@ testcases:
     expected_types: [int]
     id: '106'
     sql: select a NOT REGEXP '^f.*$' from where_test.where_5
+    unordered: true
 
   - db: where_test
     description: regex filter on select clauses
@@ -2055,6 +2235,7 @@ testcases:
     expected_types: [int]
     id: '107'
     sql: select a REGEXP '^f.*$' from where_test.where_5
+    unordered: true
 
   - db: where_test
     description: regex filter on complex expression as input
@@ -2066,6 +2247,7 @@ testcases:
     expected_types: [varchar, int]
     id: 'regexp_complex_expression1'
     sql: select a, concat(a, "f") REGEXP 'ef' as test_col from where_test.where_5
+    unordered: true
 
   - db: where_test
     description: regex filter on complex expression as pattern
@@ -2077,6 +2259,7 @@ testcases:
     expected_types: [varchar, int]
     id: 'regexp_complex_expression2'
     sql: select a, 'abcdefgh' REGEXP concat(a, 'f') as test_col from where_test.where_5
+    unordered: true
 
   - db: where_test
     description: regex filter on select clauses
@@ -2088,6 +2271,7 @@ testcases:
     expected_types: [int]
     id: '107'
     sql: select a REGEXP '^f.*$' from where_test.where_5
+    unordered: true
 
   - db: select_test
     description: proper NULLs in left join
@@ -2100,6 +2284,7 @@ testcases:
     expected_types: [varchar, int, int, varchar, int, int, int]
     id: '108'
     sql: select a._id, a, b.c_idx, c._id, `c.y`, `c.y_idx`, c.c_idx from select_4 a left join select_4_c b on a._id = b._id left join select_4_c_y c on b._id = c._id and b.c_idx = c.c_idx
+    unordered: true
 
   - db: select_sTest
     description: three dot notation
@@ -2109,6 +2294,7 @@ testcases:
     expected_types: [int]
     id: '109'
     sql: select _id from select_1 where select_sTest.select_1.a = 1
+    unordered: true
 
   - db: select_sTest
     description: three dot with wildcard
@@ -2120,6 +2306,7 @@ testcases:
     expected_types: [int, int, int]
     id: '110'
     sql: select select_sTest.select_1.* from select_1
+    unordered: true
 
   - db: select_sTest
     description: non-correlated nested subqueries with three dot notation
@@ -2131,6 +2318,7 @@ testcases:
     expected_types: [int, int]
     id: '111'
     sql: select select_sTest.select_1.a, (select select_sTest.select_1.a + (select select_sTest.select_1.a FROM select_1 limit 1) as b FROM select_1 limit 1) as b FROM select_1
+    unordered: true
 
   - db: select_sTest
     description: correlated subquery with three dot notation
@@ -2142,6 +2330,7 @@ testcases:
     expected_types: [int, int]
     id: '112'
     sql: select select_sTest.f.a, (select select_sTest.select_1.a FROM select_1 where select_sTest.f._id = select_sTest.select_1._id - 1) as b FROM select_1 f
+    unordered: true
 
   - db: select_sTest
     description: select *, expr
@@ -2155,6 +2344,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: '113'
     sql: select *,x FROM select_sTest.select_2
+    unordered: true
 
   - db: select_sTest
     description: select expr, *
@@ -2168,6 +2358,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: '114'
     sql: select y,* FROM select_sTest.select_2
+    unordered: true
 
   - db: select_sTest
     description: select *, constant
@@ -2181,6 +2372,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: '115'
     sql: select *,42 FROM select_sTest.select_2
+    unordered: true
 
   - db: select_sTest
     description: select col1, col2, *, col3
@@ -2194,6 +2386,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int]
     id: '116'
     sql: select x,y,*,42 FROM select_sTest.select_2
+    unordered: true
 
   - db: select_sTest
     description: select *, *
@@ -2207,6 +2400,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int, int]
     id: '117'
     sql: select *,* FROM select_sTest.select_2
+    unordered: true
 
   - db: select_test
     description: The algebrizer had an exponential blowup in binary ops that made this take ~5.8 days to algebrize on a 2017 MBP. This should take 0 seconds without the exponential blowup. A breakage will mean tests not completing
@@ -2216,6 +2410,7 @@ testcases:
     expected_types: [int]
     id: no_exponential_algebrize
     sql: select a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a + a as result from select_3
+    unordered: true
 
   - db: select_test
     description: If we push this down, it will crash by exceeding nesting depth (32 select_2 are the biggest we can handle). Proves we aren't pushing down by succeeding. This version uses a 200-tuple instead of a 33 tuple, just in case future optimizations reduce nesting depth for tuple comparisons
@@ -2225,6 +2420,7 @@ testcases:
     expected_types: [int]
     id: tuple_33
     sql: select (a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a) < (2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2) as result from `select_3`;
+    unordered: true
 
   - db: select_test
     description: If we push this down, it will crash by exceeding nesting depth (32 select_2 are the biggest we can handle). Proves we aren't pushing down by succeeding. This version uses a 200-tuple instead of a 33 tuple, just in case future optimizations reduce nesting depth for tuple comparisons
@@ -2235,6 +2431,7 @@ testcases:
     id: tuple_200
     sql: select (a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a, a) < (2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2,
       2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2) as result from `select_3`;
+    unordered: true
 
   - db: select_test
     description: check that optimization does not break
@@ -2244,6 +2441,7 @@ testcases:
     expected_types: [int]
     id: count_star
     sql: select count(*) from select_7
+    unordered: true
 
   - db: select_test
     description: check that optimization does not break for order bys
@@ -2253,6 +2451,7 @@ testcases:
     expected_types: [int]
     id: count_star_with_order
     sql: select count(*) from select_7 order by 1
+    unordered: true
 
   - db: select_test
     description: check optimization does not break for aliased column
@@ -2262,6 +2461,7 @@ testcases:
     expected_types: [int]
     id: count_star_aliased_column
     sql: select count(*) as y from select_7
+    unordered: true
 
   - db: select_test
     description: check optimization does not break for aliased table
@@ -2271,6 +2471,7 @@ testcases:
     expected_types: [int]
     id: count_star_aliased_table
     sql: select count(*) from select_7 as y
+    unordered: true
 
   - db: select_test
     description: check count is still accurate with pipelines that alter table cardinality
@@ -2280,6 +2481,7 @@ testcases:
     expected_types: [int]
     id: count_star_aliased_unwound
     sql: select count(*) as y from select_test.select_3_c_y
+    unordered: true
 
   - db: select_sTest
     description: ensure mathmatical accuracy when handling multiplication and addition transfering from binary to nary forms for the aggregate pipeline
@@ -2291,6 +2493,7 @@ testcases:
     expected_types: [int]
     id: repeated_math
     sql: select (a+_id+a+_id)*a*_id*a+(a*_id+_id)+a+_id*a*a*a+a+(_id+_id) FROM select_StEst.select_1
+    unordered: true
 
 
 # - db: manyColumns

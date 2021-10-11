@@ -6,3 +6,4 @@ testcases:
       - [Small Market, 394672.6104629237]
     expected_types: [varchar, float]
     sql: SELECT `Market Size` AS `none_Market_Size_nk`,   SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Market Size` ORDER BY 1, 2
+    unordered: true

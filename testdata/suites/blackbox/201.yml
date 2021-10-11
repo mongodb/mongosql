@@ -20,3 +20,4 @@ testcases:
       - [key2, 8, 2, 9]
     expected_types: [varchar, int, int, int]
     sql: SELECT `keyName` AS `none_keyName_nk`, `order` AS `sum_order_ok`, `val4` AS `sum_valE_ok`, CONVERT(`val5`, SQL_BIGINT) AS `sum_valF_ok` FROM SpecialData ORDER BY 1, 2, 3, 4
+    unordered: true

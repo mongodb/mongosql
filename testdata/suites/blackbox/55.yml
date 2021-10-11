@@ -100,3 +100,4 @@ testcases:
       - [WEST, TECHNOLOGY, TELEPHONES AND COMMUNICATION, REGULAR SHIPPING, 21.080000000000002]
     expected_types: [varchar, varchar, varchar, varchar, float]
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`,   `Prod Type1` AS `none_Prod_TypeB_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk`,   `Ship Promo` AS `none_Ship_Promo_nk`,   SUM(`Discount`) AS `sum_Discount_ok` FROM Staples GROUP BY `Call Center Region`,   `Prod Type1`,   `Prod Type2`,   `Ship Promo` ORDER BY 1, 2, 3, 4, 5
+    unordered: true

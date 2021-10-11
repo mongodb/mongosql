@@ -391,3 +391,4 @@ testcases:
       - [Dario Medina, '2002-12-22 00:00:00', 1-URGENT]
     expected_types: [varchar, varchar, varchar]
     sql: SELECT `Customer Name` AS `none_Customer_Name_nk`,   `Order Date` AS `none_Order_Date_ok`,   `Order Priority` AS `none_Order_Priority_nk` FROM Staples WHERE (`Customer Name` IN ('Barbara Fisher', 'Dario Medina')) GROUP BY `Customer Name`,   `Order Date`,   `Order Priority` ORDER BY 1, 2, 3
+    unordered: true

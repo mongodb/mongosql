@@ -5,3 +5,4 @@ testcases:
       - [eight, 3]
     expected_types: [varchar, int]
     sql: SELECT MIN(`str2`) AS `TEMP_z_min_strC___DJJCFEABJH__A_`, MIN(LENGTH(`str2`)) AS `min_len_strC__ok` FROM Calcs HAVING (COUNT(1) > 0) ORDER BY 1, 2
+    unordered: true

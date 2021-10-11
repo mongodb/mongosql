@@ -7,6 +7,7 @@ testcases:
     expected_types: [int]
     id: '0'
     sql: select 1
+    unordered: true
 
   - description: value from dual
     expected_names: ['1']
@@ -15,6 +16,7 @@ testcases:
     expected_types: [int]
     id: '1'
     sql: select 1 from dual
+    unordered: true
 
   - description: multiple values
     expected_names: ['1', '3']
@@ -23,6 +25,7 @@ testcases:
     expected_types: [int, int]
     id: '2'
     sql: select 1, 3
+    unordered: true
 
   - description: multiple values from dual
     expected_names: ['1', '3']
@@ -31,6 +34,7 @@ testcases:
     expected_types: [int, int]
     id: '3'
     sql: select 1, 3 from dual
+    unordered: true
 
   - description: computed values
     expected_names: [2*1, 3+5]
@@ -39,6 +43,7 @@ testcases:
     expected_types: [int, int]
     id: '4'
     sql: select 2*1, 3+5
+    unordered: true
 
   - description: computed values from dual
     expected_names: [2*1, 3+5]
@@ -47,6 +52,7 @@ testcases:
     expected_types: [int, int]
     id: '5'
     sql: select 2*1, 3+5 from dual
+    unordered: true
 
   - description: aliased computed values
     expected_names: [a, b]
@@ -55,6 +61,7 @@ testcases:
     expected_types: [int, int]
     id: '6'
     sql: select 2*1 as a, 3+5 as b
+    unordered: true
 
   - description: computed values from dual
     expected_names: [a, b]
@@ -63,6 +70,7 @@ testcases:
     expected_types: [int, int]
     id: '7'
     sql: select 2*1 as a, 3+5 as b from dual
+    unordered: true
 
   - description: unset user variable
     expected_names: ['@lkjasdflkjasdf']
@@ -71,6 +79,7 @@ testcases:
     expected_types: [varchar]
     id: '8'
     sql: select @lkjasdflkjasdf
+    unordered: true
 
   - description: version
     expected_names: ['@@version = version()']
@@ -79,6 +88,7 @@ testcases:
     expected_types: [varchar]
     id: '9'
     sql: select @@version = version();
+    unordered: true
 
   - description: values with limit
     expected_names: ["3"]
@@ -87,26 +97,31 @@ testcases:
     expected_types: [int]
     id: '10'
     sql: select 3 limit 1
+    unordered: true
 
   - description: selecting individual column from dual does not leak collection data
     expected_error: "Error 1054: Unknown column 'a' in 'field list'"
     id: '11'
     sql: select a from DUAL
+    unordered: true
 
   - description: selecting multiple columns from dual does not leak collection data
     expected_error: "Error 1054: Unknown column 'a' in 'field list'"
     id: '12'
     sql: select a, b from DUAL
+    unordered: true
 
   - description: selecting simple and column from dual does not leak collection data
     expected_error: "Error 1054: Unknown column 'b' in 'field list'"
     id: '13'
     sql: select 1+2, b from DUAL
+    unordered: true
 
   - description: select star from dual does not leak collection data
     expected_error: "Error 1096: No tables used"
     id: '14'
     sql: select * from DUAL
+    unordered: true
 
   - description: aggregate function applied to value
     expected_names: ['sum(2)']
@@ -115,6 +130,7 @@ testcases:
     expected_types: [int]
     id: '15'
     sql: select sum(2)
+    unordered: true
 
   - description: aggregate function applied to value from dual
     expected_names: ['sum(2)']
@@ -123,3 +139,4 @@ testcases:
     expected_types: [int]
     id: '16'
     sql: select sum(2) from dual
+    unordered: true

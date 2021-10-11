@@ -21,3 +21,4 @@ testcases:
       - ['2004-08-02 07:59:23', key02, '2004-07-01 00:00:00']
     expected_types: [varchar, varchar, varchar]
     sql: SELECT `datetime0` AS `none_datetimeA_ok`, `key` AS `none_key_nk`, TIMESTAMPADD(SQL_TSI_MONTH,FLOOR((3 * (FLOOR(QUARTER(`datetime0`)) - 1))),TIMESTAMPADD(SQL_TSI_DAY,FLOOR(-(DAYOFYEAR(`datetime0`) - 1)),CONVERT(`datetime0`, SQL_DATE))) AS `none_z_datetrunc_quarter_ok` FROM Calcs ORDER BY 1, 2, 3
+    unordered: true

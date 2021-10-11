@@ -22,3 +22,4 @@ testcases:
       - [West, Green Tea, 1999]
     expected_types: [varchar, varchar, int]
     sql: SELECT `Market` AS `none_Market_nk`, `Product` AS `none_Product_nk`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE (`Product Type` = 'Tea') GROUP BY `Market`, `Product`, YEAR(`Date`) ORDER BY 1, 2, 3
+    unordered: true

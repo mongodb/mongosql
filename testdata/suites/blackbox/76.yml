@@ -16,3 +16,4 @@ testcases:
       - [262, 678]
     expected_types: [int, int]
     sql: SELECT `Profit` AS `sum_Profit_ok`,   `Sales` AS `sum_Sales_ok` FROM Starbucks WHERE ((`Date` = '1998-01-01') AND (`State` = 'California')) ORDER BY 1, 2
+    unordered: true

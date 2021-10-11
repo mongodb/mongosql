@@ -112,3 +112,4 @@ testcases:
       - [WEST, TECHNOLOGY, WEST, 4, 1149980, 340509.15]
     expected_types: [varchar, varchar, varchar, int, int, float]
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `Prod Type1` AS `none_Prod_TypeB_nk`, `Supplier Region` AS `none_Supplier_Region_nk`, QUARTER(`Order Date`) AS `qr_Order_Date_ok`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok`, SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples GROUP BY `Call Center Region`, `Prod Type1`, `Supplier Region`, QUARTER(`Order Date`) ORDER BY 1, 2, 3, 4, 5, 6
+    unordered: true

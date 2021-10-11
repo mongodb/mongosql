@@ -21,3 +21,4 @@ testcases:
       - ['2004-08-02 07:59:23', key02, 20040782035822]
     expected_types: [varchar, varchar, float]
     sql: SELECT `datetime0` AS `none_datetimeA_ok`, `key` AS `none_key_nk`, (`datetime0` - {d '2004-01-01'}) AS `sum_z_datetime_minus_date_ok` FROM Calcs ORDER BY 1, 2, 3
+    unordered: true

@@ -10,3 +10,4 @@ testcases:
       - [2, 136, 3389.424786690755]
     expected_types: [int, int, float]
     sql: SELECT FLOOR(`Profit` / 300) AS `Profit__bin_`, SUM(CONVERT(`Marketing`, SQL_BIGINT)) AS `sum_Marketing_ok`, SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY FLOOR(`Profit` / 300) ORDER BY 1, 2, 3
+    unordered: true

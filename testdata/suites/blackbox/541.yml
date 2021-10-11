@@ -32,3 +32,4 @@ testcases:
       - [MEDIA]
     expected_types: [varchar]
     sql: SELECT `Prod Type3` AS `none_Prod_TypeD_nk` FROM Staples GROUP BY `Prod Type3` ORDER BY 1 LIMIT 28
+    unordered: true

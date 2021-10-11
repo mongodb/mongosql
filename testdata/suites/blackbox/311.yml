@@ -21,3 +21,4 @@ testcases:
       - [two, key01, two, 3]
     expected_types: [varchar, varchar, varchar, int]
     sql: SELECT `str2` AS `TEMP_z_max_strC___DFJIBAEFCD__A_`, `key` AS `none_key_nk`, `str2` AS `none_strC_nk`, LENGTH(`str2`) AS `sum_len_strC__ok` FROM Calcs ORDER BY 1, 2, 3, 4
+    unordered: true

@@ -8,6 +8,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '0'
     sql: SHOW COLUMNS FROM strings
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -15,6 +16,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '1'
     sql: SHOW COLUMNS IN strings IN functions_test LIKE 'b%'
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -22,6 +24,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '2'
     sql: SHOW COLUMNS FROM strings FROM functions_test LIKE 'b%'
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -29,12 +32,14 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '3'
     sql: SHOW COLUMNS FROM strings WHERE type = 'double'
+    unordered: true
 
   - db: functions_test
     expected_results: []
     expected_types: []
     id: '4'
     sql: SHOW COLUMNS FROM strings WHERE 'decimal(65,20)'
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -44,6 +49,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '5'
     sql: SHOW COLUMNS FROM functions_test.strings
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -53,6 +59,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '6'
     sql: SHOW COLUMNS IN functions_test.strings
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -62,6 +69,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '7'
     sql: SHOW COLUMNS IN .strings
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -71,6 +79,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '8'
     sql: SHOW COLUMNS FROM strings FROM functions_test
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -80,6 +89,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '9'
     sql: SHOW COLUMNS IN strings IN functions_test
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -89,6 +99,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '10'
     sql: SHOW FULL COLUMNS FROM strings
+    unordered: true
 
   - db: union_test
     expected_results:
@@ -100,6 +111,7 @@ testcases:
     expected_types: [varchar]
     id: '11'
     sql: SHOW TABLES
+    unordered: true
 
   - db: union_test
     expected_results:
@@ -111,6 +123,7 @@ testcases:
     expected_types: [varchar]
     id: '12'
     sql: SHOW TABLES LIKE 'u%'
+    unordered: true
 
   - db: union_test
     expected_results:
@@ -118,6 +131,7 @@ testcases:
     expected_types: [varchar]
     id: '13'
     sql: SHOW TABLES WHERE Tables_in_union_test = 'union_1'
+    unordered: true
 
   - db: union_test
     expected_results:
@@ -129,6 +143,7 @@ testcases:
     expected_types: [varchar]
     id: '14'
     sql: SHOW TABLES FROM union_test
+    unordered: true
 
   - db: union_test
     expected_names: [Tables_in_union_test, Table_type]
@@ -141,6 +156,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '15'
     sql: SHOW FULL TABLES
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -149,6 +165,7 @@ testcases:
     expected_types: [varchar]
     id: '16'
     sql: SHOW DATABASES like 'use%'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -157,6 +174,7 @@ testcases:
     expected_types: [varchar]
     id: '17'
     sql: SHOW DATABASES LIKE 'use_t%'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -164,6 +182,7 @@ testcases:
     expected_types: [varchar]
     id: '18'
     sql: SHOW DATABASES WHERE `Database` = 'use_test'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -172,6 +191,7 @@ testcases:
     expected_types: [varchar]
     id: '19'
     sql: SHOW SCHEMAS like 'use%'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -180,6 +200,7 @@ testcases:
     expected_types: [varchar]
     id: '20'
     sql: SHOW SCHEMAS LIKE 'use_t%'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -187,6 +208,7 @@ testcases:
     expected_types: [varchar]
     id: '21'
     sql: SHOW SCHEMAS WHERE `Database` = 'use_test'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -195,6 +217,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '22'
     sql: SHOW VARIABLES LIKE '%auto_incr%'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -203,6 +226,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '23'
     sql: SHOW SESSION VARIABLES LIKE '%auto_incr%'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -211,6 +235,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '24'
     sql: SHOW GLOBAL VARIABLES LIKE '%auto_incr%'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -229,6 +254,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '25'
     sql: SHOW VARIABLES LIKE '%info%'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -236,6 +262,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '26'
     sql: SHOW GLOBAL VARIABLES WHERE Variable_name = 'autocommit'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -244,6 +271,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '27'
     sql: SHOW STATUS LIKE '%stmt_create_collection%'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -252,6 +280,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '28'
     sql: SHOW GLOBAL STATUS LIKE '%stmt_create_collection%'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -260,6 +289,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '29'
     sql: SHOW SESSION STATUS LIKE '%stmt_create_collection%'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -267,6 +297,7 @@ testcases:
     expected_types: [varchar, int]
     id: '30'
     sql: SHOW SESSION STATUS WHERE Variable_name = 'Firewall_access_denied'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -278,6 +309,7 @@ testcases:
     expected_types: [varchar, varchar, int, varchar, varchar, int]
     id: '31'
     sql: SHOW COLLATION LIKE '%sinhala%'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -288,6 +320,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, int]
     id: '32'
     sql: SHOW CHARSET LIKE '%cp1%'
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -295,41 +328,49 @@ testcases:
     expected_types: [varchar, varchar, varchar, int]
     id: '33'
     sql: SHOW CHARSET LIKE 'macce'
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '34'
     sql: SHOW BINARY LOGS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '35'
     sql: SHOW MASTER LOGS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '36'
     sql: SHOW BINLOG EVENTS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '37'
     sql: SHOW BINLOG EVENTS IN `temp`
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '38'
     sql: SHOW BINLOG EVENTS FROM 10
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '39'
     sql: SHOW BINLOG EVENTS LIMIT 10, 12
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '40'
     sql: SHOW RELAYLOG EVENTS
+    unordered: true
 
   - db: use_test
     expected_names: [Database, Create Database]
@@ -338,6 +379,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '41'
     sql: SHOW CREATE DATABASE use_test
+    unordered: true
 
   - db: use_test
     expected_names: [Database, Create Database]
@@ -346,131 +388,157 @@ testcases:
     expected_types: [varchar, varchar]
     id: '42'
     sql: SHOW CREATE DATABASE IF NOT EXISTS use_test
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '43'
     sql: SHOW CREATE SCHEMA schema_name
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '44'
     sql: SHOW CREATE SCHEMA IF NOT EXISTS schema_name
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '45'
     sql: SHOW CREATE EVENT event_name
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '46'
     sql: SHOW CREATE FUNCTION func_name
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '47'
     sql: SHOW CREATE PROCEDURE proc_name
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '48'
     sql: SHOW CREATE TRIGGER trigger_name
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '49'
     sql: SHOW CREATE USER user_name
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '50'
     sql: SHOW CREATE VIEW view_name
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '51'
     sql: SHOW ENGINE engine_name STATUS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '52'
     sql: SHOW ENGINE engine_name MUTEX
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '53'
     sql: SHOW ENGINES
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '54'
     sql: SHOW STORAGE ENGINES
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '55'
     sql: SHOW ERRORS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '56'
     sql: SHOW ERRORS LIMIT 10, 12
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '57'
     sql: SHOW COUNT(*) ERRORS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '58'
     sql: SHOW EVENTS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '59'
     sql: SHOW EVENTS FROM schema_name
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '60'
     sql: SHOW EVENTS IN schema_name
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '61'
     sql: SHOW EVENTS LIKE '%_'
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '62'
     sql: SHOW EVENTS WHERE XXX = 12
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '63'
     sql: SHOW FUNCTION STATUS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '64'
     sql: SHOW FUNCTION STATUS LIKE '%_'
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '65'
     sql: SHOW FUNCTION STATUS WHERE XXX = 12
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '66'
     sql: SHOW GRANTS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '67'
     sql: SHOW GRANTS FOR user_name
+    unordered: true
 
   - db: information_schema_test
     expected_names: [Table, Non_unique, Key_name, Seq_in_index, Column_name, Collation, Cardinality, Sub_part, Packed, 'Null', Index_type, Comment, Index_comment]
@@ -480,6 +548,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '68'
     sql: SHOW INDEX FROM information_schema_3
+    unordered: true
 
   - db: information_schema_test
     expected_names: [Table, Non_unique, Key_name, Seq_in_index, Column_name, Collation, Cardinality, Sub_part, Packed, 'Null', Index_type, Comment, Index_comment]
@@ -489,6 +558,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '69'
     sql: SHOW KEYS FROM information_schema_3 from information_schema_test;
+    unordered: true
 
   - db: information_schema_test
     expected_names: [Table, Non_unique, Key_name, Seq_in_index, Column_name, Collation, Cardinality, Sub_part, Packed, 'Null', Index_type, Comment, Index_comment]
@@ -497,151 +567,181 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '70'
     sql: SHOW INDEX FROM information_schema_3 WHERE Column_name = '_id'
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '71'
     sql: SHOW MASTER STATUS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '72'
     sql: SHOW OPEN TABLES
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '73'
     sql: SHOW OPEN TABLES FROM db_name
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '74'
     sql: SHOW OPEN TABLES FROM db_name LIKE '%_'
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '75'
     sql: SHOW OPEN TABLES WHERE XXX = 10
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '76'
     sql: SHOW PLUGINS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '77'
     sql: SHOW PRIVILEGES
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '78'
     sql: SHOW PROCEDURE STATUS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '79'
     sql: SHOW PROCEDURE STATUS LIKE '%_'
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '80'
     sql: SHOW PROCEDURE STATUS WHERE XXX = 12
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '81'
     sql: SHOW PROFILES
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '82'
     sql: SHOW SLAVE HOSTS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '83'
     sql: SHOW SLAVE STATUS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '84'
     sql: SHOW SLAVE STATUS FOR CHANNEL channel_name
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '85'
     sql: SHOW TABLE STATUS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '86'
     sql: SHOW TABLE STATUS FROM db_name
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '87'
     sql: SHOW TABLE STATUS IN db_name
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '88'
     sql: SHOW TABLE STATUS LIKE '%_'
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '89'
     sql: SHOW TABLE STATUS WHERE XXX = 10
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '90'
     sql: SHOW TABLE STATUS FROM db_name WHERE XXX = 10
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '91'
     sql: SHOW TRIGGERS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '92'
     sql: SHOW TRIGGERS FROM db_name
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '93'
     sql: SHOW TRIGGERS IN db_name
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '94'
     sql: SHOW TRIGGERS LIKE '%_'
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '95'
     sql: SHOW TRIGGERS WHERE XXX = 10
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '96'
     sql: SHOW TRIGGERS FROM db_name WHERE XXX = 10
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '97'
     sql: SHOW WARNINGS
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '98'
     sql: SHOW WARNINGS LIMIT 10, 12
+    unordered: true
 
   - db: use_test
     expected_results: []
     id: '99'
     sql: SHOW COUNT(*) WARNINGS
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -651,6 +751,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '100'
     sql: SHOW FIELDS FROM strings
+    unordered: true
 
   - db: use_test
     expected_results:
@@ -658,6 +759,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '101'
     sql: SHOW FIELDS IN test1 IN use_test LIKE 'a%'
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -665,6 +767,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '102'
     sql: SHOW FIELDS FROM strings FROM functions_test LIKE 'a%'
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -672,6 +775,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '103'
     sql: SHOW FIELDS FROM strings WHERE type = 'varchar(65535)'
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -681,6 +785,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '104'
     sql: SHOW FIELDS FROM functions_test.strings
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -690,6 +795,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '105'
     sql: SHOW FIELDS IN functions_test.strings
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -699,6 +805,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '106'
     sql: SHOW FIELDS IN .strings
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -708,6 +815,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '107'
     sql: SHOW FIELDS FROM strings FROM functions_test
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -717,6 +825,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '108'
     sql: SHOW FIELDS IN strings IN functions_test
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -726,6 +835,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '109'
     sql: SHOW FULL FIELDS FROM strings
+    unordered: true
 
   - db: use_test
     expected_names: [Database, Create Database]
@@ -734,6 +844,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '110'
     sql: SHOW CREATE DATABASE `use_test`
+    unordered: true
 
   - db: information_schema_test
     expected_names: [Table, Create Table]
@@ -742,6 +853,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '111'
     sql: SHOW CREATE TABLE `information_schema_4`
+    unordered: true
 
   - db: information_schema_test
     expected_names: [Table, Create Table]
@@ -750,6 +862,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '112'
     sql: SHOW CREATE TABLE `information_schema_3`
+    unordered: true
 
   - expected_names: [Tables_in_union_test, Table_type]
     expected_results:
@@ -761,6 +874,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '113'
     sql: SHOW FULL TABLES FROM union_test
+    unordered: true
 
   - expected_names: [Tables_in_UNION_Test, Table_type]
     expected_results:
@@ -772,6 +886,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '114'
     sql: SHOW FULL TABLES FROM UNION_Test
+    unordered: true
 
   - expected_names: [Tables_in_uNiOn_Test, Table_type]
     expected_results:
@@ -783,6 +898,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '115'
     sql: SHOW FULL TABLES FROM uNiOn_Test
+    unordered: true
 
   - db: information_schema_test
     expected_names: [Table, Create Table]
@@ -791,6 +907,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '116'
     sql: SHOW CREATE TABLE `information_schema_5`
+    unordered: true
 
   - expected_names: [Database]
     expected_results:
@@ -827,3 +944,4 @@ testcases:
     expected_types: [varchar]
     id: '117'
     sql: SHOW DBS
+    unordered: true

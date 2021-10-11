@@ -79,3 +79,4 @@ testcases:
       - [Zyzzy Zzuyzyzyk, 5052539]
     expected_types: [varchar, int]
     sql: SELECT `Customer Name` AS `none_Customer_Name_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok` FROM Staples WHERE (((`Customer Name` >= 'Barbara Fisher') AND (`Customer Name` <= 'Roy Skaria')) OR ((`Customer Name` >= 'Sarah Jordon-Smith') AND (`Customer Name` <= 'Zyzzy Zzuyzyzyk'))) GROUP BY `Customer Name` ORDER BY 1, 2
+    unordered: true

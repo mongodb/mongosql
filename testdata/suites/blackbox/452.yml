@@ -7,3 +7,4 @@ testcases:
       - [1, East, Green Tea]
     expected_types: [int, varchar, varchar]
     sql: SELECT MIN(1) AS `min_Number_of_Records_ok`,   `Market` AS `none_Market_nk`,   `Product` AS `none_Product_nk` FROM Starbucks WHERE ((`Market` = 'East') AND (`Product Type` = 'Tea')) GROUP BY `Market`,   `Product` ORDER BY 1, 2, 3
+    unordered: true

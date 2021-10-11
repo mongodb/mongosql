@@ -8,3 +8,4 @@ testcases:
       - [1, Central, Tea, 17100]
     expected_types: [int, varchar, varchar, int]
     sql: SELECT MIN(1) AS `min_Number_of_Records_ok`, `Market` AS `none_Market_nk`, `Product Type` AS `none_Product_Type_nk`, SUM(CONVERT(`Budget Profit`, SQL_BIGINT)) AS `sum_Budget_Profit_ok` FROM Starbucks WHERE (`Market` = 'Central') GROUP BY `Market`, `Product Type` ORDER BY 1, 2, 3, 4
+    unordered: true

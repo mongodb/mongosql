@@ -28,3 +28,4 @@ testcases:
       - [7, 30]
     expected_types: [int, int]
     sql: SELECT DAYOFWEEK(`Date`) AS `wd_Date_ok`, WEEK(`Date`) AS `wk_Date_ok` FROM Starbucks GROUP BY DAYOFWEEK(`Date`), WEEK(`Date`) ORDER BY 1, 2
+    unordered: true

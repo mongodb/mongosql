@@ -8,3 +8,4 @@ testcases:
       - [West, West, 125810]
     expected_types: [varchar, varchar, int]
     sql: SELECT `Market` AS `Market`, `Market` AS `none_Market_nk`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok` FROM Starbucks GROUP BY `Market`, `Market` ORDER BY 1, 2, 3
+    unordered: true

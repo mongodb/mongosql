@@ -5,3 +5,4 @@ testcases:
       - [13, 13]
     expected_types: [int, int]
     sql: SELECT COUNT(`str2`) AS `cnt_strC_ok`,   COUNT(`str2`) AS `usr_z_count_strC__ok` FROM Calcs HAVING (COUNT(1) > 0) ORDER BY 1, 2
+    unordered: true

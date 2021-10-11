@@ -181,3 +181,4 @@ testcases:
       - [2067, 1, West, null, 271]
     expected_types: [int, int, varchar, varchar, int]
     sql: SELECT CONVERT(`Ending`, SQL_DOUBLE) AS `avg_Ending_ok`, (CASE WHEN (`Item Count` IS NULL) THEN 0 WHEN NOT (`Item Count` IS NULL) THEN 1 ELSE NULL END) AS `cnt_Item_Count_ok`, `Market` AS `none_Market_nk`, (CASE WHEN (0 <> 0) THEN 0 WHEN NOT (0 <> 0) THEN NULL ELSE NULL END) AS `std_Additions_ok`, `COGS` AS `sum_COGS_ok` FROM Starbucks WHERE ((((YEAR(`Date`) * 10000) + (MONTH(`Date`) * 100)) + DAYOFMONTH(`Date`)) = 19980101) ORDER BY 1, 2, 3, 4, 5
+    unordered: true

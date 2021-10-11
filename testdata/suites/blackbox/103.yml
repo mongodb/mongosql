@@ -19,3 +19,4 @@ testcases:
       - [1, 1, West, Tea, 72219.63576834391]
     expected_types: [int, int, varchar, varchar, float]
     sql: SELECT MAX(1) AS `TEMP_attr_Number_of_Records_qk__BEGFFHGFJB__A_`,   MIN(1) AS `TEMP_attr_Number_of_Records_qk__CEDFHGBFEJ__A_`,   `Market` AS `none_Market_nk`,   `Product Type` AS `none_Product_Type_nk`,   SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Market`,   `Product Type` ORDER BY 1, 2, 3, 4, 5
+    unordered: true

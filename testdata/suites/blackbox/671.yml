@@ -28,3 +28,4 @@ testcases:
       - [82.14689265536722, 91.9322033898305, 450, 364, 8, 1999]
     expected_types: [float, float, int, int, int, int]
     sql: SELECT AVG(CONVERT(`Budget COGS`, SQL_DOUBLE)) AS `avg_Budget_COGS_ok`, AVG(CONVERT(`COGS`, SQL_DOUBLE)) AS `avg_COGS_ok`, MAX(`Budget COGS`) AS `max_Budget_COGS_ok`, MAX(`COGS`) AS `max_COGS_ok`, MONTH(`Date`) AS `mn_Date_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY MONTH(`Date`), YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5, 6
+    unordered: true

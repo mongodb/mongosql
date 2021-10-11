@@ -21,3 +21,4 @@ testcases:
       - [key16, null, null]
     expected_types: [varchar, varchar, int]
     sql: SELECT `key` AS `none_key_nk`, `str2` AS `none_strC_nk`, LENGTH(`str2`) AS `sum_z_len_str_ok` FROM Calcs ORDER BY 1, 2, 3
+    unordered: true

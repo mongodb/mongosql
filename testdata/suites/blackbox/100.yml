@@ -16,3 +16,4 @@ testcases:
       - [Regular Espresso, 13102, 1944, 10061.856908634549, 24036.486351042855]
     expected_types: [varchar, int, int, float, float]
     sql: SELECT `Product` AS `none_Product_nk`, SUM(CONVERT(`Margin`, SQL_BIGINT)) AS `sum_Margin_ok`, SUM(CONVERT(`Payroll`, SQL_BIGINT)) AS `sum_Payroll_ok`, SUM(`Profit`) AS `sum_Profit_ok`, SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks WHERE (NOT (`Product` = 'Columbian')) GROUP BY `Product` ORDER BY 1, 2, 3, 4, 5
+    unordered: true

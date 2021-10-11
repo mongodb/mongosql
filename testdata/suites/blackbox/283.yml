@@ -80,3 +80,4 @@ testcases:
       - [West, Tea, Washington, 9786.214714400181]
     expected_types: [varchar, varchar, varchar, float]
     sql: SELECT `Market` AS `none_Market_nk`,   `Product Type` AS `none_Product_Type_nk`,   `State` AS `none_State_nk`,   SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Market`,   `Product Type`,   `State` ORDER BY 1, 2, 3, 4
+    unordered: true

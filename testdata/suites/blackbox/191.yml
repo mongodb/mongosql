@@ -28,3 +28,4 @@ testcases:
       - [September, WEST DISTRICT, -1, 0]
     expected_types: [varchar, varchar, int, int]
     sql: SELECT `MONTH` AS `none_MONTH_nk`, `PRECINCT` AS `none_PRECINCT_nk`, SUM(CONVERT(`AGG_ASSAULT`, SQL_BIGINT)) AS `sum_AGG_ASSAULT_ok`, SUM(CONVERT(`ARSON`, SQL_BIGINT)) AS `sum_ARSON_ok` FROM SeattleCrime WHERE (`PRECINCT` IN ('EAST DISTRICT', 'WEST DISTRICT')) GROUP BY `MONTH`, `PRECINCT` ORDER BY 1, 2, 3, 4
+    unordered: true

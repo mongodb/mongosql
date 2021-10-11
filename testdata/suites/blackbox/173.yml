@@ -136,3 +136,4 @@ testcases:
       - [2002]
     expected_types: [int]
     sql: SELECT `Year` AS `none_Year_ok` FROM Batters GROUP BY `Year` ORDER BY 1 ASC
+    unordered: true

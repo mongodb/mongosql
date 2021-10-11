@@ -21,3 +21,4 @@ testcases:
       - ['1999-08-20', key10, 19990820]
     expected_types: [varchar, varchar, int]
     sql: SELECT DATE(`date3`) AS `TEMP_z_min_dateD___CAIFDBAFGG__A_`, `key` AS `none_key_nk`, CONVERT(DATE(`date3`), SQL_DOUBLE) AS `sum_float_dateD__ok` FROM Calcs ORDER BY 1, 2, 3
+    unordered: true

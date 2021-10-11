@@ -12,3 +12,4 @@ testcases:
       - [West, 170, 78]
     expected_types: [varchar, int, int]
     sql: SELECT `Market` AS `none_Market_nk`,   `Sales` AS `sum_Sales_ok`,   `COGS` AS `usr_COGS_Calc_ok` FROM Starbucks WHERE (((`Date` >= '1998-01-01') AND (`Date` <= '1998-01-01')) AND (`Product` = 'Amaretto')) ORDER BY 1, 2, 3
+    unordered: true

@@ -34,3 +34,4 @@ testcases:
       - [Small Market, West, Tea, 284910]
     expected_types: [varchar, varchar, varchar, int]
     sql: SELECT `Market Size` AS `none_Market_Size_nk`, `Market` AS `none_Market_nk`, `Product Type` AS `none_Product_Type_nk`, SUM(CONVERT(`Inventory`, SQL_BIGINT)) AS `sum_Inventory_ok` FROM Starbucks GROUP BY `Market Size`, `Market`, `Product Type` ORDER BY 1, 2, 3, 4
+    unordered: true

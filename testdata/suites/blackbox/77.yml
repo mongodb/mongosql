@@ -12,3 +12,4 @@ testcases:
       - [West, 336.4274983936046, 288, Major Market, 96891.11953735813]
     expected_types: [varchar, float, int, varchar, float]
     sql: SELECT `Market` AS `Market`,   AVG(`Sales`) AS `avg_Sales_ok`,   COUNT(`Sales`) AS `cnt_Sales_ok`,   `Market Size` AS `none_Market_Size_nk`,   SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks WHERE (`Market` IN ('West', 'Central', 'South', 'East')) GROUP BY `Market`,   `Market Size` ORDER BY 1, 2, 3, 4, 5
+    unordered: true

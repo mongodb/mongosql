@@ -5,3 +5,4 @@ testcases:
       - [443038]
     expected_types: [int]
     sql: SELECT SUM(CONVERT(`Margin`, SQL_BIGINT)) AS `sum_Margin_ok` FROM Starbucks HAVING (COUNT(1) > 0) ORDER BY 1
+    unordered: true

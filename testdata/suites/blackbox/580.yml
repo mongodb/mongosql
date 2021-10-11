@@ -10,3 +10,4 @@ testcases:
       - [2002]
     expected_types: [int]
     sql: SELECT YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY YEAR(`Order Date`) ORDER BY 1 ASC
+    unordered: true

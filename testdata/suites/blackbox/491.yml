@@ -46,3 +46,4 @@ testcases:
       - [West, Mint, 4329.950305364882]
     expected_types: [varchar, varchar, float]
     sql: SELECT `Market` AS `none_Market_nk`,   `Product` AS `none_Product_nk`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks GROUP BY `Market`,   `Product` ORDER BY 1, 2, 3
+    unordered: true

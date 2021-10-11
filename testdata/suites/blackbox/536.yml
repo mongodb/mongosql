@@ -76,3 +76,4 @@ testcases:
       - [TECHNOLOGY, 4, 38.910000000000004, 2002]
     expected_types: [varchar, int, float, int]
     sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk`, QUARTER(`Order Date`) AS `qr_Order_Date_ok`, SUM(`Discount`) AS `sum_Discount_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Prod Type1`, QUARTER(`Order Date`), YEAR(`Order Date`) ORDER BY 1, 2, 3, 4
+    unordered: true

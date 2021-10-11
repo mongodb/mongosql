@@ -7,6 +7,7 @@ testcases:
     expected_types: [varchar, varchar, int]
     id: field_string_0
     sql: select sa as str, sa as str1, field(sa, sa) as field from field
+    unordered: true
 
   - db: functions_test
     expected_names: [str, str1, str2, field]
@@ -15,6 +16,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, int]
     id: field_string_1
     sql: select sa as str, sa as str1, sb as str2, field(sa, sa, sb) as field from field
+    unordered: true
 
   - db: functions_test
     expected_names: [str, str1, str2, field]
@@ -23,6 +25,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, int]
     id: field_string_2
     sql: select sa as str, sa as str1, sa as str2, field(sa, sa, sa) as field from field
+    unordered: true
 
   - db: functions_test
     expected_names: [str, str1, str2, field]
@@ -31,6 +34,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, int]
     id: field_string_3
     sql: select sa as str, sb as str1, sa as str2, field(sa, sb, sa) as field from field
+    unordered: true
 
   - db: functions_test
     expected_names: [str, str1, str2, field]
@@ -39,6 +43,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, int]
     id: field_string_4
     sql: select sa as str, sb as str1, sb as str2, field(sa, sb, sb) as field from field
+    unordered: true
 
   - db: functions_test
     expected_names: [num, num1, field]
@@ -47,6 +52,7 @@ testcases:
     expected_types: [int, int, int]
     id: field_int_0
     sql: select i1 as num, i1 as num1, field(i1, i1) as field from field
+    unordered: true
 
   - db: functions_test
     expected_names: [num, num1, num2, field]
@@ -55,6 +61,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: field_int_1
     sql: select i1 as num, i1 as num1, i2 as num2, field(i1, i1, i2) as field from field
+    unordered: true
 
   - db: functions_test
     expected_names: [num, num1, num2, field]
@@ -63,6 +70,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: field_int_2
     sql: select i1 as num, i1 as num1, i1 as num2, field(i1, i1, i1) as field from field
+    unordered: true
 
   - db: functions_test
     expected_names: [num, num1, num2, field]
@@ -71,6 +79,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: field_int_3
     sql: select i1 as num, i2 as num1, i1 as num2, field(i1, i2, i1) as field from field
+    unordered: true
 
   - db: functions_test
     expected_names: [num, num1, num2, field]
@@ -79,6 +88,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: field_int_4
     sql: select i1 as num, i2 as num1, i2 as num2, field(i1, i2, i2) as field from field
+    unordered: true
 
   - db: functions_test
     expected_names: [str, str1, field]
@@ -87,6 +97,7 @@ testcases:
     expected_types: [varchar, varchar, int]
     id: field_null_0
     sql: select n as str, sa as str1, field(n, sa) as field from field
+    unordered: true
 
   - db: functions_test
     expected_names: [str, str1, field]
@@ -95,6 +106,7 @@ testcases:
     expected_types: [varchar, varchar, int]
     id: field_null_1
     sql: select sa as str, n as str1, field(sa, n) as field from field
+    unordered: true
 
   - db: functions_test
     expected_names: [str, str1, field]
@@ -103,6 +115,7 @@ testcases:
     expected_types: [varchar, varchar, int]
     id: field_null_2
     sql: select n as str, n as str1, field(n, n) as field from field
+    unordered: true
 
   - db: functions_test
     expected_names: [str, str1, field]
@@ -111,6 +124,7 @@ testcases:
     expected_types: [varchar, varchar, int]
     id: field_missing_0
     sql: select m as str, sa as str1, field(m, sa) as field from field
+    unordered: true
 
   - db: functions_test
     expected_names: [str, str1, field]
@@ -119,6 +133,7 @@ testcases:
     expected_types: [varchar, varchar, int]
     id: field_missing_1
     sql: select sa as str, m as str1, field(sa, m) as field from field
+    unordered: true
 
   - db: functions_test
     expected_names: [str, str1, field]
@@ -127,6 +142,7 @@ testcases:
     expected_types: [varchar, varchar, int]
     id: field_missing_null_0
     sql: select m as str, n as str1, field(m, n) as field from field
+    unordered: true
 
   - db: functions_test
     expected_names: [str, str1, field]
@@ -135,11 +151,13 @@ testcases:
     expected_types: [varchar, varchar, int]
     id: field_missing_null_1
     sql: select n as str, m as str1, field(n, m) as field from field
+    unordered: true
 
   - db: functions_test
     expected_error: 'Error 1105: scalar function ''abcde'' is not supported'
     id: func_abcde_not_supported
     sql: select abcde()
+    unordered: true
 
   - db: functions_test
     expected_names: [d, 'adddate(d, 7, minute)']
@@ -152,6 +170,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: adddate_1
     sql: select d, adddate(d, interval 7 minute) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, a]
@@ -164,6 +183,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: adddate_2
     sql: select d, adddate(date_format(d, '%Y-01-01'), interval 0 second) as a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, a]
@@ -176,6 +196,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: adddate_3
     sql: select d, adddate(date_format(d, '%Y-01-01 00:00:00'), interval 0 second) as a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, a]
@@ -188,6 +209,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: adddate_4
     sql: select d, adddate(date_format(d, '%Y-%m-01'), interval 0 second) as a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, a]
@@ -200,6 +222,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: adddate_5
     sql: select d, adddate(date_format(d, '%Y-%m-01 00:00:00'), interval 0 second) as a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, a]
@@ -212,6 +235,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: adddate_6
     sql: select d, adddate(date_format(d, '%Y-%m-%d'), interval 0 second) as a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, a]
@@ -224,6 +248,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: adddate_7
     sql: select d, adddate(date_format(d, '%Y-%m-%d 00:00:00'), interval 0 second) as a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, a]
@@ -236,6 +261,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: adddate_8
     sql: select d, adddate(date_format(d, '%Y-%m-%d %H:00:00'), interval 0 second) as a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, a]
@@ -248,6 +274,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: adddate_9
     sql: select d, adddate(date_format(d, '%Y-%m-%d %H:%i:00'), interval 0 second) as a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, a]
@@ -260,6 +287,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: adddate_10
     sql: select d, adddate(date_format(d, '%Y-%m-%d %H:%i:%s'), interval 0 second) as a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a]
@@ -269,6 +297,7 @@ testcases:
     expected_types: [varchar]
     id: adddate_11
     sql: select adddate(date_format(d, '%Y-01-01'), interval 0 second) as a from scalar group by 1 order by _id
+    unordered: true
 
   - db: functions_test
     expected_names: [a]
@@ -279,6 +308,7 @@ testcases:
     expected_types: [varchar]
     id: adddate_12
     sql: select adddate(date_format(d, '%Y-%m-01 00:00:00'), interval 0 second) as a from scalar group by 1 order by _id
+    unordered: true
 
   - db: functions_test
     expected_names: [d, a]
@@ -291,6 +321,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: adddate_13
     sql: select d, adddate(date_format(d, '%Y-%m-%d %H:%i:%s'), interval -1 second) as a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, a]
@@ -303,6 +334,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: adddate_14
     sql: select d, adddate(date_format(d, '%Y-%m-%d %H:%i:%s'), interval 1 second) as a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['d', 'date_add(d, 8, minute)']
@@ -315,6 +347,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: date_add_1
     sql: select d, d + INTERVAL 8 MINUTE from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['d', 'date_add(d, 8, minute)']
@@ -327,6 +360,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: date_add_2
     sql: select d, INTERVAL 8 MINUTE + d from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [res]
@@ -335,6 +369,7 @@ testcases:
     expected_types: [varchar]
     id: timstampadd_plus_operator_1
     sql: SELECT (cast('1996-01-01 00:00:00' as datetime) + INTERVAL FLOOR(5) YEAR) as res
+    unordered: true
 
   - db: functions_test
     expected_names: [res]
@@ -343,6 +378,7 @@ testcases:
     expected_types: [varchar]
     id: timestampadd_plus_operator_2
     sql: SELECT '2008-12-31 23:59:59' + INTERVAL 1 SECOND as res
+    unordered: true
 
   - db: functions_test
     expected_names: [avg(a)]
@@ -351,6 +387,7 @@ testcases:
     expected_types: [float]
     id: 'avg(1,null,-3,4,null)'
     sql: select avg(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [avg(null)]
@@ -359,6 +396,7 @@ testcases:
     expected_types: [float]
     id: avg_null
     sql: select avg(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [avg(case when b = 'yo' then 1  else 0 end)]
@@ -367,6 +405,7 @@ testcases:
     expected_types: [float]
     id: avg_non_simple_argument
     sql: select avg(case when b = 'yo' then 1 else 0 end) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [count(a)]
@@ -375,6 +414,7 @@ testcases:
     expected_types: [int]
     id: 'count(1,null,-3,4,null)'
     sql: select count(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [count(null)]
@@ -383,6 +423,7 @@ testcases:
     expected_types: [int]
     id: count_null
     sql: select count(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [group_concat(_id)]
@@ -391,6 +432,7 @@ testcases:
     expected_types: [varchar]
     id: group_concat_simple
     sql: select group_concat(_id) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['group_concat(_id, a)']
@@ -399,6 +441,7 @@ testcases:
     expected_types: [varchar]
     id: group_concat_multiple_args
     sql: select group_concat(_id,a) from strings
+    unordered: true
 
   - db: functions_test
     expected_names: ['group_concat(a, a)']
@@ -407,6 +450,7 @@ testcases:
     expected_types: [varchar]
     id: group_concat_multiple_args_self
     sql: select group_concat(a,a) from scalar
+    unordered: true
 
   - db: functions_test
     description: if one of the args concatenated together is NULL, return NULL
@@ -416,6 +460,7 @@ testcases:
     expected_types: [int, int, varchar]
     id: group_concat_multiple_args_one_NULL
     sql: select a, z, group_concat(a,z) from (select * from scalar limit 1) b
+    unordered: true
 
   - db: functions_test
     description: exclude NULL elements from final concatenated 'list' if non-NULL elems exist
@@ -425,6 +470,7 @@ testcases:
     expected_types: [varchar]
     id: group_concat_exclude_NULLs
     sql: select group_concat(a,b) from scalar
+    unordered: true
 
   - db: functions_test
     description: if all elements in concatenation are NULL, final result is NULL
@@ -434,6 +480,7 @@ testcases:
     expected_types: [varchar]
     id: group_concat_all_NULL
     sql: select group_concat(t,z) from scalar
+    unordered: true
 
   - db: functions_test
     description: group_concat(null) returns NULL
@@ -443,6 +490,7 @@ testcases:
     expected_types: [varchar]
     id: group_concat_NULL_arg
     sql: select group_concat(null) from convert_0
+    unordered: true
 
   - db: functions_test
     expected_names: [group_concat(s)]
@@ -451,6 +499,7 @@ testcases:
     expected_types: [varchar]
     id: group_concat_empty_strings_with_non_empty
     sql: select group_concat(s) from lpadTest
+    unordered: true
 
   - db: functions_test
     description: Concatenating n empty strings results in a string consisting of n-1 separators
@@ -462,6 +511,7 @@ testcases:
     #BI-2659: remove max_server_version
     max_server_version: 4.5
     sql: select group_concat(lpadTest.s) from lpadTest join lpadTest as b where lpadTest.s = ""
+    unordered: true
 
   - db: functions_test
     expected_names: [group_concat(lpadTest.s separator "")]
@@ -472,6 +522,7 @@ testcases:
     #BI-2659: remove max_server_version
     max_server_version: 4.5
     sql: select group_concat(lpadTest.s separator "") from lpadTest join lpadTest as b where lpadTest.s = ""
+    unordered: true
 
   - db: functions_test
     expected_names: [group_concat(s)]
@@ -480,6 +531,7 @@ testcases:
     expected_types: [varchar]
     id: group_concat_empty_string_as_result
     sql: select group_concat(s) from (select s from lpadTest where i < -1 and i > -3) b
+    unordered: true
 
   - db: functions_test
     description: For group_concat with multiple args, an empty string concatenated with NULL resolves to NULL
@@ -489,6 +541,7 @@ testcases:
     expected_types: [varchar]
     id: group_concat_empty_string_with_NULL
     sql: select group_concat(s,x) from lpadTest
+    unordered: true
 
   - db: functions_test
     expected_names: ['length(group_concat(_id, a))']
@@ -497,6 +550,7 @@ testcases:
     expected_types: [int]
     id: group_concat_max_len
     sql: select length(group_concat(_id,a)) from strings
+    unordered: true
     variables: {group_concat_max_len: 37}
 
   - db: functions_test
@@ -508,6 +562,7 @@ testcases:
     #BI-2659: remove max_server_version
     max_server_version: 4.5
     sql: select group_concat(distinct scalar._id) from scalar join scalar b where scalar._id=0
+    unordered: true
 
   - db: functions_test
     expected_names: ['group_concat(distinct scalar._id, scalar.a)']
@@ -518,6 +573,7 @@ testcases:
     #BI-2659: remove max_server_version
     max_server_version: 4.5
     sql: select group_concat(distinct scalar._id, scalar.a) from scalar join scalar b where scalar._id=0
+    unordered: true
 
   - db: functions_test
     expected_names: ['group_concat(_id separator " : ")']
@@ -526,6 +582,7 @@ testcases:
     expected_types: [varchar]
     id: group_concat_separator
     sql: 'select group_concat(_id separator " : ") from convert_0'
+    unordered: true
 
   - db: functions_test
     expected_names: [group_concat(_id separator ";")]
@@ -534,6 +591,7 @@ testcases:
     expected_types: [varchar]
     id: group_concat_separator_semicolon
     sql: select group_concat(_id separator ";") from convert_0
+    unordered: true
 
   - db: functions_test
     description: multiple group_concats in one query
@@ -543,6 +601,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: group_concat_many
     sql: select group_concat(a, _id), group_concat(a,b) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [min(d)]
@@ -551,6 +610,7 @@ testcases:
     expected_types: [varchar]
     id: min_date
     sql: select min(d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [max(d)]
@@ -559,6 +619,7 @@ testcases:
     expected_types: [varchar]
     id: max_date
     sql: select max(d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [max(a)]
@@ -567,6 +628,7 @@ testcases:
     expected_types: [int]
     id: 'max(1,null,-3,4,null)'
     sql: select max(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [max(null)]
@@ -575,6 +637,7 @@ testcases:
     expected_types: [int]
     id: max_null
     sql: select max(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [max(case when b = 'yo' then 1  else 0 end)]
@@ -583,6 +646,7 @@ testcases:
     expected_types: [int]
     id: max_non_simple_argument
     sql: select max(case when b = 'yo' then 1 else 0 end) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [min(a)]
@@ -591,6 +655,7 @@ testcases:
     expected_types: [int]
     id: 'min(1,null,-3,4,null)'
     sql: select min(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [min(null)]
@@ -599,6 +664,7 @@ testcases:
     expected_types: [int]
     id: min_null
     sql: select min(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [min(case when b = 'yo' then 0  else 1 end)]
@@ -607,6 +673,7 @@ testcases:
     expected_types: [int]
     id: min_non_simple_argument
     sql: select min(case when b = 'yo' then 0 else 1 end) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [std(a)]
@@ -615,6 +682,7 @@ testcases:
     expected_types: [float]
     id: 'std(1,null,-3,4,null)'
     sql: select std(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [stddev(a)]
@@ -623,6 +691,7 @@ testcases:
     expected_types: [float]
     id: 'stddev(1,null,-3,4,null)'
     sql: select stddev(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [stddev_pop(a)]
@@ -631,6 +700,7 @@ testcases:
     expected_types: [float]
     id: 'stddev_pop(1,null,-3,4,null)'
     sql: select stddev_pop(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [std(null)]
@@ -639,6 +709,7 @@ testcases:
     expected_types: [float]
     id: std_null
     sql: select std(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [stddev(null)]
@@ -647,6 +718,7 @@ testcases:
     expected_types: [float]
     id: stddev_null
     sql: select stddev(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [stddev_pop(null)]
@@ -655,6 +727,7 @@ testcases:
     expected_types: [float]
     id: stddev_pop_null
     sql: select stddev_pop(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [stddev_samp(a)]
@@ -663,6 +736,7 @@ testcases:
     expected_types: [float]
     id: 'stddev_samp(1,null,-3,4,null)'
     sql: select stddev_samp(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [stddev_samp(null)]
@@ -671,6 +745,7 @@ testcases:
     expected_types: [float]
     id: stddev_samp_null
     sql: select stddev_samp(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [sum(a)]
@@ -679,6 +754,7 @@ testcases:
     expected_types: [int]
     id: 'sum(1,null,-3,4,null)'
     sql: select sum(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [sum(null)]
@@ -687,6 +763,7 @@ testcases:
     expected_types: [int]
     id: sum_null
     sql: select sum(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [sum(case when a > 0 then 1  else 0 end)]
@@ -695,6 +772,7 @@ testcases:
     expected_types: [int]
     id: sum_non_simple_argument
     sql: select sum(case when a > 0 then 1 else 0 end) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, abs(a)]
@@ -707,6 +785,7 @@ testcases:
     expected_types: [int, float]
     id: abs_int
     sql: select a, abs(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, abs(a)]
@@ -716,6 +795,7 @@ testcases:
     expected_types: [int, float]
     id: abs_int_greater_than_1
     sql: select a, abs(a) from scalar where abs(a) > 1
+    unordered: true
 
   - db: functions_test
     expected_names: [abs(null)]
@@ -728,6 +808,7 @@ testcases:
     expected_types: [float]
     id: abs_null
     sql: select abs(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [s, c, a, ac]
@@ -754,6 +835,7 @@ testcases:
     expected_types: [float, float, float, float]
     id: trig
     sql: select sin(a) s, cos(a) c, asin(b) a, acos(b) ac from trig
+    unordered: true
 
   - db: functions_test
     expected_names: [c, d, 'truncate(c, d)']
@@ -787,6 +869,7 @@ testcases:
     id: truncateCols
     pushdown_only: true
     sql: select c, d, truncate(c, d) from truncate_columns
+    unordered: true
 
   - db: functions_test
     expected_names: [t]
@@ -808,6 +891,7 @@ testcases:
     expected_types: [float]
     id: trig2
     sql: select tan(a) t from trig where abs(cos(a)) > 0.0001
+    unordered: true
 
   - db: functions_test
     expected_names: [t]
@@ -829,6 +913,7 @@ testcases:
     expected_types: [float]
     id: trig3
     sql: select cot(a) t from trig where abs(sin(a)) > 0.0001
+    unordered: true
 
   - db: functions_test
     expected_names: [a, acos(a)]
@@ -841,6 +926,7 @@ testcases:
     expected_types: [int, float]
     id: acos
     sql: select a, acos(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, asin(a)]
@@ -853,6 +939,7 @@ testcases:
     expected_types: [int, float]
     id: asin
     sql: select a, asin(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, atan(a)]
@@ -865,6 +952,7 @@ testcases:
     expected_types: [int, float]
     id: atan
     sql: select a, atan(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['a', 'atan(a, 2)']
@@ -877,6 +965,7 @@ testcases:
     expected_types: [int, float]
     id: atan_2_arguments
     sql: select a, atan(a, 2) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, ascii(b)]
@@ -889,6 +978,7 @@ testcases:
     expected_types: [varchar, int]
     id: ascii
     sql: select b, ascii(b) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, ascii(b)]
@@ -898,6 +988,7 @@ testcases:
     expected_types: [varchar, int]
     id: where_ascii
     sql: select b, ascii(b) from scalar where ascii(b) > 105
+    unordered: true
 
   - db: functions_test
     expected_names: [ascii(null)]
@@ -910,6 +1001,7 @@ testcases:
     expected_types: [int]
     id: ascii_null
     sql: select ascii(null) from scalar
+    unordered: true
 
   - db: functions_test
     description: test ascii on different character sets
@@ -924,6 +1016,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: ascii_2
     sql: select ascii(a), ascii(b), ascii(c), ascii(d), ascii(e), ascii(f) from ascii
+    unordered: true
 
   - db: functions_test
     expected_names: [c, ceil(c)]
@@ -936,6 +1029,7 @@ testcases:
     expected_types: [float, float]
     id: ceil
     sql: select c, ceil(c) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [c, ceiling(c)]
@@ -948,6 +1042,7 @@ testcases:
     expected_types: [float, float]
     id: ceiling
     sql: select c, ceiling(c) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['a+50', 'char(a+50, 65)']
@@ -960,6 +1055,7 @@ testcases:
     expected_types: [int, varchar]
     id: char
     sql: select a + 50, char(a + 50, 65) from scalar
+    unordered: true
 
   - db: functions_test
     description: char from int values that result in one byte
@@ -972,6 +1068,7 @@ testcases:
     expected_types: [int, varchar]
     id: simple_char_int
     sql: select a, char(a) from simple_char_test_int
+    unordered: true
 
   - db: functions_test
     description: char with values that give the 0 value
@@ -982,6 +1079,7 @@ testcases:
     expected_types: [varchar, int, int, int, int, int]
     id: char_zero
     sql: select a, b, c, ascii(char(a)), ascii(char(b)), ascii(char(c)) from char_zero
+    unordered: true
 
   - db: functions_test
     description: test ascii and char functions together with ints
@@ -993,6 +1091,7 @@ testcases:
     expected_types: [int, int]
     id: ascii_char_int
     sql: select c, ascii(char(c)) from ascii_char_test_int
+    unordered: true
 
   - db: functions_test
     description: char with values that result in multiple bytes
@@ -1005,6 +1104,7 @@ testcases:
     expected_types: [int, varchar]
     id: large_num_char
     sql: select a, char(a) from large_num_char_test
+    unordered: true
 
   - db: functions_test
     description: char on large numbers should result in the same string as char on the same number converted into multiple bytes
@@ -1017,6 +1117,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: large_num_char_2
     sql: select b, char(b) = char(97, 60, 127) as a, char(b) = char(5, 6, 7, 12) as e, char(b) = char(43, 31, 30) as c, char(b) = char(31, 30, 43) as d from large_num_char_test
+    unordered: true
 
   - db: functions_test
     expected_names: ['char(a, b, c, d)']
@@ -1028,6 +1129,7 @@ testcases:
     expected_types: [varchar]
     id: char_multi_arg
     sql: select char(a, b, c, d) from multi_arg_char_test
+    unordered: true
 
   - db: functions_test
     expected_names: [b, char_length(b)]
@@ -1040,6 +1142,7 @@ testcases:
     expected_types: [varchar, int]
     id: char_length
     sql: select b, char_length(b) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, char_length(b)]
@@ -1048,6 +1151,7 @@ testcases:
     expected_types: [varchar, int]
     id: where_'char_length'
     sql: select b, char_length(b) from scalar where char_length(b) > 3
+    unordered: true
 
   - db: functions_test
     expected_names: [char_length(null)]
@@ -1060,6 +1164,7 @@ testcases:
     expected_types: [int]
     id: char_length_null
     sql: select char_length(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, character_length(b)]
@@ -1072,6 +1177,7 @@ testcases:
     expected_types: [varchar, int]
     id: character_length
     sql: select b, character_length(b) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, character_length(b)]
@@ -1080,6 +1186,7 @@ testcases:
     expected_types: [varchar, int]
     id: where_'character_length'
     sql: select b, character_length(b) from scalar where character_length(b) > 3
+    unordered: true
 
   - db: functions_test
     expected_names: [character_length(null)]
@@ -1092,6 +1199,7 @@ testcases:
     expected_types: [int]
     id: character_length_null
     sql: select character_length(null) from scalar
+    unordered: true
 
   - db: functions_test
     description: multibyte characters should still have length 1
@@ -1104,6 +1212,7 @@ testcases:
     expected_types: [varchar, int]
     id: char_length_special
     sql: select s, char_length(s) from special
+    unordered: true
 
   - db: functions_test
     expected_names: ['b', 'coalesce(null, b)']
@@ -1116,6 +1225,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: coalesce_null_and_string
     sql: select b, coalesce(null, b) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['b', 'coalesce(null, b)', 'char_length(coalesce(null, b))']
@@ -1124,6 +1234,7 @@ testcases:
     expected_types: [varchar, varchar, int]
     id: where_'coalesce_null_and_string'
     sql: select b, coalesce(null, b), char_length(coalesce(null, b)) from scalar where char_length(coalesce(null, b)) > 3
+    unordered: true
 
   - db: functions_test
     expected_names: [coalesce(null)]
@@ -1136,6 +1247,7 @@ testcases:
     expected_types: [int]
     id: coalesce_null
     sql: select coalesce(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['b', 'concat(b, ''a'')']
@@ -1148,6 +1260,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: concat
     sql: select b, concat(b, 'a') from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['b', 'concat(b, ''a'')', 'char_length(concat(b, ''a''))']
@@ -1157,6 +1270,7 @@ testcases:
     expected_types: [varchar, varchar, int]
     id: where_'concat_length'
     sql: select b, concat(b, 'a'), char_length(concat(b, 'a')) from scalar where char_length(concat(b, 'a')) > 3
+    unordered: true
 
   - db: functions_test
     expected_names: [concat(null)]
@@ -1169,6 +1283,7 @@ testcases:
     expected_types: [int]
     id: concat_null
     sql: select concat(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['b', 'concat_ws('','', b, ''s'')']
@@ -1181,6 +1296,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: concat_ws
     sql: select b, concat_ws(',', b, 's') from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['b', 'concat_ws('','', b, ''s'')', 'char_length(concat_ws('','', b, ''s''))']
@@ -1191,6 +1307,7 @@ testcases:
     expected_types: [varchar, varchar, int]
     id: where_'concat_ws'
     sql: select b, concat_ws(',', b, 's'), char_length(concat_ws(',', b, 's')) from scalar where char_length(concat_ws(',', b, 's')) > 3
+    unordered: true
 
   - db: functions_test
     expected_names: ['concat_ws(null, a)']
@@ -1203,6 +1320,7 @@ testcases:
     expected_types: [int]
     id: concat_ws_null_separator
     sql: select concat_ws(null, a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, cos(a)]
@@ -1215,6 +1333,7 @@ testcases:
     expected_types: [int, float]
     id: cos
     sql: select a, cos(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, cot(a)]
@@ -1227,6 +1346,7 @@ testcases:
     expected_types: [int, float]
     id: cot
     sql: select a, cot(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['date_format(d, ''%W %M %Y'')']
@@ -1239,6 +1359,7 @@ testcases:
     expected_types: [varchar]
     id: date_format_1
     sql: select date_format(d, '%W %M %Y') from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['date_format(d, ''%% %d %f %H %k %i %j %m %s %S %T %U %Y'')']
@@ -1251,6 +1372,7 @@ testcases:
     expected_types: [varchar]
     id: date_format_2
     sql: select date_format(d, '%% %d %f %H %k %i %j %m %s %S %T %U %Y') from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['date_format(d, ''%% %d %f %H %k %i %j %m %s %S %T %U %Y %'')']
@@ -1263,6 +1385,7 @@ testcases:
     expected_types: [varchar]
     id: date_format_3
     sql: select date_format(d, '%% %d %f %H %k %i %j %m %s %S %T %U %Y %') from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, day(d)]
@@ -1275,6 +1398,7 @@ testcases:
     expected_types: [varchar, int]
     id: day
     sql: select d, day(d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, day(d)]
@@ -1285,6 +1409,7 @@ testcases:
     expected_types: [varchar, int]
     id: where_'day'
     sql: select d, day(d) from scalar where day(d) > 3
+    unordered: true
 
   - db: functions_test
     expected_names: [day(null)]
@@ -1297,6 +1422,7 @@ testcases:
     expected_types: [int]
     id: day_null
     sql: select day(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, dayofmonth(d)]
@@ -1309,6 +1435,7 @@ testcases:
     expected_types: [varchar, int]
     id: dayofmonth
     sql: select d, dayofmonth(d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [dayofmonth(null)]
@@ -1321,6 +1448,7 @@ testcases:
     expected_types: [int]
     id: dayofmonth_null
     sql: select dayofmonth(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, dayname(d)]
@@ -1333,6 +1461,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: dayname
     sql: select d, dayname(d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, dayname(d)]
@@ -1343,6 +1472,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: where_dayname
     sql: select d, dayname(d) from scalar where char_length(dayname(d)) > 3
+    unordered: true
 
   - db: functions_test
     expected_names: [dayname(null)]
@@ -1355,6 +1485,7 @@ testcases:
     expected_types: [int]
     id: dayname_null
     sql: select dayname(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, dayofweek(d)]
@@ -1367,6 +1498,7 @@ testcases:
     expected_types: [varchar, int]
     id: dayofweek
     sql: select d, dayofweek(d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, dayofweek(d)]
@@ -1375,6 +1507,7 @@ testcases:
     expected_types: [varchar, int]
     id: where_'dayofweek'
     sql: select d, dayofweek(d) from scalar where dayofweek(d) > 3
+    unordered: true
 
   - db: functions_test
     expected_names: [dayofweek(null)]
@@ -1387,6 +1520,7 @@ testcases:
     expected_types: [int]
     id: dayofweek_null
     sql: select dayofweek(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, dayofyear(d)]
@@ -1399,6 +1533,7 @@ testcases:
     expected_types: [varchar, int]
     id: dayofyear
     sql: select d, dayofyear(d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, dayofyear(d)]
@@ -1409,6 +1544,7 @@ testcases:
     expected_types: [varchar, int]
     id: where_'dayofyear'
     sql: select d, dayofyear(d) from scalar where dayofyear(d) > 3
+    unordered: true
 
   - db: functions_test
     expected_names: [dayofyear(null)]
@@ -1421,6 +1557,7 @@ testcases:
     expected_types: [int]
     id: dayofyear_null
     sql: select dayofyear(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, degrees(a)]
@@ -1433,6 +1570,7 @@ testcases:
     expected_types: [int, float]
     id: degrees
     sql: select a, degrees(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [roundtrip]
@@ -1448,6 +1586,7 @@ testcases:
     expected_types: [int]
     id: radians_degrees_roundtrip
     sql: select abs(radians(degrees(n)) - n) <= 0.0001 as roundtrip from numbers
+    unordered: true
 
   - db: functions_test
     description: This is a property only of Go's random number generator. This does NOT hold true for MySQL. This MAY CHANGE with Go version
@@ -1464,6 +1603,7 @@ testcases:
     expected_types: [int]
     id: rand_1
     sql: select round(rand(-n) + rand(n)) as res from numbers
+    unordered: true
 
   - db: functions_test
     description: rand(1) should have the same output as rand(1) due to using the same seed. rand(0) should be the same as rand(NULL) because NULL is treated as 0
@@ -1477,6 +1617,7 @@ testcases:
     expected_types: [int, int]
     id: rand_2
     sql: select rand(1) = rand(1) res1, rand(0) = rand(NULL) res2 from scalar
+    unordered: true
 
   - db: functions_test
     description: show that order by rand() works
@@ -1540,6 +1681,7 @@ testcases:
     expected_types: [varchar]
     id: rand_3
     sql: select s from weeks order by rand(623)
+    unordered: true
 
   - db: functions_test
     expected_names: [a, exp(a)]
@@ -1552,6 +1694,7 @@ testcases:
     expected_types: [int, decimal]
     id: exp
     sql: select a, exp(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, exp(a)]
@@ -1561,6 +1704,7 @@ testcases:
     expected_types: [int, decimal]
     id: where_'exp'
     sql: select a, exp(a) from scalar where exp(a) > 1
+    unordered: true
 
   - db: functions_test
     expected_names: [exp(null)]
@@ -1573,6 +1717,7 @@ testcases:
     expected_types: [int]
     id: exp_null
     sql: select exp(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['d', 'extract(year, d)']
@@ -1585,6 +1730,7 @@ testcases:
     expected_types: [varchar, int]
     id: extract_year
     sql: select d, extract(year from d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['d', 'extract(hour, d)']
@@ -1597,6 +1743,7 @@ testcases:
     expected_types: [varchar, int]
     id: 'extract_hour'
     sql: select d, extract(hour from d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['d', 'extract(day, d)']
@@ -1609,6 +1756,7 @@ testcases:
     expected_types: [varchar, int]
     id: 'extract_day'
     sql: select d, extract(day from d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['d', 'extract(year_month, d)']
@@ -1621,6 +1769,7 @@ testcases:
     expected_types: [varchar, int]
     id: 'extract_year_month'
     sql: select d, extract(year_month from d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['a', 'd', 'extract(day, d)']
@@ -1630,6 +1779,7 @@ testcases:
     expected_types: [int, varchar, int]
     id: 'extract_day_2'
     sql: select a, d, extract(day from d) from scalar where a > 0
+    unordered: true
 
   - db: functions_test
     expected_names: [c, floor(c)]
@@ -1642,6 +1792,7 @@ testcases:
     expected_types: [float, decimal]
     id: 'floor'
     sql: select c, floor(c) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [c, floor(c)]
@@ -1650,6 +1801,7 @@ testcases:
     expected_types: [float, decimal]
     id: where_'floor'
     sql: select c, floor(c) from scalar where floor(c) > 1
+    unordered: true
 
   - db: functions_test
     expected_names: [floor(null)]
@@ -1662,6 +1814,7 @@ testcases:
     expected_types: [int]
     id: 'floor_null'
     sql: select floor(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [c, from_days(c*6363)]
@@ -1674,6 +1827,7 @@ testcases:
     expected_types: [float, varchar]
     id: 'from_days'
     sql: select c, from_days(c*6363) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [res1, res2]
@@ -1686,6 +1840,7 @@ testcases:
     expected_types: [int, varchar]
     id: from_unixtime
     sql: select from_unixtime(u) + 0 as res1, from_unixtime(u, '%d%d%d%i%m%Y') as res2 from unixtime
+    unordered: true
 
   - db: functions_test
     expected_names: ['a', 'greatest(a, 2)']
@@ -1698,6 +1853,7 @@ testcases:
     expected_types: [int, int]
     id: 'greatest_1'
     sql: select a, greatest(a, 2) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['a', 'greatest(2, a)']
@@ -1710,6 +1866,7 @@ testcases:
     expected_types: [int, int]
     id: 'greatest_2'
     sql: select a, greatest(2, a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['greatest(a, 2, _id)']
@@ -1722,6 +1879,7 @@ testcases:
     expected_types: [int]
     id: 'greatest_3'
     sql: select greatest(a, 2, _id) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, hour(d)]
@@ -1734,6 +1892,7 @@ testcases:
     expected_types: [varchar, int]
     id: hour_of_date
     sql: select d, hour(d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, hour(d)]
@@ -1744,6 +1903,7 @@ testcases:
     expected_types: [varchar, int]
     id: where_hour
     sql: select d, hour(d) from scalar where hour(d) > 3
+    unordered: true
 
   - db: functions_test
     expected_names: [hour(null)]
@@ -1756,6 +1916,7 @@ testcases:
     expected_types: [int]
     id: hour_null
     sql: select hour(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, minute(d)]
@@ -1768,6 +1929,7 @@ testcases:
     expected_types: [varchar, int]
     id: minute_of_date
     sql: select d, minute(d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, minute(d)]
@@ -1778,6 +1940,7 @@ testcases:
     expected_types: [varchar, int]
     id: where_minute
     sql: select d, minute(d) from scalar where minute(d) > 3
+    unordered: true
 
   - db: functions_test
     expected_names: [minute(null)]
@@ -1790,6 +1953,7 @@ testcases:
     expected_types: [int]
     id: minute_null
     sql: select minute(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, second(d)]
@@ -1802,6 +1966,7 @@ testcases:
     expected_types: [varchar, int]
     id: second_of_date
     sql: select d, second(d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [result]
@@ -1810,6 +1975,7 @@ testcases:
     expected_types: [int]
     id: max_hour
     sql: select hour('1000:30:30') as result
+    unordered: true
 
   - db: functions_test
     expected_names: [result]
@@ -1818,6 +1984,7 @@ testcases:
     expected_types: [int]
     id: max_hour_with_fraction
     sql: select hour('1000:30:30.6678') as result
+    unordered: true
 
   - db: functions_test
     expected_names: [result]
@@ -1826,6 +1993,7 @@ testcases:
     expected_types: [int]
     id: hour_of_bad_minute
     sql: select hour('1000:61:30') as result
+    unordered: true
 
   - db: functions_test
     expected_names: [result]
@@ -1834,6 +2002,7 @@ testcases:
     expected_types: [int]
     id: minute_of_bad_minute
     sql: select minute('1000:61:30') as result
+    unordered: true
 
   - db: functions_test
     expected_names: [result]
@@ -1842,6 +2011,7 @@ testcases:
     expected_types: [int]
     id: hour_with_days
     sql: select hour('2 26:11:59.23.24.25') as result
+    unordered: true
 
   - db: functions_test
     expected_names: [result]
@@ -1850,6 +2020,7 @@ testcases:
     expected_types: [int]
     id: hour_with_days_overflow
     sql: select hour('112 26:11:59.23.24.25') as result
+    unordered: true
 
   - db: functions_test
     expected_names: [result]
@@ -1858,6 +2029,7 @@ testcases:
     expected_types: [int]
     id: second_of_bad_second
     sql: select second('1000:61:30') as result
+    unordered: true
 
   - db: functions_test
     expected_names: ['a', 'if(a > 0, 2, 3)']
@@ -1870,6 +2042,7 @@ testcases:
     expected_types: [int, int]
     id: 'if_1'
     sql: select a, if(a > 0, 2, 3) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'if(a > 1, 2, 3)']
@@ -1879,6 +2052,7 @@ testcases:
     expected_types: [int, int]
     id: 'if_2'
     sql: select a, if(a > 1, 2, 3) from scalar where a > 0
+    unordered: true
 
   - db: functions_test
     expected_names: ['if(null, 2, 3)']
@@ -1891,6 +2065,7 @@ testcases:
     expected_types: [int]
     id: 'if_null'
     sql: select if(null, 2, 3) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['if(null > 0, 2, 3)']
@@ -1903,6 +2078,7 @@ testcases:
     expected_types: [int]
     id: 'if_4'
     sql: select if(null > 0, 2, 3) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'ifnull(a, 2)']
@@ -1915,6 +2091,7 @@ testcases:
     expected_types: [int, int]
     id: 'ifnull_1'
     sql: select a, ifnull(a, 2) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'ifnull(a, 2)']
@@ -1924,6 +2101,7 @@ testcases:
     expected_types: [int, int]
     id: ifnull_2
     sql: select a, ifnull(a, 2) from scalar where a > 0
+    unordered: true
 
   - db: functions_test
     expected_names: ['ifnull(null, 2)']
@@ -1936,6 +2114,7 @@ testcases:
     expected_types: [int]
     id: ifnull_null
     sql: select ifnull(null, 2) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'insert(b, 2, 4, ''What'')']
@@ -1948,6 +2127,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: insert
     sql: select b, insert(b, 2, 4, 'What') from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['b', 'insert(b, 1, 2, ''hi'')']
@@ -1960,6 +2140,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: insert_pos_equals_1
     sql: select b, insert(b, 1, 2, 'hi') from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, b, res1, res2, res3, res4, res5, res6, n1, res7, n2, res8]
@@ -1973,6 +2154,7 @@ testcases:
     expected_types: [varchar, varchar, int, int, int, int, int, int, int, int, int, int]
     id: instr_1
     sql: select a, b, instr(a,b) res1, instr(a, 'ar') res2, instr(123, 23) res3, instr('hellofoobarcard', b) res4, instr('foobarbar3223', 3223) res5, instr(1234, '34') res6, n1, instr(a,n1) res7, n2, instr(n1, n2) res8 from instr
+    unordered: true
 
   - db: functions_test
     expected_names: [a, isnull(a)]
@@ -1985,6 +2167,7 @@ testcases:
     expected_types: [int, int]
     id: isnull_1
     sql: select a, isnull(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, isnull(a)]
@@ -1994,6 +2177,7 @@ testcases:
     expected_types: [int, int]
     id: where_isnull_equals_1
     sql: select a, isnull(a) from scalar where isnull(a) = 1
+    unordered: true
 
   - db: functions_test
     expected_names: [a, isnull(a)]
@@ -2003,6 +2187,7 @@ testcases:
     expected_types: [int, int]
     id: where_isnull
     sql: select a, isnull(a) from scalar where isnull(a)
+    unordered: true
 
   - db: functions_test
     expected_names: [isnull(null)]
@@ -2015,6 +2200,7 @@ testcases:
     expected_types: [int]
     id: isnull__null
     sql: select isnull(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, last_day(d)]
@@ -2027,6 +2213,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: last_day_of_date
     sql: select d, last_day(d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, lcase(b)]
@@ -2039,6 +2226,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: lcase
     sql: select b, lcase(b) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, lower(b)]
@@ -2051,6 +2239,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: lower
     sql: select b, lower(b) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, lcase(b)]
@@ -2059,6 +2248,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: where_lcase
     sql: select b, lcase(b) from scalar where char_length(lcase(b)) > 3
+    unordered: true
 
   - db: functions_test
     expected_names: [lcase(null)]
@@ -2071,6 +2261,7 @@ testcases:
     expected_types: [int]
     id: lcase_null
     sql: select lcase(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'least(a, 2)']
@@ -2083,6 +2274,7 @@ testcases:
     expected_types: [int, int]
     id: least_1
     sql: select a, least(a, 2) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'least(2, a)']
@@ -2095,6 +2287,7 @@ testcases:
     expected_types: [int, int]
     id: least_2
     sql: select a, least(2, a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'least(a, 2, _id)']
@@ -2107,6 +2300,7 @@ testcases:
     expected_types: [int, int]
     id: least_3
     sql: select a, least(a, 2, _id) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'left(b, 2)']
@@ -2119,6 +2313,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: left
     sql: select b, left(b, 2) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'left(b, 2)']
@@ -2129,6 +2324,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: where_left
     sql: select b, left(b, 2) from scalar where length(left(b,2)) > 1
+    unordered: true
 
   - db: functions_test
     expected_names: ['left(null, null)']
@@ -2141,6 +2337,7 @@ testcases:
     expected_types: [int]
     id: left_both_null
     sql: select left(null, null) from scalar
+    unordered: true
 
   - db: functions_test
     description: null length should evaluate to null
@@ -2154,6 +2351,7 @@ testcases:
     expected_types: [int]
     id: left_null_length
     sql: select left(b, null) from scalar
+    unordered: true
 
   - db: functions_test
     description: null string should evaluate to null
@@ -2167,6 +2365,7 @@ testcases:
     expected_types: [int]
     id: left_null_string
     sql: select left(null, b) from scalar
+    unordered: true
 
   - db: functions_test
     description: w/ negative length, return empty string for non-null strings
@@ -2180,6 +2379,7 @@ testcases:
     expected_types: [varchar]
     id: left_negative_length
     sql: select left(b, -2) from scalar
+    unordered: true
 
   - db: functions_test
     description: using 0 as length gives empty strings for non-null values
@@ -2193,6 +2393,7 @@ testcases:
     expected_types: [varchar]
     id: left_0_length
     sql: select left(b, 0) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'left(b, 1)']
@@ -2205,6 +2406,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: left_1_length
     sql: select b, left(b, 1) from scalar
+    unordered: true
 
   - db: functions_test
     description: output length value > length of string
@@ -2218,6 +2420,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: left_length_larger_than_string
     sql: select b, left(b, 6) from scalar
+    unordered: true
 
   - db: functions_test
     description: using strings of several different lengths, and with spaces and punctuation
@@ -2235,6 +2438,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: left_with_spaces_and_punctuation
     sql: select s, left(s, 3) from lpadTest
+    unordered: true
 
   - db: functions_test
     description: both arguments are columns
@@ -2256,6 +2460,7 @@ testcases:
     expected_types: [varchar, float, varchar]
     id: left_both_columns
     sql: select a, b, left(a, b) from strings
+    unordered: true
 
   - db: functions_test
     expected_names: [s, 'left(s, 2)']
@@ -2267,6 +2472,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: left_special
     sql: select s, left(s, 2) from special
+    unordered: true
 
   - db: functions_test
     expected_names: [b, length(b)]
@@ -2279,6 +2485,7 @@ testcases:
     expected_types: [varchar, int]
     id: length
     sql: select b, length(b) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, length(b)]
@@ -2287,6 +2494,7 @@ testcases:
     expected_types: [varchar, int]
     id: where_length
     sql: select b, length(b) from scalar where char_length(b) > 3
+    unordered: true
 
   - db: functions_test
     expected_names: [length(null)]
@@ -2299,6 +2507,7 @@ testcases:
     expected_types: [int]
     id: length_null
     sql: select length(null) from scalar
+    unordered: true
 
   - db: functions_test
     description: 'ensure length correctly returns # of bytes'
@@ -2311,6 +2520,7 @@ testcases:
     expected_types: [varchar, int]
     id: length_special
     sql: select s, length(s) from special
+    unordered: true
 
   - db: functions_test
     expected_names: [a, ln(a)]
@@ -2323,6 +2533,7 @@ testcases:
     expected_types: [int, decimal]
     id: ln
     sql: select a, ln(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, ln(a)]
@@ -2331,6 +2542,7 @@ testcases:
     expected_types: [int, decimal]
     id: where_ln
     sql: select a, ln(a) from scalar where ln(a) > 1
+    unordered: true
 
   - db: functions_test
     expected_names: [ln(null)]
@@ -2343,6 +2555,7 @@ testcases:
     expected_types: [int]
     id: ln_null
     sql: select ln(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [s, 'locate(''bar'', s)']
@@ -2355,6 +2568,7 @@ testcases:
     expected_types: [varchar, int]
     id: locate_substring_in_string
     sql: select s, locate('bar', s) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [s, 'locate(''xbar'', s)']
@@ -2367,6 +2581,7 @@ testcases:
     expected_types: [varchar, int]
     id: locate_substring_not_in_string
     sql: select s, locate('xbar', s) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [s, 'locate(''bar'', s, 1)']
@@ -2379,6 +2594,7 @@ testcases:
     expected_types: [varchar, int]
     id: locate_substring_in_string_from_pos_1
     sql: select s, locate('bar', s, 1) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [s, 'locate(''bar'', s, 5)']
@@ -2391,6 +2607,7 @@ testcases:
     expected_types: [varchar, int]
     id: locate_substring_in_string_from_pos_middle
     sql: select s, locate('bar', s, 5) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [s, 'locate(''bar'', s, 10)']
@@ -2403,6 +2620,7 @@ testcases:
     expected_types: [varchar, int]
     id: locate_pos_larger_than_string
     sql: select s, locate('bar', s, 10) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['locate(null, s, 5)']
@@ -2415,6 +2633,7 @@ testcases:
     expected_types: [int]
     id: locate_null_substring
     sql: select locate(null, s, 5) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [s, "locate('\u2665', s)"]
@@ -2426,6 +2645,7 @@ testcases:
     expected_types: [varchar, int]
     id: locate_special
     sql: "select s, locate('\u2665', s) from special"
+    unordered: true
 
   - db: functions_test
     expected_names: [i, 'locate(''a'', ''bar'', i)']
@@ -2445,6 +2665,7 @@ testcases:
     expected_types: [int, int]
     id: locate_pos_edge_cases_int
     sql: select i, locate('a', 'bar', i) from locatePos
+    unordered: true
 
   - db: functions_test
     expected_names: [a, log2(a)]
@@ -2457,6 +2678,7 @@ testcases:
     expected_types: [int, decimal]
     id: log2
     sql: select a, log2(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [_id+1, result]
@@ -2469,6 +2691,7 @@ testcases:
     expected_types: [int, float]
     id: log_base4
     sql: select _id + 1, log(4, _id+1) as result from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, log2(a)]
@@ -2477,6 +2700,7 @@ testcases:
     expected_types: [int, decimal]
     id: where_log2
     sql: select a, log2(a) from scalar where log2(a) > 1
+    unordered: true
 
   - db: functions_test
     expected_names: [log2(null)]
@@ -2489,6 +2713,7 @@ testcases:
     expected_types: [int]
     id: log2_null
     sql: select log2(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, log10(a)]
@@ -2501,6 +2726,7 @@ testcases:
     expected_types: [int, float]
     id: log10
     sql: select a, log10(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, log10(a)]
@@ -2509,6 +2735,7 @@ testcases:
     expected_types: [int, float]
     id: log10_predicate
     sql: select a, log10(a) from scalar where log10(a) > 0
+    unordered: true
 
   - db: functions_test
     expected_names: [log10(null)]
@@ -2521,6 +2748,7 @@ testcases:
     expected_types: [int]
     id: log10_null
     sql: select log10(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'mid(b, 1, 3)']
@@ -2533,6 +2761,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: mid
     sql: select b, mid(b, 1, 3) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'mid(b, 1, 3)']
@@ -2542,6 +2771,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: where_mid
     sql: select b, mid(b, 1, 3) from scalar where length(mid(b, 1, 3)) > 2
+    unordered: true
 
   - db: functions_test
     expected_names: [s, 'mid(s, 2, 4)']
@@ -2553,6 +2783,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: mid_special
     sql: select s, mid(s, 2, 4) from special
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'mod(a, 3)']
@@ -2565,6 +2796,7 @@ testcases:
     expected_types: [int, decimal]
     id: mod
     sql: select a, mod(a, 3) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'mod(a, 3)']
@@ -2574,6 +2806,7 @@ testcases:
     expected_types: [int, decimal]
     id: where_mod
     sql: select a, mod(a, 3) from scalar where mod(a, 3) = 1
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'mod(3, a)']
@@ -2586,6 +2819,7 @@ testcases:
     expected_types: [int, decimal]
     id: mod_2
     sql: select a, mod(3, a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'mod(3, a)']
@@ -2594,6 +2828,7 @@ testcases:
     expected_types: [int, decimal]
     id: where_mod_2
     sql: select a, mod(3, a) from scalar where mod(3, a) = 3
+    unordered: true
 
   - db: functions_test
     expected_names: ['mod(null, null)']
@@ -2606,6 +2841,7 @@ testcases:
     expected_types: [int]
     id: mod_null
     sql: select mod(null, null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['nullif(a, a)']
@@ -2618,6 +2854,7 @@ testcases:
     expected_types: [int]
     id: nullif_1
     sql: select nullif(a, a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'nullif(a, 1)']
@@ -2630,6 +2867,7 @@ testcases:
     expected_types: [int, int]
     id: nullif_2
     sql: select a, nullif(a, 1) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'nullif(a, 1)']
@@ -2639,6 +2877,7 @@ testcases:
     expected_types: [int, int]
     id: nullif_3
     sql: select a, nullif(a, 1) from scalar where a > 0
+    unordered: true
 
   - db: functions_test
     expected_names: ['nullif(null, null)']
@@ -2651,6 +2890,7 @@ testcases:
     expected_types: [int]
     id: nullif_both_null
     sql: select nullif(null, null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['nullif(null, 1)']
@@ -2663,6 +2903,7 @@ testcases:
     expected_types: [int]
     id: nullif_first_null
     sql: select nullif(null, 1) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [pi()]
@@ -2671,6 +2912,7 @@ testcases:
     expected_types: [decimal]
     id: pi
     sql: select pi()
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'pow(a, 3)']
@@ -2683,6 +2925,7 @@ testcases:
     expected_types: [int, decimal]
     id: pow
     sql: select a, pow(a, 3) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'power(a, 3)']
@@ -2695,6 +2938,7 @@ testcases:
     expected_types: [int, decimal]
     id: power
     sql: select a, power(a, 3) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'pow(a, 3)']
@@ -2704,6 +2948,7 @@ testcases:
     expected_types: [int, decimal]
     id: where_pow
     sql: select a, pow(a, 3) from scalar where pow(a, 3) > 0
+    unordered: true
 
   - db: functions_test
     expected_names: ['pow(null, null)']
@@ -2716,6 +2961,7 @@ testcases:
     expected_types: [float]
     id: pow_null
     sql: select pow(null, null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, radians(a)]
@@ -2728,6 +2974,7 @@ testcases:
     expected_types: [int, float]
     id: radians
     sql: select a, radians(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [_id, 'repeat(''z'', _id)']
@@ -2740,6 +2987,7 @@ testcases:
     expected_types: [int, varchar]
     id: repeat_1
     sql: select _id, repeat('z', _id) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'repeat(''z'', a)']
@@ -2752,6 +3000,7 @@ testcases:
     expected_types: [int, varchar]
     id: repeat_2
     sql: select a, repeat('z', a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, _id, 'repeat(b, _id)']
@@ -2764,6 +3013,7 @@ testcases:
     expected_types: [varchar, int, varchar]
     id: repeat_3
     sql: select b, _id, repeat(b, _id) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [s, 'repeat(s, 2)']
@@ -2775,6 +3025,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: repeat_special
     sql: select s, repeat(s, 2) from special
+    unordered: true
 
   - db: functions_test
     expected_names: [c, 'length(repeat(''a'', c))']
@@ -2787,6 +3038,7 @@ testcases:
     expected_types: [float, int]
     id: repeat_5
     sql: select c, length(repeat('a', c)) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'replace(b, ''y'', ''free'')']
@@ -2799,6 +3051,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: replace
     sql: select b, replace(b, 'y', 'free') from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [s, from_str, to_str, 'replace(s, from_str, to_str)']
@@ -2811,6 +3064,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar]
     id: replace_middle
     sql: select s, from_str, to_str, replace(s, from_str, to_str) from replace_strings
+    unordered: true
 
   - db: functions_test
     expected_names: [s, 'replace(s, ''h'', ''!!!!!!'')']
@@ -2823,6 +3077,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: replace_start
     sql: select s, replace(s, 'h', '!!!!!!') from replace_strings
+    unordered: true
 
   - db: functions_test
     expected_names: [s, 'replace(s, ''d'', ''!!!!!!'')']
@@ -2835,6 +3090,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: replace_end
     sql: select s, replace(s, 'd', '!!!!!!') from replace_strings
+    unordered: true
 
   - db: functions_test
     expected_names: [s, pos, len, newstr, res]
@@ -2857,6 +3113,7 @@ testcases:
     expected_types: [varchar, float, float, varchar, varchar]
     id: insert_1
     sql: select s, pos, len, newstr, insert(s, pos, len, newstr) res from inserts
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'elt(a, ''a'', ''b'', ''c'')']
@@ -2869,6 +3126,7 @@ testcases:
     expected_types: [int, varchar]
     id: elt
     sql: select a, elt(a, 'a', 'b', 'c') from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [_id, a, b, c, res]
@@ -2881,6 +3139,7 @@ testcases:
     expected_types: [int, int, varchar, float, varchar]
     id: elt_1
     sql: select _id, a, b, c, elt(_id+1, a, b, c) res from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [_id, res]
@@ -2893,6 +3152,7 @@ testcases:
     expected_types: [int, int]
     id: elt_2
     sql: select _id, elt(_id, 1,2,3) res from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, res]
@@ -2905,6 +3165,7 @@ testcases:
     expected_types: [int, int]
     id: elt_3
     sql: select a, elt(a, 1,2,3,4) res from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'right(b, 2)']
@@ -2917,6 +3178,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: right
     sql: select b, right(b, 2) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'right(b, 2)']
@@ -2927,6 +3189,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: where_right
     sql: select b, right(b, 2) from scalar where length(right(b,2)) > 1
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'right(b, 10)']
@@ -2939,6 +3202,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: right_length_larger_than_string
     sql: select b, right(b, 10) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['right(null, null)']
@@ -2951,6 +3215,7 @@ testcases:
     expected_types: [int]
     id: right_both_null
     sql: select right(null, null) from scalar
+    unordered: true
 
   - db: functions_test
     description: null length should evaluate to null
@@ -2964,6 +3229,7 @@ testcases:
     expected_types: [int]
     id: right_null_length
     sql: select right(b, null) from scalar
+    unordered: true
 
   - db: functions_test
     description: null string should evaluate to null
@@ -2977,6 +3243,7 @@ testcases:
     expected_types: [int]
     id: right_null_string
     sql: select right(null, b) from scalar
+    unordered: true
 
   - db: functions_test
     description: w/ negative length, return empty string for non-null strings
@@ -2990,6 +3257,7 @@ testcases:
     expected_types: [varchar]
     id: right_negative_length
     sql: select right(b, -2) from scalar
+    unordered: true
 
   - db: functions_test
     description: using 0 as length gives empty strings for non-null values
@@ -3003,6 +3271,7 @@ testcases:
     expected_types: [varchar]
     id: right_0_length
     sql: select right(b, 0) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'right(b, 1)']
@@ -3015,6 +3284,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: right_1_length
     sql: select b, right(b, 1) from scalar
+    unordered: true
 
   - db: functions_test
     description: output length value > length of string
@@ -3028,6 +3298,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: right_length_larger_than_string
     sql: select b, right(b, 6) from scalar
+    unordered: true
 
   - db: functions_test
     description: using strings of several different lengths, and with spaces and punctuation
@@ -3045,6 +3316,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: right_with_spaces_and_punctuation
     sql: select s, right(s, 3) from lpadTest
+    unordered: true
 
   - db: functions_test
     description: both arguments are columns
@@ -3066,6 +3338,7 @@ testcases:
     expected_types: [varchar, float, varchar]
     id: right_both_columns
     sql: select a, b, right(a, b) from strings
+    unordered: true
 
   - db: functions_test
     expected_names: [s, 'right(s, 3)']
@@ -3077,6 +3350,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: right_special
     sql: select s, right(s, 3) from special
+    unordered: true
 
   - db: functions_test
     expected_names: [c, 'round(c, 2)']
@@ -3089,6 +3363,7 @@ testcases:
     expected_types: [float, decimal]
     id: round_with_precision
     sql: select c, round(c, 2) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [c, round(c)]
@@ -3101,6 +3376,7 @@ testcases:
     expected_types: [float, decimal]
     id: round
     sql: select c, round(c) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [c, 'round(c, 2)']
@@ -3109,6 +3385,7 @@ testcases:
     expected_types: [float, decimal]
     id: where_round
     sql: select c, round(c, 2) from scalar where round(c, 2) > 2
+    unordered: true
 
   - db: functions_test
     expected_names: [round(null)]
@@ -3121,6 +3398,7 @@ testcases:
     expected_types: [int]
     id: round_null
     sql: select round(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, sin(a)]
@@ -3133,6 +3411,7 @@ testcases:
     expected_types: [int, float]
     id: sin
     sql: select a, sin(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, sign(a)]
@@ -3145,6 +3424,7 @@ testcases:
     expected_types: [int, int]
     id: sign
     sql: select a, sign(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, space(a)]
@@ -3157,6 +3437,7 @@ testcases:
     expected_types: [int, varchar]
     id: space
     sql: select a, space(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, res]
@@ -3169,6 +3450,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: space_3
     sql: select b, concat("[", space(5), b, space(3.4), "]") res from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, sqrt(a)]
@@ -3181,6 +3463,7 @@ testcases:
     expected_types: [int, decimal]
     id: sqrt
     sql: select a, sqrt(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, sqrt(a)]
@@ -3189,6 +3472,7 @@ testcases:
     expected_types: [int, decimal]
     id: where_sqrt
     sql: select a, sqrt(a) from scalar where sqrt(a) > 1
+    unordered: true
 
   - db: functions_test
     expected_names: [sqrt(null)]
@@ -3201,6 +3485,7 @@ testcases:
     expected_types: [int]
     id: sqrt_null
     sql: select sqrt(null) from scalar
+    unordered: true
 
   - db: functions_test
     description: str_to_date with column inputs for both the date string and format string
@@ -3212,6 +3497,7 @@ testcases:
     expected_types: [varchar, varchar, varchar]
     id: strToDateColumns
     sql: select s, f, str_to_date(s, f) from strToDateColumns
+    unordered: true
 
   - db: functions_test
     description: str_to_date with column inputs for both date string and format string and no time format operators
@@ -3222,6 +3508,7 @@ testcases:
     expected_types: [varchar, varchar, varchar]
     id: strToDateColumnsNoTime
     sql: select s, f, str_to_date(s, f) from strToDateColumnsNoTime
+    unordered: true
 
   - db: functions_test
     description: str_to_date with column inputs for both date string and format string and no date format operators
@@ -3232,6 +3519,7 @@ testcases:
     expected_types: [varchar, varchar, varchar]
     id: strToDateColumnsNoDate
     sql: select s, f, str_to_date(s, f) from strToDateColumnsNoDate
+    unordered: true
 
   - db: functions_test
     description: str_to_date with column inputs for both date string and format string and null results because the date string and format string do not match
@@ -3243,6 +3531,7 @@ testcases:
     expected_types: [varchar, varchar, varchar]
     id: strToDateColumnsNull
     sql: select s, f, str_to_date(s, f) from strToDateColumnsNull
+    unordered: true
 
   - db: functions_test
     description: str_to_date with column inputs for both date string and format string and invalid/out of range dates
@@ -3253,6 +3542,7 @@ testcases:
     expected_types: [varchar, varchar, varchar]
     id: strToDateColumnsInvalidDates
     sql: select s, f, str_to_date(s, f) from strToDateColumnsInvalidDates
+    unordered: true
 
   - db: functions_test
     description: str_to_date with a literal format string
@@ -3264,6 +3554,7 @@ testcases:
     expected_types: [varchar, int, varchar, varchar, varchar, varchar]
     id: strToDate
     sql: select s, i, str_to_date(s, "%d,%m,%Y %Hb%S..%i") as a, str_to_date(s, "%d9%m%H%s%Y") as b, str_to_date(s, "%m8%Y-%d%T") as c, str_to_date(i, "%d%m%Y%H%i%s") as d from strToDate
+    unordered: true
 
   - db: functions_test
     description: str_to_date with a literal format string and missing either date or time format operators
@@ -3275,6 +3566,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar]
     id: strToDateNoDateOrTime
     sql: select s, str_to_date(s, "%m-%d-%Y") as a, str_to_date(s, "%s") as b, str_to_date(s, "%Y-%d") as c from strToDateNoDateOrTime
+    unordered: true
 
   - db: functions_test
     description: str_to_date with a literal format string and invalid/out of range dates
@@ -3285,6 +3577,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: strToDateInvalidDates
     sql: select s, str_to_date(s, "%m/%d/%Y") as a from strToDateInvalidDates
+    unordered: true
 
 
   - db: functions_test
@@ -3298,6 +3591,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: subdate_1
     sql: select d, subdate(d, interval 433 minute) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, 'subdate(d, 434, minute)']
@@ -3310,6 +3604,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: subdate_2
     sql: select d, d - INTERVAL 434 MINUTE from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [res]
@@ -3318,6 +3613,7 @@ testcases:
     expected_types: [varchar]
     id: subdate_3
     sql: SELECT '2005-01-01' - INTERVAL 1 SECOND as res
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'substring(b, 2)']
@@ -3330,6 +3626,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: substring
     sql: select b, substring(b, 2) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'substr(b, 2)']
@@ -3342,6 +3639,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: substr
     sql: select b, substr(b, 2) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'substring(b, 2)']
@@ -3350,6 +3648,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: where_substring
     sql: select b, substring(b, 2) from scalar where length(substring(b, 2)) > 2
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'substring(b, 1, 3)']
@@ -3362,6 +3661,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: substring_with_length
     sql: select b, substring(b, 1, 3) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'substring(b, 1, 3)']
@@ -3371,6 +3671,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: where_substring_with_length
     sql: select b, substring(b, 1, 3) from scalar where length(substring(b, 1, 3)) > 2
+    unordered: true
 
   - db: functions_test
     expected_names: ['substring(null, null)']
@@ -3383,6 +3684,7 @@ testcases:
     expected_types: [int]
     id: substring_both_null
     sql: select substring(null, null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['substring(null, null)']
@@ -3395,6 +3697,7 @@ testcases:
     expected_types: [int]
     id: substring_from_both_null
     sql: select substring(null from null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [subst]
@@ -3407,6 +3710,7 @@ testcases:
     expected_types: [varchar]
     id: substring_large_negative
     sql: select substring(b, -11) as subst from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [subst]
@@ -3419,6 +3723,7 @@ testcases:
     expected_types: [varchar]
     id: substring_large_positive
     sql: select substring(b, 11) as subst from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, a, subst]
@@ -3431,6 +3736,7 @@ testcases:
     expected_types: [varchar, int, varchar]
     id: substring_column_second_arg
     sql: select b, a, substring(b, a) as subst from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, a, subst]
@@ -3443,6 +3749,7 @@ testcases:
     expected_types: [varchar, int, varchar]
     id: substring_column_third_arg
     sql: select b, a, substring(b FROM 2 FOR a) as subst from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, a, subst]
@@ -3455,6 +3762,7 @@ testcases:
     expected_types: [varchar, int, varchar]
     id: substring_column_second_numeric
     sql: select b, a, substring(b FROM a FOR 1) as subst from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, a, subst]
@@ -3467,6 +3775,7 @@ testcases:
     expected_types: [varchar, int, varchar]
     id: substring_column_third_numeric
     sql: select b, a, substring(b FROM 1 FOR a) as subst from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, b, subst]
@@ -3487,6 +3796,7 @@ testcases:
     expected_types: [varchar, float, varchar]
     id: substring_column_second_numeric_pushdown
     sql: select a, b, substring(a FROM b FOR 4) as subst from strings
+    unordered: true
 
   - db: functions_test
     expected_names: [a, b, subst]
@@ -3507,6 +3817,7 @@ testcases:
     expected_types: [varchar, float, varchar]
     id: substring_column_third_numeric_pushdown
     sql: select a, b, substring(a FROM b FOR b) as subst from strings
+    unordered: true
 
   - db: functions_test
     expected_names: [s, 'substring(s, 1, 2)']
@@ -3518,6 +3829,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: substring_special_1
     sql: select s, substring(s, 1, 2) from special
+    unordered: true
 
   - db: functions_test
     expected_names: [s, 'substring(s, 2)']
@@ -3529,6 +3841,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: substring_special_2
     sql: select s, substring(s, 2) from special
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'substring(b, 2)']
@@ -3541,6 +3854,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: substring_from
     sql: select b, substring(b from 2) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'substr(b, 2)']
@@ -3553,6 +3867,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: substr_from
     sql: select b, substr(b from 2) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'substring(b, 1, 3)']
@@ -3565,6 +3880,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: substring_from_for
     sql: select b, substring(b from 1 for 3) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'substr(b, 1, 3)']
@@ -3577,6 +3893,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: substr_from_for
     sql: select b, substr(b from 1 for 3) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [s, delim, count, res]
@@ -3591,6 +3908,7 @@ testcases:
     expected_types: [varchar, varchar, float, varchar]
     id: substring_index
     sql: select s, delim, count, substring_index(s, delim, count) res from substring_index
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'substring_index(b, ''y'', 1)']
@@ -3603,6 +3921,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: substring_index_2
     sql: select b, substring_index(b, 'y', 1) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [s, "substring_index(s, '\xB5', 1)"]
@@ -3614,6 +3933,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: substring_index_special
     sql: "select s, substring_index(s, '\xB5', 1) from special"
+    unordered: true
 
   - db: functions_test
     expected_names: [a, tan(a)]
@@ -3626,6 +3946,7 @@ testcases:
     expected_types: [int, float]
     id: tan
     sql: select a, tan(a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [c, time_to_sec(c+84754)]
@@ -3638,6 +3959,7 @@ testcases:
     expected_types: [float, float]
     id: time_to_sec
     sql: select c, time_to_sec(c+84754) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, 'timediff(d, ''2000-09-22 00:00:00'')']
@@ -3650,6 +3972,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: timediff
     sql: select d, timediff(d, '2000-09-22 00:00:00') from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, a, b]
@@ -3662,6 +3985,7 @@ testcases:
     expected_types: [varchar, varchar, varchar]
     id: timestamp
     sql: select d, timestamp(d, '12:15:18') as a, timestamp(d, '140928') as b from scalar
+    unordered: true
 
   - db: functions_test
     description: to_days in many forms
@@ -3676,6 +4000,7 @@ testcases:
     expected_types: [varchar, int]
     id: to_days
     sql: select d, to_days(d) as res from dates
+    unordered: true
 
   - db: functions_test
     description: to_days with fractional dates
@@ -3689,6 +4014,7 @@ testcases:
     expected_types: [varchar, int]
     id: to_days_2
     sql: select d, TO_DAYS(d) dd from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['truncate(null, 2)']
@@ -3701,6 +4027,7 @@ testcases:
     expected_types: [int]
     id: truncate_null_x
     sql: select truncate(null, 2) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['truncate(c, null)']
@@ -3713,6 +4040,7 @@ testcases:
     expected_types: [int]
     id: truncate_null_d
     sql: select truncate(c, null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [c, 'truncate(c, 2)']
@@ -3725,6 +4053,7 @@ testcases:
     expected_types: [float, decimal]
     id: truncate_positive_d
     sql: select c, truncate(c, 2) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [c, 'truncate(c, -2)']
@@ -3737,6 +4066,7 @@ testcases:
     expected_types: [float, decimal]
     id: truncate_negative_d
     sql: select c, truncate(c, -2) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [c, 'truncate(c, 2)']
@@ -3745,6 +4075,7 @@ testcases:
     expected_types: [float, decimal]
     id: where_truncate
     sql: select c, truncate(c, 2) from scalar where c > 10
+    unordered: true
 
   - db: functions_test
     expected_names: [b, ucase(b)]
@@ -3757,6 +4088,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: ucase
     sql: select b, ucase(b) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, upper(b)]
@@ -3769,6 +4101,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: upper
     sql: select b, upper(b) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, ucase(b)]
@@ -3778,6 +4111,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: where_ucase
     sql: select b, ucase(b) from scalar where length(ucase(b)) > 2
+    unordered: true
 
   - db: functions_test
     expected_names: [ucase(null)]
@@ -3790,6 +4124,7 @@ testcases:
     expected_types: [int]
     id: ucase_null
     sql: select ucase(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, week(d)]
@@ -3802,6 +4137,7 @@ testcases:
     expected_types: [varchar, int]
     id: week
     sql: select d, week(d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, week(d)]
@@ -3812,6 +4148,7 @@ testcases:
     expected_types: [varchar, int]
     id: where_week
     sql: select d, week(d) from scalar where week(d) > 3
+    unordered: true
 
   - db: functions_test
     expected_names: [week(null)]
@@ -3824,6 +4161,7 @@ testcases:
     expected_types: [int]
     id: week_null
     sql: select week(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, weekday(d)]
@@ -3836,6 +4174,7 @@ testcases:
     expected_types: [varchar, int]
     id: weekday
     sql: select d, weekday(d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, weekday(d)]
@@ -3845,6 +4184,7 @@ testcases:
     expected_types: [varchar, int]
     id: where_weekday
     sql: select d, weekday(d) from scalar where weekday(d) > 3
+    unordered: true
 
   - db: functions_test
     expected_names: [weekday(null)]
@@ -3857,6 +4197,7 @@ testcases:
     expected_types: [int]
     id: weekday_null
     sql: select weekday(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, 'week(d, 0)']
@@ -3869,6 +4210,7 @@ testcases:
     expected_types: [varchar, int]
     id: week_mode_0
     sql: select d, week(d, 0) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, 'week(d, 1)']
@@ -3881,6 +4223,7 @@ testcases:
     expected_types: [varchar, int]
     id: week_mode_1
     sql: select d, week(d, 1) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, 'week(d, 2)']
@@ -3893,6 +4236,7 @@ testcases:
     expected_types: [varchar, int]
     id: week_mode_2
     sql: select d, week(d, 2) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, 'week(d, 3)']
@@ -3905,6 +4249,7 @@ testcases:
     expected_types: [varchar, int]
     id: week_mode_3
     sql: select d, week(d, 3) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, 'week(d, 4)']
@@ -3917,6 +4262,7 @@ testcases:
     expected_types: [varchar, int]
     id: week_mode_4
     sql: select d, week(d, 4) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, 'week(d, 5)']
@@ -3929,6 +4275,7 @@ testcases:
     expected_types: [varchar, int]
     id: week_mode_5
     sql: select d, week(d, 5) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, 'week(d, 6)']
@@ -3941,6 +4288,7 @@ testcases:
     expected_types: [varchar, int]
     id: week_mode_6
     sql: select d, week(d, 6) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, 'week(d, 7)']
@@ -3953,6 +4301,7 @@ testcases:
     expected_types: [varchar, int]
     id: week_mode_7
     sql: select d, week(d, 7) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, year(d)]
@@ -3965,6 +4314,7 @@ testcases:
     expected_types: [varchar, int]
     id: year
     sql: select d, year(d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, year(d)]
@@ -3975,6 +4325,7 @@ testcases:
     expected_types: [varchar, int]
     id: where_year
     sql: select d, year(d) from scalar where year(d) > 3
+    unordered: true
 
   - db: functions_test
     expected_names: [year(null)]
@@ -3987,6 +4338,7 @@ testcases:
     expected_types: [int]
     id: year_null
     sql: select year(null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, c, a or c]
@@ -3999,6 +4351,7 @@ testcases:
     expected_types: [int, float, int]
     id: or
     sql: select a, c, a || c from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [_id, a, c, _id or a or c]
@@ -4011,6 +4364,7 @@ testcases:
     expected_types: [int, int, float, int]
     id: or_three_columns
     sql: select _id, a, c, _id or a or c from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a or null]
@@ -4023,6 +4377,7 @@ testcases:
     expected_types: [int, int]
     id: or_null_right
     sql: select a, a || null from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a or true]
@@ -4035,6 +4390,7 @@ testcases:
     expected_types: [int, int]
     id: or_true_right
     sql: select a, a || true from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a or false]
@@ -4047,6 +4403,7 @@ testcases:
     expected_types: [int, int]
     id: or_false_right
     sql: select a, a || false from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, null or a]
@@ -4059,6 +4416,7 @@ testcases:
     expected_types: [int, int]
     id: or_null_left
     sql: select a, null || a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, true or a]
@@ -4071,6 +4429,7 @@ testcases:
     expected_types: [int, int]
     id: or_true_left
     sql: select a, true || a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, false or a]
@@ -4083,6 +4442,7 @@ testcases:
     expected_types: [int, int]
     id: or_false_left
     sql: select a, false || a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, c, a and c]
@@ -4095,6 +4455,7 @@ testcases:
     expected_types: [int, float, int]
     id: and
     sql: select a, c, a && c from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [_id, a, c, _id and a and c]
@@ -4107,6 +4468,7 @@ testcases:
     expected_types: [int, int, float, int]
     id: and_three_columns
     sql: select _id, a, c, _id and a and c from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a and null]
@@ -4119,6 +4481,7 @@ testcases:
     expected_types: [int, int]
     id: and_null_right
     sql: select a, a && null from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a and true]
@@ -4131,6 +4494,7 @@ testcases:
     expected_types: [int, int]
     id: and_true_right
     sql: select a, a && true from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a and false]
@@ -4143,6 +4507,7 @@ testcases:
     expected_types: [int, int]
     id: and_false_right
     sql: select a, a && false from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, null and a]
@@ -4155,6 +4520,7 @@ testcases:
     expected_types: [int, int]
     id: and_null_left
     sql: select a, null && a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, true and a]
@@ -4167,6 +4533,7 @@ testcases:
     expected_types: [int, int]
     id: and_true_left
     sql: select a, true && a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, false and a]
@@ -4179,6 +4546,7 @@ testcases:
     expected_types: [int, int]
     id: and_false_left
     sql: select a, false && a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, not a]
@@ -4191,6 +4559,7 @@ testcases:
     expected_types: [int, int]
     id: not
     sql: select a, !a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [not null]
@@ -4203,6 +4572,7 @@ testcases:
     expected_types: [int]
     id: not_null
     sql: select !null from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, b, a xor b]
@@ -4219,6 +4589,7 @@ testcases:
     expected_types: [int, int, int]
     id: xor
     sql: select a, b, a xor b from booleans
+    unordered: true
 
   - db: functions_test
     expected_names: [_id, a, c, _id xor a xor c]
@@ -4231,6 +4602,7 @@ testcases:
     expected_types: [int, int, float, int]
     id: xor_three_columns
     sql: select _id, a, c, _id xor a xor c from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [23 xor 0]
@@ -4243,6 +4615,7 @@ testcases:
     expected_types: [int]
     id: xor_literals
     sql: select 23 xor 0 from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a xor null]
@@ -4255,6 +4628,7 @@ testcases:
     expected_types: [int, int]
     id: xor_null_right
     sql: select a, a xor null from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a xor true]
@@ -4267,6 +4641,7 @@ testcases:
     expected_types: [int, int]
     id: xor_true_right
     sql: select a, a xor true from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a xor false]
@@ -4279,6 +4654,7 @@ testcases:
     expected_types: [int, int]
     id: xor_false_right
     sql: select a, a xor false from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, null xor a]
@@ -4291,6 +4667,7 @@ testcases:
     expected_types: [int, int]
     id: xor_null_left
     sql: select a, null xor a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, true xor a]
@@ -4303,6 +4680,7 @@ testcases:
     expected_types: [int, int]
     id: xor_true_left
     sql: select a, true xor a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, false xor a]
@@ -4315,6 +4693,7 @@ testcases:
     expected_types: [int, int]
     id: xor_false_left
     sql: select a, false xor a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a = 1]
@@ -4327,6 +4706,7 @@ testcases:
     expected_types: [int, int]
     id: equals
     sql: select a, a = 1 from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a > 1]
@@ -4339,6 +4719,7 @@ testcases:
     expected_types: [int, int]
     id: greater_than
     sql: select a, a > 1 from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a >= 1]
@@ -4351,6 +4732,7 @@ testcases:
     expected_types: [int, int]
     id: greater_than_or_equal
     sql: select a, a >= 1 from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a < 1]
@@ -4363,6 +4745,7 @@ testcases:
     expected_types: [int, int]
     id: less_than
     sql: select a, a < 1 from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a <= 1]
@@ -4375,6 +4758,7 @@ testcases:
     expected_types: [int, int]
     id: less_than_or_equal
     sql: select a, a <= 1 from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a != 1]
@@ -4387,6 +4771,7 @@ testcases:
     expected_types: [int, int]
     id: not_equals
     sql: select a, a != 1 from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'a in (4, 7, 2, 1)']
@@ -4399,6 +4784,7 @@ testcases:
     expected_types: [int, int]
     id: in_int
     sql: select a, a in (4,7,2,1) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'b in (''hey'', ''this'', ''hi'')']
@@ -4411,6 +4797,7 @@ testcases:
     expected_types: [varchar, int]
     id: in_string
     sql: select b, b in ('hey','this','hi') from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['null in (4, 7, 2, 1)']
@@ -4423,6 +4810,7 @@ testcases:
     expected_types: [int]
     id: in_null
     sql: select null in (4, 7, 2, 1) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a in (null)]
@@ -4435,6 +4823,7 @@ testcases:
     expected_types: [int]
     id: in_null_2
     sql: select a in (null) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['1 in (2, 5, 3)']
@@ -4447,6 +4836,7 @@ testcases:
     expected_types: [int]
     id: in_literals
     sql: select 1 in (2,5,3) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 'a in (null, -3)']
@@ -4459,6 +4849,7 @@ testcases:
     expected_types: [int, int]
     id: in_null_3
     sql: select a, a in (null, -3) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, 1 in (a)]
@@ -4471,6 +4862,7 @@ testcases:
     expected_types: [int, int]
     id: in_int_2
     sql: select a, 1 in (a) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a is null]
@@ -4483,6 +4875,7 @@ testcases:
     expected_types: [int, int]
     id: is_null
     sql: select a, a is null from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a is unknown]
@@ -4495,6 +4888,7 @@ testcases:
     expected_types: [int, int]
     id: is_unknown
     sql: select a, a is unknown from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a is false]
@@ -4507,6 +4901,7 @@ testcases:
     expected_types: [int, int]
     id: is_false
     sql: select a, a is false from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, a is true]
@@ -4519,6 +4914,7 @@ testcases:
     expected_types: [int, int]
     id: is_true
     sql: select a, a is true from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [null is unknown]
@@ -4531,6 +4927,7 @@ testcases:
     expected_types: [int]
     id: is_null_is_unknown
     sql: select null is unknown from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [null is null]
@@ -4543,6 +4940,7 @@ testcases:
     expected_types: [int]
     id: is_null_is_null
     sql: select null is null from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [null is true]
@@ -4555,6 +4953,7 @@ testcases:
     expected_types: [int]
     id: is_null_is_true
     sql: select null is true from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [null is false]
@@ -4567,6 +4966,7 @@ testcases:
     expected_types: [int]
     id: is_null_is_false
     sql: select null is false from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [true is unknown]
@@ -4579,6 +4979,7 @@ testcases:
     expected_types: [int]
     id: is_true_is_unknown
     sql: select true is unknown from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [false is unknown]
@@ -4591,6 +4992,7 @@ testcases:
     expected_types: [int]
     id: is_false_is_unknown
     sql: select false is unknown from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [true is true]
@@ -4603,6 +5005,7 @@ testcases:
     expected_types: [int]
     id: is_true_is_true
     sql: select true is true from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [false is false]
@@ -4615,6 +5018,7 @@ testcases:
     expected_types: [int]
     id: is_false_is_false
     sql: select false is false from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [c, c is true]
@@ -4627,6 +5031,7 @@ testcases:
     expected_types: [float, int]
     id: is_float_is_true
     sql: select c, c is true from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [t, t is true]
@@ -4639,6 +5044,7 @@ testcases:
     expected_types: [int, int]
     id: is_bool_is_true
     sql: select t, t is true from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [t, t is false]
@@ -4651,6 +5057,7 @@ testcases:
     expected_types: [int, int]
     id: is_bool_is_false
     sql: select t, t is false from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [t, t is unknown]
@@ -4663,6 +5070,7 @@ testcases:
     expected_types: [int, int]
     id: is_bool_is_unknown
     sql: select t, t is unknown from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [t, t is null]
@@ -4675,6 +5083,7 @@ testcases:
     expected_types: [int, int]
     id: is_bool_is_null
     sql: select t, t is null from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [z, z is false]
@@ -4687,6 +5096,7 @@ testcases:
     expected_types: [int, int]
     id: is_int_is_false
     sql: select z, z is false from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [0 is false]
@@ -4699,6 +5109,7 @@ testcases:
     expected_types: [int]
     id: is_zero_is_false
     sql: select 0 is false from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -4708,6 +5119,7 @@ testcases:
     expected_types: [int]
     id: where_is_null
     sql: select _id from scalar where a is null
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -4717,6 +5129,7 @@ testcases:
     expected_types: [int]
     id: where_is_unknown
     sql: select _id from scalar where a is unknown
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -4724,6 +5137,7 @@ testcases:
     expected_types: [int]
     id: where_is_false
     sql: select _id from scalar where a is false
+    unordered: true
 
   - db: functions_test
     expected_names: [_id, a]
@@ -4734,6 +5148,7 @@ testcases:
     expected_types: [int, int]
     id: where_is_true
     sql: select _id, a from scalar where a is true
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -4746,6 +5161,7 @@ testcases:
     expected_types: [int]
     id: where_null_is_unknown
     sql: select _id from scalar where null is unknown
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -4758,6 +5174,7 @@ testcases:
     expected_types: [int]
     id: where_null_is_null
     sql: select _id from scalar where null is null
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -4765,6 +5182,7 @@ testcases:
     expected_types: [int]
     id: where_null_is_true
     sql: select _id from scalar where null is true
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -4772,6 +5190,7 @@ testcases:
     expected_types: [int]
     id: where_null_is_false
     sql: select _id from scalar where null is false
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -4779,6 +5198,7 @@ testcases:
     expected_types: [int]
     id: where_true_is_unknown
     sql: select _id from scalar where true is unknown
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -4786,6 +5206,7 @@ testcases:
     expected_types: [int]
     id: where_false_is_unknown
     sql: select _id from scalar where false is unknown
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -4798,6 +5219,7 @@ testcases:
     expected_types: [int]
     id: where_true_is_true
     sql: select _id from scalar where true is true
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -4810,6 +5232,7 @@ testcases:
     expected_types: [int]
     id: where_false_is_false
     sql: select _id from scalar where false is false
+    unordered: true
 
   - db: functions_test
     expected_names: [_id, c]
@@ -4820,6 +5243,7 @@ testcases:
     expected_types: [int, float]
     id: where_float_is_true
     sql: select _id, c from scalar where c is true
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -4828,6 +5252,7 @@ testcases:
     expected_types: [int]
     id: where_bool_is_true
     sql: select _id from scalar where t is true
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -4836,6 +5261,7 @@ testcases:
     expected_types: [int]
     id: where_bool_is_false
     sql: select _id from scalar where t is false
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -4846,6 +5272,7 @@ testcases:
     expected_types: [int]
     id: where_bool_is_unknown
     sql: select _id from scalar where t is unknown
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -4856,6 +5283,7 @@ testcases:
     expected_types: [int]
     id: where_bool_is_null
     sql: select _id from scalar where t is null
+    unordered: true
 
   - db: functions_test
     expected_names: [_id, z]
@@ -4864,6 +5292,7 @@ testcases:
     expected_types: [int, int]
     id: where_int_is_false
     sql: select _id, z from scalar where z is false
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -4876,6 +5305,7 @@ testcases:
     expected_types: [int]
     id: where_zero_is_false
     sql: select _id from scalar where 0 is false
+    unordered: true
 
   - db: functions_test
     expected_names: [a, -a]
@@ -4888,6 +5318,7 @@ testcases:
     expected_types: [int, int]
     id: unary_minus_int
     sql: select a, - a from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [c, -c]
@@ -4900,6 +5331,7 @@ testcases:
     expected_types: [float, decimal]
     id: unary_minus_float
     sql: select c, - c from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: ['datediff(''2017-01-01'', ''2016-01-01'')']
@@ -4908,6 +5340,7 @@ testcases:
     expected_types: [int]
     id: datediff_Pos2Date
     sql: select datediff('2017-01-01', '2016-01-01')
+    unordered: true
 
   - db: functions_test
     expected_names: ['datediff(''2017-01-01'', ''2017-01-01'')']
@@ -4916,6 +5349,7 @@ testcases:
     expected_types: [int]
     id: datediff_Same2Date
     sql: select datediff('2017-01-01', '2017-01-01')
+    unordered: true
 
   - db: functions_test
     expected_names: ['datediff(''2017-08-23'', ''2017-09-30'')']
@@ -4924,6 +5358,7 @@ testcases:
     expected_types: [int]
     id: datediff_Neg2Date
     sql: select datediff('2017-08-23', '2017-09-30')
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'datediff(b, ''2000-09-01 13:29:18'')']
@@ -4936,6 +5371,7 @@ testcases:
     expected_types: [varchar, int]
     id: datediff_Pos2Datetime1Column
     sql: select b, datediff(b, '2000-09-01 13:29:18') from convert_0
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'datediff(''2000-09-23 03:22:43'', b)']
@@ -4948,6 +5384,7 @@ testcases:
     expected_types: [varchar, int]
     id: datediff_Same2Datetime1Column
     sql: select b, datediff('2000-09-23 03:22:43', b) from convert_0
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'datediff(''2000-09-01 13:29:18'', b)']
@@ -4960,6 +5397,7 @@ testcases:
     expected_types: [varchar, int]
     id: datediff_Neg2Datetime1Column
     sql: select b, datediff('2000-09-01 13:29:18', b) from convert_0
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'datediff(b, ''2000-09-01'')']
@@ -4972,6 +5410,7 @@ testcases:
     expected_types: [varchar, int]
     id: datediff_PosBothDateDatetime1Column
     sql: select b, datediff(b, '2000-09-01') from convert_0
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'datediff(''2000-09-23'', b)']
@@ -4984,6 +5423,7 @@ testcases:
     expected_types: [varchar, int]
     id: datediff_SameBothDateDatetime1Column
     sql: select b, datediff('2000-09-23', b) from convert_0
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'datediff(''2000-09-01 14:45:00'', b)']
@@ -4996,6 +5436,7 @@ testcases:
     expected_types: [varchar, int]
     id: datediff_NegBothDateDatetime1Column
     sql: select b, datediff('2000-09-01 14:45:00', b) from convert_0
+    unordered: true
 
   - db: functions_test
     expected_names: [d, b, 'datediff(scalar.d, convert_0.b)']
@@ -5028,6 +5469,7 @@ testcases:
     expected_types: [varchar, varchar, int]
     id: datediff_twoColumns
     sql: select scalar.d, convert_0.b, datediff(scalar.d, convert_0.b) from scalar, convert_0
+    unordered: true
 
   - db: functions_test
     expected_names: [d, 'datediff(d, ''1700-08-02'')']
@@ -5040,6 +5482,7 @@ testcases:
     expected_types: [varchar, int]
     id: datediff_limitPos
     sql: select d, datediff(d, '1700-08-02') from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'datediff(''1492-09-06'', b)']
@@ -5052,6 +5495,7 @@ testcases:
     expected_types: [varchar, int]
     id: datediff_limitNeg
     sql: select b, datediff('1492-09-06', b) from convert_0
+    unordered: true
 
   - db: functions_test
     expected_names: ['datediff(null, b)']
@@ -5064,6 +5508,7 @@ testcases:
     expected_types: [int]
     id: datediff_nullLiteral
     sql: select datediff(null, b) from convert_0
+    unordered: true
 
   - db: functions_test
     expected_names: ['interval(null, 2, 3, 4, 5)']
@@ -5072,6 +5517,7 @@ testcases:
     expected_types: [int]
     id: intervalFunc_normalization_case
     sql: select interval(null, 2, 3, 4, 5)
+    unordered: true
 
   - db: functions_test
     expected_names: ['interval(1, 2, 3, 4, 5)']
@@ -5080,6 +5526,7 @@ testcases:
     expected_types: [int]
     id: intervalFunc_least_postion
     sql: select interval(1, 2, 3, 4, 5)
+    unordered: true
 
   - db: functions_test
     expected_names: ['interval(1, 1, 2, 3, 4)']
@@ -5088,6 +5535,7 @@ testcases:
     expected_types: [int]
     id: intervalFunc_least_pair
     sql: select interval(1, 1, 2, 3, 4)
+    unordered: true
 
   - db: functions_test
     expected_names: ['interval(3, 1, 2, 4, 5)']
@@ -5096,6 +5544,7 @@ testcases:
     expected_types: [int]
     id: intervalFunc_mid_postion
     sql: select interval(3, 1, 2, 4, 5)
+    unordered: true
 
   - db: functions_test
     expected_names: ['interval(2, 1, 2, 3, 4)']
@@ -5104,6 +5553,7 @@ testcases:
     expected_types: [int]
     id: intervalFunc_mid_pair
     sql: select interval(2, 1, 2, 3, 4)
+    unordered: true
 
   - db: functions_test
     expected_names: ['interval(5, 1, 2, 3, 4)']
@@ -5112,6 +5562,7 @@ testcases:
     expected_types: [int]
     id: intervalFunc_last_postion
     sql: select interval(5, 1, 2, 3, 4)
+    unordered: true
 
   - db: functions_test
     expected_names: ['interval(4, 1, 2, 3, 4)']
@@ -5120,6 +5571,7 @@ testcases:
     expected_types: [int]
     id: intervalFunc_last_pair
     sql: select interval(4, 1, 2, 3, 4)
+    unordered: true
 
   - db: functions_test
     expected_names: ['interval(2, 2, 2, 2, 4)']
@@ -5128,6 +5580,7 @@ testcases:
     expected_types: [int]
     id: intervalFunc_multipair
     sql: select interval(2, 2, 2, 2, 4)
+    unordered: true
 
   - db: functions_test
     expected_names: ['interval(-1, null, null, -2, -1, 5)']
@@ -5136,6 +5589,7 @@ testcases:
     expected_types: [int]
     id: intervalFunc_nulls_and_negatives
     sql: select interval(-1, null, null, -2, -1, 5)
+    unordered: true
 
   - db: functions_test
     expected_names: ['interval(1.1, -2, 0, 0.5, 1.1, 4)']
@@ -5144,6 +5598,7 @@ testcases:
     expected_types: [int]
     id: intervalFunc_floats
     sql: select interval(1.1, -2, 0, 0.5, 1.1, 4)
+    unordered: true
 
   - db: functions_test
     expected_names: ['interval(-3.2, null, -4, -3.5, -0.2, 0, 1)']
@@ -5152,6 +5607,7 @@ testcases:
     expected_types: [int]
     id: intervalFunc_floats_neg_and_null
     sql: select interval(-3.2, null, -4, -3.5, -0.2, 0, 1)
+    unordered: true
 
   - db: functions_test
     expected_names: ['interval(a, null, -4, -3.5, -0.2, 0, 1)']
@@ -5164,6 +5620,7 @@ testcases:
     expected_types: [int]
     id: intervalFunc_with_table_arg
     sql: select interval(a, null, -4, -3.5, -0.2, 0, 1) from convert_0
+    unordered: true
 
   - db: functions_test
     expected_names: ['interval(a, t, 1, 3, 5)']
@@ -5176,6 +5633,7 @@ testcases:
     expected_types: [int]
     id: intervalFunc_with_table_args
     sql: select interval(a, t, 1, 3, 5) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [d, microsecond(d)]
@@ -5188,6 +5646,7 @@ testcases:
     expected_types: [varchar, int]
     id: microsecond_someNulls
     sql: select d, microsecond(d) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, trim(b)]
@@ -5200,16 +5659,19 @@ testcases:
     expected_types: [varchar, varchar]
     id: trim
     sql: select b, trim(b) from scalar
+    unordered: true
 
   - db: functions_test
     expected_error: 'Error 1064: parse sql ''select trim(b, "a", "c") from scalar'' error: unexpected COMMA at position 15'
     id: trim_parse_error
     sql: select trim(b, "a", "c") from scalar
+    unordered: true
 
   - db: functions_test
     expected_error: 'Error 1064: parse sql ''select trim(b, "a", "c", "d") from scalar'' error: unexpected COMMA at position 15'
     id: trim_parse_error_2
     sql: select trim(b, "a", "c", "d") from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'trim(b, ''both'', ''y'')']
@@ -5222,6 +5684,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: trim
     sql: select b, trim(BOTH 'y' FROM b) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'trim(b, ''leading'', ''y'')']
@@ -5234,6 +5697,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: trim_leading
     sql: select b, trim(LEADING'y' FROM b) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'trim(b, ''trailing'', ''y'')']
@@ -5246,6 +5710,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: trim_traling
     sql: select b, trim(TRAILING'y' FROM b) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [b, 'trim(b, ''both'', ''y'')']
@@ -5258,6 +5723,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: trim_noModifiers
     sql: select b, trim('y' FROM b) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [a, trm]
@@ -5275,6 +5741,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: trim_2
     sql: select a, trim(a) trm from trimTest
+    unordered: true
 
   - db: functions_test
     expected_names: [a, rtm]
@@ -5292,6 +5759,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: rtrim
     sql: select a, rtrim(a) rtm from trimTest
+    unordered: true
 
   - db: functions_test
     expected_names: [a, ltm]
@@ -5309,6 +5777,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: ltrim
     sql: select a, ltrim(a) ltm from trimTest
+    unordered: true
 
   - db: functions_test
     expected_names: [utc_date() = date(utc_timestamp()) and utc_date() > 2017-10-24]
@@ -5317,6 +5786,7 @@ testcases:
     expected_types: [int]
     id: utc_date_timetamp_check
     sql: select utc_date = date(utc_timestamp) and utc_date > 2017-10-24
+    unordered: true
 
   - db: functions_test
     description: test padding with various null arguments
@@ -5329,6 +5799,7 @@ testcases:
     expected_types: [varchar, int, varchar, varchar]
     id: lpad_null
     sql: select s, i, x, lpad(s, i, x) as str from lpadNullTest
+    unordered: true
 
   - db: functions_test
     description: test padding strings w/ single character string
@@ -5346,6 +5817,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: lpad_pad_with_single_character
     sql: select s, lpad(s, 5, 'x') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: test padding strings w/ two character string
@@ -5363,6 +5835,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: lpad_pad_with_multiple_characters
     sql: select s, lpad(s, 5, 'xy') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: test padding strings w/ empty string
@@ -5380,6 +5853,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: lpad_pad_with_empty_string
     sql: select s, lpad(s, 5, '') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: test padding strings to negative length
@@ -5397,6 +5871,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: lpad_negative_length
     sql: select s, lpad(s, -2, 'x') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: test padding strings to length 0
@@ -5414,6 +5889,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: lpad_zero_length
     sql: select s, lpad(s, 0, 'x') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: pad strings using int length from a column
@@ -5431,6 +5907,7 @@ testcases:
     expected_types: [varchar, int, varchar]
     id: lpad_length_from_column
     sql: select s, i, lpad(s, i, 'x') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: use column as padding
@@ -5448,6 +5925,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: lpad_pad_with_column
     sql: select s, lpad('hi', 3, s) from lpadTest
+    unordered: true
 
   - db: functions_test
     description: 1+ null arguments always evaluates to null
@@ -5461,6 +5939,7 @@ testcases:
     expected_types: [varchar, int, varchar, varchar]
     id: lpad_null_columns
     sql: select s, z, b, lpad(s, z, b) from scalar
+    unordered: true
 
   - db: functions_test
     description: pad strings containing spaces and symbols
@@ -5478,6 +5957,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: lpad_spaces_and_symbols
     sql: select x, lpad(x, 8, 'x') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: pad with a space
@@ -5495,6 +5975,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: lpad_pad_with_space
     sql: select s, lpad(s, 5, ' ') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: pad with a symbol
@@ -5512,6 +5993,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: lpad_pad_with_symbol
     sql: select s, lpad(s, 5, '.') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: pad special/multibyte characters
@@ -5524,6 +6006,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: lpad_pad_string_containing_special_characters
     sql: select s, lpad(s, 8, 'x') from special
+    unordered: true
 
   - db: functions_test
     description: pad with special/multibyte characters
@@ -5536,6 +6019,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: lpad_pad_with_special_characters
     sql: select s, lpad('hi', 8, s) from special
+    unordered: true
 
   - db: functions_test
     description: md5 algorithm
@@ -5548,6 +6032,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: md5
     sql: select s, md5(s) from special
+    unordered: true
 
   - db: functions_test
     description: test padding with various null arguments
@@ -5560,6 +6045,7 @@ testcases:
     expected_types: [varchar, int, varchar, varchar]
     id: rpad_null
     sql: select s, i, x, rpad(s, i, x) as str from lpadNullTest
+    unordered: true
 
   - db: functions_test
     description: test padding strings w/ single character string
@@ -5577,6 +6063,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: rpad_pad_with_single_character
     sql: select s, rpad(s, 5, 'x') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: test padding strings w/ two character string
@@ -5594,6 +6081,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: rpad_pad_with_multiple_characters
     sql: select s, rpad(s, 5, 'xy') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: test padding strings w/ empty string
@@ -5611,6 +6099,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: rpad_pad_with_empty_string
     sql: select s, rpad(s, 5, '') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: test padding strings to negative length
@@ -5628,6 +6117,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: rpad_negative_length
     sql: select s, rpad(s, -2, 'x') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: test padding strings to length 0
@@ -5645,6 +6135,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: rpad_zero_length
     sql: select s, rpad(s, 0, 'x') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: pad strings using int length from a column
@@ -5662,6 +6153,7 @@ testcases:
     expected_types: [varchar, int, varchar]
     id: rpad_length_from_column
     sql: select s, i, rpad(s, i, 'x') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: use column as padding
@@ -5679,6 +6171,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: rpad_pad_with_column
     sql: select s, rpad('hi', 3, s) from lpadTest
+    unordered: true
 
   - db: functions_test
     description: 1+ null arguments always evaluates to null
@@ -5692,6 +6185,7 @@ testcases:
     expected_types: [varchar, int, varchar, varchar]
     id: rpad_null_columns
     sql: select s, z, b, rpad(s, z, b) from scalar
+    unordered: true
 
   - db: functions_test
     description: pad strings containing spaces and symbols
@@ -5709,6 +6203,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: rpad_spaces_and_symbols
     sql: select x, rpad(x, 8, 'x') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: pad with a space
@@ -5726,6 +6221,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: rpad_pad_with_space
     sql: select s, rpad(s, 5, ' ') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: pad with a symbol
@@ -5743,6 +6239,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: rpad_pad_with_symbol
     sql: select s, rpad(s, 5, '.') from lpadTest
+    unordered: true
 
   - db: functions_test
     description: right pad special/multibyte characters
@@ -5755,6 +6252,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: rpad_pad_string_containing_special_characters
     sql: select s, rpad(s, 8, 'x') from special
+    unordered: true
 
   - db: functions_test
     description: pad with special/multibyte characters
@@ -5767,6 +6265,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: rpad_pad_with_special_characters
     sql: select s, rpad('hi', 8, s) from special
+    unordered: true
 
   - db: functions_test
     description: test evaluated and pushed down reverse
@@ -5779,6 +6278,7 @@ testcases:
     expected_types: [varchar, varchar, varchar]
     id: reverse_special_characters
     sql: select reverse('hell0') r1, s, reverse(s) r2 from special
+    unordered: true
 
   - db: functions_test
     description: test evaluated and pushed with NULLs and evaluated with non-varchar types
@@ -5792,6 +6292,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: reverse_non_special_characters_and_nulls
     sql: select b, reverse(b) from scalar
+    unordered: true
 
   - db: functions_test
     description: both push_down and evaluated sign function on dates, ints, strings, all with NULLS and 0 values for ints
@@ -5805,6 +6306,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: sign_1
     sql: select a, sign(a) a_s, z, sign(z) z_s from scalar
+    unordered: true
 
   - db: functions_test
     description: test edge cases of days with string and integer day arguments
@@ -5819,6 +6321,7 @@ testcases:
     expected_types: [float, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: days
     sql: select n, makedate(2017, n), makedate(2020, n), makedate(9999, n), s, makedate(2017, s), makedate(2020, s), makedate(9999, s), makedate(n,s), makedate(s,n) from days
+    unordered: true
 
   - db: functions_test
     expected_names: [t, secs]
@@ -5833,6 +6336,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: to_seconds_0
     sql: select t, to_seconds(t) as secs from timestamps;
+    unordered: true
 
   - db: functions_test
     expected_names: [n, f, roundtrip]
@@ -5848,6 +6352,7 @@ testcases:
     expected_types: [int, varchar, int]
     id: from_days_1
     sql: select n, from_days(n) as f, to_days(from_days(n)) = n as roundtrip from numbers
+    unordered: true
 
   - db: functions_test
     expected_names: [t, sec, min, qtr]
@@ -5862,6 +6367,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar]
     id: timestampadd_0
     sql: select t, timestampadd(second, 1.5, t) sec, timestampadd(minute, 1.5, t) min, timestampadd(quarter, 9, t) qtr from timestamps
+    unordered: true
 
   - db: functions_test
     expected_names: [t, p, m, m2, q]
@@ -5876,6 +6382,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar]
     id: timestampadd_outofrangemonth
     sql: select t, timestampadd(month, 13, t) p, timestampadd(month, -1, t) m, timestampadd(month, -15, t) m2, timestampadd(quarter, -3, t) q from timestampAdd
+    unordered: true
 
   - db: functions_test
     expected_names: [t, p, p2, m, m2]
@@ -5890,6 +6397,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar]
     id: timestampadd_outofrangeday
     sql: select t, timestampadd(day, 2, t) p, timestampadd(day, 90, t) p2, timestampadd(day, -15, t) m, timestampadd(day, -30, t) m2 from timestampAdd
+    unordered: true
 
   - db: functions_test
     description: check pushdown for timestampadd with leap years and last days being significant
@@ -5905,6 +6413,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: timestampadd_leapyears
     sql: select t, timestampadd(month,1,t) mo from timestamps
+    unordered: true
 
   - db: functions_test
     description: Test all of the permutations of timestampdiff (though only two negative, from the hard and simple cases)
@@ -5921,6 +6430,7 @@ testcases:
     expected_types: [varchar, varchar, int, int, int, int, int, int, int, int, int]
     id: timestampdiff_0
     sql: select d1, d2, timestampdiff(year, d1, d2) as y, timestampdiff(quarter, d1, d2) as q, timestampdiff(month, d1, d2) as m, timestampdiff(month, d2, d1) as rm, timestampdiff(day, d1, d2) as d, timestampdiff(minute, d1, d2) as min, timestampdiff(second, d1, d2) as s, timestampdiff(microsecond, d1, d2) as us, timestampdiff(microsecond, d2, d1) as rus from timestampDiff
+    unordered: true
 
   - db: functions_test
     expected_names: [d, ld]
@@ -5934,6 +6444,7 @@ testcases:
     expected_types: [date, date]
     id: last_day_2
     sql: select d, last_day(d) ld from dates
+    unordered: true
 
   - db: functions_test
     expected_names: [ld]
@@ -5951,6 +6462,7 @@ testcases:
     expected_types: [date]
     id: last_day_3
     sql: select last_day(d) as ld from leap_year_dates
+    unordered: true
 
   - db: functions_test
     expected_names: [s, z, o, t, th, f, fv, sx, sv]
@@ -6013,6 +6525,7 @@ testcases:
     expected_types: [varchar, int, int, int, int, int, int, int, int]
     id: weeks_1
     sql: select s, week(s,0) z, week(s,1) o, week(s,2) t, week(s,3) th, week(s,4) f, week(s,5) fv, week(s,6) sx, week(s,7) sv from weeks
+    unordered: true
 
   - db: functions_test
     expected_names: [s, z, o, t, th, f, fv, sx, sv, df]
@@ -6075,6 +6588,7 @@ testcases:
     expected_types: [varchar, int, int, int, int, int, int, int, int, varchar]
     id: yearweeks_1
     sql: select s, yearweek(s) z, yearweek(s,1) o, yearweek(s,2) t, yearweek(s,3) th, yearweek(s,4) f, yearweek(s,5) fv, yearweek(s,6) sx, yearweek(s,7) sv, date_format(s, '%U %u %V %v %X %x') df from weeks
+    unordered: true
 
   - db: functions_test
     expected_names: [s, z, o, t, th, f, fv, sx, sv]
@@ -6089,6 +6603,7 @@ testcases:
     expected_types: [varchar, int, int, int, int, int, int, int, int]
     id: weeks_2
     sql: select s, week(s,0) z, week(s,1) o, week(s,2) t, week(s,3) th, week(s,4) f, week(s,5) fv, week(s,6) sx, week(s,7) sv from year_end_weeks
+    unordered: true
 
   - db: functions_test
     expected_names: [s, z, o, t, th, f, fv, sx, sv]
@@ -6103,6 +6618,7 @@ testcases:
     expected_types: [varchar, int, int, int, int, int, int, int, int]
     id: yearweeks_2
     sql: select s, yearweek(s,0) z, yearweek(s,1) o, yearweek(s,2) t, yearweek(s,3) th, yearweek(s,4) f, yearweek(s,5) fv, yearweek(s,6) sx, yearweek(s,7) sv from year_end_weeks
+    unordered: true
 
   - db: functions_test
     description: show that curdate push_down works
@@ -6116,6 +6632,7 @@ testcases:
     expected_types: [int, varchar]
     id: curdate_1
     sql: select _id + curdate() - curdate() as r1, concat(curdate() - curdate(), b) as r2 from scalar
+    unordered: true
 
   - db: functions_test
     description: show that unix_timestamp pushdown works
@@ -6127,6 +6644,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int]
     id: unix_timestamp
     sql: select unix_timestamp(a) as a, unix_timestamp(b) as b, unix_timestamp(c) as c, unix_timestamp(d) as d, unix_timestamp(e) as e, unix_timestamp(f) as f, unix_timestamp(g) as g from unixTimestamp
+    unordered: true
 
   - db: functions_test
     description: show that curdate push_down works. This test will stop working in 2166... be warned
@@ -6141,6 +6659,7 @@ testcases:
     expected_types: [varchar, int]
     id: curdate_2
     sql: select d, year(date(d)) + 2000 > year(curdate()) as res from dates
+    unordered: true
 
   - db: functions_test
     description: show that utc_date push_down works
@@ -6154,6 +6673,7 @@ testcases:
     expected_types: [int, varchar]
     id: utc_date_1
     sql: select _id + utc_date() - utc_date() as r1, concat(utc_date() - utc_date(), b) as r2 from scalar
+    unordered: true
 
   - db: functions_test
     description: show that utc_date push_down works. This test will stop working in 2166... be warned
@@ -6168,6 +6688,7 @@ testcases:
     expected_types: [varchar, int]
     id: utc_date_2
     sql: select d, year(date(d)) + 2000 > year(utc_date()) as res from dates
+    unordered: true
 
   - db: functions_test
     description: show that utc_timestamp push_down works. This test will stop working in 2166... be warned.
@@ -6182,6 +6703,7 @@ testcases:
     expected_types: [varchar, int]
     id: utc_timestamp_2
     sql: select d, year(date(d)) + 2000 > year(utc_timestamp()) as res from dates
+    unordered: true
 
   - db: functions_test
     description: show that current_timestamp works. This test will stop working in 2166... be warned.
@@ -6196,11 +6718,13 @@ testcases:
     expected_types: [varchar, int]
     id: current_timestamp
     sql: select d, year(date(d)) + 2000 > year(current_timestamp()) as res from dates
+    unordered: true
 
   - db: functions_test
     expected_error: 'Error 1064: parse sql ''select current_timestamp(d, _id) from dates'' error: unexpected COMMA at position 28'
     id: current_timestamp_parse_error
     sql: select current_timestamp(d, _id) from dates
+    unordered: true
 
   - db: functions_test
     description: show that curtime works. This test will stop working in 2166... be warned.
@@ -6215,6 +6739,7 @@ testcases:
     expected_types: [varchar, int]
     id: curtime
     sql: select d, year(date(d)) + 2000 > year(curtime()) as res from dates
+    unordered: true
 
   - db: functions_test
     expected_names: [a, database()]
@@ -6227,6 +6752,7 @@ testcases:
     expected_types: [int, varchar]
     id: database
     sql: select a, database() from scalar
+    unordered: true
 
   - db: functions_test
     description: no column reference in field list
@@ -6240,6 +6766,7 @@ testcases:
     expected_types: [int, int]
     id: no_column_ref_optimize
     sql: select 1 as a, 2*3 as b from convert_0
+    unordered: true
 
   - db: functions_test
     description: no column reference in field list with filter
@@ -6250,6 +6777,7 @@ testcases:
     expected_types: [int, int]
     id: no_column_ref_optimize_with_filter
     sql: select 5-2 as a, 2+5 as b from convert_0 where c>0
+    unordered: true
 
   - db: functions_test
     description: no column reference in field list with filter and group by
@@ -6259,6 +6787,7 @@ testcases:
     expected_types: [varchar, int]
     id: no_column_ref_optimize_with_filter_with_group_by
     sql: select trim(concat(' Hi ', 'Ron ')) as tr, (1+(3*5))-4 as mt from convert_0 where c>0 group by tr
+    unordered: true
 
   - db: functions_test
     description: no column reference in field list with filter and order by
@@ -6269,6 +6798,7 @@ testcases:
     expected_types: [varchar, int]
     id: no_column_ref_optimize_with_filter_with_order_by
     sql: select trim(concat(' Hi ', 'Ron ')) as tr, (1+(3*5))-4 as mt from convert_0 where c>0 order by tr
+    unordered: true
 
   - db: functions_test
     description: benchmark with literal expression
@@ -6278,6 +6808,7 @@ testcases:
     expected_types: [int]
     id: benchmark_literal
     sql: select benchmark(10, 1)
+    unordered: true
 
   - db: functions_test
     description: benchmark on a row column
@@ -6291,6 +6822,7 @@ testcases:
     expected_types: [int]
     id: benchmark_rows
     sql: select benchmark(10, a) from scalar
+    unordered: true
 
   - db: functions_test
     description: benchmark with a subquery expression
@@ -6300,6 +6832,7 @@ testcases:
     expected_types: [int]
     id: benchmark_subquery
     sql: select benchmark(10, (select a from scalar limit 1))
+    unordered: true
 
   - db: functions_test
     description: benchmark with a benchmark expression
@@ -6309,6 +6842,7 @@ testcases:
     expected_types: [int]
     id: benchmark_benchmark
     sql: select benchmark(10, benchmark(10, 1))
+    unordered: true
 
   - db: functions_test
     description: benchmark with a subquery and an uncorrelated row expression
@@ -6322,6 +6856,7 @@ testcases:
     expected_types: [int, int]
     id: benchmark_rows_subquery
     sql: select a, benchmark(10, (select a from scalar limit 1)) from scalar
+    unordered: true
 
   - db: functions_test
     description: benchmark with a join expression
@@ -6331,6 +6866,7 @@ testcases:
     expected_types: [int]
     id: benchmark_join_non_equal
     sql: select benchmark(10, (select b1.a from scalar as b1 join scalar as b2 on b1.a > b2.a limit 1))
+    unordered: true
 
   - db: functions_test
     description: benchmark with a nested, correlated subquery
@@ -6340,6 +6876,7 @@ testcases:
     expected_types: [int]
     id: benchmark_correlated_subquery
     sql: select benchmark(10, (select (select b1.a+b2.a from scalar as b2 limit 1) from scalar as b1 limit 1))
+    unordered: true
 
   - db: functions_test
     description: benchmark with a correlated subquery inside the expression
@@ -6353,6 +6890,7 @@ testcases:
     expected_types: [int, int]
     id: benchmark_correlated_subquery_rows
     sql: select b1.a,benchmark(10, (select b1.a+b2.a from scalar as b2 limit 1)) from scalar as b1
+    unordered: true
 
   - db: functions_test
     description: tests all major cases for the conv function
@@ -6368,6 +6906,7 @@ testcases:
     expected_types: [varchar, int, varchar]
     id: conv_function_test
     sql: select num, base1, conv(num, base1, 10) from conv_numbers_base_10
+    unordered: true
 
   - db: functions_test
     description: tests converting to different number systems
@@ -6396,6 +6935,7 @@ testcases:
     expected_types: [varchar, int, int, varchar]
     id: conv_function_test_any_base
     sql: select num, base1, base2, conv(num, base1, base2) from conv_numbers_any_base
+    unordered: true
 
   - db: functions_test
     description: tests converting to different number systems
@@ -6407,6 +6947,7 @@ testcases:
     expected_types: [int, int, int, varchar]
     id: conv_numeric_number
     sql: select num, base1, base2, conv(num, base1, base2) from conv_with_numeric_number
+    unordered: true
 
   - db: functions_test
     description: make sure that nopushdown evaluates the same as if it were the identity function
@@ -6420,6 +6961,7 @@ testcases:
     expected_types: [int, int]
     id: nopushdown_eval_semantics
     sql: select a, nopushdown(a + a) from scalar
+    unordered: true
 
   - db: functions_test
     description: Ensure that predicates are correctly added
@@ -6438,6 +6980,7 @@ testcases:
     expected_types: [int, varchar]
     id: BI-1811
     sql: "select convert_0.d, scalar.b from convert_0 join scalar where (convert_0.d > 5 || convert_0.d = -2)"
+    unordered: true
 
   - db: functions_test
     description: Null-safe equality check for non-null values, null values and missing values
@@ -6471,6 +7014,7 @@ testcases:
     expected_types: [float, float, int]
     id: BI-1752
     sql: select c1.c c1, c2.c c2, c1.c <=> c2.c `<=>` from scalar c1 cross join scalar c2
+    unordered: true
 
   - db: functions_test
     description: Ensure that all date_format sigils that cannot be directly pushed down to MongoDB work
@@ -6484,3 +7028,4 @@ testcases:
     expected_types: [varchar]
     id: non_mongodb_date_format_sigils
     sql: "select date_format(d, '%a %b %c %D %e %h %I %l %M %p %r %W %w %y') a from scalar"
+    unordered: true

@@ -24,3 +24,4 @@ testcases:
       - [288, West, Utah, 38810, 36580]
     expected_types: [int, varchar, varchar, int, int]
     sql: SELECT COUNT(1) AS `cnt_Number_of_Records_ok`, `Market` AS `none_Market_nk`, `State` AS `none_State_nk`, SUM(CONVERT(`Additions`, SQL_BIGINT)) AS `sum_Additions_ok`, SUM(CONVERT(`Budget Additions`, SQL_BIGINT)) AS `sum_Budget_Additions_ok` FROM Starbucks GROUP BY `Market`, `State` ORDER BY 1, 2, 3, 4, 5
+    unordered: true

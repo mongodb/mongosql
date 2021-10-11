@@ -7,3 +7,4 @@ testcases:
       - [Lemon, 29864.7186189566]
     expected_types: [varchar, float]
     sql: SELECT `Product` AS `none_Product_nk`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks WHERE (`Product` IN ('Earl Grey', 'Green Tea', 'Lemon')) GROUP BY `Product` ORDER BY 1, 2
+    unordered: true

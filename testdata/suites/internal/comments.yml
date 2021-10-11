@@ -11,6 +11,7 @@ testcases:
     expected_types: [int]
     id: '1'
     sql: select /*comment*/ a from convert_0;
+    unordered: true
 
   - db: functions_test
     expected_names: [a]
@@ -23,6 +24,7 @@ testcases:
     expected_types: [int]
     id: '2'
     sql: 'select a from convert_0; #comment'
+    unordered: true
 
   - db: functions_test
     expected_names: [a]
@@ -35,6 +37,7 @@ testcases:
     expected_types: [int]
     id: '3'
     sql: select a from convert_0; -- comment
+    unordered: true
 
   - db: functions_test
     expected_names: [a]
@@ -47,6 +50,7 @@ testcases:
     expected_types: [int]
     id: '4'
     sql: "select a /*this\n is \na \ncomment */ from convert_0;"
+    unordered: true
 
   - db: information_schema
     expected_names: ['@foo']

@@ -28,3 +28,4 @@ testcases:
       - ['Allen, Rachel']
     expected_types: [varchar]
     sql: SELECT `Employee Name` AS `none_Employee_Name_nk` FROM Staples GROUP BY `Employee Name` ORDER BY 1 LIMIT 24
+    unordered: true

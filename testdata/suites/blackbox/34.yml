@@ -490,3 +490,4 @@ testcases:
       - ['2002-12-31 00:00:00', 7104, 1]
     expected_types: [varchar, int, int]
     sql: SELECT `Order Date` AS `none_Order_Date_ok`, `Order ID` AS `none_Order_ID_nk`, SUM(CONVERT(`Item Count`, SQL_BIGINT)) AS `sum_Item_Count_ok` FROM Staples WHERE ((`Order Date` >=  '2002-10-12') AND (`Order Date` <=  '2002-12-31')) GROUP BY `Order Date`, `Order ID` ORDER BY 1, 2, 3
+    unordered: true

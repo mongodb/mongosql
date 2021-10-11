@@ -106,3 +106,4 @@ testcases:
       - [2359.777777777778, 64, COLLEGE GRAD]
     expected_types: [float, int, varchar]
     sql: SELECT AVG(`App_Ext_Credit_Rating`) AS `avg_App_Ext_Credit_Rating_ok`,   `App_Age` AS `none_App_Age_ok`,   `App_College` AS `none_App_College_nk` FROM Loan GROUP BY `App_Age`,   `App_College` ORDER BY 1, 2, 3
+    unordered: true

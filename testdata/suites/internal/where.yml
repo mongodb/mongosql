@@ -9,6 +9,7 @@ testcases:
     expected_types: [int]
     id: '0'
     sql: select a from where_test.where_1 where _id between 1 and 4
+    unordered: true
 
   - db: where_test
     description: between distinct values
@@ -18,6 +19,7 @@ testcases:
     expected_types: [int]
     id: '1'
     sql: select a from where_4 where b = 5 and a between 1 and 4
+    unordered: true
 
   - db: where_test
     description: between the same value
@@ -27,6 +29,7 @@ testcases:
     expected_types: [int]
     id: '2'
     sql: select a from where_test.where_1 where _id between 1 and 1
+    unordered: true
 
   - db: where_test
     description: between reversed values
@@ -35,6 +38,7 @@ testcases:
     expected_types: [int]
     id: '3'
     sql: select a from where_test.where_1 where _id between 4 and 1
+    unordered: true
 
   - db: where_test
     description: multiple betweens
@@ -45,6 +49,7 @@ testcases:
     expected_types: [int]
     id: '4'
     sql: select a from where_test.where_1 where _id between 1 and 2 or _id between 2 and 4
+    unordered: true
 
   - db: where_test
     description: not between distinct values
@@ -54,6 +59,7 @@ testcases:
     expected_types: [int]
     id: '5'
     sql: select a from where_test.where_1 where _id not between 1 and 4
+    unordered: true
 
   - db: where_test
     description: case
@@ -64,6 +70,7 @@ testcases:
     expected_types: [int]
     id: '6'
     sql: select a from where_1 where (case when a > 1 then true else false end)
+    unordered: true
 
   - db: where_test
     description: case without else
@@ -74,6 +81,7 @@ testcases:
     expected_types: [int]
     id: '7'
     sql: select a from where_1 where (case when a > 1 then true end)
+    unordered: true
 
   - db: where_test
     description: simple case
@@ -84,6 +92,7 @@ testcases:
     expected_types: [int]
     id: '8'
     sql: select a from where_1 where (case a when 1 then false else true end)
+    unordered: true
 
   - db: where_test
     description: exists
@@ -94,6 +103,7 @@ testcases:
     expected_types: [int]
     id: '9'
     sql: select a from where_1 f1 where exists(select 1 from where_1 f2 where f1.a > f2.a)
+    unordered: true
 
   - db: where_test
     description: exists with joined table and nested exists
@@ -104,6 +114,7 @@ testcases:
     expected_types: [int]
     id: '10'
     sql: select f1._id from where_1 f1 inner join where_2 b1 on f1._id = b1._id where exists(select 1 from where_1 f2 where exists(select 1 from where_2 b2 where f1.a = b2.a))
+    unordered: true
 
   - db: where_test
     description: greater than
@@ -114,6 +125,7 @@ testcases:
     expected_types: [int]
     id: '11'
     sql: select a from where_test.where_1 where _id > 0
+    unordered: true
 
   - db: where_test
     description: greater than (reversed)
@@ -124,6 +136,7 @@ testcases:
     expected_types: [int]
     id: '12'
     sql: select a from where_test.where_1 where 2 > _id
+    unordered: true
 
   - db: where_test
     description: greater than or equal
@@ -135,6 +148,7 @@ testcases:
     expected_types: [int]
     id: '13'
     sql: select a from where_test.where_1 where _id >= 0
+    unordered: true
 
   - db: where_test
     description: greater than or equal (reversed)
@@ -146,6 +160,7 @@ testcases:
     expected_types: [int]
     id: '14'
     sql: select a from where_test.where_1 where 2 >= _id
+    unordered: true
 
   - db: where_test
     description: in tuple
@@ -156,6 +171,7 @@ testcases:
     expected_types: [int]
     id: '15'
     sql: select _id from where_test.where_1 where _id in (0, 2)
+    unordered: true
 
   - db: where_test
     description: in non-correlated subquery
@@ -166,6 +182,7 @@ testcases:
     expected_types: [int]
     id: '16'
     sql: select _id from where_test.where_1 where _id in (select a from where_1)
+    unordered: true
 
   - db: where_test
     description: not precedence
@@ -177,6 +194,7 @@ testcases:
     expected_types: [int]
     id: '17'
     sql: select _id from where_test.where_1 where not (2 < 1) or (3 < 4)
+    unordered: true
 
   - db: where_test
     description: not precedence 2
@@ -188,6 +206,7 @@ testcases:
     expected_types: [int]
     id: '18'
     sql: select _id from where_test.where_1 where not 2 < 1 or 3 < 4
+    unordered: true
 
   - db: where_test
     description: regex filter
@@ -197,6 +216,7 @@ testcases:
     expected_types: [int, varchar]
     id: '19'
     sql: select * from where_test.where_5 where a REGEXP '^f.*$'
+    unordered: true
 
   - db: where_test
     description: not regex filter
@@ -207,6 +227,7 @@ testcases:
     expected_types: [int, varchar]
     id: '20'
     sql: select * from where_test.where_5 where a NOT REGEXP '^f.*$'
+    unordered: true
 
   - db: where_test
     description: less than
@@ -217,6 +238,7 @@ testcases:
     expected_types: [int]
     id: '21'
     sql: select a from where_test.where_1 where _id < 2
+    unordered: true
 
   - db: where_test
     description: less than (reversed)
@@ -226,6 +248,7 @@ testcases:
     expected_types: [int]
     id: '22'
     sql: select a from where_test.where_1 where 1 < _id
+    unordered: true
 
   - db: where_test
     description: less than or equal
@@ -237,6 +260,7 @@ testcases:
     expected_types: [int]
     id: '23'
     sql: select a from where_test.where_1 where _id <= 2
+    unordered: true
 
   - db: where_test
     description: less than or equal (reversed)
@@ -248,6 +272,7 @@ testcases:
     expected_types: [int]
     id: '24'
     sql: select a from where_test.where_1 where 0 <= _id
+    unordered: true
 
   - db: where_test
     description: non-correlated nested subqueries
@@ -257,6 +282,7 @@ testcases:
     expected_types: [int]
     id: '25'
     sql: select _id from where_test.where_1 where a = (select a from where_test.where_2 where _id = (select _id from where_test.where_1 limit 1))
+    unordered: true
 
   - db: where_test
     description: non-correlated subquery
@@ -266,6 +292,7 @@ testcases:
     expected_types: [int]
     id: '26'
     sql: select _id from where_test.where_1 where a = (select min(a) from where_test.where_2)
+    unordered: true
 
   - db: where_test
     description: correlated subquery
@@ -276,6 +303,7 @@ testcases:
     expected_types: [int]
     id: '27'
     sql: select a from where_test.where_1 where (_id, a) = (select _id, a from where_test.where_2 where where_1._id = where_2._id AND where_1.a = where_2.a)
+    unordered: true
 
   - db: where_test
     description: not in subquery
@@ -287,6 +315,7 @@ testcases:
     expected_types: [varchar]
     id: '28'
     sql: select _id from where_test.where_1 where 4 not in (select a from where_test.where_2)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -297,6 +326,7 @@ testcases:
     expected_types: [int, int, int]
     id: '29'
     sql: SELECT * FROM where_4 WHERE b <> ANY (SELECT _id FROM where_4)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -308,6 +338,7 @@ testcases:
     expected_types: [int, int, int]
     id: '30'
     sql: SELECT * FROM where_4 WHERE a <> SOME (SELECT a FROM where_4)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -317,6 +348,7 @@ testcases:
     expected_types: [int, int, int]
     id: '31'
     sql: SELECT * FROM where_4 WHERE b <> ALL (SELECT a FROM where_4)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -324,6 +356,7 @@ testcases:
     expected_types: [int, int, int]
     id: '32'
     sql: SELECT * FROM where_4 WHERE b < ALL (SELECT a FROM where_4)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -332,6 +365,7 @@ testcases:
     expected_types: [int, int, int]
     id: '33'
     sql: SELECT * FROM where_4 WHERE b + _id = ANY (SELECT a + b FROM where_4)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -340,6 +374,7 @@ testcases:
     expected_types: [int, int, int]
     id: '34'
     sql: SELECT * FROM where_4 WHERE b - _id < SOME (SELECT a - _id FROM where_4)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -348,6 +383,7 @@ testcases:
     expected_types: [int, int, int]
     id: '35'
     sql: SELECT * FROM where_4 WHERE b IN (SELECT a FROM where_4)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -357,6 +393,7 @@ testcases:
     expected_types: [int, int, int]
     id: '36'
     sql: SELECT * FROM where_4 WHERE b IN (SELECT 4 - _id FROM where_4)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -365,6 +402,7 @@ testcases:
     expected_types: [int, int, int]
     id: '37'
     sql: SELECT * FROM where_4 WHERE b NOT IN (SELECT 4 - _id FROM where_4)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -374,6 +412,7 @@ testcases:
     expected_types: [int, int, int]
     id: '38'
     sql: SELECT * FROM where_4 WHERE b - _id > SOME (SELECT _id FROM where_4)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -383,6 +422,7 @@ testcases:
     expected_types: [int, int, int]
     id: '39'
     sql: SELECT * FROM where_4 WHERE _id > ANY (SELECT a FROM where_4)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -393,6 +433,7 @@ testcases:
     expected_types: [int, int, int]
     id: '40'
     sql: SELECT * FROM where_4 WHERE b IN (SELECT b FROM where_4)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -400,6 +441,7 @@ testcases:
     expected_types: [int, int, int]
     id: '41'
     sql: SELECT * FROM where_4 WHERE a NOT IN (SELECT a FROM where_4)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -408,6 +450,7 @@ testcases:
     expected_types: [int, int, int]
     id: '42'
     sql: SELECT * FROM where_4 WHERE _id > ANY (SELECT b FROM where_4 WHERE _id <> ANY (SELECT b FROM where_4))
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -416,6 +459,7 @@ testcases:
     expected_types: [int, int, int]
     id: '43'
     sql: SELECT * FROM where_4 WHERE _id = ANY (SELECT b FROM where_4 WHERE _id < ANY (SELECT b FROM where_4 WHERE a IN (SELECT a from where_4)))
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -425,6 +469,7 @@ testcases:
     expected_types: [int, int, int]
     id: '44'
     sql: SELECT * FROM where_4 WHERE b < ANY (SELECT b + a - _id FROM where_4)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -434,6 +479,7 @@ testcases:
     expected_types: [int, int, int]
     id: '45'
     sql: SELECT * FROM where_4 WHERE b > ANY (SELECT b + a - _id FROM where_4)
+    unordered: true
 
   - db: where_test
     description: tuple equal
@@ -443,6 +489,7 @@ testcases:
     expected_types: [int]
     id: '46'
     sql: select _id from where_test.where_1 where (_id, a) = (0, 1)
+    unordered: true
 
   - db: where_test
     description: tuple greater than
@@ -452,6 +499,7 @@ testcases:
     expected_types: [int]
     id: '47'
     sql: select _id from where_test.where_1 where (a) < 2
+    unordered: true
 
   - db: where_test
     description: unary tilde
@@ -461,6 +509,7 @@ testcases:
     expected_types: [int]
     id: '48'
     sql: select a from where_test.where_1 where _id = ~-1
+    unordered: true
 
   - db: where_test
     description: unary tilde in an expression
@@ -470,6 +519,7 @@ testcases:
     expected_types: [int]
     id: '49'
     sql: select a from where_test.where_1 where _id = ~-1 + 1
+    unordered: true
 
   - db: where_test
     description: unary plus
@@ -479,6 +529,7 @@ testcases:
     expected_types: [int]
     id: '50'
     sql: select a from where_test.where_1 where _id = +1
+    unordered: true
 
   - db: where_test
     description: unary minus
@@ -487,6 +538,7 @@ testcases:
     expected_types: [int]
     id: '51'
     sql: select a from where_test.where_1 where _id = -(1)
+    unordered: true
 
   - db: where_test
     description: matching test on ObjectId with full match
@@ -496,6 +548,7 @@ testcases:
     expected_types: [varchar]
     id: '52'
     sql: SELECT _id from where_3 where _id LIKE '53c2ab5e4291b17b666d742a'
+    unordered: true
 
   - db: where_test
     description: matching test on ObjectId with partial match
@@ -505,6 +558,7 @@ testcases:
     expected_types: [varchar]
     id: '53'
     sql: SELECT _id from where_3 where _id LIKE '53c2ab5%'
+    unordered: true
 
   - db: where_test
     description: matching test on ObjectId with no match
@@ -513,6 +567,7 @@ testcases:
     expected_types: [varchar]
     id: '54'
     sql: SELECT _id from where_3 where _id LIKE '667570e9%'
+    unordered: true
 
   - db: where_test
     description: matching test on string with full match
@@ -522,6 +577,7 @@ testcases:
     expected_types: [int]
     id: '55'
     sql: SELECT _id from where_5 where a LIKE 'abcde'
+    unordered: true
 
   - db: where_test
     description: matching test on string with partial match
@@ -532,6 +588,7 @@ testcases:
     expected_types: [int]
     id: '56'
     sql: SELECT _id from where_5 where a LIKE 'abc%'
+    unordered: true
 
   - db: where_test
     description: matching test on string with no match
@@ -540,6 +597,7 @@ testcases:
     expected_types: [int]
     id: '57'
     sql: SELECT _id from where_5 where a LIKE 'abcdef%'
+    unordered: true
 
   - db: where_test
     description: matching not test on string with full match
@@ -550,6 +608,7 @@ testcases:
     expected_types: [int]
     id: '58'
     sql: SELECT _id from where_5 where a NOT LIKE 'abcde'
+    unordered: true
 
   - db: where_test
     description: matching not test on string with partial match
@@ -559,6 +618,7 @@ testcases:
     expected_types: [int]
     id: '59'
     sql: SELECT _id from where_5 where a NOT LIKE 'abc%'
+    unordered: true
 
   - db: where_test
     description: matching not test on string with no match
@@ -570,6 +630,7 @@ testcases:
     expected_types: [int]
     id: '60'
     sql: SELECT _id from where_5 where a NOT LIKE 'abcdef%'
+    unordered: true
 
   - db: where_test
     description: BI-1068
@@ -581,6 +642,7 @@ testcases:
     expected_types: [float, int]
     id: '61'
     sql: SELECT rnum, where_6.cint FROM where_test.where_6 WHERE not (where_6.cint = 1 or (where_6.cint is null and 1 is null))
+    unordered: true
 
   - db: where_test
     description: BI-1068-test-1
@@ -589,6 +651,7 @@ testcases:
     expected_types: [int]
     id: '62'
     sql: SELECT cint FROM where_6 WHERE (NULL <> 0)
+    unordered: true
 
   - db: where_test
     description: BI-1068-test-2
@@ -597,6 +660,7 @@ testcases:
     expected_types: [int]
     id: '63'
     sql: SELECT cint FROM where_6 WHERE (NULL <> cint)
+    unordered: true
 
   - db: where_test
     description: BI-1068-test-3
@@ -605,6 +669,7 @@ testcases:
     expected_types: [int]
     id: '64'
     sql: SELECT cint FROM where_6 WHERE NOT (NULL <> 0)
+    unordered: true
 
   - db: where_test
     description: BI-1068-test-4
@@ -613,6 +678,7 @@ testcases:
     expected_types: [int]
     id: '65'
     sql: SELECT cint FROM where_6 WHERE NOT (NULL <> cint)
+    unordered: true
 
   - db: where_test
     description: BI-1068-test-5
@@ -624,6 +690,7 @@ testcases:
     expected_types: [int]
     id: '66'
     sql: SELECT where_6.cint FROM where_6 WHERE NOT (where_6.cint = 1 OR (where_6.cint IS NULL AND 1 IS NULL))
+    unordered: true
 
   - db: where_test
     description: BI-1068-test-6
@@ -633,6 +700,7 @@ testcases:
     expected_types: [int]
     id: '67'
     sql: SELECT cint FROM where_6 WHERE NOT (NULL <> cint) OR NOT cint
+    unordered: true
 
   - db: where_test
     description: BI-1068-test-7
@@ -644,6 +712,7 @@ testcases:
     expected_types: [int]
     id: '68'
     sql: SELECT cint FROM where_6 WHERE (cint)
+    unordered: true
 
   - db: where_test
     description: BI-1068-test-8
@@ -655,6 +724,7 @@ testcases:
     expected_types: [float, int]
     id: '69'
     sql: SELECT rnum, cint/cint FROM where_6 WHERE cint <> 0
+    unordered: true
 
   - db: where_test
     description: in_comparison_with_non-correlated_multi-row_subquery
@@ -664,6 +734,7 @@ testcases:
     expected_types: [int]
     id: '70'
     sql: SELECT a FROM where_1 WHERE a IN (SELECT b FROM where_4)
+    unordered: true
 
   - db: where_test
     description: not_in_comparison_with_non-correlated_multi-row subquery
@@ -673,6 +744,7 @@ testcases:
     expected_types: [int]
     id: '71'
     sql: SELECT a FROM where_1 WHERE a NOT IN (SELECT a FROM where_2)
+    unordered: true
 
   - db: where_test
     description: all_comparison_with_non_correlated_multi-row_subquery
@@ -683,6 +755,7 @@ testcases:
     expected_types: [int]
     id: '72'
     sql: SELECT a FROM where_1 WHERE a <= ALL (SELECT a FROM where_2)
+    unordered: true
 
   - db: where_test
     description: any_comparison_with_non_correlated_multi-row_subquery
@@ -694,6 +767,7 @@ testcases:
     expected_types: [int]
     id: '73'
     sql: SELECT a FROM where_1 WHERE a <= ANY (SELECT a FROM where_2)
+    unordered: true
 
   - db: where_test
     description: some_comparison_with_non-correlated_multi-row_subquery
@@ -705,6 +779,7 @@ testcases:
     expected_types: [int]
     id: '74'
     sql: SELECT a FROM where_1 WHERE a <= SOME (SELECT b FROM where_4)
+    unordered: true
 
   - db: where_test
     description: in_comparison_with_non-correlated_multi-row-column_subquery
@@ -715,6 +790,7 @@ testcases:
     expected_types: [int]
     id: '75'
     sql: SELECT a FROM where_1 WHERE (_id, a) IN (SELECT _id, a FROM where_2)
+    unordered: true
 
   - db: where_test
     description: not_in_comparison_with_non-correlated_multi-row-column_subquery
@@ -724,6 +800,7 @@ testcases:
     expected_types: [int]
     id: '76'
     sql: SELECT a FROM where_1 WHERE (_id, a) NOT IN (SELECT _id, a FROM where_2)
+    unordered: true
 
   - db: where_test
     description: rlike filter
@@ -733,6 +810,7 @@ testcases:
     expected_types: [int, varchar]
     id: '77'
     sql: select * from where_test.where_5 where a RLIKE '^f.*$'
+    unordered: true
 
   - db: where_test
     description: not rlike filter
@@ -743,6 +821,7 @@ testcases:
     expected_types: [int, varchar]
     id: '78'
     sql: select * from where_test.where_5 where a NOT RLIKE '^f.*$'
+    unordered: true
 
   - db: where_test
     description: less than or equal (reversed) with three dot notation
@@ -754,6 +833,7 @@ testcases:
     expected_types: [int]
     id: '79'
     sql: select where_test.where_1.a from where_test.where_1 where 0 <= where_test.where_1._id
+    unordered: true
 
   - db: where_test
     description: non-correlated nested subqueries with three dot notation
@@ -763,6 +843,7 @@ testcases:
     expected_types: [int]
     id: '80'
     sql: select where_test.where_1._id from where_test.where_1 where where_test.where_1.a = (select a from where_test.where_2 where where_test.where_2._id = (select where_test.where_1._id from where_test.where_1 limit 1))
+    unordered: true
 
   - db: where_test
     description: non-correlated subquery with three dot notation
@@ -772,6 +853,7 @@ testcases:
     expected_types: [int]
     id: '81'
     sql: select where_test.where_1._id from where_test.where_1 where where_test.where_1.a = (select min(where_test.where_2.a) from where_test.where_2)
+    unordered: true
 
   - db: where_test
     description: correlated subquery with three dot notation
@@ -782,6 +864,7 @@ testcases:
     expected_types: [int]
     id: '82'
     sql: select where_test.where_1.a from where_test.where_1 where (where_test.where_1._id, where_test.where_1.a) = (select where_test.where_2._id, a from where_test.where_2 where where_1._id = where_2._id AND where_1.a = where_2.a)
+    unordered: true
 
   - db: join_test
     expected_names: [_id, b.c]
@@ -791,6 +874,7 @@ testcases:
     expected_types: [int, int]
     id: pre_unwind_filter_optimize
     sql: select _id, `b.c` from join_8_b where `b.c` = 2
+    unordered: true
 
   - db: join_test
     expected_names: [_id, b.c]
@@ -800,12 +884,14 @@ testcases:
     expected_types: [int, int]
     id: pre_unwind_filter_dollar_expr_predicate
     sql: select _id, `b.c` from join_8_b where lpad('', `b.c`, '#') = '##'
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
     expected_types: [int, int, int]
     id: BI-1853 simple with vacuously true first term, empty result
     sql: SELECT * FROM where_4 WHERE (b, b) <=> (b, a)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -814,6 +900,7 @@ testcases:
     expected_types: [int, int, int]
     id: BI-1853 simple with vacuously true first term, non empty result
     sql: SELECT * FROM where_4 WHERE (b, b) <=> (b, a - 1)
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -822,6 +909,7 @@ testcases:
     expected_types: [int, int, int]
     id: BI-1853 complex with vacuously true nested terms
     sql: SELECT * FROM where_4 WHERE (_id, ((b, a), (a, a))) <=> (b/4, ((a*2, b/2), (a, a)));
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -830,6 +918,7 @@ testcases:
     expected_types: [int, int, int]
     id: BI-1853 complex with multiple vacuously true terms
     sql: SELECT * FROM where_4 WHERE (_id, ((b, a), (a, a))) <=> (_id, ((a*2, b/2), (a, a)));
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -838,6 +927,7 @@ testcases:
     expected_types: [int, int, int]
     id: BI-1853 multiple separate expressions with vacuously true terms
     sql: SELECT * FROM where_4 WHERE (_id, ((b, a), (a, a))) <=> (_id, ((a*2, b/2), (a, a))) OR (b, b) <=> (b, a);
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -849,6 +939,7 @@ testcases:
     expected_types: [int, int, int]
     id: BI-1853 completely vacuously true
     sql: SELECT * FROM where_4 WHERE (b, b) <=> (b, b);
+    unordered: true
 
   - db: where_test
     expected_names: [_id, s]
@@ -861,6 +952,7 @@ testcases:
     expected_types: [int, varchar]
     id: where_string_col_mysql
     sql: select _id, s from where_strings where s
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: where_test
@@ -871,6 +963,7 @@ testcases:
     expected_types: [int, varchar]
     id: where_not_string_col_mysql
     sql: select _id, s from where_strings where not s
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: where_test
@@ -882,6 +975,7 @@ testcases:
     expected_types: [int, varchar]
     id: where_not_string_col_or_id_mysql
     sql: select _id, s from where_strings where not s or _id = 3
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: where_test
@@ -891,6 +985,7 @@ testcases:
     expected_types: [int, varchar]
     id: where_string_col_mongosql
     sql: select _id, s from where_strings where s
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: where_test
@@ -905,6 +1000,7 @@ testcases:
     expected_types: [int, varchar]
     id: where_not_string_col_mongosql
     sql: select _id, s from where_strings where not s
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: functions_test
@@ -921,6 +1017,7 @@ testcases:
     expected_types: [float]
     id: where_floating_point_col
     sql: select b from trig where b
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: functions_test
@@ -939,6 +1036,7 @@ testcases:
     expected_types: [float]
     id: where_floating_point_arithmetic
     sql: select b from trig where b + b
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: where_test
@@ -947,6 +1045,7 @@ testcases:
     expected_types: [varchar, varchar, varchar]
     id: where_equal_with_nulls
     sql: select * from where_nulls where a = b
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -954,6 +1053,7 @@ testcases:
     expected_types: [varchar, varchar, varchar]
     id: where_not_equal_with_nulls
     sql: select * from where_nulls where a != b
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -961,6 +1061,7 @@ testcases:
     expected_types: [varchar, varchar, varchar]
     id: where_less_than_with_nulls
     sql: select * from where_nulls where a < b
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -968,6 +1069,7 @@ testcases:
     expected_types: [varchar, varchar, varchar]
     id: where_greater_than_with_nulls
     sql: select * from where_nulls where a > b
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -975,6 +1077,7 @@ testcases:
     expected_types: [varchar, varchar, varchar]
     id: where_less_than_or_equal_to_with_nulls
     sql: select * from where_nulls where a <= b
+    unordered: true
 
   - db: where_test
     expected_names: [_id, a, b]
@@ -982,6 +1085,7 @@ testcases:
     expected_types: [varchar, varchar, varchar]
     id: where_greater_than_or_equal_to_with_nulls
     sql: select * from where_nulls where a >= b
+    unordered: true
 
   - db: where_test
     expected_names: [a, sub]
@@ -992,6 +1096,7 @@ testcases:
     expected_types: [int, int]
     id: BI-1885 correlated subquery regression
     sql: select a, (select 1 from where_1 f2 where f1.a > f2.a limit 1) as sub from where_1 f1
+    unordered: true
 
   - db: where_test
     expected_names: [_id, foo, bar]
@@ -1002,3 +1107,4 @@ testcases:
     expected_types: [int, int, int]
     id: BI-1885 correlated subquery where first subquery can be pushed down and second cannot
     sql: select _id, (select a from where_1 t1 where t3._id = t1._id limit 1) foo, (select a from where_2 t2 where t3._id = t2._id) bar from where_1 t3
+    unordered: true

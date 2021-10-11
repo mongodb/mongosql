@@ -19,3 +19,4 @@ testcases:
       - [West, Tea, 333436]
     expected_types: [varchar, varchar, int]
     sql: SELECT `Market` AS `none_Market_nk`, `Product Type` AS `none_Product_Type_nk`, SUM(CONVERT(`Inventory`, SQL_BIGINT)) AS `sum_Inventory_ok` FROM Starbucks GROUP BY `Market`, `Product Type` ORDER BY 1, 2, 3
+    unordered: true

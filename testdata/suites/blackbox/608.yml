@@ -1230,3 +1230,4 @@ testcases:
       - ['2001-09-01 00:00:00', 42734, 'Polycom Soundstation EX Audio-Conferencing Telephone, Black', 12]
     expected_types: [varchar, int, varchar, int]
     sql: SELECT `Order Date` AS `none_Order_Date_ok`,   `PID` AS `none_PID_ok`,   `Product Name` AS `none_Product_Name_nk`,   `Fill Time` AS `sum_Fill_Time_ok` FROM Staples WHERE (((`Fill Time` >= 5) AND (`Fill Time` <= 12)) AND ((`Order Date` >= '2001-01-01') AND (`Order Date` <= '2001-09-01'))) ORDER BY 1, 2, 3, 4
+    unordered: true

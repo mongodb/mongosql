@@ -16,3 +16,4 @@ testcases:
       - [21]
     expected_types: [int]
     sql: SELECT FLOOR(`Pop_SQ_Mile` / 50) AS `Pop_Bins` FROM Election GROUP BY FLOOR(`Pop_SQ_Mile` / 50) ORDER BY 1 ASC
+    unordered: true

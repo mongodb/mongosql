@@ -17,3 +17,4 @@ testcases:
       - [West, Mint, 19930]
     expected_types: [varchar, varchar, int]
     sql: SELECT MAX(`Market`) AS `max_Market_nk`, `Product` AS `none_Product_nk`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok` FROM Starbucks GROUP BY `Product` ORDER BY 1, 2, 3
+    unordered: true

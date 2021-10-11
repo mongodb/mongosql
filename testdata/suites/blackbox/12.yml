@@ -10,3 +10,4 @@ testcases:
       - [Caffe Latte, California, Major Market, West, 6128.041308988655, 1999]
     expected_types: [varchar, varchar, varchar, varchar, float, int]
     sql: SELECT `Product` AS `Product`, `State` AS `State`, `Market Size` AS `none_Market_Size_nk`, `Market` AS `none_Market_nk`, SUM(`Sales`) AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE ((`State` IN ('California', 'Colorado')) AND (`Product` IN ('Amaretto', 'Caffe Latte'))) GROUP BY `State`, `Product`, `Market Size`, `Market`, YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5, 6
+    unordered: true

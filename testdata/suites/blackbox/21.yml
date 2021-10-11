@@ -52,3 +52,4 @@ testcases:
       - [6, West, 2, 10045, 1998]
     expected_types: [int, varchar, int, float, int]
     sql: SELECT MONTH(`Date`) AS `mn_Date_ok`, `Market` AS `none_Market_nk`, QUARTER(`Date`) AS `qr_Date_ok`, SUM(`Sales`) AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE ((NOT (`State` = 'Washington')) AND (NOT (QUARTER(`Date`) IN (3, 4)))) GROUP BY MONTH(`Date`), `Market`, QUARTER(`Date`), YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5
+    unordered: true

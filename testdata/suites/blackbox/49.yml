@@ -21,3 +21,4 @@ testcases:
       - [TELEPHONES AND COMMUNICATION, 536399.52, 13508713.31]
     expected_types: [varchar, float, float]
     sql: SELECT `Prod Type2` AS `none_Prod_TypeC_nk`,   SUM(`Price`) AS `sum_Price_ok`,   SUM(`Sales Total`) AS `sum_Sales_Total_ok` FROM Staples GROUP BY `Prod Type2` ORDER BY 1, 2, 3
+    unordered: true

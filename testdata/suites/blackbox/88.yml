@@ -80,3 +80,4 @@ testcases:
       - [520.388311890484, 24, Coffee, Massachusetts, 12489.319485371616]
     expected_types: [float, int, varchar, varchar, float]
     sql: SELECT AVG(`Profit`) AS `avg_Profit_ok`,   COUNT(`Profit`) AS `cnt_Profit_ok`,   `Product Type` AS `none_Product_Type_nk`,   `State` AS `none_State_nk`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks GROUP BY `Product Type`,   `State` ORDER BY 1, 2, 3, 4, 5
+    unordered: true

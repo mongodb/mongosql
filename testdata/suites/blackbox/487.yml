@@ -28,3 +28,4 @@ testcases:
       - [12, 13075.961603204583, 1999]
     expected_types: [int, float, int]
     sql: SELECT MONTH(`Date`) AS `mn_Date_ok`, SUM(`Profit`) AS `sum_Profit_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY MONTH(`Date`), YEAR(`Date`) ORDER BY 1, 2, 3
+    unordered: true

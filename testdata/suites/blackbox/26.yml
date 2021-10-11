@@ -897,3 +897,4 @@ testcases:
       - [21425.91, Adalin Torres-Zayas, '1999-07-27 00:00:00']
     expected_types: [float, varchar, varchar]
     sql: SELECT AVG(`Sales Total`) AS `avg_Sales_Total_ok`,   `Manager Name` AS `none_Manager_Name_nk`,   `Order Date` AS `none_Order_Date_ok` FROM Staples WHERE (`Manager Name` IN ('Adalin Torres-Zayas', 'Alok Kapoor', 'Baton Rouge Alumnae', 'Carey Beckstead')) GROUP BY `Manager Name`,   `Order Date` ORDER BY 1, 2, 3
+    unordered: true

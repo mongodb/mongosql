@@ -4,3 +4,4 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     sql: SELECT YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE (YEAR(`Date`) IS NULL) LIMIT 1
+    unordered: true

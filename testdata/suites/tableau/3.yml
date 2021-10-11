@@ -143,3 +143,4 @@ testcases:
       - [-116.22277778, 43.56444444, 1]
     expected_types: [float, float, int]
     sql: SELECT attendees.`loc.coordinates_longitude` AS loc_longitude, attendees.`loc.coordinates_latitude` AS loc_latitude, SUM(1) AS records FROM tableau.attendees attendees GROUP BY 1, 2 ORDER BY 3 DESC, 1 DESC, 2 DESC
+    unordered: true

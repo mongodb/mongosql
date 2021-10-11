@@ -14,6 +14,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select * from test where a in (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "simple subquery cmp with specific columns"
     expected_names: ["a", "b", "d"]
@@ -26,6 +27,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a, b, d from test where a in (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "simple subquery cmp expr with expr outer"
     expected_names: ["a"]
@@ -36,6 +38,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a + 11 in (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "simple subquery cmp expr with expr inner"
     expected_names: ["a"]
@@ -46,6 +49,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select a - 11 from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "simple subquery cmp expr with expr inner and outer"
     expected_names: ["a"]
@@ -56,6 +60,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a + 6 in (select a - 5 from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp in select list"
     expected_names: ["tcol", "a"]
@@ -70,6 +75,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select 1 in (select a from test where a < 80) tcol, a from test where a < 98;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp expr anded term outer"
     expected_names: ["a"]
@@ -81,6 +87,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select a from test10) AND a > 11;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp expr anded term inner"
     expected_names: ["a"]
@@ -92,6 +99,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select a from test10 WHERE a > 11);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp expr anded term inner and outer"
     expected_names: ["a"]
@@ -102,6 +110,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select a from test10 WHERE a > 11) AND a < 98;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp expr with AND and OR with scalar func outer"
     expected_names: ["a"]
@@ -116,6 +125,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select a from test10) AND a > 11 OR  MOD(a, 2) = 1;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp expr with AND and OR with scalar func inner"
     expected_names: ["a"]
@@ -128,6 +138,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select a from test10 WHERE a > 11 OR  MOD(a, 2) = 1);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp expr with AND and OR with scalar func inner and outer"
     expected_names: ["a"]
@@ -142,6 +153,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select a from test10 WHERE a > 11) OR MOD(a, 2) = 1;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp expr two anded terms inner"
     expected_names: ["a"]
@@ -152,6 +164,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select a from test10 WHERE a > 11 AND a < 98);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp expr with two or terms inner"
     expected_names: ["a"]
@@ -164,6 +177,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select a from test10 WHERE a > 11 OR a < 98);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp OR vacuously true"
     expected_names: ["a"]
@@ -182,6 +196,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select a from test10) OR true;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp AND vacuously false"
     expected_names: ["a"]
@@ -190,6 +205,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select a from test10) AND false;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "two subqueries in predicate anded"
     expected_names: ["a"]
@@ -201,6 +217,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select a from test10) AND b in (select b - 29 from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery_in_subquery"
     expected_names: ["a"]
@@ -219,6 +236,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (select b from bool where b = 50) in (select b from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "two subqueries in predicate ored"
     expected_names: ["a"]
@@ -234,6 +252,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select a from test10) OR b in (select b - 47 from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subqueries nested"
     expected_names: ["a"]
@@ -244,6 +263,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select a from test10 where b in (select b from bool));"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery with join and group by"
     expected_names: ["a"]
@@ -254,6 +274,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select test10.a from test10 JOIN bool on test10.b = bool.b GROUP BY test10.b);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery with join and group by where joined tables are swapped in position"
     expected_names: ["a"]
@@ -264,6 +285,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select test10.a from bool JOIN test10 on test10.b = bool.b GROUP BY test10.b);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp expr followed by group by"
     expected_names: ["count(a)", "b"]
@@ -274,6 +296,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select count(a), b from test where b + 47 in (select b from test10) GROUP BY b;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp with two cross joined tables"
     expected_names: ["a"]
@@ -286,6 +309,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select test10.a from test10, bool);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp using multiple tables from subquery"
     expected_names: ["a"]
@@ -296,6 +320,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (a, b - 4) in (select test10.a, bool.b from bool, test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquerycmp in join condition with limit"
     expected_names: ["a"]
@@ -307,6 +332,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select test.a from test JOIN test10 ON test.a in (select a from test10) group by test.a order by test.a limit 2;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquerycmp with aggregate on select list and having"
     expected_names: ["sum_a"]
@@ -317,6 +343,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select sum(a) as sum_a from test10 having sum_a in (select a from test);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquerycmp with aggregate inside subquery"
     expected_names: ["a"]
@@ -327,6 +354,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select sum(a) from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquerycmp within having"
     expected_names: ["sum_a"]
@@ -337,6 +365,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select sum(a) as sum_a from test having sum_a in (select sum(a) from both_sum_test);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquerycmp with order by"
     expected_names: ["a"]
@@ -349,6 +378,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a in (select a from test10) ORDER BY a;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquerycmp with sum agg on result"
     expected_names: ["sum(a)"]
@@ -359,6 +389,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select sum(a) from test where a in (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquerycmp with order by inner"
     expected_names: ["a", "b"]
@@ -370,6 +401,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a, b from test where a in (select a from test10) AND a > 11 ORDER BY b DESC;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp with tuple equality"
     expected_names: ["a"]
@@ -380,6 +412,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (a, b) in (select a, b - 18 from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp with complex join condition and tuple equality"
     expected_names: ["a"]
@@ -390,6 +423,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (a, b - 4) in (select test10.a, bool.b from test10 JOIN bool ON test10.a > bool.a);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "simple agg subquery cmp in select list"
     expected_names: ["thing", "a"]
@@ -400,6 +434,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select (select avg(a) from test where a in (select a from test10)) thing, a from test10 GROUP BY thing;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "nested subquery cmp in select list"
     expected_names: ["thing", "a"]
@@ -410,6 +445,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select (select avg(a) from test where a in (select a from test10 where b in (select b from bool where a = 0))) as thing, a from test10 GROUP BY thing;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "very complex nested subquery cmp in select list"
     expected_names: ["thing", "a"]
@@ -420,6 +456,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select (select avg(a) from test where a in (select a from test10 where b in (select b from bool where a = 0) and b not in (23, 32, 31)) and a > 50) as thing, a from test10 GROUP BY thing;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "simple EXISTS"
     expected_names: ["a"]
@@ -438,6 +475,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where EXISTS (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "EXISTS true with ANDED predicate"
     expected_names: ["a"]
@@ -451,6 +489,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where EXISTS (select a from test10) and MOD(a, 2) = 0;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "complex EXISTS with JOIN inside subquery ANDED with predicate"
     expected_names: ["a"]
@@ -464,6 +503,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where EXISTS (select test10.a from test10 JOIN bool ON test10.b = bool.b) AND MOD(a, 2) = 0;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "complex EXISTS with JOIN in subquery ANDED with predicate FALSE"
     expected_names: ["a"]
@@ -472,6 +512,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where EXISTS (select test10.a from test10 JOIN bool ON test10.b = bool.b and test10.a = 3423423) AND MOD(a, 2) = 0;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "simple not in"
     expected_names: ["a"]
@@ -485,6 +526,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a not in (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "not in with ANDED predicate"
     expected_names: ["a"]
@@ -495,6 +537,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a not in (select a from test10) AND a > 11;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "not in inside having clause with order by"
     expected_names: ["sum_a"]
@@ -503,6 +546,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select sum(a) as sum_a from test10 having sum_a not in (select a from test) order by sum_a;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "simple ANY greater than"
     expected_names: ["a"]
@@ -515,6 +559,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a > ANY (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "ANY with tuple gt"
     expected_error: "Error 1241: Operand should contain 1 column(s)"
@@ -524,6 +569,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (a, b) > ANY (select a, b from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "ANY with three bool valued logic equality"
     expected_names: ["a"]
@@ -536,6 +582,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where d = ANY (select d from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "ANY with predicates and agg function"
     expected_names: ["sum(a)"]
@@ -546,6 +593,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select sum(a) from test where a > ANY (select a from test10) and a < 600;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "simple ALL greater than"
     expected_names: ["a"]
@@ -558,6 +606,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a < ALL (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "ALL with tuple gt"
     expected_error: "Error 1241: Operand should contain 1 column(s)"
@@ -567,6 +616,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (a, b) > ALL (select a, b from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "ALL with three bool valued logic equality"
     expected_names: ["a"]
@@ -575,6 +625,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where d = ALL (select d from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "ALL with predicates and agg function"
     expected_names: ["sum(a)"]
@@ -583,6 +634,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select sum(a) from test where a > ALL (select a from test10) and a < 600;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "simple right subquery gt"
     expected_names: ["a"]
@@ -594,6 +646,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a > (select a from test10 where a = 80);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "right subquery with ANDED predicate"
     expected_names: ["a", "b"]
@@ -605,6 +658,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a, b from test where a > (select a from test10 LIMIT 1) AND b < 50 ORDER BY a;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "right subquery with JOIN and GROUP BY in subquery"
     expected_names: ["a"]
@@ -615,6 +669,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a = (select test10.a from test10 JOIN bool ON test10.b = bool.b GROUP BY bool.b);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "ambiguous column in GROUP BY in subquery"
     expected_error: "Error 1052: Column 'b' in group clause is ambiguous"
@@ -624,6 +679,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where a = (select test10.a from test10 JOIN bool ON test10.b = bool.b GROUP BY b);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery full with predicate AND"
     expected_names: ["a"]
@@ -635,6 +691,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (select a from test where a < 10 LIMIT 1) < (select b from test10 LIMIT 1) and a > 80;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "full subquery with GROUP, ORDER and LIMIT"
     expected_names: ["a"]
@@ -647,6 +704,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (select a from test where a < 10 LIMIT 1) < (select b from test10 LIMIT 1) GROUP BY a ORDER BY a LIMIT 3;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "full subquery with tuples, ANDED predicate, group by, order by and limit"
     expected_names: ["a"]
@@ -657,6 +715,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (select a, b from test10 where a > 80 LIMIT 1) > (select a, b from test where a < 10 LIMIT 1) and a < 1 GROUP BY a ORDER BY a LIMIT 3;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery - subquery ALL non-empty result set"
     expected_names: ["a"]
@@ -675,6 +734,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (select b from bool where b = 1 LIMIT 1) < ALL (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery - subquery ALL empty result set"
     expected_names: ["a"]
@@ -683,6 +743,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (select b from bool where b = 50 LIMIT 1) > ALL (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery - subquery ANY non-empty result set"
     expected_names: ["a"]
@@ -701,6 +762,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (select b from bool where b = 50 LIMIT 1) > ANY (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery - subquery ANY empty result set"
     expected_names: ["a"]
@@ -709,6 +771,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where (select b from bool where b = 1 LIMIT 1) > ANY (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "literal scalar subquery cmp expr IN"
     expected_names: ["a"]
@@ -727,6 +790,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where 11 in (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "literal scalar subquery cmp expr NOT IN"
     expected_names: ["a"]
@@ -735,6 +799,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where 11 not in (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "literal scalar subquery cmp expr IN"
     expected_names: ["a"]
@@ -753,6 +818,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where 11 in (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "literal scalar subquery cmp expr NOT IN"
     expected_names: ["a"]
@@ -761,6 +827,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where 11 not in (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "literal scalar subquery cmp expr ANY"
     expected_names: ["a"]
@@ -779,6 +846,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where 11 = ANY (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "literal scalar subquery cmp expr ALL"
     expected_names: ["a"]
@@ -787,6 +855,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where 11 = ALL (select a from test10);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "complex literal scalar subquery cmp expr IN with predicate, limit, nested subquery cmp"
     expected_names: ["a"]
@@ -799,6 +868,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where 11 in (select a from test10 where a > 9 AND 50 in (select b from bool)) AND a < 80 LIMIT 3;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "lookup array references handle missing mongodb values"
     expected_names: ["_id", "a", "v"]
@@ -812,6 +882,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select * from missing_test where exists (select a, v from missing_test where v > 0);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "subquery cmp expression inside a group by"
     expected_names: ["sum(a)"]
@@ -822,6 +893,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select sum(a) from test group by (98 in (select a from test10));"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "EXISTS with null values"
     expected_names: ["a"]
@@ -840,6 +912,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where EXISTS (select a from three);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "EXISTS with empty result"
     expected_names: ["a"]
@@ -848,6 +921,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a from test where EXISTS (select a from test10 where a = 2);"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "EXISTS in select"
     expected_names: ["a", "b"]
@@ -866,6 +940,7 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a, EXISTS (select a from test10) as b from test;"
+    unordered: true
   - db: subquery_cmp_pushdown_test
     description: "EXISTS in case"
     expected_names: ["a", "b"]
@@ -884,3 +959,4 @@ testcases:
     schema_mapping_heuristics:
       - drdl
     sql: "select a, (case when EXISTS (select a from test10) then 4 else 5 end) as b from test;"
+    unordered: true

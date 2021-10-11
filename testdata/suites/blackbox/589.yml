@@ -23,3 +23,4 @@ testcases:
       - [8999, Grace Kelly]
     expected_types: [int, varchar]
     sql: SELECT MAX(`Customer Balance`) AS `max_Customer_Balance_ok`,   `Customer Name` AS `none_Customer_Name_nk` FROM Staples GROUP BY `Customer Name` HAVING ((MAX(`Customer Balance`) >= 7008) AND (MAX(`Customer Balance`) <= 9000)) ORDER BY 1, 2
+    unordered: true

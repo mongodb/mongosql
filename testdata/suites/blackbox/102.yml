@@ -1818,3 +1818,4 @@ testcases:
       - ['1999-12-01 00:00:00', 578.779369566427, 1]
     expected_types: [varchar, float, int]
     sql: SELECT `Date` AS `none_Date_ok`, `Profit` AS `none_Profit_ok`, SUM(CONVERT(1, SQL_BIGINT)) AS `sum_Number_of_Records_ok` FROM Starbucks GROUP BY `Date`, `Profit` ORDER BY 1, 2, 3
+    unordered: true

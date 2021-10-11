@@ -21,3 +21,4 @@ testcases:
       - [key16, 'Pat O''Hanrahan & <Matthew Eldridge]''']
     expected_types: [varchar, varchar]
     sql: SELECT `key` AS `none_key_nk`,   'Pat O''Hanrahan & <Matthew Eldridge]''' AS `none_z_string_literal_nk` FROM Calcs ORDER BY 1, 2
+    unordered: true

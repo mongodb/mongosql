@@ -46,3 +46,4 @@ testcases:
       - [West, Tea, Green Tea, Regular, 162766, -7108.638221140908, 16063.453776235625]
     expected_types: [varchar, varchar, varchar, varchar, int, float, float]
     sql: SELECT `Market` AS `none_Market_nk`, `Product Type` AS `none_Product_Type_nk`, `Product` AS `none_Product_nk`, `Type` AS `none_Type_nk`, SUM(CONVERT(`Inventory`, SQL_BIGINT)) AS `sum_Inventory_ok`, SUM(`Profit`) AS `sum_Profit_ok`, SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Market`, `Product Type`, `Product`, `Type` ORDER BY 1, 2, 3, 4, 5, 6, 7
+    unordered: true

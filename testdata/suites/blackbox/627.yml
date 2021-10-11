@@ -16,3 +16,4 @@ testcases:
       - [12, 2052279.32]
     expected_types: [int, float]
     sql: SELECT MONTH(`Order Date`) AS `mn_Order_Date_ok`, SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples GROUP BY MONTH(`Order Date`) ORDER BY 1, 2
+    unordered: true

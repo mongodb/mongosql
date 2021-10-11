@@ -8,3 +8,4 @@ testcases:
       - [SMALL BUSINESS]
     expected_types: [varchar]
     sql: SELECT (CASE `Customer Segment` WHEN 'CONSUMER' THEN '*Anonymous*' ELSE `Customer Segment` END) AS `none_BBAEFH_nk` FROM Staples GROUP BY (CASE `Customer Segment` WHEN 'CONSUMER' THEN '*Anonymous*' ELSE `Customer Segment` END) ORDER BY 1
+    unordered: true

@@ -6,6 +6,7 @@ testcases:
     expected_types: [int, varchar, float, float]
     id: '0'
     sql: SELECT a, b, `loc.0`, `loc.1` from .test1
+    unordered: true
 
   - db: test
     expected_results:
@@ -13,6 +14,7 @@ testcases:
     expected_types: [int, varchar, float, float]
     id: '1'
     sql: SELECT a, b, `loc.0`, `loc.1` from test1
+    unordered: true
 
   - db: test
     expected_results:
@@ -20,6 +22,7 @@ testcases:
     expected_types: [int]
     id: '2'
     sql: SELECT count(*) from test1
+    unordered: true
 
   - db: test
     expected_results:
@@ -27,6 +30,7 @@ testcases:
     expected_types: [int]
     id: '3'
     sql: SELECT sum(a) from test1
+    unordered: true
 
   - db: test
     expected_results:
@@ -34,6 +38,7 @@ testcases:
     expected_types: [int]
     id: '4'
     sql: SELECT sum(a) from test1
+    unordered: true
 
   - db: test
     expected_results:
@@ -41,6 +46,7 @@ testcases:
     expected_types: [float, float]
     id: '5'
     sql: SELECT `loc.0`, `loc.1` from test1
+    unordered: true
 
   - db: test
     expected_results:
@@ -48,6 +54,7 @@ testcases:
     expected_types: [float, float]
     id: '6'
     sql: SELECT `loc.lat`, `loc.lng` from test2
+    unordered: true
 
   - db: test
     expected_results:
@@ -55,6 +62,7 @@ testcases:
     expected_types: [varchar, int, varchar, float, float]
     id: '7'
     sql: SELECT * from test2
+    unordered: true
 
   - db: test
     expected_results:
@@ -62,6 +70,7 @@ testcases:
     expected_types: [float]
     id: '8'
     sql: SELECT sum(`loc.lng`) from test2
+    unordered: true
 
   - db: test
     expected_results:
@@ -69,18 +78,21 @@ testcases:
     expected_types: [varchar, int, varchar, float, float]
     id: '9'
     sql: SELECT * from test2 where _id = '570e919f65d33734a8605cb9'
+    unordered: true
 
   - db: test
     expected_results: []
     expected_types: [varchar, int, varchar, float, float]
     id: '9a'
     sql: SELECT * from test2 where _id = '570e919f65d33734a860aaaa'
+    unordered: true
 
   - db: test
     expected_results: []
     expected_types: [varchar, int, varchar, float, float]
     id: '10'
     sql: SELECT * from test2 where _id > '570e919f65d33734a8605cb9'
+    unordered: true
 
   - db: test
     expected_results:
@@ -88,6 +100,7 @@ testcases:
     expected_types: [varchar, int, varchar, float, float]
     id: '11'
     sql: SELECT * from test2 where _id >= '570e919f65d33734a8605cb9'
+    unordered: true
 
   - db: test
     expected_results:
@@ -95,6 +108,7 @@ testcases:
     expected_types: [float, float]
     id: '12'
     sql: SELECT loc_latitude, loc_longitude from test3
+    unordered: true
 
   - db: test
     expected_names: [_id, a, b, loc_latitude, loc_longitude]
@@ -103,6 +117,7 @@ testcases:
     expected_types: [varchar, int, varchar, float, float]
     id: '13'
     sql: SELECT * from test3
+    unordered: true
 
   - db: test
     expected_results:
@@ -110,6 +125,7 @@ testcases:
     expected_types: [float]
     id: '14'
     sql: SELECT sum(loc_latitude) from test3
+    unordered: true
 
   - db: test
     expected_results:
@@ -117,6 +133,7 @@ testcases:
     expected_types: [varchar, int, varchar]
     id: '15'
     sql: SELECT * from test4
+    unordered: true
 
   - db: test
     expected_results:
@@ -125,6 +142,7 @@ testcases:
     expected_types: [varchar, float, int]
     id: '16'
     sql: SELECT * from test4_loc_b_c
+    unordered: true
 
   - db: test
     expected_results:
@@ -132,6 +150,7 @@ testcases:
     expected_types: [varchar, float, int]
     id: '17'
     sql: SELECT * from test4_loc_b_c where `loc.b.c_idx`=1
+    unordered: true
 
   - db: test
     expected_results:
@@ -139,6 +158,7 @@ testcases:
     expected_types: [float]
     id: '18'
     sql: SELECT (true + true)
+    unordered: true
 
   - db: test
     expected_results:
@@ -146,6 +166,7 @@ testcases:
     expected_types: [varchar]
     id: '19'
     sql: select @@version limit 1
+    unordered: true
 
   - db: test
     expected_results:
@@ -153,18 +174,21 @@ testcases:
     expected_types: [varchar]
     id: '20'
     sql: select @@version limit 0, 1
+    unordered: true
 
   - db: test
     expected_results: null
     expected_types: [varchar]
     id: '21'
     sql: select @@version limit 0, 0
+    unordered: true
 
   - db: test
     expected_results: null
     expected_types: [varchar]
     id: '22'
     sql: select @@version limit 0 OFFSET 2
+    unordered: true
 
   - db: test
     expected_results:
@@ -172,6 +196,7 @@ testcases:
     expected_types: [varchar]
     id: '23'
     sql: select @@version limit 1 OFFSET 0
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -183,6 +208,7 @@ testcases:
     expected_types: [int]
     id: '24'
     sql: select a + true from scalar
+    unordered: true
 
   - db: functions_test
     expected_results:
@@ -190,6 +216,7 @@ testcases:
     expected_types: [float]
     id: '25'
     sql: select 1 + '1.5'
+    unordered: true
 
   - db: where_test
     expected_names: [s, x]
@@ -204,6 +231,7 @@ testcases:
     expected_types: [varchar, int]
     id: string_col_xor_0
     sql: select s, s xor 1 x from where_strings
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: where_test
@@ -219,6 +247,7 @@ testcases:
     expected_types: [varchar, int]
     id: string_col_xor_1
     sql: select s, s xor 1 x from where_strings
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: test
@@ -228,6 +257,7 @@ testcases:
     expected_types: [varchar]
     id: _id search in literal
     sql: select _id from test2 where _id in ('570e919f65d33734a8605cb9')
+    unordered: true
 
   - db: test
     expected_names: [_id]
@@ -236,6 +266,7 @@ testcases:
     expected_types: [varchar]
     id: _id search in column
     sql: select _id from test2 where _id in (_id)
+    unordered: true
 
   - db: test
     expected_names: [sum]
@@ -244,6 +275,7 @@ testcases:
     expected_types: [int]
     id: _id with float in column
     sql: select _id=a as sum from test2
+    unordered: true
 
   - db: test
     expected_names: [sum]
@@ -252,6 +284,7 @@ testcases:
     expected_types: [int]
     id: _id with string in column
     sql: select _id=b as sum from test2
+    unordered: true
 
   - db: test
     expected_names: [eval]
@@ -260,6 +293,7 @@ testcases:
     expected_types: [int]
     id: _id expression in column
     sql: select (_id in (_id)) as eval from test2
+    unordered: true
 
   - db: test
     expected_names: [eval]
@@ -268,6 +302,7 @@ testcases:
     expected_types: [int]
     id: _id expression in literal
     sql: select (_id in ('570e919f65d33734a8605cb9')) as eval from test2
+    unordered: true
 
   - db: test
     expected_names: [count]
@@ -276,6 +311,7 @@ testcases:
     expected_types: [int]
     id: _id_in_single_str_tuple_predicate
     sql: select count(*) as count from test2 where (_id in ('570e919f65d33734a8605cb9'))
+    unordered: true
 
   - db: test
     expected_names: [eval]
@@ -284,6 +320,7 @@ testcases:
     expected_types: [int]
     id: _id_in_longer_str_tuple
     sql: select (_id in ('570e919f65d33734a8605cb9', '570e919f65d33734a8605cb9')) as eval from test2
+    unordered: true
 
   - db: test
     expected_names: [count]
@@ -292,6 +329,7 @@ testcases:
     expected_types: [int]
     id: _id_in_longer_str_tuple_predicate
     sql: select count(*) as count from test2 where (_id in ('570e919f65d33734a8605cb9', '570e919f65d33734a8605cb9'))
+    unordered: true
 
   - db: test
     expected_names: null
@@ -300,6 +338,7 @@ testcases:
     expected_types: [varchar]
     id: select_null
     sql: select null
+    unordered: true
 
   - db: test
     expected_names: ['3.14']
@@ -308,6 +347,7 @@ testcases:
     expected_types: [float]
     id: select_3_14
     sql: select 3.14
+    unordered: true
 
   - db: test
     expected_names: ['314']
@@ -316,6 +356,7 @@ testcases:
     expected_types: [int]
     id: select_314
     sql: select 314
+    unordered: true
 
   - db: test
     expected_names: [true]
@@ -324,6 +365,7 @@ testcases:
     expected_types: [int]
     id: select_true
     sql: select true
+    unordered: true
 
   - db: test
     expected_names: ["'hello'"]
@@ -332,6 +374,7 @@ testcases:
     expected_types: [varchar]
     id: select_hello
     sql: select 'hello'
+    unordered: true
 
   - db: test
     description: properly escaping backslashes to generate special escape sequences in MySQL literal strings
@@ -341,3 +384,4 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: select_escape
     sql: select '\\New\\York\\', '\new\nyork\n', '\0ew\0york\0', '\'ew\'york\'', '"ew"york"', '\bew\byork\b', '\rew\ryork\r', '\tew\tyork\t', '\Zew\Zyork\Z', '\%ew\%york\%', '\_ew\_york\_', '\b\new\b\ryork\b\t', 'n\ew\yor\k', '\B\New\B\Ryork\B\T'
+    unordered: true

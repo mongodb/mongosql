@@ -4,3 +4,4 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     sql: SELECT QUARTER(`Date`) AS `qr_Date_ok` FROM Starbucks WHERE (QUARTER(`Date`) IS NULL) LIMIT 1
+    unordered: true

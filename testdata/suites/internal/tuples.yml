@@ -8,6 +8,7 @@ testcases:
     expected_types: [varchar, int, int]
     id: '0'
     sql: select _id, a, b from tupleTable where ((a, b), (b, a)) = ((2, 3), (3, 2));
+    unordered: true
 
   - db: tuple_test
     description: Correct IN
@@ -17,6 +18,7 @@ testcases:
     expected_types: [varchar, int, float]
     id: '1'
     sql: select _id, b, e from tupleTable where (a, b) in ((0, 3), (1, 2));
+    unordered: true
 
   - db: tuple_test
     description: Correct IN with no results
@@ -24,6 +26,7 @@ testcases:
     expected_types: [varchar, int, int, int, int, float]
     id: '2'
     sql: select * from tupleTable where (a, b) in ((3, 4), (2, 1), (5, 5));
+    unordered: true
 
   - db: tuple_test
     description: Correct LT
@@ -34,6 +37,7 @@ testcases:
     expected_types: [varchar, int, int, int, int, float]
     id: '3'
     sql: select * from tupleTable where (a, b) < ((2, 3));
+    unordered: true
 
   - db: tuple_test
     description: Correct simple EQ
@@ -41,6 +45,7 @@ testcases:
     expected_types: [int, int]
     id: '4'
     sql: select a, b from tupleTable where (a, b) = (3, 4);
+    unordered: true
 
   - db: tuple_test
     description: Correct simple GT
@@ -50,6 +55,7 @@ testcases:
     expected_types: [int, int]
     id: '4gt'
     sql: select a, b from tupleTable where (a, b) > (2, 1);
+    unordered: true
 
   - db: tuple_test
     description: Correct simple LT
@@ -60,12 +66,14 @@ testcases:
     expected_types: [int, int]
     id: '4lt'
     sql: select a, b from tupleTable where (a, b) < (2, 1);
+    unordered: true
 
   - db: tuple_test
     description: Incorrect IN with nested tuple expression
     expected_error: 'Error 1241: Operand should contain 2 column(s)'
     id: '5'
     sql: select * from tupleTable where (2 in (3, 2), false) in (true, false);
+    unordered: true
 
   - db: tuple_test
     description: Correct IN with nested IN
@@ -75,12 +83,14 @@ testcases:
     expected_types: [int, int]
     id: '6'
     sql: select a, b from tupleTable where a in (2 in (2, 3), 6);
+    unordered: true
 
   - db: tuple_test
     description: Incorrect IN with subquery
     expected_error: 'Error 1241: Operand should contain 2 column(s)'
     id: '7'
     sql: select * from tupleTable where a in (select b, c from tupleTable);
+    unordered: true
 
   - db: tuple_test
     description: Correct IN with subquery
@@ -91,18 +101,21 @@ testcases:
     expected_types: [int, int]
     id: '8'
     sql: select a, b from tupleTable where a+1 in (select b from tupleTable);
+    unordered: true
 
   - db: tuple_test
     description: Incorrect IN with rows
     expected_error: 'Error 1241: Operand should contain 2 column(s)'
     id: '9'
     sql: Select * from tupleTable where row(a, b) in (row (1,2, 3), row(2,3,4));
+    unordered: true
 
   - db: tuple_test
     description: Incorrect IN with rows
     expected_error: 'Error 1241: Operand should contain 2 column(s)'
     id: '10'
     sql: Select * from tupleTable where row(a, b) in (row (1,2, 3), row(2,3,4));
+    unordered: true
 
   - db: tuple_test
     description: Correct IN with rows
@@ -112,42 +125,49 @@ testcases:
     expected_types: [int, int]
     id: '11'
     sql: Select a,b from tupleTable where row(a, b) in (row (1,2), row(2,3), row(6, 7));
+    unordered: true
 
   - db: tuple_test
     description: Incorrect EQ 2-elem
     expected_error: 'Error 1241: Operand should contain 1 column(s)'
     id: '12'
     sql: select * from tupleTable where (a, b) = ((3, 4), (6, 7));
+    unordered: true
 
   - db: tuple_test
     description: Incorrect EQ mixed-elem
     expected_error: 'Error 1241: Operand should contain 2 column(s)'
     id: '13'
     sql: select * from tupleTable where ((a, b), (b, a)) = ((3, 4, 2), (2, 3));
+    unordered: true
 
   - db: tuple_test
     description: Incorrect EQ with right-side scalar
     expected_error: 'Error 1241: Operand should contain 2 column(s)'
     id: '14'
     sql: select a+1, b from tupleTable where ((a, b), (b, a)) = 23;
+    unordered: true
 
   - db: tuple_test
     description: Incorrect EQ with left-side scalar
     expected_error: 'Error 1241: Operand should contain 1 column(s)'
     id: '15'
     sql: select * from tupleTable where 23 = ((a, b), (b, a));
+    unordered: true
 
   - db: tuple_test
     description: Incorrect IN with only one correct dimension
     expected_error: 'Error 1241: Operand should contain 2 column(s)'
     id: '16'
     sql: select * from tupleTable where (a, b) not in ((3, 2),4,2);
+    unordered: true
 
   - db: tuple_test
     description: Incorrect IN with one wrong, mixed dimension
     expected_error: 'Error 1241: Operand should contain 2 column(s)'
     id: '17'
     sql: select * from tupleTable where (a, b) not in ((3, 2), (3, 3), (3, 5, 1));
+    unordered: true
 
   - db: tuple_test
     description: Correct simple IN
@@ -158,6 +178,7 @@ testcases:
     expected_types: [varchar, int, int]
     id: '18'
     sql: select _id, d, c from tupleTable where a not in (3, 4, 2, 8);
+    unordered: true
 
   - db: tuple_test
     description: Correct simple IN with scalar
@@ -169,6 +190,7 @@ testcases:
     expected_types: [varchar, int, int, int, int, float]
     id: '19'
     sql: select * from tupleTable where 5 not in (3, 4, 2, 8);
+    unordered: true
 
   - db: tuple_test
     description: Correct IN with complex expressions
@@ -178,6 +200,7 @@ testcases:
     expected_types: [varchar, int, int]
     id: '20'
     sql: select _id, a, b from tupleTable where (a+1, a+b) in ((1, 3), (4/2, 3*POW(2, SIN(PI()))), (3*2, POW(2, 2)));
+    unordered: true
 
   - db: tuple_test
     description: Check generalization to correct larger/deeper tuples. This should fail to push down due to maximum aggregation expression depth, but should execute correctly.
@@ -190,6 +213,7 @@ testcases:
     sql: SELECT d, e FROM tupleTable WHERE (((((a, a, b), (a, b, a, a, b)), ((a, b, b, b, a), (b, b, b, a, a), (b), (b)), ((b, a), (a, a), (b, a)), ((b, a, b)), ((a, b, a), (b, b, a, b, b), (a, b, a, a, a), (b), (a, a, a, a))), (((b, b, a, a, b)))), ((((b, a, b, a), (b, a, a, a), (a, a, b), (b, b)), ((a)), ((a), (a))), (((a, b, a, b, a), (a), (a, a), (a, a, a, b), (a, b, a, a, a)), ((b, a, a), (b, a, a, b, a), (b, b, a))), (((a, b)), ((a, b, a), (b), (b, b, b, b), (a, b), (b))), (((a, a, b), (b, b, a), (b, b, a), (a), (a, a, a))), (((b, a, b, b, a), (b, a), (a, b, b), (a, a, b, b, b)), ((b), (a, a), (b), (b, a, a, a)), ((a, a, a, a, b)), ((a, b), (a, a, b, b), (b)))), ((((a), (a, a, a), (b, b)), ((a, b, b, b, b), (a, a, b, b, a), (a, b)), ((b, a, b), (a, a, b, a, a), (b, b, b, a, b)), ((a, a, b, a)), ((b), (b, b, b, a), (b), (b, b, a, b), (b))), (((b, a, a)), ((a, a, a, a), (a, b), (a), (b, b, b, a), (a, b, a, b)), ((b, a), (a, a, a), (b, a, a, b, b), (a, a, a), (a, a, a, b, b)), ((a, a, b,
       a, b), (b, b, b, b), (a, a)))), ((((a), (a, b, b), (a, a, a, a)), ((a, b), (b)), ((a, b), (b, a, a), (a, b, a, b, b))), (((a, a, a, a, b), (b, b, a, b, b), (b, b, b), (a)), ((b, b), (a)), ((a, b, a, a), (b, a, b), (b, a, a, b), (a, a)), ((a, b, a, b, a), (b, a, a, b), (b, a, b, a, b), (a, a, a), (b, b, a, b))), (((a)), ((a, a, a), (b), (b, a, a, b, b), (a)), ((a), (a, a, b, b), (a, b, b, b), (b)))), ((((b), (a, a, a), (a, a, a))))) >= (((((0, 3, 10), (10, 1, 0, 4, 5)), ((0, 9, 3, 2, 2), (7, 1, 7, 5, 4), (2), (0)), ((3, 5), (5, 7), (4, 4)), ((8, 10, 5)), ((2, 9, 1), (1, 8, 9, 4, 2), (6, 2, 2, 3, 5), (8), (3, 3, 2, 4))), (((5, 6, 10, 0, 2)))), ((((9, 0, 6, 1), (1, 2, 6, 4), (8, 6, 2), (9, 6)), ((4)), ((10), (5))), (((1, 3, 7, 10, 5), (10), (8, 0), (6, 6, 0, 6), (5, 7, 3, 5, 4)), ((7, 1, 2), (1, 4, 1, 8, 9), (2, 7, 6))), (((2, 6)), ((6, 2, 3), (7), (5, 8, 2, 5), (7, 10), (10))), (((1, 7, 3), (4, 0, 7), (9, 7, 0), (3), (4, 1, 10))), (((4, 8, 9, 2, 6), (7, 1), (10, 7, 3),
       (8, 6, 4, 10, 0)), ((1), (4, 10), (0), (0, 4, 6, 8)), ((9, 6, 7, 1, 4)), ((5, 4), (10, 3, 9, 1), (0)))), ((((1), (4, 4, 8), (5, 1)), ((8, 3, 2, 1, 6), (4, 4, 8, 2, 9), (8, 10)), ((3, 8, 1), (6, 10, 8, 6, 4), (4, 7, 5, 9, 10)), ((2, 2, 1, 1)), ((6), (6, 9, 7, 2), (8), (10, 4, 5, 10), (7))), (((6, 3, 7)), ((7, 8, 5, 7), (10, 0), (7), (4, 2, 7, 0), (9, 3, 0, 5)), ((7, 6), (0, 8, 1), (10, 1, 10, 10, 6), (0, 5, 0), (1, 9, 0, 4, 10)), ((4, 3, 2, 9, 4), (3, 1, 6, 7), (5, 6)))), ((((2), (5, 6, 10), (10, 6, 2, 7)), ((2, 8), (5)), ((2, 3), (2, 7, 5), (6, 6, 7, 6, 3))), (((3, 7, 3, 9, 0), (6, 0, 3, 10, 1), (2, 5, 0), (10)), ((10, 2), (3)), ((9, 4, 9, 1), (8, 4, 5), (6, 7, 0, 10), (8, 10)), ((10, 8, 6, 9, 7), (7, 4, 7, 3), (5, 4, 0, 0, 0), (2, 5, 0), (4, 10, 0, 2))), (((1)), ((6, 10, 3), (9), (6, 8, 3, 7, 3), (5)), ((9), (1, 9, 1, 5), (5, 8, 7, 5), (4)))), ((((0), (8, 0, 3), (5, 1, 3)))));
+    unordered: true
 
   - db: tuple_test
     description: Check generalization to incorrect larger/deeper tuples
@@ -198,6 +222,7 @@ testcases:
     sql: SELECT * FROM tupleTable WHERE (((((b, b, b), (b, a, a, b), (a, a, b, b, b)), ((b, b, b, a))), (((a, a)))), ((((a, b, b, a, a), (b, a), (b, b), (b, a, b)), ((a, b, b, b, b), (a, a, a), (a, a, b, a, a), (a, b, a), (b))), (((b, a, b, a, a)), ((b, b, a, b, b)), ((a, a, a, b, b), (a, a, b, a, a), (a, a, a, b, a))), (((b, b), (a, b, a, a, b)), ((b, a, a, a), (b, b, a, b), (b, a), (b, b, a))), (((a, b, b)), ((b, a, b), (b)))), ((((b, a)), ((a), (a, a), (b, a), (b)), ((a, b), (a, b, b, a), (b, b, a), (b, b, a, a)), ((a, a, a, a), (b), (a, a), (a)), ((a, b), (a, b, a, a, b), (b, a, a), (a, b, b, a), (a, b, a, b))), (((b, a, b, b), (b, a, b, a, b), (a, b, b, b)), ((b)), ((b, a, b))), (((a, b), (b, a), (b, a)), ((a), (b, b, b), (b, b, b), (a, a), (a, b, a, b, a)), ((a, a, b), (a, a, a), (a, b), (b, b, b, a)), ((b, b, b), (b, a), (a), (b, b, b, a, b))), (((b), (a, a, b, b, a)), ((a, b, a, b, a), (b, a, b, a, a)), ((a, b, b, b), (b, b, b)), ((a, b, a)), ((b, b), (b, a, b, b), (a, b, b, a, b))),
       (((a, a), (b, b, a, a, a), (b), (b), (b)), ((b, b), (a, b), (a, a, a), (b, a)), ((b), (b, a), (a), (a, b, b), (b, b, a)), ((a, a, a, a, b), (a), (a, b, a, b), (b, a))))) <= (((((a), (b), (b, b, b, b, b)), ((b, a)), ((a, b), (a, a, b, a, b)), ((a), (a, b, a), (b, b, b, b), (a, a, b, b)), ((a, b, a, a), (b)))), ((((a, b, b, b, b), (a), (b, b, a, a, a), (b, a, b)), ((b, a)))), ((((a, a), (a, a), (b, a, b, b, a)), ((b, b), (a, b)), ((b, b), (a, b, a)), ((a, b, a, a, a), (b)))), ((((a))), (((a, b), (b), (b, a, a, b), (a, b, a, a, b), (b, a, b, b, a)), ((a, b, a, b), (a, b, b, b), (a, b, a, b, a), (b, b, a, a, a)), ((b), (b, a, b, b), (a, b), (b, a, b, a)), ((a, b, b), (a, a, b, a, b), (b, a, b)), ((a, b, b, b), (b, a), (a, b), (a, b), (b, b, a, a, b))), (((a, a), (a, a), (a), (b, b, b, a), (b, a, b, b)), ((b, b), (b, b), (b, b, b, b), (a), (a, a)), ((a, b, a, b, a), (a)), ((b, b, a)), ((b, b, a), (a, a), (a), (b, a, b, b, b))), (((b, a), (a, b, a, b), (a, b, a), (a, b, b, b),
       (b, a, a, b))), (((a, b, a, a, b), (b, a, b, b), (a, b)), ((a, a, a), (a, a)))), ((((b, a, b, b, b), (a), (a, b), (b, a, a), (b, b, a, a)), ((b, a, b, b, a), (b, a), (b, b, b, a)), ((b, b, a, b)), ((b, b, b, b), (b), (a, b, a)))));
+    unordered: true
 
   - db: tuple_test
     description: Correct EQ with nested subquery on FROM
@@ -207,6 +232,7 @@ testcases:
     expected_types: [int, int]
     id: '23'
     sql: select a, b from (select * from tupleTable) foo_new where ((a, e), (e, a)) = ((1, 0.0), (0.0, 1));
+    unordered: true
 
   - db: tuple_test
     description: Correct EQ with nested correct IN in subquery on FROM
@@ -216,24 +242,28 @@ testcases:
     expected_types: [float, float]
     id: '24'
     sql: select e, e from (select * from tupleTable where (a, d) in ((3, 4), (1, 3))) foo_new where (a, e) = (1, 0.0);
+    unordered: true
 
   - db: tuple_test
     description: Incorrect EQ with nested subquery on FROM
     expected_error: 'Error 1241: Operand should contain 2 column(s)'
     id: '25'
     sql: select a, b from (select * from tupleTable) foo_new where ((a, e), (e, a)) = ((1, 0.0), (0.0, 1, 2));
+    unordered: true
 
   - db: tuple_test
     description: Incorrect EQ with nested correct IN in subquery on FROM
     expected_error: 'Error 1241: Operand should contain 1 column(s)'
     id: '26'
     sql: select e, e from (select * from tupleTable where (a, d) in ((3, 4), (1, 3))) foo_new where (a, e) = ((1, 0.0), (2, 2));
+    unordered: true
 
   - db: tuple_test
     description: Correct EQ with nested incorrect IN in subquery on FROM
     expected_error: 'Error 1241: Operand should contain 3 column(s)'
     id: '27'
     sql: select e, e from (select * from tupleTable where (a, d, b) in ((3, 4, 1), (1, 3))) foo_new where (a, e) = (1, 0.0);
+    unordered: true
 
   - db: tuple_test
     description: Correct IN with non-simple subquery with tuple exprs
@@ -243,18 +273,21 @@ testcases:
     expected_types: [int, int, float]
     id: '28'
     sql: select c, d, e from tupleTable where RIGHT(_id, 3)/(b*d) IN (select (b+d)*(b*9) FROM tupleTable WHERE b in (1, 3) and d in (2, 3, 3));
+    unordered: true
 
   - db: tuple_test
     description: Incorrect IN with non-simple subquery with tuple exprs
     expected_error: 'Error 1241: Operand should contain 2 column(s)'
     id: '29'
     sql: select c, d, e from tupleTable where RIGHT(_id, 3)/(b*d) IN (select (b+d)*(b*9), a*(c + POW(b, d)) FROM tupleTable WHERE b in (1, 3) and d in (2, 3, 3));
+    unordered: true
 
   - db: tuple_test
     description: Correct IN with non-simple subquery with incorrect tuple exprs
     expected_error: 'Error 1241: Operand should contain 1 column(s)'
     id: '30'
     sql: select c, d, e from tupleTable where RIGHT(_id, 3)/(b*d) IN (select (b+d)*(b*9) FROM tupleTable WHERE b in (1, 3, (1, 3)) and d in ((2, 3), 2, 3, 3));
+    unordered: true
 
   - db: tuple_test
     description: Incorrect subquery equals
@@ -263,6 +296,7 @@ testcases:
     # We rewrite this as
     # SELECT * FROM tupleTable WHERE (SELECT a, b FROM tupleTable LIMIT 1) = (SELECT 1), internally.
     sql: SELECT * FROM tupleTable WHERE (SELECT a, b FROM tupleTable LIMIT 1) = 1;
+    unordered: true
 
   - db: tuple_test
     description: Correct subquery equals
@@ -270,6 +304,7 @@ testcases:
     expected_types: [varchar, int, int, int, int, float]
     id: '32'
     sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable LIMIT 1) = 1;
+    unordered: true
 
   - db: tuple_test
     description: Correct handling of boolean in IN expression
@@ -279,6 +314,7 @@ testcases:
     expected_types: [varchar, int, int]
     id: '33'
     sql: SELECT * from bool_1 WHERE a in (true);
+    unordered: true
 
   - db: tuple_test
     description: Correct handling of boolean in IN expression
@@ -288,6 +324,7 @@ testcases:
     expected_types: [varchar, int, int]
     id: '34'
     sql: SELECT * from bool_2 WHERE a in (true);
+    unordered: true
 
   - db: tuple_test
     description: Correct handling of boolean in IN expression
@@ -298,6 +335,7 @@ testcases:
     id: '35'
     pushdown_only: true
     sql: SELECT * from bool_3 WHERE a in (true);
+    unordered: true
     variables: {polymorphic_type_conversion_mode: "off"}
 
   - db: tuple_test
@@ -309,6 +347,7 @@ testcases:
     expected_types: [varchar, int, int]
     id: '36'
     sql: SELECT * from bool_3 WHERE a in (true);
+    unordered: true
     variables: {polymorphic_type_conversion_mode: fast}
 
   - db: tuple_test
@@ -320,6 +359,7 @@ testcases:
     expected_types: [varchar, int, int]
     id: '37'
     sql: SELECT * from bool_3 WHERE a in (false);
+    unordered: true
     variables: {polymorphic_type_conversion_mode: fast}
 
   - db: tuple_test
@@ -332,12 +372,14 @@ testcases:
     expected_types: [varchar, int, int, int, int, float]
     id: 'Correct subquery multi col equals any'
     sql: SELECT * FROM tupleTable WHERE (SELECT a, b FROM tupleTable LIMIT 1) = ANY (SELECT a, b FROM tupleTable);
+    unordered: true
 
   - db: tuple_test
     description: Incorrect subquery multi col less than any
     expected_error: 'Error 1241: Operand should contain 1 column(s)'
     id: 'Incorrect subquery multi col less than any'
     sql: SELECT * FROM tupleTable WHERE (SELECT a, b FROM tupleTable LIMIT 1) < ANY (SELECT a, b FROM tupleTable);
+    unordered: true
 
   - db: tuple_test
     description: Correct subquery multi col equals some (this is aliased to in MySql)
@@ -349,12 +391,14 @@ testcases:
     expected_types: [varchar, int, int, int, int, float]
     id: 'Correct subquery multi col equals some'
     sql: SELECT * FROM tupleTable WHERE (SELECT a, b FROM tupleTable LIMIT 1) = SOME (SELECT a, b FROM tupleTable);
+    unordered: true
 
   - db: tuple_test
     description: Incorrect subquery multi col less than some
     expected_error: 'Error 1241: Operand should contain 1 column(s)'
     id: 'Incorrect subquery multi col less than some'
     sql: SELECT * FROM tupleTable WHERE (SELECT a, b FROM tupleTable LIMIT 1) < SOME (SELECT a, b FROM tupleTable);
+    unordered: true
 
   - db: tuple_test
     description: Correct subquery multi col not equals all (this is aliased to not in MySql)
@@ -366,42 +410,49 @@ testcases:
     expected_types: [varchar, int, int, int, int, float]
     id: 'Correct subquery multi col not equals all'
     sql: SELECT * FROM tupleTable WHERE (SELECT b, c FROM tupleTable LIMIT 1) <> ALL (SELECT a, b FROM tupleTable);
+    unordered: true
 
   - db: tuple_test
     description: Incorrect subquery multi col less than all
     expected_error: 'Error 1241: Operand should contain 1 column(s)'
     id: 'Incorrect subquery multi col less than all'
     sql: SELECT * FROM tupleTable WHERE (SELECT a, b FROM tupleTable LIMIT 1) < ALL (SELECT a, b FROM tupleTable);
+    unordered: true
 
   - db: tuple_test
     description: Incorrect subquery multi row in
     expected_error: 'Error 1242: Subquery returns more than 1 row'
     id: 'Incorrect subquery multi row in'
     sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable) IN (SELECT a FROM tupleTable);
+    unordered: true
 
   - db: tuple_test
     description: Incorrect subquery multi row not in
     expected_error: 'Error 1242: Subquery returns more than 1 row'
     id: 'Incorrect subquery multi row not in'
     sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable) NOT IN (SELECT a FROM tupleTable);
+    unordered: true
 
   - db: tuple_test
     description: Incorrect subquery multi row all
     expected_error: 'Error 1242: Subquery returns more than 1 row'
     id: 'Incorrect subquery multi row all'
     sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable) > ALL (SELECT a FROM tupleTable);
+    unordered: true
 
   - db: tuple_test
     description: Incorrect subquery multi row any
     expected_error: 'Error 1242: Subquery returns more than 1 row'
     id: 'Incorrect subquery multi row any'
     sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable) > ANY (SELECT a FROM tupleTable);
+    unordered: true
 
   - db: tuple_test
     description: Incorrect subquery multi row some
     expected_error: 'Error 1242: Subquery returns more than 1 row'
     id: 'Incorrect subquery multi row some'
     sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable) > SOME (SELECT a FROM tupleTable);
+    unordered: true
 
   - db: tuple_test
     description: Correct subquery in subquery with no results
@@ -409,6 +460,7 @@ testcases:
     expected_types: [varchar, int, int, int, int, float]
     id: 'Correct subquery in subquery with no results'
     sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable limit 1) IN (SELECT a FROM tupleTable where a = 200000);
+    unordered: true
 
   - db: tuple_test
     description: Correct subquery with no results in subquery
@@ -416,6 +468,7 @@ testcases:
     expected_types: [varchar, int, int, int, int, float]
     id: 'Correct subquery with no results in subquery'
     sql: SELECT * FROM tupleTable WHERE (SELECT a FROM tupleTable where a = 200000 limit 1) IN (SELECT a FROM tupleTable);
+    unordered: true
 
   - db: tuple_test
     description: Single column subquery IN multi-column tuple is valid
@@ -426,6 +479,7 @@ testcases:
     expected_types: [int]
     id: 'Correct predicate where single column subquery IN multi-column tuple'
     sql: select a from tupleTable where (select a) in (0, 1)
+    unordered: true
 
   - db: tuple_test
     description: Single column subquery IN single column tuple is valid
@@ -435,6 +489,7 @@ testcases:
     expected_types: [int]
     id: 'Correct predicate where single column subquery IN single-column tuple'
     sql: select a from tupleTable where (select a) in (1)
+    unordered: true
 
   - db: tuple_test
     description: Multi-column subquery IN multi-column tuple is valid
@@ -444,3 +499,4 @@ testcases:
     expected_types: [int, int]
     id: 'Correct predicate where multi-column subquery IN multi-column tuple'
     sql: select a, b from tupleTable where (select a, b) in ((0, 0), (0, 3), (1, 2))
+    unordered: true

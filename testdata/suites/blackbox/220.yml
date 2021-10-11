@@ -7,3 +7,4 @@ testcases:
       - [REGULAR AIR]
     expected_types: [varchar]
     sql: SELECT `Ship Mode` AS `none_Ship_Mode_nk` FROM Staples GROUP BY `Ship Mode` ORDER BY 1 ASC
+    unordered: true

@@ -10,3 +10,4 @@ testcases:
       - [5104.65646386418, Central, Amaretto]
     expected_types: [float, varchar, varchar]
     sql: SELECT SUM(`Profit`) AS `TEMP_ProfitSpotlight__BHJGICDBHG__A_`,   `Market` AS `none_Market_nk`,   `Product` AS `none_Product_nk` FROM Starbucks WHERE (`Product` IN ('Amaretto', 'Mint')) GROUP BY `Market`,   `Product` ORDER BY 1, 2, 3
+    unordered: true

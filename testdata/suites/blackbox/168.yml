@@ -785,3 +785,4 @@ testcases:
       - [778.413730576877]
     expected_types: [float]
     sql: SELECT `Profit` AS `none_Profit_ok` FROM Starbucks GROUP BY `Profit` ORDER BY 1
+    unordered: true

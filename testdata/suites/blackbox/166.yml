@@ -21,3 +21,4 @@ testcases:
       - [key16, ERICSSON, 0]
     expected_types: [varchar, varchar, int]
     sql: SELECT `key` AS `none_key_nk`, `str1` AS `none_strB_nk`, (CASE WHEN (LOCATE('IN',`str1`,1) > 0) THEN 1 WHEN NOT (LOCATE('IN',`str1`,1) > 0) THEN 0 ELSE NULL END) AS `none_z_startswith_str_str_nk` FROM Calcs ORDER BY 1, 2, 3
+    unordered: true

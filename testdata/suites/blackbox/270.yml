@@ -36668,3 +36668,4 @@ testcases:
       - [4-NOT SPECIFIED, TELEPHONES AND COMMUNICATION, '2002-12-30 00:00:00', 2]
     expected_types: [varchar, varchar, varchar, int]
     sql: SELECT `Order Priority` AS `none_Order_Priority_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk`,   `Ship Date` AS `none_Ship_Date_ok`,   `Fill Time` AS `sum_Fill_Time_ok` FROM Staples WHERE (((`Order Priority` >= '1-URGENT') AND (`Order Priority` <= '4-NOT SPECIFIED')) AND ((`Ship Date` >= '1998-01-01') AND (`Ship Date` <= '2003-01-01'))) ORDER BY 1, 2, 3, 4
+    unordered: true

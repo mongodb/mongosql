@@ -8,3 +8,4 @@ testcases:
       - [1344, 912, 17, West, 161.5215444557199, 272272.720627942, 26089.209323361]
     expected_types: [int, float, int, varchar, float, float, float]
     sql: SELECT COUNT(`Sales`) AS `cnt_Sales_ok`, MAX(`Sales`) AS `max_Sales_ok`, MIN(`Sales`) AS `min_Sales_ok`, `Market` AS `none_Market_nk`, (CASE WHEN COUNT(`Sales`) > 1 THEN SQRT((COUNT(`Sales`) * SUM(POWER(`Sales`,2)) - POWER(SUM(`Sales`), 2) ) / (COUNT(`Sales`)*(COUNT(`Sales`) - 1))) ELSE NULL END) AS `std_Sales_ok`, SUM(`Sales`) AS `sum_Sales_ok`, (CASE WHEN COUNT(`Sales`) > 1 THEN ((COUNT(`Sales`) * SUM(POWER(`Sales`,2)) - POWER(SUM(`Sales`), 2) ) / (COUNT(`Sales`)*(COUNT(`Sales`) - 1))) ELSE NULL END) AS `var_Sales_ok` FROM Starbucks GROUP BY `Market` ORDER BY 1, 2, 3, 4, 5, 6, 7
+    unordered: true

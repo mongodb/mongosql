@@ -1865,3 +1865,4 @@ testcases:
       - [364, 510.661489917455]
     expected_types: [int, float]
     sql: SELECT `COGS` AS `none_COGS_ok`,   `Profit` AS `none_Profit_ok` FROM Starbucks GROUP BY `COGS`,   `Profit` ORDER BY 1, 2
+    unordered: true

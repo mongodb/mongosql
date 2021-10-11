@@ -19,3 +19,4 @@ testcases:
       - [West, Tea]
     expected_types: [varchar, varchar]
     sql: SELECT `Market` AS `none_Market_nk`,   `Product Type` AS `none_Product_Type_nk` FROM Starbucks GROUP BY `Market`,   `Product Type` ORDER BY 1, 2
+    unordered: true

@@ -17,3 +17,4 @@ testcases:
       - [Regular Espresso]
     expected_types: [varchar]
     sql: SELECT `Product` AS `none_Product_nk` FROM Starbucks GROUP BY `Product` ORDER BY 1 LIMIT 26
+    unordered: true

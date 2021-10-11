@@ -44,3 +44,4 @@ testcases:
       - [Wisconsin, 5154.861353801741, 16892.6465820934, 1999]
     expected_types: [varchar, float, float, int]
     sql: SELECT `State` AS `none_State_nk`, SUM(`Profit`) AS `sum_Profit_ok`, SUM(`Sales`) AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY `State`, YEAR(`Date`) ORDER BY 1, 2, 3, 4
+    unordered: true

@@ -16,6 +16,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: '0'
     sql: select * from join_test.join_1, join_test.join_2
+    unordered: true
 
   - db: join_test
     description: qualified star
@@ -33,6 +34,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: '1'
     sql: select join_1.*, join_2.* from join_test.join_1, join_test.join_2
+    unordered: true
 
   - db: join_test
     description: aliased qualified star
@@ -50,6 +52,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: '2'
     sql: select f.*, b.* from join_test.join_1 f, join_test.join_2 b
+    unordered: true
 
   - db: join_test
     description: aliased qualified star with subquery
@@ -67,6 +70,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: '3'
     sql: select f.*, b.* from join_test.join_1 f, (select * from join_test.join_2) b
+    unordered: true
 
   - db: join_test
     description: BI-857
@@ -87,6 +91,7 @@ testcases:
     expected_types: [int, int, int, varchar]
     id: '4'
     sql: select tx.rnum,tx.c1, tx.c2, ty.c2 from join_6 tx, join_7 ty order by 1, 2, 3, 4
+    unordered: true
 
   - db: join_test
     description: implicit inner join
@@ -97,6 +102,7 @@ testcases:
     expected_types: [int, int]
     id: '5'
     sql: select a, c from join_test.join_1, join_test.join_2 where join_1._id = join_2._id
+    unordered: true
 
   - db: join_test
     description: implicit inner join with additional criteria
@@ -106,6 +112,7 @@ testcases:
     expected_types: [int, int]
     id: '6'
     sql: select a, c from join_test.join_1, join_test.join_2 where join_1._id = join_2._id AND join_1.a > 1
+    unordered: true
 
   - db: join_test
     description: implicit inner join with no results
@@ -114,6 +121,7 @@ testcases:
     expected_types: [int, int]
     id: '7'
     sql: select a, c from join_test.join_1, join_test.join_2 where join_1._id = join_2._id AND join_1.a = 1214
+    unordered: true
 
   - db: join_test
     description: implicit inner join with subquery
@@ -124,6 +132,7 @@ testcases:
     expected_types: [int, int]
     id: '8'
     sql: select a, c from join_test.join_1, (select * from join_test.join_2) join_2 where join_1._id = join_2._id
+    unordered: true
 
   - db: join_test
     description: inner join on false criterion
@@ -132,6 +141,7 @@ testcases:
     expected_types: [int, int]
     id: false_inner_join
     sql: select a, c from join_test.join_1 inner join join_test.join_2 on false
+    unordered: true
 
   - db: join_test
     description: inner join on null criterion
@@ -140,6 +150,7 @@ testcases:
     expected_types: [int, int]
     id: null_inner_join
     sql: select a, c from join_test.join_1 inner join join_test.join_2 on null
+    unordered: true
 
   - db: join_test
     description: inner join
@@ -150,6 +161,7 @@ testcases:
     expected_types: [int, int]
     id: '9'
     sql: select a, c from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id
+    unordered: true
 
   - description: inner join with additional criteria
     expected_names: [a, c]
@@ -158,6 +170,7 @@ testcases:
     expected_types: [int, int]
     id: '10'
     sql: select a, c from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id AND join_1.a > 1
+    unordered: true
 
   - db: join_test
     description: inner join with additional criteria (reversed)
@@ -167,6 +180,7 @@ testcases:
     expected_types: [int, int]
     id: '11'
     sql: select a, c from join_test.join_1 inner join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id
+    unordered: true
 
   - db: join_test
     description: inner join with no results
@@ -175,6 +189,7 @@ testcases:
     expected_types: [int, int]
     id: '12'
     sql: select a, c from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id AND join_1.a = 1214
+    unordered: true
 
   - db: join_test
     description: inner join with subquery
@@ -185,6 +200,7 @@ testcases:
     expected_types: [int, int]
     id: '13'
     sql: select a, c from join_test.join_1 inner join (select * from join_test.join_2) join_2 on join_1._id = join_2._id
+    unordered: true
 
   - db: join_test
     description: inner join with null on the left
@@ -194,6 +210,7 @@ testcases:
     expected_types: [int, int]
     id: '14'
     sql: select a, c from join_test.join_1 inner join join_test.join_2 on join_1.b = join_2.d
+    unordered: true
 
   - db: join_test
     description: inner join with three tables
@@ -204,6 +221,7 @@ testcases:
     expected_types: [int, int, int]
     id: '15'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id
+    unordered: true
 
   - db: join_test
     description: inner join with four tables
@@ -214,6 +232,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: '16'
     sql: select join_1.a, join_2.c, join_3.d, join_4.b from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id inner join join_test.join_4 on join_3._id = join_4._id
+    unordered: true
 
   - db: join_test
     description: inner join with five tables
@@ -224,6 +243,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: '17'
     sql: select join_1.a, join_2.c, join_3.d, join_4.b, join_5.e from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id inner join join_test.join_4 on join_3._id = join_4._id inner join join_test.join_5 on join_4._id = join_5._id
+    unordered: true
 
   - db: join_test
     description: inner join with three tables with additional criteria
@@ -233,6 +253,7 @@ testcases:
     expected_types: [int, int, int]
     id: '18'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 inner join join_test.join_2 on join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id AND join_1.a > 1
+    unordered: true
 
   - db: join_test
     description: inner join with three tables with additional criteria (reversed)
@@ -242,6 +263,7 @@ testcases:
     expected_types: [int, int, int]
     id: '19'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 inner join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id
+    unordered: true
 
   - db: join_test
     description: inner join with subquery and three tables
@@ -252,6 +274,7 @@ testcases:
     expected_types: [int, int, int]
     id: '20'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 inner join (select * from join_test.join_2) join_2 on join_1._id = join_2._id inner join join_test.join_3 on join_2._id = join_3._id
+    unordered: true
 
   - db: join_test
     description: inner join with null on the left and three tables
@@ -261,6 +284,7 @@ testcases:
     expected_types: [int, int, int]
     id: '21'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 inner join join_test.join_2 on join_1.b = join_2.d inner join join_test.join_3 on join_2.d = join_3.d
+    unordered: true
 
   - db: join_test
     description: multi-way inner join with a filter expression that does not push down and different columns referenced in different stages
@@ -270,6 +294,7 @@ testcases:
     expected_types: [int, int]
     id: '22'
     sql: select join_4.a, join_5.c from join_test.join_4 join join_test.join_5 on join_4.b = join_5.b and join_4.c = join_5.c join join_test.join_9 on join_4.a = join_9.a
+    unordered: true
 
   - db: join_test
     description: straight join
@@ -280,6 +305,7 @@ testcases:
     expected_types: [int, int]
     id: '23'
     sql: select a, c from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id
+    unordered: true
 
   - db: join_test
     description: straight join with additional criteria
@@ -289,6 +315,7 @@ testcases:
     expected_types: [int, int]
     id: '24'
     sql: select a, c from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id AND join_1.a > 1
+    unordered: true
 
   - db: join_test
     description: straight join with additional criteria (reversed)
@@ -298,6 +325,7 @@ testcases:
     expected_types: [int, int]
     id: '25'
     sql: select a, c from join_test.join_1 straight_join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id
+    unordered: true
 
   - db: join_test
     description: straight join with no results
@@ -306,6 +334,7 @@ testcases:
     expected_types: [int, int]
     id: '26'
     sql: select a, c from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id AND join_1.a = 1214
+    unordered: true
 
   - db: join_test
     description: straight join with subquery
@@ -316,6 +345,7 @@ testcases:
     expected_types: [int, int]
     id: '27'
     sql: select a, c from join_test.join_1 straight_join (select * from join_test.join_2) join_2 on join_1._id = join_2._id
+    unordered: true
 
   - db: join_test
     description: straight join with null on the left
@@ -325,6 +355,7 @@ testcases:
     expected_types: [int, int]
     id: '28'
     sql: select a, c from join_test.join_1 straight_join join_test.join_2 on join_1.b = join_2.d
+    unordered: true
 
   - db: join_test
     description: straight join with three tables
@@ -335,6 +366,7 @@ testcases:
     expected_types: [int, int, int]
     id: '29'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id
+    unordered: true
 
   - db: join_test
     description: straight join with four tables
@@ -345,6 +377,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: '30'
     sql: select join_1.a, join_2.c, join_3.d, join_4.b from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id straight_join join_test.join_4 on join_3._id = join_4._id
+    unordered: true
 
   - db: join_test
     description: straight join with five tables
@@ -355,6 +388,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: '31'
     sql: select join_1.a, join_2.c, join_3.d, join_4.b, join_5.e from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id straight_join join_test.join_4 on join_3._id = join_4._id straight_join join_test.join_5 on join_4._id = join_5._id
+    unordered: true
 
   - db: join_test
     description: straight join with three tables with additional criteria
@@ -364,6 +398,7 @@ testcases:
     expected_types: [int, int, int]
     id: '32'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 straight_join join_test.join_2 on join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id AND join_1.a > 1
+    unordered: true
 
   - db: join_test
     description: straight join with three tables with additional criteria (reversed)
@@ -373,6 +408,7 @@ testcases:
     expected_types: [int, int, int]
     id: '33'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 straight_join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id
+    unordered: true
 
   - db: join_test
     description: straight join with subquery and three tables
@@ -383,6 +419,7 @@ testcases:
     expected_types: [int, int, int]
     id: '34'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 straight_join (select * from join_test.join_2) join_2 on join_1._id = join_2._id straight_join join_test.join_3 on join_2._id = join_3._id
+    unordered: true
 
   - db: join_test
     description: straight join with null on the left and three tables
@@ -392,6 +429,7 @@ testcases:
     expected_types: [int, int, int]
     id: '35'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 straight_join join_test.join_2 on join_1.b = join_2.d straight_join join_test.join_3 on join_2.d = join_3.d
+    unordered: true
 
   - db: join_test
     description: left outer join on false criterion
@@ -403,6 +441,7 @@ testcases:
     expected_types: [int, int]
     id: false_outer_join
     sql: select a, c from join_test.join_1 left outer join join_test.join_2 on false
+    unordered: true
 
   - db: join_test
     description: left outer join on null criterion
@@ -414,6 +453,7 @@ testcases:
     expected_types: [int, int]
     id: null_outer_join
     sql: select a, c from join_test.join_1 left outer join join_test.join_2 on null
+    unordered: true
 
   - db: join_test
     description: left outer join
@@ -425,6 +465,7 @@ testcases:
     expected_types: [int, int]
     id: '36'
     sql: select a, c from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id
+    unordered: true
 
   - db: join_test
     description: left outer join with additional criteria
@@ -436,6 +477,7 @@ testcases:
     expected_types: [int, int]
     id: '37'
     sql: select a, c from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id AND join_1.a > 1
+    unordered: true
 
   - db: join_test
     description: left outer join with additional criteria (reversed)
@@ -447,6 +489,7 @@ testcases:
     expected_types: [int, int]
     id: '38'
     sql: select a, c from join_test.join_1 left outer join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id
+    unordered: true
 
   - db: join_test
     description: left outer join with no results
@@ -458,6 +501,7 @@ testcases:
     expected_types: [int, int]
     id: '39'
     sql: select a, c from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id AND join_1.a = 1214
+    unordered: true
 
   - db: join_test
     description: left outer join with subquery
@@ -469,6 +513,7 @@ testcases:
     expected_types: [int, int]
     id: '40'
     sql: select a, c from join_test.join_1 left outer join (select * from join_test.join_2) join_2 on join_1._id = join_2._id
+    unordered: true
 
   - db: join_test
     description: left outer join with null on the left
@@ -480,6 +525,7 @@ testcases:
     expected_types: [int, int]
     id: '41'
     sql: select a, c from join_test.join_1 left outer join join_test.join_2 on join_1.b = join_2.d
+    unordered: true
 
   - db: join_test
     description: left outer join with three tables
@@ -491,6 +537,7 @@ testcases:
     expected_types: [int, int, int]
     id: '42'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id
+    unordered: true
 
   - db: join_test
     description: left outer join with four tables
@@ -502,6 +549,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: '43'
     sql: select join_1.a, join_2.c, join_3.d, join_4.b from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id left outer join join_test.join_4 on join_3._id = join_4._id
+    unordered: true
 
   - db: join_test
     description: left outer join with five tables
@@ -513,6 +561,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: '44'
     sql: select join_1.a, join_2.c, join_3.d, join_4.b, join_5.e from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id left outer join join_test.join_4 on join_3._id = join_4._id left outer join join_test.join_5 on join_4._id = join_5._id
+    unordered: true
 
   - db: join_test
     description: left outer join with three tables with additional criteria
@@ -524,6 +573,7 @@ testcases:
     expected_types: [int, int, int]
     id: '45'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id AND join_1.a > 1
+    unordered: true
 
   - db: join_test
     description: left outer join with three tables with additional criteria (reversed)
@@ -535,6 +585,7 @@ testcases:
     expected_types: [int, int, int]
     id: '46'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id
+    unordered: true
 
   - db: join_test
     description: left outer join with subquery and three tables
@@ -546,6 +597,7 @@ testcases:
     expected_types: [int, int, int]
     id: '47'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join (select * from join_test.join_2) join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id
+    unordered: true
 
   - db: join_test
     description: left outer join with null on the left and three tables
@@ -557,6 +609,7 @@ testcases:
     expected_types: [int, int, int]
     id: '48'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join join_test.join_2 on join_1.b = join_2.d left outer join join_test.join_3 on join_2.d = join_3.d
+    unordered: true
 
   - db: join_test
     description: right outer join
@@ -568,6 +621,7 @@ testcases:
     expected_types: [int, int]
     id: '49'
     sql: select a, c from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id
+    unordered: true
 
   - db: join_test
     description: right outer join with additional criteria
@@ -579,6 +633,7 @@ testcases:
     expected_types: [int, int]
     id: '50'
     sql: select a, c from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id AND join_1.a > 1
+    unordered: true
 
   - db: join_test
     description: right outer join with additional criteria (reversed)
@@ -590,6 +645,7 @@ testcases:
     expected_types: [int, int]
     id: '51'
     sql: select a, c from join_test.join_1 right outer join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id
+    unordered: true
 
   - db: join_test
     description: right outer join with no results
@@ -601,6 +657,7 @@ testcases:
     expected_types: [int, int]
     id: '52'
     sql: select a, c from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id AND join_1.a = 1214
+    unordered: true
 
   - db: join_test
     description: right outer join
@@ -612,6 +669,7 @@ testcases:
     expected_types: [int, int]
     id: '53'
     sql: select a, c from join_test.join_1 right outer join (select * from join_test.join_2) join_2 on join_1._id = join_2._id
+    unordered: true
 
   - db: join_test
     description: right outer join with three tables
@@ -624,6 +682,7 @@ testcases:
     expected_types: [int, int, int]
     id: '54'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id right outer join join_test.join_3 on join_2._id = join_3._id
+    unordered: true
 
   - db: join_test
     description: right outer join with four tables
@@ -635,6 +694,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: '55'
     sql: select join_1.a, join_2.c, join_3.d, join_4.b from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id right outer join join_test.join_3 on join_2._id = join_3._id right outer join join_test.join_4 on join_3._id = join_4._id
+    unordered: true
 
   - db: join_test
     description: right outer join with five tables
@@ -646,6 +706,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: '56'
     sql: select join_1.a, join_2.c, join_3.d, join_4.b, join_5.e from join_test.join_1 left outer join join_test.join_2 on join_1._id = join_2._id left outer join join_test.join_3 on join_2._id = join_3._id left outer join join_test.join_4 on join_3._id = join_4._id left outer join join_test.join_5 on join_4._id = join_5._id
+    unordered: true
 
   - db: join_test
     description: right outer join with three tables with additional criteria
@@ -658,6 +719,7 @@ testcases:
     expected_types: [int, int, int]
     id: '57'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 right outer join join_test.join_2 on join_1._id = join_2._id right outer join join_test.join_3 on join_2._id = join_3._id AND join_1.a > 1
+    unordered: true
 
   - db: join_test
     description: left outer join with three tables with additional criteria (reversed)
@@ -670,6 +732,7 @@ testcases:
     expected_types: [int, int, int]
     id: '58'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 right outer join join_test.join_2 on join_1.a > 1 AND join_1._id = join_2._id right outer join join_test.join_3 on join_2._id = join_3._id
+    unordered: true
 
   - db: join_test
     description: right outer join with subquery and three tables
@@ -682,6 +745,7 @@ testcases:
     expected_types: [int, int, int]
     id: '59'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 right outer join (select * from join_test.join_2) join_2 on join_1._id = join_2._id right outer join join_test.join_3 on join_2._id = join_3._id
+    unordered: true
 
   - db: join_test
     description: right outer join with null on the right and three tables
@@ -693,6 +757,7 @@ testcases:
     expected_types: [int, int, int]
     id: '60'
     sql: select join_1.a, join_2.c, join_3.d from join_test.join_1 left outer join join_test.join_2 on join_1.b = join_2.d left outer join join_test.join_3 on join_2.d = join_3.d
+    unordered: true
 
   - db: join_test
     description: unwound join_8 join_8_b inner join
@@ -707,6 +772,7 @@ testcases:
     expected_types: [int, int]
     id: '61'
     sql: select a, `b.c` from join_test.join_8 inner join join_test.join_8_b on join_8._id = join_8_b._id
+    unordered: true
 
   - db: join_test
     description: unwound join_8_b join_8_b_d inner join
@@ -718,6 +784,7 @@ testcases:
     expected_types: [int, int]
     id: '62'
     sql: select `b.c`, `b.d` from join_test.join_8_b inner join join_test.join_8_b_d on join_8_b._id = join_8_b_d._id AND join_8_b.b_idx = join_8_b_d.b_idx
+    unordered: true
 
   - db: join_test
     description: unwound join_8 join_8_b left join
@@ -732,6 +799,7 @@ testcases:
     expected_types: [int, int]
     id: '63'
     sql: select a, `b.c` from join_test.join_8 left join join_test.join_8_b on join_8._id = join_8_b._id
+    unordered: true
 
   - db: join_test
     description: unwound join_8_b join_8_b_d left join
@@ -747,6 +815,7 @@ testcases:
     expected_types: [int, int]
     id: '64'
     sql: select `b.c`, `b.d` from join_test.join_8_b left join join_test.join_8_b_d on join_8_b._id = join_8_b_d._id AND join_8_b.b_idx = join_8_b_d.b_idx
+    unordered: true
 
   - db: join_test
     description: unwound join_8 join_8_b inner join with additional criteria
@@ -757,6 +826,7 @@ testcases:
     expected_types: [int, int]
     id: '65'
     sql: select a, `b.c` from join_test.join_8 inner join join_test.join_8_b on join_8._id = join_8_b._id AND join_8.a > 1
+    unordered: true
 
   - db: join_test
     description: unwound join_8 join_8_b left join with additional criteria
@@ -769,6 +839,7 @@ testcases:
     expected_types: [int, int]
     id: '66'
     sql: select a, `b.c` from join_test.join_8 left join join_test.join_8_b on join_8._id = join_8_b._id AND join_8.a > 1
+    unordered: true
 
   - db: join_test
     description: unwound join_8_b join_8_b_d inner join with additional criteria
@@ -779,6 +850,7 @@ testcases:
     expected_types: [int, int]
     id: '67'
     sql: select `b.c`, `b.d` from join_test.join_8_b a inner join join_test.join_8_b_d b on a._id = b._id AND a.b_idx = b.b_idx AND b.`b.d` > 5
+    unordered: true
 
   - db: join_test
     description: unwound join_8_b join_8_b_d left join with additional criteria on the left s_ide
@@ -793,6 +865,7 @@ testcases:
     expected_types: [int, int]
     id: '68'
     sql: select `b.c`, `b.d` from join_test.join_8_b left join join_test.join_8_b_d on join_8_b._id = join_8_b_d._id AND join_8_b.b_idx = join_8_b_d.b_idx AND join_8_b.`b.c` > 2
+    unordered: true
 
   - db: join_test
     description: unwound join_8_b join_8_b_d left join with additional criteria on the right s_ide
@@ -807,6 +880,7 @@ testcases:
     expected_types: [int, int]
     id: '69'
     sql: select `b.c`, `b.d` from join_test.join_8_b a left join join_test.join_8_b_d b on a._id = b._id AND a.b_idx = b.b_idx AND b.`b.d` > 5
+    unordered: true
 
   - db: join_test
     description: unwound join_8_b join_8_b_d left join with additional criteria on the right s_ide, check to make sure that all columns that should be ~ are ~
@@ -821,6 +895,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int]
     id: 69_all
     sql: select a._id, a.b_idx, a.`b.c`, b._id, b.b_idx, b.`b.d`, b.`b.d_idx` from join_test.join_8_b a left join join_test.join_8_b_d b on a._id = b._id AND a.b_idx = b.b_idx AND b.`b.d` > 5
+    unordered: true
 
   - db: join_test
     description: join_8 join_8_b join_8_b_d left join
@@ -836,6 +911,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int, int, int]
     id: pcgjoin_8_b_left
     sql: select a._id, a, b._id, b.b_idx, b.`b.c`, c._id, c.b_idx, c.`b.d`, c.`b.d_idx` from join_8 a left join join_8_b b on a._id = b._id left join join_8_b_d c on b._id = c._id and b.b_idx = c.b_idx
+    unordered: true
 
   - db: join_test
     description: join_8 join_8_b join_8_b_d left join
@@ -845,6 +921,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int, int, int]
     id: pcgjoin_8_b_left_w_where
     sql: select a._id, a.a, b._id, b.b_idx, b.`b.c`, c._id, c.b_idx, c.`b.d`, c.`b.d_idx` from join_8 a left join join_8_b b on a._id = b._id left join join_8_b_d c on b._id = c._id and b.b_idx = c.b_idx where `b.d` > 6
+    unordered: true
 
   - db: join_test
     description: unwound join_8 join_8_b_d inner join
@@ -856,6 +933,7 @@ testcases:
     expected_types: [int, int]
     id: '70'
     sql: select a, `b.d` from join_test.join_8 inner join join_test.join_8_b_d on join_8._id = join_8_b_d._id
+    unordered: true
 
   - db: join_test
     description: multi left-join double remaining criteria
@@ -869,6 +947,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int, int, int]
     id: mldrc
     sql: select a._id, a.a, b._id, b.b_idx, b.`b.c`, c._id, c.b_idx, c.`b.d`, c.`b.d_idx` from join_8 a left join join_8_b b on a._id = b._id and a.a != 2 left join join_8_b_d c on b._id = c._id and b.b_idx = c.b_idx and c.`b.d` > 5
+    unordered: true
 
   - db: join_test
     description: multi left-join single remaining criteria
@@ -881,6 +960,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int, int, int]
     id: mldsc
     sql: select a._id, a, b._id, b.b_idx, b.`b.c`, c._id, c.b_idx, c.`b.d`, `b.d_idx` from join_8 a left join join_8_b b on a._id = b._id and a.a > 1 left join join_8_b_d c on b._id = c._id and b.b_idx = c.b_idx
+    unordered: true
 
   - db: join_test
     description: '$unwind: inner join with join_8_b on left s_ide'
@@ -893,6 +973,7 @@ testcases:
     expected_types: [int, int]
     id: '71'
     sql: select b._id, c2 from join_test.join_8_b a inner join join_6 b on a._id=b._id order by 1,2
+    unordered: true
 
   - db: join_test
     description: '$unwind: inner join with join_8_b on right s_ide'
@@ -905,6 +986,7 @@ testcases:
     expected_types: [int, int]
     id: '72'
     sql: select join_6._id, c2 from join_6 inner join join_test.join_8_b on join_8_b._id=join_6._id order by 1,2
+    unordered: true
 
   - db: join_test
     description: '$unwind: inner join with join_8_b and additional criteria'
@@ -915,6 +997,7 @@ testcases:
     expected_types: [int]
     id: '73'
     sql: select b._id from join_6 b inner join join_test.join_8_b f on f._id=b._id and f._id < b.c2-20
+    unordered: true
 
   - db: join_test
     description: '$unwind: inner join with join_8_b on nested field'
@@ -929,6 +1012,7 @@ testcases:
     expected_types: [int, int]
     id: '74'
     sql: select b._id, c2 from join_6 a inner join join_test.join_8_b b on b.`b.c`=a._id order by 1,2
+    unordered: true
 
   - db: join_test
     description: '$unwind: inner join with join_8_b on nested field and additional criteria'
@@ -939,6 +1023,7 @@ testcases:
     expected_types: [int, int]
     id: '75'
     sql: select b._id, c2 from join_6 a inner join join_test.join_8_b b on b.`b.c`=a._id and a.rnum > b._id order by 1,2
+    unordered: true
 
   - db: join_test
     description: '$unwind: inner join with join_8 on left s_ide'
@@ -949,6 +1034,7 @@ testcases:
     expected_types: [int]
     id: '76'
     sql: select f._id from join_test.join_8 f inner join join_6 b on f._id=b._id order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: inner join with join_8 on right s_ide'
@@ -959,6 +1045,7 @@ testcases:
     expected_types: [int]
     id: '77'
     sql: select b._id from join_6 b inner join join_test.join_8 f on f._id=b._id order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: inner join with join_8 and additional criteria'
@@ -969,6 +1056,7 @@ testcases:
     expected_types: [int]
     id: '78'
     sql: select b._id from join_6 b inner join join_test.join_8 f on f._id=b._id and b._id = f._id order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: inner join with join_8_b_d on left s_ide'
@@ -978,6 +1066,7 @@ testcases:
     expected_types: [int]
     id: '79'
     sql: select b._id from join_test.join_8_b_d f inner join join_6 b on f._id=b._id order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: inner join with join_8_b_d on right s_ide'
@@ -987,6 +1076,7 @@ testcases:
     expected_types: [int]
     id: '80'
     sql: select b._id from join_6 b inner join join_test.join_8_b_d f on f._id=b._id order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: inner join with join_8_b_d and additional criteria'
@@ -997,6 +1087,7 @@ testcases:
     expected_types: [int]
     id: '81'
     sql: select b._id from join_6 b inner join join_test.join_8_b_d f on f._id=b.rnum and b._id=f.b_idx order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: left join with join_8_b on left s_ide'
@@ -1011,6 +1102,7 @@ testcases:
     expected_types: [int, int]
     id: '82'
     sql: select b_idx, f._id from join_test.join_8_b b left join join_6 f on f._id=b._id order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: left join with join_8_b on right s_ide'
@@ -1024,6 +1116,7 @@ testcases:
     expected_types: [int, int]
     id: '83'
     sql: select f._id, c2 from join_6 b left join join_test.join_8_b f on f._id=b._id order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: left join with join_8_b on nested field'
@@ -1038,6 +1131,7 @@ testcases:
     expected_types: [int, int]
     id: '84'
     sql: select f._id, c2 from join_6 b left join join_test.join_8_b f on f.`b.c`=b._id order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: left join with join_8_b with additional criteria'
@@ -1050,6 +1144,7 @@ testcases:
     expected_types: [int]
     id: '85'
     sql: select f._id from join_6 b left join join_test.join_8_b f on f._id=b._id and f._id < b.c2-20 order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: left join with join_8_b on nested field and additional criteria'
@@ -1061,6 +1156,7 @@ testcases:
     expected_types: [int, int]
     id: '86'
     sql: select f._id, c2 from join_6 b left join join_test.join_8_b f on f.`b.c`=b._id and b.rnum+f._id > f.`b.c` order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: left join with join_8 on left'
@@ -1072,6 +1168,7 @@ testcases:
     expected_types: [int, int]
     id: '87'
     sql: select c2, f._id from join_test.join_8 b left join join_6 f on f._id=b._id order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: left join with join_8 on right s_ide'
@@ -1083,6 +1180,7 @@ testcases:
     expected_types: [int, int]
     id: '88'
     sql: select c2, f._id from join_6 f left join join_test.join_8 b on f._id=b._id order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: left join with join_8 and additional criteria'
@@ -1094,6 +1192,7 @@ testcases:
     expected_types: [int]
     id: '89'
     sql: select f._id from join_6 b left join join_test.join_8 f on f._id=b._id and b._id = f._id order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: left join with join_8_b_d on left'
@@ -1105,6 +1204,7 @@ testcases:
     expected_types: [int, int]
     id: '90'
     sql: select c2, f._id from join_test.join_8_b_d b left join join_6 f on f._id=b._id order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: left join with join_8_b_d on right s_ide'
@@ -1116,6 +1216,7 @@ testcases:
     expected_types: [int, int]
     id: '91'
     sql: select c2, f._id from join_6 f left join join_test.join_8_b_d b on f._id=b._id order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: left join with join_8_b_d on nested field'
@@ -1127,6 +1228,7 @@ testcases:
     expected_types: [int]
     id: '92'
     sql: select f._id from join_6 b left join join_test.join_8_b_d f on f.`b.d`=b._id order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: left join with join_8_b_d and additional criteria'
@@ -1138,6 +1240,7 @@ testcases:
     expected_types: [int]
     id: '93'
     sql: select f._id from join_6 b left join join_test.join_8_b_d f on f._id=b._id and f._id < b.c2-20 order by 1
+    unordered: true
 
   - db: join_test
     description: '$unwind: left join with join_8_b_d on nested field and additional criteria'
@@ -1149,6 +1252,7 @@ testcases:
     expected_types: [int]
     id: '94'
     sql: select f._id from join_6 b left join join_test.join_8_b_d f on f.`b.d`=b._id and f._id < b.c2 order by 1
+    unordered: true
 
   - db: join_test
     description: self join and regular $lookup should be disabled because of the join conditions, expressive $lookup should work
@@ -1166,6 +1270,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: no_merge_no_lookup
     sql: select a._id, a.`b.d`, a.b_idx, a.`b.d_idx`, b._id, `b.c` from join_8_b_d a join join_8_b b on a.b_idx = b.b_idx order by a._id, `b.d`
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1178,6 +1283,7 @@ testcases:
     expected_types: [int, int]
     id: straight_join_on_c
     sql: select join_2.d, join_3.a from join_2 straight_join join_3 on join_2.c = join_3.c
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1190,6 +1296,7 @@ testcases:
     expected_types: [int, int]
     id: using_simple
     sql: select join_2.d, join_3.a from join_2 join join_3 using (c)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1200,6 +1307,7 @@ testcases:
     expected_types: [int, int]
     id: using_multiplePredicate
     sql: select join_2.d, join_3.a from join_2 join join_3 using (c, _id)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1211,6 +1319,7 @@ testcases:
     expected_types: [int, int]
     id: using_left
     sql: select join_2.d, join_3.a from join_2 left join join_3 using (_id)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1223,6 +1332,7 @@ testcases:
     expected_types: [int, int]
     id: using_right
     sql: select join_2.d, join_3.a from join_2 right join join_3 using (_id)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1235,6 +1345,7 @@ testcases:
     expected_types: [int, int]
     id: using_inner
     sql: select join_2.d, join_3.a from join_2 inner join join_3 using (c)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1247,6 +1358,7 @@ testcases:
     expected_types: [int, int]
     id: using_cross
     sql: select join_2.d, join_3.a from join_2 cross join join_3 using (c)
+    unordered: true
 
   - db: join_test
     expected_names: [a, c]
@@ -1257,6 +1369,7 @@ testcases:
     expected_types: [int, int]
     id: cross_join_2
     sql: select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a = join_3.d
+    unordered: true
 
   - db: join_test
     expected_names: [a, c]
@@ -1267,6 +1380,7 @@ testcases:
     #BI-2659: remove max_server_version
     max_server_version: 4.5
     sql: select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a = join_3.d and join_2.c = 10
+    unordered: true
 
   - db: join_test
     expected_names: [a, d]
@@ -1278,6 +1392,7 @@ testcases:
     #BI-2659: remove max_server_version
     max_server_version: 4.5
     sql: select join_1.a, s.d from join_1 cross join (select join_2.d from join_2) s cross join join_3 where join_1.a = s.d and s.d = 1 and join_3.c > 22
+    unordered: true
 
   - db: join_test
     expected_names: [a, c]
@@ -1290,6 +1405,7 @@ testcases:
     #BI-2659: remove max_server_version
     max_server_version: 4.5
     sql: select join_1.a, join_2.c from join_1 cross join join_2 cross join join_3 where join_1.a < join_2.d + 3 and join_1.a < 5 and join_3.a = 14
+    unordered: true
 
   - db: join_test
     expected_names: [a, c]
@@ -1297,6 +1413,7 @@ testcases:
     expected_types: [int, int]
     id: cross_join_6
     sql: select join_1.a, join_2.c from join_1,join_2,join_3,join_1 merge where join_2.d > merge.b and join_1.a = join_2.d + merge.a and join_1.a = join_3.d
+    unordered: true
 
   - db: join_test
     expected_names: [a, c]
@@ -1318,6 +1435,7 @@ testcases:
     expected_types: [int, int]
     id: cross_join_8
     sql: select * from (select join_1.a, join_2.c from join_1, join_2, join_3 where join_1.a * 3 + 1 = join_3.c) res
+    unordered: true
 
   - db: join_test
     expected_names: [a, b]
@@ -1330,6 +1448,7 @@ testcases:
     #BI-2659: remove max_server_version
     max_server_version: 4.5
     sql: select join_1.a, join_1.b from join_1, join_2, (select join_1.a, join_2.c from join_1, join_2, join_3 where join_1.a = join_3.d) res where join_1.a = res.a and join_2.d = 1
+    unordered: true
 
   - db: join_test
     expected_names: [d]
@@ -1342,6 +1461,7 @@ testcases:
     #BI-2659: remove max_server_version
     max_server_version: 4.5
     sql: select join_2.d from join_1 inner join join_2, (select join_1.a, join_2.c from join_1,  join_2, join_3 where join_1.a = join_3.d) res where join_1.a = res.a and res.c = 11
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1352,6 +1472,7 @@ testcases:
     expected_types: [int, int]
     id: using_subquery
     sql: select join_2.d, biz.a from join_2 join (select join_5.c, join_3.a from join_3 join join_5 on join_3._id = join_5._id) as biz using (c)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1372,6 +1493,7 @@ testcases:
     expected_types: [int, int, int]
     id: using_tripleJoin
     sql: select join_1._id, join_2._id, join_3._id from join_1 join join_2 join join_3 using (c)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1383,6 +1505,7 @@ testcases:
     expected_types: [int, int, int]
     id: using_tripleJoinSameTable
     sql: select join_1._id, join_2._id, join_3._id from join_1 join join_2 join join_3 using (c, d)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1392,6 +1515,7 @@ testcases:
     expected_types: [int, int, int]
     id: using_tripleJoinDifferentTable
     sql: select join_1._id, join_2._id, join_3._id from join_1 join join_2 join join_3 using (c, a)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1404,6 +1528,7 @@ testcases:
     #BI-2659: remove max_server_version
     max_server_version: 4.5
     sql: select join_2._id, join_3._id, join_4._id, join_5._id from join_2 join join_3 using (_id) join join_4 join join_5 using (b)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1416,6 +1541,7 @@ testcases:
     expected_types: [int, int]
     id: using_redundantPredicate
     sql: select join_2.d, join_3.a from join_2 join join_3 using (c, c, c, c, c)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1426,6 +1552,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: using_noDuplicatesInResultSet
     sql: select * from join_1 join join_2 using (_id)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1437,6 +1564,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: using_rightJoinCorrectColumn
     sql: select * from join_1 right join join_2 using (_id)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1448,6 +1576,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: using_leftJoinCorrectColumn_1
     sql: select * from join_1 left join join_2 using (_id)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1459,6 +1588,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int]
     id: using_leftJoinCorrectColumn_2
     sql: select * from join_4 left join join_1 using (_id)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1470,6 +1600,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: using_multipleColumnsForOrder
     sql: select * from join_2 join join_5 using (c, _id)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1481,6 +1612,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int]
     id: using_qualifiedStarExpr
     sql: select join_2.*, join_5.* from join_2 join join_5 using (c, _id)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1491,6 +1623,7 @@ testcases:
     expected_types: [int, int]
     id: using_duplicateColumnWhenSpecified
     sql: select join_1._id, join_2._id from join_1 join join_2 using (_id)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1501,6 +1634,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int, int]
     id: using_noDupColDuringQuery
     sql: select * from join_1 join join_2 using (_id) join join_3 using (_id)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1511,6 +1645,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int, int]
     id: using_multipleUsingCorrectColumnOrder
     sql: select * from join_1 join join_2 using (_id) join join_3 using (c)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1521,6 +1656,7 @@ testcases:
     expected_types: [int, int, int]
     id: using_noDupColDuringQueryYetInResultSet
     sql: select join_1._id, join_2._id, join_3._id from join_1 join join_2 using (_id) join join_3 using (_id)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1531,6 +1667,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int, int]
     id: using_handlesPrecedence
     sql: select * from join_1 right join (join_3 join join_2 using (_id)) using (a)
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1541,6 +1678,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: natural_simple
     sql: select * from join_1 natural join join_2
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1558,6 +1696,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: natural_noCommonCols
     sql: select * from (select join_1.a from join_1) as join_1a natural join join_2
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1569,6 +1708,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: natural_multipleCommonColumns
     sql: select * from join_2 natural join join_5
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1578,6 +1718,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: natural_whereClause
     sql: select * from join_1 natural join join_2 where join_1._id=join_2.d
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1595,6 +1736,7 @@ testcases:
     expected_types: [int, int]
     id: natural_twoJoinsOneNatural
     sql: select join_1._id, join_2._id from join_1 join join_2 natural join join_5
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1603,6 +1745,7 @@ testcases:
     expected_types: [int, int]
     id: natural_sameQueryLeftTablesSwitched
     sql: select join_1._id, join_2._id from join_2 join join_1 natural join join_5
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1617,6 +1760,7 @@ testcases:
     expected_types: [int, int]
     id: natural_naturalThenJoin
     sql: select join_1._id, join_5._id from join_1 natural join join_2 join join_5
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1625,6 +1769,7 @@ testcases:
     expected_types: [int]
     id: natural_twoJoinsBothNatural
     sql: select join_2._id from join_2 natural join join_5 natural join join_1
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1634,6 +1779,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: natural_naturalJoinWithUsing
     sql: select * from join_2 join join_1 using (_id) natural join join_8
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1644,6 +1790,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: natural_naturalJoinWithSubquery
     sql: select * from (select join_2.*, join_1.a, join_1.b from join_2 join join_1) as join_4 natural join join_8
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1654,6 +1801,7 @@ testcases:
     expected_types: [int, int]
     id: natural_duplicateColumnsWhenSpecified
     sql: select join_1._id, join_2._id from join_1 natural join join_2
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1664,6 +1812,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: natural_qualifiedStar
     sql: select join_1.*, join_2.* from join_1 natural join join_2
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1675,6 +1824,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int]
     id: natural_straight
     sql: select * from join_1 straight_join join_2 natural join join_3
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1686,6 +1836,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: natural_withLeft
     sql: select * from join_2 left join join_3 using (_id, c, d) natural join join_5
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1696,6 +1847,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: natural_withRight
     sql: select * from join_2 right join join_3 using (_id, c, d) natural join join_5
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1707,6 +1859,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: natural_simpleRight
     sql: select * from join_1 natural right join join_2
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1718,6 +1871,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: natural_simpleLeft_1
     sql: select * from join_1 natural left join join_2
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1729,6 +1883,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: natural_simpleLeft_2
     sql: select * from join_4 natural left join join_1
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1740,6 +1895,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: natural_simpleRightOuter
     sql: select * from join_1 natural right outer join join_2
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1751,6 +1907,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: natural_simpleLeftOuter
     sql: select * from join_1 natural left outer join join_2
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1771,6 +1928,7 @@ testcases:
     expected_types: [int, int, int]
     id: natural_rightWithExprOnLeft
     sql: select join_3._id, join_2._id, join_1._id from join_3 join join_1 natural right join join_2
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1791,6 +1949,7 @@ testcases:
     expected_types: [int, int, int]
     id: natural_rightWithExprOnRight
     sql: select join_1._id, join_2._id, join_3._id from join_1 natural right join join_2 join join_3
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1811,6 +1970,7 @@ testcases:
     expected_types: [int, int, int]
     id: natural_leftWithExprOnRight
     sql: select join_2._id, join_1._id, join_3._id from join_1 natural left join join_2 join join_3
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1831,6 +1991,7 @@ testcases:
     expected_types: [int, int, int]
     id: natural_leftWithExprOnLeft
     sql: select join_2._id, join_1._id, join_3._id from join_3 join join_1 natural left join join_2
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1842,6 +2003,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: natural_leftWithRightJoin
     sql: select * from join_1 right join join_2 using (_id) natural left join join_3
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1853,6 +2015,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: natural_leftWithLeftJoin
     sql: select * from join_1 left join join_2 using (_id) natural left join join_3
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1865,6 +2028,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: natural_rightWithRightJoin
     sql: select * from join_1 right join join_2 using (_id) natural right join join_3
+    unordered: true
 
   - db: join_test
     description: ''
@@ -1877,6 +2041,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: natural_rightWithLeftJoin
     sql: select * from join_1 left join join_2 using (_id) natural right join join_3
+    unordered: true
 
   - db: join_test
     description: This is an inner join on two arrays that are parallel in the documents, with some missing arrays
@@ -1894,6 +2059,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: par_unwind_inner
     sql: select * from parallel_nested_join_b a inner join parallel_nested_join_c b on a._id = b._id
+    unordered: true
 
   - db: join_test
     description: This is a left join on two arrays that are parallel in the documents, with some missing arrays
@@ -1914,6 +2080,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: par_unwind_left
     sql: select * from parallel_nested_join_c a left join parallel_nested_join_b b on a._id = b._id
+    unordered: true
 
   - db: join_test
     description: This is a right join on two arrays that are parallel in the documents, with some missing arrays
@@ -1934,6 +2101,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: par_unwind_right
     sql: select * from parallel_nested_join_c a right join parallel_nested_join_b b on a._id = b._id
+    unordered: true
 
   - db: join_test
     description: the additional criteria in this makes it not safe to self join optimize because the right is not the child of the left
@@ -1945,6 +2113,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int, int]
     id: gc_lf_ac
     sql: select a._id, a.b_idx, a.`b.d`, a.`b.d_idx`, b._id, b.b_idx, b.`b.d`, b.`b.d_idx` from join_8_b_d a left join join_8_b_d b on a._id = b._id and a.`b.d_idx` = b.`b.d_idx` and a.b_idx = b.b_idx and b.`b.d` > 5
+    unordered: true
 
   - db: join_test
     description: equijoin that must use expressive lookup due to foreign pipeline
@@ -1958,6 +2127,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: equijoin_expressive_lookup
     sql: select l._id, l.`b.d`, r._id, r.`b.d` from join_8_b_d l join join_8_b_d r on l._id = r._id order by 1, 2, 3, 4
+    unordered: true
 
   - db: join_test
     description: the additional criteria tests left self join optimization
@@ -1972,6 +2142,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: par_join_b_gt_22
     sql: select * from parallel_nested_join_c a left join parallel_nested_join_b b on a._id = b._id and b > 22
+    unordered: true
 
   - db: join_test
     description: the additional criteria tests left self join optimization
@@ -1992,6 +2163,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: par_join_b_id_2
     sql: select * from parallel_nested_join_c a left join parallel_nested_join_b b on a._id = b._id and b._id = 2
+    unordered: true
 
   - db: join_test
     description: the additional criteria tests left self join optimization
@@ -2006,6 +2178,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: par_join_b_ne_2
     sql: select * from parallel_nested_join_c a left join parallel_nested_join_b b on a._id = b._id and b._id != 2
+    unordered: true
 
   - db: join_test
     description: the additional criteria tests that left join optimization and $lookup are disabled
@@ -2023,6 +2196,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: par_join_b_idx_ne_1
     sql: select * from parallel_nested_join_c a left join parallel_nested_join_b b on a._id = b._id and b.b_idx != 1
+    unordered: true
 
   - db: join_test
     description: cross db cross join
@@ -2043,6 +2217,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int]
     id: crossdb_cross_join_aliased_select
     sql: select f.*, b.* from join_test.join_1 f, (select * from groupby_test.groupby) b
+    unordered: true
 
   - db: join_test
     description: implicit cross db inner join
@@ -2052,6 +2227,7 @@ testcases:
     expected_types: [int]
     id: crossdb_join_implicit
     sql: select d from join_test.join_2, groupby_test.groupby where join_test.join_2.d = groupby_test.groupby.b
+    unordered: true
 
   - db: join_test
     description: implicit cross db inner join
@@ -2061,6 +2237,7 @@ testcases:
     expected_types: [int]
     id: crossdb_join_implicit_with_subquery
     sql: select d from join_test.join_2, (select * from groupby_test.groupby) join_2 where join_test.join_2.d = join_2.b
+    unordered: true
 
   - db: join_test
     description: inner join
@@ -2072,6 +2249,7 @@ testcases:
     expected_types: [int, int]
     id: crossdb_inner_join
     sql: select join_test.join_1.a, join_test.join_1.b from join_test.join_1 inner join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id
+    unordered: true
 
   - db: join_test
     description: inner join
@@ -2083,6 +2261,7 @@ testcases:
     expected_types: [int, int]
     id: crossdb_join_inner_join_three_tables
     sql: select k.a, k.b from join_test.join_1 inner join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id join join_test.join_1 k on k._id =join_test.join_1._id
+    unordered: true
 
   - db: join_test
     expected_names: [a, c]
@@ -2092,6 +2271,7 @@ testcases:
     expected_types: [int, int]
     id: straight_join_three_tables_with_additional_criteria
     sql: select join_test.join_1.a, join_test.join_3.c from join_test.join_1 straight_join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id and join_test.join_1._id > 0 straight_join join_test.join_3 on groupby_test.groupby._id = join_test.join_3._id
+    unordered: true
 
   - db: join_test
     expected_names: [a, c]
@@ -2101,6 +2281,7 @@ testcases:
     expected_types: [int, int]
     id: straight_join_with_subquery_between_three_tables
     sql: select join_test.join_1.a, join_test.temp.c from join_test.join_1 straight_join (select * from groupby_test.groupby straight_join join_test.join_3 on groupby_test.groupby._id = join_test.join_3._id) temp on join_test.join_1._id = groupby_test.temp._id and join_test.join_1._id > 0
+    unordered: true
 
   - db: join_test
     expected_names: [_id, a, b, c, _id, b_idx, b.c, _id, b_idx, b.c]
@@ -2109,6 +2290,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int, int, int, int]
     id: left_join_remaining_predicate_on_array_field
     sql: select a._id, a.a, a.b, a.c, b._id, c.b_idx, c.`b.c`, c._id, c.b_idx, c.`b.c` from join_9 a join join_8 b on a._id = b._id left join join_8_b c on c._id = b._id and c.`b.c` > 1
+    unordered: true
 
   - db: join_test
     expected_names: [a]
@@ -2119,6 +2301,7 @@ testcases:
     expected_types: [int]
     id: cross_db_left_outer_join
     sql: select join_test.join_1.a from join_test.join_1 left outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id
+    unordered: true
 
   - db: join_test
     expected_names: [a]
@@ -2129,6 +2312,7 @@ testcases:
     expected_types: [int]
     id: cross_db_left_outer_join_with_alias
     sql: select join_test.join_1.a from join_test.join_1 left outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id
+    unordered: true
 
   - db: join_test
     expected_names: [a]
@@ -2139,6 +2323,7 @@ testcases:
     expected_types: [int]
     id: cross_db_left_outer_join_with_subquery
     sql: select join_test.join_1.a from join_test.join_1 left outer join (select groupby_test.groupby._id from groupby_test.groupby left outer join join_test.join_3 on groupby_test.groupby._id=join_test.join_3._id) foo on join_test.join_1._id=foo._id
+    unordered: true
 
   - db: join_test
     expected_names: [a, _id]
@@ -2149,6 +2334,7 @@ testcases:
     expected_types: [int, int]
     id: cross_db_left_outer_join_with_alias_and_additional_criteria
     sql: select join_test.join_1.a, groupby_test.groupby._id from join_test.join_1 left outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id AND join_test.join_1._id > 1
+    unordered: true
 
   - db: join_test
     expected_names: [a]
@@ -2160,6 +2346,7 @@ testcases:
     expected_types: [int]
     id: cross_db_right_outer_join
     sql: select join_test.join_1.a from join_test.join_1 right outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id
+    unordered: true
 
   - db: join_test
     expected_names: [_id, a, b, c]
@@ -2171,6 +2358,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: cross_db_right_outer_join_with_alias_and_wildcard_with_db_name
     sql: select groupby_test.groupby.* from join_test.join_1 right outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id
+    unordered: true
 
   - db: join_test
     expected_names: [_id, a, b]
@@ -2182,6 +2370,7 @@ testcases:
     expected_types: [int, int, int]
     id: cross_db_right_outer_join_with_subquery
     sql: select join_test.join_1.* from join_test.join_1 right outer join (select a._id from groupby_test.groupby a right outer join join_test.join_3 b on a._id=b._id) subq on join_test.join_1._id=subq._id
+    unordered: true
 
   - db: join_test
     expected_names: [a, _id]
@@ -2193,6 +2382,7 @@ testcases:
     expected_types: [int, int]
     id: cross_db_right_outer_join_with_alias_and_additional_criteria
     sql: select join_test.join_1.a, groupby_test.groupby._id from join_test.join_1 right outer join groupby_test.groupby on join_test.join_1._id = groupby_test.groupby._id AND join_test.join_1._id > 1
+    unordered: true
 
   - db: join_test
     expected_names: []
@@ -2200,6 +2390,7 @@ testcases:
     expected_types: []
     id: cross_db_natural_join
     sql: select * from join_test.join_1 natural join groupby_test.groupby
+    unordered: true
 
   - db: join_test
     expected_names: [_id, a, b, c]
@@ -2210,6 +2401,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: cross_db_natural_left_join
     sql: select * from join_test.join_1 natural left join groupby_test.groupby
+    unordered: true
 
   - db: join_test
     expected_names: [_id, a, b, c]
@@ -2221,6 +2413,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: cross_db_natural_right_join
     sql: select * from join_test.join_1 natural right join groupby_test.groupby
+    unordered: true
 
   - db: join_test
     expected_names: []
@@ -2228,6 +2421,7 @@ testcases:
     expected_types: []
     id: cross_db_natural_with_alias
     sql: select * from join_test.join_1 natural join groupby_test.groupby b
+    unordered: true
 
   - db: join_test
     expected_names: [_id, a, b, c]
@@ -2238,6 +2432,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: cross_db_natural_left_with_alias
     sql: select * from join_test.join_1 natural left join groupby_test.groupby b
+    unordered: true
 
   - db: join_test
     expected_names: [_id, a, b, c]
@@ -2249,6 +2444,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: cross_db_natural_right_alias
     sql: select * from join_test.join_1 natural right join groupby_test.groupby b
+    unordered: true
 
   - db: join_test
     expected_names: []
@@ -2256,6 +2452,7 @@ testcases:
     expected_types: []
     id: cross_db_natural_with_alias_and_subquery
     sql: select * from join_test.join_1 natural join (select * from groupby_test.groupby natural join groupby_test.groupby join_2) k
+    unordered: true
 
   - db: join_test
     expected_names: [_id, a, b, c]
@@ -2266,6 +2463,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: cross_db_natural_left_with_alias_and_subquery
     sql: select * from join_test.join_1 natural left join (select * from groupby_test.groupby natural join groupby_test.groupby join_2) k
+    unordered: true
 
   - db: join_test
     expected_names: [_id, a, b, c]
@@ -2274,6 +2472,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: cross_db_natural_right_alias_and_subquery
     sql: select * from join_test.join_1 natural right join (select * from groupby_test.groupby natural join groupby_test.groupby join_2) k
+    unordered: true
 
   - db: join_test
     expected_names: [a, _id, max_c]
@@ -2290,6 +2489,7 @@ testcases:
     expected_types: [int, int, int]
     id: partial_pushdown_required_columns_no_db
     sql: select a, join_3._id, max_c from join_1 join (select _id, max(c) as max_c from join_2 group by 1 order by _id) join_3
+    unordered: true
 
   - db: join_test
     description: Ensure cross join optimization doesn't remove non associative subtree join kinds
@@ -2306,6 +2506,7 @@ testcases:
     expected_types: [int, int]
     id: cross-join-with-right-join-optimization-test
     sql: SELECT join_3._id, join_2._id FROM join_2 RIGHT JOIN join_3 ON (join_2._id = join_3._id) CROSS JOIN join_3 b2 WHERE join_3._id >= 0.00 and ISNULL(join_2._id)
+    unordered: true
 
   - db: join_test
     description: Ensure cross join optimization doesn't remove non associative subtree join kinds
@@ -2314,6 +2515,7 @@ testcases:
     expected_types: [int]
     id: filtering-with-right-join-optimization-test
     sql: SELECT join_1._id FROM join_1 JOIN join_2 j1 RIGHT JOIN join_2 ON `join_2`.`_id` = `join_1`.`_id` WHERE join_2.c <> NULL
+    unordered: true
 
   - db: join_test
     description: Ensure self join, left join optimization doesn't fail
@@ -2325,6 +2527,7 @@ testcases:
     expected_types: [int]
     id: self-join-left-join-optimization
     sql: select a._id from join_1 a left join join_1 b on a._id=b._id
+    unordered: true
 
   - db: join_test
     description: BI-2171 Natural left join with nested documents
@@ -2336,6 +2539,7 @@ testcases:
     expected_types: [int, int, int, int, int]
     id: natural_left_join_with_nested_documents
     sql: select * from join_nested_docs_1 natural left join join_nested_docs_2
+    unordered: true
 
   - db: join_test
     description: Ensure join criteria doesn't match on null
@@ -2344,6 +2548,7 @@ testcases:
     expected_types: [varchar, int]
     id: inner-join-equal-nulls
     sql: select join_nulls.b, join_1.b from join_nulls join join_1 on join_nulls.b = join_1.b
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: join_test
@@ -2354,6 +2559,7 @@ testcases:
     expected_types: [varchar, int]
     id: inner-join-not-equal-nulls
     sql: select join_nulls.b, join_1.b from join_nulls join join_1 on join_nulls.b != join_1.b
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: join_test
@@ -2363,6 +2569,7 @@ testcases:
     expected_types: [varchar, int]
     id: inner-join-greater-than-null
     sql: select join_nulls.b, join_1.b from join_nulls join join_1 on join_nulls.b > join_1.b
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: join_test
@@ -2373,6 +2580,7 @@ testcases:
     expected_types: [varchar, int]
     id: inner-join-less-than-null
     sql: select join_nulls.b, join_1.b from join_nulls join join_1 on join_nulls.b < join_1.b
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: join_test
@@ -2382,6 +2590,7 @@ testcases:
     expected_types: [varchar, int]
     id: inner-join-greater-than-or-equal-null
     sql: select join_nulls.b, join_1.b from join_nulls join join_1 on join_nulls.b >= join_1.b
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: join_test
@@ -2392,6 +2601,7 @@ testcases:
     expected_types: [varchar, int]
     id: inner-join-less-than-or-equal-null
     sql: select join_nulls.b, join_1.b from join_nulls join join_1 on join_nulls.b <= join_1.b
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: join_test
@@ -2404,6 +2614,7 @@ testcases:
     expected_types: [int]
     id: inner-join-table-and-subquery-with-inner-and-outer-group-by
     sql: select join_1.a a from join_1 inner join (select join_1.a a from join_1 group by 1) t0 on (join_1.a = t0.a) group by 1 order by 1
+    unordered: true
 
   - db: join_test
     description: join criteria translates to match language in $match stage in $lookup pipeline
@@ -2415,6 +2626,7 @@ testcases:
     expected_types: [int]
     id: criteria_translates_to_match_language
     sql: select join_1.a from join_1 right join join_2 on join_1.a=2
+    unordered: true
 
   - db: join_test
     description: join criteria on local column translates to $expr in $match stage in $lookup pipeline
@@ -2428,3 +2640,4 @@ testcases:
     expected_types: [int]
     id: criteria_translates_to_expr
     sql: select join_1.a from join_1 right join join_2 on join_2.c=10
+    unordered: true

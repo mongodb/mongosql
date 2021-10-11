@@ -5,3 +5,4 @@ testcases:
       - [3087.05]
     expected_types: [float]
     sql: SELECT SUM(`Discount`) AS `sum_Discount_ok` FROM Staples HAVING (COUNT(1) > 0) ORDER BY 1
+    unordered: true

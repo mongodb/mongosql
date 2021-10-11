@@ -1908,3 +1908,4 @@ testcases:
       - [613, 778.413730576877]
     expected_types: [int, float]
     sql: SELECT `Margin` AS `none_Margin_ok`,   `Profit` AS `none_Profit_ok` FROM Starbucks GROUP BY `Margin`,   `Profit` ORDER BY 1, 2
+    unordered: true

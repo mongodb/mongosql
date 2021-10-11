@@ -336,3 +336,4 @@ testcases:
     expected_types: ["int"]
     id: "ensure STRICT_ALL_TABLES is not set"
     sql: "select locate('STRICT_ALL_TABLES', variable_value) as strict from information_schema.global_variables where variable_name = 'sql_mode'"
+    unordered: true

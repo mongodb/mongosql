@@ -6,3 +6,4 @@ testcases:
       - ['YES']
     expected_types: [varchar]
     sql: SELECT `Product In Stock` AS `none_Product_In_Stock_nk` FROM Staples GROUP BY `Product In Stock` ORDER BY 1 ASC
+    unordered: true

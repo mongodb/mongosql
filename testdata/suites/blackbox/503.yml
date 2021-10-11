@@ -30,3 +30,4 @@ testcases:
       - [Small Market, Regular Espresso, -210.1795892895593]
     expected_types: [varchar, varchar, float]
     sql: SELECT `Market Size` AS `none_Market_Size_nk`,   `Product` AS `none_Product_nk`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks GROUP BY `Market Size`,   `Product` ORDER BY 1, 2, 3
+    unordered: true

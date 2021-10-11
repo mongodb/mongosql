@@ -8,3 +8,4 @@ testcases:
       - [Regular Espresso, Espresso]
     expected_types: [varchar, varchar]
     sql: SELECT MAX(`Product`) AS `max_Product_nk`,   `Product Type` AS `none_Product_Type_nk` FROM Starbucks GROUP BY `Product Type` ORDER BY 1, 2
+    unordered: true

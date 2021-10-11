@@ -19,3 +19,4 @@ testcases:
       - [30989.4598318761, East, Coffee]
     expected_types: [float, varchar, varchar]
     sql: SELECT SUM(`Profit`) AS `TEMP_CalculationB__GDBGGCEAI__A_`,   `Market` AS `none_Market_nk`,   `Product Type` AS `none_Product_Type_nk` FROM Starbucks GROUP BY `Market`,   `Product Type` ORDER BY 1, 2, 3
+    unordered: true

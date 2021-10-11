@@ -11,3 +11,4 @@ testcases:
       - [UA]
     expected_types: [varchar]
     sql: SELECT `League` AS `none_League_nk` FROM Batters GROUP BY `League` ORDER BY 1 ASC
+    unordered: true

@@ -12,3 +12,4 @@ testcases:
       - [Tea, 43663.479890968825, 1999]
     expected_types: [varchar, float, int]
     sql: SELECT `Product Type` AS `none_Product_Type_nk`, SUM(`Sales`) AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE (QUARTER(`Date`) <= 2) GROUP BY `Product Type`, YEAR(`Date`) ORDER BY 1, 2, 3
+    unordered: true

@@ -21,3 +21,4 @@ testcases:
       - ['2004-06-19', key04, 0]
     expected_types: [varchar, varchar, int]
     sql: SELECT DATE(`date0`) AS `none_dateA_nk`,   `key` AS `none_key_nk`,   (CASE WHEN (`date0` IS NULL) THEN 1 WHEN NOT (`date0` IS NULL) THEN 0 ELSE NULL END) AS `none_z_isnull_date_nk` FROM Calcs ORDER BY 1, 2, 3
+    unordered: true

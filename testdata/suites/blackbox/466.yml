@@ -6,3 +6,4 @@ testcases:
       - [Regular, 202976]
     expected_types: [varchar, int]
     sql: SELECT `Type` AS `none_Type_nk`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok` FROM Starbucks GROUP BY `Type` ORDER BY 1, 2
+    unordered: true

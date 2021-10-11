@@ -63,3 +63,4 @@ testcases:
       - ['West Palm Beach/Palm Beach, FL', 994, 21, 7]
     expected_types: [varchar, int, int, int]
     sql: SELECT (CASE WHEN (flights201406.dest_city_name IS NULL) THEN attendees.airport_city ELSE flights201406.dest_city_name END) AS Calculation_6710704172113145, SUM(1) AS `TEMP(Calculation_9510704170320209)(2414991311)(0)`, SUM((CASE WHEN (flights201406.cancelled = 1) THEN 1 ELSE 0 END)) AS `TEMP(Calculation_9510704170320209)(424513295)(0)`, COUNT(DISTINCT attendees._id) AS ctd_id FROM tableau.attendees attendees INNER JOIN tableau.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1 ORDER BY 1;
+    unordered: true

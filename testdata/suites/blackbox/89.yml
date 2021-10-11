@@ -28,3 +28,4 @@ testcases:
       - [77.23472373846987, '1999-07-01 00:00:00']
     expected_types: [float, varchar]
     sql: SELECT AVG(`Profit`) AS `avg_Profit_ok`,   `Date` AS `none_Date_ok` FROM Starbucks GROUP BY `Date` ORDER BY 1, 2
+    unordered: true

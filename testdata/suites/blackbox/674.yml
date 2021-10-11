@@ -6,3 +6,4 @@ testcases:
       - [Regular, 202976, 152784.7594250252]
     expected_types: [varchar, int, float]
     sql: SELECT `Type` AS `none_Type_nk`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok`, SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks GROUP BY `Type` ORDER BY 1, 2, 3
+    unordered: true

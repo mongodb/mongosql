@@ -28,3 +28,4 @@ testcases:
       - ['1999-12-01 00:00:00', 13075.961603204583]
     expected_types: [varchar, float]
     sql: SELECT `Date` AS `none_Date_ok`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks GROUP BY `Date` ORDER BY 1, 2
+    unordered: true

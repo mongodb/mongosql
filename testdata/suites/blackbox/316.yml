@@ -21,3 +21,4 @@ testcases:
       - [1, key08, 1]
     expected_types: [int, varchar, int]
     sql: SELECT COUNT(`num0`) AS `cnt_numA_ok`,   `key` AS `none_key_nk`,   COUNT(`num0`) AS `usr_z_count_numA__ok` FROM Calcs GROUP BY `key` ORDER BY 1, 2, 3
+    unordered: true

@@ -4252,3 +4252,4 @@ testcases:
       - [Profit > 0, Regular Espresso, 266, 0.502380492783658]
     expected_types: [varchar, varchar, int, float]
     sql: SELECT (CASE WHEN (`Profit` <= 0) THEN 'Profit <= 0' ELSE 'Profit > 0' END) AS `min_Profit____A_nk`,   `Product` AS `none_Product_nk`,   `COGS` AS `sum_COGS_ok`,   (CASE WHEN 500 = 0 THEN NULL ELSE `Profit` / 500 END) AS `sum_Scaled_Profit_ok` FROM Starbucks ORDER BY 1, 2, 3, 4
+    unordered: true

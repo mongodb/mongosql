@@ -9,3 +9,4 @@ testcases:
       - [5-LOW]
     expected_types: [varchar]
     sql: SELECT `Order Priority` AS `none_Order_Priority_nk` FROM Staples GROUP BY `Order Priority` ORDER BY 1 ASC
+    unordered: true

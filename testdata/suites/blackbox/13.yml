@@ -44,3 +44,4 @@ testcases:
       - [Small Market, West, Tea, Regular, 29132.701434725277, 1999]
     expected_types: [varchar, varchar, varchar, varchar, float, int]
     sql: SELECT `Market Size` AS `none_Market_Size_nk`, `Market` AS `none_Market_nk`, `Product Type` AS `none_Product_Type_nk`, `Type` AS `none_Type_nk`, SUM(`Sales`) AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE ((NOT (`Market` IN ('East', 'South'))) AND (NOT (`Product Type` = 'Herbal Tea'))) GROUP BY `Market Size`, `Market`, `Product Type`, `Type`, YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5, 6
+    unordered: true

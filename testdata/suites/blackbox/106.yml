@@ -17,3 +17,4 @@ testcases:
       - [50, 50, Regular Espresso]
     expected_types: [int, int, varchar]
     sql: SELECT AVG(CONVERT(50, SQL_DOUBLE)) AS `avg_X_ok`, AVG(CONVERT(50, SQL_DOUBLE)) AS `avg_Y_ok`, `Product` AS `none_Product_nk` FROM Starbucks GROUP BY `Product` ORDER BY 1, 2, 3
+    unordered: true

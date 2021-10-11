@@ -28,3 +28,4 @@ testcases:
       - [4, 4626054, 1998]
     expected_types: [int, float, int]
     sql: SELECT QUARTER(`Order Date`) AS `qr_Order_Date_ok`, SUM(`Sales Total`) AS `sum_Sales_Total_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY QUARTER(`Order Date`), YEAR(`Order Date`) ORDER BY 1, 2, 3
+    unordered: true

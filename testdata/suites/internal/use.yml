@@ -7,4 +7,5 @@ testcases:
       - ['2']
     expected_types: [varchar]
     sql: use use_test2
+    unordered: true
     verify: select b from test2

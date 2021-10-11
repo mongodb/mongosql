@@ -8,6 +8,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar]
     id: '1'
     sql: select * from information_schema.schemata where SCHEMA_NAME = 'mysql' order by schema_name
+    unordered: true
 
   - db: mysql
     description: mysql tables
@@ -17,6 +18,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '2'
     sql: select TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE, TABLE_COLLATION, TABLE_COMMENT from information_schema.tables where TABLE_SCHEMA = 'mysql' order by TABLE_SCHEMA, TABLE_NAME
+    unordered: true
 
   - db: mysql
     description: mysql tables
@@ -25,3 +27,4 @@ testcases:
     expected_types: [varchar]
     id: '3'
     sql: select db from mysql.proc
+    unordered: true

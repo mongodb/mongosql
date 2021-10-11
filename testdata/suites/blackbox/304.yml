@@ -54864,3 +54864,4 @@ testcases:
       - [1.4769807938826427]
     expected_types: [float]
     sql: SELECT EXP(`Discount`) AS `sum_DISCOUNT_Test_ok` FROM Staples ORDER BY 1
+    unordered: true

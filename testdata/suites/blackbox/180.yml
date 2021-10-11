@@ -6,3 +6,4 @@ testcases:
       - [HIGH SCHOOL GRAD]
     expected_types: [varchar]
     sql: SELECT `App_College` AS `none_App_College_nk` FROM Loan GROUP BY `App_College` ORDER BY 1 ASC
+    unordered: true

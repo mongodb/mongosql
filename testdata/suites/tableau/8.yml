@@ -290,3 +290,4 @@ testcases:
       - [troy, 22]
     expected_types: [varchar, int]
     sql: SELECT attendees.city AS city, SUM(1) AS calculation_4190704170258269 FROM tableau.attendees attendees  INNER JOIN tableau.flights201406 flights201406 ON (attendees.airport_code = flights201406.dest_airport_code) WHERE (((flights201406.flight_date >= (TIMESTAMP '2014-06-01 00:00:00.000')) AND (flights201406.flight_date <= (TIMESTAMP '2014-06-07 11:00:00.000'))) AND (flights201406.origin_city_market_id = 31703.000000)) GROUP BY 1 ORDER BY 1;
+    unordered: true

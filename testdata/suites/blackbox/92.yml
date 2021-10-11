@@ -5,3 +5,4 @@ testcases:
       - [259527.27268291984]
     expected_types: [float]
     sql: SELECT SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks HAVING (COUNT(1) > 0) ORDER BY 1
+    unordered: true

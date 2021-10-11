@@ -12,3 +12,4 @@ testcases:
       - [Tea, 380351, 1999]
     expected_types: [varchar, int, int]
     sql: SELECT `Product Type` AS `none_Product_Type_nk`, SUM(CONVERT(`Inventory`, SQL_BIGINT)) AS `sum_Inventory_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY `Product Type`, YEAR(`Date`) ORDER BY 1, 2, 3
+    unordered: true

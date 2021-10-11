@@ -70,3 +70,4 @@ testcases:
       - [47.1940476190476, 56.38, 35.75, Software, SY, 1994]
     expected_types: [float, float, float, varchar, varchar, int]
     sql: SELECT AVG(`Close_Price`) AS `avg_Close_Price_ok`, MAX(`Close_Price`) AS `max_Close_Price_ok`, MIN(`Close_Price`) AS `min_Close_Price_ok`, `Industry` AS `none_Industry_nk`, `Ticker` AS `none_Ticker_nk`, YEAR(`Date`) AS `yr_Date_ok` FROM Securities WHERE (`Ticker` IN ('AAPL', 'CKP', 'ORCL', 'SY')) GROUP BY `Industry`, `Ticker`, YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5, 6
+    unordered: true

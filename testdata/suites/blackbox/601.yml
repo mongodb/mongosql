@@ -5,3 +5,4 @@ testcases:
       - [235300311, 1390980]
     expected_types: [int, int]
     sql: SELECT SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok`, SUM(CONVERT(`Order Quantity`, SQL_BIGINT)) AS `sum_Order_Quantity_ok` FROM Staples HAVING (COUNT(1) > 0) ORDER BY 1, 2
+    unordered: true

@@ -2191,3 +2191,4 @@ testcases:
       - ['2002-12-31 00:00:00', 11944.13]
     expected_types: [varchar, float]
     sql: SELECT `Order Date` AS `none_Order_Date_ok`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples GROUP BY `Order Date` ORDER BY 1, 2
+    unordered: true

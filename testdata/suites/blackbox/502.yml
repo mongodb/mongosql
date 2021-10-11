@@ -100,3 +100,4 @@ testcases:
       - [12, Small Market, West, 15116.616143485995]
     expected_types: [int, varchar, varchar, float]
     sql: SELECT MONTH(`Date`) AS `mn_Date_ok`, `Market Size` AS `none_Market_Size_nk`, `Market` AS `none_Market_nk`, SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY MONTH(`Date`), `Market Size`, `Market` ORDER BY 1, 2, 3, 4
+    unordered: true

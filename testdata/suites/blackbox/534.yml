@@ -106,3 +106,4 @@ testcases:
       - [TELEPHONES AND COMMUNICATION, 92354.15, 2002]
     expected_types: [varchar, float, int]
     sql: SELECT `Prod Type2` AS `none_Prod_TypeC_nk`, SUM(`Price`) AS `sum_Price_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Prod Type2`, YEAR(`Order Date`) ORDER BY 1, 2, 3
+    unordered: true

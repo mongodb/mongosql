@@ -21,3 +21,4 @@ testcases:
       - [key16, '8', null, null]
     expected_types: [varchar, varchar, varchar, int]
     sql: SELECT `key` AS `none_key_nk`, LTRIM(CONVERT(`int0`, SQL_VARCHAR)) AS `none_str_intA__nk`, LTRIM(CONVERT(`num4`, SQL_VARCHAR)) AS `none_str_numE__nk`, CONVERT(CONCAT(LTRIM(CONVERT(`num4`, SQL_VARCHAR)), LTRIM(CONVERT(`int0`, SQL_VARCHAR))), SQL_BIGINT) AS `sum_z_int_str_ok` FROM Calcs ORDER BY 1, 2, 3, 4
+    unordered: true

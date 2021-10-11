@@ -21,3 +21,4 @@ testcases:
       - ['2004-08-02 07:59:23', key02, 23]
     expected_types: [varchar, varchar, int]
     sql: SELECT `datetime0` AS `none_datetimeA_ok`, `key` AS `none_key_nk`, SECOND(CONVERT(`datetime0`, SQL_TIMESTAMP)) AS `sum_z_datepart_second_ok` FROM Calcs ORDER BY 1, 2, 3
+    unordered: true

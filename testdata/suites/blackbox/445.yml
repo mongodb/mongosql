@@ -4252,3 +4252,4 @@ testcases:
       - [Small Market, West, 361.603541509117, 680.870981174451, 1999]
     expected_types: [varchar, varchar, float, float, int]
     sql: SELECT `Market Size` AS `none_Market_Size_nk`, `Market` AS `none_Market_nk`, `Profit` AS `sum_Profit_ok`, `Sales` AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks ORDER BY 1, 2, 3, 4, 5
+    unordered: true

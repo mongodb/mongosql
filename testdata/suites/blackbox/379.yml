@@ -21,3 +21,4 @@ testcases:
       - [key16, null, null]
     expected_types: [varchar, varchar, varchar]
     sql: SELECT `key` AS `none_key_nk`, CONCAT(CONCAT('  ', `str2`), '  ') AS `none_padded_strC_nk`, CONCAT(CONCAT('|', RTRIM(CONCAT(CONCAT('  ', `str2`), '  '))), '|') AS `none_z_rtrim_str_nk` FROM Calcs ORDER BY 1, 2, 3
+    unordered: true

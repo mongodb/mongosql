@@ -76,3 +76,4 @@ testcases:
       - [12, Mint, 4, 110.0970391309994, 1999]
     expected_types: [int, varchar, int, float, int]
     sql: SELECT MONTH(`Date`) AS `mn_Date_ok`, `Product` AS `none_Product_nk`, QUARTER(`Date`) AS `qr_Date_ok`, SUM((CASE WHEN (`Product` = 'Mint') THEN (`Profit` - 20) WHEN NOT (`Product` = 'Mint') THEN `Profit` ELSE NULL END)) AS `sum_Adjusted_Profit_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE (`Product` IN ('Amaretto', 'Green Tea', 'Mint')) GROUP BY MONTH(`Date`), `Product`, QUARTER(`Date`), YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5
+    unordered: true

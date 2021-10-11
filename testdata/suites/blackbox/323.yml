@@ -21,3 +21,4 @@ testcases:
       - [key16, null, null]
     expected_types: [varchar, float, float]
     sql: SELECT `key` AS `none_key_nk`, `num4` AS `none_numE_nk`, LTRIM(CONVERT(`num4`, SQL_VARCHAR)) AS `none_z_str_num_nk` FROM Calcs ORDER BY 1, 2, 3
+    unordered: true

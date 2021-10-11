@@ -28,3 +28,4 @@ testcases:
       - ['1999-12-01 00:00:00', 14907, 18435]
     expected_types: [varchar, int, int]
     sql: SELECT `Date` AS `none_Date_ok`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok`, SUM(CONVERT(`Margin`, SQL_BIGINT)) AS `sum_Margin_ok` FROM Starbucks GROUP BY `Date` ORDER BY 1, 2, 3
+    unordered: true

@@ -304,3 +304,4 @@ testcases:
       - [12, WISCONSIN, 694849]
     expected_types: [int, varchar, int]
     sql: SELECT MONTH(`Order Date`) AS `mn_Order_Date_ok`, `Customer State` AS `none_Customer_State_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok` FROM Staples GROUP BY MONTH(`Order Date`), `Customer State` ORDER BY 1, 2, 3
+    unordered: true

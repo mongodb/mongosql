@@ -5,3 +5,4 @@ testcases:
       - [November, 58]
     expected_types: [varchar, int]
     sql: SELECT `MONTH` AS `none_MONTH_nk`, SUM(CONVERT(`AUTOTHEFT`, SQL_BIGINT)) AS `sum_AUTOTHEFT_ok` FROM SeattleCrime WHERE ((`ARSON` >= 4) AND (`ARSON` <= 16)) GROUP BY `MONTH` HAVING ((SUM(CONVERT(`ARSON`, SQL_BIGINT)) >= 40) AND (SUM(CONVERT(`ARSON`, SQL_BIGINT)) <= 55)) ORDER BY 1, 2
+    unordered: true

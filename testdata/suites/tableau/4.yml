@@ -143,3 +143,4 @@ testcases:
       - ['Tucson, AZ', -110.94111111, 32.11611111, 1]
     expected_types: [varchar, float, float, int]
     sql: SELECT attendees.airport_city AS airport_city, attendees.`loc.coordinates_longitude` AS loc_longitude, attendees.`loc.coordinates_latitude` AS loc_latitude, SUM(1) AS records FROM tableau.attendees attendees GROUP BY 1, 2, 3 ORDER BY records DESC, airport_city ASC, loc_longitude DESC, loc_latitude DESC
+    unordered: true

@@ -6,3 +6,4 @@ testcases:
       - [Central, Regular, 50602.83736455427]
     expected_types: [varchar, varchar, float]
     sql: SELECT `Market` AS `none_Market_nk`,   `Type` AS `none_Type_nk`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks WHERE (`Market` = 'Central') GROUP BY `Market`,   `Type` ORDER BY 1, 2, 3
+    unordered: true

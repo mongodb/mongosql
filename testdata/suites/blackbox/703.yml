@@ -7,3 +7,4 @@ testcases:
       - [TECHNOLOGY, CONST]
     expected_types: [varchar, varchar]
     sql: SELECT `str0` AS `none_strA_nk`,   'CONST' AS `none_z_const_str_nk` FROM Calcs GROUP BY `str0` ORDER BY 1, 2
+    unordered: true

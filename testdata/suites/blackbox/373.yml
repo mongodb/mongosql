@@ -21,3 +21,4 @@ testcases:
       - [key16, ERICSSON, 1]
     expected_types: [varchar, varchar, int]
     sql: SELECT `key` AS `none_key_nk`, `str1` AS `none_strB_nk`, LOCATE('E',`str1`,1) AS `sum_z_find_str_str_ok` FROM Calcs ORDER BY 1, 2, 3
+    unordered: true

@@ -1348,3 +1348,4 @@ testcases:
       - ['1999-12-01 00:00:00', 453]
     expected_types: [varchar, int]
     sql: SELECT `Date` AS `none_Date_ok`,   `Margin` AS `none_Margin_ok` FROM Starbucks GROUP BY `Date`,   `Margin` ORDER BY 1, 2
+    unordered: true

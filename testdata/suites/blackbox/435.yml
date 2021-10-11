@@ -57,3 +57,4 @@ testcases:
       - [2385568.75, 19]
     expected_types: [float, int]
     sql: SELECT SUM(`Sales Total`) AS `sum_Sales_Total_ok`, FLOOR((6 + DAYOFYEAR(`Order Date`) + (MOD((7 + DAYOFWEEK(TIMESTAMPADD(SQL_TSI_DAY,FLOOR(-(DAYOFYEAR(`Order Date`) - 1)),CONVERT(`Order Date`, SQL_DATE))) - 2 ), 7))) / 7) AS `wk_Order_Date_ok` FROM Staples GROUP BY FLOOR((6 + DAYOFYEAR(`Order Date`) + (MOD((7 + DAYOFWEEK(TIMESTAMPADD(SQL_TSI_DAY,FLOOR(-(DAYOFYEAR(`Order Date`) - 1)),CONVERT(`Order Date`, SQL_DATE))) - 2 ), 7))) / 7) ORDER BY 1, 2
+    unordered: true

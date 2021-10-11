@@ -41,3 +41,4 @@ testcases:
       - [Small Market, Espresso, Caffe Mocha, Wisconsin]
     expected_types: [varchar, varchar, varchar, varchar]
     sql: SELECT `Market Size` AS `none_Market_Size_nk`,   `Product Type` AS `none_Product_Type_nk`,   `Product` AS `none_Product_nk`,   `State` AS `none_State_nk` FROM Starbucks WHERE (`Product` IN ('Amaretto', 'Caffe Latte', 'Caffe Mocha')) GROUP BY `Market Size`,   `Product Type`,   `Product`,   `State` ORDER BY 1, 2, 3, 4
+    unordered: true

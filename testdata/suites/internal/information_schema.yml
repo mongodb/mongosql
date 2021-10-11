@@ -10,6 +10,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar]
     id: '0'
     sql: select * from information_schema.schemata where SCHEMA_NAME like 'information%' order by schema_name
+    unordered: true
 
   - db: information_schema_test
     description: tables full
@@ -58,6 +59,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar]
     id: '1'
     sql: select TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, TABLE_TYPE, TABLE_COLLATION, TABLE_COMMENT from information_schema.tables where TABLE_SCHEMA like 'information%' order by TABLE_SCHEMA, TABLE_NAME
+    unordered: true
 
   - db: information_schema_test
     description: all information_schema.tables columns
@@ -74,6 +76,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, int, varchar, int, int, int, int, int, int, int, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: 1b
     sql: select * from information_schema.tables  where TABLE_SCHEMA like 'where_test%' order by TABLE_SCHEMA, TABLE_NAME
+    unordered: true
 
   - db: information_schema_test
     description: columns full
@@ -108,6 +111,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, int, varchar, varchar, varchar, int, int, int, int, int, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '2'
     sql: select * from information_schema.columns where table_schema like 'information_schema_test%' order by table_schema, table_name, ordinal_position
+    unordered: true
 
   - db: information_schema_test
     description: global variables
@@ -117,6 +121,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '3'
     sql: select * from information_schema.global_variables order by variable_name limit 1
+    unordered: true
 
   - db: information_schema_test
     description: session variables
@@ -126,6 +131,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '4'
     sql: select * from information_schema.session_variables order by variable_name limit 1
+    unordered: true
 
   - db: information_schema_test
     description: processlist
@@ -135,6 +141,7 @@ testcases:
     expected_types: [varchar, varchar, varchar]
     id: '5'
     sql: SELECT COMMAND, STATE, INFO FROM information_schema.processlist WHERE info LIKE '%process%'
+    unordered: true
 
   - db: information_schema_test
     description: table_constraints_test
@@ -145,6 +152,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '6'
     sql: select constraint_name, constraint_type from information_schema.TABLE_CONSTRAINTS where TABLE_NAME='information_schema_3_b' AND CONSTRAINT_SCHEMA='information_schema_test'
+    unordered: true
 
   - db: information_schema_test
     description: check child keys when sibling arrays are present in a child table
@@ -156,6 +164,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '7'
     sql: select constraint_name, column_name from information_schema.key_column_usage where table_name='information_schema_3_b' AND CONSTRAINT_SCHEMA='information_schema_test'
+    unordered: true
 
   - db: information_schema_test
     description: check grandchild keys when no child table exists without siblings
@@ -169,6 +178,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '8'
     sql: select constraint_name, column_name from information_schema.key_column_usage where table_name='information_schema_3_b_d' AND CONSTRAINT_SCHEMA='information_schema_test' order by constraint_name
+    unordered: true
 
   - db: information_schema_test
     description: check when foreign keys are aliased between grandgrandchild and grandchild tables and child table doesn't exist
@@ -181,6 +191,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar]
     id: '9'
     sql: select constraint_name, column_name, referenced_table_name, referenced_column_name from information_schema.key_column_usage where table_name='information_schema_4_b_d_e' AND CONSTRAINT_SCHEMA='information_schema_test'
+    unordered: true
 
   - db: information_schema_test
     description: check if unqiue indexes get picked up
@@ -191,6 +202,7 @@ testcases:
     expected_types: [varchar, varchar]
     id: '10'
     sql: select constraint_name, column_name from information_schema.key_column_usage where table_name='information_schema_3' AND CONSTRAINT_SCHEMA='information_schema_test'
+    unordered: true
 
   - db: information_schema_test
     description: referential_constraints join_8_b_d
@@ -201,6 +213,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '11'
     sql: select * from information_schema.referential_constraints where table_name='join_8_b_d' or table_name='information_schema_3_b'
+    unordered: true
 
   - db: information_schema_test
     description: referential_constraints join_8_b
@@ -210,6 +223,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '12'
     sql: select * from information_schema.referential_constraints where table_name='join_8_b' and constraint_schema='join_test'
+    unordered: true
 
   - db: information_schema_test
     description: statistics join_8_b
@@ -221,6 +235,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '13'
     sql: select * from information_schema.statistics where table_name='join_8_b' and table_schema='join_test'
+    unordered: true
 
   - db: information_schema_test
     description: it should be valid to join the key_column_usage table to itself
@@ -230,6 +245,7 @@ testcases:
     expected_types: [varchar]
     id: join_information_schema_table_to_self_0
     sql: select 'success' as value from information_schema.key_column_usage foo join information_schema.key_column_usage bar limit 1;
+    unordered: true
 
   - db: information_schema_test
     description: it should be valid to join the referential_constraints table to itself
@@ -239,3 +255,4 @@ testcases:
     expected_types: [varchar]
     id: join_information_schema_table_to_self_1
     sql: select 'success' as value from information_schema.referential_constraints foo join information_schema.referential_constraints bar limit 1;
+    unordered: true

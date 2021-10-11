@@ -17,3 +17,4 @@ testcases:
       - [Regular Espresso, 63334]
     expected_types: [varchar, int]
     sql: SELECT `Product` AS `none_Product_nk`, SUM(CONVERT(`Inventory`, SQL_BIGINT)) AS `sum_Inventory_ok` FROM Starbucks GROUP BY `Product` ORDER BY 1, 2
+    unordered: true

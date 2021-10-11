@@ -16,3 +16,4 @@ testcases:
       - [TECHNOLOGY, TELEPHONES AND COMMUNICATION, 3873400.29]
     expected_types: [varchar, varchar, float]
     sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk`,   SUM(`Gross Profit`) AS `sum_Gross_Profit_ok` FROM Staples WHERE ((`Call Center Region` NOT IN ('CENTRAL')) AND (`Prod Type1` NOT IN ('FURNITURE'))) GROUP BY `Prod Type1`,   `Prod Type2` HAVING ((AVG(`Discount`) >= 0.051399999999999488) AND (AVG(`Discount`) <= 0.059000000000000587)) ORDER BY 1, 2, 3
+    unordered: true

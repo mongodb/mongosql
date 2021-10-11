@@ -5,3 +5,4 @@ testcases:
       - ['1999-08-20', 19990820]
     expected_types: [varchar, int]
     sql: SELECT MAX(DATE(`date3`)) AS `TEMP_z_max_dateD___EAFIDBBGB__A_`, MAX(CONVERT(DATE(`date3`), SQL_DOUBLE)) AS `max_float_dateD__ok` FROM Calcs HAVING (COUNT(1) > 0) ORDER BY 1, 2
+    unordered: true

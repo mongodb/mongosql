@@ -7,6 +7,7 @@ testcases:
     expected_types: [varchar, varchar, float, float, varchar]
     id: '2dspherepoint'
     sql: "select category, name, `pos.coordinates_latitude`, `pos.coordinates_longitude`, `pos.type` from sphere2dpoint"
+    unordered: true
 
   - db: geo_index_test
     description: ensure 2dsphere index on array field generates inline fields rather than two tables with the coordinates in the child table
@@ -16,6 +17,7 @@ testcases:
     expected_types: [float, float]
     id: '2dspherearr'
     sql: "select `pos_latitude`, `pos_longitude` from sphere2darr"
+    unordered: true
 
   - db: geo_index_test
     description: ensure 2d geo index on array field generates inline fields rather than two tables with the coordinates in the child table
@@ -25,6 +27,7 @@ testcases:
     expected_types: [float, float]
     id: 'geo2darr'
     sql: "select `pos_latitude`, `pos_longitude` from geo2darr"
+    unordered: true
 
   - db: geo_index_test
     description: ensure that 2d geo index on GeoJSON objects with multi-demensional array coordinates use default child table-style mapping
@@ -41,3 +44,4 @@ testcases:
     expected_types: [float, float, float]
     id: 'geo2dmultidemnsion'
     sql: "select `pos.coordinates`, `pos.coordinates_idx`, `pos.coordinates_idx_1` from sphere2dlinestring_pos_coordinates"
+    unordered: true

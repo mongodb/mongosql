@@ -21,3 +21,4 @@ testcases:
       - ['1999-08-20', 19990820, key10]
     expected_types: [varchar, float, varchar]
     sql: SELECT MIN(DATE(`date3`)) AS `TEMP_z_min_dateD___CAIFDBAFGG__A_`, MIN(CONVERT(DATE(`date3`), SQL_DOUBLE)) AS `min_float_dateD__ok`, `key` AS `none_key_nk` FROM Calcs GROUP BY `key` ORDER BY 1, 2, 3
+    unordered: true

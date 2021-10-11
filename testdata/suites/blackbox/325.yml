@@ -21,3 +21,4 @@ testcases:
       - ['1999-08-20', key10, '1999-08-20 00:00:00']
     expected_types: [varchar, varchar, varchar]
     sql: SELECT DATE(`date3`) AS `none_dateD_nk`, `key` AS `none_key_nk`, CONVERT(LTRIM(CONVERT(DATE(`date3`), SQL_VARCHAR)), SQL_TIMESTAMP) AS `none_z_date_str_ok` FROM Calcs ORDER BY 1, 2, 3
+    unordered: true

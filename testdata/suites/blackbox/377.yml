@@ -10,3 +10,4 @@ testcases:
       - [two]
     expected_types: [varchar]
     sql: SELECT `str2` AS `none_strC_nk` FROM Calcs WHERE ((NOT ((`str2` >= 'eight') AND (`str2` <= 'six'))) OR (`str2` IS NULL)) GROUP BY `str2` ORDER BY 1
+    unordered: true

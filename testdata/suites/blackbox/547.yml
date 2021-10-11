@@ -12,3 +12,4 @@ testcases:
       - [7, 12, 4336]
     expected_types: [int, int, int]
     sql: SELECT FLOOR(`COGS` / 50) AS `COGS__bin_`, COUNT(`COGS`) AS `cnt_COGS_ok`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok` FROM Starbucks GROUP BY FLOOR(`COGS` / 50) ORDER BY 1, 2, 3
+    unordered: true

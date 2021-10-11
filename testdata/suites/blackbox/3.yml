@@ -1652,3 +1652,4 @@ testcases:
       - [49.003288, -122.753853, 103, 31268]
     expected_types: [float, float, int, int]
     sql: SELECT `Latitude` AS `none_Latitude_ok`,   `Longitude` AS `none_Longitude_ok`,   `PointOrder` AS `none_PointOrder_ok`,   `PolygonID` AS `none_PolygonID_ok` FROM Election WHERE (`State` = 'WA') ORDER BY 1, 2, 3, 4
+    unordered: true

@@ -21,3 +21,4 @@ testcases:
       - [key16, null, null, null, -2.6]
     expected_types: [varchar, varchar, varchar, int, float]
     sql: SELECT `key` AS `none_key_nk`,   `str2` AS `none_strC_nk`,   `str3` AS `none_strD_nk`,   (CASE WHEN (`str2` = (CASE WHEN (`num3` > 0) THEN `str2` WHEN NOT (`num3` > 0) THEN `str3` ELSE NULL END)) THEN 1 WHEN NOT (`str2` = (CASE WHEN (`num3` > 0) THEN `str2` WHEN NOT (`num3` > 0) THEN `str3` ELSE NULL END)) THEN 0 ELSE NULL END) AS `none_z_str_eq_str_nk`,   `num3` AS `sum_numD_ok` FROM Calcs ORDER BY 1, 2, 3, 4, 5
+    unordered: true

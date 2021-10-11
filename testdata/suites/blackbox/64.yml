@@ -5,3 +5,4 @@ testcases:
       - ['1998-01-01 00:00:00', 365]
     expected_types: [varchar, int]
     sql: SELECT `Date` AS `none_Date_ok`, 365 AS `none_One_Year_ok` FROM Starbucks WHERE ((MONTH(`Date`) = 1) AND (YEAR(`Date`) = 1998)) GROUP BY `Date` ORDER BY 1, 2
+    unordered: true

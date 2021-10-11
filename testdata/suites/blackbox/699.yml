@@ -21,3 +21,4 @@ testcases:
       - [11, key14]
     expected_types: [int, varchar]
     sql: SELECT MIN(`int0`) AS `min_intA_nk`,   `key` AS `none_key_nk` FROM Calcs GROUP BY `key` ORDER BY 1, 2
+    unordered: true

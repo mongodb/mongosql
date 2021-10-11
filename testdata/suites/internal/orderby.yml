@@ -11,6 +11,7 @@ testcases:
     expected_types: [int, int]
     id: '0'
     sql: select _id, a from orderby_test.orderbyTable order by a
+    unordered: true
 
   - db: orderby_test
     description: single term with asc
@@ -23,6 +24,7 @@ testcases:
     expected_types: [int, int]
     id: '1'
     sql: select _id, a from orderby_test.orderbyTable order by a asc
+    unordered: true
 
   - db: orderby_test
     description: single term with desc
@@ -35,6 +37,7 @@ testcases:
     expected_types: [int, int]
     id: '2'
     sql: select _id, a from orderby_test.orderbyTable order by a desc
+    unordered: true
 
   - db: orderby_test
     description: single ordinal term
@@ -47,6 +50,7 @@ testcases:
     expected_types: [int, int]
     id: '3'
     sql: select _id, a from orderby_test.orderbyTable order by 2
+    unordered: true
 
   - db: orderby_test
     description: single ordinal term with asc
@@ -59,6 +63,7 @@ testcases:
     expected_types: [int, int]
     id: '4'
     sql: select _id, a from orderby_test.orderbyTable order by 2 asc
+    unordered: true
 
   - db: orderby_test
     description: single ordinal term with desc
@@ -71,6 +76,7 @@ testcases:
     expected_types: [int, int]
     id: '5'
     sql: select _id, a from orderby_test.orderbyTable order by 2 desc
+    unordered: true
 
   - db: orderby_test
     description: single aliased term
@@ -83,6 +89,7 @@ testcases:
     expected_types: [int, int]
     id: '6'
     sql: select _id, a as b from orderby_test.orderbyTable order by b
+    unordered: true
 
   - db: orderby_test
     description: single aliased term with asc
@@ -95,6 +102,7 @@ testcases:
     expected_types: [int, int]
     id: '7'
     sql: select _id, a as b from orderby_test.orderbyTable order by b asc
+    unordered: true
 
   - db: orderby_test
     description: single aliased term with desc
@@ -107,6 +115,7 @@ testcases:
     expected_types: [int, int]
     id: '8'
     sql: select _id, a as b from orderby_test.orderbyTable order by b desc
+    unordered: true
 
   - db: orderby_test
     description: multiple terms
@@ -119,6 +128,7 @@ testcases:
     expected_types: [int, int]
     id: '9'
     sql: select _id, a from orderby_test.orderbyTable order by a, _id
+    unordered: true
 
   - db: orderby_test
     description: multiple terms with the second desc
@@ -131,6 +141,7 @@ testcases:
     expected_types: [int, int]
     id: '10'
     sql: select _id, a from orderby_test.orderbyTable order by a, _id desc
+    unordered: true
 
   - db: orderby_test
     description: multiple terms with the first desc
@@ -143,6 +154,7 @@ testcases:
     expected_types: [int, int]
     id: '11'
     sql: select _id, a from orderby_test.orderbyTable order by a desc, _id
+    unordered: true
 
   - db: orderby_test
     description: multiple terms with both desc
@@ -155,6 +167,7 @@ testcases:
     expected_types: [int, int]
     id: '12'
     sql: select _id, a from orderby_test.orderbyTable order by a desc, _id desc
+    unordered: true
 
   - db: orderby_test
     description: non-correlated subquery
@@ -167,6 +180,7 @@ testcases:
     expected_types: [int]
     id: '13'
     sql: select a from orderbyTable order by (select a from orderbyTable limit 1)
+    unordered: true
 
   - db: orderby_test
     description: correlated subquery
@@ -179,6 +193,7 @@ testcases:
     expected_types: [int]
     id: '14'
     sql: select a from orderbyTable f order by (select -a from orderbyTable where f._id = _id)
+    unordered: true
 
   - db: orderby_test
     description: order by expression
@@ -191,6 +206,7 @@ testcases:
     expected_types: [int]
     id: '15'
     sql: select a from orderbyTable f order by a * _id
+    unordered: true
 
   - db: orderby_test
     description: order by expression
@@ -203,6 +219,7 @@ testcases:
     expected_types: [int]
     id: '16'
     sql: select a from orderbyTable f order by a > _id
+    unordered: true
 
   - db: orderby_test
     description: non-correlated subquery with three dot notation
@@ -215,6 +232,7 @@ testcases:
     expected_types: [int]
     id: '17'
     sql: select orderby_test.orderbyTable.a from orderbyTable order by (select orderby_test.orderbyTable.a from orderbyTable limit 1)
+    unordered: true
 
   - db: orderby_test
     description: correlated subquery with three dot notation
@@ -227,6 +245,7 @@ testcases:
     expected_types: [int]
     id: '18'
     sql: select orderby_test.f.a from orderbyTable f order by (select -orderby_test.orderbyTable.a from orderbyTable where f._id = orderby_test.orderbyTable._id)
+    unordered: true
 
   - db: orderby_test
     description: order by expression with three dot notation
@@ -239,6 +258,7 @@ testcases:
     expected_types: [int]
     id: '19'
     sql: select orderby_test.f.a from orderbyTable f order by orderby_test.f.a * orderby_test.f._id
+    unordered: true
 
   - db: orderby_test
     description: order by expression with three dot notation
@@ -251,6 +271,7 @@ testcases:
     expected_types: [int]
     id: '20'
     sql: select orderby_test.f.a from orderbyTable f order by orderby_test.f.a > orderby_test.f._id
+    unordered: true
 
   - db: orderby_test
     description: multiple terms with the second desc with three dot notation
@@ -263,6 +284,7 @@ testcases:
     expected_types: [int, int]
     id: '21'
     sql: select orderby_test.orderbyTable._id, orderby_test.orderbyTable.a from orderby_test.orderbyTable order by orderby_test.orderbyTable.a, orderby_test.orderbyTable._id desc
+    unordered: true
 
   - db: orderby_test
     description: same column chosen twice
@@ -275,6 +297,7 @@ testcases:
     expected_types: [int, int]
     id: '22'
     sql: select a, a from orderby_test.orderbyTable order by a
+    unordered: true
 
   - db: orderby_test
     description: same column aliased as itself
@@ -287,6 +310,7 @@ testcases:
     expected_types: [int, int]
     id: '23'
     sql: select a as a, a from orderby_test.orderbyTable order by a
+    unordered: true
 
   - db: orderby_test
     description: order by chooses the column with the matching alias
@@ -299,6 +323,7 @@ testcases:
     expected_types: [int, int]
     id: '24'
     sql: select _id as a, a as _id from orderby_test.orderbyTable order by _id
+    unordered: true
 
   - db: orderby_test
     description: order by chooses the first unnamed column if multiple unnamed columns are provided
@@ -311,21 +336,25 @@ testcases:
     expected_types: [int, int, varchar, int]
     id: '25'
     sql: select _id as a, _id+a as a, "a" as a, 1 as a from orderby_test.orderbyTable order by a
+    unordered: true
 
   - db: orderby_test
     description: order by existing column aliased as an existing column along with that column
     expected_error: "Error 1052: Column 'a' in order clause is ambiguous"
     id: '26'
     sql: select _id as a, a from orderby_test.orderbyTable order by a
+    unordered: true
 
   - db: orderby_test
     description: order by existing column aliased as an existing column along with that column aliased as itself
     expected_error: "Error 1052: Column 'a' in order clause is ambiguous"
     id: '27'
     sql: select _id as a, a as a from orderby_test.orderbyTable order by a
+    unordered: true
 
   - db: orderby_test
     description: order by two existing columns aliased to an ambiguous name
     expected_error: "Error 1052: Column 'z' in order clause is ambiguous"
     id: '28'
     sql: select _id as z, a as z from orderby_test.orderbyTable order by z
+    unordered: true

@@ -172,3 +172,4 @@ testcases:
       - [West, Mint, 2, 719.7492472974901, 1999]
     expected_types: [varchar, varchar, int, float, int]
     sql: SELECT `Market` AS `none_Market_nk`, `Product` AS `none_Product_nk`, QUARTER(`Date`) AS `qr_Date_ok`, SUM(`Profit`) AS `sum_Profit_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE (QUARTER(`Date`) <= 2) GROUP BY `Market`, `Product`, QUARTER(`Date`), YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5
+    unordered: true

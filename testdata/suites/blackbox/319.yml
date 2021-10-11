@@ -21,3 +21,4 @@ testcases:
       - [1, '1999-08-20', key10, 1]
     expected_types: [int, varchar, varchar, int]
     sql: SELECT (CASE WHEN (`date3` IS NULL) THEN 0 WHEN NOT (`date3` IS NULL) THEN 1 ELSE NULL END) AS `ctd_dateD_ok`,   DATE(`date3`) AS `none_dateD_ok`,   `key` AS `none_key_nk`,   (CASE WHEN (`date3` IS NULL) THEN 0 WHEN NOT (`date3` IS NULL) THEN 1 ELSE NULL END) AS `usr_z_countd_dateD__ok` FROM Calcs ORDER BY 1, 2, 3, 4
+    unordered: true

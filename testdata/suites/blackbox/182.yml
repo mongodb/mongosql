@@ -111,3 +111,4 @@ testcases:
       - [70, MALE, 1434]
     expected_types: [int, varchar, int]
     sql: SELECT `App_Age` AS `none_App_Age_ok`, `App_Gender` AS `none_App_Gender_nk`, SUM(CONVERT(`Loan_Amt`, SQL_BIGINT)) AS `sum_Loan_Amt_ok` FROM Loan WHERE ((`App_CoSign` = 'NO COSIGN') AND (`App_College` = 'COLLEGE GRAD') AND (`App_Employ_Status` = 'EMPLOYED')) GROUP BY `App_Age`, `App_Gender` ORDER BY 1, 2, 3
+    unordered: true

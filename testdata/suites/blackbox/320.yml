@@ -21,3 +21,4 @@ testcases:
       - [1, key15, sixteen, 1]
     expected_types: [int, varchar, varchar, int]
     sql: SELECT (CASE WHEN (`str2` IS NULL) THEN 0 WHEN NOT (`str2` IS NULL) THEN 1 ELSE NULL END) AS `cnt_strC_ok`,   `key` AS `none_key_nk`,   `str2` AS `none_strC_nk`,   (CASE WHEN (`str2` IS NULL) THEN 0 WHEN NOT (`str2` IS NULL) THEN 1 ELSE NULL END) AS `usr_z_count_strC__ok` FROM Calcs ORDER BY 1, 2, 3, 4
+    unordered: true

@@ -4,3 +4,4 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     sql: SELECT SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok` FROM Starbucks WHERE ((`Market` = 'East') AND (`State` = 'Washington')) HAVING (COUNT(1) > 0) ORDER BY 1
+    unordered: true

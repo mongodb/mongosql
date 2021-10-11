@@ -21,3 +21,4 @@ testcases:
       - [key16, ERICSSON, ericsson]
     expected_types: [varchar, varchar, varchar]
     sql: SELECT `key` AS `none_key_nk`, `str1` AS `none_strB_nk`, LCASE(`str1`) AS `none_z_lower_str_nk` FROM Calcs ORDER BY 1, 2, 3
+    unordered: true

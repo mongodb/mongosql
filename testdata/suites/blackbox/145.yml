@@ -10,3 +10,4 @@ testcases:
       - [829214.28, 1998]
     expected_types: [float, int]
     sql: SELECT SUM(`Price`) AS `sum_Price_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY YEAR(`Order Date`) ORDER BY 1, 2
+    unordered: true

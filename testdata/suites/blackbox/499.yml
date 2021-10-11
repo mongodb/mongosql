@@ -12,3 +12,4 @@ testcases:
       - [West, 1999]
     expected_types: [varchar, int]
     sql: SELECT `Market` AS `none_Market_nk`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY `Market`, YEAR(`Date`) ORDER BY 1, 2
+    unordered: true

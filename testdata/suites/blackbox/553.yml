@@ -28,3 +28,4 @@ testcases:
       - [c, 9, 7]
     expected_types: [varchar, int, int]
     sql: SELECT `a` AS `none_a_nk`,   `x` AS `sum_x_ok`,   `y` AS `sum_y_ok` FROM xy ORDER BY 1, 2, 3
+    unordered: true

@@ -7,3 +7,4 @@ testcases:
       - [1, East, Green Tea, 5654.3630636391]
     expected_types: [int, varchar, varchar, float]
     sql: SELECT MIN(1) AS `min_Number_of_Records_ok`,   `Market` AS `none_Market_nk`,   `Product` AS `none_Product_nk`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks WHERE ((`Market` = 'East') AND (`Product Type` = 'Tea')) GROUP BY `Market`,   `Product` ORDER BY 1, 2, 3, 4
+    unordered: true

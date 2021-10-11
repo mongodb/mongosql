@@ -100,3 +100,4 @@ testcases:
       - ['1999-12-01 00:00:00', West, '1999-12-02 00:00:00']
     expected_types: [varchar, varchar, varchar]
     sql: SELECT `Date` AS `none_Date_ok`, `Market` AS `none_Market_nk`, TIMESTAMPADD(SQL_TSI_DAY,1,`Date`) AS `none_OtherDate_ok` FROM Starbucks GROUP BY `Date`, `Market`, TIMESTAMPADD(SQL_TSI_DAY,1,`Date`) ORDER BY 1, 2, 3
+    unordered: true

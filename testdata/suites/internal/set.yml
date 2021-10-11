@@ -8,6 +8,7 @@ testcases:
     expected_types: [int]
     id: '0'
     sql: set @t1 = 12
+    unordered: true
     verify: select @t1
 
   - db: set_test
@@ -18,6 +19,7 @@ testcases:
     expected_types: [varchar]
     id: '1'
     sql: set @binlog_format = '12'
+    unordered: true
     verify: select @binlog_format
 
   - db: set_test
@@ -28,6 +30,7 @@ testcases:
     expected_types: [int]
     id: '2'
     sql: set @t1 = (select sum(a) from set_1)
+    unordered: true
     verify: select @t1
 
   - db: set_test
@@ -38,6 +41,7 @@ testcases:
     expected_types: [int, int]
     id: '3'
     sql: set @t1 = (select sum(a) from set_1), @t2 = 12
+    unordered: true
     verify: select @t1, @t2
 
   - db: set_test
@@ -50,6 +54,7 @@ testcases:
     sql: set @@global.max_allowed_packet=1024
     sql_cleanup: set @@global.max_allowed_packet=DEFAULT
     sync: true
+    unordered: true
     verify: select @@global.max_allowed_packet
 
   - db: set_test
@@ -60,6 +65,7 @@ testcases:
     expected_types: [int]
     id: '5'
     sql: set @@autocommit=1
+    unordered: true
     verify: select @@autocommit
 
   - db: set_test
@@ -70,6 +76,7 @@ testcases:
     expected_types: [int]
     id: 5a
     sql: set @@autocommit=TRUE
+    unordered: true
     verify: select @@autocommit
 
   - db: set_test
@@ -80,6 +87,7 @@ testcases:
     expected_types: [int]
     id: 5b
     sql: set @@autocommit=ON
+    unordered: true
     verify: select @@autocommit
 
   - db: set_test
@@ -90,6 +98,7 @@ testcases:
     expected_types: [int]
     id: '6'
     sql: set @@AutoCommit=1
+    unordered: true
     verify: select @@AUTOCOMMIT
 
   - db: set_test
@@ -101,6 +110,7 @@ testcases:
     id: '7'
     sql: set autocommit=0
     sql_cleanup: set @@autocommit=1
+    unordered: true
     verify: select @@autocommit
 
   - db: set_test
@@ -112,6 +122,7 @@ testcases:
     id: 7a
     sql: set autocommit=FALSE
     sql_cleanup: set @@autocommit=1
+    unordered: true
     verify: select @@autocommit
 
   - db: set_test
@@ -123,6 +134,7 @@ testcases:
     id: 7b
     sql: set autocommit=OFF
     sql_cleanup: set @@autocommit=1
+    unordered: true
     verify: select @@autocommit
 
   - db: set_test
@@ -133,6 +145,7 @@ testcases:
     id: '8'
     sql: set @@mongodb_version_compatibility = '3.2'
     sql_cleanup: set @@mongodb_version_compatibility = DEFAULT
+    unordered: true
     verify: select @@mongodb_version_compatibility
 
   - db: set_test
@@ -144,6 +157,7 @@ testcases:
     id: '9'
     sql: SET CHARACTER SET latin1
     sql_cleanup: SET CHARACTER SET utf8
+    unordered: true
     verify: select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server
 
   - db: set_test
@@ -155,6 +169,7 @@ testcases:
     id: 9a
     sql: SET CHARACTER SET 'latin1'
     sql_cleanup: SET CHARACTER SET utf8
+    unordered: true
     verify: select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server
 
   - db: set_test
@@ -165,6 +180,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: '10'
     sql: SET NAMES utf8
+    unordered: true
     verify: select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server
 
   - db: set_test
@@ -175,6 +191,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar, varchar, varchar]
     id: 10a
     sql: SET NAMES 'utf8'
+    unordered: true
     verify: select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server
 
   - db: set_test
@@ -186,6 +203,7 @@ testcases:
     id: '11'
     sql: SET NAMES latin1
     sql_cleanup: SET NAMES utf8
+    unordered: true
     verify: select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server
 
   - db: set_test
@@ -197,6 +215,7 @@ testcases:
     id: '12'
     sql: SET NAMES latin1 COLLATE latin1_danish_ci
     sql_cleanup: SET NAMES utf8
+    unordered: true
     verify: select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server
 
   - db: set_test
@@ -208,6 +227,7 @@ testcases:
     id: 12a
     sql: SET NAMES latin1 COLLATE 'latin1_danish_ci'
     sql_cleanup: SET NAMES utf8
+    unordered: true
     verify: select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server
 
   - db: set_test
@@ -219,6 +239,7 @@ testcases:
     id: '13'
     sql: SET @@character_set_connection = 'latin1'
     sql_cleanup: SET @@character_set_connection = DEFAULT
+    unordered: true
     verify: select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server
 
   - db: set_test
@@ -230,6 +251,7 @@ testcases:
     id: '14'
     sql: SET @@character_set_results = null
     sql_cleanup: SET @@character_set_results = DEFAULT
+    unordered: true
     verify: select @@character_set_client, @@character_set_connection, @@character_set_database, @@character_set_results, @@collation_connection, @@collation_database, @@collation_server
 
   - db: set_test
@@ -241,6 +263,7 @@ testcases:
     id: '15'
     sql: set session transaction isolation level read committed
     sql_cleanup: set session transaction isolation level repeatable read
+    unordered: true
     verify: select @@autocommit
 
   - db: set_test
@@ -252,6 +275,7 @@ testcases:
     id: '16'
     sql: set session transaction read write
     sql_cleanup: set session transaction read only
+    unordered: true
     verify: select @@autocommit
 
   - db: set_test
@@ -264,6 +288,7 @@ testcases:
     sql: set global transaction read write
     sql_cleanup: set global transaction read only
     sync: true
+    unordered: true
     verify: select @@autocommit
 
   - db: set_test
@@ -276,6 +301,7 @@ testcases:
     sql: set transaction isolation level serializable
     sql_cleanup: set session transaction isolation level repeatable read
     sync: true
+    unordered: true
     verify: select @@autocommit
 
   - db: set_test
@@ -287,6 +313,7 @@ testcases:
     id: '19'
     sql: set transaction read write, read only, isolation level repeatable read
     sql_cleanup: set transaction read only, isolation level repeatable read
+    unordered: true
     verify: select @@autocommit
 
   - db: set_test
@@ -298,6 +325,7 @@ testcases:
     id: '20'
     sql: set @@sql_select_limit = 10
     sql_cleanup: set @@sql_select_limit = DEFAULT
+    unordered: true
     verify: select @@sql_select_limit
 
   - db: set_test
@@ -306,6 +334,7 @@ testcases:
     id: set_sql_select_limit_invalid_negative_int
     sql: set @@sql_select_limit = -5
     sql_cleanup: set @@sql_select_limit = DEFAULT
+    unordered: true
 
   - db: set_test
     description: set session select limit to default
@@ -315,6 +344,7 @@ testcases:
     expected_types: [varchar]
     id: '22'
     sql: set @@sql_select_limit = default
+    unordered: true
     verify: select @@sql_select_limit
 
   - db: set_test
@@ -326,6 +356,7 @@ testcases:
     id: 23a
     sql: SET @@full_pushdown_exec_mode = DEFAULT
     sql_cleanup: SET @@full_pushdown_exec_mode = DEFAULT
+    unordered: true
     verify: SELECT @@full_pushdown_exec_mode
 
   - db: set_test
@@ -337,6 +368,7 @@ testcases:
     id: 23b
     sql: SET @@full_pushdown_exec_mode = 0
     sql_cleanup: SET @@full_pushdown_exec_mode = DEFAULT
+    unordered: true
     verify: SELECT @@full_pushdown_exec_mode
 
   - db: set_test
@@ -348,6 +380,7 @@ testcases:
     id: 23c
     sql: SET @@full_pushdown_exec_mode = FALSE
     sql_cleanup: SET @@full_pushdown_exec_mode = DEFAULT
+    unordered: true
     verify: SELECT @@full_pushdown_exec_mode
 
   - db: set_test
@@ -364,6 +397,7 @@ testcases:
     pushdown_only: true
     sql: SET @@full_pushdown_exec_mode = 1
     sql_cleanup: SET @@full_pushdown_exec_mode = DEFAULT
+    unordered: true
     verify: SELECT @@full_pushdown_exec_mode
 
   - db: set_test
@@ -380,6 +414,7 @@ testcases:
     pushdown_only: true
     sql: SET @@full_pushdown_exec_mode = TRUE
     sql_cleanup: SET @@full_pushdown_exec_mode = DEFAULT
+    unordered: true
     verify: SELECT @@full_pushdown_exec_mode
 
   - db: set_test
@@ -388,6 +423,7 @@ testcases:
     id: 23f
     sql: SET @@full_pushdown_exec_mode = TRUE
     sql_cleanup: SET @@full_pushdown_exec_mode = DEFAULT
+    unordered: true
     verify: SELECT * FROM TEST.TEST1 JOIN INFORMATION_SCHEMA.TABLES
 
   - db: set_test
@@ -400,6 +436,7 @@ testcases:
     pushdown_only: true
     sql: SET @@full_pushdown_exec_mode = TRUE
     sql_cleanup: SET @@full_pushdown_exec_mode = DEFAULT
+    unordered: true
     verify: SELECT a FROM TEST.TEST1
 
   - db: set_test
@@ -411,6 +448,7 @@ testcases:
     id: 23h
     sql: SET @@full_pushdown_exec_mode = 0
     sql_cleanup: SET @@full_pushdown_exec_mode = DEFAULT
+    unordered: true
     verify: SELECT a FROM TEST.TEST1
 
   - db: set_test
@@ -422,6 +460,7 @@ testcases:
     id: 23i
     sql: SET @@full_pushdown_exec_mode = 0
     sql_cleanup: SET @@full_pushdown_exec_mode = DEFAULT
+    unordered: true
     verify: SELECT TEST.TEST2._id FROM TEST.TEST1 JOIN TEST.TEST2
 
   - db: set_test
@@ -434,6 +473,7 @@ testcases:
     pushdown_only: true
     sql: SET @@full_pushdown_exec_mode = 1
     sql_cleanup: SET @@full_pushdown_exec_mode = DEFAULT
+    unordered: true
     verify: SELECT 3 FROM TEST.TEST1
 
   - db: set_test
@@ -445,6 +485,7 @@ testcases:
     id: 24a
     sql: set session sql_select_limit = 10
     sql_cleanup: set @@sql_select_limit = DEFAULT
+    unordered: true
     verify: select @@sql_select_limit
 
   - db: set_test
@@ -456,6 +497,7 @@ testcases:
     id: 24b
     sql: set sql_select_limit = 10
     sql_cleanup: set @@sql_select_limit = DEFAULT
+    unordered: true
     verify: select @@sql_select_limit
 
   - db: set_test
@@ -468,6 +510,7 @@ testcases:
     sql: set global sql_select_limit = 130
     sql_cleanup: set @@global.sql_select_limit = DEFAULT
     sync: true
+    unordered: true
     verify: select @@global.sql_select_limit
 
   - db: set_test
@@ -475,30 +518,35 @@ testcases:
     expected_error: 'Error 1193: Unknown system variable ''sql_select_limitads'''
     id: '26'
     sql: set global sql_select_limitads = 1023
+    unordered: true
 
   - db: set_test
     description: 'error syntax: set unknown session variable error'
     expected_error: 'Error 1193: Unknown system variable ''sql_select_limitads'''
     id: 27a
     sql: set session sql_select_limitads = 1023
+    unordered: true
 
   - db: set_test
     description: 'error syntax: set unknown session variable error'
     expected_error: 'Error 1193: Unknown system variable ''sql_select_limitads'''
     id: 27b
     sql: set sql_select_limitads = 1023
+    unordered: true
 
   - db: set_test
     description: 'error syntax: set unsettable global variable error'
     expected_error: 'Error 1621: GLOBAL variable ''version_comment'' is read-only.'
     id: 27c
     sql: set global version_comment = 'ha'
+    unordered: true
 
   - db: set_test
     description: 'error syntax: set unsettable session variable error'
     expected_error: 'Error 1621: SESSION variable ''version_comment'' is read-only.'
     id: 27c
     sql: set session version_comment = 'ha'
+    unordered: true
 
   - db: set_test
     description: set global log level
@@ -509,6 +557,7 @@ testcases:
     sql: SET @@global.log_level = 2
     sql_cleanup: SET @@global.log_level = 2
     sync: true
+    unordered: true
     verify: SELECT @@global.log_level
 
   - db: set_test
@@ -520,6 +569,7 @@ testcases:
     sql: SET @@global.log_level = -1
     sql_cleanup: SET @@global.log_level = 2
     sync: true
+    unordered: true
     verify: SELECT @@global.log_level
 
   - db: set_test
@@ -528,6 +578,7 @@ testcases:
     id: 28c
     sql: SET @@log_level = 1
     sql_cleanup: SET @@global.log_level = 2
+    unordered: true
 
   - db: set_test
     description: global.log_levels that are too high should be set to 2
@@ -538,6 +589,7 @@ testcases:
     sql: SET @@global.log_level = 3
     sql_cleanup: SET @@global.log_level = 2
     sync: true
+    unordered: true
     verify: SELECT @@global.log_level
 
   - db: set_test
@@ -549,6 +601,7 @@ testcases:
     sql: SET @@global.log_level = -2
     sql_cleanup: SET @@global.log_level = DEFAULT
     sync: true
+    unordered: true
     verify: SELECT @@global.log_level
 
   - db: set_test
@@ -560,6 +613,7 @@ testcases:
     sql: SET @@global.log_level = DEFAULT
     sql_cleanup: SET @@global.log_level = 2
     sync: true
+    unordered: true
     verify: SELECT @@global.log_level
 
   - db: set_test
@@ -569,6 +623,7 @@ testcases:
     id: metrics_backend_select_default
     sql: select @@global.metrics_backend
     sync: true
+    unordered: true
 
   - db: set_test
     expected_results:
@@ -577,6 +632,7 @@ testcases:
     id: metrics_backend_set_default
     sql: set @@global.metrics_backend = DEFAULT
     sync: true
+    unordered: true
     verify: select @@global.metrics_backend
 
   - db: set_test
@@ -586,6 +642,7 @@ testcases:
     id: metrics_backend_set_off
     sql: select @@global.metrics_backend
     sync: true
+    unordered: true
     variables: {global.metrics_backend: 'off'}
 
   - db: set_test
@@ -595,6 +652,7 @@ testcases:
     id: metrics_backend_set_log
     sql: select @@global.metrics_backend
     sync: true
+    unordered: true
     variables: {global.metrics_backend: log}
 
   - db: set_test
@@ -604,17 +662,20 @@ testcases:
     id: metrics_backend_set_stitch
     sql: select @@global.metrics_backend
     sync: true
+    unordered: true
     variables: {global.metrics_backend: stitch}
 
   - db: set_test
     expected_error: 'Error 1229: Variable ''metrics_backend'' is a GLOBAL variable and should be set with SET GLOBAL'
     id: metrics_backend_set_session
     sql: set @@metrics_backend = 'log'
+    unordered: true
 
   - db: set_test
     expected_error: 'Error 1231: Variable ''metrics_backend'' can''t be set to the value of ''invalid'''
     id: metrics_backend_set_invalid
     sql: set @@global.metrics_backend = 'invalid'
+    unordered: true
 
   - db: set_test
     description: SET @@global.max_connections = 200 with no error
@@ -626,6 +687,7 @@ testcases:
     sql: SET @@global.max_connections = 200
     sql_cleanup: SET @@global.max_connections = DEFAULT
     sync: true
+    unordered: true
     verify: SELECT @@global.max_connections
 
   - db: set_test
@@ -637,6 +699,7 @@ testcases:
     id: 29b
     sql: SET @@global.max_connections = DEFAULT
     sync: true
+    unordered: true
     verify: SELECT @@global.max_connections
 
   - db: set_test
@@ -646,6 +709,7 @@ testcases:
     sql: SET @@global.max_connections = -10
     sql_cleanup: SET @@global.max_connections = DEFAULT
     sync: true
+    unordered: true
 
   - db: set_test
     description: SET @@max_connections = 12 with error
@@ -654,6 +718,7 @@ testcases:
     sql: SET @@max_connections = 12
     sql_cleanup: SET @@global.max_connections = DEFAULT
     sync: true
+    unordered: true
 
   - db: set_test
     description: SET @@optimize_self_joins = false with no error
@@ -664,6 +729,7 @@ testcases:
     id: 30a
     sql: SET @@optimize_self_joins = false
     sql_cleanup: SET @@optimize_self_joins = DEFAULT
+    unordered: true
     verify: SELECT @@optimize_self_joins
 
   - db: set_test
@@ -674,6 +740,7 @@ testcases:
     expected_types: [int]
     id: 30b
     sql: SET @@optimize_self_joins = DEFAULT
+    unordered: true
     verify: SELECT @@optimize_self_joins
 
   - db: set_test
@@ -682,6 +749,7 @@ testcases:
     id: optimize_self_joins_set_invalid_negative_int
     sql: SET @@optimize_self_joins = -3
     sql_cleanup: SET @@optimize_self_joins = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@optimize_self_joins = 5 which throws an error
@@ -689,6 +757,7 @@ testcases:
     id: optimize_self_joins_set_invalid_int
     sql: SET @@optimize_self_joins = 5
     sql_cleanup: SET @@optimize_self_joins = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@global.optimize_self_joins = false with error
@@ -696,6 +765,7 @@ testcases:
     id: 30e
     sql: SET @@global.optimize_self_joins = false
     sql_cleanup: SET @@optimize_self_joins = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@optimize_self_joins = 'hello' with error
@@ -703,6 +773,7 @@ testcases:
     id: optimize_self_joins_set_invalid_string
     sql: SET @@optimize_self_joins = 'hello'
     sql_cleanup: SET @@optimize_self_joins = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@optimize_cross_joins = false with no error
@@ -713,6 +784,7 @@ testcases:
     id: 31a
     sql: SET @@optimize_cross_joins = false
     sql_cleanup: SET @@optimize_cross_joins = DEFAULT
+    unordered: true
     verify: SELECT @@optimize_cross_joins
 
   - db: set_test
@@ -723,6 +795,7 @@ testcases:
     expected_types: [int]
     id: 31b
     sql: SET @@optimize_cross_joins = DEFAULT
+    unordered: true
     verify: SELECT @@optimize_cross_joins
 
   - db: set_test
@@ -731,6 +804,7 @@ testcases:
     id: set_optimize_cross_joins_invalid_negative_int
     sql: SET @@optimize_cross_joins = -10
     sql_cleanup: SET @@optimize_cross_joins = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@optimize_cross_joins = 4 with no error
@@ -738,6 +812,7 @@ testcases:
     id: set_optimize_cross_joins_invalid_int
     sql: SET @@optimize_cross_joins = 4
     sql_cleanup: SET @@optimize_cross_joins = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@global.optimize_cross_joins = false with error
@@ -745,6 +820,7 @@ testcases:
     id: 31e
     sql: SET @@global.optimize_cross_joins = false
     sql_cleanup: SET @@optimize_cross_joins= DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@optimize_cross_joins = 'hello' with error
@@ -752,6 +828,7 @@ testcases:
     id: optimize_cross_joins_set_invalid_string
     sql: SET @@optimize_cross_joins = 'hello'
     sql_cleanup: SET @@optimize_cross_joins = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@optimize_evaluations = false with no error
@@ -762,6 +839,7 @@ testcases:
     id: 32a
     sql: SET @@optimize_evaluations = false
     sql_cleanup: SET @@optimize_evaluations = DEFAULT
+    unordered: true
     verify: SELECT @@optimize_evaluations
 
   - db: set_test
@@ -772,6 +850,7 @@ testcases:
     expected_types: [int]
     id: 32b
     sql: SET @@optimize_evaluations = DEFAULT
+    unordered: true
     verify: SELECT @@optimize_evaluations
 
   - db: set_test
@@ -780,6 +859,7 @@ testcases:
     id: set_optimize_evaluations_invalid_negative_int
     sql: SET @@optimize_evaluations = -33
     sql_cleanup: SET @@optimize_evaluations = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@optimize_evaluations = 5 with error
@@ -787,6 +867,7 @@ testcases:
     id: set_optimize_evaluations_invalid_int
     sql: SET @@optimize_evaluations = 5
     sql_cleanup: SET @@optimize_evaluations = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@global.optimize_evaluations = false with error
@@ -794,6 +875,7 @@ testcases:
     id: 32e
     sql: SET @@global.optimize_evaluations = false
     sql_cleanup: SET @@optimize_evaluations = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@optimize_evaluations = 'hello' with error
@@ -801,6 +883,7 @@ testcases:
     id: optimize_evaluations_set_invalid_string
     sql: SET @@optimize_evaluations = 'hello'
     sql_cleanup: SET @@optimize_evaluations = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@optimize_filtering = false with no error
@@ -811,6 +894,7 @@ testcases:
     id: 33a
     sql: SET @@optimize_filtering = false
     sql_cleanup: SET @@optimize_filtering = DEFAULT
+    unordered: true
     verify: SELECT @@optimize_filtering
 
   - db: set_test
@@ -821,6 +905,7 @@ testcases:
     expected_types: [int]
     id: 33b
     sql: SET @@optimize_filtering = DEFAULT
+    unordered: true
     verify: SELECT @@optimize_filtering
 
   - db: set_test
@@ -829,6 +914,7 @@ testcases:
     id: optimize_filtering_set_invalid_negative_int
     sql: SET @@optimize_filtering = -3
     sql_cleanup: SET @@optimize_filtering = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@optimize_filtering = 5 with error
@@ -836,6 +922,7 @@ testcases:
     id: optimize_filtering_set_invalid_int
     sql: SET @@optimize_filtering = 5
     sql_cleanup: SET @@optimize_filtering = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@global.optimize_filtering = false with error
@@ -843,6 +930,7 @@ testcases:
     id: 33e
     sql: SET @@global.optimize_filtering = false
     sql_cleanup: SET @@optimize_filtering = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@optimize_filtering = 'hello' with error
@@ -850,6 +938,7 @@ testcases:
     id: optimize_filtering_set_invalid_string
     sql: SET @@optimize_filtering = 'hello'
     sql_cleanup: SET @@optimize_filtering = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@optimize_inner_joins = false with no error
@@ -860,6 +949,7 @@ testcases:
     id: 34a
     sql: SET @@optimize_inner_joins = false
     sql_cleanup: SET @@optimize_inner_joins = DEFAULT
+    unordered: true
     verify: SELECT @@optimize_inner_joins
 
   - db: set_test
@@ -870,6 +960,7 @@ testcases:
     expected_types: [int]
     id: 34b
     sql: SET @@optimize_inner_joins = DEFAULT
+    unordered: true
     verify: SELECT @@optimize_inner_joins
 
   - db: set_test
@@ -878,6 +969,7 @@ testcases:
     id: set_optimize_cross_joins_invalid_negative_int
     sql: SET @@optimize_inner_joins = -3
     sql_cleanup: SET @@optimize_inner_joins = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@optimize_inner_joins = 5 with error
@@ -885,6 +977,7 @@ testcases:
     id: set_optimize_inner_joins_invalid_int
     sql: SET @@optimize_inner_joins = 5
     sql_cleanup: SET @@optimize_inner_joins = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@global.optimize_inner_joins = false with error
@@ -892,6 +985,7 @@ testcases:
     id: 34e
     sql: SET @@global.optimize_inner_joins = false
     sql_cleanup: SET @@optimize_inner_joins = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET optimize_inner_joins = 'hello' with error
@@ -899,6 +993,7 @@ testcases:
     id: optimize_inner_joins_set_invalid_string
     sql: SET optimize_inner_joins = 'hello'
     sql_cleanup: SET optimize_inner_joins = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@pushdown = false with no error
@@ -909,6 +1004,7 @@ testcases:
     id: 35a
     sql: SET @@pushdown = false
     sql_cleanup: SET @@pushdown = DEFAULT
+    unordered: true
     verify: SELECT @@pushdown
 
   - db: set_test
@@ -919,6 +1015,7 @@ testcases:
     expected_types: [int]
     id: 35b
     sql: SET @@pushdown = DEFAULT
+    unordered: true
     verify: SELECT @@pushdown
 
   - db: set_test
@@ -927,6 +1024,7 @@ testcases:
     id: set_pushdown_invalid_negative_int
     sql: SET @@pushdown = -3
     sql_cleanup: SET @@pushdown = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@pushdown = 5 with no error
@@ -934,6 +1032,7 @@ testcases:
     id: set_pushdown_invalid_int
     sql: SET @@pushdown = 5
     sql_cleanup: SET @@pushdown = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@global.pushdown = false with error
@@ -941,6 +1040,7 @@ testcases:
     id: 35e
     sql: SET @@global.pushdown = false
     sql_cleanup: SET @@pushdown = DEFAULT
+    unordered: true
 
   - db: set_test
     description: SET @@pushdown = 'hello' with error
@@ -948,6 +1048,7 @@ testcases:
     id: pushdown_set_invalid_string
     sql: SET @@pushdown = 'hello'
     sql_cleanup: SET @@pushdown = DEFAULT
+    unordered: true
 
   - db: set_test
     description: check global type_conversion_mode value
@@ -958,6 +1059,7 @@ testcases:
     id: type_conversion_mode_global
     sql: set @@global.type_conversion_mode='mysql'
     sql_cleanup: set @@global.type_conversion_mode=DEFAULT
+    unordered: true
     verify: select @@global.type_conversion_mode
 
   - db: set_test
@@ -965,6 +1067,7 @@ testcases:
     expected_error: 'Error 1231: Variable ''type_conversion_mode'' can''t be set to the value of ''invalid'''
     id: type_conversion_mode_invalid
     sql: SET @@type_conversion_mode = 'invalid'
+    unordered: true
 
   - db: set_test
     description: check type_conversion_mode default
@@ -974,6 +1077,7 @@ testcases:
     expected_types: [varchar]
     id: type_conversion_mode_default
     sql: SET @@type_conversion_mode = DEFAULT
+    unordered: true
     verify: SELECT @@type_conversion_mode
 
   - db: set_test
@@ -984,6 +1088,7 @@ testcases:
     expected_types: [varchar]
     id: type_conversion_mode_set_mongosql
     sql: SELECT @@type_conversion_mode
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: set_test
@@ -994,6 +1099,7 @@ testcases:
     expected_types: [varchar]
     id: type_conversion_mode_set_mysql
     sql: SELECT @@type_conversion_mode
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: set_test
@@ -1006,6 +1112,7 @@ testcases:
     sql: SET @@global.schema_mapping_mode = 'lattice'
     sql_cleanup: set @@global.schema_mapping_mode = DEFAULT
     sync: true
+    unordered: true
     verify: SELECT @@global.schema_mapping_mode
 
   - db: set_test
@@ -1018,6 +1125,7 @@ testcases:
     sql: SET @@global.schema_mapping_mode = 'majority'
     sql_cleanup: set @@global.schema_mapping_mode = DEFAULT
     sync: true
+    unordered: true
     verify: SELECT @@global.schema_mapping_mode
 
   - db: set_test
@@ -1029,6 +1137,7 @@ testcases:
     id: global_polymorphic_type_conversion_fast_mode
     sql: SET @@global.polymorphic_type_conversion_mode = 'fast'
     sync: true
+    unordered: true
     verify: SELECT @@global.polymorphic_type_conversion_mode
 
   - db: set_test
@@ -1040,6 +1149,7 @@ testcases:
     id: global_polymorphic_type_conversion_safe_mode
     sql: SET @@global.polymorphic_type_conversion_mode = 'safe'
     sync: true
+    unordered: true
     verify: SELECT @@global.polymorphic_type_conversion_mode
 
   - db: set_test
@@ -1051,6 +1161,7 @@ testcases:
     id: global_polymorphic_type_conversion_off_mode
     sql: SET @@global.polymorphic_type_conversion_mode = 'off'
     sync: true
+    unordered: true
     verify: SELECT @@global.polymorphic_type_conversion_mode
 
   - db: set_test
@@ -1062,6 +1173,7 @@ testcases:
     id: global_polymorphic_type_conversion_default_mode
     sql: SET @@global.polymorphic_type_conversion_mode = DEFAULT
     sync: true
+    unordered: true
     verify: SELECT @@global.polymorphic_type_conversion_mode
 
   - db: set_test
@@ -1072,6 +1184,7 @@ testcases:
     expected_types: [varchar]
     id: polymorphic_type_conversion_fast_mode
     sql: SELECT @@polymorphic_type_conversion_mode
+    unordered: true
     variables: {polymorphic_type_conversion_mode: fast}
 
   - db: set_test
@@ -1082,6 +1195,7 @@ testcases:
     expected_types: [varchar]
     id: polymorphic_type_conversion_safe_mode
     sql: SELECT @@polymorphic_type_conversion_mode
+    unordered: true
     variables: {polymorphic_type_conversion_mode: safe}
 
   - db: set_test
@@ -1092,6 +1206,7 @@ testcases:
     expected_types: [varchar]
     id: polymorphic_type_conversion_off_mode
     sql: SELECT @@polymorphic_type_conversion_mode
+    unordered: true
     variables: {polymorphic_type_conversion_mode: 'off'}
 
   - db: set_test
@@ -1099,6 +1214,7 @@ testcases:
     expected_error: "Error 1231: Variable 'schema_mapping_mode' can't be set to the value of 'foo'"
     id: schema_mapping_mode_fail
     sql: SET @@global.schema_mapping_mode = 'foo'
+    unordered: true
 
   - db: set_test
     description: SET @@mongodb_max_varchar_length = 255 with no error
@@ -1109,6 +1225,7 @@ testcases:
     id: mongodb_max_varchar_length_1
     sql: SET @@mongodb_max_varchar_length = 255
     sql_cleanup: SET @@mongodb_max_varchar_length = DEFAULT
+    unordered: true
     verify: SELECT @@mongodb_max_varchar_length
 
   - db: set_test
@@ -1121,6 +1238,7 @@ testcases:
     sql: SET @@global.mongodb_max_varchar_length = 255
     sql_cleanup: SET @@global.mongodb_max_varchar_length = DEFAULT
     sync: true
+    unordered: true
     verify: SELECT @@global.mongodb_max_varchar_length
 
   - db: set_test
@@ -1128,24 +1246,28 @@ testcases:
     expected_error: 'Error 1229: Variable ''optimize_view_sampling'' is a GLOBAL variable and should be set with SET GLOBAL'
     id: optimize_view_sampling_false
     sql: SET @@optimize_view_sampling = false
+    unordered: true
 
   - db: set_test
     description: set session value with default should error
     expected_error: 'Error 1229: Variable ''optimize_view_sampling'' is a GLOBAL variable and should be set with SET GLOBAL'
     id: optimize_view_sampling_default
     sql: SET @@optimize_view_sampling = DEFAULT
+    unordered: true
 
   - db: set_test
     description: set session value with negative should error
     expected_error: 'Error 1229: Variable ''optimize_view_sampling'' is a GLOBAL variable and should be set with SET GLOBAL'
     id: optimize_view_sampling_negative
     sql: SET @@optimize_view_sampling = -3
+    unordered: true
 
   - db: set_test
     description: set session value with positive should error
     expected_error: 'Error 1229: Variable ''optimize_view_sampling'' is a GLOBAL variable and should be set with SET GLOBAL'
     id: optimize_view_sampling_positive
     sql: SET @@optimize_view_sampling = 5
+    unordered: true
 
   - db: set_test
     description: SET @@global.optimize_view_sampling = false with no error
@@ -1157,6 +1279,7 @@ testcases:
     sql: SET @@global.optimize_view_sampling = false
     sql_cleanup: SET @@global.optimize_view_sampling = DEFAULT
     sync: true
+    unordered: true
     verify: SELECT @@global.optimize_view_sampling
 
   - db: set_test
@@ -1169,6 +1292,7 @@ testcases:
     sql: SET @@global.optimize_view_sampling = true
     sql_cleanup: SET @@global.optimize_view_sampling = DEFAULT
     sync: true
+    unordered: true
     verify: SELECT @@global.optimize_view_sampling
 
   - db: set_test
@@ -1177,6 +1301,7 @@ testcases:
     id: optimize_view_sampling_invalid
     sql: SET @@global.optimize_view_sampling = 'hello'
     sql_cleanup: SET @@global.optimize_view_sampling = DEFAULT
+    unordered: true
 
   - db: set_test
     description: ''
@@ -1186,6 +1311,7 @@ testcases:
     expected_types: [int]
     id: group_concat_max_len_default
     sql: SELECT @@group_concat_max_len
+    unordered: true
 
   - db: set_test
     description: ''
@@ -1196,6 +1322,7 @@ testcases:
     id: group_concat_max_len_set_value
     sql: SET group_concat_max_len = 100
     sql_cleanup: SET group_concat_max_len = DEFAULT
+    unordered: true
     verify: SELECT @@group_concat_max_len
 
   - db: set_test
@@ -1207,6 +1334,7 @@ testcases:
     id: group_concat_max_len_min_value
     sql: SET group_concat_max_len = -27
     sql_cleanup: SET group_concat_max_len = DEFAULT
+    unordered: true
     verify: SELECT @@group_concat_max_len
 
   - db: set_test
@@ -1216,6 +1344,7 @@ testcases:
     id: max_nested_table_depth_select_default
     sql: select @@global.max_nested_table_depth
     sync: true
+    unordered: true
 
   - db: set_test
     expected_results:
@@ -1224,6 +1353,7 @@ testcases:
     id: max_nested_table_depth_set_default
     sql: set @@global.max_nested_table_depth = DEFAULT
     sync: true
+    unordered: true
     verify: select @@global.max_nested_table_depth
 
   - db: set_test
@@ -1233,6 +1363,7 @@ testcases:
     id: max_num_tables_per_collection
     sql: select @@global.max_num_tables_per_collection
     sync: true
+    unordered: true
 
   - db: set_test
     expected_results:
@@ -1241,6 +1372,7 @@ testcases:
     id: max_num_tables_per_collection_set_default
     sql: set @@global.max_num_tables_per_collection = DEFAULT
     sync: true
+    unordered: true
     verify: select @@global.max_num_tables_per_collection
 
   - db: set_test
@@ -1250,6 +1382,7 @@ testcases:
     id: max_num_global_tables
     sql: select @@global.max_num_global_tables
     sync: true
+    unordered: true
 
   - db: set_test
     expected_results:
@@ -1258,6 +1391,7 @@ testcases:
     id: max_num_global_tables_set_default
     sql: set @@global.max_num_global_tables = DEFAULT
     sync: true
+    unordered: true
     verify: select @@global.max_num_global_tables
 
   - db: set_test
@@ -1267,17 +1401,20 @@ testcases:
     id: max_nested_table_depth_set_to_value
     sql: select @@global.max_nested_table_depth
     sync: true
+    unordered: true
     variables: {global.max_nested_table_depth: 33}
 
   - db: set_test
     expected_error: "Error 1232: Incorrect argument type to variable 'max_nested_table_depth'"
     id: max_nested_table_depth_set_invalid_string
     sql: set @@global.max_nested_table_depth = 'invalid'
+    unordered: true
 
   - db: set_test
     expected_error: 'Error 1231: Variable ''max_nested_table_depth'' can''t be set to the value of ''-4'''
     id: max_nested_table_depth_set_invalid_number
     sql: set @@global.max_nested_table_depth = -4
+    unordered: true
 
   - db: set_test
     expected_results:
@@ -1286,6 +1423,7 @@ testcases:
     id: max_num_columns_per_table_select_default
     sql: select @@global.max_num_columns_per_table
     sync: true
+    unordered: true
 
   - db: set_test
     expected_results:
@@ -1294,6 +1432,7 @@ testcases:
     id: max_num_columns_per_table_set_default
     sql: set @@global.max_num_columns_per_table = DEFAULT
     sync: true
+    unordered: true
     verify: select @@global.max_num_columns_per_table
 
   - db: set_test
@@ -1303,17 +1442,20 @@ testcases:
     id: max_num_columns_per_table_set_to_value
     sql: select @@global.max_num_columns_per_table
     sync: true
+    unordered: true
     variables: {global.max_num_columns_per_table: 546}
 
   - db: set_test
     expected_error: "Error 1232: Incorrect argument type to variable 'max_num_columns_per_table'"
     id: max_num_columns_per_table_set_invalid_string
     sql: set @@global.max_num_columns_per_table = 'invalid'
+    unordered: true
 
   - db: set_test
     expected_error: 'Error 1231: Variable ''max_num_columns_per_table'' can''t be set to the value of ''-4'''
     id: max_num_columns_per_table_set_invalid_number
     sql: set @@global.max_num_columns_per_table = -4
+    unordered: true
 
   - db: set_test
     description: SET @@global.max_execution_time = 500 with no error
@@ -1325,6 +1467,7 @@ testcases:
     sql: SET @@global.max_execution_time = 500
     sql_cleanup: SET @@global.max_execution_time = DEFAULT
     sync: true
+    unordered: true
     verify: SELECT @@global.max_execution_time
 
   - db: set_test
@@ -1336,6 +1479,7 @@ testcases:
     id: max_execution_time_default_value
     sql: SET @@global.max_execution_time = DEFAULT
     sync: true
+    unordered: true
     verify: SELECT @@global.max_execution_time
 
   - db: set_test
@@ -1345,6 +1489,7 @@ testcases:
     sql: SET @@global.max_execution_time = -10
     sql_cleanup: SET @@global.max_execution_time = DEFAULT
     sync: true
+    unordered: true
 
   - db: set_test
     description: SET @@max_execution_time = 500 with no error
@@ -1355,6 +1500,7 @@ testcases:
     id: max_execution_time_session_value
     sql: SET @@max_execution_time = 500
     sql_cleanup: SET @@max_execution_time = DEFAULT
+    unordered: true
     verify: SELECT @@max_execution_time
 
   - db: set_test
@@ -1366,6 +1512,7 @@ testcases:
     id: rewrite_distinct_as_group_default_value
     sql: SET @@global.rewrite_distinct_as_group = DEFAULT
     sync: true
+    unordered: true
     verify: SELECT @@global.rewrite_distinct_as_group
 
   - db: set_test
@@ -1377,6 +1524,7 @@ testcases:
     id: rewrite_distinct_as_group_default_value
     sql: SET @@global.rewrite_distinct_as_group = 1
     sync: true
+    unordered: true
     verify: SELECT @@global.rewrite_distinct_as_group
 
   - db: set_test
@@ -1388,6 +1536,7 @@ testcases:
     id: rewrite_distinct_as_group_default_value
     sql: SET @@global.rewrite_distinct_as_group = 0
     sync: true
+    unordered: true
     verify: SELECT @@global.rewrite_distinct_as_group
 
   - db: set_test
@@ -1398,6 +1547,7 @@ testcases:
     expected_types: [int]
     id: rewrite_distinct_as_group_default_value
     sql: SET @@session.rewrite_distinct_as_group = DEFAULT
+    unordered: true
     verify: SELECT @@session.rewrite_distinct_as_group
 
   - db: set_test
@@ -1408,6 +1558,7 @@ testcases:
     expected_types: [int]
     id: rewrite_distinct_as_group_default_value
     sql: SET @@session.rewrite_distinct_as_group = 1
+    unordered: true
     verify: SELECT @@session.rewrite_distinct_as_group
 
   - db: set_test
@@ -1418,6 +1569,7 @@ testcases:
     expected_types: [int]
     id: rewrite_distinct_as_group_default_value
     sql: SET @@session.rewrite_distinct_as_group = 0
+    unordered: true
     verify: SELECT @@session.rewrite_distinct_as_group
 
   - db: set_test
@@ -1427,18 +1579,21 @@ testcases:
     expected_types: [int]
     id: mongosqld_version
     sql: select @@mongosqld_version regexp 'built-without-version-string|^v[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+'
+    unordered: true
 
   - db: set_test
     description: 'error syntax: set unsettable session variable mongosqld_version'
     expected_error: 'Error 1621: SESSION variable ''mongosqld_version'' is read-only.'
     id: mongosqld_version_set_session_error
     sql: set session mongosqld_version = 'no'
+    unordered: true
 
   - db: set_test
     description: 'error syntax: set unsettable global variable mongosqld_version'
     expected_error: 'Error 1621: GLOBAL variable ''mongosqld_version'' is read-only.'
     id: mongosqld_version_set_global_error
     sql: set global mongosqld_version = 'no'
+    unordered: true
 
   - db: set_test
     description: SET @@global.anonymize_metrics = DEFAULT with no error
@@ -1449,6 +1604,7 @@ testcases:
     id: anonymize_metrics_default_value
     sql: SET @@global.anonymize_metrics = DEFAULT
     sync: true
+    unordered: true
     verify: SELECT @@global.anonymize_metrics
 
   - db: set_test
@@ -1460,6 +1616,7 @@ testcases:
     id: anonymize_metrics_to_1
     sql: SET @@global.anonymize_metrics = 1
     sync: true
+    unordered: true
     verify: SELECT @@global.anonymize_metrics
 
   - db: set_test
@@ -1471,6 +1628,7 @@ testcases:
     id: anonymize_metrics_to_0
     sql: SET @@global.anonymize_metrics = 0
     sync: true
+    unordered: true
     verify: SELECT @@global.anonymize_metrics
 
   - db: set_test
@@ -1482,6 +1640,7 @@ testcases:
     id: set character_set_client to utf8
     sql: SET character_set_client = utf8
     sync: true
+    unordered: true
     verify: SELECT @@character_set_client
 
   - db: set_test
@@ -1493,6 +1652,7 @@ testcases:
     id: SET character_set_client to latin1
     sql: SET character_set_client = laTiN1
     sync: true
+    unordered: true
     verify: SELECT @@character_set_client
 
   - db: set_test
@@ -1501,6 +1661,7 @@ testcases:
     id: SET character_set_client to latin12
     sql: SET character_set_client = laTiN12
     sync: true
+    unordered: true
 
   - db: set_test
     description: SET collation_connection to utf8_bin
@@ -1511,6 +1672,7 @@ testcases:
     id: SET collation_connection to utf8_bin
     sql: SET collation_connection = uTf8_Bin
     sync: true
+    unordered: true
     verify: SELECT @@collation_connection
 
   - db: set_test
@@ -1532,6 +1694,7 @@ testcases:
     id: SET collation_connection to latin12
     sql: SET collation_connection = laTiN12
     sync: true
+    unordered: true
 
   - db: set_test
     description: SET @@global.anonymize_metrics to latin1, which is a character_set and not allowed
@@ -1539,6 +1702,7 @@ testcases:
     id: SET @@global.anonymize_metrics to latin1
     sql: SET @@global.anonymize_metrics = laTiN1
     sync: true
+    unordered: true
 
   - db: set_test
     description: SET @@global.anonymize_metrics to utf8_bin, which is a collation and not allowed
@@ -1546,3 +1710,4 @@ testcases:
     id: SET @@global.anonymize_metrics to utf8_bin
     sql: SET @@global.anonymize_metrics = utf8_bin
     sync: true
+    unordered: true

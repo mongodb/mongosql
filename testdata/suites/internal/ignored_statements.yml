@@ -3,58 +3,70 @@ testcases:
     description: lock tables read one table
     id: 'lock tables single read'
     sql: lock tables scalar READ LOCAL
+    unordered: true
 
   - db: mysql
     description: lock tables read one table with alias
     id: 'lock tables single alias read'
     sql: lock tables scalar as sc READ LOCAL
+    unordered: true
 
   - db: mysql
     description: lock tables read multiple tables
     id: 'lock tables multi read'
     sql: lock tables scalar READ LOCAL, scalar2 READ
+    unordered: true
 
   - db: mysql
     description: lock tables write one table
     id: 'lock tables single write'
     sql: lock tables scalar LOW_PRIORITY WRITE
+    unordered: true
 
   - db: mysql
     description: lock tables write one table with alias
     id: 'lock tables single alias write'
     sql: lock tables scalar as sc LOW_PRIORITY WRITE
+    unordered: true
 
   - db: mysql
     description: lock tables write multiple tables
     id: 'lock tables multi write'
     sql: lock tables scalar LOW_PRIORITY WRITE, scalar2 WRITE
+    unordered: true
 
   - db: mysql
     description: lock tables complex
     id: 'lock tables complex'
     sql: lock tables scalar READ lOcAL, scalar2 as sc WRITE, scalar3 as sc3 READ, scalar4 as sc4 low_priority wRiTe
+    unordered: true
 
   - db: mysql
     description: unlock tables
     id: 'unlock tables'
     sql: unlock tables
+    unordered: true
 
   - db: mysql
     description: enable keys
     id: 'enable keys'
     sql: enable keys
+    unordered: true
 
   - db: mysql
     description: disable keys
     id: 'disable keys'
     sql: disable keys
+    unordered: true
 
   - db: mysql
     description: alter table enable keys
     id: 'alter enable keys'
     sql: alTer taBle foo enable keys
+    unordered: true
 
   - db: mysql
     description: alter table disable keys
     id: 'alter disable keys'
     sql: ALter table bar disable keys
+    unordered: true

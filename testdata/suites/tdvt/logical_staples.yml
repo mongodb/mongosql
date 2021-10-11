@@ -10,6 +10,7 @@ testcases:
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer\
       \ Balance`) AS `sum_Customer Balance_ok`\nFROM `Staples`\nWHERE (`Staples`.`Customer\
       \ Name` = 'Hallie Redmond')\nGROUP BY 1\n     order by 1"
+    unordered: true
   - expected_results:
       - [FURNITURE]
       - [BOOKCASES]
@@ -66,6 +67,7 @@ testcases:
       FROM `Staples`\nWHERE (`Staples`.`Call Center Region` NOT IN ('CENTRAL'))\nGROUP\
       \ BY 1,\n  2\nHAVING ((AVG(`Staples`.`Discount`) >= 0.051399999999999488) AND\
       \ (AVG(`Staples`.`Discount`) <= 0.059000000000000587))\n     order by 1"
+    unordered: true
   - expected_results:
       - ['1998-02-09 00:00:00']
       - ['21']
@@ -176,6 +178,7 @@ testcases:
       \ of Records_ok`\nFROM `Staples`\nWHERE ((`Staples`.`Order Date` >= TIMESTAMP('1998-02-09\
       \ 00:00:00')) AND (`Staples`.`Order Date` <= TIMESTAMP('1998-07-03 23:59:59')))\n\
       GROUP BY 1\n     order by 1"
+    unordered: true
   - expected_results:
       - [EAST]
       - [Barbara Fisher]
@@ -293,6 +296,7 @@ testcases:
       \ >= 0) AND (COUNT(`Staples`.`Discount`) <= 822) AND (SUM(`Staples`.`Customer\
       \ Balance`) >= -746.0000000000075) AND (SUM(`Staples`.`Customer Balance`) <= 4074689.000000041))\n\
       \     order by 1"
+    unordered: true
   - expected_results:
       - ['1']
       - ['1996-12-29 00:00:00']
@@ -406,6 +410,7 @@ testcases:
       \ Date`,\n  DAYOFWEEK(`Staples`.`Ship Date`) AS `wd_Ship Date_ok`\nFROM `Staples`\n\
       WHERE (`Staples`.`Ship Date` <= TIMESTAMP('1997-02-01 00:00:00'))\nGROUP BY 1,\n\
       \  2,\n  3,\n  4\n     order by 1"
+    unordered: true
   - expected_results:
       - [Adam Haberlach]
       - ['104406.0']
@@ -485,6 +490,7 @@ testcases:
       \ Salary`) >= 102499.99999999898) AND (AVG(`Staples`.`Employee Salary`) <= 110000.00000000111))\n\
       ) `t0` ON ((`Staples`.`Call Center Region` = `t0`.`Call Center Region`) AND (`Staples`.`Employee\
       \ Name` = `t0`.`Employee Name`))\nGROUP BY 1\n     order by 1"
+    unordered: true
   - expected_results:
       - ['45686']
       - ['25.62']
@@ -596,6 +602,7 @@ testcases:
       WHERE ((`Staples`.`Call Center Region` = 'EAST') AND (`Staples`.`Sales Total`\
       \ >= -3640.23) AND (`Staples`.`Sales Total` <= 24622.400000000001) AND (YEAR(`Staples`.`Order\
       \ Date`) = 2002))\n     order by 1"
+    unordered: true
   - expected_results:
       - [Barbara Fisher]
       - ['2903943.0']
@@ -708,6 +715,7 @@ testcases:
       \ >= 0) AND (COUNT(`Staples`.`Discount`) <= 822) AND (SUM(`Staples`.`Customer\
       \ Balance`) >= -746.0000000000075) AND (SUM(`Staples`.`Customer Balance`) <= 4074689.000000041))\n\
       \     order by 1"
+    unordered: true
   - expected_results:
       - [APPLIANCES]
       - ['1']
@@ -818,6 +826,7 @@ testcases:
       \ Date`) AS `mn_Order Date_ok`,\n  SUM(`Staples`.`Gross Profit`) AS `sum_Gross\
       \ Profit_ok`\nFROM `Staples`\nWHERE (MONTH(`Staples`.`Order Date`) <= 8)\nGROUP\
       \ BY 1,\n  2\n     order by 1"
+    unordered: true
   - expected_results:
       - [Suzanne McNair]
       - ['3947695.0']
@@ -845,6 +854,7 @@ testcases:
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer\
       \ Balance`) AS `sum_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\nORDER BY\
       \ `Customer Name` DESC\nLIMIT 10\n     order by 1"
+    unordered: true
   - expected_results:
       - [Barbara Fisher]
       - ['2903943.0']
@@ -954,6 +964,7 @@ testcases:
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer\
       \ Balance`) AS `sum_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\nHAVING (AVG(`Staples`.`Discount`)\
       \ < 0.070000000000000007)\n     order by 1"
+    unordered: true
   - expected_results:
       - [OFFICE SUPPLIES]
       - [BINDERS AND BINDER ACCESSORIES]
@@ -1002,6 +1013,7 @@ testcases:
       \ (`Staples`.`Prod Type1` NOT IN ('FURNITURE')))\nGROUP BY 1,\n  2\nHAVING ((AVG(`Staples`.`Discount`)\
       \ >= 0.051399999999999488) AND (AVG(`Staples`.`Discount`) <= 0.059000000000000587))\n\
       \     order by 1"
+    unordered: true
   - expected_results:
       - [OFFICE SUPPLIES]
       - [ENVELOPES]
@@ -1047,6 +1059,7 @@ testcases:
       \ AND (`Staples`.`Prod Type2` <= 'TELEPHONES AND COMMUNICATION'))))\nGROUP BY\
       \ 1,\n  2\nHAVING ((AVG(`Staples`.`Discount`) >= 0.051399999999999488) AND (AVG(`Staples`.`Discount`)\
       \ <= 0.059000000000000587))\n     order by 1"
+    unordered: true
   - expected_results:
       - [APPLIANCES]
       - ['89646.98']
@@ -1109,6 +1122,7 @@ testcases:
       FROM `Staples`\nWHERE ((`Staples`.`Order Date` >= TIMESTAMP('1998-02-09 00:00:00'))\
       \ AND (`Staples`.`Order Date` <= TIMESTAMP('1998-07-03 23:59:59')))\nGROUP BY\
       \ 1\n     order by 1"
+    unordered: true
   - expected_results:
       - [Dario Medina]
       - ['2340.3473']
@@ -1167,6 +1181,7 @@ testcases:
       \ Balance`) AS `avg_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\nHAVING ((AVG(`Staples`.`Customer\
       \ Balance`) >= 252.99999999999747) AND (AVG(`Staples`.`Customer Balance`) <= 3702.7330280000369))\n\
       \     order by 1"
+    unordered: true
   - expected_results:
       - [OFFICE SUPPLIES]
       - [ENVELOPES]
@@ -1212,6 +1227,7 @@ testcases:
       \ AND (`Staples`.`Prod Type2` <= 'TELEPHONES AND COMMUNICATION'))))\nGROUP BY\
       \ 1,\n  2\nHAVING ((AVG(`Staples`.`Discount`) >= 0.051399999999999488) AND (AVG(`Staples`.`Discount`)\
       \ <= 0.059000000000000587))\n     order by 1"
+    unordered: true
   - expected_results:
       - ["Acco Clips to Go\xE2\u201E\xA2 Binder Clips, 24 Clips in Two Sizes"]
       - ['573.02']
@@ -1416,6 +1432,7 @@ testcases:
       \ ViaVideo\xE2\u201E\xA2 Desktop Video Communications Unit') AND (`Staples`.`Product\
       \ Name` <= 'Polycom ViewStation\xE2\u201E\xA2 ISDN Videoconferencing Unit')))\n\
       GROUP BY 1\n     order by 1"
+    unordered: true
   - expected_results:
       - [Dave Hallsten]
       - ['478']
@@ -1448,6 +1465,7 @@ testcases:
       \ Balance`) AS `cnt_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\nHAVING ((COUNT(`Staples`.`Customer\
       \ Balance`) >= 0) AND (COUNT(`Staples`.`Customer Balance`) <= 577))\n     order\
       \ by 1"
+    unordered: true
   - expected_results:
       - ['19970102']
       - ['12205.73']
@@ -1567,6 +1585,7 @@ testcases:
       \ Date`) * 100)) + DAYOFMONTH(`Staples`.`Order Date`)) >= 19970119) AND ((((YEAR(`Staples`.`Order\
       \ Date`) * 10000) + (MONTH(`Staples`.`Order Date`) * 100)) + DAYOFMONTH(`Staples`.`Order\
       \ Date`)) <= 20021231)))\nGROUP BY 1\n     order by 1"
+    unordered: true
   - expected_results:
       - [Barbara Fisher]
       - ['2903943.0']
@@ -1676,6 +1695,7 @@ testcases:
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer\
       \ Balance`) AS `sum_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\n     order\
       \ by 1"
+    unordered: true
   - expected_results:
       - [Barbara Fisher]
       - ['-396.0']
@@ -1786,6 +1806,7 @@ testcases:
       \ Balance`) AS `min_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\nHAVING ((MIN(`Staples`.`Customer\
       \ Balance`) >= -988.00000000000989) AND (MIN(`Staples`.`Customer Balance`) <=\
       \ -99.999999999999005))\n     order by 1"
+    unordered: true
   - expected_results:
       - [EAST]
       - ['36558']
@@ -1899,6 +1920,7 @@ testcases:
       \ Region` NOT IN ('CENTRAL')) AND (`Staples`.`Discount` >= 0.091693999999999998)\
       \ AND (`Staples`.`Discount` <= 0.214724) AND (YEAR(`Staples`.`Order Date`) IN\
       \ (2001, 2002)))\n     order by 1"
+    unordered: true
   - expected_results:
       - ['19970101']
       - ['23274.61']
@@ -2009,6 +2031,7 @@ testcases:
       \ Date`) * 100)) + DAYOFMONTH(`Staples`.`Order Date`)) AS `md_Order Date_ok`,\n\
       \  SUM(`Staples`.`Gross Profit`) AS `sum_Gross Profit_ok`\nFROM `Staples`\nGROUP\
       \ BY 1\n     order by 1"
+    unordered: true
   - expected_results:
       - [FURNITURE]
       - [BOOKCASES]
@@ -2052,6 +2075,7 @@ testcases:
       \ Type2` AS `Prod Type2`,\n  SUM(`Staples`.`Gross Profit`) AS `sum_Gross Profit_ok`\n\
       FROM `Staples`\nGROUP BY 1,\n  2\nHAVING ((AVG(`Staples`.`Discount`) >= 0.051399999999999488)\
       \ AND (AVG(`Staples`.`Discount`) <= 0.055001000000000549))\n     order by 1"
+    unordered: true
   - expected_results:
       - [CENTRAL]
       - [ILLINOIS]
@@ -2151,6 +2175,7 @@ testcases:
       \ * 24)) + 0.0) IN (100, 102, 103, 105, 106, 109, 110, 111, 112, 113, 114, 115,\
       \ 116, 117, 118, 119, 120, 91, 92, 93, 94, 95, 96, 97, 99)) THEN 91 ELSE -1 END)\
       \ = 121)\nGROUP BY 1,\n  2\n     order by 1"
+    unordered: true
   - expected_results:
       - [EAST]
       - [Barbara Fisher]
@@ -2269,6 +2294,7 @@ testcases:
       \  2,\n  5\nHAVING ((COUNT(`Staples`.`Discount`) >= 0) AND (COUNT(`Staples`.`Discount`)\
       \ <= 822) AND (SUM(`Staples`.`Customer Balance`) >= -746.0000000000075) AND (SUM(`Staples`.`Customer\
       \ Balance`) <= 4074689.000000041))\n     order by 1"
+    unordered: true
   - expected_results:
       - [Barbara Fisher]
       - ['8082.0']
@@ -2317,6 +2343,7 @@ testcases:
       \ Balance`) AS `max_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\nHAVING ((MAX(`Staples`.`Customer\
       \ Balance`) >= 7008.9899999999298) AND (MAX(`Staples`.`Customer Balance`) <= 9000.0000000000891))\n\
       \     order by 1"
+    unordered: true
   - expected_results:
       - [EAST]
       - ['40479']
@@ -2431,6 +2458,7 @@ testcases:
       \ AND (`Staples`.`Discount` <= 0.214724) AND (`Staples`.`Order Date` >= TIMESTAMP('2001-06-01\
       \ 00:00:00')) AND (`Staples`.`Order Date` <= TIMESTAMP('2002-06-01 00:00:00'))\
       \ AND (YEAR(`Staples`.`Order Date`) IN (2001, 2002)))\n     order by 1"
+    unordered: true
   - expected_results:
       - [4275856.2]
     expected_error: ''
@@ -2438,6 +2466,7 @@ testcases:
     expected_types: [float]
     id: '28'
     sql: "SELECT SUM((`Staples`.`Price` / 1.1000000000000001)) AS `sum_Calculation_555068687593533440_ok`FROM `Staples` HAVING (COUNT(1) > 0) order by 1"
+    unordered: true
   - expected_results:
       - [Barbara Fisher]
       - ['2903943.0']
@@ -2549,6 +2578,7 @@ testcases:
       \ Name` >= 'Barbara Fisher') AND (`Staples`.`Customer Name` <= 'Roy Skaria'))\
       \ OR ((`Staples`.`Customer Name` >= 'Sarah Jordon-Smith') AND (`Staples`.`Customer\
       \ Name` <= 'Zyzzy Zzuyzyzyk')))\nGROUP BY 1\n     order by 1"
+    unordered: true
   - expected_results:
       - [Dario Medina]
       - ['2061846.0']
@@ -2591,6 +2621,7 @@ testcases:
       \ Balance`) AS `sum_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\nHAVING ((SUM(`Staples`.`Customer\
       \ Balance`) >= -746.0000000000075) AND (SUM(`Staples`.`Customer Balance`) <= 2384363.5474140239))\n\
       \     order by 1"
+    unordered: true
   - expected_results:
       - [Barbara Fisher]
       - ['2903943.0']
@@ -2702,6 +2733,7 @@ testcases:
       \ `sum_Order Quantity_ok`\nFROM `Staples`\nGROUP BY 1\nHAVING ((AVG(`Staples`.`Discount`)\
       \ >= 0.049244999999999504) AND (AVG(`Staples`.`Discount`) <= 0.060000000000000595))\n\
       \     order by 1"
+    unordered: true
   - expected_results:
       - [CENTRAL]
       - [Hilary Holden]
@@ -2764,6 +2796,7 @@ testcases:
       \ `t0` ON (`Staples`.`Customer Name` = `t0`.`Customer Name`)\nGROUP BY 1,\n  2\n\
       HAVING ((SUM(`Staples`.`Customer Balance`) >= 999999.99999998999) AND (SUM(`Staples`.`Customer\
       \ Balance`) <= 3186976.0000000317))\n     order by 1"
+    unordered: true
   - expected_results:
       - [Barbara Fisher]
       - ['810852.0']
@@ -2879,6 +2912,7 @@ testcases:
       \ AND (`Staples`.`Ship Mode` NOT IN ('DELIVERY TRUCK')) AND ((YEAR(`Staples`.`Order\
       \ Date`) IN (2002)) OR ((YEAR(`Staples`.`Order Date`) >= 1998) AND (YEAR(`Staples`.`Order\
       \ Date`) <= 2000))))\nGROUP BY 1\n     order by 1"
+    unordered: true
   - expected_results:
       - [EAST]
       - [Barbara Fisher]
@@ -2995,6 +3029,7 @@ testcases:
       \ AND (COUNT(`Staples`.`Discount`) <= 822) AND (SUM(`Staples`.`Customer Balance`)\
       \ >= -746.0000000000075) AND (SUM(`Staples`.`Customer Balance`) <= 4074689.000000041))\n\
       \     order by 1"
+    unordered: true
   - expected_results:
       - [Zyzzy Zzuyzyzyk]
       - ['5052539.0']
@@ -3004,6 +3039,7 @@ testcases:
     sql: "\n      SELECT `Staples`.`Customer Name` AS `Customer Name`,\n  SUM(`Staples`.`Customer\
       \ Balance`) AS `sum_Customer Balance_ok`\nFROM `Staples`\nGROUP BY 1\nORDER BY\
       \ `Customer Name` DESC\nLIMIT 1\n     order by 1"
+    unordered: true
   - expected_results:
       - [CONSUMER]
       - [FURNITURE]
@@ -3119,6 +3155,7 @@ testcases:
       \ = 'TECHNOLOGY') AND (`Staples`.`Prod Type2` = 'TELEPHONES AND COMMUNICATION')\
       \ AND (`Staples`.`Prod Type3` = 'WIRELESS AND CELLULAR') AND (`Staples`.`Prod\
       \ Type4` = 'NOKIA'))))\nGROUP BY 1,\n  2,\n  3,\n  4,\n  5\n     order by 1"
+    unordered: true
   - expected_results:
       - ['1']
       - ['1']
@@ -3236,6 +3273,7 @@ testcases:
       \ `Staples`.`Order Date`) AS `ctd_Order Date_ok`,\n  YEAR(DATE_ADD(`Staples`.`Order\
       \ Date`, INTERVAL 10 MONTH)) AS `yr_Order Date_ok`\nFROM `Staples`\nGROUP BY 1,\n\
       \  3\n     order by 1"
+    unordered: true
   - expected_results:
       - ['1']
       - ['1']
@@ -3344,6 +3382,7 @@ testcases:
     skip: true
     sql: "\n      SELECT MONTH(`Staples`.`Order Date`) AS `mn_Order Date_qk`\nFROM `Staples`\n\
       \     order by 1"
+    unordered: true
   - expected_results:
       - [WEST]
       - ['23143']
@@ -3389,6 +3428,7 @@ testcases:
       \ AND (`Staples`.`Order ID` <= '9991'))) AND (`Staples`.`Product Container` =\
       \ 'MEDIUM BOX') AND (MONTH(`Staples`.`Order Date`) IN (1, 4, 7, 10)))\nGROUP BY\
       \ 1,\n  2,\n  3,\n  5,\n  7\n     order by 1"
+    unordered: true
   - expected_results:
       - [Barbara Fisher]
       - ['2866777.0']
@@ -3502,6 +3542,7 @@ testcases:
       \ >= 0) AND (COUNT(`Staples`.`Discount`) <= 822) AND (SUM(`Staples`.`Customer\
       \ Balance`) >= -746.0000000000075) AND (SUM(`Staples`.`Customer Balance`) <= 4074689.000000041))\n\
       \     order by 1"
+    unordered: true
   - expected_results:
       - [Adalin Torres-Zayas]
       - ['102081.0']
@@ -3610,3 +3651,4 @@ testcases:
       \ Salary`) AS `avg_Employee Salary_ok`,\n  AVG(`Staples`.`Employee Salary`) AS\
       \ `$__alias__0`\nFROM `Staples`\nGROUP BY 1\nORDER BY `$__alias__0` DESC\nLIMIT\
       \ 99\n     order by 1"
+    unordered: true

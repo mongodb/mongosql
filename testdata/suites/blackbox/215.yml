@@ -80,3 +80,4 @@ testcases:
       - [Zyzzy Zzuyzyzyk]
     expected_types: [varchar]
     sql: SELECT `Customer Name` AS `none_Customer_Name_nk` FROM Staples GROUP BY `Customer Name` ORDER BY 1 ASC
+    unordered: true

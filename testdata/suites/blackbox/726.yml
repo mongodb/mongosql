@@ -21,3 +21,4 @@ testcases:
       - ['2004-08-02 07:59:23', key02, 0]
     expected_types: [varchar, varchar, int]
     sql: SELECT `datetime0` AS `none_datetimeA_ok`, `key` AS `none_key_nk`, TIMESTAMPDIFF(SQL_TSI_YEAR, '2004-07-04',`datetime0`) AS `sum_z_datediff_year_ok` FROM Calcs ORDER BY 1, 2, 3
+    unordered: true

@@ -7,3 +7,4 @@ testcases:
       - [South, 43900]
     expected_types: [varchar, int]
     sql: SELECT `Market` AS `Market`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok` FROM Starbucks WHERE ((`Market` >= 'Central') AND (`Market` <= 'South')) GROUP BY `Market` ORDER BY 1, 2
+    unordered: true

@@ -5,3 +5,4 @@ testcases:
       - [746160, 358672, 443038]
     expected_types: [int, int, int]
     sql: SELECT SUM(CONVERT(`Budget Sales`, SQL_BIGINT)) AS `sum_Budget_Sales_ok`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok`, SUM(CONVERT(`Margin`, SQL_BIGINT)) AS `sum_Margin_ok` FROM Starbucks HAVING (COUNT(1) > 0) ORDER BY 1, 2, 3
+    unordered: true

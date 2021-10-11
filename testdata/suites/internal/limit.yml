@@ -9,6 +9,7 @@ testcases:
     expected_types: [int]
     id: '0'
     sql: select a from limit_test.limitTable limit 2
+    unordered: true
 
   - db: limit_test
     description: offset and rowcount
@@ -18,6 +19,7 @@ testcases:
     expected_types: [int]
     id: '1'
     sql: select a from limit_test.limitTable limit 2, 1
+    unordered: true
 
   - db: limit_test
     description: offset and rowcount
@@ -27,6 +29,7 @@ testcases:
     expected_types: [int]
     id: '2'
     sql: select a from limit_test.limitTable limit 1 OFFSET 2
+    unordered: true
 
   - db: limit_test
     description: rowcount is 0
@@ -35,6 +38,7 @@ testcases:
     expected_types: [int]
     id: '3'
     sql: select a from limit_test.limitTable limit 2, 0
+    unordered: true
 
   - db: limit_test
     description: rowcount is 0
@@ -43,6 +47,7 @@ testcases:
     expected_types: [int]
     id: '4'
     sql: select a from limit_test.limitTable limit 0 OFFSET 2
+    unordered: true
 
   - db: limit_test
     description: offset and rowcount are 0
@@ -51,3 +56,4 @@ testcases:
     expected_types: [int]
     id: '5'
     sql: select a from limit_test.limitTable limit 0, 0
+    unordered: true

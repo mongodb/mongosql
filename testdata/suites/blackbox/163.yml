@@ -8,3 +8,4 @@ testcases:
       - [Decaf Irish Cream, 5897.944789302989]
     expected_types: [varchar, float]
     sql: SELECT `Product` AS `none_Product_nk`,   SUM(`Sales`) AS `usr_User_Agg_ok` FROM Starbucks WHERE (`State` = 'Washington') GROUP BY `Product` HAVING ((SUM(`Sales`) >= 3999.99999999996) AND (SUM(`Sales`) <= 7000.00000000007)) ORDER BY 1, 2
+    unordered: true

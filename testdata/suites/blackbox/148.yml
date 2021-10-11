@@ -250,3 +250,4 @@ testcases:
       - ['Zingarella, Rosie', 21908.66, 1997]
     expected_types: [varchar, float, int]
     sql: SELECT `Manager Name` AS `none_Manager_Name_nk`, SUM(`Price`) AS `sum_Price_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Manager Name`, YEAR(`Order Date`) ORDER BY 1, 2, 3
+    unordered: true

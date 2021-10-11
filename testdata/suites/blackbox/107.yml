@@ -24,3 +24,4 @@ testcases:
       - [Caffe Mocha, Wisconsin, 1417.9184354415522]
     expected_types: [varchar, varchar, float]
     sql: SELECT `Product` AS `none_Product_nk`,   `State` AS `none_State_nk`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks WHERE (`Product` = 'Caffe Mocha') GROUP BY `Product`,   `State` ORDER BY 1, 2, 3
+    unordered: true

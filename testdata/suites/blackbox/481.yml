@@ -4,3 +4,4 @@ testcases:
     expected_results: []
     expected_types: [varchar, varchar, varchar]
     sql: SELECT `Product` AS `none_Product_nk`, SUM(`Sales`) AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE ((`Market` = 'Central') AND (`State` = 'New York')) GROUP BY `Product`, YEAR(`Date`) ORDER BY 1, 2, 3
+    unordered: true

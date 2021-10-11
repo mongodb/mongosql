@@ -76,3 +76,4 @@ testcases:
       - [103.19642857142857, 364, 0, 8, West, 1999]
     expected_types: [float, int, int, int, varchar, int]
     sql: SELECT AVG(CONVERT(`COGS`, SQL_DOUBLE)) AS `avg_COGS_ok`, MAX(`COGS`) AS `max_COGS_ok`, MIN(`COGS`) AS `min_COGS_ok`, MONTH(`Date`) AS `mn_Date_ok`, `Market` AS `none_Market_nk`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE ((`Market` >= 'East') AND (`Market` <= 'West')) GROUP BY MONTH(`Date`), `Market`, YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5, 6
+    unordered: true

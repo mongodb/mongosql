@@ -181,3 +181,4 @@ testcases:
       - [Tea, Green Tea, Washington, 3496.335490715558]
     expected_types: [varchar, varchar, varchar, float]
     sql: SELECT `Product Type` AS `none_Product_Type_nk`,   `Product` AS `none_Product_nk`,   `State` AS `none_State_nk`,   SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Product Type`,   `Product`,   `State` ORDER BY 1, 2, 3, 4
+    unordered: true

@@ -8,3 +8,4 @@ testcases:
       - [88.3742148607384, CONSUMER]
     expected_types: [float, varchar]
     sql: SELECT AVG(`Price`) AS `avg_Price_ok`,   `Customer Segment` AS `none_Customer_Segment_nk` FROM Staples GROUP BY `Customer Segment` ORDER BY 1, 2
+    unordered: true

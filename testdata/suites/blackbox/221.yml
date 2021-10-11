@@ -4,3 +4,4 @@ testcases:
     expected_results: []
     expected_types: [varchar, varchar]
     sql: SELECT `Customer Name` AS `none_Customer_Name_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok` FROM Staples WHERE (0 <> 0) GROUP BY `Customer Name` ORDER BY 1, 2
+    unordered: true

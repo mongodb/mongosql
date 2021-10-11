@@ -5,3 +5,4 @@ testcases:
       - [103558872.64]
     expected_types: [float]
     sql: SELECT SUM((CASE WHEN (`Order Month` < 6) THEN `Order Year` WHEN NOT (`Order Month` < 6) THEN `Sales Total` ELSE NULL END)) AS `sum_BDBHBD_ok` FROM Staples HAVING (COUNT(1) > 0) ORDER BY 1
+    unordered: true

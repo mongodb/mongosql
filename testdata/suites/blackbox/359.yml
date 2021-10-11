@@ -21,3 +21,4 @@ testcases:
       - [key16, null, null, null]
     expected_types: [varchar, varchar, varchar, varchar]
     sql: SELECT `key` AS `none_key_nk`, `str2` AS `none_strC_nk`, `str3` AS `none_strD_nk`, CONCAT(`str2`, `str3`) AS `none_z_str_plus_str_nk` FROM Calcs ORDER BY 1, 2, 3, 4
+    unordered: true

@@ -580,3 +580,4 @@ testcases:
       - [364, 548]
     expected_types: [int, int]
     sql: SELECT `COGS` AS `none_COGS_ok`,   `Margin` AS `none_Margin_ok` FROM Starbucks GROUP BY `COGS`,   `Margin` ORDER BY 1, 2
+    unordered: true

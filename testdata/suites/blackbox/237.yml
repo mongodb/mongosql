@@ -43971,3 +43971,4 @@ testcases:
       - [4-NOT SPECIFIED, TELEPHONES AND COMMUNICATION]
     expected_types: [varchar, varchar]
     sql: SELECT `Order Priority` AS `none_Order_Priority_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk` FROM Staples WHERE ((`Order Priority` >= '1-URGENT') AND (`Order Priority` <= '4-NOT SPECIFIED')) ORDER BY 1, 2
+    unordered: true

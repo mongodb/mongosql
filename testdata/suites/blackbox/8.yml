@@ -16,3 +16,4 @@ testcases:
       - [276, Small Market, Tea, Regular, 1999]
     expected_types: [int, varchar, varchar, varchar, int]
     sql: SELECT COUNT(1) AS `cnt_Number_of_Records_ok`, `Market Size` AS `none_Market_Size_nk`, `Product Type` AS `none_Product_Type_nk`, `Type` AS `none_Type_nk`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE (NOT (`Product Type` IN ('Espresso', 'Herbal Tea'))) GROUP BY `Market Size`, `Product Type`, `Type`, YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5
+    unordered: true

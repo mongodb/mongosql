@@ -8,6 +8,7 @@ testcases:
     expected_types: [varchar, varchar, varchar]
     id: BI-1497-testcase-1
     sql: SELECT messages.clientId, clients.firstName, messages.createdAt FROM messages LEFT JOIN clients ON clientId = clients.`_id` WHERE messages.createdAt < '2018-05-01' AND messages._id = 'Ru2uoDeve3KMa275x'
+    unordered: true
 
   - db: bugs_database
     description: Ensure that when you have a partially pushed down join query, and a subsequent project stage is created, that we properly constrain what columns get projected from that project stage in the underlying mongo collection. In this case, ensure that clients.firstName does not get projected from the messages table.
@@ -17,6 +18,7 @@ testcases:
     expected_types: [varchar, varchar, varchar]
     id: BI-1497-testcase-2
     sql: SELECT messages.clientId, clients.firstName, messages.createdAt FROM messages LEFT JOIN clients ON clientId = clients.`_id` WHERE date(messages.createdAt) < '2018-05-01' AND messages._id = 'Ru2uoDeve3KMa275x'
+    unordered: true
 
   - db: bugs_database
     description: Ensure that when running a `SET @@SQL_SELECT_LIMIT=XXX` command before SQL query does not cause mongosqld to freeze.
@@ -27,6 +29,7 @@ testcases:
     id: BI-1509-testcase-table-non-default-limit
     sql: SET @@SQL_SELECT_LIMIT=100
     sql_cleanup: SET @@SQL_SELECT_LIMIT=DEFAULT
+    unordered: true
     verify: SELECT * FROM clients
 
   - db: bugs_database
@@ -38,6 +41,7 @@ testcases:
     id: BI-1509-testcase-table-default-limit
     sql: SET @@SQL_SELECT_LIMIT=DEFAULT
     sql_cleanup: SET @@SQL_SELECT_LIMIT=DEFAULT
+    unordered: true
     verify: SELECT * FROM clients
 
   - db: bugs_database
@@ -49,6 +53,7 @@ testcases:
     id: BI-1509-testcase-union
     sql: SET @@SQL_SELECT_LIMIT=100
     sql_cleanup: SET @@SQL_SELECT_LIMIT=DEFAULT
+    unordered: true
     verify: SELECT * FROM clients a UNION SELECT * FROM clients b
 
   - db: bugs_database
@@ -60,6 +65,7 @@ testcases:
     id: BI-1509-testcase-dual
     sql: SET @@SQL_SELECT_LIMIT=100
     sql_cleanup: SET @@SQL_SELECT_LIMIT=DEFAULT
+    unordered: true
     verify: SELECT 2 + 2 AS summation FROM dual
 
   - db: bugs_database
@@ -71,6 +77,7 @@ testcases:
     id: BI-1509-testcase-subqueries
     sql: SET @@SQL_SELECT_LIMIT=100
     sql_cleanup: SET @@SQL_SELECT_LIMIT=DEFAULT
+    unordered: true
     verify: SELECT * FROM (SELECT * FROM clients) a
 
   - db: bugs_database
@@ -81,6 +88,7 @@ testcases:
     expected_types: [int]
     id: BI-1503-testcase-1
     sql: select COUNT(*) FROM (SELECT * FROM messages) AS m
+    unordered: true
 
   - db: bugs_database
     description: Ensure that additional left-join predicates on array fields are translated correctly
@@ -90,6 +98,7 @@ testcases:
     expected_types: [varchar, int, varchar, varchar, varchar, int, varchar, varchar, varchar, int]
     id: BI-1548-testcase
     sql: select * from individual a LEFT JOIN official b on (b.fancode = a.fancode) LEFT JOIN official_county c on (c._id = b._id and c.`county.membershiptype` = 'County Official')
+    unordered: true
 
   - db: bugs_database
     description: Ensure that FLOAT is accepted as target type for CAST func
@@ -99,6 +108,7 @@ testcases:
     expected_types: [float]
     id: BI-1611-parser-float-support
     sql: select CAST('5.5' as FLOAT) as float
+    unordered: true
 
   - db: bugs_database
     description: Ensure that seconds are stripped from dates
@@ -109,6 +119,7 @@ testcases:
     expected_types: [int, date]
     id: BI-1757-date-pushdown
     sql: select count(*), date(value) from dates group by 2 order by 2
+    unordered: true
 
   - description: Ensure time_to_sec returns the correct result with mysql type_conversion_mode
     expected_names: [sec]
@@ -117,6 +128,7 @@ testcases:
     expected_types: [int]
     id: BI-1825-date-scalar-function-mysql
     sql: select time_to_sec(str_to_date('2018-01-01 01:23:45', '%Y-%m-%d %H:%i:%s')) as sec;
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - description: Ensure time_to_sec returns the correct result with mongosql type_conversion_mode
@@ -126,6 +138,7 @@ testcases:
     expected_types: [int]
     id: BI-1825-date-scalar-function-mongosql
     sql: select time_to_sec(str_to_date('2018-01-01 01:23:45', '%Y-%m-%d %H:%i:%s')) as sec;
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: bugs_database
@@ -138,6 +151,7 @@ testcases:
     expected_types: [int, int]
     id: BI-1839-cross-join-optimization-test
     sql: SELECT customer.phone, customer.balance AS sum_balance_ok FROM orders RIGHT JOIN customer ON (orders.customer_key = customer.`key`) CROSS JOIN customer c2 WHERE customer.balance >= 0.00 and ISNULL(orders.customer_key)
+    unordered: true
 
   - db: bugs_database
     description: Ensure filter optimization doesn't prematurely remove records
@@ -146,6 +160,7 @@ testcases:
     expected_types: [varchar]
     id: BI-1855-filtering-optimization-test
     sql: SELECT orders._id FROM orders JOIN customer c1 RIGHT JOIN customer ON `customer`.`key` = `orders`.`o_orderkey` WHERE customer_key <> NULL
+    unordered: true
 
   - description: converting float to datetime in mysql mode should ignore decimal part
     expected_names: [conv]
@@ -154,6 +169,7 @@ testcases:
     expected_types: [date]
     id: BI-1081-convert-float-datetime
     sql: select convert(20000923.080703, datetime) as conv
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - description: converting float to datetime in mysql mode should ignore decimal part
@@ -163,6 +179,7 @@ testcases:
     expected_types: [date]
     id: BI-1081-convert-float-datetime-unparseable-decimal
     sql: select convert(20000923.987628, datetime) as conv
+    unordered: true
     variables: {type_conversion_mode: mysql}
 
   - db: bugs_database
@@ -172,6 +189,7 @@ testcases:
     expected_types: [int]
     id: BI-1944-project
     sql: select (_id in ('53c2ab5e4291b17b666d742a', '53c2ab5e4291b17b666d742a')) as eval from oid
+    unordered: true
 
   - db: bugs_database
     expected_names: [count]
@@ -180,6 +198,7 @@ testcases:
     expected_types: [int]
     id: BI-1944-predicate
     sql: select count(*) as count from oid where (_id in ('53c2ab5e4291b17b666d742a', '53c2ab5e4291b17b666d844e'))
+    unordered: true
 
   - db: bugs_database
     description: check that we can track non-conflicting fields under conflicts, BI-1947
@@ -190,6 +209,7 @@ testcases:
     expected_types: [int, varchar, varchar]
     id: select_under_conflicts
     sql: "select * from BI_1947"
+    unordered: true
 
   - db: bugs_database
     expected_names: [eq]
@@ -198,6 +218,7 @@ testcases:
     expected_types: [int]
     id: BI-1891
     sql: select _id = '53c2ab5e4291b17b666aaaaa' as eq from oid
+    unordered: true
 
   - db: bugs_database
     expected_names: [_id]
@@ -205,6 +226,7 @@ testcases:
     expected_types: [int]
     id: BI-1891-predicate
     sql: select _id from oid where _id = '53c2ab5e4291b17b666aaaaa'
+    unordered: true
 
   - db: bugs_database
     expected_names: [_id]
@@ -213,6 +235,7 @@ testcases:
     expected_types: [varchar]
     id: BI-1997-left join
     sql: select a._id from oid a left join oid b on a._id=b._id
+    unordered: true
 
   - description: BI-1949 subquery comparison type reconciliation failure
     expected_names: [cmp]
@@ -221,6 +244,7 @@ testcases:
     expected_types: [int]
     id: BI-1949-subquery-comparison-reconcile
     sql: select (select 1, 2, 3) < (select 1, 2, 3) as cmp
+    unordered: true
 
   - db: bugs_database
     description: BI-2258 Fix issue with large date/datetime literals
@@ -230,6 +254,7 @@ testcases:
     expected_types: [varchar, varchar, varchar, varchar, varchar]
     id: BI-2258-literals
     sql: select _id, date('9999-12-31 01:01:01') as d1, timestamp('9999-12-31 01:01:01') as dt1, date('0050-01-23 12:34:34') as d2, timestamp('0050-01-23 12:34:34') as dt2 from oid limit 1
+    unordered: true
 
   - db: bugs_database
     description: BI-2258 Fix issue with large date/datetime values
@@ -240,6 +265,7 @@ testcases:
     expected_types: [varchar, int, float]
     id: BI-2258-values
     sql: select timestamp(d) d, nopushdown(convert(timestamp(d), signed)) s, nopushdown(convert(timestamp(d), decimal)) f from BI_2258;
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: bugs_database
@@ -255,6 +281,7 @@ testcases:
     expected_types: [int, varchar, int]
     id: BI-2262-numeric-unwind-path
     sql: "select _id, `a.0`, `a.0_idx` from BI_2262_a_0;"
+    unordered: true
 
   - db: functions_test
     description: BI-2379 Regular expression should work on non-string columns
@@ -267,6 +294,7 @@ testcases:
     expected_types: [int, int]
     id: BI-2379-regexp-int
     sql: select a, a regexp 2 as contains_2 from simple_char_test_int
+    unordered: true
 
   - db: bugs_database
     description: BI-2366 Pipeline optimizer incorrectly swapping a project and match stage
@@ -276,6 +304,7 @@ testcases:
     expected_types: [varchar, int]
     id: BI-2366-match-regexp
     sql: select test, test regexp('abc') r from (select 'abc' as test) sub where test regexp('abc')
+    unordered: true
 
   - db: bugs_database
     description: BI-2412 Index information missing from mixed-case db names
@@ -285,6 +314,7 @@ testcases:
     expected_types: [int]
     id: BI-2412-index-info
     sql: select count(*) as c from information_schema.key_column_usage where constraint_schema = 'information_schema_test_Mixed_Case'
+    unordered: true
 
   - db: bugs_database
     description: BI-2513 querying tables with dollar-prefixed columns
@@ -294,6 +324,7 @@ testcases:
     expected_types: [int, int]
     id: BI-2513-dollar-prefixed-columns
     sql: select * from BI_2513
+    unordered: true
 
   - db: bugs_database
     description: BI-2463 group by date() for datetime column
@@ -303,6 +334,7 @@ testcases:
     expected_types: [varchar, int]
     id: BI-2463-groupby_date_date_col
     sql: select Date(dt_date), count(*) from group_by_date group by Date(dt_date)
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: bugs_database
@@ -313,6 +345,7 @@ testcases:
     expected_types: [varchar, int]
     id: BI-2463-groupby_date_string_col
     sql: select Date(dt_str), count(*) from group_by_date group by Date(dt_str)
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: bugs_database
@@ -323,6 +356,7 @@ testcases:
     expected_types: [varchar, int]
     id: BI-2463-groupby_date_int_col_timestamp
     sql: select Date(dt_timestamp), count(*) from group_by_date group by Date(dt_timestamp)
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: bugs_database
@@ -333,6 +367,7 @@ testcases:
     expected_types: [varchar, int]
     id: BI-2463-groupby_date_int_col_yyyymmdd
     sql: select Date(dt_yyyymmdd), count(*) from group_by_date group by Date(dt_yyyymmdd)
+    unordered: true
 
   - db: bugs_database
     description: BI-2463 fix select by Date(datetime_col)
@@ -343,6 +378,7 @@ testcases:
     expected_types: [varchar]
     id: BI-2463-select_date_datetime_col
     sql: select Date(dt_date) from group_by_date where Date(dt_date) = Date("2000-01-02")
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: bugs_database
@@ -354,6 +390,7 @@ testcases:
     expected_types: [varchar]
     id: BI-2463-select_date_str_col
     sql: select Date(dt_str) from group_by_date where Date(dt_str) = Date("2000-01-02")
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: bugs_database
@@ -365,6 +402,7 @@ testcases:
     expected_types: [varchar]
     id: BI-2463-select_date_int_yyyymmdd_col
     sql: select Date(dt_yyyymmdd) from group_by_date where Date(dt_yyyymmdd) = Date("2000-01-02")
+    unordered: true
 
   - db: bugs_database
     description: BI-2463 fix select by Date(datetime_col)
@@ -375,6 +413,7 @@ testcases:
     expected_types: [varchar]
     id: BI-2463-select_date_int_timestamp_col
     sql: select Date(dt_timestamp) from group_by_date where Date(dt_timestamp) = Date("2000-01-02")
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: bugs_database
@@ -385,6 +424,7 @@ testcases:
     expected_types: [varchar, int]
     id: BI-2463-datetime_date_diff_within_24hour_mongosqld
     sql: select dt_date, datediff(dt_date, '2000-01-01T22:34:56Z') from group_by_date
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: bugs_database
@@ -395,6 +435,7 @@ testcases:
     expected_types: [varchar, int]
     id: BI-2463-string_date_diff_within_24hour_mongosqld
     sql: select dt_str, datediff(dt_str, '2000-01-01T22:34:56Z') from group_by_date
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: bugs_database
@@ -405,6 +446,7 @@ testcases:
     expected_types: [int, int]
     id: BI-2463-timestamp_date_diff_within_24hour_mongosqld
     sql: select dt_timestamp, datediff(dt_timestamp, '2000-01-01T22:34:56Z') from group_by_date
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: bugs_database
@@ -414,6 +456,7 @@ testcases:
     expected_types: [int]
     id: BI-2623-ifnull-match-negation
     sql: select a from BI_2623 where not(a <> 0)
+    unordered: true
     variables: {type_conversion_mode: mongosql}
 
   - db: bugs_database
@@ -424,3 +467,4 @@ testcases:
     expected_types: [int, int]
     id: BI-2639-do-not-map-empty-field-names-in-conflicts
     sql: select * from BI_2639
+    unordered: true

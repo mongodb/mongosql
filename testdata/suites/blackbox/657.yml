@@ -12,3 +12,4 @@ testcases:
       - [Small Market, West, 64600]
     expected_types: [varchar, varchar, int]
     sql: SELECT `Market Size` AS `none_Market_Size_nk`, `Market` AS `none_Market_nk`, SUM(CONVERT(`Budget COGS`, SQL_BIGINT)) AS `sum_Budget_COGS_ok` FROM Starbucks GROUP BY `Market Size`, `Market` ORDER BY 1, 2, 3
+    unordered: true

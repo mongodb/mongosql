@@ -5,3 +5,4 @@ testcases:
       - [16]
     expected_types: [int]
     sql: SELECT COUNT(`Key`) AS `cnt_Key_ok` FROM NumericBins HAVING (COUNT(1) > 0) ORDER BY 1
+    unordered: true

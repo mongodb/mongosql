@@ -21,3 +21,4 @@ testcases:
       - ['2004-08-02 07:59:23', key02, August]
     expected_types: [varchar, varchar, varchar]
     sql: SELECT `datetime0` AS `none_datetimeA_ok`, `key` AS `none_key_nk`, MONTHNAME(`datetime0`) AS `none_z_datename_month_nk` FROM Calcs ORDER BY 1, 2, 3
+    unordered: true

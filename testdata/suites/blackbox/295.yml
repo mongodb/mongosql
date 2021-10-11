@@ -8,3 +8,4 @@ testcases:
       - [Tea]
     expected_types: [varchar]
     sql: SELECT `Product Type` AS `none_Product_Type_nk` FROM Starbucks GROUP BY `Product Type` ORDER BY 1 ASC
+    unordered: true

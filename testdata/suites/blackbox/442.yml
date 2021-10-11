@@ -84,3 +84,4 @@ testcases:
       - [12, West, Regular, 68394]
     expected_types: [int, varchar, varchar, int]
     sql: SELECT MONTH(`Date`) AS `mn_Date_ok`, `Market` AS `none_Market_nk`, `Type` AS `none_Type_nk`, SUM(CONVERT(`Inventory`, SQL_BIGINT)) AS `sum_Inventory_ok` FROM Starbucks WHERE (MONTH(`Date`) IN (1, 2, 3, 4, 5, 8, 9, 10, 11, 12)) GROUP BY MONTH(`Date`), `Market`, `Type` ORDER BY 1, 2, 3, 4
+    unordered: true

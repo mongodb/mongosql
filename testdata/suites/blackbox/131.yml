@@ -176,3 +176,4 @@ testcases:
       - ["Acco PRESSTEX\xAE Data Binder with Storage Hooks, Light Blue, 9 1/2\" X 11\""]
     expected_types: [varchar]
     sql: SELECT `Product Name` AS `none_Product_Name_nk` FROM Staples GROUP BY `Product Name` ORDER BY 1 LIMIT 172
+    unordered: true

@@ -6,3 +6,4 @@ testcases:
       - [CORPORATE]
     expected_types: [varchar]
     sql: SELECT (CASE WHEN (`Customer Segment` IN ('CONSUMER', 'HOME OFFICE', 'SMALL BUSINESS')) THEN 'CONSUMER' ELSE `Customer Segment` END) AS `Customer_Segment__group_` FROM Staples GROUP BY (CASE WHEN (`Customer Segment` IN ('CONSUMER', 'HOME OFFICE', 'SMALL BUSINESS')) THEN 'CONSUMER' ELSE `Customer Segment` END) ORDER BY 1
+    unordered: true

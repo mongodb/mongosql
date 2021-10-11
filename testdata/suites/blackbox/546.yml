@@ -196,3 +196,4 @@ testcases:
       - ['1999-12-01 00:00:00', West, Regular, 6477.178043195937]
     expected_types: [varchar, varchar, varchar, float]
     sql: SELECT `Date` AS `none_Date_ok`,   `Market` AS `none_Market_nk`,   `Type` AS `none_Type_nk`,   SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Date`,   `Market`,   `Type` ORDER BY 1, 2, 3, 4
+    unordered: true

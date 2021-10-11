@@ -6,3 +6,4 @@ testcases:
       - [UNEMPLOYED]
     expected_types: [varchar]
     sql: SELECT `App_Employ_Status` AS `none_App_Employ_Status_nk` FROM Loan GROUP BY `App_Employ_Status` ORDER BY 1 ASC
+    unordered: true

@@ -12,3 +12,4 @@ testcases:
       - [SY]
     expected_types: [varchar]
     sql: SELECT `Ticker` AS `none_Ticker_nk` FROM Securities GROUP BY `Ticker` ORDER BY 1 ASC
+    unordered: true

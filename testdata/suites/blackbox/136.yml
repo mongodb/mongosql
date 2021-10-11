@@ -4,3 +4,4 @@ testcases:
     expected_results: []
     expected_types: [varchar, varchar]
     sql: SELECT SUM(`Profit`) AS `sum_Profit_ok`,   SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks WHERE (0 <> 0) HAVING (COUNT(1) > 0) ORDER BY 1, 2
+    unordered: true

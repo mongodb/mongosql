@@ -115,7 +115,7 @@ func (b BSONDataset) restoreFromFile(opts *toolsoptions.ToolOptions) error {
 			StopOnError:            true,
 			NumParallelCollections: 1,
 			NumInsertionWorkers:    10,
-			MaintainInsertionOrder: true,
+			MaintainInsertionOrder: false,
 		},
 		NSOptions:       &mongorestore.NSOptions{},
 		SessionProvider: sp,

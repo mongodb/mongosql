@@ -28,3 +28,4 @@ testcases:
       - [913.4285714285714, 154, 12, Decaf, 140668]
     expected_types: [float, int, int, varchar, int]
     sql: SELECT AVG(CONVERT(`Inventory`, SQL_DOUBLE)) AS `avg_Inventory_ok`, COUNT(`Inventory`) AS `cnt_Inventory_ok`, MONTH(`Date`) AS `mn_Date_ok`, `Type` AS `none_Type_nk`, SUM(CONVERT(`Inventory`, SQL_BIGINT)) AS `sum_Inventory_ok` FROM Starbucks GROUP BY MONTH(`Date`), `Type` ORDER BY 1, 2, 3, 4, 5
+    unordered: true

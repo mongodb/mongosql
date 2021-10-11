@@ -54852,3 +54852,4 @@ testcases:
       - [TECHNOLOGY, 29287.38, 47976.45]
     expected_types: [varchar, float, float]
     sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk`,   `Gross Profit` AS `sum_Gross_Profit_ok`,   `Sales Total` AS `sum_Sales_Total_ok` FROM Staples WHERE ((`Sales Total` >= -8.0299999999999994) AND (`Sales Total` <= 49521.887745)) ORDER BY 1, 2, 3
+    unordered: true

@@ -178,3 +178,4 @@ testcases:
       - ['1997-06-23 00:00:00']
     expected_types: [varchar]
     sql: SELECT `Order Date` AS `none_Order_Date_ok` FROM Staples GROUP BY `Order Date` ORDER BY 1 LIMIT 174
+    unordered: true

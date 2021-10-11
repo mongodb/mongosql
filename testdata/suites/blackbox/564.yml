@@ -16,3 +16,4 @@ testcases:
       - [September, 11]
     expected_types: [varchar, int]
     sql: SELECT `MONTH` AS `none_MONTH_nk`, SUM(CONVERT(`MURDER`, SQL_BIGINT)) AS `sum_MURDER_ok` FROM SeattleCrime GROUP BY `MONTH` ORDER BY 1, 2
+    unordered: true

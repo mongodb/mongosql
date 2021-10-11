@@ -154,3 +154,4 @@ testcases:
       - [50, I. Versicolor, 95, 2, 36, null, 0]
     expected_types: [int, varchar, int, int, int, varchar, int]
     sql: SELECT `Case` AS `none_Case_ok`, `Species` AS `none_Species_nk`, SUM(CONVERT(`Length`, SQL_BIGINT)) AS `sum_Length_ok`, SUM(CONVERT(1, SQL_BIGINT)) AS `sum_Number_of_Records_ok`, SUM(CONVERT(`Width`, SQL_BIGINT)) AS `sum_Width_ok`, SUM(CONVERT(`birst_constant_one`, SQL_BIGINT)) AS `sum_birst_constant_one_ok`, SUM(CONVERT('row', SQL_BIGINT)) AS `sum_row_ok` FROM Fischeriris GROUP BY `Case`, `Species` ORDER BY 1, 2, 3, 4, 5, 6, 7
+    unordered: true

@@ -4,3 +4,4 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     sql: SELECT `Case` AS `none_Case_ok` FROM Fischeriris WHERE (`Case` IS NULL) ORDER BY 1 LIMIT 1
+    unordered: true

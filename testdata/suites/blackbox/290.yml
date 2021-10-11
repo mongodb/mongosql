@@ -108,3 +108,4 @@ testcases:
       - [Regular Espresso, 4, 7360, 1999]
     expected_types: [varchar, int, int, int]
     sql: SELECT `Product` AS `none_Product_nk`, QUARTER(`Date`) AS `qr_Date_ok`, SUM(CONVERT(`Inventory`, SQL_BIGINT)) AS `sum_Inventory_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY `Product`, QUARTER(`Date`), YEAR(`Date`) ORDER BY 1, 2, 3, 4
+    unordered: true

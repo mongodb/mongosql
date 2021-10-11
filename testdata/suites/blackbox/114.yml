@@ -8,3 +8,4 @@ testcases:
       - [1176, Espresso, 214854, 201140, 90800]
     expected_types: [int, varchar, int, int, int]
     sql: SELECT COUNT(1) AS `cnt_Number_of_Records_ok`, `Product Type` AS `none_Product_Type_nk`, SUM(CONVERT(`Additions`, SQL_BIGINT)) AS `sum_Additions_ok`, SUM(CONVERT(`Budget Additions`, SQL_BIGINT)) AS `sum_Budget_Additions_ok`, SUM(CONVERT(`Budget COGS`, SQL_BIGINT)) AS `sum_Budget_COGS_ok` FROM Starbucks GROUP BY `Product Type` ORDER BY 1, 2, 3, 4, 5
+    unordered: true

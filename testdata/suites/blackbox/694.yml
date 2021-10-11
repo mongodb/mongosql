@@ -21,3 +21,4 @@ testcases:
       - [1, key15, sixteen, 1]
     expected_types: [int, varchar, varchar, int]
     sql: SELECT COUNT(`str2`) AS `cnt_strC_ok`,   `key` AS `none_key_nk`,   `str2` AS `none_strC_nk`,   COUNT(`str2`) AS `usr_z_count_strC__ok` FROM Calcs GROUP BY `key`,   `str2` ORDER BY 1, 2, 3, 4
+    unordered: true

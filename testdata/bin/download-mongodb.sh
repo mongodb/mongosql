@@ -14,10 +14,6 @@ get_latest_for_distro() {
         version_for_curator="3.6.4" # Support for Enterprise Ubuntu 16.04 s390x was removed in r3.6.5
    elif [ "$distro" = "rhel67" ] ; then
          version_for_curator="4.2.0" # Support for RHEL 6.7 was removed in r4.2.1
-   elif [ "$distro" = "osx" ] ; then
-         # macos currently is failing to load data for blackbox and
-         #tableau, see BI-2662
-         version_for_curator="4.4-stable"
    else
          version_for_curator="$LATEST"
    fi

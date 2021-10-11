@@ -1177,3 +1177,4 @@ testcases:
       - [560, 630, Massachusetts]
     expected_types: [int, int, varchar]
     sql: SELECT `Budget Profit` AS `none_Budget_Profit_ok`,   `Budget Sales` AS `none_Budget_Sales_ok`,   `State` AS `none_State_nk` FROM Starbucks GROUP BY `Budget Profit`,   `Budget Sales`,   `State` ORDER BY 1, 2, 3
+    unordered: true

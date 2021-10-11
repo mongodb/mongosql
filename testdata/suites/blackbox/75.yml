@@ -5,3 +5,4 @@ testcases:
       - [259527.27268291984, 819827.1002277897]
     expected_types: [float, float]
     sql: SELECT SUM(`Profit`) AS `sum_This_field_has_a_really_long_name_but_it_turns_out_is_just_a_copy_of_Profit_ok`,   SUM(`Sales`) AS `sum_This_field_has_a_really_long_name_but_it_turns_out_is_just_a_copy_of_Sales_ok` FROM Starbucks HAVING (COUNT(1) > 0) ORDER BY 1, 2
+    unordered: true

@@ -21,3 +21,4 @@ testcases:
       - [key16, 1]
     expected_types: [varchar, int]
     sql: SELECT `key` AS `none_key_nk`,   (CASE WHEN (1 <> 0) THEN 1 WHEN NOT (1 <> 0) THEN 0 ELSE NULL END) AS `none_z_true_nk` FROM Calcs ORDER BY 1, 2
+    unordered: true

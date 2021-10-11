@@ -16,3 +16,4 @@ testcases:
       - [Tea, Washington, 2364.8642424494283]
     expected_types: [varchar, varchar, float]
     sql: SELECT `Product Type` AS `none_Product_Type_nk`,   `State` AS `none_State_nk`,   SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks WHERE (`State` IN ('California', 'Oregon', 'Washington')) GROUP BY `Product Type`,   `State` ORDER BY 1, 2, 3
+    unordered: true

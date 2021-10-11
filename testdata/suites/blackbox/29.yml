@@ -21,3 +21,4 @@ testcases:
       - [661.0194117647059, COPIERS AND FAX]
     expected_types: [float, varchar]
     sql: SELECT AVG(`Price`) AS `avg_Price_ok`,   `Prod Type2` AS `none_Prod_TypeC_nk` FROM Staples GROUP BY `Prod Type2` ORDER BY 1, 2
+    unordered: true

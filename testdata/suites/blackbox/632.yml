@@ -54864,3 +54864,4 @@ testcases:
       - [TECHNOLOGY, TELEPHONES AND COMMUNICATION, 4784.33]
     expected_types: [varchar, varchar, float]
     sql: SELECT `Prod Type1` AS `none_Prod_TypeB_nk`,   `Prod Type2` AS `none_Prod_TypeC_nk`,   `Gross Profit` AS `sum_Gross_Profit_ok` FROM Staples ORDER BY 1, 2, 3
+    unordered: true

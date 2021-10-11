@@ -29569,3 +29569,4 @@ testcases:
       - [80.06, 27, 3, CSCO, 1, 2000]
     expected_types: [float, int, int, varchar, int, int]
     sql: SELECT AVG(`Close_Price`) AS `avg_Close_Price_ok`, DAYOFMONTH(`Date`) AS `dy_Date_ok`, MONTH(`Date`) AS `mn_Date_ok`, `Ticker` AS `none_Ticker_nk`, QUARTER(`Date`) AS `qr_Date_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Securities GROUP BY DAYOFMONTH(`Date`), MONTH(`Date`), `Ticker`, QUARTER(`Date`), YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5, 6
+    unordered: true

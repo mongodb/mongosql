@@ -13,6 +13,7 @@ testcases:
     expected_types: [int, int]
     id: '0'
     sql: select * from (select a, b from union_1 union select d, e from union_2) as tmp order by a
+    unordered: true
 
   - db: union_test
     description: non-distinct values with implicit distinct operator
@@ -25,6 +26,7 @@ testcases:
     expected_types: [int]
     id: '1'
     sql: select * from (select d from union_2 union select g from union_3) as tmp order by d
+    unordered: true
 
   - db: union_test
     description: non-distinct values with all operator
@@ -39,6 +41,7 @@ testcases:
     expected_types: [int]
     id: '2'
     sql: select * from (select d from union_2 union all select g from union_3) as tmp order by d
+    unordered: true
 
   - db: union_test
     description: larger distinct values with implicit distinct operator
@@ -52,6 +55,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: '3'
     sql: select * from (select * from union_3 union select * from union_4) as tmp order by i
+    unordered: true
 
   - db: union_test
     description: larger distinct values with all operator
@@ -66,6 +70,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: '4'
     sql: select * from (select * from union_3 union all select * from union_4) as tmp order by i
+    unordered: true
 
   - db: union_test
     description: three unions, implicit distinct operator
@@ -81,6 +86,7 @@ testcases:
     expected_types: [int]
     id: '5'
     sql: select * from (select a from union_1 union select d from union_2 union select g from union_3) as tmp order by a
+    unordered: true
 
   - db: union_test
     description: four unions, implicit distinct operator
@@ -96,6 +102,7 @@ testcases:
     expected_types: [int]
     id: '6'
     sql: select * from (select a from union_1 union select d from union_2 union select g from union_3 union select a from union_4) as tmp order by a
+    unordered: true
 
   - db: union_test
     description: five unions, implicit distinct operator
@@ -112,6 +119,7 @@ testcases:
     expected_types: [int]
     id: '7'
     sql: select * from (select a from union_1 union select d from union_2 union select g from union_3 union select a from union_4 union select d from union_5) as tmp order by a
+    unordered: true
 
   - db: union_test
     description: five unions, all operator at positions 1-4
@@ -135,6 +143,7 @@ testcases:
     expected_types: [int]
     id: '8'
     sql: select * from (select a from union_1 union all select d from union_2 union all select g from union_3 union all select a from union_4 union all select d from union_5) as tmp order by a
+    unordered: true
 
   - db: union_test
     description: five unions, all operator at position 1
@@ -151,6 +160,7 @@ testcases:
     expected_types: [int]
     id: '9'
     sql: select * from (select a from union_1 union all select d from union_2 union select g from union_3 union select a from union_4 union select d from union_5) as tmp order by a
+    unordered: true
 
   - db: union_test
     description: five unions, all operator at positions 3 and 4
@@ -172,6 +182,7 @@ testcases:
     expected_types: [int]
     id: '10'
     sql: select * from (select a from union_1 union select d from union_2 union select g from union_3 union all select a from union_4 union all select d from union_5) as tmp order by a
+    unordered: true
 
   - db: union_test
     description: order by and limit paradigm
@@ -183,6 +194,7 @@ testcases:
     expected_types: [int, int]
     id: '11'
     sql: select * from (select a, c from union_1 order by a limit 2 union select d, f from union_2 order by d limit 1) as tmp order by a
+    unordered: true
 
   - db: union_test
     description: join paired with single union
@@ -195,6 +207,7 @@ testcases:
     expected_types: [int]
     id: '12'
     sql: select * from (select d from union_1 inner join union_2 on union_1._id=union_2._id union select g from union_3) as tmp order by d
+    unordered: true
 
   - db: union_test
     description: join paired with two unions
@@ -210,6 +223,7 @@ testcases:
     expected_types: [int]
     id: '13'
     sql: select * from (select a from union_1 union select d from union_1 inner join union_2 on union_1._id=union_2._id union select g from union_3) as tmp order by a
+    unordered: true
 
   - db: union_test
     description: two joins single union
@@ -224,6 +238,7 @@ testcases:
     expected_types: [int]
     id: '14'
     sql: select * from (select d from union_1 inner join union_2 on union_1._id=union_2._id union all select a from union_3 inner join union_4 on union_3._id=union_4._id) as tmp order by d
+    unordered: true
 
   - db: union_test
     description: parenthesis with order by and limit
@@ -234,6 +249,7 @@ testcases:
     expected_types: [int]
     id: '15'
     sql: select * from ((select d from union_2) union (select g from union_3)) ut order by d limit 2
+    unordered: true
 
   - db: union_test
     description: parenthesis with order by and limit
@@ -243,6 +259,7 @@ testcases:
     expected_types: [int]
     id: '16'
     sql: (select * from ((select d from union_2) union (select g from union_3)) ut) order by d limit 1
+    unordered: true
 
   - db: union_test
     description: test the union all subquery still works, currently not optimized

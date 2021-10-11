@@ -76,3 +76,4 @@ testcases:
       - [12, 4, 3588372, 2000]
     expected_types: [int, int, int, int]
     sql: SELECT MONTH(`Order Date`) AS `mn_Order_Date_ok`, QUARTER(`Order Date`) AS `qr_Order_Date_ok`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY MONTH(`Order Date`), QUARTER(`Order Date`), YEAR(`Order Date`) ORDER BY 1, 2, 3, 4
+    unordered: true

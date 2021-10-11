@@ -17,3 +17,4 @@ testcases:
       - [Tea, Green Tea, 32844.610340724255]
     expected_types: [varchar, varchar, float]
     sql: SELECT `Product Type` AS `none_Product_Type_nk`,   `Product` AS `none_Product_nk`,   SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Product Type`,   `Product` ORDER BY 1, 2, 3
+    unordered: true

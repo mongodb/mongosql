@@ -10,6 +10,7 @@ testcases:
     expected_types: [int, varchar]
     id: '0'
     sql: select * from collation_1 order by a
+    unordered: true
 
   - db: collation_test
     description: group by
@@ -20,6 +21,7 @@ testcases:
     expected_types: [varchar, int]
     id: '1'
     sql: select a, sum(_id) from collation_1 group by a order by a
+    unordered: true
 
   - db: collation_test
     description: where
@@ -30,3 +32,4 @@ testcases:
     expected_types: [int]
     id: '2'
     sql: select _id from collation_1 where a = 'A'
+    unordered: true

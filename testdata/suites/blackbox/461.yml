@@ -181,3 +181,4 @@ testcases:
       - [West, Mint, Utah, -280]
     expected_types: [varchar, varchar, varchar, int]
     sql: SELECT `Market` AS `none_Market_nk`, `Product` AS `none_Product_nk`, `State` AS `none_State_nk`, SUM(CONVERT(`Budget Profit`, SQL_BIGINT)) AS `sum_Budget_Profit_ok` FROM Starbucks GROUP BY `Market`, `Product`, `State` ORDER BY 1, 2, 3, 4
+    unordered: true

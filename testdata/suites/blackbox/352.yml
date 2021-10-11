@@ -21,3 +21,4 @@ testcases:
       - [key16, technology, null, null]
     expected_types: [varchar, varchar, varchar, varchar]
     sql: "SELECT `key` AS `none_key_nk`, LCASE(`str0`) AS `none_lower_strA__nk`, `str2` AS `none_strC_nk`, (CASE \tWHEN (LCASE(`str0`) IS NULL) OR (`str2` IS NULL) THEN NULL \tWHEN LCASE(`str0`) > `str2` THEN LCASE(`str0`) \tELSE `str2` END) AS `none_z_max_str_str_nk` FROM Calcs ORDER BY 1, 2, 3, 4"
+    unordered: true

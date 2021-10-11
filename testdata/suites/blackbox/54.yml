@@ -11,3 +11,4 @@ testcases:
       - [-0.0, 0, 0]
     expected_types: [float, float, float]
     sql: SELECT FLOOR((-`Discount`) / 0.050000000000000003) AS `Minus_Discount__bin_`, MAX(`Discount`) AS `max_Discount_ok`, MIN(`Discount`) AS `min_Discount_ok` FROM Staples GROUP BY FLOOR((-`Discount`) / 0.050000000000000003) ORDER BY 1, 2, 3
+    unordered: true

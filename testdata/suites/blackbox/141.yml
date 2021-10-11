@@ -1882,3 +1882,4 @@ testcases:
       - [70, CAUCASIAN, null, null]
     expected_types: [int, varchar, varchar, varchar]
     sql: SELECT `App_Age` AS `App_Age`,   `App_Race` AS `App_Race`,   `birst_constant_one` AS `birst_constant_one`,   `row` AS `row` FROM Loan WHERE (`App_Race` IN ('BLACK', 'CAUCASIAN')) ORDER BY 1, 2, 3, 4
+    unordered: true

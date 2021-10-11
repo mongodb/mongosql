@@ -46,3 +46,4 @@ testcases:
       - [West, 1, Mint, 72]
     expected_types: [varchar, int, varchar, int]
     sql: SELECT `Market` AS `none_Market_nk`, 1 AS `none_One_ok`, `Product` AS `none_Product_nk`, SUM(CONVERT(1, SQL_BIGINT)) AS `sum_Tableau_One_Column_For_Spot_Highlighting_Show_Me_ok` FROM Starbucks GROUP BY `Market`, `Product` ORDER BY 1, 2, 3, 4
+    unordered: true

@@ -44,3 +44,4 @@ testcases:
       - [Small Market, Wisconsin, 15700, 16892.646582093425, 1999]
     expected_types: [varchar, varchar, int, float, int]
     sql: SELECT `Market Size` AS `none_Market_Size_nk`, `State` AS `none_State_nk`, SUM(CONVERT(`Budget Sales`, SQL_BIGINT)) AS `sum_Budget_Sales_ok`, SUM(`Sales`) AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY `Market Size`, `State`, YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5
+    unordered: true

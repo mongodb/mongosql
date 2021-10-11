@@ -5,3 +5,4 @@ testcases:
       - [-15.7, -15.7]
     expected_types: [float, float]
     sql: SELECT MIN(`num0`) AS `min_numA_nk`,   MIN(`num0`) AS `usr_z_min_numA__nk` FROM Calcs HAVING (COUNT(1) > 0) ORDER BY 1, 2
+    unordered: true

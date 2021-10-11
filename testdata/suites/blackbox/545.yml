@@ -5,3 +5,4 @@ testcases:
       - [443038, 443038, 443038, 259527.27268291984]
     expected_types: [int, int, int, float]
     sql: SELECT SUM(CONVERT(`Margin`, SQL_BIGINT)) AS `sum_Another_Margin_ok`, SUM(CONVERT(`Margin`, SQL_BIGINT)) AS `sum_Margin_ok`, SUM(CONVERT(`Margin`, SQL_BIGINT)) AS `sum_My_Margin_ok`, SUM(`Profit`) AS `sum_Profit_ok` FROM Starbucks HAVING (COUNT(1) > 0) ORDER BY 1, 2, 3, 4
+    unordered: true

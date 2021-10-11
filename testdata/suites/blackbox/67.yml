@@ -7,3 +7,4 @@ testcases:
       - [Regular Espresso, 181.97222222222223, 72, 13102]
     expected_types: [varchar, float, int, int]
     sql: SELECT (CASE `Product` WHEN 'Caffe Latte' THEN 'Caffe Latte' WHEN 'Caffe Mocha' THEN 'Caffe Latte' WHEN 'Regular Espresso' THEN 'Regular Espresso' ELSE 'Mint' END) AS `Product__group_`, AVG(CONVERT(`Margin`, SQL_DOUBLE)) AS `avg_Margin_ok`, COUNT(`Margin`) AS `cnt_Margin_ok`, SUM(CONVERT(`Margin`, SQL_BIGINT)) AS `sum_Margin_ok` FROM Starbucks GROUP BY (CASE `Product` WHEN 'Caffe Latte' THEN 'Caffe Latte' WHEN 'Caffe Mocha' THEN 'Caffe Latte' WHEN 'Regular Espresso' THEN 'Regular Espresso' ELSE 'Mint' END) ORDER BY 1, 2, 3, 4
+    unordered: true

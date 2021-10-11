@@ -141,3 +141,4 @@ testcases:
       - [Worcester Ruby Legs]
     expected_types: [varchar]
     sql: SELECT `Team` AS `none_Team_nk` FROM Batters GROUP BY `Team` ORDER BY 1 ASC
+    unordered: true

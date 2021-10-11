@@ -10,3 +10,4 @@ testcases:
       - [672, 56, NORTH PRECINCT]
     expected_types: [int, int, varchar]
     sql: SELECT COUNT(`TRACT`) AS `TEMP_Avg_Rape_Per_Tract__DGDBIHAADB__A_`, SUM(CONVERT(`RAPE`, SQL_BIGINT)) AS `TEMP_Avg_Rape_Per_Tract__HDEJFCFIH__A_`, `PRECINCT` AS `none_PRECINCT_nk` FROM SeattleCrime GROUP BY `PRECINCT` HAVING ((CASE WHEN COUNT(`TRACT`) = 0 THEN NULL ELSE CONVERT(SUM(CONVERT(`RAPE`, SQL_BIGINT)), SQL_DOUBLE) / COUNT(`TRACT`) END) < 0.12) ORDER BY 1, 2, 3
+    unordered: true

@@ -12,3 +12,4 @@ testcases:
       - [Tea, 2, 9906, 1999]
     expected_types: [varchar, int, int, int]
     sql: SELECT `Product Type` AS `none_Product_Type_nk`, QUARTER(`Date`) AS `qr_Date_ok`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE ((((YEAR(`Date`) * 100) + MONTH(`Date`)) IN (199801, 199802, 199803, 199904, 199905, 199906)) AND (QUARTER(`Date`) <= 2)) GROUP BY `Product Type`, QUARTER(`Date`), YEAR(`Date`) ORDER BY 1, 2, 3, 4
+    unordered: true

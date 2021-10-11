@@ -180,3 +180,4 @@ testcases:
       - [Acco Pocket Keypad]
     expected_types: [varchar]
     sql: SELECT `Product Name` AS `none_Product_Name_nk` FROM Staples GROUP BY `Product Name` ORDER BY 1 LIMIT 176
+    unordered: true

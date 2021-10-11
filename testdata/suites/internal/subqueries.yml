@@ -10,6 +10,7 @@ testcases:
     expected_types: [int, int, int]
     id: '0'
     sql: select * from (select * from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: subqueries_test
     description: qualified *
@@ -21,6 +22,7 @@ testcases:
     expected_types: [int, int, int]
     id: '1'
     sql: select foo.* from (select * from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: subqueries_test
     description: duplicate qualified *
@@ -32,6 +34,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: '2'
     sql: select foo.*, foo.* from (select * from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: subqueries_test
     description: alias qualified *
@@ -43,6 +46,7 @@ testcases:
     expected_types: [int, int, int]
     id: '3'
     sql: select f.* from (select * from subqueries_test.subqueries) f
+    unordered: true
 
   - db: subqueries_test
     description: columns
@@ -54,6 +58,7 @@ testcases:
     expected_types: [int, int, int]
     id: '4'
     sql: select _id, a, b from (select * from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: subqueries_test
     description: columns with wrong casing
@@ -65,6 +70,7 @@ testcases:
     expected_types: [int, int, int]
     id: '5'
     sql: select _ID, A, B from (select * from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: subqueries_test
     description: qualified columns
@@ -76,6 +82,7 @@ testcases:
     expected_types: [int, int, int]
     id: '6'
     sql: select foo._id, foo.a, foo.b from (select * from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: subqueries_test
     description: alias qualified columns
@@ -87,6 +94,7 @@ testcases:
     expected_types: [int, int, int]
     id: '7'
     sql: select f._id, f.a, f.b from (select * from subqueries_test.subqueries) f
+    unordered: true
 
   - db: subqueries_test
     description: duplicate columns
@@ -98,6 +106,7 @@ testcases:
     expected_types: [int, int, int, int, int, int]
     id: '8'
     sql: select _id, a, b, _id, a, b from (select * from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: subqueries_test
     description: aliases
@@ -109,6 +118,7 @@ testcases:
     expected_types: [int, int, int]
     id: '9'
     sql: select _id as d, a as e, b as f from (select * from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: subqueries_test
     description: aliased as another column
@@ -120,6 +130,7 @@ testcases:
     expected_types: [int, int, int]
     id: '10'
     sql: select _id as a, a as b, b as _id from (select * from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: subqueries_test
     description: duplicate aliases
@@ -131,6 +142,7 @@ testcases:
     expected_types: [int, int, int]
     id: '11'
     sql: select _id, a as _id, b as _id from (select * from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: subqueries_test
     description: aliases differing by case
@@ -142,6 +154,7 @@ testcases:
     expected_types: [int, int]
     id: '12'
     sql: select _id, a as _ID from (select * from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: subqueries_test
     description: subset of columns
@@ -153,6 +166,7 @@ testcases:
     expected_types: [int, int]
     id: '13'
     sql: select _id, b from (select * from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: subqueries_test
     description: subset of columns out of order
@@ -164,6 +178,7 @@ testcases:
     expected_types: [int, int]
     id: '14'
     sql: select b, _id from (select * from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: subqueries_test
     description: global * from column subset
@@ -175,6 +190,7 @@ testcases:
     expected_types: [int, int]
     id: '15'
     sql: select * from (select _id, a from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: subqueries_test
     description: global * from aliased column subset
@@ -186,6 +202,7 @@ testcases:
     expected_types: [int, int]
     id: '16'
     sql: select * from (select _id as a, a as b from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: subqueries_test
     description: named columns from aliased column subset
@@ -197,6 +214,7 @@ testcases:
     expected_types: [int, int]
     id: '17'
     sql: select a, b from (select _id as a, a as b from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: subqueries_test
     description: named columns from aliased column subset from a nested subquery
@@ -208,6 +226,7 @@ testcases:
     expected_types: [int, int]
     id: '18'
     sql: select a, b from (select * from (select _id as a, a as b from subqueries_test.subqueries) foo) f
+    unordered: true
 
   - db: subqueries_test
     description: BI-982
@@ -217,6 +236,7 @@ testcases:
     expected_types: [varchar, float]
     id: '19'
     sql: SELECT name, sum ( value )  FROM ( SELECT CASE WHEN INSTR(name, '2') THEN '2' ELSE name END name, value from `subqueries_test`.`subqueries_BI-982` ) as derived_table
+    unordered: true
 
   - db: subqueries_test
     description: test a left subquery comparison
@@ -226,6 +246,7 @@ testcases:
     expected_types: [int]
     id: 'left_subquery'
     sql: select (select _id from subqueries limit 1) = 0 a
+    unordered: true
 
   - db: subqueries_test
     description: test a right subquery comparison
@@ -235,6 +256,7 @@ testcases:
     expected_types: [int]
     id: 'right_subquery'
     sql: select 0 = (select _id from subqueries limit 1) a
+    unordered: true
 
   - db: subqueries_test
     description: test a subquery comparison where one of the children is a union
@@ -243,6 +265,7 @@ testcases:
     expected_types: [int, int, int]
     id: 'union_subquery'
     sql: select * from subqueries where (select * from subqueries limit 1) = (select * from subqueries limit 0 union select * from `subqueries_BI-982` limit 1);
+    unordered: true
 
   - db: subqueries_test
     description: BI-2144 regression test--no panic for correlated column expr
@@ -254,9 +277,11 @@ testcases:
     expected_types: [int]
     id: 'correlated_column_subquery'
     sql: select (select a) from subqueries
+    unordered: true
 
   - db: subqueries_test
     description: test a subquery with an ambiguous column reference
     expected_error: "Error 1052: Column '_id' in field list is ambiguous"
     id: 'ambiguous_column_subquery'
     sql: select * from subqueries where _id in (select _id from subqueries as sub1 join subqueries as sub2)
+    unordered: true

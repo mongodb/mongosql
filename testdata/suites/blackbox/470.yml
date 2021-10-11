@@ -17,3 +17,4 @@ testcases:
       - [55801.15651418439, Columbian]
     expected_types: [float, varchar]
     sql: SELECT SUM(`Profit`) AS `TEMP_ProfitSpotlight__BHJGICDBHG__A_`,   `Product` AS `none_Product_nk` FROM Starbucks GROUP BY `Product` ORDER BY 1, 2
+    unordered: true

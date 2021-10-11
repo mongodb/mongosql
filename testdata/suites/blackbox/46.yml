@@ -4,3 +4,4 @@ testcases:
     expected_results: []
     expected_types: [varchar]
     sql: SELECT `Employee Name` AS `none_Employee_Name_nk` FROM Staples WHERE (`Employee Name` IS NULL) ORDER BY 1 LIMIT 1
+    unordered: true

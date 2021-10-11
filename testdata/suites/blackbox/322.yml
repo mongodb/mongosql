@@ -21,3 +21,4 @@ testcases:
       - [key16, 0]
     expected_types: [varchar, int]
     sql: SELECT `key` AS `none_key_nk`,   `int3` AS `sum_intD_ok` FROM Calcs ORDER BY 1, 2
+    unordered: true

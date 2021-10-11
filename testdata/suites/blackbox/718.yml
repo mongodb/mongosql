@@ -21,3 +21,4 @@ testcases:
       - ['2004-08-02 07:59:23', key02, 2]
     expected_types: [varchar, varchar, int]
     sql: SELECT `datetime0` AS `none_datetimeA_ok`, `key` AS `none_key_nk`, LTRIM(CONVERT(DAYOFMONTH(`datetime0`), SQL_VARCHAR)) AS `none_z_datename_day_nk` FROM Calcs ORDER BY 1, 2, 3
+    unordered: true

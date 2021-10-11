@@ -304,3 +304,4 @@ testcases:
       - [300, Sepal, I. Versicolor, 55, 23]
     expected_types: [int, varchar, varchar, int, int]
     sql: SELECT `ID` AS `none_ID_ok`,   `Organ` AS `none_Organ_nk`,   `Species` AS `none_Species_nk`,   `Length` AS `sum_Length_ok`,   `Width` AS `sum_Width_ok` FROM Fischeriris ORDER BY 1, 2, 3, 4, 5
+    unordered: true

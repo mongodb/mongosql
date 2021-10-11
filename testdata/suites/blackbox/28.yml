@@ -79,3 +79,4 @@ testcases:
       - [WEST, WASHINGTON, TECHNOLOGY, 2027775]
     expected_types: [varchar, varchar, varchar, int]
     sql: SELECT `Call Center Region` AS `none_Call_Center_Region_nk`, `Customer State` AS `none_Customer_State_nk`, `Prod Type1` AS `none_Prod_TypeB_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok` FROM Staples GROUP BY `Call Center Region`, `Customer State`, `Prod Type1` ORDER BY 1, 2, 3, 4
+    unordered: true

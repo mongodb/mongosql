@@ -8,3 +8,4 @@ testcases:
       - [57.3873363095238, Central, 265047.8206044649]
     expected_types: [float, varchar, float]
     sql: SELECT AVG(`Margin Rate`) AS `avg_Margin_Rate_ok`,   `Market` AS `none_Market_nk`,   SUM(`Sales`) AS `sum_Sales_ok` FROM Starbucks GROUP BY `Market` ORDER BY 1, 2, 3
+    unordered: true

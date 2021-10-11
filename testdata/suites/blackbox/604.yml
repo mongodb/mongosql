@@ -52,3 +52,4 @@ testcases:
       - [12, SMALL BUSINESS, 4577971, 57.15]
     expected_types: [int, varchar, int, float]
     sql: SELECT MONTH(`Order Date`) AS `mn_Order_Date_ok`, `Customer Segment` AS `none_Customer_Segment_nk`, SUM(CONVERT(`Customer Balance`, SQL_BIGINT)) AS `sum_Customer_Balance_ok`, SUM(`Discount`) AS `sum_Discount_ok` FROM Staples GROUP BY MONTH(`Order Date`), `Customer Segment` ORDER BY 1, 2, 3, 4
+    unordered: true

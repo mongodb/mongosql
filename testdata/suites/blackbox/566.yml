@@ -25,3 +25,4 @@ testcases:
       - [22, 1]
     expected_types: [int, int]
     sql: SELECT FLOOR(`THEFT` / 10) AS `Theft_Buckets`, COUNT(`TRACT`) AS `cnt_TRACT_ok` FROM SeattleCrime GROUP BY FLOOR(`THEFT` / 10) ORDER BY 1, 2
+    unordered: true

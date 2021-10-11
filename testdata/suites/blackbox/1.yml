@@ -68,3 +68,4 @@ testcases:
       - [Small Market, West, 4, 8030, 10019, 1999]
     expected_types: [varchar, varchar, int, int, int, int]
     sql: SELECT `Market Size` AS `none_Market_Size_nk`, `Market` AS `none_Market_nk`, QUARTER(`Date`) AS `qr_Date_ok`, SUM(CONVERT(`Budget COGS`, SQL_BIGINT)) AS `sum_Budget_COGS_ok`, SUM(CONVERT(`COGS`, SQL_BIGINT)) AS `sum_COGS_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks GROUP BY `Market Size`, `Market`, QUARTER(`Date`), YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5, 6
+    unordered: true

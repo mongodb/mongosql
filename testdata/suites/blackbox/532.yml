@@ -18,3 +18,4 @@ testcases:
       - [two, two, 1]
     expected_types: [varchar, varchar, int]
     sql: SELECT `str2` AS `none_strC_nk`, (CASE WHEN (`str2` IS NULL) THEN NULL WHEN (`str2` IN ('eight', 'eleven')) THEN 'eight' WHEN (`str2` IN ('sixteen', 'ten')) THEN 'sixteen' WHEN (`str2` IN ('three', 'twelve')) THEN 'three' ELSE 'two' END) AS `strC__group__B`, SUM(CONVERT(1, SQL_BIGINT)) AS `sum_Number_of_Records_ok` FROM Calcs GROUP BY `str2`, (CASE WHEN (`str2` IS NULL) THEN NULL WHEN (`str2` IN ('eight', 'eleven')) THEN 'eight' WHEN (`str2` IN ('sixteen', 'ten')) THEN 'sixteen' WHEN (`str2` IN ('three', 'twelve')) THEN 'three' ELSE 'two' END) ORDER BY 1, 2, 3
+    unordered: true

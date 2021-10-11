@@ -277,3 +277,4 @@ testcases:
       - [70, 9]
     expected_types: [int, int]
     sql: SELECT `App_Age` AS `none_App_Age_ok`,   `Loan_Region` AS `none_Loan_Region_ok` FROM Loan GROUP BY `App_Age`,   `Loan_Region` ORDER BY 1, 2
+    unordered: true

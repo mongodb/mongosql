@@ -10,6 +10,7 @@ testcases:
     sql: "\n      \n\n--\n\nSELECT `Calcs`.`str2` AS `str2`,\n  SUM(`Calcs`.`num3`)\
       \ AS `sum_num3_ok`\nFROM `Calcs`\nWHERE ISNULL(`Calcs`.`str2`)\nGROUP BY 1\n \
       \    order by 1"
+    unordered: true
   - expected_results:
       - [null]
       - ['-5.54']
@@ -23,6 +24,7 @@ testcases:
     sql: "\n      \n\n--\n\nSELECT `Calcs`.`str2` AS `str2`,\n  SUM(`Calcs`.`num3`)\
       \ AS `sum_num3_ok`\nFROM `Calcs`\nWHERE ((`Calcs`.`str2` IN ('sixteen')) OR ISNULL(`Calcs`.`str2`))\n\
       GROUP BY 1\n     order by 1"
+    unordered: true
   - expected_results:
       - [key00]
       - ['17.86']
@@ -50,6 +52,7 @@ testcases:
     sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`num2`) AS\
       \ `sum_num2_ok`,\n  SUM(`Calcs`.`num2`) AS `$__alias__0`\nFROM `Calcs`\nGROUP\
       \ BY 1\nORDER BY `$__alias__0` DESC\nLIMIT 10\n     order by 1"
+    unordered: true
   - expected_results:
       - [null]
       - [eight]
@@ -63,6 +66,7 @@ testcases:
       \ 'five', 'fourteen', 'nine', 'one', 'six', 'sixteen', 'ten', 'three', 'twelve'))\
       \ THEN 'eleven' ELSE `Calcs`.`str2` END) AS `Str2 (group)`\nFROM `Calcs`\nGROUP\
       \ BY 1\n     order by 1"
+    unordered: true
   - expected_results:
       - [null]
       - [sixteen]
@@ -77,6 +81,7 @@ testcases:
     sql: "\n      \n\n--\n\nSELECT `Calcs`.`str2` AS `str2`\nFROM `Calcs`\nWHERE ((NOT\
       \ ((`Calcs`.`str2` >= 'eight') AND (`Calcs`.`str2` <= 'six'))) OR ISNULL(`Calcs`.`str2`))\n\
       GROUP BY 1\n     order by 1"
+    unordered: true
   - expected_results:
       - [key00]
       - ['-3']
@@ -98,6 +103,7 @@ testcases:
     sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`int1`) AS\
       \ `sum_int1_ok`\nFROM `Calcs`\nGROUP BY 1\nHAVING (SUM(`Calcs`.`int1`) <= 2)\n\
       \     order by 1"
+    unordered: true
   - expected_results:
       - [key00]
       - ['-3']
@@ -123,6 +129,7 @@ testcases:
     sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`int1`) AS\
       \ `sum_int1_ok`\nFROM `Calcs`\nGROUP BY 1\nHAVING (NOT ISNULL(SUM(`Calcs`.`int1`)))\n\
       \     order by 1"
+    unordered: true
   - expected_results:
       - [key02]
       - [null]
@@ -153,6 +160,7 @@ testcases:
       \ `sum_int1_ok`\nFROM `Calcs`\nGROUP BY 1\nHAVING (((SUM(`Calcs`.`int1`) >= 0)\
       \ AND (SUM(`Calcs`.`int1`) <= 2)) OR ISNULL(SUM(`Calcs`.`int1`)))\n     order\
       \ by 1"
+    unordered: true
   - expected_results:
       - [null]
       - [fourteen]
@@ -171,6 +179,7 @@ testcases:
     sql: "\n      \n\n--\n\nSELECT `Calcs`.`str2` AS `str2`\nFROM `Calcs`\nWHERE ((NOT\
       \ (`Calcs`.`str2` IN ('eight', 'eleven', 'fifteen', 'five'))) OR ISNULL(`Calcs`.`str2`))\n\
       GROUP BY 1\n     order by 1"
+    unordered: true
   - expected_results:
       - [key07]
       - ['2']
@@ -186,6 +195,7 @@ testcases:
     sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`int1`) AS\
       \ `sum_int1_ok`\nFROM `Calcs`\nGROUP BY 1\nHAVING (SUM(`Calcs`.`int1`) >= 0)\n\
       \     order by 1"
+    unordered: true
   - expected_results:
       - [OFFICE SUPPLIES]
     expected_error: ''
@@ -202,6 +212,7 @@ testcases:
       \ OR ((`Calcs`.`str1` >= 'CONFERENCE PHONES') AND (`Calcs`.`str1` <= 'ERICSSON')))\n\
       \  GROUP BY 1\n  ORDER BY `$__alias__1` DESC\n  LIMIT 5\n) `t1` ON (`Calcs`.`str1`\
       \ = `t1`.`str1`)\nGROUP BY 1\n     order by 1"
+    unordered: true
   - expected_results:
       - [key07]
       - ['2']
@@ -213,6 +224,7 @@ testcases:
     sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`int1`) AS\
       \ `sum_int1_ok`\nFROM `Calcs`\nGROUP BY 1\nHAVING ((SUM(`Calcs`.`int1`) >= 0)\
       \ AND (SUM(`Calcs`.`int1`) <= 2))\n     order by 1"
+    unordered: true
   - expected_results:
       - [null]
       - [null]
@@ -263,6 +275,7 @@ testcases:
       \ / 3) AS `YearDiffs2 (bin)`,\n  FLOOR((YEAR(`Calcs`.`date0`) - YEAR(`Calcs`.`date1`))\
       \ / 4) AS `YearDiffs3 (bin)`\nFROM `Calcs`\nGROUP BY 1,\n  2,\n  3,\n  4,\n  5,\n\
       \  6\n     order by 1"
+    unordered: true
   - expected_results:
       - ['']
     expected_error: ''
@@ -272,6 +285,7 @@ testcases:
     skip: true
     sql: "\n      \n\n--\n\nSELECT `Calcs`.`str2` AS `str2`\nFROM `Calcs`\nGROUP BY\
       \ 1\nHAVING (SUM(`Calcs`.`int2`) > 1000)\n     order by 1"
+    unordered: true
   - expected_results:
       - ['2016-07-15 10:11:12.123']
     expected_error: ''
@@ -284,6 +298,7 @@ testcases:
       \ `Calcs`\nWHERE (IFNULL(TIMESTAMP('2016-07-15 10:11:12.123'),STR_TO_DATE('2016-07-15\
       \ 10:11:12.123','%b %e %Y %l:%i%p')) = TIMESTAMP('2016-07-15 10:11:12.123'))\n\
       HAVING (COUNT(1) > 0)\n     order by 1"
+    unordered: true
   - expected_results:
       - [eight]
       - ['3.64']
@@ -319,6 +334,7 @@ testcases:
     sql: "\n      \n\n--\n\nSELECT `Calcs`.`str2` AS `str2`,\n  SUM(`Calcs`.`num3`)\
       \ AS `sum_num3_ok`\nFROM `Calcs`\nWHERE ((`Calcs`.`str2` >= 'eight') AND (`Calcs`.`str2`\
       \ <= 'two'))\nGROUP BY 1\n     order by 1"
+    unordered: true
   - expected_results:
       - [OFFICE SUPPLIES]
       - ['14']
@@ -334,6 +350,7 @@ testcases:
       WHERE (((`Calcs`.`str1` >= 'AIR PURIFIERS') AND (`Calcs`.`str1` <= 'CD-R MEDIA'))\
       \ OR ((`Calcs`.`str1` >= 'CONFERENCE PHONES') AND (`Calcs`.`str1` <= 'ERICSSON')))\n\
       GROUP BY 1\n     order by 1"
+    unordered: true
   - expected_results:
       - [key00]
       - ['-3']
@@ -373,6 +390,7 @@ testcases:
     sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`int1`) AS\
       \ `sum_int1_ok`\nFROM `Calcs`\nGROUP BY 1\nHAVING ((SUM(`Calcs`.`int1`) <= 2)\
       \ OR ISNULL(SUM(`Calcs`.`int1`)))\n     order by 1"
+    unordered: true
   - expected_results:
       - [key02]
       - [null]
@@ -400,6 +418,7 @@ testcases:
     sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`num2`) AS\
       \ `sum_num2_ok`,\n  SUM(`Calcs`.`num2`) AS `$__alias__0`\nFROM `Calcs`\nGROUP\
       \ BY 1\nORDER BY `$__alias__0` ASC\nLIMIT 10\n     order by 1"
+    unordered: true
   - expected_results:
       - [key02]
       - [null]
@@ -433,6 +452,7 @@ testcases:
     sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`int1`) AS\
       \ `sum_int1_ok`\nFROM `Calcs`\nGROUP BY 1\nHAVING ((SUM(`Calcs`.`int1`) >= 0)\
       \ OR ISNULL(SUM(`Calcs`.`int1`)))\n     order by 1"
+    unordered: true
   - expected_results:
       - [key02]
       - [null]
@@ -460,3 +480,4 @@ testcases:
     sql: "\n      \n\n--\n\nSELECT `Calcs`.`key` AS `key`,\n  SUM(`Calcs`.`int1`) AS\
       \ `sum_int1_ok`\nFROM `Calcs`\nGROUP BY 1\nHAVING ISNULL(SUM(`Calcs`.`int1`))\n\
       \     order by 1"
+    unordered: true

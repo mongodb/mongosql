@@ -11396,3 +11396,4 @@ testcases:
       - [iDENi80s, 2002]
     expected_types: [varchar, int]
     sql: SELECT `Product Name` AS `none_Product_Name_nk`, YEAR(`Order Date`) AS `yr_Order_Date_ok` FROM Staples GROUP BY `Product Name`, YEAR(`Order Date`) ORDER BY 1, 2
+    unordered: true

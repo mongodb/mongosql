@@ -6,6 +6,7 @@ testcases:
     expected_types: [int]
     id: '1'
     sql: select sleep(0.1)
+    unordered: true
 
   - db: functions_test
     expected_names: [sleep(0.1)]
@@ -18,6 +19,7 @@ testcases:
     expected_types: [int]
     id: '2'
     sql: select sleep(0.1) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [_id]
@@ -25,6 +27,7 @@ testcases:
     expected_types: [int]
     id: '3'
     sql: select _id from scalar where sleep(0.1)
+    unordered: true
 
   - expected_names: ['1', sleep(0.1)]
     expected_results:
@@ -32,6 +35,7 @@ testcases:
     expected_types: [int, int]
     id: '4'
     sql: select 1, sleep(0.1)
+    unordered: true
 
   - db: collation_test
     description: where
@@ -42,6 +46,7 @@ testcases:
     expected_types: [int, int]
     id: collation
     sql: select _id, sleep(0.1) from collation_1 where a = 'A'
+    unordered: true
 
   - db: functions_test
     expected_names: [min(a), sleep(0.1)]
@@ -50,6 +55,7 @@ testcases:
     expected_types: [int, int]
     id: functions_1
     sql: select min(a), sleep(0.1) from scalar
+    unordered: true
 
   - db: functions_test
     expected_names: [sleep(0.1), 2+d]
@@ -62,6 +68,7 @@ testcases:
     expected_types: [int, float]
     id: functions_2
     sql: select sleep(0.1), 2+d from scalar
+    unordered: true
 
   - db: groupby_test
     expected_names: [a, sum(b), count(*), sleep(0.1)]
@@ -72,6 +79,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: groupby
     sql: select a, sum(b), count(*), sleep(0.1) from groupby_test.groupby group by a order by a
+    unordered: true
 
   - db: join_test
     expected_names: [_id, a, b, _id, c, d, sleep(0.1)]
@@ -88,6 +96,7 @@ testcases:
     expected_types: [int, int, int, int, int, int, int]
     id: join
     sql: select f.*, b.*, sleep(0.1) from join_test.join_1 f, join_test.join_2 b
+    unordered: true
 
   - db: limit_test
     expected_names: [sleep(0.1), a]
@@ -96,6 +105,7 @@ testcases:
     expected_types: [int, int]
     id: limit
     sql: select sleep(0.1), a from limit_test.limitTable limit 2, 1
+    unordered: true
 
   - db: orderby_test
     expected_names: [_id, a, sleep(0.1)]
@@ -107,6 +117,7 @@ testcases:
     expected_types: [int, int, int]
     id: orderby
     sql: select _id, a, sleep(0.1) from orderby_test.orderbyTable order by a desc
+    unordered: true
 
   - db: select_sTest
     expected_names: [b, sleep(0.1), _id]
@@ -117,6 +128,7 @@ testcases:
     expected_types: [int, int, int]
     id: select
     sql: select b, sleep(0.1), _id FROM select_Stest.select_1
+    unordered: true
 
   - db: subqueries_test
     expected_names: [_id, a, b, sleep(0.1)]
@@ -127,6 +139,7 @@ testcases:
     expected_types: [int, int, int, int]
     id: subquery
     sql: select _id, a, b, sleep(0.1) from (select * from subqueries_test.subqueries) foo
+    unordered: true
 
   - db: where_test
     expected_names: [a, sleep(0.1)]
@@ -135,6 +148,7 @@ testcases:
     expected_types: [int, int]
     id: where
     sql: select a, sleep(0.1) from where_4 where b = 5 and a between 1 and 4
+    unordered: true
 
   - db: functions_test
     expected_names: [sleep(a)]
@@ -144,6 +158,7 @@ testcases:
     expected_types: [int]
     id: column_tinyint
     sql: select sleep(a) from convert_0 where a is not null
+    unordered: true
 
   - db: where_test
     expected_names: [sleep(b)]
@@ -154,6 +169,7 @@ testcases:
     expected_types: [int]
     id: column_bigint
     sql: select sleep(b) from where_4 where b is not null
+    unordered: true
 
   - db: where_test
     expected_names: [sleep(rnum)]
@@ -166,6 +182,7 @@ testcases:
     expected_types: [int]
     id: column_double
     sql: select sleep(rnum) from where_6
+    unordered: true
 
   - db: where_test
     expected_names: [sleep(a)]
@@ -176,6 +193,7 @@ testcases:
     expected_types: [int]
     id: column_varchar
     sql: select sleep(a) from where_5
+    unordered: true
 
   - expected_names: [sleep(1.5)]
     expected_results:
@@ -183,3 +201,4 @@ testcases:
     expected_types: [int]
     id: float_duration
     sql: select sleep(1.5)
+    unordered: true

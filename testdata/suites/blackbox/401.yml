@@ -28,3 +28,4 @@ testcases:
       - [West, Tea, Regular, 36881.63576834391, 1999]
     expected_types: [varchar, varchar, varchar, float, int]
     sql: SELECT `Market` AS `none_Market_nk`, `Product Type` AS `none_Product_Type_nk`, `Type` AS `none_Type_nk`, SUM(`Sales`) AS `sum_Sales_ok`, YEAR(`Date`) AS `yr_Date_ok` FROM Starbucks WHERE (`Market` IN ('East', 'West')) GROUP BY `Market`, `Product Type`, `Type`, YEAR(`Date`) ORDER BY 1, 2, 3, 4, 5
+    unordered: true
