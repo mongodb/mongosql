@@ -2308,15 +2308,24 @@ mod from_clause {
     test_algebrize!(
         invalid_join_condition,
         algebrize_from_clause,
-        Err(Error::FieldNotFound("bar".into())),
+        Err(Error::FieldNotFound("x".into())),
         Some(ast::Datasource::Join(JoinSource {
             join_type: ast::JoinType::Cross,
-            left: Box::new(AST_SOURCE_FOO.clone()),
-            right: Box::new(AST_SOURCE_BAR.clone()),
-            condition: Some(ast::Expression::Identifier("bar".into())),
+            left: Box::new(ast::Datasource::Array(ast::ArraySource {
+                array: vec![ast::Expression::Document(multimap! {
+                    "foo".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                })],
+                alias: "foo".into()
+            })),
+            right: Box::new(ast::Datasource::Array(ast::ArraySource {
+                array: vec![ast::Expression::Document(multimap! {
+                    "bar".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                })],
+                alias: "bar".into()
+            })),
+            condition: Some(ast::Expression::Identifier("x".into())),
         }))
     );
-
     test_algebrize!(
         derived_single_datasource,
         algebrize_from_clause,
@@ -2502,6 +2511,60 @@ mod from_clause {
                 offset: None,
             })),
             alias: "d".into(),
+        })),
+    );
+    test_algebrize!(
+        join_condition_referencing_non_correlated_fields,
+        algebrize_from_clause,
+        Ok(ir::Stage::Join(ir::Join {
+            join_type: ir::JoinType::Left,
+            left: Box::new(ir::Stage::Array(ir::Array {
+                array: vec![ir::Expression::Document(
+                    unchecked_unique_linked_hash_map! {"a".to_string() => ir::Expression::Literal(ir::Literal::Integer(1))}
+                )],
+                alias: "foo".to_string()
+            })),
+            right: Box::new(ir::Stage::Array(ir::Array {
+                array: vec![ir::Expression::Document(
+                    unchecked_unique_linked_hash_map! {"b".to_string() => ir::Expression::Literal(ir::Literal::Integer(4))}
+                )],
+                alias: "bar".to_string()
+            })),
+            condition: Some(ir::Expression::ScalarFunction(
+                ir::ScalarFunctionApplication {
+                    function: ir::ScalarFunction::Eq,
+                    args: vec![
+                        ir::Expression::FieldAccess(ir::FieldAccess {
+                            expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
+                            field: "a".to_string()
+                        }),
+                        ir::Expression::FieldAccess(ir::FieldAccess {
+                            expr: Box::new(ir::Expression::Reference(("bar", 0u16).into())),
+                            field: "b".to_string()
+                        })
+                    ]
+                }
+            ))
+        })),
+        Some(ast::Datasource::Join(JoinSource {
+            join_type: ast::JoinType::Left,
+            left: Box::new(ast::Datasource::Array(ast::ArraySource {
+                array: vec![ast::Expression::Document(multimap! {
+                    "a".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                },)],
+                alias: "foo".into(),
+            })),
+            right: Box::new(ast::Datasource::Array(ast::ArraySource {
+                array: vec![ast::Expression::Document(multimap! {
+                    "b".into() => ast::Expression::Literal(ast::Literal::Integer(4)),
+                },)],
+                alias: "bar".into(),
+            })),
+            condition: Some(ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::Identifier("a".to_string())),
+                op: ast::BinaryOp::Eq,
+                right: Box::new(ast::Expression::Identifier("b".to_string())),
+            }))
         })),
     );
     test_algebrize!(

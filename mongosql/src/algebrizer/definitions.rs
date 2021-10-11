@@ -398,10 +398,21 @@ impl<'a> Algebrizer<'a> {
                 Ok(stage)
             }
             ast::Datasource::Join(j) => {
+                let left_src = self.algebrize_datasource(*j.left)?;
+                let right_src = self.algebrize_datasource(*j.right)?;
+                let left_src_result_set = left_src.schema(&self.schema_inference_state())?;
+                let right_src_result_set = right_src.schema(&self.schema_inference_state())?;
+                let join_algebrizer = self
+                    .clone()
+                    .with_merged_mappings(left_src_result_set.schema_env)?
+                    .with_merged_mappings(right_src_result_set.schema_env)?;
                 let condition = j
                     .condition
-                    .map(|e| self.algebrize_expression(e))
+                    .map(|e| join_algebrizer.algebrize_expression(e))
                     .transpose()?;
+                condition
+                    .clone()
+                    .map(|e| e.schema(&join_algebrizer.schema_inference_state()));
                 let stage = match j.join_type {
                     ast::JoinType::Left => {
                         if condition.is_none() {
@@ -409,8 +420,8 @@ impl<'a> Algebrizer<'a> {
                         }
                         ir::Stage::Join(ir::Join {
                             join_type: ir::JoinType::Left,
-                            left: Box::new(self.algebrize_datasource(*j.left)?),
-                            right: Box::new(self.algebrize_datasource(*j.right)?),
+                            left: Box::new(left_src),
+                            right: Box::new(right_src),
                             condition,
                         })
                     }
@@ -420,19 +431,18 @@ impl<'a> Algebrizer<'a> {
                         }
                         ir::Stage::Join(ir::Join {
                             join_type: ir::JoinType::Left,
-                            left: Box::new(self.algebrize_datasource(*j.right)?),
-                            right: Box::new(self.algebrize_datasource(*j.left)?),
+                            left: Box::new(right_src),
+                            right: Box::new(left_src),
                             condition,
                         })
                     }
                     ast::JoinType::Cross | ast::JoinType::Inner => ir::Stage::Join(ir::Join {
                         join_type: ir::JoinType::Inner,
-                        left: Box::new(self.algebrize_datasource(*j.left)?),
-                        right: Box::new(self.algebrize_datasource(*j.right)?),
+                        left: Box::new(left_src),
+                        right: Box::new(right_src),
                         condition,
                     }),
                 };
-                stage.schema(&self.schema_inference_state())?;
                 Ok(stage)
             }
             ast::Datasource::Derived(d) => {
