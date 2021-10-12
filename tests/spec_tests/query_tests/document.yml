@@ -10,6 +10,7 @@ catalog_data:
 tests:
   - description: SELECT empty document literal
     query: "SELECT VALUE {'_1': {}} FROM [{}] AS _dual"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': {}}}}}
@@ -18,6 +19,7 @@ tests:
 
   - description: SELECT VALUE empty document literal
     query: "SELECT VALUE {} FROM [{}] AS _dual"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {}}}
@@ -26,6 +28,7 @@ tests:
 
   - description: SELECT non-empty document literals
     query: "SELECT VALUE {'_1': {'a': 1}, '_2': {'b': 2, 'c': 3}} FROM [{}] AS _dual"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': {'a': 1}}, '_2': {'$literal': {'b': 2, 'c': 3}}}}}
@@ -34,6 +37,7 @@ tests:
 
   - description: SELECT VALUE non-empty document literal
     query: "SELECT VALUE {'a': 1, 'b': 2, 'c': 3} FROM [{}] AS _dual"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {'a': {'$literal': 1}, 'b': {'$literal': 2}, 'c': {'$literal': 3}}}}
@@ -47,11 +51,13 @@ tests:
 
   - description: FROM non-empty document literal with invalid (non-string) keys
     query: "SELECT * FROM [{1: 1, 2: 2}]"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     parse_error: "invalid key 1: keys must be type string"
 
   - description: Dot notation field access from literal document
     query: "SELECT VALUE {'a': {'a': 1, 'b': 2}.a} FROM [{}] AS _dual"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {'a': {'$getField': {'field': 'a', 'input': {'a': 1, 'b': 2}}}}}}
@@ -60,6 +66,7 @@ tests:
 
   - description: Dot notation one-level field access
     query: "SELECT VALUE {'b': a.b} FROM [{'a': {'b': 100}}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': {'b': 100}}]}}
       - {'$project': {'_id': 0, '__bot': {'b': "$arr.a.b"}}}
@@ -68,6 +75,7 @@ tests:
 
   - description: Dot notation multi-level field access
     query: "SELECT VALUE {'c': a.b.c} FROM [{'a': {'b': {'c': 100}}}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': {'b': {'c': 100}}}]}}
       - {'$project': {'_id': 0, '__bot': {'c': "$arr.a.b.c"}}}
@@ -81,14 +89,13 @@ tests:
 
   - description: Dot notation field access from expression that evaluates to non-document at runtime
     current_db: foo
-    query: "SELECT VALUE {'_id': _id, 'a': a, 'b': a.b} FROM bar AS bar ORDER BY _id"
+    query: "SELECT VALUE {'_id': _id, 'a': a, 'b': a.b} FROM bar AS bar"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'_id': '$bar._id', 'a': '$bar.a', 'b': '$bar.a.b'}}}
-      - {'$sort': {'__bot._id': 1}}
     result:
       - {'__bot': {'_id': 1, 'a': {'b': 1}, 'b': 1}}
       - {'__bot': {'_id': 2, 'a': {'b': 2}, 'b': 2}}
@@ -98,6 +105,7 @@ tests:
 
   - description: Dot notation SELECT field called star
     query: "SELECT VALUE {'*': a.`*`} FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': {'*': 100, 'b': 10, 'c': 1}}]}}
       - {'$project': {'_id': 0, '__bot': {'*': '$arr.a.*'}}}
@@ -106,6 +114,7 @@ tests:
 
   - description: Bracket notation field access from literal document
     query: "SELECT VALUE {'a': {'a': 1, 'b': 2}['a']} FROM [{}] AS _dual"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {'a': {'$getField': {'field': 'a', 'input': {'a': 1, 'b': 2}}}}}}
@@ -114,6 +123,7 @@ tests:
 
   - description: Bracket notation one-level field access
     query: "SELECT VALUE {'b': a['b']} FROM [{'a': {'b': 100}}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': {'b': 100}}]}}
       - {'$project': {'_id': 0, '__bot': {'b': '$arr.a.b'}}}
@@ -122,6 +132,7 @@ tests:
 
   - description: Bracket notation multi-level field access
     query: "SELECT VALUE {'c': a['b']['c']} FROM [{'a': {'b': {'c': 100}}}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': {'b': {'c': 100}}}]}}
       - {'$project': {'_id': 0, '__bot': {'c': '$arr.a.b.c'}}}
@@ -135,6 +146,7 @@ tests:
 
   - description: Bracket notation SELECT field called star
     query: "SELECT VALUE {'*': a['*']} FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': {'*': 100, 'b': 10, 'c': 1}}]}}
       - {'$project': {'_id': 0, '__bot': {'*': '$arr.a.*'}}}
@@ -143,17 +155,19 @@ tests:
 
   - description: Bracket notation non-string expression is invalid
     query: "SELECT a[1] FROM [{'a': {'1': 100}}]"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     algebrize_error: "field access expression must statically evaluate to string"
 
   - description: Bracket notation CAST to STRING expression
     query: "SELECT {'_1': a[CAST(b AS STRING)]} FROM [{'a': {'c': 100}, 'b': 'c'}] AS arr"
-    skip_reason: "TODO: SQL-210. We don't support non-String literal subfield path now."
+    skip_reason: "SQL-462; SQL-210: We don't support non-String literal subfield path now."
     result:
       - {'__bot': {'_1': 100}}
 
   - description: Mixed notation field access
     query: "SELECT VALUE {'d': a.b['c'].d} FROM [{'a': {'b': {'c': {'d': 100}}}}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': {'b': {'c': {'d': 100}}}}]}}
       - {'$project': {'_id': 0, '__bot': {'d': '$arr.a.b.c.d'}}}

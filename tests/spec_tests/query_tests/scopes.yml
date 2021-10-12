@@ -28,6 +28,7 @@ catalog_schema:
     'foo': {
       'schema_coll': {
         'bsonType': "object",
+        'required': [ 'bar', 'car' ],
         'additionalProperties': false,
         'properties': {
           'bar': {
@@ -40,6 +41,7 @@ catalog_schema:
       },
       'schema_foo': {
         'bsonType': "object",
+        'required': [ 'baz' ],
         'additionalProperties': false,
         'properties': {
           'baz': {
@@ -54,6 +56,9 @@ tests:
   - description: compound collection references are fully qualified
     current_db: 'foo'
     query: "SELECT * FROM foo.coll AS coll"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: coll
     result:
       - {
           '_id': 1,
@@ -74,6 +79,9 @@ tests:
   - description: equivalent qualified and unqualified references to the same field
     current_db: 'foo'
     query: "SELECT VALUE {'ubar': bar, 'qbar': coll.bar} FROM foo.coll AS coll"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: coll
     result:
       - {
           'ubar': 11,
@@ -91,18 +99,27 @@ tests:
   - description: compound field references prefer qualified names to field references
     current_db: 'foo'
     query: "SELECT VALUE {'a': n.a} FROM nested AS n"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: nested
     result:
       - {}
 
   - description: compound field reference is treated as unqualified if no datasource name matches first identifier
     current_db: 'foo'
     query: "SELECT VALUE {'a': n.a} FROM nested AS nested"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: nested
     result:
       - {'a': 1}
 
   - description: field references never resolve to the catalog environment
     current_db: 'foo'
     query: "SELECT VALUE {'a': foo.coll} FROM foo.coll AS coll"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: coll
     result:
       - {}
       - {}
@@ -117,6 +134,9 @@ tests:
   - description: qualified reference is not ambiguous with multiple datasources
     current_db: 'foo'
     query: "SELECT VALUE {'a': coll.bar} FROM foo.coll AS coll JOIN foo.nested AS nested"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: coll
     result:
       - {
           'a': 11
@@ -131,6 +151,9 @@ tests:
   - description: unqualified references are not ambiguous when there are multiple datasources with schema that disambiguates
     current_db: 'foo'
     query: "SELECT VALUE {'a': bar} FROM foo.schema_coll AS coll JOIN foo.schema_foo AS coll2"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: coll
     result:
       - {
           'a': 11
@@ -145,12 +168,16 @@ tests:
   - description: unqualified collection reference refers to current database
     current_db: 'foo2'
     query: "SELECT * FROM coll AS coll"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo2
+    translation_target_coll: coll
     result:
       - {'_id': 1, 'a': 1, 'b': 2}
 
   - description: unqualified collection references do not resolve to collections in other databases
     current_db: 'foo2'
     query: "SELECT * FROM nested AS nested"
+    skip_reason: "SQL-519: error when unqualified collection ref is not in current db"
     should_compile: false
     algebrize_error: "Unknown collection 'nested' in current database 'foo2'"
 
@@ -162,31 +189,33 @@ tests:
   - description: unqualified collection reference will error if collection not found in current database
     current_db: 'foo'
     query: "SELECT * FROM car AS car"
+    skip_reason: "SQL-519: error on invalid collection ref"
     should_compile: false
     algebrize_error: "Unknown collection 'car' in current database 'foo'"
 
   - description: qualified collection reference in FROM clause will error if collection not found in specified database
     current_db: 'foo'
     query: "SELECT * FROM foo.car AS car"
-    should_compile: false
+    skip_reason: "SQL-519: error on invalid collection ref"
     algebrize_error: "Unknown collection 'car' in database 'foo'"
 
   - description: qualified collection reference in FROM clause will error if database not found
-    current_db: 'foo'
-    query: "SELECT * FROM test.car AS car"
-    should_compile: false
-    algebrize_error: "Unknown database 'test'"
+    current_db: 'foo3'
+    query: "SELECT * FROM bar AS bar"
+    skip_reason: "SQL-519: error on invalid collection ref"
+    algebrize_error: "Unknown database 'foo3'"
 
   - description: nonexistent field references fail with a schema
     query: "SELECT VALUE {'bar': foo.coll.bar} FROM foo.schema_coll AS coll"
     should_compile: false
     algebrize_error: "Unknown qualification or field 'foo'"
 
-  - description: there are no field references in FROM clauses
+  - description: qualified collection reference in FROM clause will error if collection not found
     current_db: foo
-    query: "SELECT * FROM foo.bar AS bar"
+    query: "SELECT * FROM bar.a AS a"
+    skip_reason: "SQL-517: disallow field references in FROM clauses"
     should_compile: false
-    algebrize_error: "Unknown collection bar in datasource 'foo'"
+    algebrize_error: "Unknown collection a in database 'foo'"
 
   - description: a qualfied reference in a FROM clause can have no more than two parts
     current_db: 'foo'
@@ -197,6 +226,9 @@ tests:
   - description: c.a refers to a in baz.a in the subquery and bar.a in the outer query
     current_db: 'foo'
     query: "SELECT * FROM bar AS c WHERE c.a IN (SELECT c.a FROM baz AS c)"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: bar
     result:
       - {'_id': 1, 'a': 1}
 
@@ -209,6 +241,9 @@ tests:
   - description: with an unqualified reference, CANNOT contain sub and MUST contain outer query, the datasource resolves to the outer query
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_foo AS q limit 1)} FROM schema_coll AS q"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: schema_coll
     result:
       - {'bar': 11}
       - {'bar': -11}
@@ -217,6 +252,9 @@ tests:
   - description: with an unqualified reference, CANNOT contain sub and MAY contain outer query, the datasource is resolved to the outer query
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_foo AS q limit 1)} FROM coll AS q"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: coll
     result:
       - {'bar': 11}
       - {'bar': -11}
@@ -243,6 +281,9 @@ tests:
   - description: with an unqualified reference and MAY contain sub and CANNOT contain outer query, the datasource that MAY contain the field is chosen
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q limit 1)} FROM schema_foo AS q"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: schema_foo
     result:
       - {}
       - {}
@@ -251,12 +292,18 @@ tests:
   - description: with an unqualified reference and MUST contain sub and MUST contain outer query, the highest scope number is chosen
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q limit 1)} FROM schema_coll AS q"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: schema_coll
     result:
       - {'bar': 11}
 
   - description: with an unqualified reference and MUST contain sub and MAY contain outer query, the datasource that resolves to the inner query
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q limit 1)} FROM coll AS q"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: coll
     result:
       - {'bar': 11}
 
@@ -264,5 +311,8 @@ tests:
   - description: with an unqualified reference and MUST contain sub and CANNOT contain outer query, the datasource that MUST contain the field is chosen
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q limit 1)} FROM schema_foo AS q"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: schema_foo
     result:
       - {'bar': 11}

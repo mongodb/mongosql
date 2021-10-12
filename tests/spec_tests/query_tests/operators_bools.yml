@@ -28,6 +28,8 @@ catalog_schema:
     "foo": {
       "unary": {
         "bsonType": "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
         "properties": {
           "_id": {
             "bsonType": "int"
@@ -35,13 +37,15 @@ catalog_schema:
           "a": {
             "anyOf": [
               { "bsonType": "bool" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           }
         }
       },
       "binary": {
         "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
         "properties": {
           "_id": {
             "bsonType": "int"
@@ -49,13 +53,13 @@ catalog_schema:
           "a": {
             "anyOf": [
               { "bsonType": "bool" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           },
           "b": {
             "anyOf": [
               { "bsonType": "bool" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           }
         }
@@ -65,13 +69,14 @@ catalog_schema:
 
 tests:
   - description: NOT correctness test
+    current_db: foo
     query: "SELECT VALUE { 'a': a, 'not_a': NOT a } FROM unary AS unary"
     translation_target_db: foo
     translation_target_coll: unary
     translation:
       - {'$project': {'_id': 0, 'unary': '$$ROOT'}}
       - {'$project': {'_id': 0, 'unary': '$unary'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', 'not_a': {"$sqlNot": "$unary.a"}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', 'not_a': {"$sqlNot": ["$unary.a"]}}}}
     result:
       - {'__bot': {"a": true, "not_a": false } }
       - {'__bot': {"a": false, "not_a": true } }
@@ -79,6 +84,7 @@ tests:
       - {'__bot': {"not_a": null } }
 
   - description: AND correctness test
+    current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'a_and_b': a AND b } FROM binary AS binary"
     translation_target_db: foo
     translation_target_coll: binary
@@ -105,13 +111,14 @@ tests:
       - {'__bot': {"a_and_b": null } }
 
   - description: OR correctness test
+    current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'a_or_b': a OR b } FROM binary AS binary"
     translation_target_db: foo
     translation_target_coll: binary
     translation:
       - {'$project': {'_id': 0, 'binary': '$$ROOT'}}
       - {'$project': {'_id': 0, 'binary': '$binary'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$binary.a', 'b': '$binary.b', 'a_or_b': {"$sqlOr": ["$$binary.a", "$$binary.b"]}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$binary.a', 'b': '$binary.b', 'a_or_b': {"$sqlOr": ["$binary.a", "$binary.b"]}}}}
     result:
       - {'__bot': {"a": true, "b": true, "a_or_b": true } }
       - {'__bot': {"a": true, "b": false, "a_or_b": true } }

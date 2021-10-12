@@ -22,8 +22,42 @@ catalog_data:
 catalog_schema:
   {
     'foo': {
+      'employees': {
+        'bsonType': "object",
+        'required': [ '_id', 'name', 'salary', 'department_id' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'name': {
+            'bsonType': "string"
+          },
+          'salary': {
+            'bsonType': "int"
+          },
+          'department_id': {
+            'bsonType': "int"
+          }
+        }
+      },
+      'department': {
+        'bsonType': "object",
+        'required': [ '_id', 'name' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'name': {
+            'bsonType': "string"
+          }
+        }
+      },
       'employees_w_schema': {
         'bsonType': "object",
+        'required': [ '_id', 'name', 'salary', 'department_id' ],
+        'additionalProperties': false,
         'properties': {
           '_id': {
             'bsonType': "int"
@@ -41,6 +75,8 @@ catalog_schema:
       },
       'department_w_schema': {
         'bsonType': "object",
+        'required': [ '_id', 'name' ],
+        'additionalProperties': false,
         'properties': {
           '_id': {
             'bsonType': "int"
@@ -57,6 +93,7 @@ tests:
   - description: uncorrelated scalar subquery expression correctness test
     current_db: foo
     query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT arr.a FROM [{'a': 4}] AS arr)} FROM employees AS emp"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation_target_coll: employees
     translation:
@@ -82,6 +119,7 @@ tests:
   - description: correlated scalar subquery correctness test
     current_db: foo
     query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep.`_id` = emp.department_id LIMIT 1)} FROM employees_w_schema AS emp"
+    skip_reason: "SQL-514: Filter codegen uses wrong mapping registry"
     translation_target_db: foo
     translation_target_coll: employees_w_schema
     translation:
@@ -123,6 +161,7 @@ tests:
   - description: cardinality of 1 should be inferrable from array datasource
     current_db: foo
     query: "SELECT VALUE {'name': name, 'sub': (SELECT a FROM [{'a': 1}] arr)} FROM department AS dep"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation_target_coll: department
     translation:
@@ -146,6 +185,7 @@ tests:
   
   - description: cardinality of 1 should be inferrable from group by constant
     current_db: foo
+    skip_reason: "SQL-483: implement codegen for TypeAssert"
     query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT avg_salary FROM employees AS emp GROUP BY NULL AS _ AGGREGATE AVG(salary::!DOUBLE) AS avg_salary)} FROM employees AS emp"
     translation_target_db: foo
     translation_target_coll: employees
@@ -176,6 +216,7 @@ tests:
   - description: nested subquery should be able to access field from its grandparent query correctness test
     current_db: foo
     query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep._id = (SELECT emp2.department_id FROM employees_w_schema AS emp2 WHERE emp2._id = emp1._id LIMIT 1) LIMIT 1)} FROM employees_w_schema AS emp1"
+    skip_reason: "SQL-514: Filter codegen uses wrong mapping registry"
     translation_target_db: foo
     translation_target_coll: employees_w_schema
     translation:
@@ -216,12 +257,14 @@ tests:
   - description: an empty array datasource does not have a degree of one
     current_db: foo
     query: "SELECT VALUE {'sub': (SELECT * FROM [] AS arr)} FROM employees AS emp"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     algebrize_error: "subquery expressions must have a degree of 1"
 
   - description: allow select star if we can statically prove the degree is equal to one
     current_db: foo
     query: "SELECT VALUE {'sub': (SELECT * FROM [{'a': 4}] AS arr)} FROM employees AS emp"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation_target_coll: employees
     translation:
@@ -243,6 +286,7 @@ tests:
   - description: allow select substar if we can statically prove the degree is equal to one
     current_db: foo
     query: "SELECT VALUE {'sub': (SELECT arr.* FROM [{'a': 4}] AS arr)} FROM employees AS emp"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation_target_coll: employees
     translation:

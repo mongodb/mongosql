@@ -59,6 +59,8 @@ catalog_schema:
     "foo": {
       "unary": {
         "bsonType": "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
         "properties": {
           "_id": {
             "bsonType": "int"
@@ -69,13 +71,15 @@ catalog_schema:
               { "bsonType": "long" },
               { "bsonType": "double" },
               { "bsonType": "decimal" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           }
         }
       },
       "binary": {
         "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
         "properties": {
           "_id": {
             "bsonType": "int"
@@ -86,7 +90,7 @@ catalog_schema:
               { "bsonType": "long" },
               { "bsonType": "double" },
               { "bsonType": "decimal" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           },
           "b": {
@@ -95,7 +99,7 @@ catalog_schema:
               { "bsonType": "long" },
               { "bsonType": "double" },
               { "bsonType": "decimal" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           }
         }
@@ -123,17 +127,18 @@ tests:
       - {'__bot': {'a': {'$numberDecimal': '1'}, '+a': {'$numberDecimal': '1'}}}
       - {'__bot': {'a': {'$numberDecimal': '-1'}, '+a': {'$numberDecimal': '-1'}}}
       - {'__bot': {'a': null, '+a': null}}
-      - {'__bot': {'+a': null}}
+      - {'__bot': {}}
 
   - description: Unary minus correctness tests
     current_db: foo
     query: "SELECT VALUE {'a': a, '-a': -a} FROM unary AS unary"
+    skip_reason: "SQL-495: wrap literals in $literal document"
     translation_target_db: foo
     translation_target_coll: unary
     translation:
       - {'$project': {'_id': 0, 'unary': '$$ROOT'}}
       - {'$project': {'_id': 0, 'unary': '$unary'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', '-a': {'$multiply': [{'$literal': -1}, '$unary.a']}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', '-a': {'$multiply': ['$unary.a', {'$literal': -1}]}}}}
     result:
       - {'__bot': {'a': {'$numberInt': '1'}, '-a': {'$numberInt': '-1'}}}
       - {'__bot': {'a': {'$numberInt': '-1'}, '-a': {'$numberInt': '1'}}}
@@ -218,12 +223,12 @@ tests:
       - {'__bot': {'a': {'$numberDouble': '6'}, 'b': {'$numberInt': '2'}, 'a-b': {'$numberDouble': '4'}}}
       - {'__bot': {'a': {'$numberDouble': '6'}, 'b': {'$numberLong': '2'}, 'a-b': {'$numberDouble': '4'}}}
       - {'__bot': {'a': {'$numberDouble': '6'}, 'b': {'$numberDouble': '2'}, 'a-b': {'$numberDouble': '4'}}}
-      - {'__bot': {'a': {'$numberDouble': '6'}, 'b': {'$numberDecimal': '2'}, 'a-b': {'$numberDecimal': '4'}}}
+      - {'__bot': {'a': {'$numberDouble': '6'}, 'b': {'$numberDecimal': '2'}, 'a-b': {'$numberDecimal': '4.00000000000000'}}}
       - {'__bot': {'a': {'$numberDouble': '6'}, 'b': null, 'a-b': null}}
       - {'__bot': {'a': {'$numberDouble': '6'}, 'a-b': null}}
       - {'__bot': {'a': {'$numberDecimal': '6'}, 'b': {'$numberInt': '2'}, 'a-b': {'$numberDecimal': '4'}}}
       - {'__bot': {'a': {'$numberDecimal': '6'}, 'b': {'$numberLong': '2'}, 'a-b': {'$numberDecimal': '4'}}}
-      - {'__bot': {'a': {'$numberDecimal': '6'}, 'b': {'$numberDouble': '2'}, 'a-b': {'$numberDecimal': '4'}}}
+      - {'__bot': {'a': {'$numberDecimal': '6'}, 'b': {'$numberDouble': '2'}, 'a-b': {'$numberDecimal': '4.00000000000000'}}}
       - {'__bot': {'a': {'$numberDecimal': '6'}, 'b': {'$numberDecimal': '2'}, 'a-b': {'$numberDecimal': '4'}}}
       - {'__bot': {'a': {'$numberDecimal': '6'}, 'b': null, 'a-b': null}}
       - {'__bot': {'a': {'$numberDecimal': '6'}, 'a-b': null}}
@@ -265,12 +270,12 @@ tests:
       - {'__bot': {'a': {'$numberDouble': '6'}, 'b': {'$numberInt': '2'}, 'a*b': {'$numberDouble': '12'}}}
       - {'__bot': {'a': {'$numberDouble': '6'}, 'b': {'$numberLong': '2'}, 'a*b': {'$numberDouble': '12'}}}
       - {'__bot': {'a': {'$numberDouble': '6'}, 'b': {'$numberDouble': '2'}, 'a*b': {'$numberDouble': '12'}}}
-      - {'__bot': {'a': {'$numberDouble': '6'}, 'b': {'$numberDecimal': '2'}, 'a*b': {'$numberDecimal': '12'}}}
+      - {'__bot': {'a': {'$numberDouble': '6'}, 'b': {'$numberDecimal': '2'}, 'a*b': {'$numberDecimal': '12.00000000000000'}}}
       - {'__bot': {'a': {'$numberDouble': '6'}, 'b': null, 'a*b': null}}
       - {'__bot': {'a': {'$numberDouble': '6'}, 'a*b': null}}
       - {'__bot': {'a': {'$numberDecimal': '6'}, 'b': {'$numberInt': '2'}, 'a*b': {'$numberDecimal': '12'}}}
       - {'__bot': {'a': {'$numberDecimal': '6'}, 'b': {'$numberLong': '2'}, 'a*b': {'$numberDecimal': '12'}}}
-      - {'__bot': {'a': {'$numberDecimal': '6'}, 'b': {'$numberDouble': '2'}, 'a*b': {'$numberDecimal': '12'}}}
+      - {'__bot': {'a': {'$numberDecimal': '6'}, 'b': {'$numberDouble': '2'}, 'a*b': {'$numberDecimal': '12.00000000000000'}}}
       - {'__bot': {'a': {'$numberDecimal': '6'}, 'b': {'$numberDecimal': '2'}, 'a*b': {'$numberDecimal': '12'}}}
       - {'__bot': {'a': {'$numberDecimal': '6'}, 'b': null, 'a*b': null}}
       - {'__bot': {'a': {'$numberDecimal': '6'}, 'a*b': null}}
@@ -290,6 +295,7 @@ tests:
   - description: Division correctness tests
     current_db: foo
     query: "SELECT VALUE {'a': a, 'b': b, 'a/b': a / b} FROM binary AS binary"
+    skip_reason: "SQL-485: inconsistent $sqlDivide format"
     translation_target_db: foo
     translation_target_coll: binary
     translation:
@@ -337,6 +343,7 @@ tests:
   - description: Division by zero results in NULL
     current_db: foo
     query: "SELECT VALUE {'a': a, 'n': a / 0} FROM unary AS unary"
+    skip_reason: "SQL-485: inconsistent $sqlDivide format"
     translation_target_db: foo
     translation_target_coll: unary
     translation:
@@ -358,6 +365,7 @@ tests:
   - description: Long and integer division with non-integer results are truncated
     current_db: foo
     query: "SELECT VALUE {'a': a, 'b': b, 'n': a / b} FROM integer_division AS i"
+    skip_reason: "SQL-485: inconsistent $sqlDivide format"
     translation_target_db: foo
     translation_target_coll: i
     translation:

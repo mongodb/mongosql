@@ -11,9 +11,20 @@ catalog_schema:
         "foo": {
             "bar": {
               "bsonType": "object",
-              "required": [ "foo" ],
+              "required": [ "id", "foo" ],
+              "additionalProperties": false,
               "properties": {
-                "foo": { "bsonType": "boolean" }
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "bool" }
+              }
+            },
+            "baz": {
+              "bsonType": "object",
+              "required": [ "id", "foo" ],
+              "additionalProperties": false,
+              "properties": {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "bool" }
               }
             }
         }
@@ -21,6 +32,7 @@ catalog_schema:
 tests:
   - description: WHERE with BOOLEAN returning expression
     query: "SELECT * FROM [{'a': 1}, {'a': 2}, {'a': 3}] AS arr WHERE a >= 2"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': 1}, {'a': 2}, {'a': 3}]}}
       - {'$match': {'$expr': {'$sqlGte': ['$arr.a', {'$literal': 2}]}}}
@@ -30,6 +42,7 @@ tests:
 
   - description: WHERE with CAST to BOOLEAN
     query: "SELECT * FROM [{'a': 0}, {'a': 1}, {'a': 2}, {'a': 3}] AS arr WHERE CAST(a AS BOOLEAN)"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': 1}, {'a': 2}, {'a': 3}]}}
       - {'$match': {'$expr': {'$convert': {'input': '$arr.a', 'to': 'bool', 'onNull': null, 'onError': null}}}}
@@ -40,6 +53,7 @@ tests:
 
   - description: WHERE with CASE that must return BOOLEAN
     query: "SELECT * FROM [{'a': true}, {'a': 1}, {'a': false}, {'a': true}, {}] AS arr WHERE CASE WHEN a IS BOOLEAN THEN a ELSE false END"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': true}, {'a': 1}, {'a': false}, {'a': true}, {}]}}
       - {'$match': {'$expr': {"$switch": {
@@ -54,6 +68,7 @@ tests:
 
   - description: NULL is a valid BOOLEAN
     query: "SELECT * FROM [{'a': true}, {'a': 1}, {'a': false}, {'a': true}] AS arr WHERE NULL"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': true}, {'a': 1}, {'a': false}, {'a': true}]}}
       - {'$match': {'$expr': {'$literal': null}}}
@@ -61,11 +76,13 @@ tests:
 
   - description: WHERE must be statically determined to be a BOOLEAN
     query: "SELECT * FROM [{'a': 1}] AS arr WHERE a"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     algebrize_error:  "WHERE clause expression must be BOOLEAN. Try changing to 'WHERE CAST(a AS BOOLEAN)'"
 
   - description: WHERE statically determined to be BOOLEAN from literal
     query: "SELECT * FROM [{'a': true}] AS arr WHERE a"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': true}, {'a': 1}, {'a': false}, {'a': true}]}}
       - {'$match': {'$expr': '$arr.a'}}
@@ -74,6 +91,7 @@ tests:
 
   - description: WHERE statically determined to be BOOLEAN from schema
     query: "SELECT * FROM bar AS bar WHERE NOT foo"
+    skip_reason: "SQL-514: Filter codegen uses wrong mapping registry"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar

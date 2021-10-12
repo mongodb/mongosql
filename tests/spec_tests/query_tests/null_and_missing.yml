@@ -7,6 +7,9 @@ tests:
   - description: Normal non-missing reference
     current_db: 'foo'
     query: "SELECT a FROM bar"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: bar
     result:
         - {'a': 42}
         - {'a': 52}
@@ -14,6 +17,9 @@ tests:
   - description: NULL vs MISSING in direct field ref
     current_db: 'foo'
     query: "SELECT b FROM bar"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: bar
     result:
         - {'b': null}
         - {}
@@ -21,6 +27,9 @@ tests:
   - description: Normal field access
     current_db: 'foo'
     query: "SELECT c.d FROM bar"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: bar
     result:
         - {'d': 'hello'}
         - {'d': 'world'}
@@ -28,6 +37,9 @@ tests:
   - description: Scalar vs missing field ref
     current_db: 'foo'
     query: "SELECT c.e FROM bar"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: bar
     result:
         - {'e': 142}
         - {}
@@ -35,6 +47,9 @@ tests:
   - description: Scalar vs missing field ref- the field ref is upgraded to NULL because of plus sign
     current_db: 'foo'
     query: "SELECT a, c.e, a + c.e FROM bar"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: bar
     result:
         - {'a': 42, 'e': 142, '_3': 184}
         - {'a': 52, '_3': null}
@@ -42,6 +57,9 @@ tests:
   - description: MISSING upgraded to NULL due to plus sign
     current_db: 'foo'
     query: "SELECT b, c.e, b + c.e FROM bar"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: bar
     result:
         - {'b': null, 'e': 142, '_3': null}
         - {'_3': null}
@@ -49,6 +67,9 @@ tests:
   - description: MISSING fields in arrays are upgrade to NULLS
     current_db: 'foo'
     query: "SELECT [b, 2, c.e] AS arr FROM bar"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: bar
     result:
         - {'arr': [null, 2, 142]}
         - {'arr': [null, 2, null]}

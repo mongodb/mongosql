@@ -1,0 +1,13 @@
+catalog_data:
+  information_schema:
+    mytbl:
+      - {'_id': 0, 'a': 1}
+
+tests:
+  - description: a user db called information_schema should require no special handling
+    query: "SELECT * FROM information_schema.mytbl"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: information_schema
+    translation_target_coll: mytbl
+    result:
+      - {'mytbl': {'_id': 0, 'a': 1}}

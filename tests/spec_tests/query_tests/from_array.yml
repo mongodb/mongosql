@@ -1,6 +1,7 @@
 tests:
   - description: basic array datasource correctness test
     query: "SELECT * FROM [{'a': 1, 'b': 1}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': 1, 'b': 1}]}}
     result:
@@ -8,6 +9,7 @@ tests:
 
   - description: unqualified reference to field from array datasource
     query: "SELECT VALUE {'a': a} FROM [{'a': 1, 'b': 1}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': 1, 'b': 1}]}}
       - {'$project': {'_id': 0, '__bot': {'a': '$arr.a'}}}
@@ -16,6 +18,7 @@ tests:
 
   - description: qualified reference to field from array datasource
     query: "SELECT VALUE {'a': arr.a} FROM [{'a': 1, 'b': 1}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': 1, 'b': 1}]}}
       - {'$project': {'_id': 0, '__bot': {'a': '$arr.a'}}}
@@ -24,17 +27,20 @@ tests:
 
   - description: array datasource must have alias
     query: "SELECT * FROM [{'a': 1}]"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     parse_error: "expected <alias>, found EOI"
 
   - description: empty array datasource is allowed
     query: "SELECT * FROM [] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': []}}
     result: []
 
   - description: array datasource with single empty document is allowed
     query: "SELECT * FROM [{}] AS _dual"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'_dual': [{}]}}
     result:
@@ -42,6 +48,7 @@ tests:
 
   - description: array datasource elements must be documents
     query: "SELECT * FROM [{'a': 1}, null] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     algebrize_error: "array datasource elements must be documents"
 
@@ -52,10 +59,12 @@ tests:
 
   - description: array datasource cannot be referenced as value
     query: "SELECT arr FROM [{'a': 1}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     algebrize_error: "unknown field 'arr'"
 
   - description: references in array datasources are disallowed
     query: "SELECT (SELECT * FROM [{'a': foo.a}] AS arr) FROM foo"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     algebrize_error: "field 'a' cannot be referenced in array datasource"

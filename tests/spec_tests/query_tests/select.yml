@@ -7,7 +7,7 @@ catalog_data:
 tests:
   - description: key names in SELECT VALUE document must be unique
     current_db: mydb
-    query: "SELECT VALUE {'a': a, 'a': a} FROM foo AS f"
+    query: "SELECT VALUE {'a': 2, 'a': 5} FROM foo AS f"
     should_compile: false
     algebrize_error: "Column aliases must be unique. Found 'a' 2 times"
 
@@ -15,7 +15,7 @@ tests:
     current_db: mydb
     query: "SELECT *, a FROM foo AS f"
     should_compile: false
-    parse_error: "star cannot be used in conjunction with other select expressions"
+    algebrize_error: "star cannot be used in conjunction with other select expressions"
 
   - description: star cannot be used in SELECT VALUE
     current_db: mydb
@@ -63,7 +63,7 @@ tests:
     current_db: mydb
     query: "SELECT VALUE [a, b] FROM foo"
     should_compile: false
-    parse_error: "SELECT VALUE only accepts document expressions"
+    algebrize_error: "SELECT VALUE only accepts document expressions"
 
   - description: simple star correctness test
     current_db: mydb
@@ -119,5 +119,5 @@ tests:
   - description: SELECT VALUES may create unmaterializable binding tuples
     current_db: mydb
     query: "SELECT VALUES {'a': a.a}, a.* FROM foo AS a"
-    should_compile: false
-    algebrize_error: "cannot materialize binding tuple with duplicate fields"
+    should_compile: true
+    skip_reason: "SQL-345: add a translation pipeline and result field"

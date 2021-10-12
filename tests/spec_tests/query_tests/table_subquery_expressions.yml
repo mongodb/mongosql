@@ -17,6 +17,8 @@ catalog_schema:
     'foo': {
       'bar': {
         'bsonType': "object",
+        'required': [ '_id', 'v' ],
+        'additionalProperties': false,
         'properties': {
           '_id': {
             'bsonType': "int"
@@ -24,13 +26,15 @@ catalog_schema:
           'v': {
             'anyOf': [
               { 'bsonType': "int" },
-              { 'bsonType': "null" }
+              { 'bsonType': !!str "null" }
             ]
           }
-        }
+        },
       },
       'target': {
         'bsonType': "object",
+        'required': [ 'id', 'a' ],
+        'additionalProperties': false,
         'properties': {
           '_id': {
             'bsonType': "int"
@@ -38,10 +42,10 @@ catalog_schema:
           'a': {
             'anyOf': [
               { 'bsonType': "int" },
-              { 'bsonType': "null" }
+              { 'bsonType': !!str "null" }
             ]
           }
-        }
+        },
       }
     }
   }
@@ -50,6 +54,7 @@ tests:
   - description: correctness test for eq ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -78,6 +83,7 @@ tests:
   - description: correctness test for eq ANY Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target)"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -105,6 +111,7 @@ tests:
   - description: correctness test for neq ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <> ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -135,6 +142,7 @@ tests:
   - description: correctness test for neq ANY Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <> ANY(SELECT a FROM target)"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -164,6 +172,7 @@ tests:
   - description: correctness test for lt ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v < ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -192,6 +201,7 @@ tests:
   - description: correctness test for lt ANY Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v < ANY(SELECT a FROM target)"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -219,6 +229,7 @@ tests:
   - description: correctness test for lte ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <= ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -248,6 +259,7 @@ tests:
   - description: correctness test for lte ANY Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <= ANY(SELECT a FROM target)"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -276,6 +288,7 @@ tests:
   - description: correctness test for gt ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v > ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -304,6 +317,7 @@ tests:
   - description: correctness test for gt ANY Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v > ANY(SELECT a FROM target)"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -331,6 +345,7 @@ tests:
   - description: correctness test for gte ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v >= ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -360,6 +375,7 @@ tests:
   - description: correctness test for gte ANY Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v >= ANY(SELECT a FROM target)"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -388,6 +404,7 @@ tests:
   - description: correctness test for eq ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -414,6 +431,7 @@ tests:
   - description: correctness test for eq ALL Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target)"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -439,6 +457,7 @@ tests:
   - description: correctness test for eq ALL Operator with matching result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE a = 1)"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -466,6 +485,7 @@ tests:
   - description: correctness test for neq ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <> ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -494,6 +514,7 @@ tests:
   - description: correctness test for neq ALL Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <> ALL(SELECT a FROM target)"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -519,6 +540,7 @@ tests:
   - description: correctness test for lt ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v < ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -546,6 +568,7 @@ tests:
   - description: correctness test for lt ALL Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v < ALL(SELECT a FROM target)"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -571,6 +594,7 @@ tests:
   - description: correctness test for lte ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <= ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -599,6 +623,7 @@ tests:
   - description: correctness test for lte ALL Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <= ALL(SELECT a FROM target)"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -624,6 +649,7 @@ tests:
   - description: correctness test for gt ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v > ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -651,6 +677,7 @@ tests:
   - description: correctness test for gt ALL Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v > ALL(SELECT a FROM target)"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -676,6 +703,7 @@ tests:
   - description: correctness test for gte ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v >= ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -704,6 +732,7 @@ tests:
   - description: correctness test for gte ALL Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v >= ALL(SELECT a FROM target)"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -729,6 +758,7 @@ tests:
   - description: ANY subquery comparison in SELECT clause
     current_db: foo
     query: "SELECT VALUE {'v': v, 'x': bar.v = ANY (SELECT a FROM target AS target)} FROM bar AS bar"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -760,6 +790,7 @@ tests:
   - description: ALL subquery comparison in SELECT clause
     current_db: foo
     query: "SELECT VALUE {'v': v, 'x': bar.v = ALL (SELECT a FROM target AS target WHERE NOT(a IS NULL))} FROM bar AS bar"
+    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -792,6 +823,7 @@ tests:
   - description: correctness test for EXISTS Operator
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE EXISTS(SELECT * FROM target AS target WHERE v = a)"
+    skip_reason: "SQL-514: Filter codegen uses wrong mapping registry"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -813,6 +845,7 @@ tests:
   - description: correctness test for NOT EXISTS Operator
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE NOT EXISTS(SELECT * FROM target AS target WHERE v = a)"
+    skip_reason: "SQL-514: Filter codegen uses wrong mapping registry"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -836,6 +869,7 @@ tests:
   - description: EXISTS expression in SELECT clause
     current_db: foo
     query: "SELECT VALUE {'v': v, 'x': EXISTS(SELECT * FROM target AS target WHERE target.a = bar.v)} FROM bar AS bar"
+    skip_reason: "SQL-514: Filter codegen uses wrong mapping registry"
     translation_target_db: foo
     translation_target_coll: bar
     translation:

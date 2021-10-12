@@ -62,21 +62,22 @@ catalog_data:
       - {'_id': 5, 'v': {'$numberDecimal': '9223372036854775808.8'}}
       - {'_id': 6, 'v': {'$numberDecimal': '-9223372036854775809.8'}}
     invalidSourceTypes:
-      - {'_id': 0, 'type': 'binData', 'v': {'$binary': {'base64': 'yO2rw/c4TKO2jauSqRR4ow==', 'subtype': '04'}}}
-      - {'_id': 0, 'type': 'undefined', 'v': {'$undefined': true}}
-      - {'_id': 0, 'type': 'regex', 'v': {'$regularExpression': {'pattern': 'foo*', 'options': 'ix'}}}
-      - {'_id': 0, 'type': 'dbPointer', 'v': {'$dbPointer': {'$ref': 'foo', '$id': {'$oid': '57e193d7a9cc81b4027498b5'}}}}
-      - {'_id': 0, 'type': 'javascript', 'v': {'$code': 'function() {}'}}
-      - {'_id': 0, 'type': 'symbol', 'v': {'$symbol': 'symbol'}}
-      - {'_id': 0, 'type': 'javascriptWithScope', 'v': {'$code': 'function() {}', '$scope': {}}}
-      - {'_id': 0, 'type': 'timestamp', 'v': {'$timestamp': {'t': 42, 'i': 1}}}
-      - {'_id': 0, 'type': 'minKey', 'v': {'$minKey': 1}}
-      - {'_id': 0, 'type': 'maxKey', 'v': {'$maxKey': 1}}
+      - {'_id': 0, 'type': 'binData', 'v': {'$binary': {'base64': 'yO2rw/c4TKO2jauSqRR4ow==', 'subType': '04'}}}
+      - {'_id': 1, 'type': 'undefined', 'v': {'$undefined': true}}
+      - {'_id': 2, 'type': 'regex', 'v': {'$regularExpression': {'pattern': 'foo*', 'options': 'ix'}}}
+      - {'_id': 3, 'type': 'dbPointer', 'v': {'$dbPointer': {'$ref': 'foo', '$id': {'$oid': '57e193d7a9cc81b4027498b5'}}}}
+      - {'_id': 4, 'type': 'javascript', 'v': {'$code': 'function() {}'}}
+      - {'_id': 5, 'type': 'symbol', 'v': {'$symbol': 'symbol'}}
+      - {'_id': 6, 'type': 'javascriptWithScope', 'v': {'$code': 'function() {}', '$scope': {}}}
+      - {'_id': 7, 'type': 'timestamp', 'v': {'$timestamp': {'t': 42, 'i': 1}}}
+      - {'_id': 8, 'type': 'minKey', 'v': {'$minKey': 1}}
+      - {'_id': 9, 'type': 'maxKey', 'v': {'$maxKey': 1}}
 
 tests:
   - description: Cast DOUBLE to BOOL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM doubles AS doubles"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: doubles
     translation:
@@ -93,6 +94,7 @@ tests:
   - description: Cast STRING to BOOL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM strings AS strings"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: strings
     translation:
@@ -122,6 +124,7 @@ tests:
   - description: Cast DOCUMENT to BOOL is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asBoolDefault': CAST(v AS BOOL), 'asBoolOnError': CAST(v AS BOOL, 'null' ON ERROR)} FROM documents AS documents"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: documents
     translation:
@@ -135,6 +138,7 @@ tests:
   - description: Cast ARRAY to BOOL is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asBoolDefault': CAST(v AS BOOL), 'asBoolOnError': CAST(v AS BOOL, 'null' ON ERROR)} FROM arrays AS arrays"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: arrays
     translation:
@@ -148,6 +152,7 @@ tests:
   - description: Cast OBJECTID to BOOL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM objectIDs AS objectIDs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: objectIDs
     translation:
@@ -160,6 +165,7 @@ tests:
   - description: Cast BOOL to BOOL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM bools AS bools"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: bools
     translation:
@@ -173,6 +179,7 @@ tests:
   - description: Cast BSON_DATE to BOOL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM dates AS dates"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: dates
     translation:
@@ -187,6 +194,7 @@ tests:
   - description: Cast NULL and MISSING to BOOL, returns NULL by default and ON NULL when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asBoolDefault': CAST(v AS BOOL), 'asBoolOnNull': CAST(v AS BOOL, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: nullAndMissing
     translation:
@@ -200,6 +208,7 @@ tests:
   - description: Cast INT to BOOL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM ints AS ints"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: ints
     translation:
@@ -214,6 +223,7 @@ tests:
   - description: Cast LONG to BOOL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM longs AS longs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: longs
     translation:
@@ -230,6 +240,7 @@ tests:
   - description: Cast DECIMAL to BOOL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asBool': CAST(v AS BOOL)} FROM decimals AS decimals"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: decimals
     translation:
@@ -248,6 +259,7 @@ tests:
   - description: Cast invalid source types to BOOL
     current_db: foo
     query: "SELECT VALUE {'type': type, 'asBool': CAST(v AS BOOL)} FROM invalidSourceTypes AS invalidSourceTypes"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: invalidSourceTypes
     translation:
@@ -269,6 +281,7 @@ tests:
   - description: Cast DOUBLE to INT, out of range numbers are invalid and return NULL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM doubles AS doubles"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: doubles
     translation:
@@ -285,6 +298,7 @@ tests:
   - description: Cast STRING to INT, non-numbers, non-ints, and out of range numbers are invalid and return NULL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM strings AS strings"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: strings
     translation:
@@ -314,6 +328,7 @@ tests:
   - description: Cast DOCUMENT to INT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnError': CAST(v AS INT, 'null' ON ERROR)} FROM documents AS documents"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: documents
     translation:
@@ -327,6 +342,7 @@ tests:
   - description: Cast ARRAY to INT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnError': CAST(v AS INT, 'null' ON ERROR)} FROM arrays AS arrays"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: arrays
     translation:
@@ -340,6 +356,7 @@ tests:
   - description: Cast OBJECTID to INT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnError': CAST(v AS INT, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: objectIDs
     translation:
@@ -352,6 +369,7 @@ tests:
   - description: Cast BOOL to INT
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM bools AS bools"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: bools
     translation:
@@ -365,6 +383,7 @@ tests:
   - description: Cast BSON_DATE to INT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnError': CAST(v AS INT, 'null' ON ERROR)} FROM dates AS dates"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: dates
     translation:
@@ -379,6 +398,7 @@ tests:
   - description: Cast NULL and MISSING to INT, returns NULL by default and ON NULL when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asIntDefault': CAST(v AS INT), 'asIntOnNull': CAST(v AS INT, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: nullAndMissing
     translation:
@@ -392,6 +412,7 @@ tests:
   - description: Cast INT to INT
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM ints AS ints"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: ints
     translation:
@@ -406,6 +427,7 @@ tests:
   - description: Cast LONG to INT, out of range numbers are invalid and return NULL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM longs AS longs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: longs
     translation:
@@ -422,6 +444,7 @@ tests:
   - description: Cast DECIMAL to INT, out of range numbers are invalid and return NULL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asInt': CAST(v AS INT)} FROM decimals AS decimals"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: decimals
     translation:
@@ -440,6 +463,7 @@ tests:
   - description: Cast invalid source types to INT
     current_db: foo
     query: "SELECT VALUE {'type': type, 'asInt': CAST(v AS INT)} FROM invalidSourceTypes AS invalidSourceTypes"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: invalidSourceTypes
     translation:
@@ -461,6 +485,7 @@ tests:
   - description: Cast DOUBLE to DECIMAL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM doubles AS doubles"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: doubles
     translation:
@@ -477,6 +502,7 @@ tests:
   - description: Cast STRING to DECIMAL, non-numbers return NULL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM strings AS strings"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: strings
     translation:
@@ -506,6 +532,7 @@ tests:
   - description: Cast DOCUMENT to DECIMAL is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDecimalDefault': CAST(v AS DECIMAL), 'asDecimalOnError': CAST(v AS DECIMAL, 'null' ON ERROR)} FROM documents AS documents"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: documents
     translation:
@@ -519,6 +546,7 @@ tests:
   - description: Cast ARRAY to DECIMAL is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDecimalDefault': CAST(v AS DECIMAL), 'asDecimalOnError': CAST(v AS DECIMAL, 'null' ON ERROR)} FROM arrays AS arrays"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: arrays
     translation:
@@ -532,6 +560,7 @@ tests:
   - description: Cast OBJECTID to DECIMAL is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDecimalDefault': CAST(v AS DECIMAL), 'asDecimalOnError': CAST(v AS DECIMAL, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: objectIDs
     translation:
@@ -544,6 +573,7 @@ tests:
   - description: Cast BOOL to DECIMAL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM bools AS bools"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: bools
     translation:
@@ -557,6 +587,7 @@ tests:
   - description: Cast BSON_DATE to DECIMAL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM dates AS dates"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: dates
     translation:
@@ -571,6 +602,7 @@ tests:
   - description: Cast NULL and MISSING to DECIMAL, returns NULL by default and ON NULL when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDecimalDefault': CAST(v AS DECIMAL), 'asDecimalOnNull': CAST(v AS DECIMAL, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: nullAndMissing
     translation:
@@ -584,6 +616,7 @@ tests:
   - description: Cast INT to DECIMAL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM ints AS ints"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: ints
     translation:
@@ -598,6 +631,7 @@ tests:
   - description: Cast LONG to DECIMAL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM longs AS longs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: longs
     translation:
@@ -614,6 +648,7 @@ tests:
   - description: Cast DECIMAL to DECIMAL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDecimal': CAST(v AS DECIMAL)} FROM decimals AS decimals"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: decimals
     translation:
@@ -632,6 +667,7 @@ tests:
   - description: Cast invalid source types to DECIMAL
     current_db: foo
     query: "SELECT VALUE {'type': type, 'asDecimal': CAST(v AS DECIMAL)} FROM invalidSourceTypes AS invalidSourceTypes"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: invalidSourceTypes
     translation:
@@ -653,6 +689,7 @@ tests:
   - description: Cast DOUBLE to DOUBLE
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM doubles AS doubles"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: doubles
     translation:
@@ -669,6 +706,7 @@ tests:
   - description: Cast STRING to DOUBLE, non-numbers and out of range numbers are invalid and return NULL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM strings AS strings"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: strings
     translation:
@@ -698,6 +736,7 @@ tests:
   - description: Cast DOCUMENT to DOUBLE is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDoubleDefault': CAST(v AS DOUBLE), 'asDoubleOnError': CAST(v AS DOUBLE, 'null' ON ERROR)} FROM documents AS documents"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: documents
     translation:
@@ -711,6 +750,7 @@ tests:
   - description: Cast ARRAY to DOUBLE is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDoubleDefault': CAST(v AS DOUBLE), 'asDoubleOnError': CAST(v AS DOUBLE, 'null' ON ERROR)} FROM arrays AS arrays"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: arrays
     translation:
@@ -724,6 +764,7 @@ tests:
   - description: Cast OBJECTID to DOUBLE is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDoubleDefault': CAST(v AS DOUBLE), 'asDoubleOnError': CAST(v AS DOUBLE, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: objectIDs
     translation:
@@ -736,6 +777,7 @@ tests:
   - description: Cast BOOL to DOUBLE
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM bools AS bools"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: bools
     translation:
@@ -749,6 +791,7 @@ tests:
   - description: Cast BSON_DATE to DOUBLE
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM dates AS dates"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: dates
     translation:
@@ -763,6 +806,7 @@ tests:
   - description: Cast NULL and MISSING to DOUBLE, returns NULL by default and ON NULL when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDoubleDefault': CAST(v AS DOUBLE), 'asDoubleOnNull': CAST(v AS DOUBLE, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: nullAndMissing
     translation:
@@ -776,6 +820,7 @@ tests:
   - description: Cast INT to DOUBLE
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM ints AS ints"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: ints
     translation:
@@ -790,6 +835,7 @@ tests:
   - description: Cast LONG to DOUBLE
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM longs AS longs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: longs
     translation:
@@ -806,6 +852,7 @@ tests:
   - description: Cast DECIMAL to DOUBLE, out of range numbers are invalid and return NULL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDouble': CAST(v AS DOUBLE)} FROM decimals AS decimals"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: decimals
     translation:
@@ -824,6 +871,7 @@ tests:
   - description: Cast invalid source types to DOUBLE
     current_db: foo
     query: "SELECT VALUE {'type': type, 'asDouble': CAST(v AS DOUBLE)} FROM invalidSourceTypes AS invalidSourceTypes"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: invalidSourceTypes
     translation:
@@ -845,8 +893,9 @@ tests:
   - description: Cast DOUBLE to LONG
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM doubles AS doubles"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
-    translation_target_coll: doubles
+    translation_target_coll: double
     translation:
       - {'$project': {'_id': 0, 'doubles': '$$ROOT'}}
       - {'$project': {'_id': 0, 'doubles': '$doubles'}}
@@ -861,6 +910,7 @@ tests:
   - description: Cast STRING to LONG, non-numbers, non-ints, and out of range numbers are invalid and return NULL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM strings AS strings"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: strings
     translation:
@@ -890,6 +940,7 @@ tests:
   - description: Cast DOCUMENT to LONG is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asLongDefault': CAST(v AS LONG), 'asLongOnError': CAST(v AS LONG, 'null' ON ERROR)} FROM documents AS documents"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: documents
     translation:
@@ -903,6 +954,7 @@ tests:
   - description: Cast ARRAY to LONG is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asLongDefault': CAST(v AS LONG), 'asLongOnError': CAST(v AS LONG, 'null' ON ERROR)} FROM arrays AS arrays"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: arrays
     translation:
@@ -916,6 +968,7 @@ tests:
   - description: Cast OBJECTID to LONG is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asLongDefault': CAST(v AS LONG), 'asLongOnError': CAST(v AS LONG, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: objectIDs
     translation:
@@ -928,6 +981,7 @@ tests:
   - description: Cast BOOL to LONG
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM bools AS bools"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: bools
     translation:
@@ -941,6 +995,7 @@ tests:
   - description: Cast BSON_DATE to LONG
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM dates AS dates"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: dates
     translation:
@@ -955,6 +1010,7 @@ tests:
   - description: Cast NULL and MISSING to LONG, returns NULL by default and ON NULL when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asLongDefault': CAST(v AS LONG), 'asLongOnNull': CAST(v AS LONG, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: nullAndMissing
     translation:
@@ -968,6 +1024,7 @@ tests:
   - description: Cast INT to LONG
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM ints AS ints"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: ints
     translation:
@@ -982,6 +1039,7 @@ tests:
   - description: Cast LONG to LONG
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM longs AS longs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: longs
     translation:
@@ -998,6 +1056,7 @@ tests:
   - description: Cast DECIMAL to LONG, out of range numbers are invalid and return NULL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asLong': CAST(v AS LONG)} FROM decimals AS decimals"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: decimals
     translation:
@@ -1016,6 +1075,7 @@ tests:
   - description: Cast invalid source types to LONG
     current_db: foo
     query: "SELECT VALUE {'type': type, 'asLong': CAST(v AS LONG)} FROM invalidSourceTypes AS invalidSourceTypes"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: invalidSourceTypes
     translation:
@@ -1037,6 +1097,7 @@ tests:
   - description: Cast DOUBLE to BSON_DATE
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM doubles AS doubles"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: doubles
     translation:
@@ -1053,6 +1114,7 @@ tests:
   - description: Cast STRING to BSON_DATE, non-dates are invalid and return NULL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM strings AS strings"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: strings
     translation:
@@ -1082,6 +1144,7 @@ tests:
   - description: Cast DOCUMENT to BSON_DATE is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnError': CAST(v AS BSON_DATE, 'null' ON ERROR)} FROM documents AS documents"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: documents
     translation:
@@ -1095,6 +1158,7 @@ tests:
   - description: Cast ARRAY to BSON_DATE is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnError': CAST(v AS BSON_DATE, 'null' ON ERROR)} FROM arrays AS arrays"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: arrays
     translation:
@@ -1108,6 +1172,7 @@ tests:
   - description: Cast OBJECTID to BSON_DATE
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM objectIDs AS objectIDs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: objectIDs
     translation:
@@ -1120,6 +1185,7 @@ tests:
   - description: Cast BOOL to BSON_DATE is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnError': CAST(v AS BSON_DATE, 'null' ON ERROR)} FROM bools AS bools"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: bools
     translation:
@@ -1133,6 +1199,7 @@ tests:
   - description: Cast BSON_DATE to BSON_DATE
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM dates AS dates"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: dates
     translation:
@@ -1147,6 +1214,7 @@ tests:
   - description: Cast NULL and MISSING to BSON_DATE, returns NULL by default and ON NULL when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnNull': CAST(v AS BSON_DATE, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: nullAndMissing
     translation:
@@ -1160,6 +1228,7 @@ tests:
   - description: Cast INT to BSON_DATE is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDateDefault': CAST(v AS BSON_DATE), 'asDateOnError': CAST(v AS BSON_DATE, 'null' ON ERROR)} FROM ints AS ints"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: ints
     translation:
@@ -1174,6 +1243,7 @@ tests:
   - description: Cast LONG to BSON_DATE
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM longs AS longs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: longs
     translation:
@@ -1190,6 +1260,7 @@ tests:
   - description: Cast DECIMAL to BSON_DATE, out of range numbers are invalid and return NULL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDate': CAST(v AS BSON_DATE)} FROM decimals AS decimals"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: decimals
     translation:
@@ -1208,6 +1279,7 @@ tests:
   - description: Cast invalid source types to BSON_DATE
     current_db: foo
     query: "SELECT VALUE {'type': type, 'asDate': CAST(v AS BSON_DATE)} FROM invalidSourceTypes AS invalidSourceTypes"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: invalidSourceTypes
     translation:
@@ -1229,6 +1301,7 @@ tests:
   - description: Cast DOUBLE to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM doubles AS doubles"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: doubles
     translation:
@@ -1245,6 +1318,7 @@ tests:
   - description: Cast STRING to OBJECTID, non-objectIDs are invalid and return NULL
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asObjectID': CAST(v AS OBJECTID)} FROM strings AS strings"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: strings
     translation:
@@ -1274,6 +1348,7 @@ tests:
   - description: Cast DOCUMENT to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM documents AS documents"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: documents
     translation:
@@ -1287,6 +1362,7 @@ tests:
   - description: Cast ARRAY to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM arrays AS arrays"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: arrays
     translation:
@@ -1300,6 +1376,7 @@ tests:
   - description: Cast OBJECTID to OBJECTID
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asObjectID': CAST(v AS OBJECTID)} FROM objectIDs AS objectIDs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: objectIDs
     translation:
@@ -1312,6 +1389,7 @@ tests:
   - description: Cast BOOL to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM bools AS bools"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: bools
     translation:
@@ -1325,6 +1403,7 @@ tests:
   - description: Cast BSON_DATE to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM dates AS dates"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: dates
     translation:
@@ -1339,6 +1418,7 @@ tests:
   - description: Cast NULL and MISSING to OBJECTID, returns NULL by default and ON NULL when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnNull': CAST(v AS OBJECTID, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: nullAndMissing
     translation:
@@ -1352,6 +1432,7 @@ tests:
   - description: Cast INT to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM ints AS ints"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: ints
     translation:
@@ -1366,6 +1447,7 @@ tests:
   - description: Cast LONG to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM longs AS longs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: longs
     translation:
@@ -1382,6 +1464,7 @@ tests:
   - description: Cast DECIMAL to OBJECTID is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asObjectIDDefault': CAST(v AS OBJECTID), 'asObjectIDOnError': CAST(v AS OBJECTID, 'null' ON ERROR)} FROM decimals AS decimals"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: decimals
     translation:
@@ -1400,6 +1483,7 @@ tests:
   - description: Cast invalid source types to OBJECTID
     current_db: foo
     query: "SELECT VALUE {'type': type, 'asObjectID': CAST(v AS OBJECTID)} FROM invalidSourceTypes AS invalidSourceTypes"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: invalidSourceTypes
     translation:
@@ -1421,6 +1505,7 @@ tests:
   - description: Cast DOUBLE to STRING
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM doubles AS doubles"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: doubles
     translation:
@@ -1437,6 +1522,7 @@ tests:
   - description: Cast STRING to STRING
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM strings AS strings"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: strings
     translation:
@@ -1466,6 +1552,7 @@ tests:
   - description: Cast DOCUMENT to STRING is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asStringDefault': CAST(v AS STRING), 'asStringOnError': CAST(v AS STRING, 'null' ON ERROR)} FROM documents AS documents"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: documents
     translation:
@@ -1479,6 +1566,7 @@ tests:
   - description: Cast ARRAY to STRING is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asStringDefault': CAST(v AS STRING), 'asStringOnError': CAST(v AS STRING, 'null' ON ERROR)} FROM arrays AS arrays"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: arrays
     translation:
@@ -1492,6 +1580,7 @@ tests:
   - description: Cast OBJECTID to STRING
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM objectIDs AS objectIDs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: objectIDs
     translation:
@@ -1504,6 +1593,7 @@ tests:
   - description: Cast BOOL to STRING
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM bools AS bools"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: bools
     translation:
@@ -1517,6 +1607,7 @@ tests:
   - description: Cast BSON_DATE to STRING
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM dates AS dates"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: dates
     translation:
@@ -1531,6 +1622,7 @@ tests:
   - description: Cast NULL and MISSING to STRING, returns NULL by default and ON NULL when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asStringDefault': CAST(v AS STRING), 'asStringOnNull': CAST(v AS STRING, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: nullAndMissing
     translation:
@@ -1544,6 +1636,7 @@ tests:
   - description: Cast INT to STRING
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM ints AS ints"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: ints
     translation:
@@ -1558,6 +1651,7 @@ tests:
   - description: Cast LONG to STRING
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM longs AS longs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: longs
     translation:
@@ -1574,6 +1668,7 @@ tests:
   - description: Cast DECIMAL to STRING
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asString': CAST(v AS STRING)} FROM decimals AS decimals"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: decimals
     translation:
@@ -1592,6 +1687,7 @@ tests:
   - description: Cast invalid source types to STRING
     current_db: foo
     query: "SELECT VALUE {'type': type, 'asString': CAST(v AS STRING)} FROM invalidSourceTypes AS invalidSourceTypes"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: invalidSourceTypes
     translation:
@@ -1613,6 +1709,7 @@ tests:
   - description: Cast DOUBLE to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM doubles AS doubles"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: doubles
     translation:
@@ -1629,6 +1726,7 @@ tests:
   - description: Cast STRING to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM strings AS strings"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: strings
     translation:
@@ -1658,6 +1756,7 @@ tests:
   - description: Cast DOCUMENT to DOCUMENT
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDocument': CAST(v AS DOCUMENT)} FROM documents AS documents"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: documents
     translation:
@@ -1671,6 +1770,7 @@ tests:
   - description: Cast ARRAY to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM arrays AS arrays"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: arrays
     translation:
@@ -1684,6 +1784,7 @@ tests:
   - description: Cast OBJECTID to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: objectIDs
     translation:
@@ -1696,6 +1797,7 @@ tests:
   - description: Cast BOOL to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM bools AS bools"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: bools
     translation:
@@ -1709,6 +1811,7 @@ tests:
   - description: Cast BSON_DATE to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM dates AS dates"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: dates
     translation:
@@ -1723,6 +1826,7 @@ tests:
   - description: Cast NULL and MISSING to DOCUMENT, returns NULL by default and ON NULL when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnNull': CAST(v AS DOCUMENT, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: nullAndMissing
     translation:
@@ -1736,6 +1840,7 @@ tests:
   - description: Cast INT to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM ints AS ints"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: ints
     translation:
@@ -1750,6 +1855,7 @@ tests:
   - description: Cast LONG to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM longs AS longs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: longs
     translation:
@@ -1766,6 +1872,7 @@ tests:
   - description: Cast DECIMAL to DOCUMENT is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asDocumentDefault': CAST(v AS DOCUMENT), 'asDocumentOnError': CAST(v AS DOCUMENT, 'null' ON ERROR)} FROM decimals AS decimals"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: decimals
     translation:
@@ -1784,6 +1891,7 @@ tests:
   - description: Cast invalid source types to DOCUMENT
     current_db: foo
     query: "SELECT VALUE {'type': type, 'asDocument': CAST(v AS DOCUMENT)} FROM invalidSourceTypes AS invalidSourceTypes"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: invalidSourceTypes
     translation:
@@ -1805,6 +1913,7 @@ tests:
   - description: Cast DOUBLE to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM doubles AS doubles"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: doubles
     translation:
@@ -1821,6 +1930,7 @@ tests:
   - description: Cast STRING to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM strings AS strings"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: strings
     translation:
@@ -1850,6 +1960,7 @@ tests:
   - description: Cast DOCUMENT to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM documents AS documents"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: documents
     translation:
@@ -1863,6 +1974,7 @@ tests:
   - description: Cast ARRAY to ARRAY
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asArray': CAST(v AS ARRAY)} FROM arrays AS arrays"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: arrays
     translation:
@@ -1876,6 +1988,7 @@ tests:
   - description: Cast OBJECTID to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM objectIDs AS objectIDs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: objectIDs
     translation:
@@ -1888,6 +2001,7 @@ tests:
   - description: Cast BOOL to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM bools AS bools"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: bools
     translation:
@@ -1901,6 +2015,7 @@ tests:
   - description: Cast BSON_DATE to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM dates AS dates"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: dates
     translation:
@@ -1915,6 +2030,7 @@ tests:
   - description: Cast NULL and MISSING to ARRAY, returns NULL by default and ON NULL when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnNull': CAST(v AS ARRAY, 'null' ON NULL)} FROM nullAndMissing AS nullAndMissing"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: nullAndMissing
     translation:
@@ -1928,6 +2044,7 @@ tests:
   - description: Cast INT to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM ints AS ints"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: ints
     translation:
@@ -1942,6 +2059,7 @@ tests:
   - description: Cast LONG to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM longs AS longs"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: longs
     translation:
@@ -1958,6 +2076,7 @@ tests:
   - description: Cast DECIMAL to ARRAY is invalid, returns NULL by default and ON ERROR when set
     current_db: foo
     query: "SELECT VALUE {'v': v, 'asArrayDefault': CAST(v AS ARRAY), 'asArrayOnError': CAST(v AS ARRAY, 'null' ON ERROR)} FROM decimals AS decimals"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: decimals
     translation:
@@ -1976,6 +2095,7 @@ tests:
   - description: Cast invalid source types to ARRAY
     current_db: foo
     query: "SELECT VALUE {'type': type, 'asArray': CAST(v AS ARRAY)} FROM invalidSourceTypes AS invalidSourceTypes"
+    skip_reason: "SQL-484: implement codegen for Cast"
     translation_target_db: foo
     translation_target_coll: invalidSourceTypes
     translation:
@@ -1996,60 +2116,72 @@ tests:
 
   - description: Cast to BINDATA is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS BINDATA)} FROM [{}] AS _dual"
+    skip_reason: "SQL-462, SQL-484"
     should_compile: false
     algebrize_error: "invalid CAST target type 'BINDATA'"
 
   - description: Cast to UNDEFINED is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS UNDEFINED)} FROM [{}] AS _dual"
+    skip_reason: "SQL-462, SQL-484"
     should_compile: false
     algebrize_error: "invalid CAST target type 'UNDEFINED'"
 
   - description: Cast to REGEX is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS REGEX)} FROM [{}] AS _dual"
+    skip_reason: "SQL-462, SQL-484"
     should_compile: false
     algebrize_error: "invalid CAST target type 'REGEX'"
 
   - description: Cast to DBPOINTER is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS DBPOINTER)} FROM [{}] AS _dual"
+    skip_reason: "SQL-462, SQL-484"
     should_compile: false
     algebrize_error: "invalid CAST target type 'DBPOINTER'"
 
   - description: Cast to JAVASCRIPT is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS JAVASCRIPT)} FROM [{}] AS _dual"
+    skip_reason: "SQL-462, SQL-484"
     should_compile: false
     algebrize_error: "invalid CAST target type 'JAVASCRIPT'"
 
   - description: Cast to SYMBOL is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS SYMBOL)} FROM [{}] AS _dual"
+    skip_reason: "SQL-462, SQL-484"
     should_compile: false
     algebrize_error: "invalid CAST target type 'SYMBOL'"
 
   - description: Cast to JAVASCRIPTWITHSCOPE is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS JAVASCRIPTWITHSCOPE)} FROM [{}] AS _dual"
+    skip_reason: "SQL-462, SQL-484"
     should_compile: false
     algebrize_error: "invalid CAST target type 'JAVASCRIPTWITHSCOPE'"
 
   - description: Cast to BSON_TIMESTAMP is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS BSON_TIMESTAMP)} FROM [{}] AS _dual"
+    skip_reason: "SQL-462, SQL-484"
     should_compile: false
     algebrize_error: "invalid CAST target type 'BSON_TIMESTAMP'"
 
   - description: Cast to MINKEY is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS MINKEY)} FROM [{}] AS _dual"
+    skip_reason: "SQL-462, SQL-484"
     should_compile: false
     algebrize_error: "invalid CAST target type 'MINKEY'"
 
   - description: Cast to MAXKEY is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS MAXKEY)} FROM [{}] AS _dual"
+    skip_reason: "SQL-462, SQL-484"
     should_compile: false
     algebrize_error: "invalid CAST target type 'MAXKEY'"
 
   - description: Cast to DATE is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS DATE)} FROM [{}] AS _dual"
+    skip_reason: "SQL-462, SQL-484"
     should_compile: false
     algebrize_error: "invalid CAST target type 'DATE'"
 
   - description: Cast to TIME is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS TIME)} FROM [{}] AS _dual"
+    skip_reason: "SQL-462, SQL-484"
     should_compile: false
     algebrize_error: "invalid CAST target type 'TIME'"

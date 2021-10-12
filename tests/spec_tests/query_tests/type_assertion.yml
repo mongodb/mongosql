@@ -14,6 +14,8 @@ catalog_schema:
     "foo": {
       "bar_schema": {
         "bsonType": "object",
+        "required": [ '_id', 'v1' ],
+        "additionalProperties": false,
         "properties": {
           "_id": {
             "bsonType": "int"
@@ -22,7 +24,7 @@ catalog_schema:
             "anyOf": [
               { "bsonType": "string" },
               { "bsonType": "int" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           },
         }
@@ -40,6 +42,9 @@ tests:
   - description: correctness test for type assertion in schema mode
     current_db: "foo"
     query: "SELECT v1::!INT AS v1 FROM bar_schema"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: bar_schema
     result:
       - {v1: "abc"}
       - {v1: {"$numberInt": "2"}}
@@ -48,6 +53,9 @@ tests:
   - description: correctness test for type assertion in schema-less mode, target type can be any
     current_db: "foo"
     query: "SELECT v1::!DOUBLE AS v1 FROM bar"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: bar
     result:
       - {v1: "abc"}
       - {v1: {"$numberInt": "2"}}

@@ -5,46 +5,61 @@ catalog_data:
 
 tests:
   - description: Standard embedded comment
-    current_db: 'foo'
+    current_db: 'db'
     query: 'SELECT a FROM foo -- This is a standard comment'
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: db
+    translation_target_coll: foo
     result:
         - {'a': 1}
 
   - description: Standard single line comment
-    current_db: 'foo'
+    current_db: 'db'
     query: '-- This is a standard single line comment
 
     SELECT a FROM foo'
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: db
+    translation_target_coll: foo
     result:
       - {'a': 1}
 
   - description: Inline comment
-    current_db: 'foo'
+    current_db: 'db'
     query: 'SELECT a /* This is an inline comment */ FROM foo'
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: db
+    translation_target_coll: foo
     result:
       - { 'a': 1 }
 
   - description: Multiline comment
-    current_db: 'foo'
+    current_db: 'db'
     query: '/* This is a multiline comment
 
     This is a multiline comment */
 
     SELECT a FROM foo'
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: db
+    translation_target_coll: foo
     result:
       - {'a': 1}
 
   - description: Inline multiline comment
-    current_db: 'foo'
+    current_db: 'db'
     query: 'SELECT a /* This is an inline
 
     comment */ FROM foo'
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: db
+    translation_target_coll: foo
     result:
       - { 'a': 1 }
 
 
   - description: Multiline comment with nesting
-    current_db: 'foo'
+    current_db: 'db'
     query: '/* This is a multiline comment
 
     * with nesting: /* nested block comment */
@@ -52,5 +67,8 @@ tests:
     */
 
     SELECT a FROM foo'
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: db
+    translation_target_coll: foo
     result:
       - {'a': 1}

@@ -278,6 +278,30 @@ functions:
           export LIBRARY_PATH="$(cd .. && pwd)"
           go test -v ./... | tee go-test-results.txt
 
+  # Just running the spec tests on RHEL 7.6 for now
+  "run spec tests":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs/go
+        script: |
+          ${prepare_shell}
+          export LIBRARY_PATH="$(cd .. && pwd)"
+          export LD_LIBRARY_PATH="$(cd .. && pwd)"
+
+          echo "downloading mongodb"
+          curl -O https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-rhel70-5.0.3.tgz
+          tar zxvf mongodb-linux-x86_64-rhel70-5.0.3.tgz
+          mkdir -p data_db
+
+          echo "starting mongodb"
+          mongodb-linux-x86_64-rhel70-5.0.3/bin/mongod --dbpath data_db &
+
+          echo "run spec tests"
+          go test -v ./... -tags spectests | tee spec-test-results.txt
+          pkill mongod
+
   "run rust tests":
     - command: shell.exec
       type: test
@@ -347,6 +371,13 @@ functions:
         files:
           - mongosql-rs/go/go-test-results.txt
 
+  "upload spec test results":
+    - command: gotest.parse_files
+      type: test
+      params:
+        files:
+          - mongosql-rs/go/spec-test-results.txt
+
 pre:
   - func: "fetch source"
   - func: "generate expansions"
@@ -402,6 +433,14 @@ tasks:
       - func: "run go tests"
       - func: "upload go test results"
 
+  - name: test-spec
+    depends_on:
+      - name: compile
+    commands:
+      - func: "download c library"
+      - func: "run spec tests"
+      - func: "upload spec test results"
+
   - name: release
     git_tag_only: true
     depends_on:
@@ -449,6 +488,7 @@ buildvariants:
       - name: test-rust
       - name: test-rust-fuzz
       - name: test-go
+      - name: test-spec
 
   - name: macos
     display_name: "macOS 10.14"

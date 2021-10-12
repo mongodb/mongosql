@@ -1,6 +1,7 @@
 tests:
   - description: Undelimited identifier containing a . character is a compound identifier
     query: "SELECT VALUE {'c': a.c} FROM [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}] arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}]}}
       - {'$project': {'_id': 0, '__bot': {'c': '$arr.a.c'}}}
@@ -10,18 +11,20 @@ tests:
 
   - description: Delimited identifier containing a . character includes the .
     query: "SELECT VALUE {'a.c': `a.c`} FROM [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}] arr"
-    skip_reason: "dots in field names not yet supported"
+    skip_reason: "SQL-462. Also, dots in field names not yet supported"
     result:
       - {'__bot': {'a.c': 2}}
       - {'__bot': {'a.c': 4}}
 
   - description: Undelimited identifier starting with digit is not parsed as an identifier
     query: "SELECT 1a FROM [{'1a': 2}] arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     parse_error: "undelimited identifiers may not start with a digit"
 
   - description: Delimited identifier starting with digit is an identifier
     query: "SELECT VALUE {'1a': `1a`} FROM [{'1a': 2}] arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'1a': 2}]}}
       - {'$project': {'_id': 0, '__bot': {'1a': '$arr.1a'}}}
@@ -30,6 +33,7 @@ tests:
 
   - description: Backtick delimited identifiers containing delimiter characters
     query: "SELECT VALUE {'a`b': `a``b`, 'a\"b': `a\"b`, 'a`\"b': `a``\"b`} FROM [{'a`b': 1, 'a\"b': 2, 'a`\"b': 3}] arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a`b': 1, 'a"b': 2, 'a`"b': 3}]}}
       - {'$project': {'_id': 0, '__bot': {'a`b': '$arr.a`b', 'a"b': '$arr.a"b', 'a`"b': '$arr.a`"b'}}}
@@ -38,6 +42,7 @@ tests:
 
   - description: Double quote delimited identifiers containing delimiter characters
     query: "SELECT VALUE {'a`b': \"a`b\", 'a\"b': \"a\"\"b\", 'a`\"b': \"a`\"\"b\"} FROM [{'a`b': 1, 'a\"b': 2, 'a`\"b': 3}] arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a`b': 1, 'a"b': 2, 'a`"b': 3}]}}
       - {'$project': {'_id': 0, '__bot': {'a`b': 'arr.a`b', 'a"b': '$arr.a"b', 'a`"b': '$arr.a`"b'}}}
@@ -46,6 +51,7 @@ tests:
 
   - description: Regular and delimited identifiers
     query: "SELECT VALUE {'a': a, 'b': `b`} FROM [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}] arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]}}
       - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'b': '$arr.b'}}}
@@ -55,11 +61,13 @@ tests:
 
   - description: Undelimited identifier with non-ASCII characters is invalid
     query: "SELECT VALUE {'αβγ': αβγ} FROM [{'αβγ': 1}] arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     parse_error: "undelimited identifiers should only contain alphanumerics"
     
   - description: Delimited identifier with non-ASCII characters
     query: "SELECT VALUE {'αβγ': `αβγ`} FROM [{'αβγ': 1}] arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'αβγ': 1}]}}
       - {'$project': {'_id': 0, '__bot': {'αβγ': '$arr.αβγ'}}}
@@ -68,6 +76,7 @@ tests:
 
   - description: Compound identifier with more than 3 parts
     query: "SELECT VALUE {'d': a.b.c.d} FROM [{'a': {'b': {'c': {'d': 1}}}}] arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': {'b': {'c': {'d': 1}}}}]}}
       - {'$project': {'_id': 0, '__bot': {'d': '$arr.a.b.c.d'}}}
@@ -76,12 +85,13 @@ tests:
 
   - description: Compound identifier with mixed delimited and undelimited components
     query: "SELECT VALUE {'c': `a.b`.c} FROM [{'a.b': {'c': 1}, 'a': {'b': {'c': 2}, 'b.c': 3}}] arr"
-    skip_reason: "dots in field names not yet supported"
+    skip_reason: "SQL-462: re-enable tests with array datasources; dots in field names not yet supported"
     result:
       - {'__bot': {'c': 1}}
 
   - description: Case-sensitive identifiers
     query: "SELECT VALUE {'a': a, 'A': A} FROM [{'a': 1, 'A': 2}, {'a': 3}, {'A': 4}] arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': 1, 'A': 2}, {'a': 3}, {'A': 4}]}}
       - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'A': '$arr.A'}}}
@@ -92,6 +102,7 @@ tests:
 
   - description: Empty identifiers
     query: "SELECT VALUE {'empty': ``} FROM [{'': 2}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'': 2}]}}
       - {'$project': {'_id': 0, '__bot': {'empty': {'$getField': {'field': '', 'input': '$arr'}}}}}

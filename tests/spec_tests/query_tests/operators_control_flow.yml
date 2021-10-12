@@ -1,13 +1,15 @@
 catalog_data:
   foo:
     bar:
-      - { "_id": 0, "a": 2, "b": null }
+      - { "_id": 0, "a": 2, "b": null, "c": 3 }
 
 catalog_schema:
   {
     "foo": {
       "bar": {
         "bsonType": "object",
+        'required': [ 'a', 'b', 'c' ],
+        'additionalProperties': false,
         "properties": {
           "a": {
             "bsonType": "int"
@@ -15,7 +17,7 @@ catalog_schema:
           "b": {
             "anyOf": [
               { "bsonType": "int" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           },
           "c": {
@@ -28,7 +30,9 @@ catalog_schema:
 
 tests:
   - description: Simple CASE expression - No WHEN comparison evalutes to TRUE, return ELSE result
+    current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' WHEN c THEN 'c' ELSE 'none' END } FROM bar AS bar"
+    skip_reason: "SQL-500: fix $let document"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -40,17 +44,18 @@ tests:
                                             'in':
                                               {"$switch": {
                                                 "branches": [
-                                                {"case": { "$sqlEq": [ '$$target', "$bar.a" ] }, "then": 'a' },
-                                                {"case": { "$sqlEq": [ '$$target', "$bar.b" ] }, "then": 'b' },
-                                                {"case": { "$sqlEq": [ '$$target', "$bar.c" ] }, "then": 'c' }
+                                                {"case": { "$sqlEq": [ '$$target', "$bar.a" ] }, "then": {'$literal': 'a'} },
+                                                {"case": { "$sqlEq": [ '$$target', "$bar.b" ] }, "then": {'$literal': 'b'} },
+                                                {"case": { "$sqlEq": [ '$$target', "$bar.c" ] }, "then": {'$literal': 'c'} }
                                                 ],
-                                                "default": 'none'
+                                                "default": {'$literal': 'none'}
                                               }}}}}}}
     result:
       - {'__bot': { "a": 2, "b": null, "r": "none" } }
 
   - description: Simple CASE expression - One WHEN comparison evalutes to TRUE, return corresponding THEN result
     query: "SELECT VALUE { 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' ELSE 'none' END } FROM [{'a': 2, 'b': 1}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': 2, 'b': 1}]}}
       - {'$project': {'_id': 0, '__bot': {'r': {'$let': {
@@ -67,7 +72,9 @@ tests:
       - {'__bot': { "r": "b" } }
 
   - description: Simple CASE expression - Multiple WHEN comparison evalutes to TRUE, return first corresponding THEN result
+    current_db: foo
     query: "SELECT VALUE { 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' ELSE 'none' END } FROM [{'a': 1, 'b': 1}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -87,11 +94,14 @@ tests:
 
   - description: Simple CASE expression - Static type mismatch for case operand and when operand
     query: "SELECT VALUE { 'r': CASE 1 WHEN '2' THEN '2' ELSE NULL END } FROM [{}] AS _dual"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     algebrize_error: "type mismatch in CASE expression, operands must have comparable types (found STRING and INT)"
 
   - description: Searched CASE expression - No WHEN condition evalutes to TRUE, return ELSE result
-    query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' WHEN c THEN 'c' ELSE 'none' END } FROM bar AS bar"
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' WHEN c = 1 THEN 'c' ELSE 'none' END } FROM bar AS bar"
+    skip_reason: "SQL-495: wrap literals in $literal document"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -110,7 +120,9 @@ tests:
       - {'__bot': { "a": 2, "b": null, "r": "a" } }
 
   - description: Searched CASE expression - One WHEN condition evalutes to TRUE, return corresponding THEN result
+    current_db: foo
     query: "SELECT VALUE { 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' ELSE 'none' END } FROM [{'a': 2, 'b': 1}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -127,7 +139,9 @@ tests:
       - {'__bot': { "r": "b" } }
 
   - description: Searched CASE expression - Multiple WHEN conditions evalutes to TRUE, return first corresponding THEN result
+    current_db: foo
     query: "SELECT VALUE { 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' ELSE 'none' END } FROM [{'a': 1, 'b': 1}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation_target_coll: bar
     translation:

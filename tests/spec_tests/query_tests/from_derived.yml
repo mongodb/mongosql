@@ -8,6 +8,7 @@ catalog_data:
 tests:
   - description: both unqualified and qualified references to derived table datasource fields are allowed
     query: "SELECT VALUE {'apo': apo, 'bpt': derived.bpt} FROM (SELECT VALUE {'apo': a + 1, 'bpt': b + 2} FROM [{'a': 1, 'b': 1}] AS arr) AS derived"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'arr': [{'a': 1, 'b': 1}]}}
       - {'$project': {'_id': 0, '__bot': {'apo': {'$add': ['$arr.a', {'$literal': 1}]}, 'bpt': {'$add': ['$arr.b', {'$literal': 2}]}}}}
@@ -18,21 +19,25 @@ tests:
 
   - description: derived table cannot reference other datasources in same FROM clause
     query: "SELECT * FROM [{'x': 1}] AS foo CROSS JOIN (SELECT * FROM [{'x': 1}] AS bar WHERE foo.x = bar.x) AS derived"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     algebrize_error: "no field 'foo' in datasource 'bar'"
 
   - description: derived table must have alias
     query: "SELECT * FROM (SELECT * FROM [{a: 1}] AS arr)"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     parse_error: "expected <alias>, found EOI"
 
   - description: datasource names in derived table are not visible outside of derived table query
     query: "SELECT derived.foo.x FROM (SELECT * FROM [{'x': 1}] AS foo, [{'a': 1}] AS bar) AS derived"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     algebrize_error: "Unknown field 'foo'"
 
   - description: derived table query with data sources that statically have ambiguous field must report a static error
     query: "SELECT * FROM (SELECT * FROM [{'x': 1, 'y': 2}] AS foo, [{'a': 1, 'x': 3}] AS bar) AS derived"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     algebrize_error: "Ambiguous field 'x' in derived table"
 
@@ -44,6 +49,7 @@ tests:
   - description: there is no ambiguity with one schema-less datasource in a derived table
     current_db: test
     query: "SELECT * FROM (SELECT * FROM foo AS foo) AS derived"
+    skip_reason: "SQL-515: incorrect schema env when algebrizing derived datasources"
     translation_target_db: test
     translation_target_coll: foo
     translation:
@@ -56,6 +62,7 @@ tests:
   - description: derived table merges namespaces under alias namespace
     current_db: test
     query: "SELECT * FROM (SELECT foo.*, bar.* FROM [{'a': 1}] foo JOIN [{'b': 2}] bar) AS derived"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: test
     translation_target_coll: foo
     translation:

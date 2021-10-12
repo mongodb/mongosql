@@ -32,6 +32,8 @@ tests:
     query: "SELECT VALUE {'a': a} FROM foo AS foo UNION SELECT VALUE {'b': b, 'c': c} FROM bar AS bar"
     ordered: false
     skip_reason: "distinct UNION not currently supported"
+    translation_target_db: mydb
+    translation_target_coll: foo
     result:
       - {'__bot': {'a': 1}}
       - {'__bot': {'a': 2}}
@@ -42,6 +44,7 @@ tests:
     query: "SELECT VALUE {'a': a} FROM foo UNION SELECT VALUE {'a': a} FROM foo"
     ordered: false
     skip_reason: "distinct UNION not currently supported"
+    translation_target_coll: foo
     result:
       - {'__bot': {'a': 1}}
       - {'__bot': {'a': 2}}
@@ -51,7 +54,7 @@ tests:
     query: "SELECT VALUE {'a': a} FROM foo UNION ALL SELECT VALUE {'a': a} FROM foo"
     ordered: false
     translation_target_db: mydb
-    translation_taget_coll: foo
+    translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
       - {'$project': {'_id': 0, 'foo': '$foo'}}
@@ -74,6 +77,8 @@ tests:
     query: "SELECT VALUE {'a': a} FROM foo UNION ALL SELECT VALUE {'a': a} FROM foo UNION SELECT VALUE {'a': a} FROM foo"
     ordered: false
     skip_reason: "distinct UNION not currently supported"
+    translation_target_db: mydb
+    translation_target_coll: foo
     result:
       - {'__bot': {'a': 1}}
       - {'__bot': {'a': 2}}
@@ -81,6 +86,7 @@ tests:
   - description: union works with array datasources
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo AS foo UNION ALL SELECT * FROM [{'b': 1}, {'b': 2}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     ordered: false
     translation_target_db: mydb
     translation_target_collection: foo

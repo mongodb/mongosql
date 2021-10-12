@@ -5,7 +5,7 @@ catalog_data:
       - {'_id': 1, 'type': 'string', 'v': 'xyz'}
       - {'_id': 2, 'type': 'document', 'v': {'a': 1}}
       - {'_id': 3, 'type': 'array', 'v': [1, 2, 3]}
-      - {'_id': 4, 'type': 'binData', 'v': {'$binary': {'base64': 'yO2rw/c4TKO2jauSqRR4ow==', 'subtype': '04'}}}
+      - {'_id': 4, 'type': 'binData', 'v': { '$binary': { 'base64': 'yO2rw/c4TKO2jauSqRR4ow==', 'subType': '04' }}}
       - {'_id': 5, 'type': 'undefined', 'v': {'$undefined': true}}
       - {'_id': 6, 'type': 'objectid', 'v': {'$oid': '5ab9c3da31c2ab715d421285'}}
       - {'_id': 7, 'type': 'boolean', 'v': true}
@@ -330,7 +330,7 @@ tests:
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$or': [{'$eq': [{'$type': '$bar.v'}, 'null']}, {'$eq': [{'$type': '$bar.v'}, 'missing']}]}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$or': [{'$eq': [{'$type': '$bar.v'}, 'missing']}, {'$eq': [{'$type': '$bar.v'}, 'null']}]}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
       - {'__bot': {'type': 'string', 'tc': false}}

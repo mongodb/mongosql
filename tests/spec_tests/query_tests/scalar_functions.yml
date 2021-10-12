@@ -88,6 +88,8 @@ catalog_schema:
     "foo": {
       "nullif": {
         "bsonType": "object",
+        'required': [ '_id', 'v1', 'v2' ],
+        'additionalProperties': false,
         "properties": {
           "_id": {
             "bsonType": "int"
@@ -95,19 +97,21 @@ catalog_schema:
           "v1": {
             "anyOf": [
               { "bsonType": "string" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           },
           "v2": {
             "anyOf": [
               { "bsonType": "string" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           }
         }
       },
       "size": {
         "bsonType": "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
         "properties": {
           "_id": {
             "bsonType": "int"
@@ -115,13 +119,15 @@ catalog_schema:
           "a": {
             "anyOf": [
               { "bsonType": "array" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           }
         }
       },
       "length": {
         "bsonType": "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
         "properties": {
           "_id": {
             "bsonType": "int"
@@ -129,13 +135,15 @@ catalog_schema:
           "a": {
             "anyOf": [
               { "bsonType": "string" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           }
         }
       },
       "nullAndMissing": {
         "bsonType": "object",
+        'required': [ '_id', 'd' ],
+        'additionalProperties': false,
         "properties": {
           "_id": {
             "bsonType": "int"
@@ -143,13 +151,15 @@ catalog_schema:
           "d": {
             "anyOf": [
               { "bsonType": "date" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           }
         }
       },
       "substring": {
         "bsonType": "object",
+        'required': [ '_id', 'str', 'start', 'length' ],
+        'additionalProperties': false,
         "properties": {
           "_id": {
             "bsonType": "int"
@@ -157,25 +167,27 @@ catalog_schema:
           "str": {
             "anyOf": [
               { "bsonType": "string" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           },
           "start": {
             "anyOf": [
               { "bsonType": "int" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           },
           "length": {
             "anyOf": [
               { "bsonType": "int" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           }
         }
       },
       "fold": {
         "bsonType": "object",
+        'required': [ '_id', 's' ],
+        'additionalProperties': false,
         "properties": {
           "_id": {
             "bsonType": "int"
@@ -183,13 +195,15 @@ catalog_schema:
           "s": {
             "anyOf": [
               { "bsonType": "string" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           }
         }
       },
       "trim": {
         "bsonType": "object",
+        'required': [ '_id', 'substr', 'str' ],
+        'additionalProperties': false,
         "properties": {
           "_id": {
             "bsonType": "int"
@@ -197,13 +211,13 @@ catalog_schema:
           "substr": {
             "anyOf": [
               { "bsonType": "string" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           },
           "str": {
             "anyOf": [
               { "bsonType": "string" },
-              { "bsonType": "null" }
+              { "bsonType": !!str "null" }
             ]
           }
         }
@@ -220,7 +234,7 @@ tests:
     translation:
       - {'$project': {'_id': 0, 'nullif': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$nullif'}}
-      - {'$project': {'_id': 0, '__bot': {'v1': '$c.v1', 'v2': '$c.v2', 'v': {'$nullif': ['$c.v1', '$c.v2']}}}}
+      - {'$project': {'_id': 0, '__bot': {'v1': '$c.v1', 'v2': '$c.v2', 'v': {'$nullIf': ['$c.v1', '$c.v2']}}}}
     result:
       - {'__bot': {'v1': 'a', 'v2': 'a', 'v': null}}
       - {'__bot': {'v1': 'a', 'v2': 'b', 'v': 'a'}}
@@ -278,6 +292,7 @@ tests:
   - description: POSITION correctness tests
     current_db: foo
     query: "SELECT VALUE {'s1': s1, 's2': s2, 'p': POSITION(s1 IN s2)} FROM `position` AS c"
+    skip_reason: "SQL-482: schema check POSITION"
     translation_target_db: foo
     translation_target_coll: position
     translation:
@@ -299,6 +314,7 @@ tests:
   - description: CHAR_LENGTH correctness tests
     current_db: foo
     query: "SELECT VALUE {'s': s, 'len': CHAR_LENGTH(s), 'comment': comment} FROM length AS c"
+    skip_reason: "SQL-482: schema check CHAR_LENGTH"
     translation_target_db: foo
     translation_target_coll: length
     translation:
@@ -318,6 +334,7 @@ tests:
   - description: OCTET_LENGTH correctness tests
     current_db: foo
     query: "SELECT VALUE {'s': s, 'len': OCTET_LENGTH(s), 'comment': comment} FROM length AS c"
+    skip_reason: "SQL-482: schema check OCTET_LENGTH"
     translation_target_db: foo
     translation_target_coll: length
     translation:
@@ -337,6 +354,7 @@ tests:
   - description: BIT_LENGTH correctness tests
     current_db: foo
     query: "SELECT VALUE {'s': s, 'len': BIT_LENGTH(s), 'comment': comment} FROM length AS c"
+    skip_reason: "SQL-482: schema check BIT_LENGTH"
     translation_target_db: foo
     translation_target_coll: length
     translation:
@@ -356,6 +374,7 @@ tests:
   - description: EXTRACT YEAR correctness test
     current_db: foo
     query: "SELECT VALUE {'year': EXTRACT(YEAR FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
       - {'$array': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
@@ -366,6 +385,7 @@ tests:
   - description: EXTRACT MONTH correctness test
     current_db: foo
     query: "SELECT VALUE {'month': EXTRACT(MONTH FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
       - {'$array': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
@@ -376,6 +396,7 @@ tests:
   - description: EXTRACT DAY correctness test
     current_db: foo
     query: "SELECT VALUE {'day': EXTRACT(DAY FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
       - {'$array': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
@@ -386,6 +407,7 @@ tests:
   - description: EXTRACT HOUR correctness test
     current_db: foo
     query: "SELECT VALUE {'hour': EXTRACT(HOUR FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
       - {'$array': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
@@ -396,6 +418,7 @@ tests:
   - description: EXTRACT MINUTE correctness test
     current_db: foo
     query: "SELECT VALUE {'minute': EXTRACT(MINUTE FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
       - {'$array': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
@@ -406,6 +429,7 @@ tests:
   - description: EXTRACT SECOND correctness test
     current_db: foo
     query: "SELECT VALUE {'second': EXTRACT(SECOND FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
       - {'$array': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
@@ -429,6 +453,7 @@ tests:
   - description: SUBSTRING(str FROM start FOR length) correctness test
     current_db: foo
     query: "SELECT VALUE {'str': str, 'start': start, 'length': length, 'substr': SUBSTRING(str FROM start FOR length)} FROM `substring` AS c"
+    skip_reason: "SQL-428: negative length in $substrCP"
     translation_target_db: foo
     translation_target_coll: substring
     translation:
@@ -463,7 +488,7 @@ tests:
       - {'$project': {'_id': 0, 'c': '$fold'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'v': {'$sqlToUpper': '$c.s'}}}}
     result:
-      - {'__bot': {'s': '', 'v': 'ABCD'}}
+      - {'__bot': {'s': '', 'v': ''}}
       - {'__bot': {'s': 'abcd', 'v': 'ABCD'}}
       - {'__bot': {'s': 'aBcD', 'v': 'ABCD'}}
       - {'__bot': {'s': 'ABCD', 'v': 'ABCD'}}
@@ -480,7 +505,7 @@ tests:
       - {'$project': {'_id': 0, 'c': '$fold'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'v': {'$sqlToLower': '$c.s'}}}}
     result:
-      - {'__bot': {'s': '', 'v': 'abcd'}}
+      - {'__bot': {'s': '', 'v': ''}}
       - {'__bot': {'s': 'abcd', 'v': 'abcd'}}
       - {'__bot': {'s': 'aBcD', 'v': 'abcd'}}
       - {'__bot': {'s': 'ABCD', 'v': 'abcd'}}
@@ -556,6 +581,7 @@ tests:
   - description: CURRENT_TIMESTAMP(p) correctness test
     current_db: foo
     query: "SELECT VALUE {'v': CURRENT_TIMESTAMP(1) > '2021-01-08T12:00:00Z'::TIMESTAMP} FROM [{}] AS _dual"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
       - {'$array': {'_dual': [{}]}}
@@ -566,6 +592,7 @@ tests:
   - description: Multiple CURRENT_TIMESTAMPs are equal across a query
     current_db: foo
     query: "SELECT VALUE {'v': CURRENT_TIMESTAMP(6) = CURRENT_TIMESTAMP(6)} FROM [{}] AS _dual"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
       - {'$array': {'_dual': [{}]}}

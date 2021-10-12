@@ -22,6 +22,8 @@ catalog_schema:
     'mydb': {
       'bar': {
         'bsonType': 'object',
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
         'properties': {
           '_id': {
             'bsonType': 'int'
@@ -41,9 +43,11 @@ catalog_schema:
       },
       'nullAndMissing': {
         'bsonType': "object",
+        'required': [ 'a' ],
+        'additionalProperties': false,
         'properties': {
           'a': {
-            'bsonType': "null"
+            'bsonType': !!str "null"
           },
         }
       }
@@ -55,6 +59,7 @@ tests:
   - description: ascending-sort correctness test
     current_db: mydb
     query: "SELECT VALUE {'a': a::!INT} FROM foo AS foo ORDER BY a ASC"
+    skip_reason: "SQL-483: implement codegen for TypeAssert"
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
@@ -62,6 +67,7 @@ tests:
       - {'$project': {'_id': 0, 'foo': '$foo'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
       - {'$sort': {'__bot.a': 1}}
+    ordered: true
     result:
       - {'__bot': {'a': 1}}
       - {'__bot': {'a': 1}}
@@ -70,6 +76,7 @@ tests:
   - description: descending-sort correctness test
     current_db: mydb
     query: "SELECT VALUE {'a': a::!INT} FROM foo AS foo ORDER BY a DESC"
+    skip_reason: "SQL-483: implement codegen for TypeAssert"
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
@@ -77,6 +84,7 @@ tests:
       - {'$project': {'_id': 0, 'foo': "$foo"}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
       - {'$sort': {'__bot.a': -1}}
+    ordered: true
     result:
       - {'__bot': {'a': 2}}
       - {'__bot': {'a': 1}}
@@ -85,6 +93,7 @@ tests:
   - description: multiple-sort-key correctness test
     current_db: mydb
     query: "SELECT VALUE {'a': a::!INT, 'b': b::!STRING} FROM foo AS foo ORDER BY a ASC, b ASC"
+    skip_reason: "SQL-483: implement codegen for TypeAssert"
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
@@ -92,6 +101,7 @@ tests:
       - {'$project': {'_id': 0, 'foo': "$foo"}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a', 'b': '$foo.b'}}}
       - {'$sort': {'__bot.a': 1, '__bot.b': 1}}
+    ordered: true
     result:
       - {'__bot': {'a': 1, 'b': 'abc'}}
       - {'__bot': {'a': 1, 'b': 'def'}}
@@ -106,14 +116,16 @@ tests:
       - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
       - {'$project': {'_id': 0, 'nullAndMissing': '$nullAndMissing'}}
       - {'$sort': {'nullAndMissing.a': 1}}
+    ordered: true
     result:
-      - {'nullAndMissing': {}}
-      - {'nullAndMissing': {'a': null}}
-      - {'nullAndMissing': {'a': null}}
+      - {'nullAndMissing': {'_id': 0, 'a': null}}
+      - {'nullAndMissing': {'_id': 1}}
+      - {'nullAndMissing': {'_id': 2, 'a': null}}
 
   - description: null sorts before non-null values
     current_db: mydb
     query: "SELECT {'a': a::!INT} FROM nullAndNonNull AS nullAndNonNull ORDER BY a ASC"
+    skip_reason: "SQL-483: implement codegen for TypeAssert"
     translation_target_db: mydb
     translation_target_coll: nullAndNonNull
     translation:
@@ -121,6 +133,7 @@ tests:
       - {'$project': {'_id': 0, 'nullAndNonNull': '$nullAndNonNull'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$nullAndNonNull.a'}}}
       - {'$sort': {'__bot.a': 1}}
+    ordered: true
     result:
       - {'__bot': {'a': null}}
       - {'__bot': {'a': null}}
@@ -141,6 +154,7 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$sort': {'bar.a': 1}}
+    ordered: true
     result:
       - {'bar': {'_id': 2, 'a': 1, 'b': {'c': 2}}}
       - {'bar': {'_id': 1, 'a': 2, 'b': {'c': 3}}}
@@ -156,6 +170,7 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$sort': {'bar.a': 1}}
+    ordered: true
     result:
       - {'bar': {'_id': 2, 'a': 1, 'b': {'c': 2}}}
       - {'bar': {'_id': 1, 'a': 2, 'b': {'c': 3}}}
@@ -171,6 +186,7 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'b': '$bar.b'}}}
       - {'$sort': {'__bot.b.c': 1}}
+    ordered: true
     result:
       - {'__bot': {'b': {'c': 1}}}
       - {'__bot': {'b': {'c': 2}}}
@@ -185,6 +201,7 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$sort': {'bar.b.c': 1}}
+    ordered: true
     result:
       - {'bar': {'_id': 0, 'a': 3, 'b': {'c': 1}}}
       - {'bar': {'_id': 2, 'a': 1, 'b': {'c': 2}}}
@@ -206,15 +223,15 @@ tests:
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo ORDER BY 1.0 DESC"
     should_compile: false
-    algebrize_error: "sort key must be a column reference or integer column index"
+    parse_error: "sort key must be a column reference or integer column index"
 
   - description: ordering by a complex expression is an error
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo ORDER BY 1 + 2 DESC"
     should_compile: false
-    algebrize_error: "sort key must be a column reference or integer column index"
+    parse_error: "sort key must be a column reference or integer column index"
 
   - description: ordering by a negative number is an error because it is a complex expr
     query: "SELECT a FROM foo ORDER BY -1"
     should_compile: false
-    algebrize_error: "sort key must be a column reference or integer column index"
+    parse_error: "sort key must be a column reference or integer column index"

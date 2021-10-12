@@ -8,6 +8,8 @@ catalog_schema:
     'foo': {
       'bar': {
         'bsonType': "object",
+        'required': [ 'd', 'i' ],
+        'additionalProperties': false,
         'properties': {
           'd': {
             'bsonType': "double"
@@ -23,6 +25,7 @@ catalog_schema:
 tests:
   - description: SELECT empty array literal
     query: "SELECT VALUE {'_1': []} FROM [{}] AS _dual"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': []}}}}
@@ -31,6 +34,7 @@ tests:
 
   - description: SELECT non-empty array literal
     query: "SELECT VALUE {'_1': [1, true, 'yes', {'a': 'b'}, [1.0, false]]} FROM [{}] AS _dual"
+    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
       - {'$array': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': [1, true, 'yes', {'a': 'b'}, [1.0, false]]}}}}

@@ -4,9 +4,30 @@ catalog_data:
       - { "_id": 0, "a": 6, "b": 2, "c": 11 }
       - { "_id": 1, "a": 6, "b": 1, "c": 10 }
 
+catalog_schema:
+  {
+    'foo': {
+      'ternary': {
+        'bsonType': "object",
+        'required': [ '_id', 'a', 'b', 'c' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': { 'bsonType': "int" },
+          'b': { 'bsonType': "int" },
+          'c': { 'bsonType': "int" },
+        }
+      },
+    }
+  }
+
 tests:
   - description: parentheses correctness tests
+    current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'a+b*c': a + b * c, '(a+b)*c': (a + b) * c } FROM ternary AS ternary"
+    skip_reason: "SQL-345: add a translation pipeline"
+    translation_target_db: foo
+    translation_target_coll: ternary
     result:
       - { "a": 6, "b": 2, "c": 11, "a+b*c": 28, "(a+b)*c": 88 }
       - { "a": 6, "b": 1, "c": 10, "a+b*c": 16, "(a+b)*c": 70 }
