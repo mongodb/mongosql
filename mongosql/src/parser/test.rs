@@ -1,111 +1,180 @@
-macro_rules! should_parse {
-    ($func_name:ident, $should_parse:expr, $input:expr) => {
+macro_rules! parsable {
+    ($func_name:ident, expected = $expected:expr, $(expected_error = $expected_error:expr,)? input = $input:expr) => {
         #[test]
         fn $func_name() {
             let res = Parser::new().parse_query($input);
-            let should_parse = $should_parse;
-            if should_parse {
+            let expected = $expected;
+            if expected {
                 res.expect("expected input to parse, but it failed");
             } else {
                 assert!(res.is_err());
+                #[allow(unused_variables)]
+                match res {
+                    Ok(_) => panic!("expected parse error, but parsing succeeded"),
+                    Err(Error::Lalrpop(s)) => {$(assert_eq!($expected_error.to_string(), s))?},
+                }
             }
         }
     };
 }
-
-macro_rules! should_fail_to_parse_with_error {
-    ($func_name:ident, $expected_error:expr, $input:expr) => {
-        #[test]
-        fn $func_name() {
-            let res = Parser::new().parse_query($input);
-            match res {
-                Ok(_) => panic!("expected parse error, but parsing succeeded"),
-                Err(Error::Lalrpop(s)) => assert_eq!($expected_error.to_string(), s),
-            }
-        }
-    };
-}
-
-macro_rules! validate_query_ast {
-    ($func_name:ident, $input:expr, $ast:expr) => {
+macro_rules! validate_ast {
+    ($func_name:ident, method = $method:ident, expected = $expected:expr, input = $input:expr,) => {
         #[test]
         fn $func_name() {
             let p = Parser::new();
-            assert_eq!(p.parse_query($input).unwrap(), $ast)
-        }
-    };
-}
-
-macro_rules! validate_expression_ast {
-    ($func_name:ident, $input:expr, $ast:expr) => {
-        #[test]
-        fn $func_name() {
-            let p = Parser::new();
-            assert_eq!(p.parse_expression($input).unwrap(), $ast)
+            assert_eq!(p.$method($input).unwrap(), $expected)
         }
     };
 }
 
 mod select {
     use crate::ast::*;
-    use crate::parser::Parser;
-    should_parse!(star, true, "select *");
-    should_parse!(star_upper, true, "SELECT *");
-    should_parse!(mixed_case, true, "SeLeCt *");
-    should_parse!(a_star, true, "select a.*");
-    should_parse!(underscore_id, true, "select _id");
-    should_parse!(contains_underscore, true, "select a_b");
-    should_parse!(multiple, true, "select a,b,c");
-    should_parse!(multiple_combo, true, "select a,b,*");
-    should_parse!(multiple_star, true, "select *,*");
-    should_parse!(multiple_dot_star, true, "select a.*,b.*");
-    should_parse!(all_lower, true, "select all *");
-    should_parse!(all_upper, true, "select ALL *");
-    should_parse!(all_mixed_case, true, "select aLl *");
-    should_parse!(distinct_lower, true, "select distinct *");
-    should_parse!(distinct_upper, true, "select DISTINCT *");
-    should_parse!(distinct_mixed_case, true, "select DiSTinCt *");
-    should_parse!(value_lower, true, "SELECT value foo.*");
-    should_parse!(value_upper, true, "SELECT VALUE foo.*");
-    should_parse!(value_mixed_case, true, "SELECT vAlUe foo.*");
-    should_parse!(values_lower, true, "SELECT values foo.*, bar.*");
-    should_parse!(values_upper, true, "SELECT VALUES foo.*, bar.*");
-    should_parse!(values_mixed_case, true, "SELECT vAluES foo.*, bar.*");
-    should_parse!(alias_lower, true, "SELECT foo as f");
-    should_parse!(alias_upper, true, "SELECT foo AS f");
-    should_parse!(alias_mixed_case, true, "SELECT foo aS f");
-    should_parse!(alias_no_as, true, "SELECT foo f");
-    should_parse!(alias_compound_column, true, "SELECT a.b as a");
-    should_parse!(alias_multiple_combined, true, "SELECT a, b AS c, a.c");
-    should_parse!(long_compound, true, "SELECT a.b.c.d");
-    should_parse!(letter_number_ident, true, "SELECT a9");
-    should_parse!(delimited_ident_quotes, true, r#"SELECT "foo""#);
-    should_parse!(delimited_ident_backticks, true, "SELECT `foo`");
-    should_parse!(delimited_quote_empty, true, r#"SELECT """#);
-    should_parse!(delimited_backtick_empty, true, "SELECT ``");
-    should_parse!(delimited_escaped_quote, true, r#"SELECT "fo""o""""""#);
-    should_parse!(delimited_escaped_backtick, true, "SELECT `f``oo`````");
+    use crate::parser::{Error, Parser};
+    parsable!(star, expected = true, input = "select *");
+    parsable!(star_upper, expected = true, input = "SELECT *");
+    parsable!(mixed_case, expected = true, input = "SeLeCt *");
+    parsable!(a_star, expected = true, input = "select a.*");
+    parsable!(underscore_id, expected = true, input = "select _id");
+    parsable!(contains_underscore, expected = true, input = "select a_b");
+    parsable!(multiple, expected = true, input = "select a,b,c");
+    parsable!(multiple_combo, expected = true, input = "select a,b,*");
+    parsable!(multiple_star, expected = true, input = "select *,*");
+    parsable!(multiple_dot_star, expected = true, input = "select a.*,b.*");
+    parsable!(all_lower, expected = true, input = "select all *");
+    parsable!(all_upper, expected = true, input = "select ALL *");
+    parsable!(all_mixed_case, expected = true, input = "select aLl *");
+    parsable!(distinct_lower, expected = true, input = "select distinct *");
+    parsable!(distinct_upper, expected = true, input = "select DISTINCT *");
+    parsable!(
+        distinct_mixed_case,
+        expected = true,
+        input = "select DiSTinCt *"
+    );
+    parsable!(value_lower, expected = true, input = "SELECT value foo.*");
+    parsable!(value_upper, expected = true, input = "SELECT VALUE foo.*");
+    parsable!(
+        value_mixed_case,
+        expected = true,
+        input = "SELECT vAlUe foo.*"
+    );
+    parsable!(
+        values_lower,
+        expected = true,
+        input = "SELECT values foo.*, bar.*"
+    );
+    parsable!(
+        values_upper,
+        expected = true,
+        input = "SELECT VALUES foo.*, bar.*"
+    );
+    parsable!(
+        values_mixed_case,
+        expected = true,
+        input = "SELECT vAluES foo.*, bar.*"
+    );
+    parsable!(alias_lower, expected = true, input = "SELECT foo as f");
+    parsable!(alias_upper, expected = true, input = "SELECT foo AS f");
+    parsable!(alias_mixed_case, expected = true, input = "SELECT foo aS f");
+    parsable!(alias_no_as, expected = true, input = "SELECT foo f");
+    parsable!(
+        alias_compound_column,
+        expected = true,
+        input = "SELECT a.b as a"
+    );
+    parsable!(
+        alias_multiple_combined,
+        expected = true,
+        input = "SELECT a, b AS c, a.c"
+    );
+    parsable!(long_compound, expected = true, input = "SELECT a.b.c.d");
+    parsable!(letter_number_ident, expected = true, input = "SELECT a9");
+    parsable!(
+        delimited_ident_quotes,
+        expected = true,
+        input = r#"SELECT "foo""#
+    );
+    parsable!(
+        delimited_ident_backticks,
+        expected = true,
+        input = "SELECT `foo`"
+    );
+    parsable!(
+        delimited_quote_empty,
+        expected = true,
+        input = r#"SELECT """#
+    );
+    parsable!(
+        delimited_backtick_empty,
+        expected = true,
+        input = "SELECT ``"
+    );
+    parsable!(
+        delimited_escaped_quote,
+        expected = true,
+        input = r#"SELECT "fo""o""""""#
+    );
+    parsable!(
+        delimited_escaped_backtick,
+        expected = true,
+        input = "SELECT `f``oo`````"
+    );
 
-    should_parse!(use_stmt, false, "use foo");
-    should_parse!(compound_star, false, "SELECT a.b.c.*");
-    should_parse!(numerical_ident_prefix, false, "SELECT 9ae");
-    should_parse!(value_star, false, "SELECT VALUE *");
-    should_parse!(value_alias, false, "SELECT VALUE foo AS f");
-    should_parse!(dangling_alias, false, "SELECT a.b AS");
-    should_parse!(compound_alias, false, "SELECT a AS b.c");
+    parsable!(use_stmt, expected = false, input = "use foo");
+    parsable!(compound_star, expected = false, input = "SELECT a.b.c.*");
+    parsable!(
+        numerical_ident_prefix,
+        expected = false,
+        input = "SELECT 9ae"
+    );
+    parsable!(value_star, expected = false, input = "SELECT VALUE *");
+    parsable!(
+        value_alias,
+        expected = false,
+        input = "SELECT VALUE foo AS f"
+    );
+    parsable!(dangling_alias, expected = false, input = "SELECT a.b AS");
+    parsable!(compound_alias, expected = false, input = "SELECT a AS b.c");
 
-    should_parse!(delimited_extra_quote_outer, false, r#"SELECT ""foo"""#);
-    should_parse!(delimited_extra_backtick_outer, false, "SELECT ``foo``");
-    should_parse!(delimited_escaped_quote_odd, false, r#"SELECT "f"oo"""#);
-    should_parse!(delimited_escaped_backtick_odd, false, "SELECT `foo````");
-    should_parse!(delimited_backslash_escape, false, r#"SELECT "fo\"\"o""#);
-    should_parse!(unescaped_quotes_in_ident, false, r#"SELECT fo""o"#);
-    should_parse!(unescaped_backticks_in_ident, false, "SELECT fo``o");
+    parsable!(
+        delimited_extra_quote_outer,
+        expected = false,
+        input = r#"SELECT ""foo"""#
+    );
+    parsable!(
+        delimited_extra_backtick_outer,
+        expected = false,
+        input = "SELECT ``foo``"
+    );
+    parsable!(
+        delimited_escaped_quote_odd,
+        expected = false,
+        input = r#"SELECT "f"oo"""#
+    );
+    parsable!(
+        delimited_escaped_backtick_odd,
+        expected = false,
+        input = "SELECT `foo````"
+    );
+    parsable!(
+        delimited_backslash_escape,
+        expected = false,
+        input = r#"SELECT "fo\"\"o""#
+    );
+    parsable!(
+        unescaped_quotes_in_ident,
+        expected = false,
+        input = r#"SELECT fo""o"#
+    );
+    parsable!(
+        unescaped_backticks_in_ident,
+        expected = false,
+        input = "SELECT fo``o"
+    );
 
-    validate_query_ast!(
+    validate_ast!(
         ident,
-        "SELECT foo",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -119,12 +188,13 @@ mod select {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = "SELECT foo",
     );
-    validate_query_ast!(
+    validate_ast!(
         delimited_quote,
-        r#"SELECT "foo""#,
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -138,12 +208,13 @@ mod select {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = r#"SELECT "foo""#,
     );
-    validate_query_ast!(
+    validate_ast!(
         delimited_backtick,
-        "select `foo`",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -157,12 +228,13 @@ mod select {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = "select `foo`",
     );
-    validate_query_ast!(
+    validate_ast!(
         delimited_escaped_backtick_ast,
-        "SELECT `fo``o`````",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -176,12 +248,13 @@ mod select {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = "SELECT `fo``o`````",
     );
-    validate_query_ast!(
+    validate_ast!(
         delimited_escaped_quote_ast,
-        r#"SELECT "fo""o""""""#,
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -197,12 +270,13 @@ mod select {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = r#"SELECT "fo""o""""""#,
     );
-    validate_query_ast!(
+    validate_ast!(
         backtick_delimiter_escaped_quote,
-        r#"SELECT `fo""o`"#,
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -218,12 +292,13 @@ mod select {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = r#"SELECT `fo""o`"#,
     );
-    validate_query_ast!(
+    validate_ast!(
         quote_delimiter_escaped_backtick,
-        r#"SELECT "fo``o""#,
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -237,29 +312,34 @@ mod select {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = r#"SELECT "fo``o""#,
     );
 }
 
 mod query {
     use crate::ast::*;
-    use crate::parser::Parser;
-    should_parse!(select_union_simple, true, "SELECT a UNION SELECT b");
-    should_parse!(
-        select_union_multiple,
-        true,
-        "SELECT a UNION SELECT b UNION SELECT c"
+    use crate::parser::{Error, Parser};
+    parsable!(
+        select_union_simple,
+        expected = true,
+        input = "SELECT a UNION SELECT b"
     );
-    should_parse!(
+    parsable!(
+        select_union_multiple,
+        expected = true,
+        input = "SELECT a UNION SELECT b UNION SELECT c"
+    );
+    parsable!(
         select_union_all_multiple,
-        true,
-        "SELECT a UNION ALL SELECT b UNION ALL SELECT c"
+        expected = true,
+        input = "SELECT a UNION ALL SELECT b UNION ALL SELECT c"
     );
 
-    validate_query_ast!(
+    validate_ast!(
         union_is_left_associative,
-        "select a union select b union all select c",
-        Query::Set(SetQuery {
+        method = parse_query,
+        expected = Query::Set(SetQuery {
             left: Box::new(Query::Set(SetQuery {
                 left: Box::new(Query::Select(SelectQuery {
                     select_clause: SelectClause {
@@ -313,140 +393,193 @@ mod query {
                 limit: None,
                 offset: None,
             }))
-        })
+        }),
+        input = "select a union select b union all select c",
     );
 }
 
 mod operator {
     use crate::ast::*;
-    use crate::parser::Parser;
-    should_parse!(unary_pos, true, "select +a");
-    should_parse!(unary_neg, true, "select -a");
-    should_parse!(unary_not, true, "select NOT a");
-    should_parse!(binary_add, true, "select a+b+c+d+e");
-    should_parse!(binary_sub, true, "select a-b-c-d-e");
-    should_parse!(binary_mul, true, "select a*b*c*d*e");
-    should_parse!(binary_mul_add, true, "select a*b+c*d+e");
-    should_parse!(binary_div_add, true, "select a/b+c/d+e");
-    should_parse!(binary_div_mul, true, "select a/b*c");
-    should_parse!(binary_num, true, "select 3+4-5/7*8");
-    should_parse!(binary_lt, true, "select a<b<c<d<e");
-    should_parse!(binary_lte, true, "select a<=b");
-    should_parse!(binary_gt, true, "select a>b");
-    should_parse!(binary_gte, true, "select a>=b");
-    should_parse!(binary_neq_1, true, "select a!=b");
-    should_parse!(binary_neq_2, true, "select a<>b");
-    should_parse!(binary_eq, true, "select a=b");
-    should_parse!(binary_string_concat, true, "select a || b");
-    should_parse!(binary_or, true, "select a OR b");
-    should_parse!(binary_and, true, "select a AND b");
-    should_parse!(binary_compare_and_add, true, "select b<a+c and b>d+e");
-    should_parse!(binary_compare_or_mul, true, "select b<a*c or b>d*e");
-    should_parse!(binary_lt_and_neq, true, "select a<b and c<>e");
-    should_parse!(between, true, "select a BETWEEN b AND c");
-    should_parse!(
+    use crate::parser::{Error, Parser};
+    parsable!(unary_pos, expected = true, input = "select +a");
+    parsable!(unary_neg, expected = true, input = "select -a");
+    parsable!(unary_not, expected = true, input = "select NOT a");
+    parsable!(binary_add, expected = true, input = "select a+b+c+d+e");
+    parsable!(binary_sub, expected = true, input = "select a-b-c-d-e");
+    parsable!(binary_mul, expected = true, input = "select a*b*c*d*e");
+    parsable!(binary_mul_add, expected = true, input = "select a*b+c*d+e");
+    parsable!(binary_div_add, expected = true, input = "select a/b+c/d+e");
+    parsable!(binary_div_mul, expected = true, input = "select a/b*c");
+    parsable!(binary_num, expected = true, input = "select 3+4-5/7*8");
+    parsable!(binary_lt, expected = true, input = "select a<b<c<d<e");
+    parsable!(binary_lte, expected = true, input = "select a<=b");
+    parsable!(binary_gt, expected = true, input = "select a>b");
+    parsable!(binary_gte, expected = true, input = "select a>=b");
+    parsable!(binary_neq_1, expected = true, input = "select a!=b");
+    parsable!(binary_neq_2, expected = true, input = "select a<>b");
+    parsable!(binary_eq, expected = true, input = "select a=b");
+    parsable!(
+        binary_string_concat,
+        expected = true,
+        input = "select a || b"
+    );
+    parsable!(binary_or, expected = true, input = "select a OR b");
+    parsable!(binary_and, expected = true, input = "select a AND b");
+    parsable!(
+        binary_compare_and_add,
+        expected = true,
+        input = "select b<a+c and b>d+e"
+    );
+    parsable!(
+        binary_compare_or_mul,
+        expected = true,
+        input = "select b<a*c or b>d*e"
+    );
+    parsable!(
+        binary_lt_and_neq,
+        expected = true,
+        input = "select a<b and c<>e"
+    );
+    parsable!(between, expected = true, input = "select a BETWEEN b AND c");
+    parsable!(
         binary_between,
-        true,
-        "SELECT 1 between 0 and 3 and 2 between 1 and 3"
+        expected = true,
+        input = "SELECT 1 between 0 and 3 and 2 between 1 and 3"
     );
-    should_parse!(case, true, "select CASE WHEN a=b THEN a ELSE c END");
-    should_parse!(
+    parsable!(
+        case,
+        expected = true,
+        input = "select CASE WHEN a=b THEN a ELSE c END"
+    );
+    parsable!(
         case_multiple_when_clauses,
-        true,
-        "select CASE WHEN a or b THEN a WHEN c=d THEN c ELSE e END"
+        expected = true,
+        input = "select CASE WHEN a or b THEN a WHEN c=d THEN c ELSE e END"
     );
-    should_parse!(
+    parsable!(
         case_multiple_exprs,
-        true,
-        "select CASE a WHEN a <> b THEN a WHEN c and d THEN c ELSE e END"
+        expected = true,
+        input = "select CASE a WHEN a <> b THEN a WHEN c and d THEN c ELSE e END"
     );
-    should_parse!(
+    parsable!(
         binary_case,
-        true,
-        "select CASE WHEN a=b THEN a ELSE c END + CASE WHEN c=d THEN c ELSE e END"
+        expected = true,
+        input = "select CASE WHEN a=b THEN a ELSE c END + CASE WHEN c=d THEN c ELSE e END"
     );
-    should_parse!(
+    parsable!(
         case_between,
-        true,
-        "select CASE when a BETWEEN b and c THEN a ELSE b END"
+        expected = true,
+        input = "select CASE when a BETWEEN b and c THEN a ELSE b END"
     );
-    should_parse!(is_type, true, "select a IS STRING");
-    should_parse!(is_not_type, true, "select a-8 IS NOT DECIMAL(1)");
-    should_parse!(is_missing, true, "select a IS MISSING");
-    should_parse!(is_not_missing, true, "select (a+b) IS NOT MISSING");
-    should_parse!(is_number, true, "select a IS NUMBER");
-    should_parse!(is_not_number, true, "select a IS NOT NUMBER");
-    should_parse!(like, true, "select col1 LIKE 'A%'");
-    should_parse!(
+    parsable!(is_type, expected = true, input = "select a IS STRING");
+    parsable!(
+        is_not_type,
+        expected = true,
+        input = "select a-8 IS NOT DECIMAL(1)"
+    );
+    parsable!(is_missing, expected = true, input = "select a IS MISSING");
+    parsable!(
+        is_not_missing,
+        expected = true,
+        input = "select (a+b) IS NOT MISSING"
+    );
+    parsable!(is_number, expected = true, input = "select a IS NUMBER");
+    parsable!(
+        is_not_number,
+        expected = true,
+        input = "select a IS NOT NUMBER"
+    );
+    parsable!(like, expected = true, input = "select col1 LIKE 'A%'");
+    parsable!(
         not_like_multiple_spaces,
-        true,
-        "select col1 NOT   LIKE '[a-z][a-z]'"
+        expected = true,
+        input = "select col1 NOT   LIKE '[a-z][a-z]'"
     );
-    should_parse!(like_escape, true, "select col1 LIKE '%a!% b' ESCAPE '!'");
-    should_parse!(
+    parsable!(
+        like_escape,
+        expected = true,
+        input = "select col1 LIKE '%a!% b' ESCAPE '!'"
+    );
+    parsable!(
         not_like_escape,
-        true,
-        "select col1 NOT LIKE '%a!% b' ESCAPE '!'"
+        expected = true,
+        input = "select col1 NOT LIKE '%a!% b' ESCAPE '!'"
     );
-    should_parse!(where_is, true, "select * where a IS NULL");
-    should_parse!(where_like, true, "select * where col1 LIKE 'A%'");
+    parsable!(
+        where_is,
+        expected = true,
+        input = "select * where a IS NULL"
+    );
+    parsable!(
+        where_like,
+        expected = true,
+        input = "select * where col1 LIKE 'A%'"
+    );
 
-    validate_expression_ast!(
+    validate_ast!(
         is_missing_ast,
-        "a IS MISSING",
-        Expression::Is(IsExpr {
+        method = parse_expression,
+        expected = Expression::Is(IsExpr {
             expr: Box::new(Expression::Identifier("a".to_string())),
             target_type: TypeOrMissing::Missing,
-        })
+        }),
+        input = "a IS MISSING",
     );
-    validate_expression_ast!(
+    validate_ast!(
         is_number_expr,
-        "1 IS NUMBER",
-        Expression::Is(IsExpr {
+        method = parse_expression,
+        expected = Expression::Is(IsExpr {
             expr: Box::new(Expression::Literal(Literal::Integer(1))),
             target_type: TypeOrMissing::Number,
-        })
+        }),
+        input = "1 IS NUMBER",
     );
-    validate_expression_ast!(
+    validate_ast!(
         is_not_number_expr,
-        "1 IS NOT NUMBER",
-        Expression::Unary(UnaryExpr {
+        method = parse_expression,
+        expected = Expression::Unary(UnaryExpr {
             op: UnaryOp::Not,
             expr: Box::new(Expression::Is(IsExpr {
                 expr: Box::new(Expression::Literal(Literal::Integer(1))),
                 target_type: TypeOrMissing::Number,
             })),
-        })
+        }),
+        input = "1 IS NOT NUMBER",
     );
-    should_parse!(between_invalid_binary_op, false, "select a BETWEEN b + c");
-    should_parse!(
+    parsable!(
+        between_invalid_binary_op,
+        expected = false,
+        input = "select a BETWEEN b + c"
+    );
+    parsable!(
         not_between_invalid_binary_op,
-        false,
-        "select a NOT BETWEEN b / c"
+        expected = false,
+        input = "select a NOT BETWEEN b / c"
     );
-    should_parse!(
+    parsable!(
         case_non_bool_conditions,
-        false,
-        "select case a when a+b then a else c-d"
+        expected = false,
+        input = "select case a when a+b then a else c-d"
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         binary_sub_unary_neg_ast,
-        "b- -a",
-        Expression::Binary(BinaryExpr {
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Identifier("b".to_string())),
             op: BinaryOp::Sub,
             right: Box::new(Expression::Unary(UnaryExpr {
                 op: UnaryOp::Neg,
                 expr: Box::new(Expression::Identifier("a".to_string()))
             }))
-        })
+        }),
+        input = "b- -a",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         binary_mul_add_ast,
-        "c*a+b",
-        Expression::Binary(BinaryExpr {
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("c".to_string())),
                 op: BinaryOp::Mul,
@@ -454,13 +587,14 @@ mod operator {
             })),
             op: BinaryOp::Add,
             right: Box::new(Expression::Identifier("b".to_string()))
-        })
+        }),
+        input = "c*a+b",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         binary_add_concat_ast,
-        "a+b||c",
-        Expression::Binary(BinaryExpr {
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".to_string())),
                 op: BinaryOp::Add,
@@ -468,13 +602,14 @@ mod operator {
             })),
             op: BinaryOp::Concat,
             right: Box::new(Expression::Identifier("c".to_string()))
-        })
+        }),
+        input = "a+b||c",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         binary_concat_compare_ast,
-        "c>a||b",
-        Expression::Binary(BinaryExpr {
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Identifier("c".to_string())),
             op: BinaryOp::Gt,
             right: Box::new(Expression::Binary(BinaryExpr {
@@ -482,13 +617,14 @@ mod operator {
                 op: BinaryOp::Concat,
                 right: Box::new(Expression::Identifier("b".to_string()))
             }))
-        })
+        }),
+        input = "c>a||b",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         binary_compare_and_ast,
-        "a<b AND c",
-        Expression::Binary(BinaryExpr {
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".to_string())),
                 op: BinaryOp::Lt,
@@ -496,13 +632,14 @@ mod operator {
             })),
             op: BinaryOp::And,
             right: Box::new(Expression::Identifier("c".to_string()))
-        })
+        }),
+        input = "a<b AND c",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         binary_and_or_ast,
-        "a AND b OR b",
-        Expression::Binary(BinaryExpr {
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".to_string())),
                 op: BinaryOp::And,
@@ -510,36 +647,39 @@ mod operator {
             })),
             op: BinaryOp::Or,
             right: Box::new(Expression::Identifier("b".to_string()))
-        })
+        }),
+        input = "a AND b OR b",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         between_ast,
-        "a between b and c",
-        Expression::Between(BetweenExpr {
+        method = parse_expression,
+        expected = Expression::Between(BetweenExpr {
             expr: Box::new(Expression::Identifier("a".to_string())),
             min: Box::new(Expression::Identifier("b".to_string())),
             max: Box::new(Expression::Identifier("c".to_string())),
-        })
+        }),
+        input = "a between b and c",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         not_between_ast,
-        "a not between b and c",
-        Expression::Unary(UnaryExpr {
+        method = parse_expression,
+        expected = Expression::Unary(UnaryExpr {
             op: UnaryOp::Not,
             expr: Box::new(Expression::Between(BetweenExpr {
                 expr: Box::new(Expression::Identifier("a".to_string())),
                 min: Box::new(Expression::Identifier("b".to_string())),
                 max: Box::new(Expression::Identifier("c".to_string())),
             }))
-        })
+        }),
+        input = "a not between b and c",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         case_multiple_when_branches_ast,
-        "case when a=b then a when c=d then c else e end",
-        Expression::Case(CaseExpr {
+        method = parse_expression,
+        expected = Expression::Case(CaseExpr {
             expr: None,
             when_branch: vec![
                 WhenBranch {
@@ -560,13 +700,14 @@ mod operator {
                 }
             ],
             else_branch: Some(Box::new(Expression::Identifier("e".to_string())))
-        })
+        }),
+        input = "case when a=b then a when c=d then c else e end",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         case_multiple_exprs_ast,
-        "case a when a=b then a else c end",
-        Expression::Case(CaseExpr {
+        method = parse_expression,
+        expected = Expression::Case(CaseExpr {
             expr: Some(Box::new(Expression::Identifier("a".to_string()))),
             when_branch: vec![WhenBranch {
                 when: Box::new(Expression::Binary(BinaryExpr {
@@ -577,68 +718,73 @@ mod operator {
                 then: Box::new(Expression::Identifier("a".to_string()))
             }],
             else_branch: Some(Box::new(Expression::Identifier("c".to_string())))
-        })
+        }),
+        input = "case a when a=b then a else c end",
     );
 }
 
 mod group_by {
     use crate::ast::*;
-    use crate::parser::Parser;
-    should_parse!(simple, true, "select * group by a");
-    should_parse!(compound, true, "select * group by a.b");
-    should_parse!(alias, true, "select * group by a as b");
-    should_parse!(
+    use crate::parser::{Error, Parser};
+    parsable!(simple, expected = true, input = "select * group by a");
+    parsable!(compound, expected = true, input = "select * group by a.b");
+    parsable!(alias, expected = true, input = "select * group by a as b");
+    parsable!(
         aggregate_count_star,
-        true,
-        "select * group by a aggregate count(*) as b"
+        expected = true,
+        input = "select * group by a aggregate count(*) as b"
     );
-    should_parse!(
+    parsable!(
         aggregate_alias,
-        true,
-        "select * group by a aggregate sum(a) as b"
+        expected = true,
+        input = "select * group by a aggregate sum(a) as b"
     );
-    should_parse!(
+    parsable!(
         aggregate_all,
-        true,
-        "select * group by a aggregate sum(all a) as b"
+        expected = true,
+        input = "select * group by a aggregate sum(all a) as b"
     );
-    should_parse!(
+    parsable!(
         aggregate_distinct,
-        true,
-        "select * group by a aggregate sum(distinct a) as b"
+        expected = true,
+        input = "select * group by a aggregate sum(distinct a) as b"
     );
-    should_parse!(
+    parsable!(
         aggregate_distinct_alias,
-        true,
-        "select * group by a aggregate sum(distinct a) as b"
+        expected = true,
+        input = "select * group by a aggregate sum(distinct a) as b"
     );
-    should_parse!(
+    parsable!(
         aggregate_distinct_all,
-        false,
-        "select * group by a aggregate sum(distinct all a) as b"
+        expected = false,
+        input = "select * group by a aggregate sum(distinct all a) as b"
     );
-    should_parse!(none, false, "select * group by");
-    should_parse!(aggregate_none, false, "select * group by a aggregate");
-    should_parse!(
+    parsable!(none, expected = false, input = "select * group by");
+    parsable!(
+        aggregate_none,
+        expected = false,
+        input = "select * group by a aggregate"
+    );
+    parsable!(
         aggregate_no_args,
-        true,
-        "select * group by a aggregate sum() as b"
+        expected = true,
+        input = "select * group by a aggregate sum() as b"
     );
-    should_parse!(
+    parsable!(
         aggregate_no_alias,
-        false,
-        "select * group by a aggregate sum()"
+        expected = false,
+        input = "select * group by a aggregate sum()"
     );
-    should_parse!(
+    parsable!(
         aggregate_second_no_alias,
-        false,
-        "select * group by a aggregate sum(a) AS a, AVG(b), sum(c)"
+        expected = false,
+        input = "select * group by a aggregate sum(a) AS a, AVG(b), sum(c)"
     );
 
-    validate_query_ast!(
+    validate_ast!(
         aggregate_distinct_with_alias,
-        "select * group by a, b aggregate sum(distinct b) as c",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -665,26 +811,31 @@ mod group_by {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = "select * group by a, b aggregate sum(distinct b) as c",
     );
 }
 
 mod having {
     use crate::ast::*;
-    use crate::parser::Parser;
+    use crate::parser::{Error, Parser};
 
-    should_parse!(simple, true, "select * having y");
-    should_parse!(with_group_by, true, "select * group by a having y");
-    should_parse!(
+    parsable!(simple, expected = true, input = "select * having y");
+    parsable!(
+        with_group_by,
+        expected = true,
+        input = "select * group by a having y"
+    );
+    parsable!(
         with_aggregation_function,
-        true,
-        "select * group by a having sum(a) > 0 "
+        expected = true,
+        input = "select * group by a having sum(a) > 0 "
     );
 
-    validate_query_ast!(
+    validate_ast!(
         with_aggregation_distinct_and_group_by,
-        "select * group by a having sum(distinct a) > 0",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -709,31 +860,48 @@ mod having {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = "select * group by a having sum(distinct a) > 0",
     );
 }
 
 mod order_by {
     use crate::ast::*;
-    use crate::parser::Parser;
+    use crate::parser::{Error, Parser};
 
-    should_parse!(simple_ident, true, "select * order by a");
-    should_parse!(compound_ident, true, "select * order by a.b");
-    should_parse!(asc, true, "select * order by a ASC");
-    should_parse!(desc, true, "select * order by a DESC");
-    should_parse!(multiple, true, "select a, b, c order by a, b");
-    should_parse!(
-        multiple_directions,
-        true,
-        "select * order by a DESC, b ASC, c"
+    parsable!(simple_ident, expected = true, input = "select * order by a");
+    parsable!(
+        compound_ident,
+        expected = true,
+        input = "select * order by a.b"
     );
-    should_parse!(positional_sort, true, "select a, b order by 1, 2");
-    should_parse!(positional_sort_with_star, true, "select * order by 1");
+    parsable!(asc, expected = true, input = "select * order by a ASC");
+    parsable!(desc, expected = true, input = "select * order by a DESC");
+    parsable!(
+        multiple,
+        expected = true,
+        input = "select a, b, c order by a, b"
+    );
+    parsable!(
+        multiple_directions,
+        expected = true,
+        input = "select * order by a DESC, b ASC, c"
+    );
+    parsable!(
+        positional_sort,
+        expected = true,
+        input = "select a, b order by 1, 2"
+    );
+    parsable!(
+        positional_sort_with_star,
+        expected = true,
+        input = "select * order by 1"
+    );
 
-    validate_query_ast!(
+    validate_ast!(
         default_direction,
-        "select * order by a",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -750,28 +918,61 @@ mod order_by {
             }),
             limit: None,
             offset: None,
-        })
+        }),
+        input = "select * order by a",
     );
 }
 
 mod limit_offset {
     use crate::ast::*;
-    use crate::parser::Parser;
-    should_parse!(limit_simple, true, "select * limit 42");
-    should_parse!(offset_simple, true, "select * offset 42");
-    should_parse!(limit_comma_offset, true, "select * limit 42, 24");
-    should_parse!(limit_then_offset, true, "select * limit 42 offset 24");
-    should_parse!(offset_then_limit, true, "select * offset 42 limit 24");
-    should_parse!(offset_twice, false, "select * limit 42, 24 offset 24");
-    should_parse!(limit_alphabetic, false, "select * limit a");
-    should_parse!(limit_non_integer, false, "select * limit 42.0");
-    should_parse!(limit_negative, false, "select * limit -42");
-    should_parse!(limit_overflow, false, "select * limit 4294967296"); // 2^32
+    use crate::parser::{Error, Parser};
+    parsable!(limit_simple, expected = true, input = "select * limit 42");
+    parsable!(offset_simple, expected = true, input = "select * offset 42");
+    parsable!(
+        limit_comma_offset,
+        expected = true,
+        input = "select * limit 42, 24"
+    );
+    parsable!(
+        limit_then_offset,
+        expected = true,
+        input = "select * limit 42 offset 24"
+    );
+    parsable!(
+        offset_then_limit,
+        expected = true,
+        input = "select * offset 42 limit 24"
+    );
+    parsable!(
+        offset_twice,
+        expected = false,
+        input = "select * limit 42, 24 offset 24"
+    );
+    parsable!(
+        limit_alphabetic,
+        expected = false,
+        input = "select * limit a"
+    );
+    parsable!(
+        limit_non_integer,
+        expected = false,
+        input = "select * limit 42.0"
+    );
+    parsable!(
+        limit_negative,
+        expected = false,
+        input = "select * limit -42"
+    );
+    parsable!(
+        limit_overflow,
+        expected = false,
+        input = "select * limit 4294967296"
+    ); // 2^32
 
-    validate_query_ast!(
+    validate_ast!(
         limit_one_value,
-        "select * limit 42",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -783,13 +984,14 @@ mod limit_offset {
             order_by_clause: None,
             limit: Some(42_u32),
             offset: None,
-        })
+        }),
+        input = "select * limit 42",
     );
 
-    validate_query_ast!(
+    validate_ast!(
         limit_two_values,
-        "select * limit 42, 24",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -801,13 +1003,14 @@ mod limit_offset {
             order_by_clause: None,
             limit: Some(42_u32),
             offset: Some(24_u32),
-        })
+        }),
+        input = "select * limit 42, 24",
     );
 
-    validate_query_ast!(
+    validate_ast!(
         limit_with_offset,
-        "select * limit 42 offset 24",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -819,41 +1022,74 @@ mod limit_offset {
             order_by_clause: None,
             limit: Some(42_u32),
             offset: Some(24_u32),
-        })
+        }),
+        input = "select * limit 42 offset 24",
     );
 }
 
 mod fetch_first {
     use crate::ast::*;
-    use crate::parser::Parser;
-    should_parse!(simple, true, "select * fetch first 42 rows only");
-    should_parse!(
+    use crate::parser::{Error, Parser};
+    parsable!(
+        simple,
+        expected = true,
+        input = "select * fetch first 42 rows only"
+    );
+    parsable!(
         then_offset,
-        true,
-        "select * fetch first 42 rows only offset 24"
+        expected = true,
+        input = "select * fetch first 42 rows only offset 24"
     );
-    should_parse!(
+    parsable!(
         offset_then_fetch_first,
-        true,
-        "select * offset 42 fetch first 24 rows only"
+        expected = true,
+        input = "select * offset 42 fetch first 24 rows only"
     );
-    should_parse!(row_synonym, true, "select * fetch first 42 row only");
-    should_parse!(fetch_next_synonym, true, "select * fetch next 42 rows only");
-    should_parse!(
+    parsable!(
+        row_synonym,
+        expected = true,
+        input = "select * fetch first 42 row only"
+    );
+    parsable!(
+        fetch_next_synonym,
+        expected = true,
+        input = "select * fetch next 42 rows only"
+    );
+    parsable!(
         fetch_next_row_synonym,
-        true,
-        "select * fetch next 42 row only"
+        expected = true,
+        input = "select * fetch next 42 row only"
     );
-    should_parse!(comma_offset, false, "select * fetch first 24 rows only, 24");
-    should_parse!(alphabetic, false, "select * fetch first a rows only");
-    should_parse!(non_integer, false, "select * fetch first 2.0 rows only");
-    should_parse!(negative, false, "select * fetch first -42 rows only");
-    should_parse!(overflow, false, "select * fetch first 4294967296 rows only");
+    parsable!(
+        comma_offset,
+        expected = false,
+        input = "select * fetch first 24 rows only, 24"
+    );
+    parsable!(
+        alphabetic,
+        expected = false,
+        input = "select * fetch first a rows only"
+    );
+    parsable!(
+        non_integer,
+        expected = false,
+        input = "select * fetch first 2.0 rows only"
+    );
+    parsable!(
+        negative,
+        expected = false,
+        input = "select * fetch first -42 rows only"
+    );
+    parsable!(
+        overflow,
+        expected = false,
+        input = "select * fetch first 4294967296 rows only"
+    );
 
-    validate_query_ast!(
+    validate_ast!(
         no_offset,
-        "select * fetch first 42 rows only",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -865,13 +1101,14 @@ mod fetch_first {
             order_by_clause: None,
             limit: Some(42_u32),
             offset: None,
-        })
+        }),
+        input = "select * fetch first 42 rows only",
     );
 
-    validate_query_ast!(
+    validate_ast!(
         offset,
-        "select * fetch first 42 rows only offset 24",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -883,13 +1120,14 @@ mod fetch_first {
             order_by_clause: None,
             limit: Some(42_u32),
             offset: Some(24_u32),
-        })
+        }),
+        input = "select * fetch first 42 rows only offset 24",
     );
 
-    validate_query_ast!(
+    validate_ast!(
         synonyms,
-        "select * fetch next 42 row only offset 24",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -901,205 +1139,378 @@ mod fetch_first {
             order_by_clause: None,
             limit: Some(42_u32),
             offset: Some(24_u32),
-        })
+        }),
+        input = "select * fetch next 42 row only offset 24",
     );
 
-    should_parse!(neg_positional_sort, false, "select a, b order by -1, 2");
-    should_parse!(
+    parsable!(
+        neg_positional_sort,
+        expected = false,
+        input = "select a, b order by -1, 2"
+    );
+    parsable!(
         positional_sort_too_big,
-        false,
-        "select a, b order by 9223372036854775808"
+        expected = false,
+        input = "select a, b order by 9223372036854775808"
     );
 }
 
 mod literals {
     use crate::ast::*;
-    use crate::parser::Parser;
-    should_parse!(null, true, "select null");
-    should_parse!(null_mixed_case, true, "select nULL");
-    should_parse!(unsigned_int, true, "select 123");
-    should_parse!(neg_int, true, "select -123");
-    should_parse!(pos_int, true, "select +123");
-    should_parse!(int_leading_zeros, true, "select 008");
-    should_parse!(convert_to_long, true, "select 2147483648");
-    should_parse!(string, true, "select 'foo'");
-    should_parse!(string_special_characters, true, "select 'αβγ'");
-    should_parse!(empty_string, true, "select ''");
-    should_parse!(unsigned_double, true, "select 0.5");
-    should_parse!(unsigned_double_no_fraction, true, "select 1.");
-    should_parse!(unsigned_double_no_whole_num, true, "select .6");
-    should_parse!(neg_double, true, "select -4.089015");
-    should_parse!(pos_double, true, "select +0.0");
-    should_parse!(double_exponent_lowercase, true, "select 1e2");
-    should_parse!(double_exponent_uppercase, true, "select 2E3");
-    should_parse!(double_exponent_beg_fraction, true, "select 8.e+23");
-    should_parse!(double_exponent_mid_fraction, true, "select 9.07e-2");
-    should_parse!(double_exponent_no_whole_num, true, "select .2E3");
-    should_parse!(double_exponent_signed, true, "select -7.2E3");
-    should_parse!(boolean_true, true, "select true");
-    should_parse!(boolean_false, true, "select false");
-    should_parse!(boolean_binary, true, "select true AND false OR false");
+    use crate::parser::{Error, Parser};
+    parsable!(null, expected = true, input = "select null");
+    parsable!(null_mixed_case, expected = true, input = "select nULL");
+    parsable!(unsigned_int, expected = true, input = "select 123");
+    parsable!(neg_int, expected = true, input = "select -123");
+    parsable!(pos_int, expected = true, input = "select +123");
+    parsable!(int_leading_zeros, expected = true, input = "select 008");
+    parsable!(
+        convert_to_long,
+        expected = true,
+        input = "select 2147483648"
+    );
+    parsable!(string, expected = true, input = "select 'foo'");
+    parsable!(
+        string_special_characters,
+        expected = true,
+        input = "select 'αβγ'"
+    );
+    parsable!(empty_string, expected = true, input = "select ''");
+    parsable!(unsigned_double, expected = true, input = "select 0.5");
+    parsable!(
+        unsigned_double_no_fraction,
+        expected = true,
+        input = "select 1."
+    );
+    parsable!(
+        unsigned_double_no_whole_num,
+        expected = true,
+        input = "select .6"
+    );
+    parsable!(neg_double, expected = true, input = "select -4.089015");
+    parsable!(pos_double, expected = true, input = "select +0.0");
+    parsable!(
+        double_exponent_lowercase,
+        expected = true,
+        input = "select 1e2"
+    );
+    parsable!(
+        double_exponent_uppercase,
+        expected = true,
+        input = "select 2E3"
+    );
+    parsable!(
+        double_exponent_beg_fraction,
+        expected = true,
+        input = "select 8.e+23"
+    );
+    parsable!(
+        double_exponent_mid_fraction,
+        expected = true,
+        input = "select 9.07e-2"
+    );
+    parsable!(
+        double_exponent_no_whole_num,
+        expected = true,
+        input = "select .2E3"
+    );
+    parsable!(
+        double_exponent_signed,
+        expected = true,
+        input = "select -7.2E3"
+    );
+    parsable!(
+        boolean_true,
+        expected = true,
+        input = "select expected = true"
+    );
+    parsable!(
+        boolean_false,
+        expected = true,
+        input = "select expected = false"
+    );
+    parsable!(
+        boolean_binary,
+        expected = true,
+        input = "select expected = true AND expected = false OR expected = false"
+    );
 
-    should_parse!(string_single_quote, false, "select '''");
-    should_parse!(double_exponent_no_exp, false, "select 1e");
-    should_parse!(long_too_big, false, "select 9223372036854775808");
+    parsable!(string_single_quote, expected = false, input = "select '''");
+    parsable!(
+        double_exponent_no_exp,
+        expected = false,
+        input = "select 1e"
+    );
+    parsable!(
+        long_too_big,
+        expected = false,
+        input = "select 9223372036854775808"
+    );
 
-    validate_expression_ast!(
+    validate_ast!(
         string_escaped_quote_no_chars,
-        "''''",
-        Expression::Literal(Literal::String(r#"'"#.to_string()))
+        method = parse_expression,
+        expected = Expression::Literal(Literal::String(r#"'"#.to_string())),
+        input = "''''",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         string_escaped_quote,
-        "'foo''s'",
-        Expression::Literal(Literal::String(r#"foo's"#.to_string()))
+        method = parse_expression,
+        expected = Expression::Literal(Literal::String(r#"foo's"#.to_string())),
+        input = "'foo''s'",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         double_neg_no_decimal,
-        "-2E+3",
-        Expression::Unary(UnaryExpr {
+        method = parse_expression,
+        expected = Expression::Unary(UnaryExpr {
             op: UnaryOp::Neg,
             expr: Box::new(Expression::Literal(Literal::Double(2000.0)))
-        })
+        }),
+        input = "-2E+3",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         double_no_whole,
-        ".2E-3",
-        Expression::Literal(Literal::Double(0.0002))
+        method = parse_expression,
+        expected = Expression::Literal(Literal::Double(0.0002)),
+        input = ".2E-3",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         double_no_frac_or_sign,
-        "234.E6",
-        Expression::Literal(Literal::Double(234000000.0))
+        method = parse_expression,
+        expected = Expression::Literal(Literal::Double(234000000.0)),
+        input = "234.E6",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         double_all_components,
-        "234.2E-3",
-        Expression::Literal(Literal::Double(0.2342))
+        method = parse_expression,
+        expected = Expression::Literal(Literal::Double(0.2342)),
+        input = "234.2E-3",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         double_binary_add,
-        "2E3 + 5.16E-8",
-        Expression::Binary(BinaryExpr {
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Literal(Literal::Double(2000.0))),
             op: BinaryOp::Add,
             right: Box::new(Expression::Literal(Literal::Double(0.0000000516)))
-        })
+        }),
+        input = "2E3 + 5.16E-8",
     );
 }
 
 mod array {
-    use crate::parser::Parser;
-    should_parse!(empty, true, "select []");
-    should_parse!(homogeneous, true, "select [1, 2, 3]");
-    should_parse!(heterogeneous, true, "select [1, 'a', true, -42]");
-    should_parse!(indexing, true, "select [1, 2, 3][0]");
+    use crate::parser::{Error, Parser};
+    parsable!(empty, expected = true, input = "select []");
+    parsable!(homogeneous, expected = true, input = "select [1, 2, 3]");
+    parsable!(
+        heterogeneous,
+        expected = true,
+        input = "select [1, 'a', expected = true, -42]"
+    );
+    parsable!(indexing, expected = true, input = "select [1, 2, 3][0]");
 }
 
 mod parenthized_expression {
-    use crate::parser::Parser;
-    should_parse!(multiple_binary_ops, true, "SELECT ((a+b)-(d/c))*7");
-    should_parse!(
-        case_expr,
-        true,
-        "select (CASE WHEN a=b THEN 1 ELSE 2 END)*4"
+    use crate::parser::{Error, Parser};
+    parsable!(
+        multiple_binary_ops,
+        expected = true,
+        input = "SELECT ((a+b)-(d/c))*7"
     );
-    should_parse!(unbalanced, false, "SELECT ((a+b)");
-    should_parse!(empty, false, "SELECT ()");
+    parsable!(
+        case_expr,
+        expected = true,
+        input = "select (CASE WHEN a=b THEN 1 ELSE 2 END)*4"
+    );
+    parsable!(unbalanced, expected = false, input = "SELECT ((a+b)");
+    parsable!(empty, expected = false, input = "SELECT ()");
 }
 
 mod scalar_function {
     use crate::ast::*;
     use crate::parser::{Error, Parser};
-    should_parse!(null_if, true, "select nullif(a, b)");
-    should_parse!(coalesce, true, "select coalesce(a, b, c, d)");
-    should_parse!(size, true, "select size(a)");
-    should_parse!(position, true, "select position('b' IN 'abc')");
-    should_parse!(position_binary_mul, true, "select position(1*2 IN 2)");
-    should_parse!(position_unary_neg, true, "select position(-2 IN -2)");
-    should_parse!(
+    parsable!(null_if, expected = true, input = "select nullif(a, b)");
+    parsable!(
+        coalesce,
+        expected = true,
+        input = "select coalesce(a, b, c, d)"
+    );
+    parsable!(size, expected = true, input = "select size(a)");
+    parsable!(
+        position,
+        expected = true,
+        input = "select position('b' IN 'abc')"
+    );
+    parsable!(
+        position_binary_mul,
+        expected = true,
+        input = "select position(1*2 IN 2)"
+    );
+    parsable!(
+        position_unary_neg,
+        expected = true,
+        input = "select position(-2 IN -2)"
+    );
+    parsable!(
         position_between_parens,
-        true,
-        "select position((b BETWEEN c AND c) IN true)"
+        expected = true,
+        input = "select position((b BETWEEN c AND c) IN expected = true)"
     );
-    should_parse!(position_binary_or, true, "select position(a OR b IN true)");
-    should_parse!(
+    parsable!(
+        position_binary_or,
+        expected = true,
+        input = "select position(a OR b IN expected = true)"
+    );
+    parsable!(
         position_binary_compare,
-        true,
-        "select position(true IN a < b)"
+        expected = true,
+        input = "select position(expected = true IN a < b)"
     );
-    should_parse!(char_length, true, "select char_length('foo')");
-    should_parse!(character_length, true, "select character_length('bar')");
-    should_parse!(octet_length, true, "select octet_length(a)");
-    should_parse!(bit_length, true, "select bit_length(a)");
-    should_parse!(extract_year, true, "select extract(year from a)");
-    should_parse!(extract_month, true, "select extract(month from a)");
-    should_parse!(extract_day, true, "select extract(day from a)");
-    should_parse!(extract_hour, true, "select extract(hour from a)");
-    should_parse!(extract_minute, true, "select extract(minute from a)");
-    should_parse!(extract_second, true, "select extract(second from a)");
-    should_parse!(slice_arr, true, "select slice([42, 43, 44])");
-    should_parse!(slice_arr_length, true, "select slice([42, 43, 44], 1)");
-    should_parse!(
+    parsable!(
+        char_length,
+        expected = true,
+        input = "select char_length('foo')"
+    );
+    parsable!(
+        character_length,
+        expected = true,
+        input = "select character_length('bar')"
+    );
+    parsable!(
+        octet_length,
+        expected = true,
+        input = "select octet_length(a)"
+    );
+    parsable!(bit_length, expected = true, input = "select bit_length(a)");
+    parsable!(
+        extract_year,
+        expected = true,
+        input = "select extract(year from a)"
+    );
+    parsable!(
+        extract_month,
+        expected = true,
+        input = "select extract(month from a)"
+    );
+    parsable!(
+        extract_day,
+        expected = true,
+        input = "select extract(day from a)"
+    );
+    parsable!(
+        extract_hour,
+        expected = true,
+        input = "select extract(hour from a)"
+    );
+    parsable!(
+        extract_minute,
+        expected = true,
+        input = "select extract(minute from a)"
+    );
+    parsable!(
+        extract_second,
+        expected = true,
+        input = "select extract(second from a)"
+    );
+    parsable!(
+        slice_arr,
+        expected = true,
+        input = "select slice([42, 43, 44])"
+    );
+    parsable!(
+        slice_arr_length,
+        expected = true,
+        input = "select slice([42, 43, 44], 1)"
+    );
+    parsable!(
         slice_arr_start_length,
-        true,
-        "select slice([42, 43, 44], 0, 1)"
+        expected = true,
+        input = "select slice([42, 43, 44], 0, 1)"
     );
-    should_parse!(
+    parsable!(
         substring_from,
-        true,
-        "select SUBSTRING(str FROM start FOR length)"
+        expected = true,
+        input = "select SUBSTRING(str FROM start FOR length)"
     );
-    should_parse!(
+    parsable!(
         substring_comma,
-        true,
-        "select SUBSTRING(str, start, length)"
+        expected = true,
+        input = "select SUBSTRING(str, start, length)"
     );
-    should_parse!(
+    parsable!(
         substring_comma_no_length,
-        true,
-        "select SUBSTRING(str, start)"
+        expected = true,
+        input = "select SUBSTRING(str, start)"
     );
-    should_parse!(fold_upper, true, "select upper(a)");
-    should_parse!(fold_lower, true, "select lower(a)");
-    should_parse!(trim_leading, true, "select trim(LEADING substr FROM str)");
-    should_parse!(trim_trailing, true, "select trim(TRAILING substr FROM str)");
-    should_parse!(trim_both, true, "select trim(BOTH substr FROM str)");
-    should_parse!(current_timestamp_no_args, true, "select current_timestamp");
-    should_parse!(
+    parsable!(fold_upper, expected = true, input = "select upper(a)");
+    parsable!(fold_lower, expected = true, input = "select lower(a)");
+    parsable!(
+        trim_leading,
+        expected = true,
+        input = "select trim(LEADING substr FROM str)"
+    );
+    parsable!(
+        trim_trailing,
+        expected = true,
+        input = "select trim(TRAILING substr FROM str)"
+    );
+    parsable!(
+        trim_both,
+        expected = true,
+        input = "select trim(BOTH substr FROM str)"
+    );
+    parsable!(
+        current_timestamp_no_args,
+        expected = true,
+        input = "select current_timestamp"
+    );
+    parsable!(
         current_timestamp_with_args,
-        true,
-        "select current_timestamp(a)"
+        expected = true,
+        input = "select current_timestamp(a)"
     );
-    should_parse!(create_func_no_args, false, "select brand_new_func()");
-    should_parse!(
+    parsable!(
+        create_func_no_args,
+        expected = false,
+        input = "select brand_new_func()"
+    );
+    parsable!(
         create_func_with_args,
-        false,
-        "select brand_new_func(a, b, c)"
+        expected = false,
+        input = "select brand_new_func(a, b, c)"
     );
-    should_parse!(nested_scalar_func, true, "select nullif(coalesce(a, b), c)");
-    should_parse!(position_invalid_binary_op, false, "select position(x OR y)");
-    should_parse!(
+    parsable!(
+        nested_scalar_func,
+        expected = true,
+        input = "select nullif(coalesce(a, b), c)"
+    );
+    parsable!(
+        position_invalid_binary_op,
+        expected = false,
+        input = "select position(x OR y)"
+    );
+    parsable!(
         scalar_function_binary_op,
-        true,
-        "select char_length('foo') + 5"
+        expected = true,
+        input = "select char_length('foo') + 5"
     );
-    should_fail_to_parse_with_error!(
+    parsable!(
         user_defined_function_not_allowed,
-        "unknown function myFunc",
-        "select myFunc(x)"
+        expected = false,
+        expected_error = "unknown function myFunc",
+        input = "select myFunc(x)"
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         position_ast,
-        "position((a+b*c) IN d)",
-        Expression::Function(FunctionExpr {
+        method = parse_expression,
+        expected = Expression::Function(FunctionExpr {
             function: FunctionName::Position,
             args: FunctionArguments::Args(vec![
                 Expression::Tuple(vec![Expression::Binary(BinaryExpr {
@@ -1114,206 +1525,248 @@ mod scalar_function {
                 Expression::Identifier("d".to_string()),
             ]),
             set_quantifier: None,
-        })
+        }),
+        input = "position((a+b*c) IN d)",
     );
-    validate_expression_ast!(
+    validate_ast!(
         extract_ast,
-        "extract(year from a)",
-        Expression::Extract(ExtractExpr {
+        method = parse_expression,
+        expected = Expression::Extract(ExtractExpr {
             extract_spec: ExtractSpec::Year,
             arg: Box::new(Expression::Identifier("a".to_string()))
-        })
+        }),
+        input = "extract(year from a)",
     );
-    validate_expression_ast!(
+    validate_ast!(
         trim_default_spec,
-        "trim(substr FROM str)",
-        Expression::Trim(TrimExpr {
+        method = parse_expression,
+        expected = Expression::Trim(TrimExpr {
             trim_spec: TrimSpec::Both,
             trim_chars: Box::new(Expression::Identifier("substr".into())),
             arg: Box::new(Expression::Identifier("str".to_string())),
-        })
+        }),
+        input = "trim(substr FROM str)",
     );
-    validate_expression_ast!(
+    validate_ast!(
         trim_default_substr,
-        "trim(leading FROM str)",
-        Expression::Trim(TrimExpr {
+        method = parse_expression,
+        expected = Expression::Trim(TrimExpr {
             trim_spec: TrimSpec::Leading,
             trim_chars: Box::new(Expression::Literal(Literal::String(" ".into()))),
             arg: Box::new(Expression::Identifier("str".to_string())),
-        })
+        }),
+        input = "trim(leading FROM str)",
     );
-    validate_expression_ast!(
+    validate_ast!(
         trim_default_spec_and_substr,
-        "trim(str)",
-        Expression::Trim(TrimExpr {
+        method = parse_expression,
+        expected = Expression::Trim(TrimExpr {
             trim_spec: TrimSpec::Both,
             trim_chars: Box::new(Expression::Literal(Literal::String(" ".into()))),
             arg: Box::new(Expression::Identifier("str".to_string())),
-        })
+        }),
+        input = "trim(str)",
     );
-    validate_expression_ast!(
+    validate_ast!(
         fold_ast,
-        "upper(a)",
-        Expression::Function(FunctionExpr {
+        method = parse_expression,
+        expected = Expression::Function(FunctionExpr {
             function: FunctionName::Upper,
             args: FunctionArguments::Args(vec![Expression::Identifier("a".to_string())]),
             set_quantifier: None,
-        })
+        }),
+        input = "upper(a)",
     );
 }
 
 mod from {
     use crate::ast::*;
     use crate::parser::{Error, Parser};
-    should_parse!(no_qualifier, true, "SELECT * FROM foo");
-    should_parse!(qualifier, true, "SELECT * FROM bar.foo");
-    should_parse!(no_qualifier_with_alias, true, "SELECT * FROM foo car");
-    should_parse!(qualifier_with_alias, true, "SELECT * FROM bar.foo car");
-    should_parse!(no_qualifier_with_as_alias, true, "SELECT * FROM foo AS car");
-    should_parse!(
+    parsable!(no_qualifier, expected = true, input = "SELECT * FROM foo");
+    parsable!(qualifier, expected = true, input = "SELECT * FROM bar.foo");
+    parsable!(
+        no_qualifier_with_alias,
+        expected = true,
+        input = "SELECT * FROM foo car"
+    );
+    parsable!(
+        qualifier_with_alias,
+        expected = true,
+        input = "SELECT * FROM bar.foo car"
+    );
+    parsable!(
+        no_qualifier_with_as_alias,
+        expected = true,
+        input = "SELECT * FROM foo AS car"
+    );
+    parsable!(
         qualifier_with_as_alias,
-        true,
-        "SELECT * FROM bar.foo AS car"
+        expected = true,
+        input = "SELECT * FROM bar.foo AS car"
     );
-    should_parse!(
+    parsable!(
         array_with_alias,
-        true,
-        "SELECT * FROM [{'a': 1}, {'b': 2}] arr"
+        expected = true,
+        input = "SELECT * FROM [{'a': 1}, {'b': 2}] arr"
     );
-    should_parse!(
+    parsable!(
         array_with_as_alias,
-        true,
-        "SELECT * FROM [{'a': 1}, {'b': 2}] AS arr"
+        expected = true,
+        input = "SELECT * FROM [{'a': 1}, {'b': 2}] AS arr"
     );
 
-    should_parse!(
+    parsable!(
         two_comma_join_second_alias,
-        true,
-        "SELECT * FROM foo, bar AS bar"
+        expected = true,
+        input = "SELECT * FROM foo, bar AS bar"
     );
-    should_parse!(
+    parsable!(
         two_comma_join_first_alias,
-        true,
-        "SELECT * FROM foo AS foo, bar"
+        expected = true,
+        input = "SELECT * FROM foo AS foo, bar"
     );
-    should_parse!(
+    parsable!(
         two_comma_join_both_alias,
-        true,
-        "SELECT * FROM foo AS foo, bar AS bar"
+        expected = true,
+        input = "SELECT * FROM foo AS foo, bar AS bar"
     );
-    should_parse!(two_comma_join, true, "SELECT * FROM foo, bar");
-    should_parse!(three_comma_join, true, "SELECT * FROM foo, bar AS bar, car");
+    parsable!(
+        two_comma_join,
+        expected = true,
+        input = "SELECT * FROM foo, bar"
+    );
+    parsable!(
+        three_comma_join,
+        expected = true,
+        input = "SELECT * FROM foo, bar AS bar, car"
+    );
 
-    should_parse!(
+    parsable!(
         two_inner_join_second_alias,
-        true,
-        "SELECT * FROM foo JOIN bar AS bar"
+        expected = true,
+        input = "SELECT * FROM foo JOIN bar AS bar"
     );
-    should_parse!(
+    parsable!(
         two_inner_join_first_alias,
-        true,
-        "SELECT * FROM foo AS foo INNER JOIN bar"
+        expected = true,
+        input = "SELECT * FROM foo AS foo INNER JOIN bar"
     );
-    should_parse!(
+    parsable!(
         two_inner_join_both_alias,
-        true,
-        "SELECT * FROM foo AS foo INNER JOIN bar AS bar"
+        expected = true,
+        input = "SELECT * FROM foo AS foo INNER JOIN bar AS bar"
     );
-    should_parse!(two_inner_join, true, "SELECT * FROM foo JOIN bar");
+    parsable!(
+        two_inner_join,
+        expected = true,
+        input = "SELECT * FROM foo JOIN bar"
+    );
 
-    should_parse!(
+    parsable!(
         two_cross_join_second_alias,
-        true,
-        "SELECT * FROM foo CROSS JOIN bar AS bar"
+        expected = true,
+        input = "SELECT * FROM foo CROSS JOIN bar AS bar"
     );
-    should_parse!(
+    parsable!(
         two_cross_join_first_alias,
-        true,
-        "SELECT * FROM foo AS foo CROSS JOIN bar"
+        expected = true,
+        input = "SELECT * FROM foo AS foo CROSS JOIN bar"
     );
-    should_parse!(
+    parsable!(
         two_cross_join_both_alias,
-        true,
-        "SELECT * FROM foo AS foo CROSS JOIN bar AS bar"
+        expected = true,
+        input = "SELECT * FROM foo AS foo CROSS JOIN bar AS bar"
     );
-    should_parse!(two_cross_join, true, "SELECT * FROM foo CROSS JOIN bar");
+    parsable!(
+        two_cross_join,
+        expected = true,
+        input = "SELECT * FROM foo CROSS JOIN bar"
+    );
 
-    should_parse!(
+    parsable!(
         two_left_join_second_alias,
-        true,
-        "SELECT * FROM foo LEFT JOIN bar AS bar"
+        expected = true,
+        input = "SELECT * FROM foo LEFT JOIN bar AS bar"
     );
-    should_parse!(
+    parsable!(
         two_left_join_first_alias,
-        true,
-        "SELECT * FROM foo AS foo LEFT OUTER JOIN bar"
+        expected = true,
+        input = "SELECT * FROM foo AS foo LEFT OUTER JOIN bar"
     );
-    should_parse!(
+    parsable!(
         two_left_join_both_alias,
-        true,
-        "SELECT * FROM foo AS foo LEFT OUTER JOIN bar AS bar"
+        expected = true,
+        input = "SELECT * FROM foo AS foo LEFT OUTER JOIN bar AS bar"
     );
-    should_parse!(two_left_join, true, "SELECT * FROM foo LEFT JOIN bar");
+    parsable!(
+        two_left_join,
+        expected = true,
+        input = "SELECT * FROM foo LEFT JOIN bar"
+    );
 
-    should_parse!(
+    parsable!(
         two_left_join_second_alias_with_on,
-        true,
-        "SELECT * FROM foo LEFT JOIN bar AS bar ON 1 = 2"
+        expected = true,
+        input = "SELECT * FROM foo LEFT JOIN bar AS bar ON 1 = 2"
     );
-    should_parse!(
+    parsable!(
         two_left_join_first_alias_with_on,
-        true,
-        "SELECT * FROM foo AS foo LEFT OUTER JOIN bar ON 1 = 2"
+        expected = true,
+        input = "SELECT * FROM foo AS foo LEFT OUTER JOIN bar ON 1 = 2"
     );
-    should_parse!(
+    parsable!(
         two_left_join_both_alias_with_on,
-        true,
-        "SELECT * FROM foo AS foo LEFT OUTER JOIN bar AS bar ON 1 = 2"
+        expected = true,
+        input = "SELECT * FROM foo AS foo LEFT OUTER JOIN bar AS bar ON 1 = 2"
     );
 
-    should_parse!(
+    parsable!(
         three_inner_join_with_ons,
-        true,
-        "SELECT * FROM foo JOIN bar ON 1 = 2 JOIN car ON 3 = 4"
+        expected = true,
+        input = "SELECT * FROM foo JOIN bar ON 1 = 2 JOIN car ON 3 = 4"
     );
 
-    should_parse!(
+    parsable!(
         two_right_join_second_alias,
-        true,
-        "SELECT * FROM foo RIGHT JOIN bar AS bar"
+        expected = true,
+        input = "SELECT * FROM foo RIGHT JOIN bar AS bar"
     );
-    should_parse!(
+    parsable!(
         two_right_join_first_alias,
-        true,
-        "SELECT * FROM foo AS foo RIGHT OUTER JOIN bar"
+        expected = true,
+        input = "SELECT * FROM foo AS foo RIGHT OUTER JOIN bar"
     );
-    should_parse!(
+    parsable!(
         two_right_join_both_alias,
-        true,
-        "SELECT * FROM foo AS foo RIGHT OUTER JOIN bar AS bar"
+        expected = true,
+        input = "SELECT * FROM foo AS foo RIGHT OUTER JOIN bar AS bar"
     );
-    should_parse!(two_right_join, true, "SELECT * FROM foo RIGHT JOIN bar");
+    parsable!(
+        two_right_join,
+        expected = true,
+        input = "SELECT * FROM foo RIGHT JOIN bar"
+    );
 
-    should_parse!(
+    parsable!(
         derived_with_alias,
-        true,
-        "SELECT * FROM (SELECT * FROM foo) bar"
+        expected = true,
+        input = "SELECT * FROM (SELECT * FROM foo) bar"
     );
-    should_parse!(
+    parsable!(
         derived_with_as_alias,
-        true,
-        "SELECT * FROM (SELECT * FROM foo) AS bar"
+        expected = true,
+        input = "SELECT * FROM (SELECT * FROM foo) AS bar"
     );
-    should_parse!(
+    parsable!(
         derived_must_have_alias,
-        false,
-        "SELECT * FROM (SELECT * FROM foo)"
+        expected = false,
+        input = "SELECT * FROM (SELECT * FROM foo)"
     );
 
-    validate_query_ast!(
+    validate_ast!(
         comma_join_is_cross_join,
-        "SELECT * FROM foo, bar",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -1338,12 +1791,13 @@ mod from {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = "SELECT * FROM foo, bar",
     );
-    validate_query_ast!(
+    validate_ast!(
         cross_join_is_cross_join,
-        "SELECT * FROM foo CROSS JOIN bar",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -1368,12 +1822,13 @@ mod from {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = "SELECT * FROM foo CROSS JOIN bar",
     );
-    validate_query_ast!(
+    validate_ast!(
         join_is_cross_join,
-        "SELECT * FROM foo JOIN bar",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -1398,12 +1853,13 @@ mod from {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = "SELECT * FROM foo JOIN bar",
     );
-    validate_query_ast!(
+    validate_ast!(
         left_join_is_left_join,
-        "SELECT * FROM foo LEFT JOIN bar",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -1428,12 +1884,13 @@ mod from {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = "SELECT * FROM foo LEFT JOIN bar",
     );
-    validate_query_ast!(
+    validate_ast!(
         right_join_is_right_join,
-        "SELECT * FROM foo RIGHT JOIN bar",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -1458,12 +1915,13 @@ mod from {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = "SELECT * FROM foo RIGHT JOIN bar",
     );
-    validate_query_ast!(
+    validate_ast!(
         join_is_left_associative,
-        "SELECT * FROM foo JOIN bar JOIN car",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -1497,52 +1955,71 @@ mod from {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = "SELECT * FROM foo JOIN bar JOIN car",
     );
 
-    should_fail_to_parse_with_error!(
+    parsable!(
         cannot_have_more_than_one_qualifier,
-        "collection data sources can only have database qualification, found: car.bar.foo",
-        "SELECT * FROM car.bar.foo"
+        expected = false,
+        expected_error =
+            "collection data sources can only have database qualification, found: car.bar.foo",
+        input = "SELECT * FROM car.bar.foo"
     );
-    should_fail_to_parse_with_error!(
+    parsable!(
         cannot_be_document,
-        "found unsupported expression used as datasource: {'foo': 3 + 4}",
-        "SELECT * FROM {'foo': 3+4}"
+        expected = false,
+        expected_error = "found unsupported expression used as datasource: {'foo': 3 + 4}",
+        input = "SELECT * FROM {'foo': 3+4}"
     );
-    should_fail_to_parse_with_error!(
+    parsable!(
         cannot_be_literal,
-        "found unsupported expression used as datasource: 3",
-        "SELECT * FROM 3"
+        expected = false,
+        expected_error = "found unsupported expression used as datasource: 3",
+        input = "SELECT * FROM 3"
     );
-    should_fail_to_parse_with_error!(
+    parsable!(
         cannot_be_binary_op,
-        "found unsupported expression used as datasource: 3 + 4",
-        "SELECT * FROM 3 + 4"
+        expected = false,
+        expected_error = "found unsupported expression used as datasource: 3 + 4",
+        input = "SELECT * FROM 3 + 4"
     );
-    should_fail_to_parse_with_error!(
+    parsable!(
         array_must_have_alias,
-        "array datasources must have aliases",
-        "SELECT * FROM [{'a': 1}]"
+        expected = false,
+        expected_error = "array datasources must have aliases",
+        input = "SELECT * FROM [{'a': 1}]"
     );
 }
 mod where_test {
     use crate::ast::*;
-    use crate::parser::Parser;
-    should_parse!(single_condition, true, "select * WHERE a >= 2");
-    should_parse!(single_column_expr, true, "select * WHERE a");
-    should_parse!(multiple_conditions, true, "select * WHERE a > 1 AND b > 1");
-    should_parse!(
-        case_expr,
-        true,
-        "select * WHERE CASE WHEN a = true THEN a ELSE false END"
+    use crate::parser::{Error, Parser};
+    parsable!(
+        single_condition,
+        expected = true,
+        input = "select * WHERE a >= 2"
     );
-    should_parse!(null, true, "select * WHERE NULL");
+    parsable!(
+        single_column_expr,
+        expected = true,
+        input = "select * WHERE a"
+    );
+    parsable!(
+        multiple_conditions,
+        expected = true,
+        input = "select * WHERE a > 1 AND b > 1"
+    );
+    parsable!(
+        case_expr,
+        expected = true,
+        input = "select * WHERE CASE WHEN a = expected = true THEN a ELSE expected = false END"
+    );
+    parsable!(null, expected = true, input = "select * WHERE NULL");
 
-    validate_query_ast!(
+    validate_ast!(
         ast,
-        "SELECT * WHERE a >= 2",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Star])
@@ -1558,159 +2035,440 @@ mod where_test {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = "SELECT * WHERE a >= 2",
     );
 }
 
 mod type_conversion {
     use crate::ast::*;
-    use crate::parser::Parser;
-    should_parse!(cast_to_double, true, "select CAST(v AS DOUBLE)");
-    should_parse!(
+    use crate::parser::{Error, Parser};
+    parsable!(
+        cast_to_double,
+        expected = true,
+        input = "select CAST(v AS DOUBLE)"
+    );
+    parsable!(
         cast_to_double_precision,
-        true,
-        "select CAST(v AS DOUBLE PRECISION)"
+        expected = true,
+        input = "select CAST(v AS DOUBLE PRECISION)"
     );
-    should_parse!(cast_to_double_shorthand, true, "select v::DOUBLE PRECISION");
-    should_parse!(cast_to_real, true, "select CAST(v AS REAL)");
-    should_parse!(cast_to_real_shorthand, true, "select v::REAL");
-    should_parse!(cast_to_float, true, "select CAST(v AS FLOAT)");
-    should_parse!(cast_to_float_int, true, "select CAST(v AS FLOAT(25))");
-    should_parse!(cast_to_float_shorthand, true, "select v::FLOAT(25)");
-    should_parse!(cast_to_string, true, "select CAST(v AS STRING)");
-    should_parse!(cast_to_string_shorthand, true, "select v::STRING");
-    should_parse!(cast_to_varchar, true, "select CAST(v AS VARCHAR)");
-    should_parse!(cast_to_varchar_int, true, "select CAST(v AS VARCHAR(1))");
-    should_parse!(cast_to_varchar_shorthand, true, "select v::VARCHAR(1)");
-    should_parse!(cast_to_char, true, "select CAST(v AS CHAR)");
-    should_parse!(cast_to_char_int, true, "select CAST(v AS CHAR(1))");
-    should_parse!(cast_to_char_shorthand, true, "select v::CHAR(1)");
-    should_parse!(cast_to_character, true, "select CAST(v AS CHARACTER)");
-    should_parse!(
+    parsable!(
+        cast_to_double_shorthand,
+        expected = true,
+        input = "select v::DOUBLE PRECISION"
+    );
+    parsable!(
+        cast_to_real,
+        expected = true,
+        input = "select CAST(v AS REAL)"
+    );
+    parsable!(
+        cast_to_real_shorthand,
+        expected = true,
+        input = "select v::REAL"
+    );
+    parsable!(
+        cast_to_float,
+        expected = true,
+        input = "select CAST(v AS FLOAT)"
+    );
+    parsable!(
+        cast_to_float_int,
+        expected = true,
+        input = "select CAST(v AS FLOAT(25))"
+    );
+    parsable!(
+        cast_to_float_shorthand,
+        expected = true,
+        input = "select v::FLOAT(25)"
+    );
+    parsable!(
+        cast_to_string,
+        expected = true,
+        input = "select CAST(v AS STRING)"
+    );
+    parsable!(
+        cast_to_string_shorthand,
+        expected = true,
+        input = "select v::STRING"
+    );
+    parsable!(
+        cast_to_varchar,
+        expected = true,
+        input = "select CAST(v AS VARCHAR)"
+    );
+    parsable!(
+        cast_to_varchar_int,
+        expected = true,
+        input = "select CAST(v AS VARCHAR(1))"
+    );
+    parsable!(
+        cast_to_varchar_shorthand,
+        expected = true,
+        input = "select v::VARCHAR(1)"
+    );
+    parsable!(
+        cast_to_char,
+        expected = true,
+        input = "select CAST(v AS CHAR)"
+    );
+    parsable!(
+        cast_to_char_int,
+        expected = true,
+        input = "select CAST(v AS CHAR(1))"
+    );
+    parsable!(
+        cast_to_char_shorthand,
+        expected = true,
+        input = "select v::CHAR(1)"
+    );
+    parsable!(
+        cast_to_character,
+        expected = true,
+        input = "select CAST(v AS CHARACTER)"
+    );
+    parsable!(
         cast_to_character_int,
-        true,
-        "select CAST(v AS CHARACTER(1))"
+        expected = true,
+        input = "select CAST(v AS CHARACTER(1))"
     );
-    should_parse!(cast_to_character_shorthand, true, "select v::CHARACTER(1)");
-    should_parse!(cast_to_char_varying, true, "select CAST(v AS CHAR VARYING)");
-    should_parse!(
+    parsable!(
+        cast_to_character_shorthand,
+        expected = true,
+        input = "select v::CHARACTER(1)"
+    );
+    parsable!(
+        cast_to_char_varying,
+        expected = true,
+        input = "select CAST(v AS CHAR VARYING)"
+    );
+    parsable!(
         cast_to_char_varying_int,
-        true,
-        "select CAST(v AS CHAR VARYING(1))"
+        expected = true,
+        input = "select CAST(v AS CHAR VARYING(1))"
     );
-    should_parse!(
+    parsable!(
         cast_to_char_varying_shorthand,
-        true,
-        "select v::CHAR VARYING(1)"
+        expected = true,
+        input = "select v::CHAR VARYING(1)"
     );
-    should_parse!(
+    parsable!(
         cast_to_character_varying,
-        true,
-        "select CAST(v AS CHARACTER VARYING)"
+        expected = true,
+        input = "select CAST(v AS CHARACTER VARYING)"
     );
-    should_parse!(
+    parsable!(
         cast_to_character_varying_int,
-        true,
-        "select CAST(v AS CHARACTER VARYING(1))"
+        expected = true,
+        input = "select CAST(v AS CHARACTER VARYING(1))"
     );
-    should_parse!(
+    parsable!(
         cast_to_character_varying_shorthand,
-        true,
-        "select v::CHARACTER VARYING(1)"
+        expected = true,
+        input = "select v::CHARACTER VARYING(1)"
     );
-    should_parse!(cast_to_document, true, "select CAST(v AS DOCUMENT)");
-    should_parse!(cast_to_document_shorthand, true, "select v::DOCUMENT");
-    should_parse!(cast_to_array, true, "select CAST(v AS ARRAY)");
-    should_parse!(cast_to_array_shorthand, true, "select v::ARRAY");
-    should_parse!(cast_to_bindata, true, "select CAST(v AS BINDATA)");
-    should_parse!(cast_to_bindata_shorthand, true, "select v::BINDATA");
-    should_parse!(cast_to_undefined, true, "select CAST(v AS UNDEFINED)");
-    should_parse!(cast_to_undefined_shorthand, true, "select v::UNDEFINED");
-    should_parse!(cast_to_object_id, true, "select CAST(v AS OBJECTID)");
-    should_parse!(cast_to_object_id_shorthand, true, "select v::OBJECTID");
-    should_parse!(cast_to_bool, true, "select CAST(v AS BOOL)");
-    should_parse!(cast_to_bool_shorthand, true, "select v::BOOL");
-    should_parse!(cast_to_bit, true, "select CAST(v AS BIT)");
-    should_parse!(cast_to_bit_shorthand, true, "select v::BIT");
-    should_parse!(cast_to_boolean, true, "select CAST(v AS BOOLEAN)");
-    should_parse!(cast_to_boolean_shorthand, true, "select v::BOOLEAN");
-    should_parse!(cast_to_bson_date, true, "select CAST(v AS BSON_DATE)");
-    should_parse!(cast_to_bson_date_shorthand, true, "select v::BSON_DATE");
-    should_parse!(cast_to_timestamp, true, "select CAST(v AS TIMESTAMP)");
-    should_parse!(cast_to_timestamp_shorthand, true, "select v::TIMESTAMP");
-    should_parse!(cast_to_null, true, "select CAST(v AS NULL)");
-    should_parse!(cast_to_null_shorthand, true, "select v::NULL");
-    should_parse!(cast_to_regex, true, "select CAST(v AS REGEX)");
-    should_parse!(cast_to_regex_shorthand, true, "select v::REGEX");
-    should_parse!(cast_to_dbpointer, true, "select CAST(v AS DBPOINTER)");
-    should_parse!(cast_to_dbpointer_shorthand, true, "select v::DBPOINTER");
-    should_parse!(cast_to_javascript, true, "select CAST(v AS JAVASCRIPT)");
-    should_parse!(cast_to_javascript_shorthand, true, "select v::JAVASCRIPT");
-    should_parse!(cast_to_symbol, true, "select CAST(v AS SYMBOL)");
-    should_parse!(cast_to_symbol_shorthand, true, "select v::SYMBOL");
-    should_parse!(
+    parsable!(
+        cast_to_document,
+        expected = true,
+        input = "select CAST(v AS DOCUMENT)"
+    );
+    parsable!(
+        cast_to_document_shorthand,
+        expected = true,
+        input = "select v::DOCUMENT"
+    );
+    parsable!(
+        cast_to_array,
+        expected = true,
+        input = "select CAST(v AS ARRAY)"
+    );
+    parsable!(
+        cast_to_array_shorthand,
+        expected = true,
+        input = "select v::ARRAY"
+    );
+    parsable!(
+        cast_to_bindata,
+        expected = true,
+        input = "select CAST(v AS BINDATA)"
+    );
+    parsable!(
+        cast_to_bindata_shorthand,
+        expected = true,
+        input = "select v::BINDATA"
+    );
+    parsable!(
+        cast_to_undefined,
+        expected = true,
+        input = "select CAST(v AS UNDEFINED)"
+    );
+    parsable!(
+        cast_to_undefined_shorthand,
+        expected = true,
+        input = "select v::UNDEFINED"
+    );
+    parsable!(
+        cast_to_object_id,
+        expected = true,
+        input = "select CAST(v AS OBJECTID)"
+    );
+    parsable!(
+        cast_to_object_id_shorthand,
+        expected = true,
+        input = "select v::OBJECTID"
+    );
+    parsable!(
+        cast_to_bool,
+        expected = true,
+        input = "select CAST(v AS BOOL)"
+    );
+    parsable!(
+        cast_to_bool_shorthand,
+        expected = true,
+        input = "select v::BOOL"
+    );
+    parsable!(
+        cast_to_bit,
+        expected = true,
+        input = "select CAST(v AS BIT)"
+    );
+    parsable!(
+        cast_to_bit_shorthand,
+        expected = true,
+        input = "select v::BIT"
+    );
+    parsable!(
+        cast_to_boolean,
+        expected = true,
+        input = "select CAST(v AS BOOLEAN)"
+    );
+    parsable!(
+        cast_to_boolean_shorthand,
+        expected = true,
+        input = "select v::BOOLEAN"
+    );
+    parsable!(
+        cast_to_bson_date,
+        expected = true,
+        input = "select CAST(v AS BSON_DATE)"
+    );
+    parsable!(
+        cast_to_bson_date_shorthand,
+        expected = true,
+        input = "select v::BSON_DATE"
+    );
+    parsable!(
+        cast_to_timestamp,
+        expected = true,
+        input = "select CAST(v AS TIMESTAMP)"
+    );
+    parsable!(
+        cast_to_timestamp_shorthand,
+        expected = true,
+        input = "select v::TIMESTAMP"
+    );
+    parsable!(
+        cast_to_null,
+        expected = true,
+        input = "select CAST(v AS NULL)"
+    );
+    parsable!(
+        cast_to_null_shorthand,
+        expected = true,
+        input = "select v::NULL"
+    );
+    parsable!(
+        cast_to_regex,
+        expected = true,
+        input = "select CAST(v AS REGEX)"
+    );
+    parsable!(
+        cast_to_regex_shorthand,
+        expected = true,
+        input = "select v::REGEX"
+    );
+    parsable!(
+        cast_to_dbpointer,
+        expected = true,
+        input = "select CAST(v AS DBPOINTER)"
+    );
+    parsable!(
+        cast_to_dbpointer_shorthand,
+        expected = true,
+        input = "select v::DBPOINTER"
+    );
+    parsable!(
+        cast_to_javascript,
+        expected = true,
+        input = "select CAST(v AS JAVASCRIPT)"
+    );
+    parsable!(
+        cast_to_javascript_shorthand,
+        expected = true,
+        input = "select v::JAVASCRIPT"
+    );
+    parsable!(
+        cast_to_symbol,
+        expected = true,
+        input = "select CAST(v AS SYMBOL)"
+    );
+    parsable!(
+        cast_to_symbol_shorthand,
+        expected = true,
+        input = "select v::SYMBOL"
+    );
+    parsable!(
         cast_to_javascriptwithscope,
-        true,
-        "select CAST(v AS JAVASCRIPTWITHSCOPE)"
+        expected = true,
+        input = "select CAST(v AS JAVASCRIPTWITHSCOPE)"
     );
-    should_parse!(
+    parsable!(
         cast_to_javascriptwithscope_shorthand,
-        true,
-        "select v::JAVASCRIPTWITHSCOPE"
+        expected = true,
+        input = "select v::JAVASCRIPTWITHSCOPE"
     );
-    should_parse!(cast_to_int, true, "select CAST(v AS INT)");
-    should_parse!(cast_to_int_shorthand, true, "select v::INT");
-    should_parse!(cast_to_integer, true, "select CAST(v AS INTEGER)");
-    should_parse!(cast_to_integer_shorthand, true, "select v::INTEGER");
-    should_parse!(cast_to_small_int, true, "select CAST(v AS SMALLINT)");
-    should_parse!(cast_to_small_int_shorthand, true, "select v::SMALLINT");
-    should_parse!(
+    parsable!(
+        cast_to_int,
+        expected = true,
+        input = "select CAST(v AS INT)"
+    );
+    parsable!(
+        cast_to_int_shorthand,
+        expected = true,
+        input = "select v::INT"
+    );
+    parsable!(
+        cast_to_integer,
+        expected = true,
+        input = "select CAST(v AS INTEGER)"
+    );
+    parsable!(
+        cast_to_integer_shorthand,
+        expected = true,
+        input = "select v::INTEGER"
+    );
+    parsable!(
+        cast_to_small_int,
+        expected = true,
+        input = "select CAST(v AS SMALLINT)"
+    );
+    parsable!(
+        cast_to_small_int_shorthand,
+        expected = true,
+        input = "select v::SMALLINT"
+    );
+    parsable!(
         cast_to_bson_timestamp,
-        true,
-        "select CAST(v AS BSON_TIMESTAMP)"
+        expected = true,
+        input = "select CAST(v AS BSON_TIMESTAMP)"
     );
-    should_parse!(
+    parsable!(
         cast_to_bson_timestamp_shorthand,
-        true,
-        "select v::BSON_TIMESTAMP"
+        expected = true,
+        input = "select v::BSON_TIMESTAMP"
     );
-    should_parse!(cast_to_long, true, "select CAST(v AS LONG)");
-    should_parse!(cast_to_long_shorthand, true, "select v::LONG");
-    should_parse!(cast_to_decimal, true, "select CAST(v AS DECIMAL)");
-    should_parse!(cast_to_decimal_int, true, "select CAST(v AS DECIMAL(1))");
-    should_parse!(cast_to_decimal_shorthand, true, "select v::DECIMAL(1)");
-    should_parse!(cast_to_dec, true, "select CAST(v AS DEC)");
-    should_parse!(cast_to_dec_int, true, "select CAST(v AS DEC(1))");
-    should_parse!(cast_to_dec_shorthand, true, "select v::DEC");
-    should_parse!(cast_to_numeric, true, "select CAST(v AS NUMERIC)");
-    should_parse!(cast_to_numeric_int, true, "select CAST(v AS NUMERIC(1))");
-    should_parse!(cast_to_numeric_shorthand, true, "select v::NUMERIC");
-    should_parse!(cast_to_minkey, true, "select CAST(v AS MINKEY)");
-    should_parse!(cast_to_minkey_shorthand, true, "select v::MINKEY");
-    should_parse!(cast_to_maxkey, true, "select CAST(v AS MAXKEY)");
-    should_parse!(cast_to_maxkey_shorthand, true, "select v::MAXKEY");
-    should_parse!(cast_on_null, true, "select CAST(v AS BOOL, 'null' ON NULL)");
-    should_parse!(
+    parsable!(
+        cast_to_long,
+        expected = true,
+        input = "select CAST(v AS LONG)"
+    );
+    parsable!(
+        cast_to_long_shorthand,
+        expected = true,
+        input = "select v::LONG"
+    );
+    parsable!(
+        cast_to_decimal,
+        expected = true,
+        input = "select CAST(v AS DECIMAL)"
+    );
+    parsable!(
+        cast_to_decimal_int,
+        expected = true,
+        input = "select CAST(v AS DECIMAL(1))"
+    );
+    parsable!(
+        cast_to_decimal_shorthand,
+        expected = true,
+        input = "select v::DECIMAL(1)"
+    );
+    parsable!(
+        cast_to_dec,
+        expected = true,
+        input = "select CAST(v AS DEC)"
+    );
+    parsable!(
+        cast_to_dec_int,
+        expected = true,
+        input = "select CAST(v AS DEC(1))"
+    );
+    parsable!(
+        cast_to_dec_shorthand,
+        expected = true,
+        input = "select v::DEC"
+    );
+    parsable!(
+        cast_to_numeric,
+        expected = true,
+        input = "select CAST(v AS NUMERIC)"
+    );
+    parsable!(
+        cast_to_numeric_int,
+        expected = true,
+        input = "select CAST(v AS NUMERIC(1))"
+    );
+    parsable!(
+        cast_to_numeric_shorthand,
+        expected = true,
+        input = "select v::NUMERIC"
+    );
+    parsable!(
+        cast_to_minkey,
+        expected = true,
+        input = "select CAST(v AS MINKEY)"
+    );
+    parsable!(
+        cast_to_minkey_shorthand,
+        expected = true,
+        input = "select v::MINKEY"
+    );
+    parsable!(
+        cast_to_maxkey,
+        expected = true,
+        input = "select CAST(v AS MAXKEY)"
+    );
+    parsable!(
+        cast_to_maxkey_shorthand,
+        expected = true,
+        input = "select v::MAXKEY"
+    );
+    parsable!(
+        cast_on_null,
+        expected = true,
+        input = "select CAST(v AS BOOL, 'null' ON NULL)"
+    );
+    parsable!(
         cast_on_error,
-        true,
-        "select CAST(v AS INT, 'null' ON ERROR)"
+        expected = true,
+        input = "select CAST(v AS INT, 'null' ON ERROR)"
     );
-    should_parse!(
+    parsable!(
         cast_on_null_on_error,
-        true,
-        "select CAST(v AS INT, 'null' ON NULL, 'error' ON ERROR)"
+        expected = true,
+        input = "select CAST(v AS INT, 'null' ON NULL, 'error' ON ERROR)"
     );
-    should_parse!(type_assert, true, "select a::!STRING");
-    should_parse!(
+    parsable!(type_assert, expected = true, input = "select a::!STRING");
+    parsable!(
         type_assert_in_func,
-        true,
-        "select SUBSTRING(foo::!STRING, 1, 1)"
+        expected = true,
+        input = "select SUBSTRING(foo::!STRING, 1, 1)"
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         cast_to_decimal_ast,
-        "CAST(v AS DECIMAL(1), 'null' ON NULL, 'error' ON ERROR)",
-        Expression::Cast(CastExpr {
+        method = parse_expression,
+        expected = Expression::Cast(CastExpr {
             expr: Box::new(Expression::Identifier("v".to_string())),
             to: Type::Decimal128,
             on_null: Some(Box::new(Expression::Literal(Literal::String(
@@ -1719,12 +2477,13 @@ mod type_conversion {
             on_error: Some(Box::new(Expression::Literal(Literal::String(
                 "error".to_string()
             )))),
-        })
+        }),
+        input = "CAST(v AS DECIMAL(1), 'null' ON NULL, 'error' ON ERROR)",
     );
-    validate_expression_ast!(
+    validate_ast!(
         cast_precedence_binary,
-        "a * b::int",
-        Expression::Binary(BinaryExpr {
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Identifier("a".to_string())),
             op: BinaryOp::Mul,
             right: Box::new(Expression::Cast(CastExpr {
@@ -1733,12 +2492,13 @@ mod type_conversion {
                 on_null: None,
                 on_error: None,
             }))
-        })
+        }),
+        input = "a * b::int",
     );
-    validate_expression_ast!(
+    validate_ast!(
         cast_precedence_unary,
-        "NOT a::bool",
-        Expression::Unary(UnaryExpr {
+        method = parse_expression,
+        expected = Expression::Unary(UnaryExpr {
             op: UnaryOp::Not,
             expr: Box::new(Expression::Cast(CastExpr {
                 expr: Box::new(Expression::Identifier("a".to_string())),
@@ -1746,31 +2506,68 @@ mod type_conversion {
                 on_null: None,
                 on_error: None,
             }))
-        })
+        }),
+        input = "NOT a::bool",
     );
 }
 
 mod subquery {
     use crate::ast::*;
-    use crate::parser::Parser;
-    should_parse!(simple_subquery, true, "SELECT VALUE (SELECT a)");
-    should_parse!(multiple_nested_subqueries, true, "SELECT (SELECT a)");
-    should_parse!(exists_subquery, true, "SELECT EXISTS (SELECT a)");
-    should_parse!(not_exists_subquery, true, "SELECT NOT EXISTS (SELECT a)");
-    should_parse!(any_subquery, true, "SELECT x <> ANY (SELECT a)");
-    should_parse!(all_subquery, true, "SELECT x = ALL (SELECT a)");
-    should_parse!(in_tuple_subquery, true, "SELECT X IN (A, B, C)");
-    should_parse!(not_in_tuple_subquery, true, "SELECT X NOT IN (A, B, C)");
+    use crate::parser::{Error, Parser};
+    parsable!(
+        simple_subquery,
+        expected = true,
+        input = "SELECT VALUE (SELECT a)"
+    );
+    parsable!(
+        multiple_nested_subqueries,
+        expected = true,
+        input = "SELECT (SELECT a)"
+    );
+    parsable!(
+        exists_subquery,
+        expected = true,
+        input = "SELECT EXISTS (SELECT a)"
+    );
+    parsable!(
+        not_exists_subquery,
+        expected = true,
+        input = "SELECT NOT EXISTS (SELECT a)"
+    );
+    parsable!(
+        any_subquery,
+        expected = true,
+        input = "SELECT x <> ANY (SELECT a)"
+    );
+    parsable!(
+        all_subquery,
+        expected = true,
+        input = "SELECT x = ALL (SELECT a)"
+    );
+    parsable!(
+        in_tuple_subquery,
+        expected = true,
+        input = "SELECT X IN (A, B, C)"
+    );
+    parsable!(
+        not_in_tuple_subquery,
+        expected = true,
+        input = "SELECT X NOT IN (A, B, C)"
+    );
 
-    should_parse!(in_test, true, "SELECT X NOT IN (1+2-3)");
+    parsable!(in_test, expected = true, input = "SELECT X NOT IN (1+2-3)");
 
-    should_parse!(empty_tuple, false, "SELECT X NOT IN ()");
-    should_parse!(tuple_with_dangling_comma, false, "SELECT X NOT IN (A,)");
+    parsable!(empty_tuple, expected = false, input = "SELECT X NOT IN ()");
+    parsable!(
+        tuple_with_dangling_comma,
+        expected = false,
+        input = "SELECT X NOT IN (A,)"
+    );
 
-    validate_expression_ast!(
+    validate_ast!(
         some_subquery,
-        "x <> SOME (SELECT a)",
-        Expression::SubqueryComparison(SubqueryComparisonExpr {
+        method = parse_expression,
+        expected = Expression::SubqueryComparison(SubqueryComparisonExpr {
             expr: Box::new(Expression::Identifier("x".to_string())),
             op: BinaryOp::Neq,
             quantifier: SubqueryQuantifier::Any,
@@ -1789,13 +2586,14 @@ mod subquery {
                 limit: None,
                 offset: None
             }))
-        })
+        }),
+        input = "x <> SOME (SELECT a)",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         in_subquery,
-        "x IN (SELECT a)",
-        Expression::Binary(BinaryExpr {
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Identifier("x".to_string())),
             op: BinaryOp::In,
             right: Box::new(Expression::Subquery(Box::new(Query::Select(SelectQuery {
@@ -1813,13 +2611,14 @@ mod subquery {
                 limit: None,
                 offset: None
             }))))
-        })
+        }),
+        input = "x IN (SELECT a)",
     );
 
-    validate_expression_ast!(
+    validate_ast!(
         not_in_subquery,
-        "x NOT IN (SELECT a)",
-        Expression::Binary(BinaryExpr {
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Identifier("x".to_string())),
             op: BinaryOp::NotIn,
             right: Box::new(Expression::Subquery(Box::new(Query::Select(SelectQuery {
@@ -1837,56 +2636,81 @@ mod subquery {
                 limit: None,
                 offset: None
             }))))
-        })
+        }),
+        input = "x NOT IN (SELECT a)",
     );
 }
 
 mod document {
-    use crate::{ast::*, multimap, parser::Parser};
+    use crate::{
+        ast::*,
+        multimap,
+        parser::{Error, Parser},
+    };
 
-    should_parse!(empty_doc_literal, true, "select {}");
-    should_parse!(doc_literal, true, "select {'a':1, 'b':2}");
-    should_parse!(doc_mixed_field_binary_op, true, "select {'a':3+4}");
-    should_parse!(doc_field_access_bracket, true, "select doc['a']");
-    should_parse!(doc_literal_field_access_dot, true, "select {'a': 1}.a");
-    should_parse!(
+    parsable!(empty_doc_literal, expected = true, input = "select {}");
+    parsable!(
+        doc_literal,
+        expected = true,
+        input = "select {'a':1, 'b':2}"
+    );
+    parsable!(
+        doc_mixed_field_binary_op,
+        expected = true,
+        input = "select {'a':3+4}"
+    );
+    parsable!(
+        doc_field_access_bracket,
+        expected = true,
+        input = "select doc['a']"
+    );
+    parsable!(
+        doc_literal_field_access_dot,
+        expected = true,
+        input = "select {'a': 1}.a"
+    );
+    parsable!(
         doc_literal_field_access_multi_level_dot,
-        true,
-        "select {'a': {'b': {'c': 100}}}.a.b.c"
+        expected = true,
+        input = "select {'a': {'b': {'c': 100}}}.a.b.c"
     );
-    should_parse!(
+    parsable!(
         doc_literal_field_dot_star_field,
-        true,
-        "select {'a': {'*': 100, 'b': 10, 'c': 1}}.a.`*`"
+        expected = true,
+        input = "select {'a': {'*': 100, 'b': 10, 'c': 1}}.a.`*`"
     );
-    should_parse!(
+    parsable!(
         doc_literal_field_access_bracket,
-        true,
-        "select {'a': 1, 'b': 2}['a']"
+        expected = true,
+        input = "select {'a': 1, 'b': 2}['a']"
     );
-    should_parse!(
+    parsable!(
         doc_literal_field_access_bracket_one_level,
-        true,
-        "select a['b']"
+        expected = true,
+        input = "select a['b']"
     );
-    should_parse!(
+    parsable!(
         doc_literal_field_access_bracket_multi_level,
-        true,
-        "select a['b']['c']"
+        expected = true,
+        input = "select a['b']['c']"
     );
-    should_parse!(
+    parsable!(
         doc_literal_field_bracket_star_field,
-        true,
-        "select {'a': {'*': 100, 'b': 10, 'c': 1}}['a']['*']"
+        expected = true,
+        input = "select {'a': {'*': 100, 'b': 10, 'c': 1}}['a']['*']"
     );
 
-    should_parse!(doc_literal_non_string_keys, false, "select {1:1, 2:2}");
-    should_parse!(non_doc_field_access, false, "select 1.a");
+    parsable!(
+        doc_literal_non_string_keys,
+        expected = false,
+        input = "select {1:1, 2:2}"
+    );
+    parsable!(non_doc_field_access, expected = false, input = "select 1.a");
 
-    validate_expression_ast!(
+    validate_ast!(
         doc_literal_field_access_ast,
-        "{'a': {'b': {'c': 100}}}.a.b.c",
-        Expression::Subpath(SubpathExpr {
+        method = parse_expression,
+        expected = Expression::Subpath(SubpathExpr {
             expr: Box::new(Expression::Subpath(SubpathExpr {
                 expr: Box::new(Expression::Subpath(SubpathExpr {
                     expr: Box::new(Expression::Document(
@@ -1901,12 +2725,13 @@ mod document {
                 subpath: "b".to_string()
             })),
             subpath: "c".to_string()
-        })
+        }),
+        input = "{'a': {'b': {'c': 100}}}.a.b.c",
     );
-    validate_expression_ast!(
+    validate_ast!(
         doc_mixed_field_access,
-        "a.b['c'].d",
-        Expression::Subpath(SubpathExpr {
+        method = parse_expression,
+        expected = Expression::Subpath(SubpathExpr {
             expr: Box::new(Expression::Access(AccessExpr {
                 expr: Box::new(Expression::Subpath(SubpathExpr {
                     expr: Box::new(Expression::Identifier("a".to_string())),
@@ -1915,56 +2740,61 @@ mod document {
                 subfield: Box::new(Expression::Literal(Literal::String("c".to_string()))),
             })),
             subpath: "d".to_string()
-        })
+        }),
+        input = "a.b['c'].d",
     );
 }
 
 mod comments {
     use crate::ast::*;
-    use crate::parser::Parser;
-    should_parse!(
+    use crate::parser::{Error, Parser};
+    parsable!(
         standard_parse,
-        true,
-        "SELECT a FROM foo -- This is a standard comment"
+        expected = true,
+        input = "SELECT a FROM foo -- This is a standard comment"
     );
-    should_parse!(standard_conflict_with_minus_minus, true, "SELECT a -- b");
-    should_parse!(
+    parsable!(
+        standard_conflict_with_minus_minus,
+        expected = true,
+        input = "SELECT a -- b"
+    );
+    parsable!(
         standard_single_line_parse,
-        true,
-        "-- This is a standard single line comment
+        expected = true,
+        input = "-- This is a standard single line comment
     SELECT a FROM foo"
     );
-    should_parse!(
+    parsable!(
         inline_parse,
-        true,
-        "SELECT a /* This is an inline comment */ FROM foo"
+        expected = true,
+        input = "SELECT a /* This is an inline comment */ FROM foo"
     );
-    should_parse!(
+    parsable!(
         multiline_parse,
-        true,
-        "/* This is a multiline comment
+        expected = true,
+        input = "/* This is a multiline comment
     This is a multiline comment */
     SELECT a FROM foo"
     );
-    should_parse!(
+    parsable!(
         multiline_inline_parse,
-        true,
-        "SELECT a /* This is an inline
+        expected = true,
+        input = "SELECT a /* This is an inline
     comment */ FROM foo"
     );
-    should_parse!(
+    parsable!(
         multiline_nesting,
-        true,
-        "/* This is a multiline comment
+        expected = true,
+        input = "/* This is a multiline comment
     * with nesting: /* nested block comment */
     */
     SELECT a FROM foo"
     );
 
-    validate_query_ast!(
+    validate_ast!(
         standard_ast,
-        "SELECT foo -- This is a standard comment",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -1978,34 +2808,36 @@ mod comments {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = "SELECT foo -- This is a standard comment",
     );
 
-    validate_query_ast!(
+    validate_ast!(
         ast,
-        "-- This is a standard single line comment
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
+            select_clause: SelectClause {
+                set_quantifier: SetQuantifier::All,
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("foo".to_string()),)
+                )])
+            },
+            from_clause: None,
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        }),
+        input = "-- This is a standard single line comment
     SELECT foo",
-        Query::Select(SelectQuery {
-            select_clause: SelectClause {
-                set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Expression(
-                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("foo".to_string()),)
-                )])
-            },
-            from_clause: None,
-            where_clause: None,
-            group_by_clause: None,
-            having_clause: None,
-            order_by_clause: None,
-            limit: None,
-            offset: None,
-        })
     );
 
-    validate_query_ast!(
+    validate_ast!(
         inline_ast,
-        "SELECT /* This is an inline comment */ foo",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -2019,36 +2851,37 @@ mod comments {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = "SELECT /* This is an inline comment */ foo",
     );
 
-    validate_query_ast!(
+    validate_ast!(
         multiline_ast,
-        "/* This is a multiline comment
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
+            select_clause: SelectClause {
+                set_quantifier: SetQuantifier::All,
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("foo".to_string()),)
+                )])
+            },
+            from_clause: None,
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        }),
+        input = "/* This is a multiline comment
     This is a multiline comment */
     SELECT foo",
-        Query::Select(SelectQuery {
-            select_clause: SelectClause {
-                set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Expression(
-                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("foo".to_string()),)
-                )])
-            },
-            from_clause: None,
-            where_clause: None,
-            group_by_clause: None,
-            having_clause: None,
-            order_by_clause: None,
-            limit: None,
-            offset: None,
-        })
     );
 
-    validate_query_ast!(
+    validate_ast!(
         inline_multiline_ast,
-        "SELECT /* This is an inline
-    comment */ foo",
-        Query::Select(SelectQuery {
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
             select_clause: SelectClause {
                 set_quantifier: SetQuantifier::All,
                 body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -2062,29 +2895,32 @@ mod comments {
             order_by_clause: None,
             limit: None,
             offset: None,
-        })
+        }),
+        input = "SELECT /* This is an inline
+    comment */ foo",
     );
 
-    validate_query_ast!(
+    validate_ast!(
         multiline_nesting_ast,
-        "/* This is a multiline comment
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
+            select_clause: SelectClause {
+                set_quantifier: SetQuantifier::All,
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("foo".to_string()),)
+                )])
+            },
+            from_clause: None,
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        }),
+        input = "/* This is a multiline comment
     * with nesting: /* nested block comment */
     */
     SELECT foo",
-        Query::Select(SelectQuery {
-            select_clause: SelectClause {
-                set_quantifier: SetQuantifier::All,
-                body: SelectBody::Standard(vec![SelectExpression::Expression(
-                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("foo".to_string()),)
-                )])
-            },
-            from_clause: None,
-            where_clause: None,
-            group_by_clause: None,
-            having_clause: None,
-            order_by_clause: None,
-            limit: None,
-            offset: None,
-        })
     );
 }

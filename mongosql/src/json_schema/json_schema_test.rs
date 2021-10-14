@@ -2,7 +2,7 @@ use crate::json_schema::*;
 use std::collections::HashMap;
 
 macro_rules! validate_json_schema {
-    ($func_name:ident, $input:expr, $expected_schema:expr, $expected_json:expr) => {
+    ($func_name:ident, expected_schema = $expected_schema:expr, expected_json = $expected_json:expr, input = $input:expr, ) => {
         #[test]
         fn $func_name() {
             let s: Schema = serde_json::from_str($input).unwrap();
@@ -33,32 +33,36 @@ macro_rules! hashmap(
   };
 );
 
-validate_json_schema!(empty_schema, "{}", &Schema::default(), "");
+validate_json_schema!(
+    empty_schema,
+    expected_schema = &Schema::default(),
+    expected_json = "",
+    input = "{}",
+);
 validate_json_schema!(
     schema_with_single_bson_type,
-    r#"{"bsonType":"int"}"#,
-    &Schema {
+    expected_schema = &Schema {
         bson_type: Some(BsonType::Single("int".to_string())),
         ..Default::default()
     },
-    ""
+    expected_json = "",
+    input = r#"{"bsonType":"int"}"#,
 );
 validate_json_schema!(
     schema_with_multiple_bson_types,
-    r#"{"bsonType":["int","null"]}"#,
-    &Schema {
+    expected_schema = &Schema {
         bson_type: Some(BsonType::Multiple(vec![
             "int".to_string(),
             "null".to_string()
         ])),
         ..Default::default()
     },
-    ""
+    expected_json = "",
+    input = r#"{"bsonType":["int","null"]}"#,
 );
 validate_json_schema!(
     schema_with_properties,
-    r#"{"properties":{"a":{"bsonType":"int"}}}"#,
-    &Schema {
+    expected_schema = &Schema {
         properties: Some(hashmap! {
             "a".to_string() => Schema {
                 bson_type: Some(BsonType::Single("int".to_string())),
@@ -67,42 +71,42 @@ validate_json_schema!(
         }),
         ..Default::default()
     },
-    ""
+    expected_json = "",
+    input = r#"{"properties":{"a":{"bsonType":"int"}}}"#,
 );
 validate_json_schema!(
     schema_with_required,
-    r#"{"required":["a","b"]}"#,
-    &Schema {
+    expected_schema = &Schema {
         required: Some(vec!["a".to_string(), "b".to_string()]),
         ..Default::default()
     },
-    ""
+    expected_json = "",
+    input = r#"{"required":["a","b"]}"#,
 );
 validate_json_schema!(
     schema_with_additional_properties_field,
-    r#"{"additionalProperties":true}"#,
-    &Schema {
+    expected_schema = &Schema {
         additional_properties: Some(true),
         ..Default::default()
     },
-    ""
+    expected_json = "",
+    input = r#"{"additionalProperties":true}"#,
 );
 validate_json_schema!(
     schema_with_items,
-    r#"{"items":{"bsonType":"int"}}"#,
-    &Schema {
+    expected_schema = &Schema {
         items: Some(Box::new(Schema {
             bson_type: Some(BsonType::Single("int".to_string())),
             ..Default::default()
         })),
         ..Default::default()
     },
-    ""
+    expected_json = "",
+    input = r#"{"items":{"bsonType":"int"}}"#,
 );
 validate_json_schema!(
     schema_with_any_of,
-    r#"{"anyOf":[{"bsonType":"int"},{"bsonType":"null"}]}"#,
-    &Schema {
+    expected_schema = &Schema {
         any_of: Some(vec![
             Schema {
                 bson_type: Some(BsonType::Single("int".to_string())),
@@ -115,12 +119,12 @@ validate_json_schema!(
         ]),
         ..Default::default()
     },
-    ""
+    expected_json = "",
+    input = r#"{"anyOf":[{"bsonType":"int"},{"bsonType":"null"}]}"#,
 );
 validate_json_schema!(
     schema_with_one_of,
-    r#"{"oneOf":[{"bsonType":"int"},{"bsonType":"null"}]}"#,
-    &Schema {
+    expected_schema = &Schema {
         one_of: Some(vec![
             Schema {
                 bson_type: Some(BsonType::Single("int".to_string())),
@@ -133,21 +137,21 @@ validate_json_schema!(
         ]),
         ..Default::default()
     },
-    ""
+    expected_json = "",
+    input = r#"{"oneOf":[{"bsonType":"int"},{"bsonType":"null"}]}"#,
 );
 validate_json_schema!(
     schema_with_extra_fields_ignored,
-    r#"{"extra1":"value1","bsonType":"int","extra2":"value2"}"#,
-    &Schema {
+    expected_schema = &Schema {
         bson_type: Some(BsonType::Single("int".to_string())),
         ..Default::default()
     },
-    r#"{"bsonType":"int"}"#
+    expected_json = r#"{"bsonType":"int"}"#,
+    input = r#"{"extra1":"value1","bsonType":"int","extra2":"value2"}"#,
 );
 validate_json_schema!(
     schema_with_all_fields_non_default,
-    r#"{"bsonType":["object","array"],"properties":{"a":{"bsonType":"int"}},"required":["a"],"additionalProperties":true,"items":{"bsonType":"int"},"anyOf":[{"bsonType":"int"}],"oneOf":[{"bsonType":"int"}]}"#,
-    &Schema {
+    expected_schema = &Schema {
         bson_type: Some(BsonType::Multiple(vec![
             "object".to_string(),
             "array".to_string()
@@ -171,5 +175,6 @@ validate_json_schema!(
             ..Default::default()
         }]),
     },
-    ""
+    expected_json = "",
+    input = r#"{"bsonType":["object","array"],"properties":{"a":{"bsonType":"int"}},"required":["a"],"additionalProperties":true,"items":{"bsonType":"int"},"anyOf":[{"bsonType":"int"}],"oneOf":[{"bsonType":"int"}]}"#,
 );
