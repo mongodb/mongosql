@@ -280,8 +280,11 @@ impl MqlCodeGenerator {
                 for (k, e) in p.expression.into_iter() {
                     let mapped_k =
                         MqlCodeGenerator::get_datasource_name(&k.datasource, &unique_bot_name);
-                    if mapped_k.starts_with('$') || mapped_k.contains('.') {
-                        return Err(Error::DotsOrDollarsInProjectField);
+                    if mapped_k.starts_with('$')
+                        || mapped_k.contains('.')
+                        || mapped_k.as_str() == ""
+                    {
+                        return Err(Error::InvalidProjectField);
                     }
 
                     project_body.insert(
@@ -696,8 +699,8 @@ impl MqlCodeGenerator {
                 } else {
                     map.into_iter()
                         .map(|(k, v)| {
-                            if k.starts_with('$') || k.contains('.') {
-                                Err(Error::DotsOrDollarsInDocumentKey)
+                            if k.starts_with('$') || k.contains('.') || k.as_str() == "" {
+                                Err(Error::InvalidDocumentKey)
                             } else {
                                 Ok((k, self.codegen_expression(v)?))
                             }
@@ -707,14 +710,19 @@ impl MqlCodeGenerator {
             })),
             FieldAccess(fa) => {
                 let expr = self.codegen_expression(*fa.expr)?;
-                Ok(if fa.field.contains('.') || fa.field.starts_with('$') {
-                    bson::bson!({"$getField": {"field": fa.field, "input": expr}})
-                } else {
-                    match expr {
-                        Bson::String(e) => Bson::String(format!("{}.{}", e, fa.field)),
-                        _ => bson::bson!({"$getField": {"field": fa.field, "input": expr}}),
-                    }
-                })
+                Ok(
+                    if fa.field.contains('.')
+                        || fa.field.starts_with('$')
+                        || fa.field.as_str() == ""
+                    {
+                        bson::bson!({"$getField": {"field": fa.field, "input": expr}})
+                    } else {
+                        match expr {
+                            Bson::String(e) => Bson::String(format!("{}.{}", e, fa.field)),
+                            _ => bson::bson!({"$getField": {"field": fa.field, "input": expr}}),
+                        }
+                    },
+                )
             }
             SearchedCase(ce) => {
                 let br = ce

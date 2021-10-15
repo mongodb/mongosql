@@ -280,7 +280,7 @@ mod project {
 
     test_codegen_plan!(
         dot_project_field,
-        expected = Err(Error::DotsOrDollarsInProjectField),
+        expected = Err(Error::InvalidProjectField),
         input = Stage::Project(Project {
             expression: map! {
                 ("a.b", 0u16).into() => Expression::Literal(Literal::Integer(1)),
@@ -295,10 +295,24 @@ mod project {
 
     test_codegen_plan!(
         dollar_project_field,
-        expected = Err(Error::DotsOrDollarsInProjectField),
+        expected = Err(Error::InvalidProjectField),
         input = Stage::Project(Project {
             expression: map! {
                 ("$a", 0u16).into() => Expression::Literal(Literal::Integer(1)),
+            },
+            source: Stage::Array(Array {
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map! {})],
+                alias: "arr".to_string(),
+            })
+            .into(),
+        }),
+    );
+    test_codegen_plan!(
+        empty_project_field,
+        expected = Err(Error::InvalidProjectField),
+        input = Stage::Project(Project {
+            expression: map! {
+                ("", 0u16).into() => Expression::Literal(Literal::Integer(1)),
             },
             source: Stage::Array(Array {
                 array: vec![Expression::Document(unchecked_unique_linked_hash_map! {})],
@@ -652,16 +666,23 @@ mod document {
     );
     test_codegen_expr!(
         dollar_prefixed_key_disallowed,
-        expected = Err(Error::DotsOrDollarsInDocumentKey),
+        expected = Err(Error::InvalidDocumentKey),
         input = Document(
             unchecked_unique_linked_hash_map! {"$foo".to_string() => Literal(Literal::Integer(1)),}
         ),
     );
     test_codegen_expr!(
         key_containing_dot_disallowed,
-        expected = Err(Error::DotsOrDollarsInDocumentKey),
+        expected = Err(Error::InvalidDocumentKey),
         input = Document(
             unchecked_unique_linked_hash_map! {"foo.bar".to_string() => Literal(Literal::Integer(1)),}
+        ),
+    );
+    test_codegen_expr!(
+        empty_key_disallowed,
+        expected = Err(Error::InvalidDocumentKey),
+        input = Document(
+            unchecked_unique_linked_hash_map! {"".to_string() => Literal(Literal::Integer(1)),}
         ),
     );
 }
@@ -758,6 +779,19 @@ mod field_access {
         input = Expression::FieldAccess(FieldAccess {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             field: "s.ub".to_string(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        empty_field_in_field_access,
+        expected = Ok(bson::bson!({"$getField": {"field": "", "input": "$f"}})),
+        input = Expression::FieldAccess(FieldAccess {
+            expr: Expression::Reference(("f", 0u16).into()).into(),
+            field: "".to_string(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();

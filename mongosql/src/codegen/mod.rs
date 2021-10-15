@@ -14,10 +14,10 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[error("binding tuple key {0:?} not found in mapping registry")]
     ReferenceNotFound(ir::binding_tuple::Key),
-    #[error("project fields may not contain dots or start with dollars")]
-    DotsOrDollarsInProjectField,
-    #[error("document keys may not contain dots or start with dollars")]
-    DotsOrDollarsInDocumentKey,
+    #[error("project fields may not be empty, contain dots, or start with dollars")]
+    InvalidProjectField,
+    #[error("document keys may not be empty, contain dots, or start with dollars")]
+    InvalidDocumentKey,
     #[error("cannot generate MQL for {0:?} function")]
     UnsupportedFunction(ir::ScalarFunction),
     #[error("GROUP BY keys must be valid field references")]
