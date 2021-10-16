@@ -73,8 +73,6 @@ pub enum Error {
     PositionalSortKey,
     #[error("subquery expressions must have a degree of 1")]
     InvalidSubqueryDegree,
-    #[error("invalid subquery comparison operator: {0}")]
-    InvalidSubqueryComparisonOp(&'static str),
     #[error("found duplicate document key {0:?}")]
     DuplicateDocumentKey(String),
 }
@@ -88,13 +86,13 @@ impl TryFrom<ast::BinaryOp> for ir::ScalarFunction {
             ast::BinaryOp::And => ir::ScalarFunction::And,
             ast::BinaryOp::Concat => ir::ScalarFunction::Concat,
             ast::BinaryOp::Div => ir::ScalarFunction::Div,
-            ast::BinaryOp::Eq => ir::ScalarFunction::Eq,
-            ast::BinaryOp::Gt => ir::ScalarFunction::Gt,
-            ast::BinaryOp::Gte => ir::ScalarFunction::Gte,
-            ast::BinaryOp::Lt => ir::ScalarFunction::Lt,
-            ast::BinaryOp::Lte => ir::ScalarFunction::Lte,
+            ast::BinaryOp::Comparison(ast::ComparisonOp::Eq) => ir::ScalarFunction::Eq,
+            ast::BinaryOp::Comparison(ast::ComparisonOp::Gt) => ir::ScalarFunction::Gt,
+            ast::BinaryOp::Comparison(ast::ComparisonOp::Gte) => ir::ScalarFunction::Gte,
+            ast::BinaryOp::Comparison(ast::ComparisonOp::Lt) => ir::ScalarFunction::Lt,
+            ast::BinaryOp::Comparison(ast::ComparisonOp::Lte) => ir::ScalarFunction::Lte,
+            ast::BinaryOp::Comparison(ast::ComparisonOp::Neq) => ir::ScalarFunction::Neq,
             ast::BinaryOp::Mul => ir::ScalarFunction::Mul,
-            ast::BinaryOp::Neq => ir::ScalarFunction::Neq,
             ast::BinaryOp::Or => ir::ScalarFunction::Or,
             ast::BinaryOp::Sub => ir::ScalarFunction::Sub,
             ast::BinaryOp::In | ast::BinaryOp::NotIn => {
@@ -176,19 +174,16 @@ impl TryFrom<ast::FunctionName> for ir::AggregationFunction {
     }
 }
 
-impl TryFrom<crate::ast::BinaryOp> for ir::SubqueryComparisonOp {
-    type Error = Error;
-
-    fn try_from(op: crate::ast::BinaryOp) -> Result<Self> {
-        Ok(match op {
-            ast::BinaryOp::Eq => ir::SubqueryComparisonOp::Eq,
-            ast::BinaryOp::Gt => ir::SubqueryComparisonOp::Gt,
-            ast::BinaryOp::Gte => ir::SubqueryComparisonOp::Gte,
-            ast::BinaryOp::Lt => ir::SubqueryComparisonOp::Lt,
-            ast::BinaryOp::Lte => ir::SubqueryComparisonOp::Lte,
-            ast::BinaryOp::Neq => ir::SubqueryComparisonOp::Neq,
-            _ => return Err(Error::InvalidSubqueryComparisonOp(op.as_str())),
-        })
+impl From<crate::ast::ComparisonOp> for ir::SubqueryComparisonOp {
+    fn from(op: crate::ast::ComparisonOp) -> Self {
+        match op {
+            ast::ComparisonOp::Eq => ir::SubqueryComparisonOp::Eq,
+            ast::ComparisonOp::Gt => ir::SubqueryComparisonOp::Gt,
+            ast::ComparisonOp::Gte => ir::SubqueryComparisonOp::Gte,
+            ast::ComparisonOp::Lt => ir::SubqueryComparisonOp::Lt,
+            ast::ComparisonOp::Lte => ir::SubqueryComparisonOp::Lte,
+            ast::ComparisonOp::Neq => ir::SubqueryComparisonOp::Neq,
+        }
     }
 }
 
@@ -1007,7 +1002,7 @@ impl<'a> Algebrizer<'a> {
         schema_check_return!(
             self,
             ir::Expression::SubqueryComparison(ir::SubqueryComparison {
-                operator: ir::SubqueryComparisonOp::try_from(s.op)?,
+                operator: ir::SubqueryComparisonOp::from(s.op),
                 modifier,
                 argument: Box::new(self.algebrize_expression(*s.expr)?),
                 subquery_expr: self.algebrize_subquery_expr(*s.subquery)?

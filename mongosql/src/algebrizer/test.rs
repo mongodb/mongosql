@@ -2520,7 +2520,7 @@ mod from_clause {
             })),
             condition: Some(ast::Expression::Binary(ast::BinaryExpr {
                 left: Box::new(ast::Expression::Identifier("a".to_string())),
-                op: ast::BinaryOp::Eq,
+                op: ast::BinaryOp::Comparison(ast::ComparisonOp::Eq),
                 right: Box::new(ast::Expression::Identifier("b".to_string())),
             }))
         })),
@@ -3492,7 +3492,7 @@ mod subquery {
         })),
         input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(5))),
-            op: ast::BinaryOp::Eq,
+            op: ast::ComparisonOp::Eq,
             quantifier: ast::SubqueryQuantifier::All,
             subquery: Box::new(ast::Query::Select(ast::SelectQuery {
                 select_clause: ast::SelectClause {
@@ -3540,7 +3540,7 @@ mod subquery {
         })),
         input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(5))),
-            op: ast::BinaryOp::Eq,
+            op: ast::ComparisonOp::Eq,
             quantifier: ast::SubqueryQuantifier::Any,
             subquery: Box::new(ast::Query::Select(ast::SelectQuery {
                 select_clause: ast::SelectClause {
@@ -3591,7 +3591,7 @@ mod subquery {
         })),
         input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
             expr: Box::new(ast::Expression::Identifier("b".into())),
-            op: ast::BinaryOp::Eq,
+            op: ast::ComparisonOp::Eq,
             quantifier: ast::SubqueryQuantifier::All,
             subquery: Box::new(ast::Query::Select(ast::SelectQuery {
                 select_clause: ast::SelectClause {
@@ -3627,34 +3627,7 @@ mod subquery {
         expected = Err(Error::FieldNotFound("a".into())),
         input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
             expr: Box::new(ast::Expression::Identifier("a".into())),
-            op: ast::BinaryOp::Eq,
-            quantifier: ast::SubqueryQuantifier::All,
-            subquery: Box::new(ast::Query::Select(ast::SelectQuery {
-                select_clause: ast::SelectClause {
-                    set_quantifier: ast::SetQuantifier::All,
-                    body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
-                        ast::Expression::Document(multimap! {
-                            "a_0".into() => ast::Expression::Identifier("a".into())
-                        })
-                    )])
-                },
-                from_clause: Some(AST_ARRAY.clone()),
-                where_clause: None,
-                group_by_clause: None,
-                having_clause: None,
-                order_by_clause: None,
-                limit: None,
-                offset: None,
-            },))
-        }),
-    );
-    test_algebrize!(
-        invalid_op,
-        method = algebrize_expression,
-        expected = Err(Error::InvalidSubqueryComparisonOp("Add")),
-        input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
-            expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(5))),
-            op: ast::BinaryOp::Add,
+            op: ast::ComparisonOp::Eq,
             quantifier: ast::SubqueryQuantifier::All,
             subquery: Box::new(ast::Query::Select(ast::SelectQuery {
                 select_clause: ast::SelectClause {

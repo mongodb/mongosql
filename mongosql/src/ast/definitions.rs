@@ -252,7 +252,7 @@ pub enum SubqueryQuantifier {
 #[derive(PartialEq, Debug, Clone)]
 pub struct SubqueryComparisonExpr {
     pub expr: Box<Expression>,
-    pub op: BinaryOp,
+    pub op: ComparisonOp,
     pub quantifier: SubqueryQuantifier,
     pub subquery: Box<Query>,
 }
@@ -486,17 +486,12 @@ pub enum BinaryOp {
     And,
     Concat,
     Div,
-    Eq,
-    Gt,
-    Gte,
     In,
-    Lt,
-    Lte,
     Mul,
-    Neq,
     NotIn,
     Or,
     Sub,
+    Comparison(ComparisonOp),
 }
 
 impl BinaryOp {
@@ -507,17 +502,36 @@ impl BinaryOp {
             And => "And",
             Concat => "Concat",
             Div => "Div",
-            Eq => "Eq",
-            Gt => "Gt",
-            Gte => "Gte",
             In => "In",
-            Lt => "Lt",
-            Lte => "Lte",
             Mul => "Mul",
-            Neq => "Neq",
             NotIn => "NotIn",
             Or => "Or",
             Sub => "Sub",
+            Comparison(co) => co.as_str(),
+        }
+    }
+}
+
+#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
+pub enum ComparisonOp {
+    Eq,
+    Gt,
+    Gte,
+    Lt,
+    Lte,
+    Neq,
+}
+
+impl ComparisonOp {
+    pub fn as_str(&self) -> &'static str {
+        use ComparisonOp::*;
+        match self {
+            Eq => "Eq",
+            Gt => "Gt",
+            Gte => "Gte",
+            Lt => "Lt",
+            Lte => "Lte",
+            Neq => "Neq",
         }
     }
 }

@@ -90,7 +90,7 @@ impl Visitor for InTupleRewriteVisitor {
         // Return it as a replacement for the original `IN` expression.
         Expression::SubqueryComparison(SubqueryComparisonExpr {
             expr: in_expr.left,
-            op: BinaryOp::Eq,
+            op: ComparisonOp::Eq,
             quantifier: SubqueryQuantifier::Any,
             subquery: Box::new(subquery),
         })

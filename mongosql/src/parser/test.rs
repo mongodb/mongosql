@@ -611,7 +611,7 @@ mod operator {
         method = parse_expression,
         expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Identifier("c".to_string())),
-            op: BinaryOp::Gt,
+            op: BinaryOp::Comparison(ComparisonOp::Gt),
             right: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".to_string())),
                 op: BinaryOp::Concat,
@@ -627,7 +627,7 @@ mod operator {
         expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".to_string())),
-                op: BinaryOp::Lt,
+                op: BinaryOp::Comparison(ComparisonOp::Lt),
                 right: Box::new(Expression::Identifier("b".to_string()))
             })),
             op: BinaryOp::And,
@@ -685,7 +685,7 @@ mod operator {
                 WhenBranch {
                     when: Box::new(Expression::Binary(BinaryExpr {
                         left: Box::new(Expression::Identifier("a".to_string())),
-                        op: BinaryOp::Eq,
+                        op: BinaryOp::Comparison(ComparisonOp::Eq),
                         right: Box::new(Expression::Identifier("b".to_string()))
                     })),
                     then: Box::new(Expression::Identifier("a".to_string()))
@@ -693,7 +693,7 @@ mod operator {
                 WhenBranch {
                     when: Box::new(Expression::Binary(BinaryExpr {
                         left: Box::new(Expression::Identifier("c".to_string())),
-                        op: BinaryOp::Eq,
+                        op: BinaryOp::Comparison(ComparisonOp::Eq),
                         right: Box::new(Expression::Identifier("d".to_string()))
                     })),
                     then: Box::new(Expression::Identifier("c".to_string()))
@@ -712,7 +712,7 @@ mod operator {
             when_branch: vec![WhenBranch {
                 when: Box::new(Expression::Binary(BinaryExpr {
                     left: Box::new(Expression::Identifier("a".to_string())),
-                    op: BinaryOp::Eq,
+                    op: BinaryOp::Comparison(ComparisonOp::Eq),
                     right: Box::new(Expression::Identifier("b".to_string()))
                 })),
                 then: Box::new(Expression::Identifier("a".to_string()))
@@ -854,7 +854,7 @@ mod having {
                     args: FunctionArguments::Args(vec![Expression::Identifier("a".to_string())]),
                     set_quantifier: Some(SetQuantifier::Distinct),
                 })),
-                op: BinaryOp::Gt,
+                op: BinaryOp::Comparison(ComparisonOp::Gt),
                 right: Box::new(Expression::Literal(Literal::Integer(0)))
             })),
             order_by_clause: None,
@@ -2027,7 +2027,7 @@ mod where_test {
             from_clause: None,
             where_clause: Some(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".to_string())),
-                op: BinaryOp::Gte,
+                op: BinaryOp::Comparison(ComparisonOp::Gte),
                 right: Box::new(Expression::Literal(Literal::Integer(2)))
             })),
             group_by_clause: None,
@@ -2569,7 +2569,7 @@ mod subquery {
         method = parse_expression,
         expected = Expression::SubqueryComparison(SubqueryComparisonExpr {
             expr: Box::new(Expression::Identifier("x".to_string())),
-            op: BinaryOp::Neq,
+            op: ComparisonOp::Neq,
             quantifier: SubqueryQuantifier::Any,
             subquery: Box::new(Query::Select(SelectQuery {
                 select_clause: SelectClause {

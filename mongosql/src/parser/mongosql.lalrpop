@@ -389,9 +389,14 @@ UnaryTier<Op,NextTier>: Box<Expression> = {
 // ComparisonTier parses (1) binary expressions that include a comparison operator and
 // (2) subquery comparison expressions. We need to declare an order of precedence for
 // these expressions to avoid shift-reduce conflicts with CompareOps.
-ComparisonTier<Expr, Op, NextTier>: Box<Expression> = {
-  <left:ComparisonTier<Expr, Op,NextTier>> <op:Op> <right:NextTier> => Box::new(Expression::Binary(BinaryExpr{<>})),
-  <expr:ComparisonTier<Expr, Op, NextTier>> <op:Op> <quantifier:SubqueryQuantifier> <subquery:SubqueryExpr> => Box::new(Expression::SubqueryComparison(SubqueryComparisonExpr{<>})),
+ComparisonTier<Expr, NextTier>: Box<Expression> = {
+  <left:ComparisonTier<Expr, NextTier>> <op:CompareOp> <right:NextTier> => Box::new(Expression::Binary(BinaryExpr{
+        left,
+        op: BinaryOp::Comparison(op),
+        right,
+    })),
+  <expr:ComparisonTier<Expr, NextTier>> <op:CompareOp> <quantifier:SubqueryQuantifier> <subquery:SubqueryExpr>
+     => Box::new(Expression::SubqueryComparison(SubqueryComparisonExpr{<>})),
   NextTier
 };
 
@@ -431,7 +436,7 @@ IsTier<Expression,NextTier>: Box<Expression> = {
   <e:IsTier<Expression,NextTier>> IS NOT MISSING => Box::new(Expression::Unary(UnaryExpr{op:UnaryOp::Not, expr:Box::new(Expression::Is(IsExpr{expr:e, target_type:TypeOrMissing::Missing}))})),
   <e:IsTier<Expression,NextTier>> IS NUMBER => Box::new(Expression::Is(IsExpr{expr:e, target_type:TypeOrMissing::Number})),
   <e:IsTier<Expression,NextTier>> IS NOT NUMBER => Box::new(Expression::Unary(UnaryExpr{op:UnaryOp::Not, expr:Box::new(Expression::Is(IsExpr{expr:e, target_type:TypeOrMissing::Number}))})),
-  
+
   NextTier
 }
 
@@ -447,7 +452,7 @@ Tier3Expr = BetweenTier<Expression, Tier4Expr>;
 Tier4Expr = BinaryTier<InOp, Tier5Expr>;
 Tier5Expr = BinaryTier<OrOp, Tier6Expr>;
 Tier6Expr = BinaryTier<AndOp, Tier7Expr>;
-Tier7Expr = ComparisonTier<Expression, CompareOp, Tier8Expr>;
+Tier7Expr = ComparisonTier<Expression, Tier8Expr>;
 Tier8Expr = BinaryTier<ConcatOp, Tier9Expr>;
 Tier9Expr = BinaryTier<AddOp, Tier10Expr>;
 Tier10Expr = BinaryTier<MulOp, Tier11Expr>;
@@ -484,19 +489,19 @@ AndOp: BinaryOp = {
   AND  => BinaryOp::And,
 };
 
-CompareOp: BinaryOp = {
-  EQ => BinaryOp::Eq,
-  NEQ => BinaryOp::Neq,
-  LTE => BinaryOp::Lte,
-  GTE => BinaryOp::Gte,
-  LT  => BinaryOp::Lt,
-  GT  => BinaryOp::Gt,
+CompareOp: ComparisonOp = {
+  EQ => ComparisonOp::Eq,
+  NEQ => ComparisonOp::Neq,
+  LTE => ComparisonOp::Lte,
+  GTE => ComparisonOp::Gte,
+  LT  => ComparisonOp::Lt,
+  GT  => ComparisonOp::Gt,
 }
 
 BoolOp: BinaryOp = {
   OrOp,
   AndOp,
-  CompareOp,
+  CompareOp => BinaryOp::Comparison(<>),
 }
 
 ConcatOp: BinaryOp = {

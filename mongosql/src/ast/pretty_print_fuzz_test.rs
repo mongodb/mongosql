@@ -447,7 +447,7 @@ mod arbitrary {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
                 expr: Box::new(Expression::arbitrary(g)),
-                op: BinaryOp::arbitrary(g),
+                op: ComparisonOp::arbitrary(g),
                 quantifier: SubqueryQuantifier::arbitrary(g),
                 subquery: Box::new(Query::arbitrary(g)),
             }
@@ -680,18 +680,28 @@ mod arbitrary {
                 1 => Self::And,
                 2 => Self::Concat,
                 3 => Self::Div,
-                4 => Self::Eq,
-                5 => Self::Gt,
-                6 => Self::Gte,
-                7 => Self::In,
-                8 => Self::Lt,
-                9 => Self::Lte,
-                10 => Self::Mul,
-                11 => Self::Neq,
-                12 => Self::NotIn,
-                13 => Self::Or,
-                14 => Self::Sub,
+                4 => Self::In,
+                5 => Self::Mul,
+                6 => Self::NotIn,
+                7 => Self::Or,
+                8 => Self::Sub,
+                9 => Self::Comparison(ComparisonOp::arbitrary(g)),
                 _ => panic!("missing BinaryOp variant(s)"),
+            }
+        }
+    }
+
+    impl Arbitrary for ComparisonOp {
+        fn arbitrary(g: &mut Gen) -> Self {
+            let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
+            match g.choose(rng).unwrap() {
+                0 => Self::Eq,
+                1 => Self::Gt,
+                2 => Self::Gte,
+                3 => Self::Lt,
+                4 => Self::Lte,
+                5 => Self::Neq,
+                _ => panic!("missing ComparisonOp variant(s)"),
             }
         }
     }

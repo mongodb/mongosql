@@ -364,7 +364,7 @@ impl BinaryExpr {
             In | NotIn => Tier4Expr,
             Or => Tier5Expr,
             And => Tier6Expr,
-            Lt | Lte | Gte | Gt | Eq | Neq => Tier7Expr,
+            Comparison(_) => Tier7Expr,
             Concat => Tier8Expr,
             Add | Sub => Tier9Expr,
             Mul | Div => Tier10Expr,
@@ -829,21 +829,33 @@ impl Display for BinaryOp {
             f,
             "{}",
             match self {
-                BinaryOp::Or => "OR",
-                BinaryOp::And => "AND",
-                BinaryOp::Lt => "<",
-                BinaryOp::Lte => "<=",
-                BinaryOp::Gte => ">=",
-                BinaryOp::Gt => ">",
-                BinaryOp::Eq => "=",
-                BinaryOp::Neq => "<>",
-                BinaryOp::Concat => "||",
-                BinaryOp::Add => "+",
-                BinaryOp::Sub => "-",
-                BinaryOp::Mul => "*",
-                BinaryOp::Div => "/",
-                BinaryOp::In => "IN",
-                BinaryOp::NotIn => "NOT IN",
+                BinaryOp::Or => "OR".to_string(),
+                BinaryOp::And => "AND".to_string(),
+                BinaryOp::Comparison(c) => c.to_string(),
+                BinaryOp::Concat => "||".to_string(),
+                BinaryOp::Add => "+".to_string(),
+                BinaryOp::Sub => "-".to_string(),
+                BinaryOp::Mul => "*".to_string(),
+                BinaryOp::Div => "/".to_string(),
+                BinaryOp::In => "IN".to_string(),
+                BinaryOp::NotIn => "NOT IN".to_string(),
+            }
+        )
+    }
+}
+
+impl Display for ComparisonOp {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                ComparisonOp::Lt => "<",
+                ComparisonOp::Lte => "<=",
+                ComparisonOp::Gte => ">=",
+                ComparisonOp::Gt => ">",
+                ComparisonOp::Eq => "=",
+                ComparisonOp::Neq => "<>",
             }
         )
     }
