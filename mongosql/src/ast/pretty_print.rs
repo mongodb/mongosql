@@ -312,7 +312,7 @@ impl Display for SortDirection {
             f,
             "{}",
             match self {
-                SortDirection::Asc => "",
+                SortDirection::Asc => " ASC",
                 SortDirection::Desc => " DESC",
             }
         )

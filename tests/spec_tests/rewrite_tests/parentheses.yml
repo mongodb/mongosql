@@ -1,4 +1,5 @@
 tests:
   - description: parenthesis are rewritten to be minimal to support order of operations, spaces are put around operators
-    query: "SELECT (3+4)*a AS x, 3+(4*a) AS y, ((3+4) + (x + (15+4))) AS z FROM foo"
-    result: "SELECT (3 + 4) * a AS x, 3 + 4 * a AS y, 3 + 4 + x + 15 + 4 AS z FROM foo AS foo"
+    query: "SELECT (3+4)*a AS x, 3+(4*a) AS y, ((3+4) + (x + (15+4))) AS z FROM foo AS foo"
+    result: "SELECT VALUE {'x': (3 + 4) * a, 'y': 3 + 4 * a, 'z': 3 + 4 + x + 15 + 4} FROM foo AS foo"
+    skip_reason: "SQL-546: Add rewrite pass for parenthesized expressions"

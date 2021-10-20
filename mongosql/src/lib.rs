@@ -2,6 +2,8 @@ mod algebrizer;
 mod ast;
 pub mod catalog;
 mod codegen;
+#[cfg(test)]
+mod internal_spec_test;
 mod ir;
 pub mod json_schema;
 mod parser;

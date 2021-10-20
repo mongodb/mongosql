@@ -3,6 +3,6 @@ tests:
     query: "SELECT VALUE {'c': {'a': {'b': {'c': 1}}}.a.b['c']} FROM [{}] AS _dual"
     translation:
       - {'$array': {'_dual': [{}]}}
-      - {'$project': {'_id': 0, '__bot': {'$getField': {'field': 'c', 'input': {'$getField': {'field': 'b', 'input': {'$getField': {'field': 'a', 'input': {'a': {'b': {'c': {'$literal': 1}}}}}}}}}}}
+      - {'$project': {'_id': 0, '__bot': {'$getField': {'field': 'c', 'input': {'$getField': {'field': 'b', 'input': {'$getField': {'field': 'a', 'input': {'a': {'b': {'c': {'$literal': 1}}}}}}}}}}}}
     result:
       - {'__bot': {'c': 1}}

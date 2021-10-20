@@ -287,7 +287,7 @@ query_printer_test!(
 
 query_printer_test!(
     select_order_by_1_asc,
-    expected = "SELECT * FROM foo ORDER BY 1",
+    expected = "SELECT * FROM foo ORDER BY 1 ASC",
     input = "selECT * FROM foo ORDER BY 1 ASC"
 );
 query_printer_test!(
@@ -297,7 +297,7 @@ query_printer_test!(
 );
 query_printer_test!(
     select_order_by_a_asc,
-    expected = "SELECT * FROM foo ORDER BY a",
+    expected = "SELECT * FROM foo ORDER BY a ASC",
     input = "selECT * FROM foo ORDER BY a ASC"
 );
 query_printer_test!(
@@ -307,7 +307,7 @@ query_printer_test!(
 );
 query_printer_test!(
     select_order_by_1_asc_2_asc,
-    expected = "SELECT * FROM foo ORDER BY 1, 2",
+    expected = "SELECT * FROM foo ORDER BY 1 ASC, 2 ASC",
     input = "selECT * FROM foo ORDER BY 1 ASC, 2"
 );
 query_printer_test!(
@@ -317,7 +317,7 @@ query_printer_test!(
 );
 query_printer_test!(
     select_order_by_a_asc_b_asc,
-    expected = "SELECT * FROM foo ORDER BY a, b",
+    expected = "SELECT * FROM foo ORDER BY a ASC, b ASC",
     input = "selECT * FROM foo ORDER BY a ASC, b ASC"
 );
 query_printer_test!(
@@ -349,7 +349,7 @@ query_printer_test!(
 
 query_printer_test!(
     select_all_clauses,
-    expected = "SELECT * FROM foo AS bar WHERE 1 GROUP BY a, b AGGREGATE COUNT(*) AS agg1, SUM(a) AS agg2 HAVING agg1 < agg2 ORDER BY agg1 LIMIT 100 OFFSET 10",
+    expected = "SELECT * FROM foo AS bar WHERE 1 GROUP BY a, b AGGREGATE COUNT(*) AS agg1, SUM(a) AS agg2 HAVING agg1 < agg2 ORDER BY agg1 ASC LIMIT 100 OFFSET 10",
     input = "SELECT * FROM foo bar WHERE 1 GROUP BY a, b AGGREGATE COUNT(*) AS agg1, SUM(a) as agg2 HAVING agg1 < agg2 ORDER BY agg1 LIMIT 100 OFFSET 10"
 );
 

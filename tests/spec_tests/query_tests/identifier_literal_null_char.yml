@@ -2,4 +2,5 @@
 tests:
   - description: "Identifiers cannot contain null character literal"
     query: "SELECT `\x00` FROM foo"
+    should_compile: false
     parse_error: "identifiers may not contain the null character \x00"

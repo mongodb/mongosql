@@ -1,6 +1,6 @@
 tests:
   - description: Nested Case expression translation
-    query: "SELECT VALUE { 'r': CASE 1 WHEN (CASE 2 WHEN a THEN 2 ELSE 1) THEN 'YES' ELSE 'NO'} FROM [{'a': 1, 'b': 1}] AS arr"
+    query: "SELECT VALUE { 'r': CASE 1 WHEN (CASE 2 WHEN a THEN 2 ELSE 1 END) THEN 'YES' ELSE 'NO' END} FROM [{'a': 1, 'b': 1}] AS arr"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -25,6 +25,6 @@ tests:
             ],
             'default': 'NO'
           }}}}}}}
-        result:
+    result:
       - {'__bot': { 'r': 'YES' } }
 

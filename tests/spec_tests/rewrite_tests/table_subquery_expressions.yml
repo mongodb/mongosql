@@ -1,20 +1,25 @@
 tests:
 - description: IN expression with subquery on rhs rewritten to subquery comparison
-  query: "SELECT * FROM table1 WHERE col1 IN (SELECT col1 FROM table2)"
-  result: "SELECT * FROM table1 WHERE col1 = ANY(SELECT col1 FROM table2)"
+  query: "SELECT * FROM table1 AS table1 WHERE col1 IN (SELECT col1 FROM table2 AS table2)"
+  result: "SELECT * FROM table1 AS table1 WHERE col1 = ANY(SELECT VALUE {'col1': col1} FROM table2 AS table2)"
+  skip_reason: "SQL-545: Add rewrite pass for IN expressions"
 
 - description: IN expression with expression list on rhs rewritten to subquery comparison
-  query: "SELECT * FROM table1 WHERE col1 IN (1, 2, 3)"
-  result: "SELECT * FROM table1 WHERE col1 = ANY(SELECT _1 FROM [{_1: 1}, {_1: 2}, {_1: 3}])"
+  query: "SELECT * FROM table1 AS table1 WHERE col1 IN (1, 2, 3)"
+  result: "SELECT * FROM table1 AS table1 WHERE col1 = ANY(SELECT _1 FROM [{_1: 1}, {_1: 2}, {_1: 3}])"
+  skip_reason: "SQL-545: Add rewrite pass for IN expressions"
 
 - description: NOT IN expression with subquery on rhs rewritten to subquery comparison
-  query: "SELECT * FROM table1 WHERE col1 NOT IN (SELECT col1 FROM table2)"
-  result: "SELECT * FROM table1 WHERE col1 <> ALL(SELECT col1 FROM table2)"
+  query: "SELECT * FROM table1 AS table1 WHERE col1 NOT IN (SELECT col1 FROM table2 AS table2)"
+  result: "SELECT * FROM table1 AS table1 WHERE col1 <> ALL(SELECT col1 FROM table2)"
+  skip_reason: "SQL-545: Add rewrite pass for IN expressions"
 
 - description: NOT IN expression with expression list on rhs rewritten to subquery comparison
-  query: "SELECT * FROM table1 WHERE col1 NOT IN (1, 2, 3)"
-  result: "SELECT * FROM table1 WHERE col1 <> ALL(SELECT _1 FROM [{_1: 1}, {_1: 2}, {_1: 3}])"
+  query: "SELECT * FROM table1 AS table1 WHERE col1 NOT IN (1, 2, 3)"
+  result: "SELECT * FROM table1 AS table1 WHERE col1 <> ALL(SELECT _1 FROM [{_1: 1}, {_1: 2}, {_1: 3}])"
+  skip_reason: "SQL-545: Add rewrite pass for IN expressions"
 
 - description: SOME quantifier rewritten to ANY
-  query: "SELECT * FROM table1 WHERE col1 = SOME(SELECT col1 FROM table2)"
-  result: "SELECT * FROM table1 WHERE col1 = ANY(SELECT col1 FROM table2)"
+  query: "SELECT * FROM table1 AS table1 WHERE col1 = SOME(SELECT col1 FROM table2 AS table2)"
+  result: "SELECT * FROM table1 AS table1 WHERE col1 = ANY(SELECT col1 FROM table2 AS table2)"
+  skip_reason: "SQL-545: Add rewrite pass for IN expressions"

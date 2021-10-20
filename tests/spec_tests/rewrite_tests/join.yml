@@ -1,4 +1,4 @@
 tests:
   - description: rewrite comma join to cross join
-    query: "SELECT * FROM foo, bar, baz"
+    query: "SELECT * FROM foo AS foo, bar AS bar, baz AS baz"
     result: "SELECT * FROM foo AS foo CROSS JOIN bar AS bar CROSS JOIN baz AS baz"

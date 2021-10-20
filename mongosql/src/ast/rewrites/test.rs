@@ -28,37 +28,37 @@ mod positional_sort_key {
     test_rewrite!(
         simple,
         pass = PositionalSortKeyRewritePass,
-        expected = Ok("SELECT a AS a FROM foo ORDER BY a"),
+        expected = Ok("SELECT a AS a FROM foo ORDER BY a ASC"),
         input = "SELECT a AS a FROM foo ORDER BY 1",
     );
     test_rewrite!(
         rewrite_in_derived_table,
         pass = PositionalSortKeyRewritePass,
-        expected = Ok("SELECT * FROM (SELECT a AS a FROM foo ORDER BY a) AS sub"),
+        expected = Ok("SELECT * FROM (SELECT a AS a FROM foo ORDER BY a ASC) AS sub"),
         input = "SELECT * FROM (SELECT a AS a FROM foo ORDER BY 1) sub",
     );
     test_rewrite!(
         rewrite_in_subquery_expr,
         pass = PositionalSortKeyRewritePass,
-        expected = Ok("SELECT (SELECT a AS a FROM foo ORDER BY a)"),
+        expected = Ok("SELECT (SELECT a AS a FROM foo ORDER BY a ASC)"),
         input = "SELECT (SELECT a AS a FROM foo ORDER BY 1)",
     );
     test_rewrite!(
         subquery_does_not_pollute_parent_state,
         pass = PositionalSortKeyRewritePass,
-        expected = Ok("SELECT b AS b, (SELECT a AS a FROM foo) FROM bar ORDER BY b"),
+        expected = Ok("SELECT b AS b, (SELECT a AS a FROM foo) FROM bar ORDER BY b ASC"),
         input = "SELECT b AS b, (SELECT a AS a FROM foo) FROM bar ORDER BY 1",
     );
     test_rewrite!(
         parent_does_not_pollute_subquery_state,
         pass = PositionalSortKeyRewritePass,
-        expected = Ok("SELECT b AS b, (SELECT a AS a FROM foo ORDER BY a) FROM bar"),
+        expected = Ok("SELECT b AS b, (SELECT a AS a FROM foo ORDER BY a ASC) FROM bar"),
         input = "SELECT b AS b, (SELECT a AS a FROM foo ORDER BY 1) FROM bar",
     );
     test_rewrite!(
         reference_aliases_not_modified,
         pass = PositionalSortKeyRewritePass,
-        expected = Ok("SELECT a AS a FROM foo ORDER BY a, one"),
+        expected = Ok("SELECT a AS a FROM foo ORDER BY a ASC, one ASC"),
         input = "SELECT a AS a FROM foo ORDER BY 1, one",
     );
     test_rewrite!(

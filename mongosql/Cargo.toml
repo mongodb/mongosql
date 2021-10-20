@@ -14,11 +14,11 @@ rand = "0.8.0"
 regex = "1"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+serde_yaml = "0.8.21"
 thiserror = "1"
 variant_count = "1.1.0"
 
 [build-dependencies]
 lalrpop = "0.19.4"
 visitgen = { path = "../visitgen" }
-yaml-rust = "0.4.5"
 regex = "1.4.6"

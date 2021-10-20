@@ -1,4 +1,4 @@
 tests:
   - description: "Rewrite CAST operator shorthand"
-    query: "SELECT a::STRING FROM foo"
-    result: "SELECT CAST(a AS STRING) FROM foo"
+    query: "SELECT a::STRING FROM foo AS foo"
+    result: "SELECT VALUE {'_1': CAST(a AS STRING)} FROM foo AS foo"
