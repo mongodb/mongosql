@@ -1990,6 +1990,11 @@ mod from {
         expected_error = "array datasources must have aliases",
         input = "SELECT * FROM [{'a': 1}]"
     );
+    parsable!(
+        natural_join_not_allowed,
+        expected = false,
+        input = "SELECT * FROM foo NATURAL JOIN bar"
+    );
 }
 mod where_test {
     use crate::ast::*;

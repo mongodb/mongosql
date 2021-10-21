@@ -756,6 +756,7 @@ match {
   r"(?i)minute" => MINUTE,
   r"(?i)missing" => MISSING,
   r"(?i)month" => MONTH,
+  r"(?i)natural" => NATURAL,
   r"(?i)not" => NOT,
   r"(?i)not\s+in" => NOT_IN,
   r"(?i)not\s+like" => NOT_LIKE,

@@ -145,7 +145,6 @@ tests:
   - description: natural join is not supported
     current_db: mydb
     query: "SELECT * FROM bar NATURAL JOIN coll"
-    skip_reason: "SQL-516: NATURAL JOIN should be a parse error"
     should_compile: false
     parse_error: "natural join is not supported"
 
