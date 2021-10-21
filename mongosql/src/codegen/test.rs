@@ -862,10 +862,10 @@ mod simple_case_expression {
     test_codegen_expr!(
         one_case,
         expected = Ok(
-            bson::bson!({"$let": {"vars": {"target": {"$literal": "co"}}}, "in": {"$switch": 
+            bson::bson!({"$let": {"vars": {"target": {"$literal": "co"}}, "in": {"$switch":
             {"branches": [{"case": {"$sqlEq": ["$$target", {"$literal": true}]}, 
                                             "then": {"$literal": "true case"}}],
-            "default": {"$literal": "else case"}}}})
+            "default": {"$literal": "else case"}}}}})
         ),
         input = Expression::SimpleCase(SimpleCaseExpr {
             expr: Box::new(Expression::Literal(Literal::String("co".to_string()))),
@@ -883,14 +883,14 @@ mod simple_case_expression {
     test_codegen_expr!(
         multiple_cases,
         expected = Ok(
-            bson::bson!({"$let": {"vars": {"target": {"$literal": "co"}}}, "in": {"$switch": 
+            bson::bson!({"$let": {"vars": {"target": {"$literal": "co"}}, "in": {"$switch":
             {"branches": [{"case": {"$sqlEq": ["$$target", {"$literal": false}]}, 
                                             "then": {"$literal": "first case"}},
             {"case": {"$sqlEq": ["$$target", {"$literal": false}]}, 
                                             "then": {"$literal": "second case"}},
             {"case": {"$sqlEq": ["$$target", {"$literal": false}]}, 
                                             "then": {"$literal": "third case"}}],
-            "default": {"$literal": "else case"}}}})
+            "default": {"$literal": "else case"}}}}})
         ),
         input = Expression::SimpleCase(SimpleCaseExpr {
             expr: Box::new(Expression::Literal(Literal::String("co".to_string()))),

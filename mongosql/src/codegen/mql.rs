@@ -750,14 +750,17 @@ impl MqlCodeGenerator {
                     })
                     .collect::<Result<Vec<bson::Document>>>()?;
 
-                Ok(
-                    bson::bson!({"$let": {"vars": {"target": self.codegen_expression(*ce.expr)?}},
-                        "in": {"$switch": {
-                        "branches": br,
-                        "default": self.codegen_expression(*ce.else_branch)?
+                Ok(bson::bson!({
+                    "$let": {
+                        "vars": {"target": self.codegen_expression(*ce.expr)?},
+                        "in": {
+                            "$switch": {
+                                "branches": br,
+                                "default": self.codegen_expression(*ce.else_branch)?
+                            }
                         }
-                    }}),
-                )
+                    }
+                }))
             }
             Cast(_) => unimplemented!(),
             TypeAssertion(_) => unimplemented!(),

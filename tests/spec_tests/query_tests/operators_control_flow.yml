@@ -32,7 +32,6 @@ tests:
   - description: Simple CASE expression - No WHEN comparison evalutes to TRUE, return ELSE result
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' WHEN c THEN 'c' ELSE 'none' END } FROM bar AS bar"
-    skip_reason: "SQL-500: fix $let document"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -51,7 +50,7 @@ tests:
                                                 "default": {'$literal': 'none'}
                                               }}}}}}}
     result:
-      - {'__bot': { "a": 2, "b": null, "r": "none" } }
+      - {'__bot': { "a": 2, "b": null, "c": 3, "r": "none" } }
 
   - description: Simple CASE expression - One WHEN comparison evalutes to TRUE, return corresponding THEN result
     query: "SELECT VALUE { 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' ELSE 'none' END } FROM [{'a': 2, 'b': 1}] AS arr"
