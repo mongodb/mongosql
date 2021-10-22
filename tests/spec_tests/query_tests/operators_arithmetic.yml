@@ -103,6 +103,28 @@ catalog_schema:
             ]
           }
         }
+      },
+      "integer_division": {
+        "bsonType": "object",
+        "required": ["_id", "a", "b"],
+        "additionalProperties": false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "a": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" },
+            ]
+          },
+          "b": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" },
+            ]
+          }
+        }
       }
     }
   }
@@ -295,7 +317,7 @@ tests:
   - description: Division correctness tests
     current_db: foo
     query: "SELECT VALUE {'a': a, 'b': b, 'a/b': a / b} FROM binary AS binary"
-    skip_reason: "SQL-485: inconsistent $sqlDivide format"
+    skip_reason: "SQL-362: Truncate division between ints/longs"
     translation_target_db: foo
     translation_target_coll: binary
     translation:
@@ -318,7 +340,7 @@ tests:
       - {'__bot': {'a': {'$numberDouble': '6'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberDouble': '3'}}}
       - {'__bot': {'a': {'$numberDouble': '6'}, 'b': {'$numberLong': '2'}, 'a/b': {'$numberDouble': '3'}}}
       - {'__bot': {'a': {'$numberDouble': '6'}, 'b': {'$numberDouble': '2'}, 'a/b': {'$numberDouble': '3'}}}
-      - {'__bot': {'a': {'$numberDouble': '6'}, 'b': {'$numberDecimal': '2'}, 'a/b': {'$numberDecimal': '3'}}}
+      - {'__bot': {'a': {'$numberDouble': '6'}, 'b': {'$numberDecimal': '2'}, 'a/b': {'$numberDecimal': '3.00000000000000'}}}
       - {'__bot': {'a': {'$numberDouble': '6'}, 'b': null, 'a/b': null}}
       - {'__bot': {'a': {'$numberDouble': '6'}, 'a/b': null}}
       - {'__bot': {'a': {'$numberDecimal': '6'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberDecimal': '3'}}}
@@ -343,7 +365,6 @@ tests:
   - description: Division by zero results in NULL
     current_db: foo
     query: "SELECT VALUE {'a': a, 'n': a / 0} FROM unary AS unary"
-    skip_reason: "SQL-485: inconsistent $sqlDivide format"
     translation_target_db: foo
     translation_target_coll: unary
     translation:
@@ -365,9 +386,9 @@ tests:
   - description: Long and integer division with non-integer results are truncated
     current_db: foo
     query: "SELECT VALUE {'a': a, 'b': b, 'n': a / b} FROM integer_division AS i"
-    skip_reason: "SQL-485: inconsistent $sqlDivide format"
+    skip_reason: "SQL-362: Truncate division between ints/longs"
     translation_target_db: foo
-    translation_target_coll: i
+    translation_target_coll: integer_division
     translation:
       - {'$project': {'_id': 0, 'integer_division': '$$ROOT'}}
       - {'$project': {'_id': 0, 'i': '$integer_division'}}

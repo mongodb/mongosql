@@ -796,8 +796,18 @@ impl MqlCodeGenerator {
                         sa.function.mql_op().unwrap(): {"input": self.codegen_expression(sa.args[1].clone())?,
                             "chars": self.codegen_expression(sa.args[0].clone())?,
                     }}),
-                    Not | Concat | Add | Sub | Mul | Div | Lt | Lte | Neq | Eq | Gt | Gte
-                    | Between | And | Or | NullIf | Coalesce | Slice | Position | Substring
+                    Div => {
+                        // Div will always have exactly two arguments because it's parsed as a BinaryOp
+                        Bson::Document(bson::doc! {
+                            sa.function.mql_op().unwrap(): {
+                                "dividend": self.codegen_expression(sa.args[0].clone())?,
+                                "divisor": self.codegen_expression(sa.args[1].clone())?,
+                                "onError": Bson::Null
+                            }
+                        })
+                    }
+                    Not | Concat | Add | Sub | Mul | Lt | Lte | Neq | Eq | Gt | Gte | Between
+                    | And | Or | NullIf | Coalesce | Slice | Position | Substring
                     | MergeObjects => {
                         let args = Bson::Array(
                             sa.args

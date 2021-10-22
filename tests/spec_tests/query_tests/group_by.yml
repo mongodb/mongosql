@@ -320,8 +320,8 @@ tests:
         -  {'__bot': {'a': null}}
 
     - description: GROUP BY arbitrary expression
-      query: "SELECT * FROM foo.bar AS bar GROUP BY a/ 2 AS ad2"
-      skip_reason: "SQL-485: inconsistent $sqlDivide format"
+      query: "SELECT * FROM foo.bar AS bar GROUP BY a / 2 AS ad2"
+      skip_reason: "SQL-503: Group stage doesn't output new mapping registry"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: bar
