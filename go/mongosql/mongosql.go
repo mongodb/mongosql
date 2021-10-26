@@ -4,10 +4,9 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
-
 	"github.com/10gen/mongosql-rs/go/internal/desugarer"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // Version returns the version of the underlying c translation
@@ -26,6 +25,8 @@ type TranslationArgs struct {
 	// CatalogSchema maps namespaces to JSON Schemas that describe the
 	// shape of the documents in the namespace.
 	CatalogSchema map[string]map[string]bsoncore.Document
+	// skipDesugaring skips desugaring the translation pipeline if it's set to true
+	skipDesugaring bool
 }
 
 // Translation represents the result of translating a sql query to
@@ -92,9 +93,11 @@ func Translate(args TranslationArgs) (Translation, error) {
 		panic("didn't marshal to array")
 	}
 
-	pipelineBytes, err = desugarer.Desugar(pipelineBytes)
-	if err != nil {
-		return Translation{}, fmt.Errorf("failed to desugar pipeline: %w", err)
+	if !args.skipDesugaring {
+		pipelineBytes, err = desugarer.Desugar(pipelineBytes)
+		if err != nil {
+			return Translation{}, fmt.Errorf("failed to desugar pipeline: %w", err)
+		}
 	}
 
 	return Translation{

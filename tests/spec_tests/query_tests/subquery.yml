@@ -105,7 +105,7 @@ tests:
                                              'let': {'emp_0': '$emp'},
                                                                          'outputPath': ['__bot', 'a'],
                                                                          'pipeline': [
-                                                                                       {'$array': {'arr': [{'a': 4}]}},
+                                                                                       {'$documents': {'arr': [{'a': 4}]}},
                                                                                        {'$project': {'_id': 0, '__bot': {'a': '$arr.a'}}}
                                                                          ]
                                            }}
@@ -173,7 +173,7 @@ tests:
                                              'let': {'dep_0': '$dep'},
                                                                   'outputPath': ['__bot', 'a'],
                                                                   'pipeline': [
-                                                                                {'$array': {'arr': [{'a': 1}]}},
+                                                                                {'$documents': {'arr': [{'a': 1}]}},
                                                                                 {'$project': {'_id': 0, '__bot': {'a': '$arr.a'}}}
                                                                   ]
                                            }}
@@ -275,7 +275,7 @@ tests:
           'let': { 'emp_0': '$emp' },
           'outputPath': [ '__bot', 'a' ],
           'pipeline': [
-            { '$array': { 'arr': [ { 'a': 4 } ] } },
+            { '$documents': { 'arr': [ { 'a': 4 } ] } },
             { '$project': { '_id': 0, '__bot': { 'a': '$arr.a' } } }
           ]
         } }
@@ -297,7 +297,7 @@ tests:
           'let': { 'emp_0': '$emp' },
           'outputPath': [ '__bot', 'a' ],
           'pipeline': [
-            { '$array': { 'arr': [ { 'a': 4 } ] } },
+            { '$documents': { 'arr': [ { 'a': 4 } ] } },
             { '$project': { '_id': 0, '__bot': { 'a': '$arr.a' } } }
           ]
         } }

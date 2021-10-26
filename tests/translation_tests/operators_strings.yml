@@ -7,6 +7,7 @@ tests:
   - description: concatenation with more than 2 operands
     current_db: foo
     query: "SELECT VALUE {'s': a::!STRING || b::!STRING || c::!STRING} FROM bar AS bar"
+    skip_reason: "SQL-483: implement codegen for TypeAssert"
     translation_target_db: foo
     translation_target_coll: bar
     translation:

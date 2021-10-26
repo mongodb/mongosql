@@ -6,8 +6,10 @@ catalog_data:
 tests:
   - description: a user db called information_schema should require no special handling
     query: "SELECT * FROM information_schema.mytbl"
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: information_schema
     translation_target_coll: mytbl
+    translation:
+      - {'$project': {'_id': 0, 'mytbl': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'mytbl': '$mytbl'}}
     result:
       - {'mytbl': {'_id': 0, 'a': 1}}

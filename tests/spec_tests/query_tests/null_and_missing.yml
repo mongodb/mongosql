@@ -3,73 +3,130 @@ catalog_data:
     bar:
       - {'_id': 0, 'a': 42, 'b': null, 'c': {'d': 'hello', 'e': 142}}
       - {'_id': 1, 'a': 52, 'c': {'d': 'world'}}
+
+catalog_schema:
+  {
+    'foo': {
+      'bar': {
+        'bsonType': "object",
+        'required': [ '_id', 'a', 'c' ],
+        'additionalProperties': true,
+        'properties': {
+          '_id': {
+            'bsonType': "int"
+          },
+          'a': {
+            'bsonType': "int"
+          },
+          'b': {
+            'bsonType': !!str "null"
+          },
+          'c': {
+            'bsonType': "object",
+            'required': [ 'd' ],
+            'additionalProperties': true,
+            'properties': {
+              'd': {
+                'bsonType': "string"
+              },
+              'e': {
+                'bsonType': "int"
+              },
+            },
+          },
+        }
+      }
+    }
+  }
+
 tests:
   - description: Normal non-missing reference
     current_db: 'foo'
     query: "SELECT a FROM bar"
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: foo
     translation_target_coll: bar
+    translation:
+      - { '$project': { '_id': 0, 'bar': '$$ROOT' } }
+      - { '$project': { '_id': 0, 'bar': '$bar' } }
+      - { '$project': { '_id': 0, '__bot': { 'a': '$bar.a' } } }
     result:
-        - {'a': 42}
-        - {'a': 52}
+        - {'__bot': {'a': 42}}
+        - {'__bot': {'a': 52}}
 
   - description: NULL vs MISSING in direct field ref
     current_db: 'foo'
     query: "SELECT b FROM bar"
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: foo
     translation_target_coll: bar
+    translation:
+      - { '$project': { '_id': 0, 'bar': '$$ROOT' } }
+      - { '$project': { '_id': 0, 'bar': '$bar' } }
+      - { '$project': { '_id': 0, '__bot': { 'b': '$bar.b' } } }
     result:
-        - {'b': null}
-        - {}
+        - {'__bot': {'b': null}}
+        - {'__bot': {}}
 
   - description: Normal field access
     current_db: 'foo'
     query: "SELECT c.d FROM bar"
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: foo
     translation_target_coll: bar
+    translation:
+      - { '$project': { '_id': 0, 'bar': '$$ROOT' } }
+      - { '$project': { '_id': 0, 'bar': '$bar' } }
+      - { '$project': { '_id': 0, '__bot': { 'd': '$bar.c.d' } } }
     result:
-        - {'d': 'hello'}
-        - {'d': 'world'}
+        - {'__bot': {'d': 'hello'}}
+        - {'__bot': {'d': 'world'}}
 
   - description: Scalar vs missing field ref
     current_db: 'foo'
     query: "SELECT c.e FROM bar"
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: foo
     translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
+      - {'$project': {'_id': 0, '__bot': {'e': '$bar.c.e'}}}
     result:
-        - {'e': 142}
-        - {}
+        - {'__bot': {'e': 142}}
+        - {'__bot': {}}
 
   - description: Scalar vs missing field ref- the field ref is upgraded to NULL because of plus sign
     current_db: 'foo'
     query: "SELECT a, c.e, a + c.e FROM bar"
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: foo
     translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$bar.a', 'e': '$bar.c.e', '_3': {'$add': ['$bar.a', '$bar.c.e']}}}}
     result:
-        - {'a': 42, 'e': 142, '_3': 184}
-        - {'a': 52, '_3': null}
+        - {'__bot': {'a': 42, 'e': 142, '_3': 184}}
+        - {'__bot': {'a': 52, '_3': null}}
 
   - description: MISSING upgraded to NULL due to plus sign
     current_db: 'foo'
     query: "SELECT b, c.e, b + c.e FROM bar"
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: foo
     translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
+      - {'$project': {'_id': 0, '__bot': {'b': '$bar.b', 'e': '$bar.c.e', '_3': {'$add': ['$bar.b', '$bar.c.e']}}}}
     result:
-        - {'b': null, 'e': 142, '_3': null}
-        - {'_3': null}
+        - {'__bot': {'b': null, 'e': 142, '_3': null}}
+        - {'__bot': {'_3': null}}
 
   - description: MISSING fields in arrays are upgrade to NULLS
     current_db: 'foo'
     query: "SELECT [b, 2, c.e] AS arr FROM bar"
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: foo
     translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
+      - {'$project': {'_id': 0, '__bot': {'arr': ['$bar.b', {'$literal': 2}, '$bar.c.e']}}}
     result:
-        - {'arr': [null, 2, 142]}
-        - {'arr': [null, 2, null]}
+        - {'__bot': {'arr': [null, 2, 142]}}
+        - {'__bot': {'arr': [null, 2, null]}}

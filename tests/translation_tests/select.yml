@@ -18,18 +18,16 @@ tests:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
       - {'$project': {'_id': 0, 't1': '$foo'}}
       - {'$join': {
-        'source': 'bar',
+        'collection': 'bar',
         'joinType': 'inner',
-        'let': {},
         'pipeline': [
           {'$project': {'_id': 0, 'bar': '$$ROOT'}},
           {'$project': {'_id': 0, 't2': '$bar'}},
         ],
       }}
       - {'$join': {
-        'source': 'baz',
+        'collection': 'baz',
         'joinType': 'inner',
-        'let': {},
         'pipeline': [
           {'$project': {'_id': 0, 'baz': '$$ROOT'}},
           {'$project': {'_id': 0, 't3': '$baz'}},
@@ -46,21 +44,19 @@ tests:
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
-      - {'$project': {'_id': 0, 't1': '$$ROOT'}}
-      - {'$project': {'_id': 0, 't1': '$t1'}}
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 't1': '$foo'}}
       - {'$join': {
-        'source': 'bar',
+        'collection': 'bar',
         'joinType': 'inner',
-        'let': {},
         'pipeline': [
           {'$project': {'_id': 0, 'bar': '$$ROOT'}},
           {'$project': {'_id': 0, 't2': '$bar'}},
          ],
       }}
       - {'$join': {
-        'source': 'baz',
+        'collection': 'baz',
         'joinType': 'inner',
-        'let': {},
         'pipeline': [
           {'$project': {'_id': 0, 'baz': '$$ROOT'}},
           {'$project': {'_id': 0, 't3': '$baz'}},
@@ -74,6 +70,7 @@ tests:
   - description: select values non-literal document expr correctness test
     current_db: mydb
     query: "SELECT VALUE t1.b::!DOCUMENT FROM foo AS t1"
+    skip_reason: "SQL-483: implement codegen for TypeAssert"
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
@@ -93,18 +90,16 @@ tests:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
       - {'$project': {'_id': 0, 't1': '$foo'}}
       - {'$join': {
-        'source': 'bar',
+        'collection': 'bar',
         'joinType': 'inner',
-        'let': {},
         'pipeline': [
           {'$project': {'_id': 0, 'bar': '$$ROOT'}},
           {'$project': {'_id': 0, 't2': '$bar'}},
         ],
       }}
       - {'$join': {
-        'source': 'baz',
+        'collection': 'baz',
         'joinType': 'inner',
-        'let': {},
         'pipeline': [
           {'$project': {'_id': 0, 'baz': '$$ROOT'}},
           {'$project': {'_id': 0, 't3': '$baz'}},
@@ -124,18 +119,16 @@ tests:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
       - {'$project': {'_id': 0, 't1': '$foo'}}
       - {'$join': {
-        'source': 'bar',
+        'collection': 'bar',
         'joinType': 'inner',
-        'let': {},
         'pipeline': [
           {'$project': {'_id': 0, 'bar': '$$ROOT'}},
           {'$project': {'_id': 0, 't2': '$bar'}},
         ],
       }}
       - {'$join': {
-        'source': 'baz',
+        'collection': 'baz',
         'joinType': 'inner',
-        'let': {},
         'pipeline': [
           {'$project': {'_id': 0, 'baz': '$$ROOT'}},
           {'$project': {'_id': 0, 't3': '$baz'}},
@@ -151,7 +144,8 @@ tests:
     query: "SELECT VALUE {'a': a}, __bot.* FROM [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}] AS __bot"
     translation_target_db: mydb
     translation:
-      - {'$array': {'__bot': [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]}}
+      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 2}}, {'a': {'$literal': 3}, 'b': {'$literal': 4}}]}
+      - {'$project': {'_id': 0, '__bot': '$$ROOT'}}
       - {'$project': {'_id': 0, '___bot': {'a': '$__bot.a'}, '__bot': '$__bot'}}
     result:
       - {'___bot': {'a': 1}, '__bot': {'a': 1, 'b': 2}}

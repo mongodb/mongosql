@@ -7,31 +7,40 @@ tests:
   - description: Standard embedded comment
     current_db: 'db'
     query: 'SELECT a FROM foo -- This is a standard comment'
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: db
     translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'foo': '$foo'}}
+      - {'$project': {'_id': 0, '__bot': { 'a': '$foo.a'}}}
     result:
-        - {'a': 1}
+      - {'__bot': {'a': 1}}
 
   - description: Standard single line comment
     current_db: 'db'
     query: '-- This is a standard single line comment
 
     SELECT a FROM foo'
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: db
     translation_target_coll: foo
+    translation:
+      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
+      - { '$project': { '_id': 0, 'foo': '$foo' } }
+      - { '$project': { '_id': 0, '__bot': { 'a': '$foo.a' } } }
     result:
-      - {'a': 1}
+      - {'__bot': {'a': 1}}
 
   - description: Inline comment
     current_db: 'db'
     query: 'SELECT a /* This is an inline comment */ FROM foo'
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: db
     translation_target_coll: foo
+    translation:
+      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
+      - { '$project': { '_id': 0, 'foo': '$foo' } }
+      - { '$project': { '_id': 0, '__bot': { 'a': '$foo.a' } } }
     result:
-      - { 'a': 1 }
+      - {'__bot': {'a': 1}}
 
   - description: Multiline comment
     current_db: 'db'
@@ -40,22 +49,28 @@ tests:
     This is a multiline comment */
 
     SELECT a FROM foo'
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: db
     translation_target_coll: foo
+    translation:
+      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
+      - { '$project': { '_id': 0, 'foo': '$foo' } }
+      - { '$project': { '_id': 0, '__bot': { 'a': '$foo.a' } } }
     result:
-      - {'a': 1}
+      - {'__bot': {'a': 1}}
 
   - description: Inline multiline comment
     current_db: 'db'
     query: 'SELECT a /* This is an inline
 
     comment */ FROM foo'
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: db
     translation_target_coll: foo
+    translation:
+      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
+      - { '$project': { '_id': 0, 'foo': '$foo' } }
+      - { '$project': { '_id': 0, '__bot': { 'a': '$foo.a' } } }
     result:
-      - { 'a': 1 }
+      - {'__bot': {'a': 1}}
 
 
   - description: Multiline comment with nesting
@@ -67,8 +82,11 @@ tests:
     */
 
     SELECT a FROM foo'
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: db
     translation_target_coll: foo
+    translation:
+      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
+      - { '$project': { '_id': 0, 'foo': '$foo' } }
+      - { '$project': { '_id': 0, '__bot': { 'a': '$foo.a' } } }
     result:
-      - {'a': 1}
+      - {'__bot': {'a': 1}}

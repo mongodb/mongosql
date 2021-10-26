@@ -1,6 +1,6 @@
 //go:build spectests
 
-package spec_tests
+package mongosql
 
 import (
 	"bytes"
@@ -10,10 +10,10 @@ import (
 	"os"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 
 	"github.com/10gen/candiedyaml"
-	"github.com/10gen/mongosql-rs/go/mongosql"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -22,7 +22,8 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-const queryTestsDir = "../../../tests/spec_tests/query_tests"
+const queryTestsDir = "../../tests/spec_tests/query_tests"
+const translationTestsDir = "../../tests/translation_tests"
 
 type YamlTest struct {
 	// Tests holds testing information for each test in a given YAML file.
@@ -36,6 +37,7 @@ type YamlTest struct {
 		ParseError      string   `yaml:"parse_error"`
 		SkipReason      string   `yaml:"skip_reason"`
 		Ordered         bool     `yaml:"ordered"`
+		Translation     []bson.D `yaml:"translation"`
 		Result          []bson.D `yaml:"result"`
 	} `yaml:"tests"`
 	// CatalogData maps namespaces to slices containing collection documents.
@@ -179,6 +181,8 @@ func compareUnorderedSets(expected, actual []bson.D) error {
 	return nil
 }
 
+// compareOrderedSets checks if the given sets are equal, and if their
+// documents have the same ordering.
 func compareOrderedSets(expected, actual []bson.D) error {
 	if len(expected) != len(actual) {
 		return fmt.Errorf("result sets have different sizes: expected %v, found %v", len(expected), len(actual))
@@ -210,7 +214,91 @@ func toCoreDocument(catalogSchema map[string]map[string]bson.D) (map[string]map[
 	return out, nil
 }
 
-func TestSpecExecution(t *testing.T) {
+func TestSpecTranslations(t *testing.T) {
+	cwd, err := os.Getwd()
+	assert.NoError(t, err)
+
+	for _, dir := range []string{queryTestsDir, translationTestsDir} {
+		path := cwd + "/" + dir
+		tests, err := ioutil.ReadDir(path)
+		if err != nil {
+			t.Fatalf("directory does not exist: '%s'", path)
+		}
+
+		for _, testFile := range tests {
+			if !strings.HasSuffix(testFile.Name(), ".yml") {
+				continue
+			}
+			yaml, err := readYamlFile(path + "/" + testFile.Name())
+			assert.NoError(t, err)
+
+			for _, testCase := range yaml.Tests {
+				if testCase.SkipReason != "" {
+					continue
+				}
+				catalogSchema, err := toCoreDocument(yaml.CatalogSchema)
+				assert.NoError(t, err)
+
+				t.Run(testCase.Description, func(t *testing.T) {
+					args := TranslationArgs{
+						DB:             testCase.CurrentDb,
+						SQL:            testCase.Query,
+						CatalogSchema:  catalogSchema,
+						skipDesugaring: true,
+					}
+
+					translation, err := Translate(args)
+
+					if testCase.AlgebrizeError != "" {
+						if err == nil {
+							t.Fatal("expected an algebrize error")
+						}
+						assert.Contains(t, err.Error(), "algebrize error")
+					} else if testCase.ParseError != "" {
+						if err == nil {
+							t.Fatal("expected a parse error")
+						}
+						assert.Contains(t, err.Error(), "parse error")
+					} else {
+						if err == nil {
+							var actualPipeline []bson.D
+							val := bson.RawValue{
+								Type:  bsontype.Array,
+								Value: translation.Pipeline,
+							}
+							// Candiedyaml's unmarshaller uses int64, while the BSON unmarshaller uses int32.
+							// This registry forces the BSON unmarshaller to use int64.
+							registry := bson.NewRegistryBuilder().
+								RegisterTypeMapEntry(bsontype.Int32, reflect.TypeOf(int64(0))).
+								Build()
+							err := val.UnmarshalWithRegistry(registry, &actualPipeline)
+
+							// We have to marshal and then unmarshal the expected pipeline
+							// because candiedyaml will convert an array that's inside a bson.D
+							// into an []interface{}, instead of a bson.A{}.
+							var expectedPipeline []bson.D
+							_, expectedBytes, err := bson.MarshalValue(testCase.Translation)
+							assert.NoError(t, err)
+							v := bson.RawValue{
+								Type:  bsontype.Array,
+								Value: expectedBytes,
+							}
+							err = v.Unmarshal(&expectedPipeline)
+							assert.NoError(t, err)
+							if !reflect.DeepEqual(expectedPipeline, actualPipeline) {
+								t.Fatalf("expected translations to be equal, but they weren't:\nexpected:%v\nactual:%v\n", expectedPipeline, actualPipeline)
+							}
+						} else {
+							t.Fatalf("translation unexpectedly failed: %v", err.Error())
+						}
+					}
+				})
+			}
+		}
+	}
+}
+
+func TestSpecResultSets(t *testing.T) {
 	cwd, err := os.Getwd()
 	assert.NoError(t, err)
 
@@ -236,14 +324,14 @@ func TestSpecExecution(t *testing.T) {
 			catalogSchema, err := toCoreDocument(yaml.CatalogSchema)
 			assert.NoError(t, err)
 
-			t.Run(fmt.Sprintf("%s", testCase.Description), func(t *testing.T) {
-				args := mongosql.TranslationArgs{
+			t.Run(testCase.Description, func(t *testing.T) {
+				args := TranslationArgs{
 					DB:            testCase.CurrentDb,
 					SQL:           testCase.Query,
 					CatalogSchema: catalogSchema,
 				}
 
-				translation, err := mongosql.Translate(args)
+				translation, err := Translate(args)
 
 				if testCase.AlgebrizeError != "" {
 					if err == nil {

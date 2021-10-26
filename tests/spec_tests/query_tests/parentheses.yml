@@ -25,12 +25,15 @@ tests:
   - description: parentheses correctness tests
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'a+b*c': a + b * c, '(a+b)*c': (a + b) * c } FROM ternary AS ternary"
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: foo
     translation_target_coll: ternary
+    translation:
+      - {'$project': {'_id': 0, 'ternary': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'ternary': '$ternary'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$ternary.a', 'b': '$ternary.b', 'c': '$ternary.c', 'a+b*c': {'$add': ['$ternary.a', {'$multiply': ['$ternary.b', '$ternary.c']}]}, '(a+b)*c': {'$multiply': [{'$add': ['$ternary.a', '$ternary.b']}, '$ternary.c']}}}}
     result:
-      - { "a": 6, "b": 2, "c": 11, "a+b*c": 28, "(a+b)*c": 88 }
-      - { "a": 6, "b": 1, "c": 10, "a+b*c": 16, "(a+b)*c": 70 }
+      - {'__bot': { "a": 6, "b": 2, "c": 11, "a+b*c": 28, "(a+b)*c": 88 }}
+      - {'__bot': { "a": 6, "b": 1, "c": 10, "a+b*c": 16, "(a+b)*c": 70 }}
   
   - description: parentheses are not allowed on any data source except a derived table
     query: "SELECT * FROM (ternary) AS ternary"

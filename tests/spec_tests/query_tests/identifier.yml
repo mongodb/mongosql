@@ -3,7 +3,7 @@ tests:
     query: "SELECT VALUE {'c': a.c} FROM [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}] arr"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}]}}
+      - {'$documents': {'arr': [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}]}}
       - {'$project': {'_id': 0, '__bot': {'c': '$arr.a.c'}}}
     result:
       - {'__bot': {'c': 1}}
@@ -26,7 +26,7 @@ tests:
     query: "SELECT VALUE {'1a': `1a`} FROM [{'1a': 2}] arr"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'1a': 2}]}}
+      - {'$documents': {'arr': [{'1a': 2}]}}
       - {'$project': {'_id': 0, '__bot': {'1a': '$arr.1a'}}}
     result:
       - {'__bot': {'1a': 2}}
@@ -35,7 +35,7 @@ tests:
     query: "SELECT VALUE {'a`b': `a``b`, 'a\"b': `a\"b`, 'a`\"b': `a``\"b`} FROM [{'a`b': 1, 'a\"b': 2, 'a`\"b': 3}] arr"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'a`b': 1, 'a"b': 2, 'a`"b': 3}]}}
+      - {'$documents': {'arr': [{'a`b': 1, 'a"b': 2, 'a`"b': 3}]}}
       - {'$project': {'_id': 0, '__bot': {'a`b': '$arr.a`b', 'a"b': '$arr.a"b', 'a`"b': '$arr.a`"b'}}}
     result:
       - {'__bot': {'a`b': 1, 'a\"b': 2, 'a`\"b': 3}}
@@ -44,7 +44,7 @@ tests:
     query: "SELECT VALUE {'a`b': \"a`b\", 'a\"b': \"a\"\"b\", 'a`\"b': \"a`\"\"b\"} FROM [{'a`b': 1, 'a\"b': 2, 'a`\"b': 3}] arr"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'a`b': 1, 'a"b': 2, 'a`"b': 3}]}}
+      - {'$documents': {'arr': [{'a`b': 1, 'a"b': 2, 'a`"b': 3}]}}
       - {'$project': {'_id': 0, '__bot': {'a`b': 'arr.a`b', 'a"b': '$arr.a"b', 'a`"b': '$arr.a`"b'}}}
     result:
       - {'__bot': {'a`b': 1, 'a"b': 2, 'a`"b': 3}}
@@ -53,7 +53,7 @@ tests:
     query: "SELECT VALUE {'a': a, 'b': `b`} FROM [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}] arr"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]}}
+      - {'$documents': {'arr': [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]}}
       - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'b': '$arr.b'}}}
     result:
       - {'__bot': {'a': 1, 'b': 2}}
@@ -69,7 +69,7 @@ tests:
     query: "SELECT VALUE {'αβγ': `αβγ`} FROM [{'αβγ': 1}] arr"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'αβγ': 1}]}}
+      - {'$documents': {'arr': [{'αβγ': 1}]}}
       - {'$project': {'_id': 0, '__bot': {'αβγ': '$arr.αβγ'}}}
     result:
       - {'__bot': {'αβγ': 1}}
@@ -78,7 +78,7 @@ tests:
     query: "SELECT VALUE {'d': a.b.c.d} FROM [{'a': {'b': {'c': {'d': 1}}}}] arr"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'a': {'b': {'c': {'d': 1}}}}]}}
+      - {'$documents': {'arr': [{'a': {'b': {'c': {'d': 1}}}}]}}
       - {'$project': {'_id': 0, '__bot': {'d': '$arr.a.b.c.d'}}}
     result:
       - {'__bot': {'d': 1}}
@@ -93,7 +93,7 @@ tests:
     query: "SELECT VALUE {'a': a, 'A': A} FROM [{'a': 1, 'A': 2}, {'a': 3}, {'A': 4}] arr"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'a': 1, 'A': 2}, {'a': 3}, {'A': 4}]}}
+      - {'$documents': {'arr': [{'a': 1, 'A': 2}, {'a': 3}, {'A': 4}]}}
       - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'A': '$arr.A'}}}
     result:
       - {'__bot': {'a': 1, 'A': 2}}
@@ -104,7 +104,7 @@ tests:
     query: "SELECT VALUE {'empty': ``} FROM [{'': 2}] AS arr"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'': 2}]}}
+      - {'$documents': {'arr': [{'': 2}]}}
       - {'$project': {'_id': 0, '__bot': {'empty': {'$getField': {'field': '', 'input': '$arr'}}}}}
     result:
       - {'__bot': {'empty': 2}}

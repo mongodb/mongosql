@@ -1,30 +1,31 @@
 tests:
   - description: Nested Case expression translation
     query: "SELECT VALUE { 'r': CASE 1 WHEN (CASE 2 WHEN a THEN 2 ELSE 1 END) THEN 'YES' ELSE 'NO' END} FROM [{'a': 1, 'b': 1}] AS arr"
+    skip_reason: "SQL-500: fix $let document"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
-      - {'$array': {'arr': [{'a': 1, 'b': 1}]}}
+      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'r': {'$let': {
         'vars': {'target': { $literal: 1 }},
         'in':
           {'$switch': {
             'branches': [
-            {'case': { '$eq': [ '$$target',
+            {'case': { '$sqlEq': [ '$$target',
                                    {'$let': {
                                      'vars': {'target': { $literal: 2 }},
                                      'in':
                                        {'$switch': {
                                          'branches': [
-                                         {'case': { '$eq': ['$$target', '$arr.a'] }, 'then': { $literal: 2 }}
+                                         {'case': { '$sqlEq': ['$$target', '$arr.a'] }, 'then': { $literal: 2 }}
                                          ],
                                          'default': { $literal: 1 }
                                        }}}}
 
-            ] }, 'then': 'YES' },
+            ] }, 'then': {'$literal': 'YES'} },
             ],
-            'default': 'NO'
+            'default': {'$literal': 'NO'}
           }}}}}}}
     result:
       - {'__bot': { 'r': 'YES' } }
-

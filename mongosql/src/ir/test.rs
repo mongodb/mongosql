@@ -7798,6 +7798,7 @@ mod flatten_node {
             }),
         }),
     );
+
     test_flatten_variadic_functions!(
         flatten_not_necessary,
         expected = Stage::Filter(Filter {

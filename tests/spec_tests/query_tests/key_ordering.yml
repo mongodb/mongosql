@@ -11,29 +11,36 @@ tests:
   - description: document literal key ordering is not guaranteed to be preserved
     current_db: mydb
     query: "SELECT VALUE {'b': _id, 'c': a} FROM foo AS f"
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: mydb
     translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'f': '$foo'}}
+      - {'$project': {'_id': 0, '__bot': { 'b': '$f._id', 'c': '$f.a'}}}
     result:
-      - {'c': 1, 'b': 0}
-      - {'b': 1, 'c': 2}
+      - {'__bot': {'b': 0, 'c': 1}}
+      - {'__bot': {'b': 1, 'c': 2}}
 
   - description: key ordering from docs in collections is not guaranteed to be preserved
     current_db: mydb
     query: "SELECT * FROM foo AS f"
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: mydb
     translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'f': '$foo'}}
     result:
-      - {'a': 1, '_id': 0}
-      - {'_id': 1, 'a': 2}
+      - {'f': {'_id': 0, 'a': 1}}
+      - {'f': {'_id': 1, 'a': 2}}
 
   - description: subdocument key ordering is not guaranteed to be preserved
     current_db: mydb
     query: "SELECT * FROM bar AS b"
-    skip_reason: "SQL-345: add a translation pipeline"
     translation_target_db: mydb
     translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'b': '$bar'}}
     result:
-      - {'_id': 0, 'sub': {'b': 1, 'a': 1}}
-      - {'_id': 1, 'sub': {'a': 2, 'b': 2}}
+      - {'b': {'_id': 0, 'sub': {'a': 1, 'b': 1}}}
+      - {'b': {'_id': 1, 'sub': {'a': 2, 'b': 2}}}

@@ -119,5 +119,12 @@ tests:
   - description: SELECT VALUES may create unmaterializable binding tuples
     current_db: mydb
     query: "SELECT VALUES {'a': a.a}, a.* FROM foo AS a"
-    should_compile: true
-    skip_reason: "SQL-345: add a translation pipeline and result field"
+    translation_target_db: mydb
+    translation_target_coll: foo
+    translation:
+      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
+      - { '$project': { '_id': 0, 'a': '$foo' } }
+      - { '$project': { '_id': 0, '__bot': {'a': '$a.a'}, 'a': '$a' } }
+    result:
+      - {'__bot': {'a': 1}, 'a': {'_id': 0, 'a': 1, 'b': 1}}
+      - {'__bot': {'a': 2}, 'a': {'_id': 1, 'a': 2, 'b': 2}}

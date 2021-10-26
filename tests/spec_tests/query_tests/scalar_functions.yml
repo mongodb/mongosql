@@ -377,7 +377,7 @@ tests:
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
-      - {'$array': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
+      - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
       - {'$project': {'_id': 0, '__bot': {'year': {'$year': '$arr.d'}}}}
     result:
       - {'__bot': {'year': {'$numberInt': '2020'}}}
@@ -388,7 +388,7 @@ tests:
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
-      - {'$array': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
+      - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
       - {'$project': {'_id': 0, '__bot': {'month': {'$month': '$arr.d'}}}}
     result:
       - {'__bot': {'month': {'$numberInt': '1'}}}
@@ -399,7 +399,7 @@ tests:
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
-      - {'$array': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
+      - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
       - {'$project': {'_id': 0, '__bot': {'day': {'$dayOfMonth': '$arr.d'}}}}
     result:
       - {'__bot': {'day': {'$numberInt': '8'}}}
@@ -410,7 +410,7 @@ tests:
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
-      - {'$array': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
+      - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
       - {'$project': {'_id': 0, '__bot': {'hour': {'$hour': '$arr.d'}}}}
     result:
       - {'__bot': {'hour': {'$numberInt': '12'}}}
@@ -421,7 +421,7 @@ tests:
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
-      - {'$array': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
+      - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
       - {'$project': {'_id': 0, '__bot': {'minute': {'$minute': '$arr.d'}}}}
     result:
       - {'__bot': {'minute': {'$numberInt': '25'}}}
@@ -432,7 +432,7 @@ tests:
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
-      - {'$array': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
+      - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
       - {'$project': {'_id': 0, '__bot': {'second': {'$second': '$arr.d'}}}}
     result:
       - {'__bot': {'second': {'$numberInt': '45'}}}
@@ -584,7 +584,7 @@ tests:
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
-      - {'$array': {'_dual': [{}]}}
+      - {'$documents': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {'v': {'$sqlGt': ['$$NOW', {'$convert': {'input': '2021-01-08T12:00:00Z', 'to': 'date', 'onNull': null, 'onError': null}}]}}}}
     result:
       - {'__bot': {'v': true}}
@@ -595,7 +595,7 @@ tests:
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
-      - {'$array': {'_dual': [{}]}}
+      - {'$documents': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {'v': {'$sqlEq': ['$$NOW', '$$NOW']}}}}
     result:
       - {'__bot': {'v': true}}

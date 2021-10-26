@@ -3,7 +3,7 @@ tests:
     query: "SELECT * FROM [{'a': 1, 'b': 1}] AS arr"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'a': 1, 'b': 1}]}}
+      - {'$documents': {'arr': [{'a': 1, 'b': 1}]}}
     result:
       - {'arr': {'a': 1, 'b': 1}}
 
@@ -11,7 +11,7 @@ tests:
     query: "SELECT VALUE {'a': a} FROM [{'a': 1, 'b': 1}] AS arr"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'a': 1, 'b': 1}]}}
+      - {'$documents': {'arr': [{'a': 1, 'b': 1}]}}
       - {'$project': {'_id': 0, '__bot': {'a': '$arr.a'}}}
     result:
       - {'__bot': {'a': 1}}
@@ -20,7 +20,7 @@ tests:
     query: "SELECT VALUE {'a': arr.a} FROM [{'a': 1, 'b': 1}] AS arr"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'a': 1, 'b': 1}]}}
+      - {'$documents': {'arr': [{'a': 1, 'b': 1}]}}
       - {'$project': {'_id': 0, '__bot': {'a': '$arr.a'}}}
     result:
       - {'__bot': {'a': 1}}
@@ -35,14 +35,14 @@ tests:
     query: "SELECT * FROM [] AS arr"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': []}}
+      - {'$documents': {'arr': []}}
     result: []
 
   - description: array datasource with single empty document is allowed
     query: "SELECT * FROM [{}] AS _dual"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'_dual': [{}]}}
+      - {'$documents': {'_dual': [{}]}}
     result:
       - {'_dual': {}}
 

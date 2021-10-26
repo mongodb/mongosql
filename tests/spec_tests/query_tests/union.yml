@@ -94,7 +94,7 @@ tests:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
       - {'$project': {'_id': 0, 'foo': '$foo'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
-      - {'$unionWith': {'pipeline': [{'$array': {'arr': [{'b': 1}, {'b': 2}]}}]}}
+      - {'$unionWith': {'pipeline': [{'$documents': {'arr': [{'b': 1}, {'b': 2}]}}]}}
     result:
       - {'__bot': {'a': 1}}
       - {'__bot': {'a': 2}}

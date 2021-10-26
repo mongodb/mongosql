@@ -150,7 +150,7 @@ tests:
       skip_reason: "SQL-462: re-enable tests with array datasources"
       current_db: foo
       translation:
-        - {'$array': {'arr': []}}
+        - {'$documents': {'arr': []}}
         - {'$group': {'_id': {'n': null}}}
         - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}}
       result: []

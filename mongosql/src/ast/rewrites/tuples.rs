@@ -27,10 +27,7 @@ impl Visitor for InTupleRewriteVisitor {
 
         // If `node` is an IN expression, then bind it to `in_expr`, else return the original `node` unmodified.
         let in_expr = if let Expression::Binary(
-            ref
-            in_expr
-            @
-            BinaryExpr {
+            ref in_expr @ BinaryExpr {
                 left: _,
                 right: _,
                 op: BinaryOp::In,

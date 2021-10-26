@@ -10,7 +10,7 @@ tests:
     query: "SELECT VALUE {'apo': apo, 'bpt': derived.bpt} FROM (SELECT VALUE {'apo': a + 1, 'bpt': b + 2} FROM [{'a': 1, 'b': 1}] AS arr) AS derived"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'a': 1, 'b': 1}]}}
+      - {'$documents': {'arr': [{'a': 1, 'b': 1}]}}
       - {'$project': {'_id': 0, '__bot': {'apo': {'$add': ['$arr.a', {'$literal': 1}]}, 'bpt': {'$add': ['$arr.b', {'$literal': 2}]}}}}
       - {'$project': {'_id': 0, 'derived': {'$mergeObjects': ['$__bot']}}}
       - {'$project': {'_id': 0, '__bot': {'apo': '$derived.apo', 'bpt': '$derived.bpt'}}}
@@ -66,10 +66,10 @@ tests:
     translation_target_db: test
     translation_target_coll: foo
     translation:
-      - {'$array': {'foo': [{'a': 1}]}}
+      - {'$documents': {'foo': [{'a': 1}]}}
       - {'$join': {
         'joinType': 'inner',
-        'pipeline': [{'$array': {'bar': [{'b': 2}]}}],
+        'pipeline': [{'$documents': {'bar': [{'b': 2}]}}],
       }}
       - {'$project': {'_id': 0, 'foo': '$foo', 'bar': '$bar'}}
       - {'$project': {'_id': 0, 'derived': {'$mergeObjects': ['$foo', '$bar']}}}

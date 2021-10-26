@@ -56,7 +56,7 @@ tests:
     query: "SELECT VALUE {'a1': a, 'a2': a} FROM [{'a': 1}] arr"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'a': 1}]}}
+      - {'$documents': {'arr': [{'a': 1}]}}
       - {'$project': {'_id': 0, '__bot': {'a1': '$arr.a', 'a2': '$arr.a'}}}
     result:
       - {'__bot': {'a1': 1, 'a2': 1}}

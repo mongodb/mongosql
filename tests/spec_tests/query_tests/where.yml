@@ -34,7 +34,7 @@ tests:
     query: "SELECT * FROM [{'a': 1}, {'a': 2}, {'a': 3}] AS arr WHERE a >= 2"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'a': 1}, {'a': 2}, {'a': 3}]}}
+      - {'$documents': {'arr': [{'a': 1}, {'a': 2}, {'a': 3}]}}
       - {'$match': {'$expr': {'$sqlGte': ['$arr.a', {'$literal': 2}]}}}
     result:
       - {'arr': {'a': 2}}
@@ -44,7 +44,7 @@ tests:
     query: "SELECT * FROM [{'a': 0}, {'a': 1}, {'a': 2}, {'a': 3}] AS arr WHERE CAST(a AS BOOLEAN)"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'a': 1}, {'a': 2}, {'a': 3}]}}
+      - {'$documents': {'arr': [{'a': 1}, {'a': 2}, {'a': 3}]}}
       - {'$match': {'$expr': {'$convert': {'input': '$arr.a', 'to': 'bool', 'onNull': null, 'onError': null}}}}
     result:
       - {'arr': {'a': 1}}
@@ -55,7 +55,7 @@ tests:
     query: "SELECT * FROM [{'a': true}, {'a': 1}, {'a': false}, {'a': true}, {}] AS arr WHERE CASE WHEN a IS BOOLEAN THEN a ELSE false END"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'a': true}, {'a': 1}, {'a': false}, {'a': true}, {}]}}
+      - {'$documents': {'arr': [{'a': true}, {'a': 1}, {'a': false}, {'a': true}, {}]}}
       - {'$match': {'$expr': {"$switch": {
             "branches": [
             {"case": {'$sqlEq': [{$type: '$arr.a'}, 'bool']}, "then": '$arr.a' },
@@ -70,7 +70,7 @@ tests:
     query: "SELECT * FROM [{'a': true}, {'a': 1}, {'a': false}, {'a': true}] AS arr WHERE NULL"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'a': true}, {'a': 1}, {'a': false}, {'a': true}]}}
+      - {'$documents': {'arr': [{'a': true}, {'a': 1}, {'a': false}, {'a': true}]}}
       - {'$match': {'$expr': {'$literal': null}}}
     result: []
 
@@ -84,7 +84,7 @@ tests:
     query: "SELECT * FROM [{'a': true}] AS arr WHERE a"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     translation:
-      - {'$array': {'arr': [{'a': true}, {'a': 1}, {'a': false}, {'a': true}]}}
+      - {'$documents': {'arr': [{'a': true}, {'a': 1}, {'a': false}, {'a': true}]}}
       - {'$match': {'$expr': '$arr.a'}}
     result:
       - {'arr': {'a': true}}

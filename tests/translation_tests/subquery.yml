@@ -9,6 +9,7 @@ tests:
   - description: correlated columns with potential naming conflict translate without conflict
     current_db: db
     query: "SELECT VALUE {'x': (SELECT bar.b = foo.a_b::!INT AND bar.b = foo_a.b::!INT AS x FROM [{'b': 1}] AS bar)} FROM foo AS foo JOIN foo_a AS foo_a"
+    skip_reason: "SQL-483: implement codegen for TypeAssert"
     translation_target_db: db
     translation_target_coll: foo
     translation:
@@ -28,7 +29,7 @@ tests:
                                                                 'let': {'foo_0': '$foo', 'foo_a_0': '$foo_a'},
                                                                 'outputPath': ['__bot', 'x'],
                                                                 'pipeline': [
-                                                                              {'$array': {'bar': [{'b': 1}]}},
+                                                                              {'$documents': {'bar': [{'b': 1}]}},
                                                                               {'$project': {'_id': 0, '__bot': {'x': {'$sqlAnd': [{'$sqlEq': ['$bar.b', '$$foo_a_b_0']}, {'$sqlEq': ['$bar.b', '$$_foo_a_b_0']}]}}}}
                                                                 ]
                                            }}
