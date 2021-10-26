@@ -91,7 +91,6 @@ tests:
 
   - description: WHERE statically determined to be BOOLEAN from schema
     query: "SELECT * FROM bar AS bar WHERE NOT foo"
-    skip_reason: "SQL-514: Filter codegen uses wrong mapping registry"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
@@ -100,7 +99,7 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$sqlNot': ['$bar.foo']}}}
     result:
-      - {'bar': {'_id': 0, 'foo': false}}
+      - {'bar': {'_id': 1, 'foo': false}}
 
   - description: WHERE must be statically determined to be a BOOLEAN and no schema for bar2
     query: "SELECT * FROM bar2 WHERE NOT foo"

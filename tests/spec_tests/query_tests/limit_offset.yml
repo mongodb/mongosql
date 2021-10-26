@@ -109,7 +109,7 @@ tests:
   - description: Limit in subquery
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY a LIMIT 1)"
-    skip_reason: "SQL-502, SQL-514"
+    skip_reason: "SQL-502, SQL-568"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -168,7 +168,7 @@ tests:
   - description: Limit and offset in subquery
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY a LIMIT 1 OFFSET 1)"
-    skip_reason: "SQL-502, SQL-514"
+    skip_reason: "SQL-502, SQL-568"
     translation_target_db: foo
     translation_target_coll: bar
     translation:

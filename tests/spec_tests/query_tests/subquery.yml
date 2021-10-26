@@ -119,7 +119,7 @@ tests:
   - description: correlated scalar subquery correctness test
     current_db: foo
     query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep.`_id` = emp.department_id LIMIT 1)} FROM employees_w_schema AS emp"
-    skip_reason: "SQL-514: Filter codegen uses wrong mapping registry"
+    skip_reason: "SQL-568: Cannot run $lookup with db field against mongod instance"
     translation_target_db: foo
     translation_target_coll: employees_w_schema
     translation:
@@ -216,7 +216,7 @@ tests:
   - description: nested subquery should be able to access field from its grandparent query correctness test
     current_db: foo
     query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep._id = (SELECT emp2.department_id FROM employees_w_schema AS emp2 WHERE emp2._id = emp1._id LIMIT 1) LIMIT 1)} FROM employees_w_schema AS emp1"
-    skip_reason: "SQL-514: Filter codegen uses wrong mapping registry"
+    skip_reason: "SQL-568: Cannot run $lookup with db field against mongod instance"
     translation_target_db: foo
     translation_target_coll: employees_w_schema
     translation:

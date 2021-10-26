@@ -257,9 +257,14 @@ impl MqlCodeGenerator {
         use bson::doc;
         use ir::Stage::*;
         match stage {
-            Filter(f) => Ok(self.codegen_stage(*f.source)?.with_additional_stage(
-                doc! {"$match": {"$expr": self.codegen_expression(f.condition)?}},
-            )),
+            Filter(f) => {
+                let source_translation = self.codegen_stage(*f.source)?;
+                let expression_generator = self
+                    .clone()
+                    .with_merged_mappings(source_translation.mapping_registry.clone());
+                let expr = expression_generator.codegen_expression(f.condition)?;
+                Ok(source_translation.with_additional_stage(doc! {"$match": {"$expr": expr}}))
+            }
             Project(p) => {
                 let source_translation = self.codegen_stage(*p.source)?;
                 // expression_generator contains all the possible correlated mappings

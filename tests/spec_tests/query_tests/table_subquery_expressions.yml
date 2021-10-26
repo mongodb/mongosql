@@ -823,7 +823,7 @@ tests:
   - description: correctness test for EXISTS Operator
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE EXISTS(SELECT * FROM target AS target WHERE v = a)"
-    skip_reason: "SQL-514: Filter codegen uses wrong mapping registry"
+    skip_reason: "SQL-568: Cannot run $lookup with db field against mongod instance"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -845,7 +845,7 @@ tests:
   - description: correctness test for NOT EXISTS Operator
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE NOT EXISTS(SELECT * FROM target AS target WHERE v = a)"
-    skip_reason: "SQL-514: Filter codegen uses wrong mapping registry"
+    skip_reason: "SQL-568: Cannot run $lookup with db field against mongod instance"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -869,7 +869,7 @@ tests:
   - description: EXISTS expression in SELECT clause
     current_db: foo
     query: "SELECT VALUE {'v': v, 'x': EXISTS(SELECT * FROM target AS target WHERE target.a = bar.v)} FROM bar AS bar"
-    skip_reason: "SQL-514: Filter codegen uses wrong mapping registry"
+    skip_reason: "SQL-568: Cannot run $lookup with db field against mongod instance"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
