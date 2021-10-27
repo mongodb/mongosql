@@ -770,7 +770,7 @@ impl<'a> Algebrizer<'a> {
                     .map(|e| self.algebrize_expression(e))
                     .collect::<Result<_>>()?,
             })
-        );
+        )
     }
 
     fn algebrize_unary_expr(&self, u: ast::UnaryExpr) -> Result<ir::Expression> {

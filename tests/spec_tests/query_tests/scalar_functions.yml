@@ -126,17 +126,20 @@ catalog_schema:
       },
       "length": {
         "bsonType": "object",
-        'required': [ '_id', 'a' ],
+        'required': [ '_id', 's' ],
         'additionalProperties': false,
         "properties": {
           "_id": {
             "bsonType": "int"
           },
-          "a": {
+          "s": {
             "anyOf": [
               { "bsonType": "string" },
               { "bsonType": !!str "null" }
             ]
+          },
+          "comment": {
+            "bsonType": "string"
           }
         }
       },
@@ -221,6 +224,28 @@ catalog_schema:
             ]
           }
         }
+      },
+      "position": {
+        "bsonType": "object",
+        'required': [ '_id', 's1', 's2' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "s1": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "s2": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
       }
     }
   }
@@ -292,7 +317,6 @@ tests:
   - description: POSITION correctness tests
     current_db: foo
     query: "SELECT VALUE {'s1': s1, 's2': s2, 'p': POSITION(s1 IN s2)} FROM `position` AS c"
-    skip_reason: "SQL-482: schema check POSITION"
     translation_target_db: foo
     translation_target_coll: position
     translation:
@@ -314,7 +338,6 @@ tests:
   - description: CHAR_LENGTH correctness tests
     current_db: foo
     query: "SELECT VALUE {'s': s, 'len': CHAR_LENGTH(s), 'comment': comment} FROM length AS c"
-    skip_reason: "SQL-482: schema check CHAR_LENGTH"
     translation_target_db: foo
     translation_target_coll: length
     translation:
@@ -324,7 +347,7 @@ tests:
     result:
       - {'__bot': {'s': '', 'len': 0}}
       - {'__bot': {'s': 'a', 'len': 1}}
-      - {'__bot': {'s': 'ã', 'len': 2}}
+      - {'__bot': {'s': 'ã', 'len': 1}}
       - {'__bot': {'s': 'abc', 'len': 3}}
       - {'__bot': {'s': '$€λG', 'len': 4, 'comment': '€ is encoded using three bytes. λ is encoded using two bytes.'}}
       - {'__bot': {'s': '寿司', 'len': 2, 'comment': 'Each character is encoded using three bytes.'}}
@@ -334,7 +357,6 @@ tests:
   - description: OCTET_LENGTH correctness tests
     current_db: foo
     query: "SELECT VALUE {'s': s, 'len': OCTET_LENGTH(s), 'comment': comment} FROM length AS c"
-    skip_reason: "SQL-482: schema check OCTET_LENGTH"
     translation_target_db: foo
     translation_target_coll: length
     translation:
@@ -354,7 +376,6 @@ tests:
   - description: BIT_LENGTH correctness tests
     current_db: foo
     query: "SELECT VALUE {'s': s, 'len': BIT_LENGTH(s), 'comment': comment} FROM length AS c"
-    skip_reason: "SQL-482: schema check BIT_LENGTH"
     translation_target_db: foo
     translation_target_coll: length
     translation:

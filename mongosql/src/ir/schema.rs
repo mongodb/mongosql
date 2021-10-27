@@ -908,6 +908,52 @@ trait SQLFunction {
         )
     }
 
+    /// Helper function which takes a `Satisfaction` from either `schema_check_fixed_arguments()` or
+    /// `schema_check_variadic_arguments()` and propagates a `NULL` return value if necessary.
+    fn propagate_null_arguments_helper(
+        &self,
+        sat: Satisfaction,
+        base_return_schema: Schema,
+    ) -> Schema {
+        match sat {
+            Satisfaction::May => {
+                Schema::AnyOf(set![base_return_schema, Schema::Atomic(Atomic::Null)])
+            }
+            Satisfaction::Not => base_return_schema,
+            Satisfaction::Must => Schema::Atomic(Atomic::Null),
+        }
+    }
+
+    /// Many scalar functions will return `NULL` if one of their arguments is `NULL`.
+    /// This function factors out the schema checking for these scalar functions for a fixed
+    /// number of arguments.
+    fn propagate_fixed_null_arguments(
+        &self,
+        arg_schemas: &[Schema],
+        required_schemas: &[Schema],
+        base_return_schema: Schema,
+    ) -> Result<Schema, Error> {
+        Ok(self.propagate_null_arguments_helper(
+            self.schema_check_fixed_args(arg_schemas, required_schemas)?,
+            base_return_schema,
+        ))
+    }
+
+    /// Many scalar functions will return `NULL` if one of their arguments is `NULL`.
+    /// This function factors out the schema checking for these scalar functions for variadic
+    /// functions.
+    fn propagate_variadic_null_arguments(
+        &self,
+        arg_schemas: &[Schema],
+        required_schema: Schema,
+        base_return_schema: Schema,
+    ) -> Result<Schema, Error> {
+        Ok(self.propagate_null_arguments_helper(
+            self.schema_check_variadic_args(arg_schemas, required_schema)?,
+            base_return_schema,
+        ))
+    }
+
     /// as_str returns a static str representation for the SQLFunction.
     fn as_str(&self) -> &'static str;
 }
@@ -929,18 +975,10 @@ impl ScalarFunction {
         use ScalarFunction::*;
         match self {
             // String operators.
-            Concat => Ok(
-                match self.schema_check_fixed_args(
-                    arg_schemas,
-                    &[STRING_OR_NULLISH.clone(), STRING_OR_NULLISH.clone()],
-                )? {
-                    Satisfaction::May => Schema::AnyOf(set![
-                        Schema::Atomic(Atomic::String),
-                        Schema::Atomic(Atomic::Null),
-                    ]),
-                    Satisfaction::Not => Schema::Atomic(Atomic::String),
-                    Satisfaction::Must => Schema::Atomic(Atomic::Null),
-                },
+            Concat => self.propagate_fixed_null_arguments(
+                arg_schemas,
+                &[STRING_OR_NULLISH.clone(), STRING_OR_NULLISH.clone()],
+                Schema::Atomic(Atomic::String),
             ),
             // Unary arithmetic operators.
             Pos | Neg => {
@@ -967,26 +1005,16 @@ impl ScalarFunction {
                 ]))
             }
             // Boolean operators.
-            Not => {
-                match self.schema_check_fixed_args(arg_schemas, &[BOOLEAN_OR_NULLISH.clone()])? {
-                    Satisfaction::Not => Ok(Schema::Atomic(Atomic::Boolean)),
-                    Satisfaction::May => Ok(Schema::AnyOf(set![
-                        Schema::Atomic(Atomic::Boolean),
-                        Schema::Atomic(Atomic::Null),
-                    ])),
-                    Satisfaction::Must => Ok(Schema::Atomic(Atomic::Null)),
-                }
-            }
-            And | Or => {
-                match self.schema_check_variadic_args(arg_schemas, BOOLEAN_OR_NULLISH.clone())? {
-                    Satisfaction::Not => Ok(Schema::Atomic(Atomic::Boolean)),
-                    Satisfaction::May => Ok(Schema::AnyOf(set![
-                        Schema::Atomic(Atomic::Boolean),
-                        Schema::Atomic(Atomic::Null),
-                    ])),
-                    Satisfaction::Must => Ok(Schema::Atomic(Atomic::Null)),
-                }
-            }
+            Not => self.propagate_fixed_null_arguments(
+                arg_schemas,
+                &[BOOLEAN_OR_NULLISH.clone()],
+                Schema::Atomic(Atomic::Boolean),
+            ),
+            And | Or => self.propagate_variadic_null_arguments(
+                arg_schemas,
+                BOOLEAN_OR_NULLISH.clone(),
+                Schema::Atomic(Atomic::Boolean),
+            ),
             // Computed Field Access operator when the field is not known until runtime.
             ComputedFieldAccess => {
                 self.schema_check_fixed_args(
@@ -1006,55 +1034,38 @@ impl ScalarFunction {
             Coalesce => self.get_coalesce_schema(arg_schemas),
             // Array scalar functions.
             Slice => self.get_slice_schema(arg_schemas),
-            Size => Ok(
-                match self.schema_check_fixed_args(arg_schemas, &[ANY_ARRAY_OR_NULLISH.clone()])? {
-                    Satisfaction::May => Schema::AnyOf(set![
-                        Schema::Atomic(Atomic::Integer),
-                        Schema::Atomic(Atomic::Null),
-                    ]),
-                    Satisfaction::Not => Schema::Atomic(Atomic::Integer),
-                    Satisfaction::Must => Schema::Atomic(Atomic::Null),
-                },
+            Size => self.propagate_fixed_null_arguments(
+                arg_schemas,
+                &[ANY_ARRAY_OR_NULLISH.clone()],
+                Schema::Atomic(Atomic::Integer),
             ),
             // Numeric value scalar functions.
-            Position => unimplemented!(),
-            CharLength => unimplemented!(),
-            OctetLength => unimplemented!(),
-            BitLength => unimplemented!(),
-            Year | Month | Day | Hour | Minute | Second => Ok(
-                match self.schema_check_fixed_args(arg_schemas, &[DATE_OR_NULLISH.clone()])? {
-                    Satisfaction::May => Schema::AnyOf(set![
-                        Schema::Atomic(Atomic::Integer),
-                        Schema::Atomic(Atomic::Null),
-                    ]),
-                    Satisfaction::Not => Schema::Atomic(Atomic::Integer),
-                    Satisfaction::Must => Schema::Atomic(Atomic::Null),
-                },
+            Position => self.propagate_fixed_null_arguments(
+                arg_schemas,
+                &[STRING_OR_NULLISH.clone(), STRING_OR_NULLISH.clone()],
+                Schema::Atomic(Atomic::Integer),
+            ),
+            CharLength | OctetLength | BitLength => self.propagate_fixed_null_arguments(
+                arg_schemas,
+                &[STRING_OR_NULLISH.clone()],
+                Schema::Atomic(Atomic::Integer),
+            ),
+            Year | Month | Day | Hour | Minute | Second => self.propagate_fixed_null_arguments(
+                arg_schemas,
+                &[DATE_OR_NULLISH.clone()],
+                Schema::Atomic(Atomic::Integer),
             ),
             // String value scalar functions.
             Substring => self.get_substring_schema(arg_schemas),
-            Upper | Lower => Ok(
-                match self.schema_check_fixed_args(arg_schemas, &[STRING_OR_NULLISH.clone()])? {
-                    Satisfaction::May => Schema::AnyOf(set![
-                        Schema::Atomic(Atomic::String),
-                        Schema::Atomic(Atomic::Null),
-                    ]),
-                    Satisfaction::Not => Schema::Atomic(Atomic::String),
-                    Satisfaction::Must => Schema::Atomic(Atomic::Null),
-                },
+            Upper | Lower => self.propagate_fixed_null_arguments(
+                arg_schemas,
+                &[STRING_OR_NULLISH.clone()],
+                Schema::Atomic(Atomic::String),
             ),
-            LTrim | RTrim | BTrim => Ok(
-                match self.schema_check_fixed_args(
-                    arg_schemas,
-                    &[STRING_OR_NULLISH.clone(), STRING_OR_NULLISH.clone()],
-                )? {
-                    Satisfaction::May => Schema::AnyOf(set![
-                        Schema::Atomic(Atomic::String),
-                        Schema::Atomic(Atomic::Null),
-                    ]),
-                    Satisfaction::Not => Schema::Atomic(Atomic::String),
-                    Satisfaction::Must => Schema::Atomic(Atomic::Null),
-                },
+            LTrim | RTrim | BTrim => self.propagate_fixed_null_arguments(
+                arg_schemas,
+                &[STRING_OR_NULLISH.clone(), STRING_OR_NULLISH.clone()],
+                Schema::Atomic(Atomic::String),
             ),
             // Datetime value scalar function.
             CurrentTimestamp => {
@@ -1113,45 +1124,34 @@ impl ScalarFunction {
     /// We first check the schema for 3 args. If the check fails specifically due
     /// to an incorrect argument count, we check the schema for 2 args instead.
     fn get_substring_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
-        Ok(
-            match self
-                .schema_check_fixed_args(
+        Ok(self.propagate_null_arguments_helper(
+            self.schema_check_fixed_args(
+                arg_schemas,
+                &[
+                    STRING_OR_NULLISH.clone(),
+                    INTEGER_OR_NULLISH.clone(),
+                    INTEGER_OR_NULLISH.clone(),
+                ],
+            )
+            .or_else(|err| match err {
+                Error::IncorrectArgumentCount { .. } => self.schema_check_fixed_args(
                     arg_schemas,
-                    &[
-                        STRING_OR_NULLISH.clone(),
-                        INTEGER_OR_NULLISH.clone(),
-                        INTEGER_OR_NULLISH.clone(),
-                    ],
-                )
-                .or_else(|err| match err {
-                    Error::IncorrectArgumentCount { .. } => self.schema_check_fixed_args(
-                        arg_schemas,
-                        &[STRING_OR_NULLISH.clone(), INTEGER_OR_NULLISH.clone()],
-                    ),
-                    e => Err(e),
-                })? {
-                Satisfaction::May => Schema::AnyOf(set![
-                    Schema::Atomic(Atomic::String),
-                    Schema::Atomic(Atomic::Null),
-                ]),
-                Satisfaction::Not => Schema::Atomic(Atomic::String),
-                Satisfaction::Must => Schema::Atomic(Atomic::Null),
-            },
-        )
+                    &[STRING_OR_NULLISH.clone(), INTEGER_OR_NULLISH.clone()],
+                ),
+                e => Err(e),
+            })?,
+            Schema::Atomic(Atomic::String),
+        ))
     }
 
     /// Returns the boolean and/or null schema for a valid comparison, or an error
     /// if the number of operands is not two or the comparison is not valid.
     fn get_comparison_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
-        let ret_schema =
-            match self.schema_check_fixed_args(arg_schemas, &[Schema::Any, Schema::Any])? {
-                Satisfaction::May => Schema::AnyOf(set![
-                    Schema::Atomic(Atomic::Boolean),
-                    Schema::Atomic(Atomic::Null),
-                ]),
-                Satisfaction::Not => Schema::Atomic(Atomic::Boolean),
-                Satisfaction::Must => Schema::Atomic(Atomic::Null),
-            };
+        let ret_schema = self.propagate_fixed_null_arguments(
+            arg_schemas,
+            &[Schema::Any, Schema::Any],
+            Schema::Atomic(Atomic::Boolean),
+        )?;
 
         if arg_schemas[0].is_comparable_with(&arg_schemas[1]) == Satisfaction::Must {
             Ok(ret_schema)
@@ -1192,30 +1192,24 @@ impl ScalarFunction {
     /// We first check the schema for 3 args. If the check fails specifically due
     /// to an incorrect argument count, we check the schema for 2 args instead.
     fn get_slice_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
-        Ok(
-            match self
-                .schema_check_fixed_args(
+        Ok(self.propagate_null_arguments_helper(
+            self.schema_check_fixed_args(
+                arg_schemas,
+                &[
+                    ANY_ARRAY.clone(),
+                    INTEGER_OR_NULLISH.clone(),
+                    INTEGER_OR_NULLISH.clone(),
+                ],
+            )
+            .or_else(|err| match err {
+                Error::IncorrectArgumentCount { .. } => self.schema_check_fixed_args(
                     arg_schemas,
-                    &[
-                        ANY_ARRAY.clone(),
-                        INTEGER_OR_NULLISH.clone(),
-                        INTEGER_OR_NULLISH.clone(),
-                    ],
-                )
-                .or_else(|err| match err {
-                    Error::IncorrectArgumentCount { .. } => self.schema_check_fixed_args(
-                        arg_schemas,
-                        &[ANY_ARRAY.clone(), INTEGER_OR_NULLISH.clone()],
-                    ),
-                    e => Err(e),
-                })? {
-                Satisfaction::May => {
-                    Schema::AnyOf(set![ANY_ARRAY.clone(), Schema::Atomic(Atomic::Null)])
-                }
-                Satisfaction::Not => ANY_ARRAY.clone(),
-                Satisfaction::Must => Schema::Atomic(Atomic::Null),
-            },
-        )
+                    &[ANY_ARRAY.clone(), INTEGER_OR_NULLISH.clone()],
+                ),
+                e => Err(e),
+            })?,
+            ANY_ARRAY.clone(),
+        ))
     }
 }
 

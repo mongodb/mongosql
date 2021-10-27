@@ -812,11 +812,21 @@ impl MqlCodeGenerator {
                         })
                     }
                     Not | Concat | Add | Sub | Mul | Lt | Lte | Neq | Eq | Gt | Gte | Between
-                    | And | Or | NullIf | Coalesce | Slice | Position | Substring
-                    | MergeObjects => {
+                    | And | Or | NullIf | Coalesce | Slice | Substring | MergeObjects => {
                         let args = Bson::Array(
                             sa.args
                                 .into_iter()
+                                .map(|e| self.codegen_expression(e))
+                                .collect::<Result<Vec<Bson>>>()?,
+                        );
+                        Bson::Document(bson::doc! { sa.function.mql_op().unwrap(): args})
+                    }
+                    // scalar functions with reversed argument order.
+                    Position => {
+                        let args = Bson::Array(
+                            sa.args
+                                .into_iter()
+                                .rev()
                                 .map(|e| self.codegen_expression(e))
                                 .collect::<Result<Vec<Bson>>>()?,
                         );

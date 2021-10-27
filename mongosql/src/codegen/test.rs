@@ -1640,16 +1640,12 @@ mod function {
     );
     test_codegen_expr!(
         position_expr,
-        expected = Ok(
-            bson!({"$sqlIndexOfCP": [ "$f", {"$literal": "a"}, {"$literal": 1}, {"$literal": 10}]})
-        ),
+        expected = Ok(bson!({"$sqlIndexOfCP": [ "$f", {"$literal": "a"}]})),
         input = ScalarFunction(ScalarFunctionApplication {
             function: Position,
             args: vec![
-                Expression::Reference(("f", 0u16).into()),
                 Expression::Literal(Literal::String("a".to_string())),
-                Expression::Literal(Literal::Integer(1)),
-                Expression::Literal(Literal::Integer(10)),
+                Expression::Reference(("f", 0u16).into()),
             ],
         }),
         mapping_registry = {
