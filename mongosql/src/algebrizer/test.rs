@@ -3648,4 +3648,60 @@ mod subquery {
             },))
         }),
     );
+    test_algebrize!(
+        potentially_missing_column,
+        method = algebrize_expression,
+        expected = Ok(Expression::Subquery(SubqueryExpr {
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
+                field: "x".to_string()
+            })),
+            subquery: Box::new(Stage::Limit(Limit {
+                source: Box::new(Stage::Project(Project {
+                    source: Box::new(Stage::Project(Project {
+                        source: Box::new(Stage::Collection(Collection {
+                            db: "test".to_string(),
+                            collection: "bar".to_string(),
+                        })),
+                        expression: map! {
+                            (DatasourceName::Named("bar".to_string()), 1u16).into() => Expression::Reference(("bar".to_string(), 1u16).into())
+                        },
+                    })),
+                    expression: map! {
+                        (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
+                            "x".into() => Expression::FieldAccess(FieldAccess {
+                                expr: Box::new(Expression::Reference(("bar", 1u16).into())),
+                                field: "x".into()
+                            })
+                        })
+                    }
+                })),
+                limit: 1
+            }))
+        })),
+        input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
+            select_clause: ast::SelectClause {
+                set_quantifier: ast::SetQuantifier::All,
+                body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                    ast::Expression::Document(multimap! {
+                        "x".into() => ast::Expression::Subpath(ast::SubpathExpr {
+                            expr: Box::new(ast::Expression::Identifier("bar".into())),
+                            subpath: "x".to_string()
+                        })
+                    })
+                )])
+            },
+            from_clause: Some(ast::Datasource::Collection(ast::CollectionSource {
+                database: None,
+                collection: "bar".to_string(),
+                alias: Some("bar".to_string()),
+            })),
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: Some(1),
+            offset: None,
+        }))),
+    );
 }

@@ -292,7 +292,7 @@ tests:
   - description: if an unqualified reference CANNOT be from subquery's datasource and MAY be from outer query's datasource, use outer query's datasource
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_foo AS q LIMIT 1)} FROM coll AS q"
-    skip_reason: "SQL-533: Subquery expression with potentially missing column fails to algebrize"
+    skip_reason: "SQL-568: Fix $lookup desugaring"
     translation_target_db: foo
     translation_target_coll: coll
     translation:
@@ -338,7 +338,7 @@ tests:
   - description: if an unqualified reference MAY be from subquery's datasource and CANNOT be from outer query's datasource, use subquery's datasource
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q LIMIT 1)} FROM schema_foo AS q"
-    skip_reason: "SQL-533: Subquery expression with potentially missing column fails to algebrize"
+    skip_reason: "SQL-568: Fix $lookup desugaring"
     translation_target_db: foo
     translation_target_coll: schema_foo
     translation:

@@ -2034,13 +2034,22 @@ mod get_single_field_name {
     );
     test_get_single_field_name!(
         single_doc_no_required_keys,
-        expected = None,
+        expected = Some("a"),
         schema = &Document(Document {
             keys: map![
                 "a".to_string() => Atomic(String),
             ],
             required: set![],
             additional_properties: false,
+        })
+    );
+    test_get_single_field_name!(
+        single_doc_empty,
+        expected = None,
+        schema = &Document(Document {
+            keys: map![],
+            required: set![],
+            additional_properties: false
         })
     );
     test_get_single_field_name!(

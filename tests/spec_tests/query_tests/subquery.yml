@@ -18,6 +18,8 @@ catalog_data:
       - {'_id': 1, 'name': 'd1'}
       - {'_id': 2, 'name': 'd2'}
       - {'_id': 3, 'name': 'd3'}
+    baz:
+      - {'_id': 1, 'a': 'foo'}
 
 catalog_schema:
   {
@@ -304,3 +306,31 @@ tests:
       } } }
     result:
       - { '__bot': { 'sub': 1 } }
+
+  - description: subquery selecting potentially missing field from collection
+    current_db: foo
+    query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q LIMIT 1)} FROM department_w_schema AS q"
+    skip_reason: "SQL-568: Fix $lookup desugaring"
+    translation_target_db: foo
+    translation_target_coll: department_w_schema
+    translation:
+      - { '$project': { '_id': 0, 'department_w_schema': '$$ROOT' } }
+      - { '$project': { '_id': 0, 'q': '$department_w_schema' } }
+      - { '$project': { '_id': 0, '__bot': {
+        'bar': { '$subquery': {
+          'db': 'foo',
+          'collection': 'baz',
+          'let': { 'q_0': '$q' },
+          'outputPath': [ '__bot', 'bar' ],
+          'pipeline': [
+            { '$project': { '_id': 0, 'department_w_schema': '$$ROOT' } },
+            { '$project': { '_id': 0, 'q': '$baz' } },
+            { '$project': { '_id': 0, '__bot': { 'bar': '$$q_0.bar' } } },
+            { '$limit': 1 }
+          ]
+        } }
+      } } }
+    result:
+      - { }
+      - { }
+      - { }

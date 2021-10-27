@@ -651,9 +651,8 @@ impl Schema {
     }
 
     /// get_single_field_name returns `Some(fieldName)` if every value matched
-    /// by `self` is a document containing a single field called `fieldName`.
-    /// If this is not the case, or `self` doesn't match any values, it returns
-    /// `None`.
+    /// by `self` which is not the empty document is a document containing a single field called `fieldName`.
+    /// If this is not the case, or `self` doesn't match any values, it returns `None`.
     pub fn get_single_field_name(&self) -> Option<&str> {
         match self {
             AnyOf(any_of) => {
@@ -668,7 +667,9 @@ impl Schema {
                 }
             }
             Schema::Document(d) => match d.num_keys() {
-                (1, Some(1)) => Some(d.keys.iter().next().unwrap().0.as_str()),
+                (num_required, Some(1)) if num_required <= 1 => {
+                    Some(d.keys.iter().next().unwrap().0.as_str())
+                }
                 _ => None,
             },
             _ => None,
