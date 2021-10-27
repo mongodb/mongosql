@@ -10,6 +10,11 @@ fn identifier_to_string(s: &str) -> String {
     }
 }
 
+// Escape single quotes in string literal by doubling them.
+fn escape_string_literal(s: &str) -> String {
+    s.replace("'", "''")
+}
+
 impl Display for Query {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
         match self {
@@ -479,7 +484,7 @@ impl Display for Expression {
                 f,
                 "{{{}}}",
                 d.iter()
-                    .map(|kv| format!("'{}': {}", kv.key, kv.value))
+                    .map(|kv| format!("'{}': {}", escape_string_literal(&kv.key), kv.value))
                     .collect::<Vec<_>>()
                     .join(", ")
             ),
@@ -514,9 +519,10 @@ impl Display for LikeExpr {
             "{} LIKE {}{}",
             formatted_expr,
             formatted_pattern,
-            self.escape
-                .as_ref()
-                .map_or("".to_string(), |x| format!(" ESCAPE '{}'", x))
+            self.escape.as_ref().map_or("".to_string(), |x| format!(
+                " ESCAPE '{}'",
+                escape_string_literal(x)
+            ))
         )
     }
 }
@@ -747,7 +753,7 @@ impl Display for Literal {
         match self {
             Literal::Null => write!(f, "NULL"),
             Literal::Boolean(b) => write!(f, "{}", b),
-            Literal::String(s) => write!(f, "'{}'", s.replace("'", "''")),
+            Literal::String(s) => write!(f, "'{}'", escape_string_literal(s)),
             Literal::Integer(i) => write!(f, "{}", i),
             Literal::Long(l) => write!(f, "{}", l),
             Literal::Double(d) => {

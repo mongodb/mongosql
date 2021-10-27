@@ -353,6 +353,12 @@ query_printer_test!(
     input = "SELECT * FROM foo bar WHERE 1 GROUP BY a, b AGGREGATE COUNT(*) AS agg1, SUM(a) as agg2 HAVING agg1 < agg2 ORDER BY agg1 LIMIT 100 OFFSET 10"
 );
 
+query_printer_test!(
+    doc_with_single_quote_in_key,
+    expected = "SELECT {'''': 'single quote'}",
+    input = "SELECT {'''': 'single quote'}"
+);
+
 expression_printer_test!(
     identifier_non_latin_first_char,
     expected = "`做`",
@@ -406,6 +412,12 @@ expression_printer_test!(
     like_escape,
     expected = "true AND (x LIKE '%hello%' ESCAPE '@')",
     input = "true AND (x LIKE '%hello%' ESCAPE '@')"
+);
+
+expression_printer_test!(
+    like_escape_with_single_quote,
+    expected = "true AND (x LIKE '%hello%' ESCAPE '''')",
+    input = "true AND (x LIKE '%hello%' ESCAPE '''')"
 );
 
 expression_printer_test!(
