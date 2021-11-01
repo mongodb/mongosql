@@ -1,20 +1,6 @@
-use linked_hash_map::{IntoIter, Iter, Keys, LinkedHashMap};
+use linked_hash_map::LinkedHashMap;
 use std::{fmt::Display, hash::Hash, iter::IntoIterator};
 use thiserror::Error;
-
-// The unchecked version unwraps insertions. This should only be used for testing.
-#[cfg(test)]
-#[macro_export]
-macro_rules! unchecked_unique_linked_hash_map {
-	($($key:expr => $val:expr),* $(,)?) => {{
-            #[allow(unused_mut)]
-            let mut out = crate::util::unique_linked_hash_map::UniqueLinkedHashMap::new();
-            $(
-                out.insert($key, $val).unwrap();
-            )*
-            out
-	}};
-}
 
 #[derive(Debug, Hash, Default, Clone, PartialEq, Eq)]
 pub struct UniqueLinkedHashMap<K, V>(LinkedHashMap<K, V>)
@@ -76,11 +62,11 @@ where
         self.0.is_empty()
     }
 
-    pub fn keys(&self) -> Keys<K, V> {
+    pub fn keys(&self) -> impl Iterator<Item = &K> {
         self.0.keys()
     }
 
-    pub fn iter(&self) -> Iter<K, V> {
+    pub fn iter(&self) -> impl Iterator<Item = (&K, &V)> {
         self.0.iter()
     }
 }
@@ -90,7 +76,7 @@ where
     K: Hash + PartialEq + Eq + Display,
 {
     type Item = (K, V);
-    type IntoIter = IntoIter<K, V>;
+    type IntoIter = linked_hash_map::IntoIter<K, V>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()

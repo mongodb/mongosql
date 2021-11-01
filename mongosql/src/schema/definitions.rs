@@ -1,16 +1,18 @@
 use crate::{
     ir::{
-        binding_tuple::{self, BindingTuple},
+        binding_tuple::{self, BindingTuple, DatasourceName, DuplicateKeyError, Key},
         Type, TypeOrMissing,
     },
     json_schema, map,
     schema::Schema::{AnyOf, Unsat},
     set,
 };
+
 use lazy_static::lazy_static;
 use std::{
     collections::{BTreeMap, BTreeSet},
     convert::TryFrom,
+    iter::{FromIterator, Iterator},
     str::FromStr,
 };
 use thiserror::Error;
@@ -23,7 +25,8 @@ pub enum Error {
     InvalidCombinationOfFields(),
 }
 
-pub type SchemaEnvironment = BindingTuple<Schema>;
+#[derive(PartialEq, Debug, Clone, Default)]
+pub struct SchemaEnvironment(BindingTuple<Schema>);
 
 impl SchemaEnvironment {
     /// Takes all Datasource-Schema key-value pairs from a SchemaEnvironment
@@ -34,7 +37,7 @@ impl SchemaEnvironment {
     /// that same Datasource key.
     pub fn union(self, other: SchemaEnvironment) -> Self {
         let mut out = self;
-        for (k, v) in other.into_iter() {
+        for (k, v) in other.0.into_iter() {
             out = out.union_schema_for_datasource(k, v);
         }
         out
@@ -51,12 +54,81 @@ impl SchemaEnvironment {
         datasource_key: binding_tuple::Key,
         schema_value: Schema,
     ) -> Self {
-        if let Some(s) = self.remove(&datasource_key) {
-            self.insert(datasource_key, Schema::AnyOf(set![s, schema_value]));
+        if let Some(s) = self.0.remove(&datasource_key) {
+            self.0
+                .insert(datasource_key, Schema::AnyOf(set![s, schema_value]));
         } else {
-            self.insert(datasource_key, schema_value);
+            self.0.insert(datasource_key, schema_value);
         }
         self
+    }
+
+    pub fn nearest_scope_for_datasource(&self, d: &DatasourceName, scope: u16) -> Option<u16> {
+        self.0.nearest_scope_for_datasource(d, scope)
+    }
+
+    pub fn new() -> Self {
+        Self(BindingTuple::new())
+    }
+
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
+    pub fn get(&self, k: &Key) -> Option<&Schema> {
+        self.0.get(k)
+    }
+
+    pub fn remove(&mut self, k: &Key) -> Option<Schema> {
+        self.0.remove(k)
+    }
+
+    pub fn contains_key(&self, k: &Key) -> bool {
+        self.0.contains_key(k)
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
+    pub fn keys(&self) -> impl Iterator<Item = &Key> {
+        self.0.keys()
+    }
+
+    pub fn iter(&self) -> impl Iterator<Item = (&Key, &Schema)> {
+        self.0.iter()
+    }
+
+    pub fn merge(&mut self, other: SchemaEnvironment) -> Result<(), DuplicateKeyError> {
+        self.0.merge(other.0)
+    }
+
+    pub fn with_merged_mappings(
+        self,
+        mappings: SchemaEnvironment,
+    ) -> Result<Self, DuplicateKeyError> {
+        self.0
+            .with_merged_mappings(mappings.0)
+            .map(SchemaEnvironment)
+    }
+}
+
+impl IntoIterator for SchemaEnvironment {
+    type Item = (Key, Schema);
+    type IntoIter = <BindingTuple<Schema> as IntoIterator>::IntoIter;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
+    }
+}
+
+impl FromIterator<(Key, Schema)> for SchemaEnvironment {
+    fn from_iter<I: IntoIterator<Item = (Key, Schema)>>(iter: I) -> Self {
+        let mut bt = SchemaEnvironment(BindingTuple::new());
+        for (k, v) in iter {
+            bt.0.insert(k, v);
+        }
+        bt
     }
 }
 

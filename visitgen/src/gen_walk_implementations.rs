@@ -184,7 +184,7 @@ fn gen_walk_visit_type(type_set: &HashSet<String>, ty: &Type, field_name: &str) 
                 type_set,
                 field_name,
                 generic_args,
-                "crate::util::unique_linked_hash_map::UniqueLinkedHashMap",
+                "mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap",
             ),
             "Option" => gen_walk_visit_option(type_set, field_name, generic_args),
             "Vec" => gen_walk_visit_vec(type_set, field_name, generic_args),

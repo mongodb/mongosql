@@ -965,9 +965,9 @@ impl<'a> Algebrizer<'a> {
         let subquery = Box::new(subquery_algebrizer.algebrize_query(ast_node)?);
         let result_set = subquery.schema(&subquery_algebrizer.schema_inference_state())?;
 
-        match result_set.schema_env.0.len() {
+        match result_set.schema_env.len() {
             1 => {
-                let (key, schema) = result_set.schema_env.0.into_iter().next().unwrap();
+                let (key, schema) = result_set.schema_env.into_iter().next().unwrap();
                 let output_expr = match &schema.get_single_field_name() {
                     Some(field) => Ok(Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
                         expr: Box::new(ir::Expression::Reference(key)),

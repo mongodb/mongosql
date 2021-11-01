@@ -1,9 +1,6 @@
 use std::{
-    collections::{
-        btree_map::{IntoIter, Iter, Keys},
-        BTreeMap,
-    },
-    iter::FromIterator,
+    collections::{btree_map, BTreeMap},
+    iter::{FromIterator, Iterator},
 };
 
 #[derive(Debug)]
@@ -77,6 +74,10 @@ impl<T> BindingTuple<T> {
         None
     }
 
+    pub fn len(&self) -> usize {
+        self.0.len()
+    }
+
     pub fn get(&self, k: &Key) -> Option<&T> {
         self.0.get(k)
     }
@@ -97,11 +98,11 @@ impl<T> BindingTuple<T> {
         self.0.is_empty()
     }
 
-    pub fn keys(&self) -> Keys<Key, T> {
+    pub fn keys(&self) -> impl Iterator<Item = &Key> {
         self.0.keys()
     }
 
-    pub fn iter(&self) -> Iter<Key, T> {
+    pub fn iter(&self) -> impl Iterator<Item = (&Key, &T)> {
         self.0.iter()
     }
 
@@ -125,7 +126,7 @@ impl<T> BindingTuple<T> {
 
 impl<T> IntoIterator for BindingTuple<T> {
     type Item = (Key, T);
-    type IntoIter = IntoIter<Key, T>;
+    type IntoIter = btree_map::IntoIter<Key, T>;
 
     fn into_iter(self) -> Self::IntoIter {
         self.0.into_iter()

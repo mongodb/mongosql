@@ -1,9 +1,7 @@
-use crate::{
-    module::submodule::{ast, visitor::Visitor},
-    util::unique_linked_hash_map::UniqueLinkedHashMap,
-};
+use crate::module::submodule::{ast, visitor::Visitor};
 
 use linked_hash_map::LinkedHashMap;
+use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
 
 struct AtomVisitor {
     atom_names: Vec<String>,

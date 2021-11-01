@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+  "mongosql-datastructures",
   "mongosql-c",
   "mongosql",
   "visitgen",

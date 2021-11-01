@@ -1,6 +1,6 @@
 use crate::{
     catalog::*,
-    ir::{binding_tuple::Key, *},
+    ir::{binding_tuple, *},
     map,
     schema::{
         Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_ARRAY,
@@ -45,7 +45,7 @@ pub enum Error {
     #[error("cardinality of the subquery's result set may be greater than 1")]
     InvalidSubqueryCardinality,
     #[error("cannot create schema environment with duplicate datasource: {0:?}")]
-    DuplicateKey(Key),
+    DuplicateKey(binding_tuple::Key),
     #[error("sort key at position {0} is not statically comparable to itself because it has the schema {1:?}")]
     SortKeyNotSelfComparable(usize, Schema),
     #[error("group key at position {0} is not statically comparable to itself because it has the schema {1:?}")]
@@ -200,7 +200,7 @@ impl Stage {
                             // If the group key has an alias, bind a document containing that alias
                             // and the group key's schema to the Bottom datasource.
                             OptionallyAliasedExpr::Aliased(AliasedExpr { expr: _, ref alias }) => (
-                                Key::bot(state.scope_level),
+                                binding_tuple::Key::bot(state.scope_level),
                                 schema_binding_doc(alias.clone(), group_key_schema),
                             ),
                             // Otherwise for a field access group key, bind a document containing the
@@ -245,7 +245,7 @@ impl Stage {
                     .map(|aliased_agg| {
                         let agg_schema = aliased_agg.agg_expr.schema(&state)?;
                         Ok((
-                            Key::bot(state.scope_level),
+                            binding_tuple::Key::bot(state.scope_level),
                             schema_binding_doc(aliased_agg.alias.clone(), agg_schema),
                         ))
                     })
