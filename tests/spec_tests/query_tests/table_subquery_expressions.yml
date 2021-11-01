@@ -823,19 +823,20 @@ tests:
   - description: correctness test for EXISTS Operator
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE EXISTS(SELECT * FROM target AS target WHERE v = a)"
-    skip_reason: "SQL-568: Cannot run $lookup with db field against mongod instance"
+    skip_reason: SQL-578
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryExists': {
+                                                   'db': 'foo',
                                                    'collection': 'target',
                                                    'let': {'bar_0': '$bar'},
                                                    'pipeline': [
                                                                  {'$project': {'_id': 0, 'target': '$$ROOT'}},
                                                                  {'$project': {'_id': 0, 'target': '$target'}},
-                                                                 {'$match': {'$expr': {'$sqlEq': ['$$bar_v_0', '$target.a']}}}
+                                                                 {'$match': {'$expr': {'$sqlEq': ['$$bar_0.v', '$target.a']}}}
                                                    ]
       }}}}
     result:
@@ -845,21 +846,22 @@ tests:
   - description: correctness test for NOT EXISTS Operator
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE NOT EXISTS(SELECT * FROM target AS target WHERE v = a)"
-    skip_reason: "SQL-568: Cannot run $lookup with db field against mongod instance"
+    skip_reason: SQL-578
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$match': {'$expr': {'$sqlNot': {'$subqueryExists': {
+      - {'$match': {'$expr': {'$sqlNot': [{'$subqueryExists': {
+                                                               'db': 'foo',
                                                                'collection': 'target',
                                                                'let': {'bar_0': '$bar'},
                                                                'pipeline': [
                                                                              {'$project': {'_id': 0, 'target': '$$ROOT'}},
                                                                              {'$project': {'_id': 0, 'target': '$target'}},
-                                                                             {'$match': {'$expr': {'$sqlEq': ['$$bar_v_0', '$target.a']}}}
+                                                                             {'$match': {'$expr': {'$sqlEq': ['$$bar_0.v', '$target.a']}}}
                                                                ]
-      }}}}}
+      }}]}}}
     result:
       - {'bar': {'_id': 1, 'v': 1}}
       - {'bar': {'_id': 4, 'v': 4}}
@@ -869,19 +871,19 @@ tests:
   - description: EXISTS expression in SELECT clause
     current_db: foo
     query: "SELECT VALUE {'v': v, 'x': EXISTS(SELECT * FROM target AS target WHERE target.a = bar.v)} FROM bar AS bar"
-    skip_reason: "SQL-568: Cannot run $lookup with db field against mongod instance"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'v': '$bar.v', 'x': {'$subqueryExists': {
+                                                                                    'db': 'foo',
                                                                                     'collection': 'target',
                                                                                     'let': {'bar_0': '$bar'},
                                                                                     'pipeline': [
                                                                                                   {'$project': {'_id': 0, 'target': '$$ROOT'}},
                                                                                                   {'$project': {'_id': 0, 'target': '$target'}},
-                                                                                                  {'$match': {'$expr': {'$sqlEq': ['$target.a', '$$bar_a_0']}}}
+                                                                                                  {'$match': {'$expr': {'$sqlEq': ['$target.a', '$$bar_0.v']}}}
                                                                                     ]
       }}}}}
     result:

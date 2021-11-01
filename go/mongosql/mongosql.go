@@ -62,7 +62,7 @@ func Translate(args TranslationArgs) (Translation, error) {
 	}
 
 	translationResult := struct {
-		Db              string            `bson:"target_db"`
+		DB              string            `bson:"target_db"`
 		Collection      string            `bson:"target_collection"`
 		Pipeline        []bson.D          `bson:"pipeline"`
 		Error           string            `bson:"error"`
@@ -94,14 +94,14 @@ func Translate(args TranslationArgs) (Translation, error) {
 	}
 
 	if !args.skipDesugaring {
-		pipelineBytes, err = desugarer.Desugar(pipelineBytes)
+		pipelineBytes, err = desugarer.Desugar(pipelineBytes, translationResult.DB)
 		if err != nil {
 			return Translation{}, fmt.Errorf("failed to desugar pipeline: %w", err)
 		}
 	}
 
 	return Translation{
-		TargetDB:         translationResult.Db,
+		TargetDB:         translationResult.DB,
 		TargetCollection: translationResult.Collection,
 		Pipeline:         pipelineBytes,
 		ResultSetSchema:  translationResult.ResultSetSchema,

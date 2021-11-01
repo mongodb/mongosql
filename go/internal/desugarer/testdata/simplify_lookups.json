@@ -1,0 +1,53 @@
+[
+  {
+    "name": "$lookup when FromDB = the current DB, should remove FromDB name",
+    "input": [
+       {
+        "$lookup": {
+          "from": {
+              "db": "currentDBName",
+              "coll": "bar"
+          },
+          "pipeline": [],
+          "as": "baz"
+        }
+      }
+    ],
+    "expected": [
+       {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [],
+          "as": "baz"
+        }
+      }
+    ]
+  },
+  {
+    "name": "$lookup when FromDB != the current DB, should be maintained",
+    "input": [
+       {
+        "$lookup": {
+          "from": {
+              "db": "notCurrentDBName",
+              "coll": "bar"
+          },
+          "pipeline": [],
+          "as": "baz"
+        }
+      }
+    ],
+    "expected": [
+       {
+        "$lookup": {
+          "from": {
+              "db": "notCurrentDBName",
+              "coll": "bar"
+          },
+          "pipeline": [],
+          "as": "baz"
+        }
+      }
+    ]
+  }
+]

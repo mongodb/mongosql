@@ -121,7 +121,6 @@ tests:
   - description: correlated scalar subquery correctness test
     current_db: foo
     query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep.`_id` = emp.department_id LIMIT 1)} FROM employees_w_schema AS emp"
-    skip_reason: "SQL-568: Cannot run $lookup with db field against mongod instance"
     translation_target_db: foo
     translation_target_coll: employees_w_schema
     translation:
@@ -130,13 +129,14 @@ tests:
       - {'$project': {'_id': 0, '__bot': {
                                            'name': '$emp.name',
                                            'department_name': {'$subquery': {
+                                                                              'db': 'foo',
                                                                               'collection': 'department_w_schema',
                                                                               'let': {'emp_0': '$emp'},
                                                                               'outputPath': ['__bot', 'name'],
                                                                               'pipeline': [
                                                                                             {'$project': {'_id': 0, 'department_w_schema': '$$ROOT'}},
                                                                                             {'$project': {'_id': 0, 'dep': '$department_w_schema'}},
-                                                                                            {'$match': {'$expr': {'$sqlEq': ['$dep._id', '$$emp_department_id_0']}}},
+                                                                                            {'$match': {'$expr': {'$sqlEq': ['$dep._id', '$$emp_0.department_id']}}},
                                                                                             {'$project': {'_id': 0, '__bot': {'name': '$dep.name'}}},
                                                                                             {'$limit': 1}
                                                                               ]
@@ -218,7 +218,6 @@ tests:
   - description: nested subquery should be able to access field from its grandparent query correctness test
     current_db: foo
     query: "SELECT VALUE {'name': name, 'department_name': (SELECT dep.name FROM department_w_schema AS dep WHERE dep._id = (SELECT emp2.department_id FROM employees_w_schema AS emp2 WHERE emp2._id = emp1._id LIMIT 1) LIMIT 1)} FROM employees_w_schema AS emp1"
-    skip_reason: "SQL-568: Cannot run $lookup with db field against mongod instance"
     translation_target_db: foo
     translation_target_coll: employees_w_schema
     translation:
@@ -227,6 +226,7 @@ tests:
       - {'$project': {'_id': 0, '__bot': {
                                            'name': '$emp1.name',
                                            'department_name': {'$subquery': {
+                                                                              'db': 'foo',
                                                                               'collection': 'department_w_schema',
                                                                               'let': {'emp1_0': '$emp1'},
                                                                               'outputPath': ['__bot', 'name'],
@@ -234,20 +234,20 @@ tests:
                                                                                             {'$project': {'_id': 0, 'department_w_schema': '$$ROOT'}},
                                                                                             {'$project': {'_id': 0, 'dep': '$department_w_schema'}},
                                                                                             {'$match': {'$expr': {'$sqlEq': ['$dep._id', {'$subquery': {
+                                                                                                                                                         'db': 'foo',
                                                                                                                                                          'collection': 'employees_w_schema',
-                                                                                                                                                         'let': {'dep_0': '$dep'},
+                                                                                                                                                         'let': {'dep_1': '$dep', 'emp1_0': '$$emp1_0'},
                                                                                                                                                          'outputPath': ['__bot', 'department_id'],
                                                                                                                                                          'pipeline': [
                                                                                                                                                                        {'$project': {'_id': 0, 'employees_w_schema': '$$ROOT'}},
                                                                                                                                                                        {'$project': {'_id': 0, 'emp2': '$employees_w_schema'}},
-                                                                                                                                                                       {'$match': {'$expr': {'$sqlEq': ['$emp2._id', '$$emp1__id_0']}}},
+                                                                                                                                                                       {'$match': {'$expr': {'$sqlEq': ['$emp2._id', '$$emp1_0._id']}}},
                                                                                                                                                                        {'$project': {'_id': 0, '__bot': {'department_id': '$emp2.department_id'}}},
                                                                                                                                                                        {'$limit': 1}
-                                                                                                                                                         ]
-                                                                                            }}]}}},
-                                                                                            {'$project': {'_id': 0, '__bot': {'name': '$dep.name'}}},
-                                                                                            {'$limit': 1}
-                                                                              ]
+                                                                                                                                                                     ]}}]}}},
+                                                                                          {'$project': {'_id': 0, '__bot': {'name': '$dep.name'}}},
+                                                                                          {'$limit': 1}
+                                                                            ]
                                            }}
       }}}
     result:
@@ -310,7 +310,6 @@ tests:
   - description: subquery selecting potentially missing field from collection
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q LIMIT 1)} FROM department_w_schema AS q"
-    skip_reason: "SQL-568: Fix $lookup desugaring"
     translation_target_db: foo
     translation_target_coll: department_w_schema
     translation:
@@ -323,14 +322,14 @@ tests:
           'let': { 'q_0': '$q' },
           'outputPath': [ '__bot', 'bar' ],
           'pipeline': [
-            { '$project': { '_id': 0, 'department_w_schema': '$$ROOT' } },
+            { '$project': { '_id': 0, 'baz': '$$ROOT' } },
             { '$project': { '_id': 0, 'q': '$baz' } },
-            { '$project': { '_id': 0, '__bot': { 'bar': '$$q_0.bar' } } },
+            { '$project': { '_id': 0, '__bot': { 'bar': '$q.bar' } } },
             { '$limit': 1 }
           ]
         } }
       } } }
     result:
-      - { }
-      - { }
-      - { }
+      - { __bot: {}}
+      - { __bot: {}}
+      - { __bot: {}}

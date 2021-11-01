@@ -22,7 +22,8 @@ func TestDesugar(t *testing.T) {
 					t.Skip(*tc.Skip)
 				}
 
-				actual, err := Desugar(tc.Input)
+				// we will use 'currentDBName' as the current Database.
+				actual, err := Desugar(tc.Input, "currentDBName")
 				if err != nil {
 					t.Fatalf("Failed to desugar pipeline: %v", err)
 				}
@@ -71,6 +72,12 @@ func TestDesugar(t *testing.T) {
 			name:      "desugarNullSemantics",
 			file:      "desugar_sql_null_semantics.json",
 			desugarer: desugarSQLNullSemantics,
+		},
+		{
+			name: "simplifyLookups",
+			file: "simplify_lookups.json",
+			// we will use 'currentDBName' as the current Database.
+			desugarer: getSimplifyLookups("currentDBName"),
 		},
 	}
 
