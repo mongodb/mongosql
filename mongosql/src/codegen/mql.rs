@@ -767,7 +767,21 @@ impl MqlCodeGenerator {
                     }
                 }))
             }
-            Cast(_) => unimplemented!(),
+            Cast(ce) => {
+                let convert_op = match ce.to {
+                    ir::Type::Document | ir::Type::Array => "$sqlConvert",
+                    _ => "$convert",
+                };
+
+                Ok(bson::bson!({
+                    convert_op: {
+                        "input": self.codegen_expression(*ce.expr)?,
+                        "to": ce.to.mql_type(),
+                        "onNull":  self.codegen_expression(*ce.on_null)?,
+                        "onError":self.codegen_expression(*ce.on_error)?
+                    }
+                }))
+            }
             TypeAssertion(_) => unimplemented!(),
             ScalarFunction(sa) => {
                 use crate::ir::ScalarFunction::*;

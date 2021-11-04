@@ -63,7 +63,7 @@ func desugarSQLConvert(f *ast.Function) ast.Expr {
 	args := f.Arg.(*ast.Document).FieldsMap()
 
 	input := args["input"]
-	targetType := args["type"]
+	targetType := args["to"]
 
 	var onNull ast.Expr = nullLiteral
 	if onNullArg, hasOnNull := args["onNull"]; hasOnNull {

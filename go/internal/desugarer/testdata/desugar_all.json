@@ -898,7 +898,7 @@
             "x": {
               "$sqlConvert": {
                 "input": "$x",
-                "type": "array",
+                "to": "array",
                 "onNull": null,
                 "onError": []
               }
@@ -1091,7 +1091,7 @@
                 "arr": {
                   "$sqlConvert": {
                     "input": "$a",
-                    "type": "array",
+                    "to": "array",
                     "onNull": null,
                     "onError": []
                   }

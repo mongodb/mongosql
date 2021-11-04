@@ -161,7 +161,7 @@
           "expr": {
             "$sqlConvert": {
               "input": "$a",
-              "type": "array",
+              "to": "array",
               "onNull": null,
               "onError": []
             }
