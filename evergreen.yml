@@ -95,9 +95,6 @@ functions:
                 ln -sf /cygdrive/c/Users/$USER/.cargo/ ~/.cargo
           fi
 
-          # install nightly rustfmt
-          rustup toolchain install nightly -c rustfmt
-
   "check clippy":
     - command: shell.exec
       type: test
@@ -170,7 +167,7 @@ functions:
         working_dir: mongosql-rs
         script: |
           ${prepare_shell}
-          rustfmt +nightly --unstable-features --check $(find . -name '*.rs')
+          rustfmt --check $(find . -name '*.rs')
 
   "compile release":
     - command: shell.exec
