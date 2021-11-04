@@ -15,11 +15,15 @@ A type constraint test is specified as a three field yaml structure:
 ```text
 - description: A description of the test case
   query:       A MongoSQL query that includes the expression or clause that
-               has type constraints to test. The operand(s) should be named;
-               see the example at the end of this section for reference. By
-               convention, single-argument expressions and clauses use "arg"
-               and multi-argument expressions and clauses use "arg1", "arg2",
-               and so on.
+               has type constraints to test. The type-constrained arguments
+               should be named such that the i-th argument is called arg{i},
+               for 1 <= i <= num_args, i.e. "arg1", "arg2", and so on.
+
+               All queries should use "foo" as the main datasource.
+               If another datasource is required, use "bar". If a query needs
+               more than two datasources, the test runner will need to be
+               updated such that those datasources are added to the catalog
+               schema.
   valid_types: A sequence of maps which each map from operand names to lists
                of valid static types for those operands. A "valid static type"
                is one for which compilation of the query should succeed.
@@ -69,6 +73,10 @@ to compile the query which will either succeed or fail with a static error. The 
 check if the combination of substituted types is valid or not (based on the `valid_types` data).
 The test will pass if either: the combination is valid and the compilation succeeded, or the
 combination is invalid and the compilation failed. It will fail if otherwise.
+
+**Note**: The test runner specifies the constant `MAX_NUM_ARGS`, which represents the maximum number
+of arguments substituted in any type constraint test. If a new test is added with more than
+`MAX_NUM_ARGS` arguments, the author should update this constant appropriately.
 
 Formally, consider `T` the set of all MongoSQL types. For a query with `n` substitutable arguments,
 the set of all combinations of types which will be substituted is S = T<sup>n</sup>, that is the

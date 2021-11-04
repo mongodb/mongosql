@@ -19,10 +19,11 @@ the code.
 
 ## Rust testing
 
-There are two types of tests for the Rust code: unit tests and fuzz tests. Fuzz tests should
-always exist in (sub)modules named `fuzz_test`, so this common name is used as a filter for
-running the tests. Since fuzz testing may take a long time and may unexpectedly fail, one can
-choose to run just the unit tests or just the fuzz tests.
+There are three types of tests for the Rust code: unit tests, fuzz tests, and spec tests. Each of
+these test types can be run in isolation. Fuzz tests should always exist in (sub)modules named
+`fuzz_test`, so this common name is used as a filter for running the tests. The spec tests are
+ignored by default via the `#[ignore]` directive, but can be run by specifying this directive
+after `cargo test`.
 
 The [Rust handbook](https://doc.rust-lang.org/cargo/commands/cargo-test.html) has full guidelines
 on how to use `cargo test`. Below are suggested ways of running the different sets of tests.
@@ -35,20 +36,29 @@ on how to use `cargo test`. Below are suggested ways of running the different se
 
 `cargo test fuzz_test` from the main directory
 
+### Spec testing
+
+`cargo test -- --ignored` from the main directory
+
 ### All testing
 
-`cargo test` from the main directory
+`cargo test -- --include-ignored` from the main directory
 
 ## Go testing
 
-To test the go interface, the rust code must be built with a special feature
+There are two types of tests for the Go code: integration tests and spec tests.
+The spec tests have been separated out since they are not part of the MongoSQL Go
+API.
 
 ### Building for go testing
 
-`cargo build --features "mongosql-c/test"` from the main directory. This compiles in code necessary
-for the go tests to pass
+In order to run the integration tests, the Rust code must be built with a
+special feature.
 
-### Running go testing
+`cargo build --features "mongosql-c/test"` from the main directory. This compiles
+in code necessary for the Go tests to pass.
+
+### Integration testing
 
 `$ cd go/mongosql`
 `$ export GOPRIVATE=github.com/10gen/*`
@@ -58,6 +68,10 @@ for the go tests to pass
 
 Replace `debug` with `release` in paths above to test release builds
 
+### Spec testing
+
+`go test -tags spectests`
+
 ## Dependencies
 
-All are managed by go modules for go, and cargo for rust
+All are managed by Go modules for Go, and Cargo for Rust

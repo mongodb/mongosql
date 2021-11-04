@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 bson = "2"
+itertools = "0.10.1"
 lalrpop-util = "0.19.4"
 lazy_static = "1"
 linked-hash-map = "0.5.4"

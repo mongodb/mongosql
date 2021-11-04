@@ -297,6 +297,7 @@ functions:
 
           echo "run spec tests"
           go test -v ./... -tags spectests | tee spec-test-results.txt
+          cargo test -- --ignored
           pkill mongod
 
   "run rust tests":

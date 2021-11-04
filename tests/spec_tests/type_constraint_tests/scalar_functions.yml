@@ -1,12 +1,12 @@
 variables:
-  - bson_date: &bson_date ["BSON_DATE", "NULL", "MISSING"]
-  - string: &string ["STRING", "NULL", "MISSING"]
-  - int: &int ["INT", "NULL", "MISSING"]
-  - numerics: &numerics ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL", "MISSING"]
-  - comparisonValidTypes: &comparisonValidTypes
+  bson_date: &bson_date ["BSON_DATE", "NULL", "MISSING"]
+  string: &string ["STRING", "NULL", "MISSING"]
+  int: &int ["INT", "NULL", "MISSING"]
+  numerics: &numerics ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL", "MISSING"]
+  comparisonValidTypes: &comparisonValidTypes
       - { "arg1": *string, "arg2": *string }
       - { "arg1": ["BINDATA", "NULL", "MISSING"], "arg2": ["BINDATA", "NULL", "MISSING"] }
-      - { "arg1": ["UNDEFINED", "NULL", "MISSING"], "arg2": ["UNDEFINED", "NULL", "MISSING"] }
+      - { "arg1": ["NULL", "MISSING"], "arg2": ["NULL", "MISSING"] }
       - { "arg1": ["OBJECTID", "NULL", "MISSING"], "arg2": ["OBJECTID", "NULL", "MISSING"] }
       - { "arg1": ["BOOL", "NULL", "MISSING"], "arg2": ["BOOL", "NULL", "MISSING"] }
       - { "arg1": *bson_date, "arg2": *bson_date }
@@ -22,60 +22,61 @@ variables:
 
 tests:
   - description: NULLIF operands must have comparable types (NULL and MISSING are always allowed)
-    query: "SELECT NULLIF(arg1, arg2)"
+    query: "SELECT NULLIF(arg1, arg2) FROM foo"
     valid_types: *comparisonValidTypes
 
   - description: SIZE operand must have type ARRAY or NULL, or be MISSING
-    query: "SELECT SIZE(arg)"
+    query: "SELECT SIZE(arg1) FROM foo"
     valid_types:
-      - { "arg": ["ARRAY", "NULL", "MISSING"] }
+      - { "arg1": ["ARRAY", "NULL", "MISSING"] }
 
   - description: POSITION operands must have type STRING or NULL, or be MISSING
-    query: "SELECT POSITION(arg1 IN arg2)"
+    query: "SELECT POSITION(arg1 IN arg2) FROM foo"
     valid_types:
       - { "arg1": *string, "arg2": *string }
 
   - description: CHAR_LENGTH operand must have type STRING or NULL, or be MISSING
-    query: "SELECT CHAR_LENGTH(arg)"
+    query: "SELECT CHAR_LENGTH(arg1) FROM foo"
     valid_types:
-      - { "arg": *string }
+      - { "arg1": *string }
 
   - description: OCTET_LENGTH operand must have type STRING or NULL, or be MISSING
-    query: "SELECT OCTET_LENGTH(arg)"
+    query: "SELECT OCTET_LENGTH(arg1) FROM foo"
     valid_types:
-      - { "arg": *string }
+      - { "arg1": *string }
 
   - description: BIT_LENGTH operand must have type STRING or NULL, or be MISSING
-    query: "SELECT BIT_LENGTH(arg)"
+    query: "SELECT BIT_LENGTH(arg1) FROM foo"
     valid_types:
-      - { "arg": *string }
+      - { "arg1": *string }
 
   - description: EXTRACT operand must have type BSON_DATE or NULL, or be MISSING
-    query: "SELECT EXTRACT(year FROM arg)"
+    query: "SELECT EXTRACT(year FROM arg1) FROM foo"
     valid_types:
-      - { "arg": *bson_date }
+      - { "arg1": *bson_date }
 
   - description: SUBSTRING operand type constraints
-    query: "SELECT SUBSTRING(arg1 FROM arg2 FOR arg3)"
+    query: "SELECT SUBSTRING(arg1 FROM arg2 FOR arg3) FROM foo"
     valid_types:
       - { "arg1": *string, "arg2": *int, "arg3": *int }
 
   - description: UPPER operand must have type STRING or NULL, or be MISSING
-    query: "SELECT UPPER(arg)"
+    query: "SELECT UPPER(arg1) FROM foo"
     valid_types:
-      - { "arg": *string }
+      - { "arg1": *string }
 
   - description: LOWER operand must have type STRING or NULL, or be MISSING
-    query: "SELECT LOWER(arg)"
+    query: "SELECT LOWER(arg1) FROM foo"
     valid_types:
-      - { "arg": *string }
+      - { "arg1": *string }
 
   - description: TRIM operands must have type STRING or NULL, or be MISSING
-    query: "SELECT TRIM(arg1 FROM arg2)"
+    query: "SELECT TRIM(arg1 FROM arg2) FROM foo"
     valid_types:
       - { "arg1": *string, "arg2": *string }
 
   - description: CURRENT_TIMESTAMP operand must have type INT or NULL, or be MISSING
-    query: "SELECT CURRENT_TIMESTAMP(arg)"
+    query: "SELECT CURRENT_TIMESTAMP(arg1) FROM foo"
+    skip_reason: "SQL-592: Remove CURRENT_TIMESTAMP argument during algebrization"
     valid_types:
-      - { "arg": *int }
+      - { "arg1": *int }

@@ -1,7 +1,52 @@
-use crate::{ast::rewrites::rewrite_query, parser::Parser};
+use crate::{
+    algebrizer::Algebrizer,
+    ast::{rewrites::rewrite_query, Query},
+    catalog::Catalog,
+    map,
+    parser::Parser,
+    schema::{Atomic, Document, Schema},
+    set,
+};
+use itertools::Itertools;
+use lazy_static::lazy_static;
 use serde::{Deserialize, Serialize};
-use std::{fs, io::Read, path::PathBuf};
+use std::{
+    collections::{BTreeMap, BTreeSet},
+    fs,
+    io::Read,
+    path::PathBuf,
+};
 use thiserror::Error;
+
+const MAX_NUM_ARGS: usize = 3;
+const REWRITE_DIR: &str = "../tests/spec_tests/rewrite_tests";
+const TYPE_CONSTRAINT_DIR: &str = "../tests/spec_tests/type_constraint_tests";
+const TEST_DB: &str = "test";
+lazy_static! {
+    static ref TYPE_TO_SCHEMA: BTreeMap<&'static str, Schema> = map! {
+        "ARRAY" => Schema::Array(Box::new(Schema::Any)),
+        "BINDATA" => Schema::Atomic(Atomic::BinData),
+        "BOOL" => Schema::Atomic(Atomic::Boolean),
+        "BSON_DATE" => Schema::Atomic(Atomic::Date),
+        "BSON_TIMESTAMP" => Schema::Atomic(Atomic::Timestamp),
+        "DBPOINTER" => Schema::Atomic(Atomic::DbPointer),
+        "DECIMAL" => Schema::Atomic(Atomic::Decimal),
+        "DOCUMENT" => Schema::Document(Document::empty()),
+        "DOUBLE" => Schema::Atomic(Atomic::Double),
+        "INT" => Schema::Atomic(Atomic::Integer),
+        "JAVASCRIPT" => Schema::Atomic(Atomic::Javascript),
+        "JAVASCRIPTWITHSCOPE" => Schema::Atomic(Atomic::JavascriptWithScope),
+        "LONG" => Schema::Atomic(Atomic::Long),
+        "MAXKEY" => Schema::Atomic(Atomic::MaxKey),
+        "MINKEY" => Schema::Atomic(Atomic::MinKey),
+        "MISSING" => Schema::Missing,
+        "NULL" => Schema::Atomic(Atomic::Null),
+        "OBJECTID" => Schema::Atomic(Atomic::ObjectId),
+        "REGEX" => Schema::Atomic(Atomic::Regex),
+        "STRING" => Schema::Atomic(Atomic::String),
+        "SYMBOL" => Schema::Atomic(Atomic::Symbol),
+    };
+}
 
 #[derive(Debug, Error, PartialEq)]
 pub enum Error {
@@ -21,15 +66,25 @@ pub enum Error {
     CannotReadFileToString(String),
     #[error("unable to deserialize YAML file: {0}")]
     CannotDeserializeYaml(String),
+    #[error("{0} is not a valid schema variant")]
+    InvalidSchemaVariant(String),
+    #[error("unexpected parse error: {0}")]
+    ParsingFailed(String),
+    #[error("unexpected rewrite error: {0}")]
+    RewritesFailed(String),
+    #[error("unexpected algebrize error: {0}")]
+    AlgebrizationFailed(String),
+    #[error("algebrization should have failed, but it didn't")]
+    AlgebrizationDidNotFail,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct YamlTest {
-    pub tests: Vec<Test>,
+pub struct RewriteYamlTest {
+    pub tests: Vec<RewriteTest>,
 }
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
-pub struct Test {
+pub struct RewriteTest {
     pub description: String,
     pub query: String,
     pub result: Option<String>,
@@ -37,6 +92,44 @@ pub struct Test {
     pub skip_reason: Option<String>,
 }
 
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct TypeConstraintYamlTest {
+    pub tests: Vec<TypeConstraintTest>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub variables: Option<Variables>,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct Variables {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bool: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bson_date: Option<Vec<String>>,
+    #[serde(
+        skip_serializing_if = "Option::is_none",
+        rename = "comparisonValidTypes"
+    )]
+    pub comparison_valid_types: Option<Vec<BTreeMap<String, Vec<String>>>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub document: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub int: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub numerics: Option<Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub string: Option<Vec<String>>,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize)]
+pub struct TypeConstraintTest {
+    pub description: String,
+    pub query: String,
+    pub valid_types: Vec<BTreeMap<String, Vec<String>>>,
+    pub skip_reason: Option<String>,
+}
+
+/// load_file_paths reads the given directory and returns a list its file path
+/// names.
 pub fn load_file_paths(dir: PathBuf) -> Result<Vec<String>, Error> {
     let mut paths: Vec<String> = vec![];
     let entries = fs::read_dir(dir).map_err(|e| Error::InvalidDirectory(format!("{:?}", e)))?;
@@ -54,27 +147,42 @@ pub fn load_file_paths(dir: PathBuf) -> Result<Vec<String>, Error> {
     Ok(paths)
 }
 
-pub fn parse_yaml(path: &str) -> Result<YamlTest, Error> {
+/// parse_rewrite_yaml deserializes the given YAML file into a RewriteYamlTest
+/// struct.
+pub fn parse_rewrite_yaml(path: &str) -> Result<RewriteYamlTest, Error> {
     let mut f = fs::File::open(path).map_err(|e| Error::InvalidFile(format!("{:?}", e)))?;
     let mut contents = String::new();
     f.read_to_string(&mut contents)
         .map_err(|e| Error::CannotReadFileToString(format!("{:?}", e)))?;
-    let yaml: YamlTest = serde_yaml::from_str(&contents)
+    let yaml: RewriteYamlTest = serde_yaml::from_str(&contents)
+        .map_err(|e| Error::CannotDeserializeYaml(format!("{:?}", e)))?;
+    Ok(yaml)
+}
+
+/// parse_type_constraint_yaml deserializes the given YAML file into a
+/// TypeConstraintYamlTest struct.
+pub fn parse_type_constraint_yaml(path: &str) -> Result<TypeConstraintYamlTest, Error> {
+    let mut f = fs::File::open(path).map_err(|e| Error::InvalidFile(format!("{:?}", e)))?;
+    let mut contents = String::new();
+    f.read_to_string(&mut contents)
+        .map_err(|e| Error::CannotReadFileToString(format!("{:?}", e)))?;
+    let yaml: TypeConstraintYamlTest = serde_yaml::from_str(&contents)
         .map_err(|e| Error::CannotDeserializeYaml(format!("{:?}", e)))?;
     Ok(yaml)
 }
 
 #[test]
-pub fn run_test() -> Result<(), Error> {
-    let paths = load_file_paths(PathBuf::from("../tests/spec_tests/rewrite_tests")).unwrap();
+#[ignore]
+pub fn run_rewrite_tests() -> Result<(), Error> {
+    let paths = load_file_paths(PathBuf::from(REWRITE_DIR)).unwrap();
     for path in paths {
-        let yaml = parse_yaml(&path).unwrap();
+        let yaml = parse_rewrite_yaml(&path).unwrap();
         for test in yaml.tests {
             match test.skip_reason {
                 Some(_) => continue,
                 None => {
                     let parse_res = Parser::new().parse_query(test.query.as_str());
-                    let ast = parse_res.expect("expected input to parse, but it failed");
+                    let ast = parse_res.map_err(|e| Error::ParsingFailed(format!("{:?}", e)))?;
                     let rewrite_res = rewrite_query(ast);
                     match test.error {
                         Some(_) => assert!(rewrite_res.is_err()),
@@ -90,6 +198,135 @@ pub fn run_test() -> Result<(), Error> {
                             }
                         }
                     };
+                }
+            }
+        }
+    }
+    Ok(())
+}
+
+/// create_catalog returns a catalog that holds the given schema
+/// information as well as schema information needed to algebrize
+/// any query in the type constraint tests.
+pub fn create_catalog(schemas: Vec<Schema>) -> Result<Catalog, Error> {
+    let keys = schemas
+        .into_iter()
+        .enumerate()
+        .map(|(index, schema)| (format!("arg{}", index + 1), schema))
+        .collect::<BTreeMap<String, Schema>>();
+    let required = keys.keys().cloned().collect::<BTreeSet<String>>();
+
+    // Every type constraint test uses either one or two datasources:
+    // 'foo' and/or 'bar'.
+    Ok(map! {
+      (TEST_DB.to_string(), "foo".to_string()).into() => Schema::Document( Document {
+        keys,
+        required,
+        additional_properties: false,
+      }),
+      (TEST_DB.to_string(), "bar".to_string()).into() => Schema::Document( Document {
+        keys: map!{},
+        required: set!{},
+        additional_properties: false
+      }),
+    })
+}
+
+/// validate_algebrization creates an Algebrizer struct using the given type
+/// information, algebrizes the given AST, and then validates the result of
+/// algebrization. [`is_valid`] is true if the arguments in the query can have the
+/// given types, and false if not.
+///
+/// This function assumes that [`types[i]`] describes the type of the i`th
+/// argument in the query.
+fn validate_algebrization(types: Vec<String>, ast: Query, is_valid: bool) -> Result<(), Error> {
+    let schemas = types
+        .into_iter()
+        .map(|arg_type| match TYPE_TO_SCHEMA.get(arg_type.as_str()) {
+            None => Err(Error::InvalidSchemaVariant(arg_type)),
+            Some(schema) => Ok(schema.clone()),
+        })
+        .collect::<Result<Vec<Schema>, Error>>()?;
+    let catalog = create_catalog(schemas)?;
+    let algebrizer = Algebrizer::new(TEST_DB, &catalog, 0u16);
+    let plan = algebrizer
+        .algebrize_query(ast)
+        .map_err(|e| Error::AlgebrizationFailed(format!("{:?}", e)));
+    match plan {
+        Ok(_) => {
+            if !is_valid {
+                Err(Error::AlgebrizationDidNotFail)
+            } else {
+                Ok(())
+            }
+        }
+        Err(e) => {
+            if is_valid {
+                Err(e)
+            } else {
+                Ok(())
+            }
+        }
+    }
+}
+
+#[test]
+#[ignore]
+pub fn run_type_constraint_tests() -> Result<(), Error> {
+    let paths = load_file_paths(PathBuf::from(TYPE_CONSTRAINT_DIR)).unwrap();
+    for path in paths {
+        let yaml = parse_type_constraint_yaml(&path).unwrap();
+        // Calculate P(num_types, n) for 1 <= n <= 3, where num_types is the number
+        // of types specified by the IR.
+        let all_type_permutations = (1..MAX_NUM_ARGS + 1)
+            .map(|num_args| {
+                (
+                    num_args,
+                    TYPE_TO_SCHEMA
+                        .keys()
+                        .map(|s| s.to_string())
+                        .permutations(num_args)
+                        .collect::<BTreeSet<Vec<String>>>(),
+                )
+            })
+            .collect::<BTreeMap<usize, BTreeSet<Vec<String>>>>();
+        for test in yaml.tests {
+            match test.skip_reason {
+                Some(_) => continue,
+                None => {
+                    let parse_res = Parser::new().parse_query(test.query.as_str());
+                    let ast = parse_res.map_err(|e| Error::ParsingFailed(format!("{:?}", e)))?;
+                    let rewrite_res = rewrite_query(ast);
+                    let ast = rewrite_res.map_err(|e| Error::RewritesFailed(format!("{:?}", e)))?;
+                    let mut all_valid_permutations: BTreeSet<Vec<String>> = BTreeSet::new();
+                    let num_args = test.valid_types.get(0).unwrap().len();
+                    // Ensure that algebrization succeeds for all valid type
+                    // combinations.
+                    for valid_types in test.valid_types {
+                        // Find all valid type combinations by computing a cross
+                        // product of the valid types.
+                        let cross_product = valid_types
+                            .values()
+                            .cloned()
+                            .multi_cartesian_product()
+                            .collect::<BTreeSet<Vec<String>>>();
+                        all_valid_permutations = all_valid_permutations
+                            .union(&cross_product.clone())
+                            .cloned()
+                            .collect::<BTreeSet<Vec<String>>>();
+                        cross_product.into_iter().try_for_each(|types| {
+                            validate_algebrization(types, ast.clone(), true)
+                        })?;
+                    }
+                    // Ensure that algebrization fails for all invalid type combinations
+                    all_type_permutations
+                        .get(&num_args)
+                        .unwrap()
+                        .difference(&all_valid_permutations)
+                        .into_iter()
+                        .try_for_each(|types| {
+                            validate_algebrization(types.clone(), ast.clone(), false)
+                        })?;
                 }
             }
         }

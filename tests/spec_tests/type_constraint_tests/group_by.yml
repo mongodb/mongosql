@@ -1,35 +1,37 @@
 variables:
-  - bool: &bool ["BOOL", "NULL", "MISSING"]
-  - document: &document ["DOCUMENT", "NULL", "MISSING"]
-  - numerics: &numerics ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL", "MISSING"]
+  bool: &bool ["BOOL", "NULL", "MISSING"]
+  document: &document ["DOCUMENT", "NULL", "MISSING"]
+  numerics: &numerics ["INT", "LONG", "DOUBLE", "DECIMAL", "NULL", "MISSING"]
+
 
 tests:
   - description: AVG argument must be numeric
-    query: "SELECT * FROM foo GROUP BY key AGGREGATE AVG(arg)"
+    query: "SELECT * FROM foo GROUP BY NULL AGGREGATE AVG(arg1) AS avg"
     valid_types:
-      - {"arg": *numerics}
+      - {"arg1": *numerics}
 
   - description: MERGE_DOCUMENTS argument must be document
-    query: "SELECT * FROM foo GROUP BY key AGGREGATE MERGE_DOCUMENTS(arg)"
+    query: "SELECT * FROM foo GROUP BY NULL AGGREGATE MERGE_DOCUMENTS(arg1) AS merge"
+    skip_reason: "SQL-590: Support nullish document arguments"
     valid_types:
-      - {"arg": *document}
+      - {"arg1": *document}
 
   - description: STDDEV_POP argument must be numeric
-    query: "SELECT * FROM foo GROUP BY key AGGREGATE STDDEV_POP(arg)"
+    query: "SELECT * FROM foo GROUP BY NULL AGGREGATE STDDEV_POP(arg1) AS pop"
     valid_types:
-      - {"arg": *numerics}
+      - {"arg1": *numerics}
 
   - description: STDDEV_SAMP argument must be numeric
-    query: "SELECT * FROM foo GROUP BY key AGGREGATE STDDEV_SAMP(arg)"
+    query: "SELECT * FROM foo GROUP BY NULL AGGREGATE STDDEV_SAMP(arg1) AS samp"
     valid_types:
-      - {"arg": *numerics}
+      - {"arg1": *numerics}
 
   - description: SUM argument must be numeric
-    query: "SELECT * FROM foo GROUP BY key AGGREGATE SUM(arg)"
+    query: "SELECT * FROM foo GROUP BY NULL AGGREGATE SUM(arg1) AS sum"
     valid_types:
-      - {"arg": *numerics}
+      - {"arg1": *numerics}
 
   - description: HAVING argument must be bool
-    query: "SELECT * FROM foo HAVING arg"
+    query: "SELECT * FROM foo HAVING arg1"
     valid_types:
-      - {"arg": *bool}
+      - {"arg1": *bool}
