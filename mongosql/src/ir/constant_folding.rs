@@ -1,6 +1,10 @@
 use crate::{
     catalog::Catalog,
-    ir::{definitions::*, schema::SchemaInferenceState, visitor::Visitor},
+    ir::{
+        definitions::*,
+        schema::{CachedSchema, SchemaCache, SchemaInferenceState},
+        visitor::Visitor,
+    },
     schema::{Atomic, Satisfaction, Schema, SchemaEnvironment},
     set,
 };
@@ -42,9 +46,18 @@ impl ConstantFoldExprVisitor {
     // large longs. It is used to check special arithmetic edge cases like 0 and 1.
     fn numeric_eq(expr: &Expression, num: f64) -> bool {
         match expr {
-            Expression::Literal(Literal::Integer(val)) => *val == num as i32,
-            Expression::Literal(Literal::Long(val)) => *val == num as i64,
-            Expression::Literal(Literal::Double(val)) => *val == num,
+            Expression::Literal(LiteralExpr {
+                value: LiteralValue::Integer(val),
+                ..
+            }) => *val == num as i32,
+            Expression::Literal(LiteralExpr {
+                value: LiteralValue::Long(val),
+                ..
+            }) => *val == num as i64,
+            Expression::Literal(LiteralExpr {
+                value: LiteralValue::Double(val),
+                ..
+            }) => *val == num,
             _ => false,
         }
     }
@@ -71,31 +84,38 @@ impl ConstantFoldExprVisitor {
         let folded_constant = non_nullish
             .into_iter()
             .fold(fold_init, |acc, expr| match expr {
-                Expression::Literal(Literal::Boolean(val)) => op(acc, val),
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::Boolean(val),
+                    ..
+                }) => op(acc, val),
                 expr => {
                     non_literals.push(expr);
                     acc
                 }
             });
-        let folded_expr = Expression::Literal(Literal::Boolean(folded_constant));
+        let folded_expr = Expression::Literal(LiteralValue::Boolean(folded_constant).into());
         if non_literals.is_empty() && !has_null {
             return folded_expr;
         }
         match sf.function {
             ScalarFunction::And => {
                 if !folded_constant {
-                    return Expression::Literal(Literal::Boolean(false));
+                    return Expression::Literal(LiteralValue::Boolean(false).into());
                 }
             }
             ScalarFunction::Or => {
                 if folded_constant {
-                    return Expression::Literal(Literal::Boolean(true));
+                    return Expression::Literal(LiteralValue::Boolean(true).into());
                 }
             }
             _ => unreachable!("fold logical functions is only called on And and Or"),
         };
         let args = if has_null {
-            [vec![Expression::Literal(Literal::Null)], non_literals].concat()
+            [
+                vec![Expression::Literal(LiteralValue::Null.into())],
+                non_literals,
+            ]
+            .concat()
         } else {
             [vec![folded_expr], non_literals].concat()
         };
@@ -105,6 +125,7 @@ impl ConstantFoldExprVisitor {
         Expression::ScalarFunction(ScalarFunctionApplication {
             function: sf.function,
             args,
+            cache: SchemaCache::new(),
         })
     }
 
@@ -114,12 +135,12 @@ impl ConstantFoldExprVisitor {
         sf: ScalarFunctionApplication,
     ) -> Expression {
         if Self::has_null_arg(&sf.args) {
-            return Expression::Literal(Literal::Null);
+            return Expression::Literal(LiteralValue::Null.into());
         }
         if sf.args.is_empty() {
             match sf.function {
-                ScalarFunction::Add => return Expression::Literal(Literal::Integer(0)),
-                ScalarFunction::Mul => return Expression::Literal(Literal::Integer(1)),
+                ScalarFunction::Add => return Expression::Literal(LiteralValue::Integer(0).into()),
+                ScalarFunction::Mul => return Expression::Literal(LiteralValue::Integer(1).into()),
                 _ => unreachable!("fold associative function only called on Add and Mul"),
             }
         }
@@ -129,15 +150,24 @@ impl ConstantFoldExprVisitor {
                 sf.args
                     .into_iter()
                     .fold((None, None, None), |(i, l, f), expr| match expr {
-                        Expression::Literal(Literal::Integer(val)) => match i {
+                        Expression::Literal(LiteralExpr {
+                            value: LiteralValue::Integer(val),
+                            ..
+                        }) => match i {
                             None => (Some(val), l, f),
                             Some(num) => (Some(num + val), l, f),
                         },
-                        Expression::Literal(Literal::Long(val)) => match l {
+                        Expression::Literal(LiteralExpr {
+                            value: LiteralValue::Long(val),
+                            ..
+                        }) => match l {
                             None => (i, Some(val), f),
                             Some(num) => (i, Some(num + val), f),
                         },
-                        Expression::Literal(Literal::Double(val)) => match f {
+                        Expression::Literal(LiteralExpr {
+                            value: LiteralValue::Double(val),
+                            ..
+                        }) => match f {
                             None => (i, l, Some(val)),
                             Some(num) => (i, l, Some(num + val)),
                         },
@@ -151,15 +181,24 @@ impl ConstantFoldExprVisitor {
                 sf.args
                     .into_iter()
                     .fold((None, None, None), |(i, l, f), expr| match expr {
-                        Expression::Literal(Literal::Integer(val)) => match i {
+                        Expression::Literal(LiteralExpr {
+                            value: LiteralValue::Integer(val),
+                            ..
+                        }) => match i {
                             None => (Some(val), l, f),
                             Some(num) => (Some(num * val), l, f),
                         },
-                        Expression::Literal(Literal::Long(val)) => match l {
+                        Expression::Literal(LiteralExpr {
+                            value: LiteralValue::Long(val),
+                            ..
+                        }) => match l {
                             None => (i, Some(val), f),
                             Some(num) => (i, Some(num * val), f),
                         },
-                        Expression::Literal(Literal::Double(val)) => match f {
+                        Expression::Literal(LiteralExpr {
+                            value: LiteralValue::Double(val),
+                            ..
+                        }) => match f {
                             None => (i, l, Some(val)),
                             Some(num) => (i, l, Some(num * val)),
                         },
@@ -172,9 +211,9 @@ impl ConstantFoldExprVisitor {
             _ => unreachable!("fold associative function is only called on And and Mul"),
         };
         let literals: Vec<Expression> = vec![
-            int_fold.map(|val| Expression::Literal(Literal::Integer(val))),
-            long_fold.map(|val| Expression::Literal(Literal::Long(val))),
-            float_fold.map(|val| Expression::Literal(Literal::Double(val))),
+            int_fold.map(|val| Expression::Literal(LiteralValue::Integer(val).into())),
+            long_fold.map(|val| Expression::Literal(LiteralValue::Long(val).into())),
+            float_fold.map(|val| Expression::Literal(LiteralValue::Double(val).into())),
         ]
         .into_iter()
         .flatten()
@@ -202,6 +241,7 @@ impl ConstantFoldExprVisitor {
         Expression::ScalarFunction(ScalarFunctionApplication {
             function: sf.function,
             args,
+            cache: SchemaCache::new(),
         })
     }
 
@@ -219,46 +259,84 @@ impl ConstantFoldExprVisitor {
                 } else {
                     match (&left, &right) {
                         (
-                            Expression::Literal(Literal::Integer(l)),
-                            Expression::Literal(Literal::Integer(r)),
-                        ) => Expression::Literal(Literal::Integer(l - r)),
+                            Expression::Literal(LiteralExpr {
+                                value: LiteralValue::Integer(l),
+                                ..
+                            }),
+                            Expression::Literal(LiteralExpr {
+                                value: LiteralValue::Integer(r),
+                                ..
+                            }),
+                        ) => Expression::Literal(LiteralValue::Integer(l - r).into()),
                         (
-                            Expression::Literal(Literal::Long(l)),
-                            Expression::Literal(Literal::Long(r)),
-                        ) => Expression::Literal(Literal::Long(l - r)),
+                            Expression::Literal(LiteralExpr {
+                                value: LiteralValue::Long(l),
+                                ..
+                            }),
+                            Expression::Literal(LiteralExpr {
+                                value: LiteralValue::Long(r),
+                                ..
+                            }),
+                        ) => Expression::Literal(LiteralValue::Long(l - r).into()),
                         (
-                            Expression::Literal(Literal::Double(l)),
-                            Expression::Literal(Literal::Double(r)),
-                        ) => Expression::Literal(Literal::Double(l - r)),
+                            Expression::Literal(LiteralExpr {
+                                value: LiteralValue::Double(l),
+                                ..
+                            }),
+                            Expression::Literal(LiteralExpr {
+                                value: LiteralValue::Double(r),
+                                ..
+                            }),
+                        ) => Expression::Literal(LiteralValue::Double(l - r).into()),
                         _ => Expression::ScalarFunction(ScalarFunctionApplication {
                             function,
                             args: vec![left, right],
+                            cache: SchemaCache::new(),
                         }),
                     }
                 }
             }
             ScalarFunction::Div => {
                 if Self::numeric_eq(&right, 0.0) {
-                    Expression::Literal(Literal::Null)
+                    Expression::Literal(LiteralValue::Null.into())
                 } else if Self::numeric_eq(&right, 1.0) {
                     left
                 } else {
                     match (&left, &right) {
                         (
-                            Expression::Literal(Literal::Integer(l)),
-                            Expression::Literal(Literal::Integer(r)),
-                        ) => Expression::Literal(Literal::Integer(l / r)),
+                            Expression::Literal(LiteralExpr {
+                                value: LiteralValue::Integer(l),
+                                ..
+                            }),
+                            Expression::Literal(LiteralExpr {
+                                value: LiteralValue::Integer(r),
+                                ..
+                            }),
+                        ) => Expression::Literal(LiteralValue::Integer(l / r).into()),
                         (
-                            Expression::Literal(Literal::Long(l)),
-                            Expression::Literal(Literal::Long(r)),
-                        ) => Expression::Literal(Literal::Long(l / r)),
+                            Expression::Literal(LiteralExpr {
+                                value: LiteralValue::Long(l),
+                                ..
+                            }),
+                            Expression::Literal(LiteralExpr {
+                                value: LiteralValue::Long(r),
+                                ..
+                            }),
+                        ) => Expression::Literal(LiteralValue::Long(l / r).into()),
                         (
-                            Expression::Literal(Literal::Double(l)),
-                            Expression::Literal(Literal::Double(r)),
-                        ) => Expression::Literal(Literal::Double(l / r)),
+                            Expression::Literal(LiteralExpr {
+                                value: LiteralValue::Double(l),
+                                ..
+                            }),
+                            Expression::Literal(LiteralExpr {
+                                value: LiteralValue::Double(r),
+                                ..
+                            }),
+                        ) => Expression::Literal(LiteralValue::Double(l / r).into()),
                         _ => Expression::ScalarFunction(ScalarFunctionApplication {
                             function,
                             args: vec![left, right],
+                            cache: SchemaCache::new(),
                         }),
                     }
                 }
@@ -277,28 +355,62 @@ impl ConstantFoldExprVisitor {
         use std::cmp::Ordering;
         let ord = match (&left, &right) {
             (
-                Expression::Literal(Literal::Boolean(l)),
-                Expression::Literal(Literal::Boolean(r)),
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::Boolean(l),
+                    ..
+                }),
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::Boolean(r),
+                    ..
+                }),
             ) => l.partial_cmp(r),
             (
-                Expression::Literal(Literal::Integer(l)),
-                Expression::Literal(Literal::Integer(r)),
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::Integer(l),
+                    ..
+                }),
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::Integer(r),
+                    ..
+                }),
             ) => l.partial_cmp(r),
-            (Expression::Literal(Literal::Long(l)), Expression::Literal(Literal::Long(r))) => {
-                l.partial_cmp(r)
-            }
-            (Expression::Literal(Literal::Double(l)), Expression::Literal(Literal::Double(r))) => {
-                l.partial_cmp(r)
-            }
-            (Expression::Literal(Literal::String(l)), Expression::Literal(Literal::String(r))) => {
-                l.partial_cmp(r)
-            }
+            (
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::Long(l),
+                    ..
+                }),
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::Long(r),
+                    ..
+                }),
+            ) => l.partial_cmp(r),
+            (
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::Double(l),
+                    ..
+                }),
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::Double(r),
+                    ..
+                }),
+            ) => l.partial_cmp(r),
+            (
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::String(l),
+                    ..
+                }),
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::String(r),
+                    ..
+                }),
+            ) => l.partial_cmp(r),
             _ => None,
         };
         if ord.is_none() {
             return Expression::ScalarFunction(ScalarFunctionApplication {
                 function,
                 args: vec![left, right],
+                cache: SchemaCache::new(),
             });
         }
         let ord = ord.unwrap();
@@ -311,7 +423,7 @@ impl ConstantFoldExprVisitor {
             ScalarFunction::Neq => ord != Ordering::Equal,
             _ => unreachable!("non-comparison function cannot be called"),
         };
-        Expression::Literal(Literal::Boolean(val))
+        Expression::Literal(LiteralValue::Boolean(val).into())
     }
 
     // Constant folds the between function
@@ -327,12 +439,15 @@ impl ConstantFoldExprVisitor {
                 Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::Lte,
                     args: vec![arg.clone(), top],
+                    cache: SchemaCache::new(),
                 }),
                 Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::Gte,
                     args: vec![arg, bottom],
+                    cache: SchemaCache::new(),
                 }),
             ],
+            cache: SchemaCache::new(),
         });
         let folded_expr = self.visit_expression(new_sf);
         if let Expression::Literal(_) = folded_expr {
@@ -349,69 +464,79 @@ impl ConstantFoldExprVisitor {
             "Unary function should only have one arg"
         );
         if Self::has_null_arg(&sf.args) {
-            return Expression::Literal(Literal::Null);
+            return Expression::Literal(LiteralValue::Null.into());
         }
         let arg = sf.args[0].clone();
         let func = sf.function;
         let sf_expr = Expression::ScalarFunction(sf);
-        if let Expression::Array(ref array) = arg {
+        if let Expression::Array(ArrayExpr { ref array, .. }) = arg {
             if func == ScalarFunction::Size {
-                Expression::Literal(Literal::Integer(array.len() as i32))
+                Expression::Literal(LiteralValue::Integer(array.len() as i32).into())
             } else {
                 sf_expr
             }
         } else if let Expression::Literal(lit) = arg {
             match func {
-                ScalarFunction::Pos => match lit {
-                    Literal::Integer(_) | Literal::Long(_) | Literal::Double(_) => {
+                ScalarFunction::Pos => match lit.value {
+                    LiteralValue::Integer(_) | LiteralValue::Long(_) | LiteralValue::Double(_) => {
                         Expression::Literal(lit)
                     }
                     _ => sf_expr,
                 },
-                ScalarFunction::Neg => match lit {
-                    Literal::Integer(val) => Expression::Literal(Literal::Integer(-val)),
-                    Literal::Long(val) => Expression::Literal(Literal::Long(-val)),
-                    Literal::Double(val) => Expression::Literal(Literal::Double(-val)),
+                ScalarFunction::Neg => match lit.value {
+                    LiteralValue::Integer(val) => {
+                        Expression::Literal(LiteralValue::Integer(-val).into())
+                    }
+                    LiteralValue::Long(val) => Expression::Literal(LiteralValue::Long(-val).into()),
+                    LiteralValue::Double(val) => {
+                        Expression::Literal(LiteralValue::Double(-val).into())
+                    }
                     _ => sf_expr,
                 },
                 ScalarFunction::Not => {
-                    if let Literal::Boolean(val) = lit {
-                        Expression::Literal(Literal::Boolean(!val))
+                    if let LiteralValue::Boolean(val) = lit.value {
+                        Expression::Literal(LiteralValue::Boolean(!val).into())
                     } else {
                         sf_expr
                     }
                 }
                 ScalarFunction::Upper => {
-                    if let Literal::String(val) = lit {
-                        Expression::Literal(Literal::String(val.to_ascii_uppercase()))
+                    if let LiteralValue::String(val) = lit.value {
+                        Expression::Literal(LiteralValue::String(val.to_ascii_uppercase()).into())
                     } else {
                         sf_expr
                     }
                 }
                 ScalarFunction::Lower => {
-                    if let Literal::String(val) = lit {
-                        Expression::Literal(Literal::String(val.to_ascii_lowercase()))
+                    if let LiteralValue::String(val) = lit.value {
+                        Expression::Literal(LiteralValue::String(val.to_ascii_lowercase()).into())
                     } else {
                         sf_expr
                     }
                 }
                 ScalarFunction::CharLength => {
-                    if let Literal::String(val) = lit {
-                        Expression::Literal(Literal::Integer(val.chars().count() as i32))
+                    if let LiteralValue::String(val) = lit.value {
+                        Expression::Literal(
+                            LiteralValue::Integer(val.chars().count() as i32).into(),
+                        )
                     } else {
                         sf_expr
                     }
                 }
                 ScalarFunction::OctetLength => {
-                    if let Literal::String(val) = lit {
-                        Expression::Literal(Literal::Integer(val.bytes().count() as i32))
+                    if let LiteralValue::String(val) = lit.value {
+                        Expression::Literal(
+                            LiteralValue::Integer(val.bytes().count() as i32).into(),
+                        )
                     } else {
                         sf_expr
                     }
                 }
                 ScalarFunction::BitLength => {
-                    if let Literal::String(val) = lit {
-                        Expression::Literal(Literal::Integer(val.bytes().count() as i32 * 8))
+                    if let LiteralValue::String(val) = lit.value {
+                        Expression::Literal(
+                            LiteralValue::Integer(val.bytes().count() as i32 * 8).into(),
+                        )
                     } else {
                         sf_expr
                     }
@@ -431,8 +556,14 @@ impl ConstantFoldExprVisitor {
         string: Expression,
     ) -> Expression {
         if let (
-            Expression::Literal(Literal::String(sub)),
-            Expression::Literal(Literal::String(st)),
+            Expression::Literal(LiteralExpr {
+                value: LiteralValue::String(sub),
+                ..
+            }),
+            Expression::Literal(LiteralExpr {
+                value: LiteralValue::String(st),
+                ..
+            }),
         ) = (&substr, &string)
         {
             let pattern = &sub.chars().collect::<Vec<char>>()[..];
@@ -442,11 +573,12 @@ impl ConstantFoldExprVisitor {
                 ScalarFunction::LTrim => st.trim_start_matches(pattern).to_string(),
                 _ => unreachable!("fold trim is only called on trim functions"),
             };
-            Expression::Literal(Literal::String(val))
+            Expression::Literal(LiteralValue::String(val).into())
         } else {
             Expression::ScalarFunction(ScalarFunctionApplication {
                 function,
                 args: vec![substr, string],
+                cache: SchemaCache::new(),
             })
         }
     }
@@ -455,13 +587,13 @@ impl ConstantFoldExprVisitor {
     fn fold_substring_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
         use std::cmp;
         if Self::has_null_arg(&sf.args) {
-            return Expression::Literal(Literal::Null);
+            return Expression::Literal(LiteralValue::Null.into());
         }
         let (string, start, len) = if sf.args.len() == 2 {
             (
                 sf.args[0].clone(),
                 sf.args[1].clone(),
-                Expression::Literal(Literal::Integer(-1)),
+                Expression::Literal(LiteralValue::Integer(-1).into()),
             )
         } else if sf.args.len() == 3 {
             (sf.args[0].clone(), sf.args[1].clone(), sf.args[2].clone())
@@ -469,9 +601,18 @@ impl ConstantFoldExprVisitor {
             panic!("Substring must have two or three args")
         };
         if let (
-            Expression::Literal(Literal::String(st)),
-            Expression::Literal(Literal::Integer(start)),
-            Expression::Literal(Literal::Integer(len)),
+            Expression::Literal(LiteralExpr {
+                value: LiteralValue::String(st),
+                ..
+            }),
+            Expression::Literal(LiteralExpr {
+                value: LiteralValue::Integer(start),
+                ..
+            }),
+            Expression::Literal(LiteralExpr {
+                value: LiteralValue::Integer(len),
+                ..
+            }),
         ) = (string, start, len)
         {
             let string_len = st.len() as i32;
@@ -481,7 +622,7 @@ impl ConstantFoldExprVisitor {
                 start + len
             };
             if start >= string_len || end < 0 {
-                Expression::Literal(Literal::String("".to_string()))
+                Expression::Literal(LiteralValue::String("".to_string()).into())
             } else {
                 let start = cmp::max(start, 0);
                 let end = cmp::min(end, string_len);
@@ -491,7 +632,7 @@ impl ConstantFoldExprVisitor {
                     .skip(start as usize)
                     .take(len as usize)
                     .collect::<String>();
-                Expression::Literal(Literal::String(substr))
+                Expression::Literal(LiteralValue::String(substr).into())
             }
         } else {
             Expression::ScalarFunction(sf)
@@ -501,22 +642,29 @@ impl ConstantFoldExprVisitor {
     // Constant folds the concat function
     fn fold_concat_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
         if sf.args.is_empty() {
-            return Expression::Literal(Literal::String("".to_string()));
+            return Expression::Literal(LiteralValue::String("".to_string()).into());
         }
         if Self::has_null_arg(&sf.args) {
-            return Expression::Literal(Literal::Null);
+            return Expression::Literal(LiteralValue::Null.into());
         }
         let mut result = Vec::<Expression>::new();
         for expr in sf.args {
             match &expr {
-                Expression::Literal(Literal::String(val)) => {
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::String(val),
+                    ..
+                }) => {
                     if result.is_empty() {
                         result.push(expr);
-                    } else if let Expression::Literal(Literal::String(prev_val)) =
-                        result.last().unwrap().clone()
+                    } else if let Expression::Literal(LiteralExpr {
+                        value: LiteralValue::String(prev_val),
+                        ..
+                    }) = result.last().unwrap().clone()
                     {
                         result.pop();
-                        result.push(Expression::Literal(Literal::String(prev_val + val)));
+                        result.push(Expression::Literal(
+                            LiteralValue::String(prev_val + val).into(),
+                        ));
                     } else {
                         result.push(expr)
                     }
@@ -530,6 +678,7 @@ impl ConstantFoldExprVisitor {
             Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Concat,
                 args: result,
+                cache: SchemaCache::new(),
             })
         }
     }
@@ -540,7 +689,7 @@ impl ConstantFoldExprVisitor {
         match (&sf.args[0], &sf.args[1]) {
             (Expression::Literal(l), Expression::Literal(r)) => {
                 if l.eq(r) {
-                    Expression::Literal(Literal::Null)
+                    Expression::Literal(LiteralValue::Null.into())
                 } else {
                     sf.args[0].clone()
                 }
@@ -551,19 +700,27 @@ impl ConstantFoldExprVisitor {
 
     // Constant folds the computed field function
     fn fold_computed_field_function(&mut self, left: Expression, right: Expression) -> Expression {
-        if let (Expression::Document(doc), Expression::Literal(Literal::String(field))) =
-            (&left, &right)
+        if let (
+            Expression::Document(DocumentExpr { document, .. }),
+            Expression::Literal(LiteralExpr {
+                value: LiteralValue::String(field),
+                ..
+            }),
+        ) = (&left, &right)
         {
-            doc.get(field)
+            document
+                .get(field)
                 .unwrap_or(&Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::ComputedFieldAccess,
                     args: vec![left.clone(), right],
+                    cache: SchemaCache::new(),
                 }))
                 .clone()
         } else {
             Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::ComputedFieldAccess,
                 args: vec![left, right],
+                cache: SchemaCache::new(),
             })
         }
     }
@@ -571,7 +728,7 @@ impl ConstantFoldExprVisitor {
     // Constant folds the coalesce function
     fn fold_coalesce_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
         if sf.args.is_empty() {
-            return Expression::Literal(Literal::Null);
+            return Expression::Literal(LiteralValue::Null.into());
         }
         let mut is_all_null = true;
         for expr in &sf.args {
@@ -590,7 +747,7 @@ impl ConstantFoldExprVisitor {
             }
         }
         if is_all_null {
-            return Expression::Literal(Literal::Null);
+            return Expression::Literal(LiteralValue::Null.into());
         }
         Expression::ScalarFunction(sf)
     }
@@ -602,8 +759,8 @@ impl ConstantFoldExprVisitor {
         // as that is allowed in the semantics of merge_objects.
         let mut result_doc = linked_hash_map::LinkedHashMap::new();
         for (i, expr) in sf.args.clone().into_iter().enumerate() {
-            if let Expression::Document(map) = expr {
-                for (key, value) in map.iter() {
+            if let Expression::Document(DocumentExpr { document, .. }) = expr {
+                for (key, value) in document.iter() {
                     result_doc.insert(key.clone(), value.clone());
                 }
             } else {
@@ -614,22 +771,28 @@ impl ConstantFoldExprVisitor {
                         sf.args.into_iter().skip(i).collect(),
                     ]
                     .concat(),
+                    cache: SchemaCache::new(),
                 });
             }
         }
-        Expression::Document(UniqueLinkedHashMap::from(result_doc))
+        Expression::Document(UniqueLinkedHashMap::from(result_doc).into())
     }
 
     // Constant folds the slice function
     fn fold_slice_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
         use std::cmp;
         if Self::has_null_arg(&sf.args) {
-            return Expression::Literal(Literal::Null);
+            return Expression::Literal(LiteralValue::Null.into());
         }
         if sf.args.len() == 2 {
             let (array, len) = (sf.args[0].clone(), sf.args[1].clone());
-            if let (Expression::Array(array), Expression::Literal(Literal::Integer(len))) =
-                (array, len)
+            if let (
+                Expression::Array(ArrayExpr { array, .. }),
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::Integer(len),
+                    ..
+                }),
+            ) = (array, len)
             {
                 let array_len = array.len() as i32;
                 if len < 0 {
@@ -638,7 +801,8 @@ impl ConstantFoldExprVisitor {
                         array
                             .into_iter()
                             .skip(len as usize)
-                            .collect::<Vec<Expression>>(),
+                            .collect::<Vec<Expression>>()
+                            .into(),
                     );
                 } else {
                     let len = cmp::min(len, array_len);
@@ -646,24 +810,31 @@ impl ConstantFoldExprVisitor {
                         array
                             .into_iter()
                             .take(len as usize)
-                            .collect::<Vec<Expression>>(),
+                            .collect::<Vec<Expression>>()
+                            .into(),
                     );
                 }
             }
         } else if sf.args.len() == 3 {
             let (array, start, len) = (sf.args[0].clone(), sf.args[1].clone(), sf.args[2].clone());
             if let (
-                Expression::Array(array),
-                Expression::Literal(Literal::Integer(start)),
-                Expression::Literal(Literal::Integer(len)),
+                Expression::Array(ArrayExpr { array, .. }),
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::Integer(start),
+                    ..
+                }),
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::Integer(len),
+                    ..
+                }),
             ) = (array, start, len)
             {
                 let array_len = array.len() as i32;
                 if len < 0 {
-                    return Expression::Literal(Literal::Null);
+                    return Expression::Literal(LiteralValue::Null.into());
                 }
                 if start >= array_len {
-                    return Expression::Array(vec![]);
+                    return Expression::Array(vec![].into());
                 }
                 let start = if start.abs() >= array_len {
                     0
@@ -676,7 +847,8 @@ impl ConstantFoldExprVisitor {
                         .into_iter()
                         .skip(start as usize)
                         .take(len as usize)
-                        .collect::<Vec<Expression>>(),
+                        .collect::<Vec<Expression>>()
+                        .into(),
                 );
             }
         } else {
@@ -692,7 +864,7 @@ impl ConstantFoldExprVisitor {
             "Binary functions must only have two args"
         );
         if Self::has_null_arg(&sf.args) {
-            return Expression::Literal(Literal::Null);
+            return Expression::Literal(LiteralValue::Null.into());
         }
         let (left, right) = (sf.args[0].clone(), sf.args[1].clone());
         match sf.function {
@@ -721,9 +893,9 @@ impl ConstantFoldExprVisitor {
             Err(_) => Expression::Is(is_expr),
             Ok(schema) => {
                 if schema.satisfies(&target_schema) == Satisfaction::Must {
-                    Expression::Literal(Literal::Boolean(true))
+                    Expression::Literal(LiteralValue::Boolean(true).into())
                 } else if schema.satisfies(&target_schema) == Satisfaction::Not {
-                    Expression::Literal(Literal::Boolean(false))
+                    Expression::Literal(LiteralValue::Boolean(false).into())
                 } else {
                     Expression::Is(is_expr)
                 }
@@ -781,6 +953,7 @@ impl ConstantFoldExprVisitor {
                 expr: case_expr.expr,
                 when_branch: new_case_branches,
                 else_branch: case_expr.else_branch,
+                cache: SchemaCache::new(),
             })
         }
     }
@@ -791,7 +964,7 @@ impl ConstantFoldExprVisitor {
         for when_branch in case_expr.when_branch.clone() {
             match &*when_branch.when {
                 Expression::Literal(lit) => {
-                    if lit.eq(&Literal::Boolean(true)) {
+                    if lit.value.eq(&LiteralValue::Boolean(true)) {
                         if new_case_branches.is_empty() {
                             return *when_branch.then;
                         } else {
@@ -808,6 +981,7 @@ impl ConstantFoldExprVisitor {
             Expression::SearchedCase(SearchedCaseExpr {
                 when_branch: new_case_branches,
                 else_branch: case_expr.else_branch,
+                cache: SchemaCache::new(),
             })
         }
     }
@@ -815,8 +989,8 @@ impl ConstantFoldExprVisitor {
     // Folds the field access expression
     fn fold_field_access_expr(&mut self, field_expr: FieldAccess) -> Expression {
         let expr = field_expr.clone();
-        if let Expression::Document(ref doc) = *field_expr.expr {
-            let res = doc.get(&field_expr.field);
+        if let Expression::Document(DocumentExpr { ref document, .. }) = *field_expr.expr {
+            let res = document.get(&field_expr.field);
             return res.unwrap_or(&Expression::FieldAccess(expr)).clone();
         }
         Expression::FieldAccess(field_expr)
@@ -824,7 +998,11 @@ impl ConstantFoldExprVisitor {
 
     // Folds the filter stage
     fn fold_filter_stage(&mut self, filter_stage: Filter) -> Stage {
-        if let Expression::Literal(Literal::Boolean(val)) = filter_stage.condition {
+        if let Expression::Literal(LiteralExpr {
+            value: LiteralValue::Boolean(val),
+            ..
+        }) = filter_stage.condition
+        {
             if val {
                 return *filter_stage.source;
             }

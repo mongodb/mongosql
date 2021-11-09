@@ -65,7 +65,7 @@ macro_rules! test_codegen_expr {
 }
 
 mod collection {
-    use crate::ir::*;
+    use crate::ir::{schema::SchemaCache, *};
 
     test_codegen_plan!(
         simple,
@@ -79,6 +79,7 @@ mod collection {
         input = Stage::Collection(Collection {
             db: "mydb".to_string(),
             collection: "col".to_string(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -93,12 +94,13 @@ mod collection {
         input = Stage::Collection(Collection {
             db: "mydb".to_string(),
             collection: "_id".to_string(),
+            cache: SchemaCache::new(),
         }),
     );
 }
 
 mod array_stage {
-    use crate::ir::*;
+    use crate::ir::{schema::SchemaCache, *};
 
     test_codegen_plan!(
         empty,
@@ -110,9 +112,10 @@ mod array_stage {
                 bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
             ],
         }),
-        input = Stage::Array(Array {
+        input = Stage::Array(ArraySource {
             array: vec![],
             alias: "arr".to_string(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -125,9 +128,10 @@ mod array_stage {
                 bson::doc!{"$project": {"_id": "$$ROOT"}},
             ],
         }),
-        input = Stage::Array(Array {
+        input = Stage::Array(ArraySource {
             array: vec![],
             alias: "_id".to_string(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -140,9 +144,10 @@ mod array_stage {
                 bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
             ],
         }),
-        input = Stage::Array(Array {
-            array: vec![Expression::Literal(Literal::Boolean(false))],
+        input = Stage::Array(ArraySource {
+            array: vec![Expression::Literal(LiteralValue::Boolean(false).into())],
             alias: "arr".to_string(),
+            cache: SchemaCache::new(),
         }),
     );
 }
@@ -152,6 +157,7 @@ mod project {
         codegen::Error,
         ir::{
             binding_tuple::{DatasourceName, Key},
+            schema::SchemaCache,
             *,
         },
         map, unchecked_unique_linked_hash_map,
@@ -170,14 +176,16 @@ mod project {
         }),
         input = Stage::Project(Project {
             expression: map! {
-                ("a", 0u16).into() => Expression::Literal(Literal::Integer(1)),
-                ("b", 0u16).into() => Expression::Literal(Literal::Integer(2)),
-                ("c", 0u16).into() => Expression::Literal(Literal::Integer(3)),
+                ("a", 0u16).into() => Expression::Literal(LiteralValue::Integer(1).into()),
+                ("b", 0u16).into() => Expression::Literal(LiteralValue::Integer(2).into()),
+                ("c", 0u16).into() => Expression::Literal(LiteralValue::Integer(3).into()),
             },
-            source: Stage::Array(Array {
-                array: vec![Expression::Document(unchecked_unique_linked_hash_map!{})],
+            source: Stage::Array(ArraySource {
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map!{}.into())],
                 alias: "arr".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
 
@@ -194,10 +202,12 @@ mod project {
         }),
         input = Stage::Project(Project {
             expression: map! {},
-            source: Stage::Array(Array {
-                array: vec![Expression::Document(unchecked_unique_linked_hash_map!{})],
+            source: Stage::Array(ArraySource {
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map!{}.into())],
                 alias: "arr".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
 
@@ -216,10 +226,12 @@ mod project {
             expression: map! {
                 ("foo", 0u16).into() => Expression::Reference(("arr", 0u16).into()),
             },
-            source: Stage::Array(Array {
-                array: vec![Expression::Document(unchecked_unique_linked_hash_map!{})],
+            source: Stage::Array(ArraySource {
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map!{}.into())],
                 alias: "arr".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
 
@@ -236,13 +248,15 @@ mod project {
         }),
         input = Stage::Project(Project {
             expression: map! {
-                ("_id", 0u16).into() => Expression::Literal(Literal::Double(42.0)),
-                ("foo", 0u16).into() => Expression::Literal(Literal::Double(44.0)),
+                ("_id", 0u16).into() => Expression::Literal(LiteralValue::Double(42.0).into()),
+                ("foo", 0u16).into() => Expression::Literal(LiteralValue::Double(44.0).into()),
             },
-            source: Stage::Array(Array {
-                array: vec![Expression::Document(unchecked_unique_linked_hash_map!{})],
+            source: Stage::Array(ArraySource {
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map!{}.into())],
                 alias: "arr".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
 
@@ -267,14 +281,16 @@ mod project {
         input = Stage::Project(Project {
             expression: map! {
                 Key{ datasource: DatasourceName::Bottom, scope: 0u16 } => Expression::Reference(("__bot", 0u16).into()),
-                ("__bot", 0u16).into() => Expression::Literal(Literal::Double(43.0)),
-                ("___bot", 0u16).into() => Expression::Literal(Literal::Double(44.0)),
-                ("_____bot", 0u16).into() => Expression::Literal(Literal::Double(45.0)),
+                ("__bot", 0u16).into() => Expression::Literal(LiteralValue::Double(43.0).into()),
+                ("___bot", 0u16).into() => Expression::Literal(LiteralValue::Double(44.0).into()),
+                ("_____bot", 0u16).into() => Expression::Literal(LiteralValue::Double(45.0).into()),
             },
-            source: Stage::Array(Array {
-                array: vec![Expression::Document(unchecked_unique_linked_hash_map!{"a".into() => Expression::Literal(Literal::Integer(42))})],
+            source: Stage::Array(ArraySource {
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map!{"a".into() => Expression::Literal(LiteralValue::Integer(42).into())}.into())],
                 alias: "__bot".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
 
@@ -283,13 +299,17 @@ mod project {
         expected = Err(Error::InvalidProjectField),
         input = Stage::Project(Project {
             expression: map! {
-                ("a.b", 0u16).into() => Expression::Literal(Literal::Integer(1)),
+                ("a.b", 0u16).into() => Expression::Literal(LiteralValue::Integer(1).into()),
             },
-            source: Stage::Array(Array {
-                array: vec![Expression::Document(unchecked_unique_linked_hash_map! {})],
+            source: Stage::Array(ArraySource {
+                array: vec![Expression::Document(
+                    unchecked_unique_linked_hash_map! {}.into()
+                )],
                 alias: "arr".to_string(),
+                cache: SchemaCache::new(),
             })
             .into(),
+            cache: SchemaCache::new(),
         }),
     );
 
@@ -298,13 +318,17 @@ mod project {
         expected = Err(Error::InvalidProjectField),
         input = Stage::Project(Project {
             expression: map! {
-                ("$a", 0u16).into() => Expression::Literal(Literal::Integer(1)),
+                ("$a", 0u16).into() => Expression::Literal(LiteralValue::Integer(1).into()),
             },
-            source: Stage::Array(Array {
-                array: vec![Expression::Document(unchecked_unique_linked_hash_map! {})],
+            source: Stage::Array(ArraySource {
+                array: vec![Expression::Document(
+                    unchecked_unique_linked_hash_map! {}.into()
+                )],
                 alias: "arr".to_string(),
+                cache: SchemaCache::new(),
             })
             .into(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -312,19 +336,23 @@ mod project {
         expected = Err(Error::InvalidProjectField),
         input = Stage::Project(Project {
             expression: map! {
-                ("", 0u16).into() => Expression::Literal(Literal::Integer(1)),
+                ("", 0u16).into() => Expression::Literal(LiteralValue::Integer(1).into()),
             },
-            source: Stage::Array(Array {
-                array: vec![Expression::Document(unchecked_unique_linked_hash_map! {})],
+            source: Stage::Array(ArraySource {
+                array: vec![Expression::Document(
+                    unchecked_unique_linked_hash_map! {}.into()
+                )],
                 alias: "arr".to_string(),
+                cache: SchemaCache::new(),
             })
             .into(),
+            cache: SchemaCache::new(),
         }),
     );
 }
 
 mod filter {
-    use crate::ir::*;
+    use crate::ir::{schema::SchemaCache, *};
 
     test_codegen_plan!(
         simple,
@@ -338,11 +366,13 @@ mod filter {
             ],
         }),
         input = Stage::Filter(Filter {
-            condition: Expression::Literal(Literal::Boolean(true)),
-            source: Stage::Array(Array {
+            condition: Expression::Literal(LiteralValue::Boolean(true).into()),
+            source: Stage::Array(ArraySource {
                 array: vec![],
                 alias: "arr".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
 }
@@ -350,7 +380,7 @@ mod filter {
 mod sort {
     use crate::{
         codegen::Error,
-        ir::{Expression::Reference, SortSpecification::*, *},
+        ir::{schema::SchemaCache, Expression::Reference, SortSpecification::*, *},
         unchecked_unique_linked_hash_map,
     };
 
@@ -367,10 +397,12 @@ mod sort {
         }),
         input = Stage::Sort(Sort {
             specs: vec![],
-            source: Stage::Array(Array {
+            source: Stage::Array(ArraySource {
                 array: vec![],
                 alias: "arr".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -388,7 +420,9 @@ mod sort {
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -406,7 +440,9 @@ mod sort {
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -426,13 +462,16 @@ mod sort {
                     Expression::FieldAccess(FieldAccess{
                         field: "a".to_string(),
                         expr: Reference(("col", 0u16).into()).into(),
+                        cache: SchemaCache::new(),
                     }).into(),
                 ),
             ],
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -450,24 +489,31 @@ mod sort {
                 Expression::FieldAccess(FieldAccess{
                     field: "f".to_string(),
                     expr: Reference(("col", 0u16).into()).into(),
+                    cache: SchemaCache::new(),
                 }).into(),
             )],
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
         other_expr,
         expected = Err(Error::InvalidSortKey),
         input = Stage::Sort(Sort {
-            specs: vec![Asc(Expression::Literal(Literal::Integer(1)).into())],
+            specs: vec![Asc(
+                Expression::Literal(LiteralValue::Integer(1).into()).into()
+            )],
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
+                cache: SchemaCache::new(),
             })
             .into(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -476,23 +522,29 @@ mod sort {
         input = Stage::Sort(Sort {
             specs: vec![Asc(Expression::FieldAccess(FieldAccess {
                 expr: Expression::Document(
-                    unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(1))}
-                )
+                    unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(LiteralValue::Integer(1).into())}
+                .into())
                 .into(),
                 field: "sub".to_string(),
+                cache: SchemaCache::new(),
             })
             .into(),)],
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
+                cache: SchemaCache::new(),
             })
             .into(),
+            cache: SchemaCache::new(),
         }),
     );
 }
 
 mod limit_offset {
-    use crate::{codegen::Error, ir::*};
+    use crate::{
+        codegen::Error,
+        ir::{schema::SchemaCache, *},
+    };
 
     test_codegen_plan!(
         limit_simple,
@@ -509,7 +561,9 @@ mod limit_offset {
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -520,8 +574,10 @@ mod limit_offset {
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
+                cache: SchemaCache::new(),
             })
             .into(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -539,7 +595,9 @@ mod limit_offset {
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -550,45 +608,47 @@ mod limit_offset {
             source: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
+                cache: SchemaCache::new(),
             })
             .into(),
+            cache: SchemaCache::new(),
         }),
     );
 }
 
 mod literal {
-    use crate::ir::{Expression::*, Literal::*};
+    use crate::ir::{Expression::*, LiteralValue::*};
     use bson::{bson, Bson};
 
     test_codegen_expr!(
         null,
         expected = Ok(bson!({ "$literal": Bson::Null })),
-        input = Literal(Null),
+        input = Literal(Null.into()),
     );
     test_codegen_expr!(
         bool,
         expected = Ok(bson!({"$literal": true})),
-        input = Literal(Boolean(true)),
+        input = Literal(Boolean(true).into()),
     );
     test_codegen_expr!(
         string,
         expected = Ok(bson!({"$literal": "abc"})),
-        input = Literal(String("abc".into())),
+        input = Literal(String("abc".into()).into()),
     );
     test_codegen_expr!(
         int,
         expected = Ok(bson!({"$literal": 5_i32})),
-        input = Literal(Integer(5)),
+        input = Literal(Integer(5).into()),
     );
     test_codegen_expr!(
         long,
         expected = Ok(bson!({"$literal": 6_i64})),
-        input = Literal(Long(6)),
+        input = Literal(Long(6).into()),
     );
     test_codegen_expr!(
         double,
         expected = Ok(bson!({"$literal": 7.0})),
-        input = Literal(Double(7.0)),
+        input = Literal(Double(7.0).into()),
     );
 }
 
@@ -615,29 +675,36 @@ mod reference {
 }
 
 mod array {
-    use crate::ir::{Expression::*, Literal};
+    use crate::ir::{Expression::*, LiteralValue};
     use bson::bson;
 
-    test_codegen_expr!(empty, expected = Ok(bson!([])), input = Array(vec![]),);
+    test_codegen_expr!(
+        empty,
+        expected = Ok(bson!([])),
+        input = Array(vec![].into()),
+    );
     test_codegen_expr!(
         non_empty,
         expected = Ok(bson!([{"$literal": "abc"}])),
-        input = Array(vec![Literal(Literal::String("abc".into()))]),
+        input = Array(vec![Literal(LiteralValue::String("abc".into()).into())].into()),
     );
     test_codegen_expr!(
         nested,
         expected = Ok(bson!([{ "$literal": null }, [{ "$literal": null }]])),
-        input = Array(vec![
-            Literal(Literal::Null),
-            Array(vec![Literal(Literal::Null)])
-        ]),
+        input = Array(
+            vec![
+                Literal(LiteralValue::Null.into()),
+                Array(vec![Literal(LiteralValue::Null.into())].into())
+            ]
+            .into()
+        ),
     );
 }
 
 mod document {
     use crate::{
         codegen::Error,
-        ir::{Expression::*, Literal},
+        ir::{Expression::*, LiteralValue},
         unchecked_unique_linked_hash_map,
     };
     use bson::bson;
@@ -645,50 +712,56 @@ mod document {
     test_codegen_expr!(
         empty,
         expected = Ok(bson!({"$literal": {}})),
-        input = Document(unchecked_unique_linked_hash_map! {}),
+        input = Document(unchecked_unique_linked_hash_map! {}.into()),
     );
     test_codegen_expr!(
         non_empty,
         expected = Ok(bson!({"foo": {"$literal": 1}})),
         input = Document(
-            unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Literal::Integer(1)),}
-        ),
+            unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(LiteralValue::Integer(1).into()),}
+        .into()),
     );
     test_codegen_expr!(
         nested,
         expected = Ok(bson!({"foo": {"$literal": 1}, "bar": {"baz": {"$literal": 2}}})),
-        input = Document(unchecked_unique_linked_hash_map! {
-            "foo".to_string() => Literal(Literal::Integer(1)),
-            "bar".to_string() => Document(unchecked_unique_linked_hash_map!{
-                "baz".to_string() => Literal(Literal::Integer(2))
-            }),
-        }),
+        input = Document(
+            unchecked_unique_linked_hash_map! {
+                "foo".to_string() => Literal(LiteralValue::Integer(1).into()),
+                "bar".to_string() => Document(unchecked_unique_linked_hash_map!{
+                    "baz".to_string() => Literal(LiteralValue::Integer(2).into())
+                }.into()),
+            }
+            .into()
+        ),
     );
     test_codegen_expr!(
         dollar_prefixed_key_disallowed,
         expected = Err(Error::InvalidDocumentKey),
         input = Document(
-            unchecked_unique_linked_hash_map! {"$foo".to_string() => Literal(Literal::Integer(1)),}
-        ),
+            unchecked_unique_linked_hash_map! {"$foo".to_string() => Literal(LiteralValue::Integer(1).into()),}
+        .into()),
     );
     test_codegen_expr!(
         key_containing_dot_disallowed,
         expected = Err(Error::InvalidDocumentKey),
         input = Document(
-            unchecked_unique_linked_hash_map! {"foo.bar".to_string() => Literal(Literal::Integer(1)),}
-        ),
+            unchecked_unique_linked_hash_map! {"foo.bar".to_string() => Literal(LiteralValue::Integer(1).into()),}
+        .into()),
     );
     test_codegen_expr!(
         empty_key_disallowed,
         expected = Err(Error::InvalidDocumentKey),
         input = Document(
-            unchecked_unique_linked_hash_map! {"".to_string() => Literal(Literal::Integer(1)),}
-        ),
+            unchecked_unique_linked_hash_map! {"".to_string() => Literal(LiteralValue::Integer(1).into()),}
+        .into()),
     );
 }
 
 mod field_access {
-    use crate::{ir::*, unchecked_unique_linked_hash_map};
+    use crate::{
+        ir::{schema::SchemaCache, *},
+        unchecked_unique_linked_hash_map,
+    };
     use bson::Bson;
 
     test_codegen_expr!(
@@ -697,6 +770,7 @@ mod field_access {
         input = Expression::FieldAccess(FieldAccess {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             field: "sub".to_string(),
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -712,8 +786,10 @@ mod field_access {
             expr: Expression::FieldAccess(FieldAccess {
                 expr: Expression::Reference(("f", 0u16).into()).into(),
                 field: "sub".to_string(),
+                cache: SchemaCache::new(),
             })
             .into(),
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -729,10 +805,11 @@ mod field_access {
         }})),
         input = Expression::FieldAccess(FieldAccess {
             expr: Expression::Document(
-                unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(1))}
-            )
+                unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(LiteralValue::Integer(1).into())}
+            .into())
             .into(),
             field: "sub".to_string(),
+            cache: SchemaCache::new(),
         }),
     );
 
@@ -743,8 +820,9 @@ mod field_access {
             "input": {"$literal": "f"},
         }})),
         input = Expression::FieldAccess(FieldAccess {
-            expr: Expression::Literal(Literal::String("f".into())).into(),
+            expr: Expression::Literal(LiteralValue::String("f".into()).into()).into(),
             field: "sub".to_string(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_expr!(
@@ -753,6 +831,7 @@ mod field_access {
         input = Expression::FieldAccess(FieldAccess {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             field: "$sub".to_string(),
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -766,6 +845,7 @@ mod field_access {
         input = Expression::FieldAccess(FieldAccess {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             field: "s$ub".to_string(),
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -779,6 +859,7 @@ mod field_access {
         input = Expression::FieldAccess(FieldAccess {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             field: "s.ub".to_string(),
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -792,6 +873,7 @@ mod field_access {
         input = Expression::FieldAccess(FieldAccess {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             field: "".to_string(),
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -802,29 +884,30 @@ mod field_access {
 }
 
 mod searched_case_expression {
-    use crate::ir::*;
+    use crate::ir::{schema::SchemaCache, *};
     test_codegen_expr!(
         one_case,
-        expected = Ok(bson::bson!({"$switch": 
-            {"branches": [{"case": {"$literal": true}, 
+        expected = Ok(bson::bson!({"$switch":
+            {"branches": [{"case": {"$literal": true},
                                             "then": {"$literal": "first case"}}],
             "default": {"$literal": "else case"}}})),
         input = Expression::SearchedCase(SearchedCaseExpr {
             when_branch: vec![WhenBranch {
-                when: Box::new(Expression::Literal(Literal::Boolean(true))),
-                then: Box::new(Expression::Literal(Literal::String(
-                    "first case".to_string()
-                )))
+                when: Box::new(Expression::Literal(LiteralValue::Boolean(true).into())),
+                then: Box::new(Expression::Literal(
+                    LiteralValue::String("first case".to_string()).into()
+                ))
             }],
-            else_branch: Box::new(Expression::Literal(Literal::String(
-                "else case".to_string()
-            )))
+            else_branch: Box::new(Expression::Literal(
+                LiteralValue::String("else case".to_string()).into()
+            )),
+            cache: SchemaCache::new(),
         }),
     );
 
     test_codegen_expr!(
         multiple_cases,
-        expected = Ok(bson::bson!({"$switch": 
+        expected = Ok(bson::bson!({"$switch":
             {"branches": [{"case": {"$literal": false}, "then": {"$literal": "first case"}},
             {"case": {"$literal": true}, "then": {"$literal": "second case"}},
             {"case": {"$literal": true}, "then": {"$literal": "third case"}}],
@@ -832,97 +915,104 @@ mod searched_case_expression {
         input = Expression::SearchedCase(SearchedCaseExpr {
             when_branch: vec![
                 WhenBranch {
-                    when: Box::new(Expression::Literal(Literal::Boolean(false))),
-                    then: Box::new(Expression::Literal(Literal::String(
-                        "first case".to_string()
-                    )))
+                    when: Box::new(Expression::Literal(LiteralValue::Boolean(false).into())),
+                    then: Box::new(Expression::Literal(
+                        LiteralValue::String("first case".to_string()).into()
+                    ))
                 },
                 WhenBranch {
-                    when: Box::new(Expression::Literal(Literal::Boolean(true))),
-                    then: Box::new(Expression::Literal(Literal::String(
-                        "second case".to_string()
-                    )))
+                    when: Box::new(Expression::Literal(LiteralValue::Boolean(true).into())),
+                    then: Box::new(Expression::Literal(
+                        LiteralValue::String("second case".to_string()).into()
+                    ))
                 },
                 WhenBranch {
-                    when: Box::new(Expression::Literal(Literal::Boolean(true))),
-                    then: Box::new(Expression::Literal(Literal::String(
-                        "third case".to_string()
-                    )))
+                    when: Box::new(Expression::Literal(LiteralValue::Boolean(true).into())),
+                    then: Box::new(Expression::Literal(
+                        LiteralValue::String("third case".to_string()).into()
+                    ))
                 }
             ],
-            else_branch: Box::new(Expression::Literal(Literal::String(
-                "else case".to_string()
-            )))
+            else_branch: Box::new(Expression::Literal(
+                LiteralValue::String("else case".to_string()).into()
+            )),
+            cache: SchemaCache::new(),
         }),
     );
 }
 
 mod simple_case_expression {
-    use crate::ir::*;
+    use crate::ir::{schema::SchemaCache, *};
     test_codegen_expr!(
         one_case,
         expected = Ok(
             bson::bson!({"$let": {"vars": {"target": {"$literal": "co"}}, "in": {"$switch":
-            {"branches": [{"case": {"$sqlEq": ["$$target", {"$literal": true}]}, 
+            {"branches": [{"case": {"$sqlEq": ["$$target", {"$literal": true}]},
                                             "then": {"$literal": "true case"}}],
             "default": {"$literal": "else case"}}}}})
         ),
         input = Expression::SimpleCase(SimpleCaseExpr {
-            expr: Box::new(Expression::Literal(Literal::String("co".to_string()))),
+            expr: Box::new(Expression::Literal(
+                LiteralValue::String("co".to_string()).into()
+            )),
             when_branch: vec![WhenBranch {
-                when: Box::new(Expression::Literal(Literal::Boolean(true))),
-                then: Box::new(Expression::Literal(Literal::String(
-                    "true case".to_string()
-                )))
+                when: Box::new(Expression::Literal(LiteralValue::Boolean(true).into())),
+                then: Box::new(Expression::Literal(
+                    LiteralValue::String("true case".to_string()).into()
+                ))
             }],
-            else_branch: Box::new(Expression::Literal(Literal::String(
-                "else case".to_string()
-            )))
+            else_branch: Box::new(Expression::Literal(
+                LiteralValue::String("else case".to_string()).into()
+            )),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_expr!(
         multiple_cases,
         expected = Ok(
             bson::bson!({"$let": {"vars": {"target": {"$literal": "co"}}, "in": {"$switch":
-            {"branches": [{"case": {"$sqlEq": ["$$target", {"$literal": false}]}, 
+            {"branches": [{"case": {"$sqlEq": ["$$target", {"$literal": false}]},
                                             "then": {"$literal": "first case"}},
-            {"case": {"$sqlEq": ["$$target", {"$literal": false}]}, 
+            {"case": {"$sqlEq": ["$$target", {"$literal": false}]},
                                             "then": {"$literal": "second case"}},
-            {"case": {"$sqlEq": ["$$target", {"$literal": false}]}, 
+            {"case": {"$sqlEq": ["$$target", {"$literal": false}]},
                                             "then": {"$literal": "third case"}}],
             "default": {"$literal": "else case"}}}}})
         ),
         input = Expression::SimpleCase(SimpleCaseExpr {
-            expr: Box::new(Expression::Literal(Literal::String("co".to_string()))),
+            expr: Box::new(Expression::Literal(
+                LiteralValue::String("co".to_string()).into()
+            )),
             when_branch: vec![
                 WhenBranch {
-                    when: Box::new(Expression::Literal(Literal::Boolean(false))),
-                    then: Box::new(Expression::Literal(Literal::String(
-                        "first case".to_string()
-                    )))
+                    when: Box::new(Expression::Literal(LiteralValue::Boolean(false).into())),
+                    then: Box::new(Expression::Literal(
+                        LiteralValue::String("first case".to_string()).into()
+                    ))
                 },
                 WhenBranch {
-                    when: Box::new(Expression::Literal(Literal::Boolean(false))),
-                    then: Box::new(Expression::Literal(Literal::String(
-                        "second case".to_string()
-                    )))
+                    when: Box::new(Expression::Literal(LiteralValue::Boolean(false).into())),
+                    then: Box::new(Expression::Literal(
+                        LiteralValue::String("second case".to_string()).into()
+                    ))
                 },
                 WhenBranch {
-                    when: Box::new(Expression::Literal(Literal::Boolean(false))),
-                    then: Box::new(Expression::Literal(Literal::String(
-                        "third case".to_string()
-                    )))
+                    when: Box::new(Expression::Literal(LiteralValue::Boolean(false).into())),
+                    then: Box::new(Expression::Literal(
+                        LiteralValue::String("third case".to_string()).into()
+                    ))
                 }
             ],
-            else_branch: Box::new(Expression::Literal(Literal::String(
-                "else case".to_string()
-            )))
+            else_branch: Box::new(Expression::Literal(
+                LiteralValue::String("else case".to_string()).into()
+            )),
+            cache: SchemaCache::new(),
         }),
     );
 }
 
 mod join {
-    use crate::ir::*;
+    use crate::ir::{schema::SchemaCache, *};
 
     test_codegen_plan!(
         join_simple,
@@ -937,12 +1027,15 @@ mod join {
             left: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
             right: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col2".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
             join_type: JoinType::Inner,
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -961,16 +1054,19 @@ mod join {
             }}],
         }),
         input = Stage::Join(Join {
-            condition: Some(Expression::Literal(Literal::Boolean(true))),
+            condition: Some(Expression::Literal(LiteralValue::Boolean(true).into())),
             left: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
             right: Stage::Collection(Collection {
                 db: "mydb2".to_string(),
                 collection: "col2".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
             join_type: JoinType::Left,
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -992,12 +1088,15 @@ mod join {
             left: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
-            right: Stage::Array(Array {
-                array: vec![Expression::Literal(Literal::Integer(1)),Expression::Literal(Literal::Integer(1))],
+            right: Stage::Array(ArraySource {
+                array: vec![Expression::Literal(LiteralValue::Integer(1).into()),Expression::Literal(LiteralValue::Integer(1).into())],
                 alias: "arr".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
             join_type: JoinType::Left,
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -1020,12 +1119,15 @@ mod join {
             left: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
             right: Stage::Collection(Collection {
                 db: "mydb2".to_string(),
                 collection: "col2".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
             join_type: JoinType::Left,
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -1048,18 +1150,21 @@ mod join {
             left: Stage::Collection(Collection {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
             right: Stage::Collection(Collection {
                 db: "mydb2".to_string(),
                 collection: "col2".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
             join_type: JoinType::Left,
+            cache: SchemaCache::new(),
         }),
     );
 }
 
 mod union {
-    use crate::ir::*;
+    use crate::ir::{schema::SchemaCache, *};
 
     test_codegen_plan!(
         collection_union_all_collection,
@@ -1074,11 +1179,14 @@ mod union {
             left: Stage::Collection(Collection {
                 db: "foo".to_string(),
                 collection: "a".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
             right: Stage::Collection(Collection {
                 db: "bar".to_string(),
                 collection: "b".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -1096,14 +1204,17 @@ mod union {
         }),
         input = Stage::Set(Set {
             operation: SetOperation::UnionAll,
-            left: Stage::Array(Array {
-                array: vec![Expression::Literal(Literal::Integer(1))],
+            left: Stage::Array(ArraySource {
+                array: vec![Expression::Literal(LiteralValue::Integer(1).into())],
                 alias: "arr1".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
-            right: Stage::Array(Array {
-                array: vec![Expression::Literal(Literal::Integer(2))],
+            right: Stage::Array(ArraySource {
+                array: vec![Expression::Literal(LiteralValue::Integer(2).into())],
                 alias: "arr2".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -1118,14 +1229,17 @@ mod union {
         }),
         input = Stage::Set(Set {
             operation: SetOperation::UnionAll,
-            left: Stage::Array(Array {
-                array: vec![Expression::Literal(Literal::Integer(1))],
+            left: Stage::Array(ArraySource {
+                array: vec![Expression::Literal(LiteralValue::Integer(1).into())],
                 alias: "arr".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
             right: Stage::Collection(Collection {
                 db: "bar".to_string(),
                 collection: "b".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -1144,11 +1258,14 @@ mod union {
             left: Stage::Collection(Collection {
                 db: "foo".to_string(),
                 collection: "a".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
-            right: Stage::Array(Array {
-                array: vec![Expression::Literal(Literal::Integer(1))],
+            right: Stage::Array(ArraySource {
+                array: vec![Expression::Literal(LiteralValue::Integer(1).into())],
                 alias: "arr".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -1171,18 +1288,23 @@ mod union {
             left: Stage::Collection(Collection {
                 db: "foo".to_string(),
                 collection: "a".to_string(),
+                cache: SchemaCache::new(),
             }).into(),
             right: Stage::Set(Set {
                 operation: SetOperation::UnionAll,
                 left: Stage::Collection(Collection {
                     db: "bar".to_string(),
                     collection: "b".to_string(),
+                    cache: SchemaCache::new(),
                 }).into(),
-                right: Stage::Array(Array {
-                    array: vec![Expression::Literal(Literal::Integer(1))],
+                right: Stage::Array(ArraySource {
+                    array: vec![Expression::Literal(LiteralValue::Integer(1).into())],
                     alias: "arr".to_string(),
+                    cache: SchemaCache::new(),
                 }).into(),
+                cache: SchemaCache::new(),
             }).into(),
+            cache: SchemaCache::new(),
         }),
     );
 }
@@ -1190,7 +1312,7 @@ mod union {
 mod function {
     use crate::{
         codegen::Error,
-        ir::{definitions::*, Expression::*, Literal, ScalarFunction::*},
+        ir::{definitions::*, schema::SchemaCache, Expression::*, LiteralValue, ScalarFunction::*},
     };
     use bson::bson;
 
@@ -1201,8 +1323,9 @@ mod function {
             function: Concat,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
-                Expression::Literal(Literal::String("bar".to_string())),
+                Expression::Literal(LiteralValue::String("bar".to_string()).into()),
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1221,6 +1344,7 @@ mod function {
             expr: Expression::Reference(("input", 0u16).into()).into(),
             pattern: Expression::Reference(("pattern", 0u16).into()).into(),
             escape: Some("escape".to_string()),
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1235,6 +1359,7 @@ mod function {
         input = Expression::Is(IsExpr {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             target_type: TypeOrMissing::Number,
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1249,6 +1374,7 @@ mod function {
         input = Expression::Is(IsExpr {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             target_type: TypeOrMissing::Type(Type::Null),
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1262,6 +1388,7 @@ mod function {
         input = Expression::Is(IsExpr {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             target_type: TypeOrMissing::Missing,
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1275,6 +1402,7 @@ mod function {
         input = Expression::Is(IsExpr {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             target_type: TypeOrMissing::Type(Type::Double),
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1288,6 +1416,7 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: Pos,
             args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1303,6 +1432,7 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: Neg,
             args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1320,8 +1450,9 @@ mod function {
             args: vec![
                 Expression::Reference(("f1", 0u16).into()),
                 Expression::Reference(("f2", 0u16).into()),
-                Expression::Literal(Literal::Integer(1))
+                Expression::Literal(LiteralValue::Integer(1).into())
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1339,8 +1470,9 @@ mod function {
             function: Sub,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
-                Expression::Literal(Literal::Integer(1))
+                Expression::Literal(LiteralValue::Integer(1).into())
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1358,8 +1490,9 @@ mod function {
             args: vec![
                 Expression::Reference(("f1", 0u16).into()),
                 Expression::Reference(("f2", 0u16).into()),
-                Expression::Literal(Literal::Integer(1))
+                Expression::Literal(LiteralValue::Integer(1).into())
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1377,8 +1510,9 @@ mod function {
             function: Div,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
-                Expression::Literal(Literal::Integer(1))
+                Expression::Literal(LiteralValue::Integer(1).into())
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1395,8 +1529,9 @@ mod function {
             function: Lt,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
-                Expression::Literal(Literal::Integer(1))
+                Expression::Literal(LiteralValue::Integer(1).into())
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1413,8 +1548,9 @@ mod function {
             function: Lte,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
-                Expression::Literal(Literal::Integer(1))
+                Expression::Literal(LiteralValue::Integer(1).into())
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1431,8 +1567,9 @@ mod function {
             function: Neq,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
-                Expression::Literal(Literal::Integer(1))
+                Expression::Literal(LiteralValue::Integer(1).into())
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1449,8 +1586,9 @@ mod function {
             function: Eq,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
-                Expression::Literal(Literal::Integer(1))
+                Expression::Literal(LiteralValue::Integer(1).into())
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1467,8 +1605,9 @@ mod function {
             function: Gt,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
-                Expression::Literal(Literal::Integer(1))
+                Expression::Literal(LiteralValue::Integer(1).into())
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1485,8 +1624,9 @@ mod function {
             function: Gte,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
-                Expression::Literal(Literal::Integer(1))
+                Expression::Literal(LiteralValue::Integer(1).into())
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1503,9 +1643,10 @@ mod function {
             function: Between,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
-                Expression::Literal(Literal::Integer(1)),
-                Expression::Literal(Literal::Integer(10))
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(10).into())
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1519,6 +1660,7 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: Not,
             args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1536,8 +1678,9 @@ mod function {
             args: vec![
                 Expression::Reference(("f1", 0u16).into()),
                 Expression::Reference(("f2", 0u16).into()),
-                Expression::Literal(Literal::Boolean(true))
+                Expression::Literal(LiteralValue::Boolean(true).into())
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1556,8 +1699,9 @@ mod function {
             args: vec![
                 Expression::Reference(("f1", 0u16).into()),
                 Expression::Reference(("f2", 0u16).into()),
-                Expression::Literal(Literal::Boolean(true))
+                Expression::Literal(LiteralValue::Boolean(true).into())
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1576,8 +1720,9 @@ mod function {
             args: vec![
                 Expression::Reference(("f1", 0u16).into()),
                 Expression::Reference(("f2", 0u16).into()),
-                Expression::Literal(Literal::Integer(1))
+                Expression::Literal(LiteralValue::Integer(1).into())
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1596,8 +1741,9 @@ mod function {
             args: vec![
                 Expression::Reference(("f1", 0u16).into()),
                 Expression::Reference(("f2", 0u16).into()),
-                Expression::Literal(Literal::Integer(1))
+                Expression::Literal(LiteralValue::Integer(1).into())
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1615,9 +1761,10 @@ mod function {
             function: Slice,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
-                Expression::Literal(Literal::Integer(1)),
-                Expression::Literal(Literal::Integer(1))
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(1).into())
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1631,6 +1778,7 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: Size,
             args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1644,9 +1792,10 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: Position,
             args: vec![
-                Expression::Literal(Literal::String("a".to_string())),
+                Expression::Literal(LiteralValue::String("a".to_string()).into()),
                 Expression::Reference(("f", 0u16).into()),
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1660,6 +1809,7 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: CharLength,
             args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1673,6 +1823,7 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: OctetLength,
             args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1686,6 +1837,7 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: BitLength,
             args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1700,9 +1852,10 @@ mod function {
             function: Substring,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
-                Expression::Literal(Literal::Integer(1)),
-                Expression::Literal(Literal::Integer(10)),
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(10).into()),
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1716,6 +1869,7 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: Upper,
             args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1729,6 +1883,7 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: Lower,
             args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1742,6 +1897,7 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: CurrentTimestamp,
             args: vec![],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_expr!(
@@ -1750,9 +1906,10 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: LTrim,
             args: vec![
-                Expression::Literal(Literal::String("a".to_string())),
+                Expression::Literal(LiteralValue::String("a".to_string()).into()),
                 Expression::Reference(("f", 0u16).into()),
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1766,9 +1923,10 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: RTrim,
             args: vec![
-                Expression::Literal(Literal::String("a".to_string())),
+                Expression::Literal(LiteralValue::String("a".to_string()).into()),
                 Expression::Reference(("f", 0u16).into()),
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1782,9 +1940,10 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: BTrim,
             args: vec![
-                Expression::Literal(Literal::String("a".to_string())),
+                Expression::Literal(LiteralValue::String("a".to_string()).into()),
                 Expression::Reference(("f", 0u16).into()),
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1798,6 +1957,7 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: Year,
             args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1811,6 +1971,7 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: Month,
             args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1824,6 +1985,7 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: Day,
             args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1837,6 +1999,7 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: Hour,
             args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1850,6 +2013,7 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: Minute,
             args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1863,6 +2027,7 @@ mod function {
         input = ScalarFunction(ScalarFunctionApplication {
             function: Second,
             args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1877,8 +2042,9 @@ mod function {
             function: ComputedFieldAccess,
             args: vec![
                 Expression::Reference(("f", 0u16).into()),
-                Expression::Literal(Literal::Long(42)),
+                Expression::Literal(LiteralValue::Long(42).into()),
             ],
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1889,22 +2055,27 @@ mod function {
 }
 
 mod group_by {
-    use crate::{codegen::Error, ir::definitions::*, map, unchecked_unique_linked_hash_map};
-    use lazy_static::lazy_static;
+    use crate::{
+        codegen::Error, ir::definitions::*, ir::schema::SchemaCache, map,
+        unchecked_unique_linked_hash_map,
+    };
 
-    lazy_static! {
-        static ref SOURCE_IR: Box<Stage> = Box::new(Stage::Collection(Collection {
+    fn source_ir() -> Box<Stage> {
+        Box::new(Stage::Collection(Collection {
             db: "test".into(),
             collection: "foo".into(),
-        }));
-        static ref KEY_FOO_A: Vec<OptionallyAliasedExpr> =
-            vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
-                alias: "foo_a".to_string(),
-                expr: Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                    field: "a".into()
-                }),
-            })];
+            cache: SchemaCache::new(),
+        }))
+    }
+    fn key_foo_a() -> Vec<OptionallyAliasedExpr> {
+        vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
+            alias: "foo_a".to_string(),
+            expr: Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                field: "a".into(),
+                cache: SchemaCache::new(),
+            }),
+        })]
     }
 
     test_codegen_plan!(
@@ -1919,12 +2090,13 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
+            source: source_ir(),
             keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "f".into(),
                 expr: Expression::Reference(("foo", 0u16).into()),
             })],
             aggregations: vec![],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -1939,12 +2111,13 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
+            source: source_ir(),
             keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "_id".into(),
                 expr: Expression::Reference(("foo", 0u16).into()),
             })],
             aggregations: vec![],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -1959,15 +2132,17 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
+            source: source_ir(),
             keys: vec![OptionallyAliasedExpr::Unaliased(
                 Expression::FieldAccess(
                     FieldAccess{
                         expr: Expression::Reference(("foo", 0u16).into()).into(),
                         field: "_id".into(),
+                        cache: SchemaCache::new(),
                     }),
             )],
             aggregations: vec![],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -1984,21 +2159,24 @@ mod group_by {
         }),
         input = Stage::Group(Group {
             source:Box::new(Stage::Project(Project {
-                source: SOURCE_IR.clone(),
+                source: source_ir(),
                 expression: map! {
                     ("_id", 0u16).into() =>
                         Expression::Reference(("foo", 0u16).into())
-                }
+                },
+                cache: SchemaCache::new(),
             },)),
             keys: vec![OptionallyAliasedExpr::Unaliased(
                 Expression::FieldAccess(
                     FieldAccess{
                         expr: Expression::Reference(("_id", 0u16).into()).into(),
                         field: "a".into(),
+                        cache: SchemaCache::new(),
                     }
                 )
             )],
             aggregations: vec![],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2013,9 +2191,10 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
-            keys: KEY_FOO_A.clone(),
+            source: source_ir(),
+            keys: key_foo_a(),
             aggregations: vec![],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2030,19 +2209,22 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
+            source: source_ir(),
             keys: vec![OptionallyAliasedExpr::Unaliased(
                 Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                    field: "a".into()
+                    field: "a".into(),
+                    cache: SchemaCache::new(),
                 }),
             ), OptionallyAliasedExpr::Unaliased(
                 Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                    field: "b".into()
+                    field: "b".into(),
+                    cache: SchemaCache::new(),
                 }),
             )],
             aggregations: vec![],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2057,28 +2239,32 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
+            source: source_ir(),
             keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "foo_a".to_string(),
                 expr: Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                    field: "a".into()
+                    field: "a".into(),
+                    cache: SchemaCache::new(),
                 }),
             }),
             OptionallyAliasedExpr::Unaliased(
                 Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                    field: "b".into()
+                    field: "b".into(),
+                        cache: SchemaCache::new(),
                 }),
             ),
             OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "foo_c".to_string(),
                 expr: Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                    field: "c".into()
+                    field: "c".into(),
+                        cache: SchemaCache::new(),
                 }),
             })],
             aggregations: vec![],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2093,38 +2279,43 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
+            source: source_ir(),
             keys: vec![
                 OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "__unaliasedKey2".to_string(),
                 expr: Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                    field: "a".into()
+                    field: "a".into(),
+                        cache: SchemaCache::new(),
                 }),
             }),
             OptionallyAliasedExpr::Unaliased(
                 Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                    field: "b".into()
+                    field: "b".into(),
+                        cache: SchemaCache::new(),
                 }),
             )],
             aggregations: vec![],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
         invalid_group_key_field_access,
         expected = Err(Error::InvalidGroupKey),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
+            source: source_ir(),
             keys: vec![OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(
                 FieldAccess {
                     expr: Box::new(Expression::Document(
-                        unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(1))}
-                    )),
+                        unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(LiteralValue::Integer(1).into())}
+                    .into())),
                     field: "sub".to_string(),
+                    cache: SchemaCache::new(),
                 }
             ))],
             aggregations: vec![],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2139,8 +2330,8 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
-            keys: KEY_FOO_A.clone(),
+            source: source_ir(),
+            keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
                 agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
@@ -2148,10 +2339,12 @@ mod group_by {
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into()
+                        field: "a".into(),
+                        cache: SchemaCache::new(),
                     }))
                 })
             }],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2166,8 +2359,8 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
-            keys: KEY_FOO_A.clone(),
+            source: source_ir(),
+            keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
                 agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
@@ -2175,10 +2368,12 @@ mod group_by {
                     distinct: false,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into()
+                        field: "a".into(),
+                        cache: SchemaCache::new(),
                     }))
                 })
             }],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2193,8 +2388,8 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
-            keys: KEY_FOO_A.clone(),
+            source: source_ir(),
+            keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
                 agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
@@ -2202,10 +2397,12 @@ mod group_by {
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into()
+                        field: "a".into(),
+                        cache: SchemaCache::new(),
                     }))
                 })
             }],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2220,8 +2417,8 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
-            keys: KEY_FOO_A.clone(),
+            source: source_ir(),
+            keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
                 agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
@@ -2229,10 +2426,12 @@ mod group_by {
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into()
+                        field: "a".into(),
+                        cache: SchemaCache::new(),
                     }))
                 })
             }],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2247,8 +2446,8 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
-            keys: KEY_FOO_A.clone(),
+            source: source_ir(),
+            keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
                 agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
@@ -2256,10 +2455,12 @@ mod group_by {
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into()
+                        field: "a".into(),
+                        cache: SchemaCache::new(),
                     }))
                 })
             }],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2274,8 +2475,8 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
-            keys: KEY_FOO_A.clone(),
+            source: source_ir(),
+            keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
                 agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
@@ -2283,10 +2484,12 @@ mod group_by {
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into()
+                        field: "a".into(),
+                        cache: SchemaCache::new(),
                     }))
                 })
             }],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2301,8 +2504,8 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
-            keys: KEY_FOO_A.clone(),
+            source: source_ir(),
+            keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
                 agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
@@ -2310,10 +2513,12 @@ mod group_by {
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into()
+                        field: "a".into(),
+                        cache: SchemaCache::new(),
                     }))
                 })
             }],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2328,8 +2533,8 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
-            keys: KEY_FOO_A.clone(),
+            source: source_ir(),
+            keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
                 agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
@@ -2337,10 +2542,12 @@ mod group_by {
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into()
+                        field: "a".into(),
+                        cache: SchemaCache::new(),
                     }))
                 })
             }],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2355,8 +2562,8 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
-            keys: KEY_FOO_A.clone(),
+            source: source_ir(),
+            keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
                 agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
@@ -2364,10 +2571,12 @@ mod group_by {
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into()
+                        field: "a".into(),
+                        cache: SchemaCache::new(),
                     }))
                 })
             }],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2382,8 +2591,8 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
-            keys: KEY_FOO_A.clone(),
+            source: source_ir(),
+            keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
                 agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
@@ -2391,10 +2600,12 @@ mod group_by {
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into()
+                        field: "a".into(),
+                        cache: SchemaCache::new(),
                     }))
                 })
             }],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2409,8 +2620,8 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
-            keys: KEY_FOO_A.clone(),
+            source: source_ir(),
+            keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
                 agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
@@ -2418,10 +2629,12 @@ mod group_by {
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into()
+                        field: "a".into(),
+                        cache: SchemaCache::new(),
                     }))
                 })
             }],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2436,12 +2649,13 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
-            keys: KEY_FOO_A.clone(),
+            source: source_ir(),
+            keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
                 agg_expr: AggregationExpr::CountStar(true)
             }],
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_plan!(
@@ -2456,12 +2670,13 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: SOURCE_IR.clone(),
+            source: source_ir(),
             keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "__id".to_string(),
                 expr: Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                    field: "a".into()
+                    field: "a".into(),
+                    cache: SchemaCache::new(),
                 }),
             })],
             aggregations: vec![AliasedAggregation {
@@ -2471,10 +2686,12 @@ mod group_by {
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into()
+                        field: "a".into(),
+                        cache: SchemaCache::new(),
                     }))
                 })
             }],
+            cache: SchemaCache::new(),
         }),
     );
 }
@@ -2482,7 +2699,7 @@ mod group_by {
 mod subquery {
     use crate::{
         codegen::Error,
-        ir::{binding_tuple::DatasourceName::Bottom, SubqueryModifier::*, *},
+        ir::{binding_tuple::DatasourceName::Bottom, schema::SchemaCache, SubqueryModifier::*, *},
         map, unchecked_unique_linked_hash_map,
     };
     test_codegen_expr!(
@@ -2495,10 +2712,14 @@ mod subquery {
                 "pipeline": [{"$project": {"_id": 0,"foo": "$$ROOT"}},]
             }}
         )),
-        input = Expression::Exists(Box::new(Stage::Collection(Collection {
-            db: "test".into(),
-            collection: "foo".into(),
-        }))),
+        input = Expression::Exists(
+            Box::new(Stage::Collection(Collection {
+                db: "test".into(),
+                collection: "foo".into(),
+                cache: SchemaCache::new(),
+            }))
+            .into()
+        ),
     );
     test_codegen_expr!(
         exists_correlated,
@@ -2517,16 +2738,19 @@ mod subquery {
             source: Box::new(Stage::Collection(Collection {
                 db: "test".into(),
                 collection: "bar".into(),
+                cache: SchemaCache::new(),
             })),
             expression: map! {
                 (Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                     "a".into() => Expression::FieldAccess(FieldAccess{
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into()
+                        field: "a".into(),
+                        cache: SchemaCache::new(),
                     })
-                })
-            }
-        }))),
+                }.into())
+            },
+            cache: SchemaCache::new(),
+        })).into()),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("foo", 0u16), "foo");
@@ -2549,7 +2773,9 @@ mod subquery {
             subquery: Box::new(Stage::Collection(Collection {
                 db: "test".into(),
                 collection: "foo".into(),
+                cache: SchemaCache::new(),
             })),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_expr!(
@@ -2569,22 +2795,27 @@ mod subquery {
         input = Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
-                field: "a".into()
+                field: "a".into(),
+                cache: SchemaCache::new(),
             })),
             subquery: Box::new(Stage::Project(Project {
                 source: Box::new(Stage::Collection(Collection {
                     db: "test".into(),
                     collection: "bar".into(),
+                    cache: SchemaCache::new(),
                 })),
                 expression: map! {
                     (Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::FieldAccess(FieldAccess{
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                            field: "a".into()
+                            field: "a".into(),
+                            cache: SchemaCache::new(),
                         })
-                    })
-                }
-            }))
+                    }.into())
+                },
+                cache: SchemaCache::new(),
+            })),
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -2602,10 +2833,12 @@ mod subquery {
         )),
         input = Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::Reference(("arr", 1u16).into())),
-            subquery: Box::new(Stage::Array(Array {
+            subquery: Box::new(Stage::Array(ArraySource {
                 array: vec![],
                 alias: "arr".into(),
+                cache: SchemaCache::new(),
             })),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_expr!(
@@ -2625,17 +2858,21 @@ mod subquery {
         input = Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference(("foo", 1u16).into())),
-                field: "bar.a".into()
+                field: "bar.a".into(),
+                cache: SchemaCache::new(),
             })),
             subquery: Box::new(Stage::Project(Project {
                 source: Box::new(Stage::Collection(Collection {
                     db: "test".into(),
-                    collection: "foo".into()
+                    collection: "foo".into(),
+                    cache: SchemaCache::new(),
                 })),
                 expression: map! {
                     ("foo", 1u16).into() => Expression::Reference(("foo", 1u16).into())
-                }
-            }))
+                },
+                cache: SchemaCache::new(),
+            })),
+            cache: SchemaCache::new(),
         }),
     );
     // This test verifies that we are using the datasource's MQL field name
@@ -2662,14 +2899,17 @@ mod subquery {
             subquery: Box::new(Stage::Project(Project {
                 expression: map! {
                     (Bottom, 1u16).into() => Expression::Reference(("__bot", 1u16).into()),
-                    ("__bot", 1u16).into() => Expression::Literal(Literal::Double(43.0)),
+                    ("__bot", 1u16).into() => Expression::Literal(LiteralValue::Double(43.0).into()),
                 },
                 source: Stage::Collection(Collection {
                     db: "test".to_string(),
                     collection: "__bot".to_string(),
+                    cache: SchemaCache::new(),
                 })
                 .into(),
-            }))
+                cache: SchemaCache::new(),
+            })),
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_expr!(
@@ -2691,14 +2931,17 @@ mod subquery {
         input = Expression::SubqueryComparison(SubqueryComparison {
             operator: SubqueryComparisonOp::Eq,
             modifier: Any,
-            argument: Box::new(Expression::Literal(Literal::Integer(5))),
+            argument: Box::new(Expression::Literal(LiteralValue::Integer(5).into())),
             subquery_expr: SubqueryExpr {
                 output_expr: Box::new(Expression::Reference(("foo", 1u16).into())),
                 subquery: Box::new(Stage::Collection(Collection {
                     db: "test".into(),
                     collection: "foo".into(),
-                }))
-            }
+                    cache: SchemaCache::new(),
+                })),
+                cache: SchemaCache::new(),
+            },
+            cache: SchemaCache::new(),
         }),
     );
     test_codegen_expr!(
@@ -2727,23 +2970,29 @@ mod subquery {
             subquery_expr: SubqueryExpr {
                 output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
-                    field: "a".into()
+                    field: "a".into(),
+                    cache: SchemaCache::new(),
                 })),
                 subquery: Box::new(Stage::Project(Project {
                     source: Box::new(Stage::Collection(Collection {
                         db: "test".into(),
                         collection: "bar".into(),
+                        cache: SchemaCache::new(),
                     })),
                     expression: map! {
                         (Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                             "a".into() => Expression::FieldAccess(FieldAccess{
                                 expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                                field: "a".into()
+                                field: "a".into(),
+                                cache: SchemaCache::new(),
                             })
-                        })
-                    }
-                }))
-            }
+                        }.into())
+                    },
+                    cache: SchemaCache::new(),
+                })),
+                cache: SchemaCache::new(),
+            },
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -2756,21 +3005,25 @@ mod subquery {
         invalid_output_expr,
         expected = Err(Error::NoFieldPathForExpr),
         input = Expression::Subquery(SubqueryExpr {
-            output_expr: Box::new(Expression::Literal(Literal::Integer(5))),
+            output_expr: Box::new(Expression::Literal(LiteralValue::Integer(5).into())),
             subquery: Box::new(Stage::Project(Project {
                 source: Box::new(Stage::Collection(Collection {
                     db: "test".into(),
                     collection: "bar".into(),
+                    cache: SchemaCache::new(),
                 })),
                 expression: map! {
                     (Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                         "a".into() => Expression::FieldAccess(FieldAccess{
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                            field: "a".into()
+                            field: "a".into(),
+                            cache: SchemaCache::new(),
                         })
-                    })
-                }
-            }))
+                    }.into())
+                },
+                cache: SchemaCache::new(),
+            })),
+            cache: SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();

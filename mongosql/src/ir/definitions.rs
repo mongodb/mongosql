@@ -1,5 +1,9 @@
 use crate::{
-    ir::binding_tuple::{BindingTuple, Key},
+    ir::{
+        binding_tuple::{BindingTuple, Key},
+        schema::SchemaCache,
+    },
+    schema::{ResultSet, Schema},
     util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
 
@@ -12,7 +16,7 @@ pub enum Stage {
     Offset(Offset),
     Sort(Sort),
     Collection(Collection),
-    Array(Array),
+    Array(ArraySource),
     Join(Join),
     Set(Set),
 }
@@ -21,12 +25,14 @@ pub enum Stage {
 pub struct Filter {
     pub source: Box<Stage>,
     pub condition: Expression,
+    pub cache: SchemaCache<ResultSet>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Project {
     pub source: Box<Stage>,
     pub expression: BindingTuple<Expression>,
+    pub cache: SchemaCache<ResultSet>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -34,6 +40,7 @@ pub struct Group {
     pub source: Box<Stage>,
     pub keys: Vec<OptionallyAliasedExpr>,
     pub aggregations: Vec<AliasedAggregation>,
+    pub cache: SchemaCache<ResultSet>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -87,18 +94,21 @@ pub struct AggregationFunctionApplication {
 pub struct Limit {
     pub source: Box<Stage>,
     pub limit: u64,
+    pub cache: SchemaCache<ResultSet>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Offset {
     pub source: Box<Stage>,
     pub offset: u64,
+    pub cache: SchemaCache<ResultSet>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Sort {
     pub source: Box<Stage>,
     pub specs: Vec<SortSpecification>,
+    pub cache: SchemaCache<ResultSet>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -111,12 +121,14 @@ pub enum SortSpecification {
 pub struct Collection {
     pub db: String,
     pub collection: String,
+    pub cache: SchemaCache<ResultSet>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct Array {
+pub struct ArraySource {
     pub array: Vec<Expression>,
     pub alias: String,
+    pub cache: SchemaCache<ResultSet>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -125,6 +137,7 @@ pub struct Join {
     pub left: Box<Stage>,
     pub right: Box<Stage>,
     pub condition: Option<Expression>,
+    pub cache: SchemaCache<ResultSet>,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -138,6 +151,7 @@ pub struct Set {
     pub operation: SetOperation,
     pub left: Box<Stage>,
     pub right: Box<Stage>,
+    pub cache: SchemaCache<ResultSet>,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -148,10 +162,10 @@ pub enum SetOperation {
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Expression {
-    Literal(Literal),
-    Reference(Key),
-    Array(Vec<Expression>),
-    Document(UniqueLinkedHashMap<String, Expression>),
+    Literal(LiteralExpr),
+    Reference(ReferenceExpr),
+    Array(ArrayExpr),
+    Document(DocumentExpr),
     ScalarFunction(ScalarFunctionApplication),
     Cast(CastExpr),
     SearchedCase(SearchedCaseExpr),
@@ -162,11 +176,11 @@ pub enum Expression {
     FieldAccess(FieldAccess),
     Subquery(SubqueryExpr),
     SubqueryComparison(SubqueryComparison),
-    Exists(Box<Stage>),
+    Exists(ExistsExpr),
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub enum Literal {
+pub enum LiteralValue {
     Null,
     Boolean(bool),
     String(String),
@@ -176,9 +190,85 @@ pub enum Literal {
 }
 
 #[derive(PartialEq, Debug, Clone)]
+pub struct LiteralExpr {
+    pub value: LiteralValue,
+    pub cache: SchemaCache<Schema>,
+}
+
+impl From<LiteralValue> for LiteralExpr {
+    fn from(value: LiteralValue) -> Self {
+        LiteralExpr {
+            value,
+            cache: SchemaCache::new(),
+        }
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct ReferenceExpr {
+    pub key: Key,
+    pub cache: SchemaCache<Schema>,
+}
+
+impl<T: Into<Key>> From<T> for ReferenceExpr {
+    fn from(k: T) -> Self {
+        ReferenceExpr {
+            key: k.into(),
+            cache: SchemaCache::new(),
+        }
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct ArrayExpr {
+    pub array: Vec<Expression>,
+    pub cache: SchemaCache<Schema>,
+}
+
+impl From<Vec<Expression>> for ArrayExpr {
+    fn from(array: Vec<Expression>) -> Self {
+        ArrayExpr {
+            array,
+            cache: SchemaCache::new(),
+        }
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct DocumentExpr {
+    pub document: UniqueLinkedHashMap<String, Expression>,
+    pub cache: SchemaCache<Schema>,
+}
+
+impl<T: Into<UniqueLinkedHashMap<String, Expression>>> From<T> for DocumentExpr {
+    fn from(document: T) -> Self {
+        DocumentExpr {
+            document: document.into(),
+            cache: SchemaCache::new(),
+        }
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct ExistsExpr {
+    pub stage: Box<Stage>,
+    pub cache: SchemaCache<Schema>,
+}
+
+impl From<Box<Stage>> for ExistsExpr {
+    fn from(stage: Box<Stage>) -> Self {
+        ExistsExpr {
+            stage,
+            cache: SchemaCache::new(),
+        }
+    }
+}
+
+#[derive(PartialEq, Debug, Clone)]
 pub struct IsExpr {
     pub expr: Box<Expression>,
     pub target_type: TypeOrMissing,
+    pub cache: SchemaCache<Schema>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -186,18 +276,21 @@ pub struct LikeExpr {
     pub expr: Box<Expression>,
     pub pattern: Box<Expression>,
     pub escape: Option<String>,
+    pub cache: SchemaCache<Schema>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct ScalarFunctionApplication {
     pub function: ScalarFunction,
     pub args: Vec<Expression>,
+    pub cache: SchemaCache<Schema>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct FieldAccess {
     pub expr: Box<Expression>,
     pub field: String,
+    pub cache: SchemaCache<Schema>,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -354,6 +447,7 @@ impl ScalarFunction {
 pub struct SearchedCaseExpr {
     pub when_branch: Vec<WhenBranch>,
     pub else_branch: Box<Expression>,
+    pub cache: SchemaCache<Schema>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -361,6 +455,7 @@ pub struct SimpleCaseExpr {
     pub expr: Box<Expression>,
     pub when_branch: Vec<WhenBranch>,
     pub else_branch: Box<Expression>,
+    pub cache: SchemaCache<Schema>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -375,12 +470,14 @@ pub struct CastExpr {
     pub to: Type,
     pub on_null: Box<Expression>,
     pub on_error: Box<Expression>,
+    pub cache: SchemaCache<Schema>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct TypeAssertionExpr {
     pub expr: Box<Expression>,
     pub target_type: Type,
+    pub cache: SchemaCache<Schema>,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]
@@ -419,6 +516,7 @@ pub enum Type {
 pub struct SubqueryExpr {
     pub output_expr: Box<Expression>,
     pub subquery: Box<Stage>,
+    pub cache: SchemaCache<Schema>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -427,6 +525,7 @@ pub struct SubqueryComparison {
     pub modifier: SubqueryModifier,
     pub argument: Box<Expression>,
     pub subquery_expr: SubqueryExpr,
+    pub cache: SchemaCache<Schema>,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy)]

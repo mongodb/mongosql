@@ -66,10 +66,12 @@ impl MqlTranslation {
     /// its components by recursively tracing its path.
     pub fn generate_path_components(&self, expr: ir::Expression) -> Result<Vec<String>> {
         match expr {
-            ir::Expression::Reference(key) => match self.mapping_registry.get(&key) {
-                Some(name) => Ok(vec![name.clone()]),
-                None => Err(Error::ReferenceNotFound(key)),
-            },
+            ir::Expression::Reference(ir::ReferenceExpr { key, .. }) => {
+                match self.mapping_registry.get(&key) {
+                    Some(name) => Ok(vec![name.clone()]),
+                    None => Err(Error::ReferenceNotFound(key)),
+                }
+            }
             ir::Expression::FieldAccess(fa) => {
                 let mut path = self.generate_path_components(*fa.expr)?;
                 path.push(fa.field.clone());
@@ -674,10 +676,10 @@ impl MqlCodeGenerator {
     /// this function is called, `self.mapping_registry` should
     /// include mappings for all datasources in scope.
     pub fn codegen_expression(&self, expr: ir::Expression) -> Result<bson::Bson> {
-        use ir::{Expression::*, Literal::*};
+        use ir::{Expression::*, LiteralValue::*};
         match expr {
             Literal(lit) => Ok(bson::bson!({
-                "$literal": match lit {
+                "$literal": match lit.value {
                     Null => Bson::Null,
                     Boolean(b) => Bson::Boolean(b),
                     String(s) => Bson::String(s),
@@ -686,7 +688,7 @@ impl MqlCodeGenerator {
                     Double(d) => Bson::Double(d),
                 },
             })),
-            Reference(key) => self
+            Reference(ir::ReferenceExpr { key, .. }) => self
                 .mapping_registry
                 .0
                 .get(&key)
@@ -694,15 +696,17 @@ impl MqlCodeGenerator {
                 .map(|s| Bson::String(format!("${}", s))),
             Array(exprs) => Ok(Bson::Array(
                 exprs
+                    .array
                     .into_iter()
                     .map(|e| self.codegen_expression(e))
                     .collect::<Result<Vec<Bson>>>()?,
             )),
-            Document(map) => Ok(Bson::Document({
-                if map.is_empty() {
+            Document(ir::DocumentExpr { document, .. }) => Ok(Bson::Document({
+                if document.is_empty() {
                     bson::doc! {"$literal": {}}
                 } else {
-                    map.into_iter()
+                    document
+                        .into_iter()
                         .map(|(k, v)| {
                             if k.starts_with('$') || k.contains('.') || k.as_str() == "" {
                                 Err(Error::InvalidDocumentKey)
@@ -881,7 +885,9 @@ impl MqlCodeGenerator {
                     "subquery": self.codegen_subquery(*s.subquery_expr.subquery, Some(*s.subquery_expr.output_expr))?,
                 }}))
             }
-            Exists(e) => Ok(bson::bson!({ "$subqueryExists":  self.codegen_subquery(*e, None)? })),
+            Exists(ir::ExistsExpr { stage: e, .. }) => {
+                Ok(bson::bson!({ "$subqueryExists":  self.codegen_subquery(*e, None)? }))
+            }
             Is(expr) => Ok(match expr.target_type {
                 TypeOrMissing::Number => {
                     Bson::Document(bson::doc! {"$isNumber": self.codegen_expression(*expr.expr)?})

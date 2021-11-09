@@ -1,6 +1,6 @@
 use crate::{
     ast::{self, CollectionSource, Datasource},
-    ir::{Collection, Expression, Project, Stage},
+    ir::{schema::SchemaCache, Collection, Expression, Project, Stage},
     map,
 };
 use lazy_static::lazy_static;
@@ -25,26 +25,33 @@ macro_rules! test_algebrize {
         }
     };
 }
-
-lazy_static! {
-    static ref IR_SOURCE_FOO: Stage = Stage::Project(Project {
+fn ir_source_foo() -> Stage {
+    Stage::Project(Project {
         source: Box::new(Stage::Collection(Collection {
             db: "test".into(),
-            collection: "foo".into()
+            collection: "foo".into(),
+            cache: SchemaCache::new(),
         })),
         expression: map! {
             ("foo", 0u16).into() => Expression::Reference(("foo", 0u16).into())
-        }
-    });
-    static ref IR_SOURCE_BAR: Stage = Stage::Project(Project {
+        },
+        cache: SchemaCache::new(),
+    })
+}
+fn ir_source_bar() -> Stage {
+    Stage::Project(Project {
         source: Box::new(Stage::Collection(Collection {
             db: "test".into(),
-            collection: "bar".into()
+            collection: "bar".into(),
+            cache: SchemaCache::new(),
         })),
         expression: map! {
             ("bar", 0u16).into() => Expression::Reference(("bar", 0u16).into())
-        }
-    });
+        },
+        cache: SchemaCache::new(),
+    })
+}
+lazy_static! {
     static ref AST_SOURCE_FOO: Datasource = Datasource::Collection(CollectionSource {
         database: Some("test".into()),
         collection: "foo".into(),
@@ -86,7 +93,7 @@ lazy_static! {
 mod expression {
     use crate::{
         ast,
-        ir::{self, binding_tuple::Key},
+        ir::{self, binding_tuple::Key, schema::SchemaCache},
         map, multimap,
         schema::{
             Atomic, Document, Schema, BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, NUMERIC_OR_NULLISH,
@@ -98,61 +105,75 @@ mod expression {
     test_algebrize!(
         null,
         method = algebrize_expression,
-        expected = Ok(ir::Expression::Literal(ir::Literal::Null)),
+        expected = Ok(ir::Expression::Literal(ir::LiteralValue::Null.into())),
         input = ast::Expression::Literal(ast::Literal::Null),
     );
     test_algebrize!(
         expr_true,
         method = algebrize_expression,
-        expected = Ok(ir::Expression::Literal(ir::Literal::Boolean(true))),
+        expected = Ok(ir::Expression::Literal(
+            ir::LiteralValue::Boolean(true).into()
+        )),
         input = ast::Expression::Literal(ast::Literal::Boolean(true)),
     );
     test_algebrize!(
         expr_false,
         method = algebrize_expression,
-        expected = Ok(ir::Expression::Literal(ir::Literal::Boolean(false))),
+        expected = Ok(ir::Expression::Literal(
+            ir::LiteralValue::Boolean(false).into()
+        )),
         input = ast::Expression::Literal(ast::Literal::Boolean(false)),
     );
     test_algebrize!(
         string,
         method = algebrize_expression,
-        expected = Ok(ir::Expression::Literal(ir::Literal::String(
-            "hello!".into()
-        ))),
+        expected = Ok(ir::Expression::Literal(
+            ir::LiteralValue::String("hello!".into()).into()
+        )),
         input = ast::Expression::Literal(ast::Literal::String("hello!".into())),
     );
     test_algebrize!(
         int,
         method = algebrize_expression,
-        expected = Ok(ir::Expression::Literal(ir::Literal::Integer(42))),
+        expected = Ok(ir::Expression::Literal(
+            ir::LiteralValue::Integer(42).into()
+        )),
         input = ast::Expression::Literal(ast::Literal::Integer(42)),
     );
     test_algebrize!(
         long,
         method = algebrize_expression,
-        expected = Ok(ir::Expression::Literal(ir::Literal::Long(42))),
+        expected = Ok(ir::Expression::Literal(ir::LiteralValue::Long(42).into())),
         input = ast::Expression::Literal(ast::Literal::Long(42)),
     );
     test_algebrize!(
         double,
         method = algebrize_expression,
-        expected = Ok(ir::Expression::Literal(ir::Literal::Double(42f64))),
+        expected = Ok(ir::Expression::Literal(
+            ir::LiteralValue::Double(42f64).into()
+        )),
         input = ast::Expression::Literal(ast::Literal::Double(42f64)),
     );
 
     test_algebrize!(
         empty_array,
         method = algebrize_expression,
-        expected = Ok(ir::Expression::Array(vec![])),
+        expected = Ok(ir::Expression::Array(vec![].into())),
         input = ast::Expression::Array(vec![]),
     );
     test_algebrize!(
         nested_array,
         method = algebrize_expression,
-        expected = Ok(ir::Expression::Array(vec![ir::Expression::Array(vec![
-            ir::Expression::Literal(ir::Literal::Long(42)),
-            ir::Expression::Literal(ir::Literal::Integer(42)),
-        ])])),
+        expected = Ok(ir::Expression::Array(
+            vec![ir::Expression::Array(
+                vec![
+                    ir::Expression::Literal(ir::LiteralValue::Long(42).into()),
+                    ir::Expression::Literal(ir::LiteralValue::Integer(42).into()),
+                ]
+                .into()
+            )]
+            .into()
+        )),
         input = ast::Expression::Array(vec![ast::Expression::Array(vec![
             ast::Expression::Literal(ast::Literal::Long(42)),
             ast::Expression::Literal(ast::Literal::Integer(42)),
@@ -163,7 +184,7 @@ mod expression {
         empty_document,
         method = algebrize_expression,
         expected = Ok(ir::Expression::Document(
-            unchecked_unique_linked_hash_map! {}
+            unchecked_unique_linked_hash_map! {}.into()
         )),
         input = ast::Expression::Document(multimap! {}),
     );
@@ -173,11 +194,11 @@ mod expression {
         expected = Ok(ir::Expression::Document(
             unchecked_unique_linked_hash_map! {
                 "foo2".into() => ir::Expression::Document(
-                    unchecked_unique_linked_hash_map!{"nested".into() => ir::Expression::Literal(ir::Literal::Integer(52))},
-                ),
-                "bar2".into() => ir::Expression::Literal(ir::Literal::Integer(42))
-            },
-        )),
+                    unchecked_unique_linked_hash_map!{"nested".into() => ir::Expression::Literal(ir::LiteralValue::Integer(52).into())}
+                .into()),
+                "bar2".into() => ir::Expression::Literal(ir::LiteralValue::Integer(42).into())
+            }
+        .into())),
         input = ast::Expression::Document(multimap! {
                     "foo2".into() => ast::Expression::Document(
                         multimap!{"nested".into() => ast::Expression::Literal(ast::Literal::Integer(52))},
@@ -191,6 +212,7 @@ mod expression {
         expected = Ok(ir::Expression::FieldAccess(ir::FieldAccess {
             expr: Box::new(ir::Expression::Reference(("foo", 1u16).into())),
             field: "a".into(),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Subpath(ast::SubpathExpr {
             expr: Box::new(ast::Expression::Identifier("foo".into())),
@@ -219,6 +241,7 @@ mod expression {
         expected = Ok(ir::Expression::FieldAccess(ir::FieldAccess {
             expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
             field: "a".into(),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Subpath(ast::SubpathExpr {
             expr: Box::new(ast::Expression::Identifier("foo".into())),
@@ -247,6 +270,7 @@ mod expression {
         expected = Ok(ir::Expression::FieldAccess(ir::FieldAccess {
             expr: Box::new(ir::Expression::Reference(("foo", 1u16).into())),
             field: "a".into(),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Identifier("a".into()),
         env = map! {
@@ -265,6 +289,7 @@ mod expression {
         expected = Ok(ir::Expression::FieldAccess(ir::FieldAccess {
             expr: Box::new(ir::Expression::Reference(("foo", 1u16).into())),
             field: "a".into(),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Identifier("a".into()),
         env = map! {
@@ -283,6 +308,7 @@ mod expression {
         expected = Ok(ir::Expression::FieldAccess(ir::FieldAccess {
             expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
             field: "a".into(),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Identifier("a".into()),
         env = map! {
@@ -302,6 +328,7 @@ mod expression {
         expected = Ok(ir::Expression::FieldAccess(ir::FieldAccess {
             expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
             field: "a".into(),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Identifier("a".into()),
         env = map! {
@@ -319,8 +346,9 @@ mod expression {
         unqualified_ref_must_exist_in_super_scope_bot_source,
         method = algebrize_expression,
         expected = Ok(ir::Expression::FieldAccess(ir::FieldAccess {
-            expr: Box::new(ir::Expression::Reference(Key::bot(0u16))),
+            expr: Box::new(ir::Expression::Reference(Key::bot(0u16).into())),
             field: "a".into(),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Identifier("a".into()),
         env = map! {
@@ -363,8 +391,10 @@ mod expression {
             expr: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
                 expr: Box::new(ir::Expression::Reference(("test", 1u16).into())),
                 field: "a".into(),
+                cache: SchemaCache::new(),
             })),
             field: "c".into(),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Subpath(ast::SubpathExpr {
             expr: Box::new(ast::Expression::Identifier("a".into())),
@@ -435,8 +465,10 @@ mod expression {
             expr: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
                 expr: Box::new(ir::Expression::Reference(("super_test", 0u16).into())),
                 field: "a".into(),
+                cache: SchemaCache::new(),
             })),
             field: "c".into(),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Subpath(ast::SubpathExpr {
             expr: Box::new(ast::Expression::Identifier("a".into())),
@@ -473,6 +505,7 @@ mod expression {
         expected = Ok(ir::Expression::FieldAccess(ir::FieldAccess {
             expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
             field: "a".into(),
+            cache: SchemaCache::new(),
         })),
         // test MongoSQL: SELECT (SELECT foo.a FROM bar) FROM foo => (foo.a)
         input = ast::Expression::Subpath(ast::SubpathExpr {
@@ -507,8 +540,10 @@ mod expression {
             expr: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
                 expr: Box::new(ir::Expression::Reference(("bar", 1u16).into())),
                 field: "foo".into(),
+                cache: SchemaCache::new(),
             })),
             field: "a".into(),
+            cache: SchemaCache::new(),
         })),
         //test MongoSQL: SELECT (SELECT bar.foo.a FROM bar) FROM foo => (bar.foo.a)
         input = ast::Expression::Subpath(ast::SubpathExpr {
@@ -586,9 +621,10 @@ mod expression {
             ir::ScalarFunctionApplication {
                 function: ir::ScalarFunction::Add,
                 args: vec![
-                    ir::Expression::Literal(ir::Literal::Integer(42)),
-                    ir::Expression::Literal(ir::Literal::Integer(42)),
+                    ir::Expression::Literal(ir::LiteralValue::Integer(42).into()),
+                    ir::Expression::Literal(ir::LiteralValue::Integer(42).into()),
                 ],
+                cache: SchemaCache::new(),
             }
         )),
         input = ast::Expression::Binary(ast::BinaryExpr {
@@ -621,9 +657,10 @@ mod expression {
             ir::ScalarFunctionApplication {
                 function: ir::ScalarFunction::Sub,
                 args: vec![
-                    ir::Expression::Literal(ir::Literal::Integer(42)),
-                    ir::Expression::Literal(ir::Literal::Integer(42)),
+                    ir::Expression::Literal(ir::LiteralValue::Integer(42).into()),
+                    ir::Expression::Literal(ir::LiteralValue::Integer(42).into()),
                 ],
+                cache: SchemaCache::new(),
             }
         )),
         input = ast::Expression::Binary(ast::BinaryExpr {
@@ -656,9 +693,10 @@ mod expression {
             ir::ScalarFunctionApplication {
                 function: ir::ScalarFunction::Div,
                 args: vec![
-                    ir::Expression::Literal(ir::Literal::Integer(42)),
-                    ir::Expression::Literal(ir::Literal::Integer(42)),
+                    ir::Expression::Literal(ir::LiteralValue::Integer(42).into()),
+                    ir::Expression::Literal(ir::LiteralValue::Integer(42).into()),
                 ],
+                cache: SchemaCache::new(),
             }
         )),
         input = ast::Expression::Binary(ast::BinaryExpr {
@@ -691,9 +729,10 @@ mod expression {
             ir::ScalarFunctionApplication {
                 function: ir::ScalarFunction::Mul,
                 args: vec![
-                    ir::Expression::Literal(ir::Literal::Integer(42)),
-                    ir::Expression::Literal(ir::Literal::Integer(42)),
+                    ir::Expression::Literal(ir::LiteralValue::Integer(42).into()),
+                    ir::Expression::Literal(ir::LiteralValue::Integer(42).into()),
                 ],
+                cache: SchemaCache::new(),
             }
         )),
         input = ast::Expression::Binary(ast::BinaryExpr {
@@ -726,9 +765,10 @@ mod expression {
             ir::ScalarFunctionApplication {
                 function: ir::ScalarFunction::Concat,
                 args: vec![
-                    ir::Expression::Literal(ir::Literal::String("42".into())),
-                    ir::Expression::Literal(ir::Literal::String("42".into())),
+                    ir::Expression::Literal(ir::LiteralValue::String("42".into()).into()),
+                    ir::Expression::Literal(ir::LiteralValue::String("42".into()).into()),
                 ],
+                cache: SchemaCache::new(),
             }
         )),
         input = ast::Expression::Binary(ast::BinaryExpr {
@@ -760,7 +800,10 @@ mod expression {
         expected = Ok(ir::Expression::ScalarFunction(
             ir::ScalarFunctionApplication {
                 function: ir::ScalarFunction::Neg,
-                args: vec![ir::Expression::Literal(ir::Literal::Integer(42)),],
+                args: vec![ir::Expression::Literal(
+                    ir::LiteralValue::Integer(42).into()
+                ),],
+                cache: SchemaCache::new(),
             }
         )),
         input = ast::Expression::Unary(ast::UnaryExpr {
@@ -788,7 +831,10 @@ mod expression {
         expected = Ok(ir::Expression::ScalarFunction(
             ir::ScalarFunctionApplication {
                 function: ir::ScalarFunction::Pos,
-                args: vec![ir::Expression::Literal(ir::Literal::Integer(42)),],
+                args: vec![ir::Expression::Literal(
+                    ir::LiteralValue::Integer(42).into()
+                ),],
+                cache: SchemaCache::new(),
             }
         )),
         input = ast::Expression::Unary(ast::UnaryExpr {
@@ -816,7 +862,10 @@ mod expression {
         expected = Ok(ir::Expression::ScalarFunction(
             ir::ScalarFunctionApplication {
                 function: ir::ScalarFunction::Lower,
-                args: vec![ir::Expression::Literal(ir::Literal::String("hello".into())),],
+                args: vec![ir::Expression::Literal(
+                    ir::LiteralValue::String("hello".into()).into()
+                ),],
+                cache: SchemaCache::new(),
             }
         )),
         input = ast::Expression::Function(ast::FunctionExpr {
@@ -834,9 +883,10 @@ mod expression {
             ir::ScalarFunctionApplication {
                 function: ir::ScalarFunction::LTrim,
                 args: vec![
-                    ir::Expression::Literal(ir::Literal::String("hello".into())),
-                    ir::Expression::Literal(ir::Literal::String("hello world".into()))
-                ]
+                    ir::Expression::Literal(ir::LiteralValue::String("hello".into()).into()),
+                    ir::Expression::Literal(ir::LiteralValue::String("hello world".into()).into())
+                ],
+                cache: SchemaCache::new(),
             }
         )),
         input = ast::Expression::Trim(ast::TrimExpr {
@@ -856,9 +906,10 @@ mod expression {
             ir::ScalarFunctionApplication {
                 function: ir::ScalarFunction::RTrim,
                 args: vec![
-                    ir::Expression::Literal(ir::Literal::String("world".into())),
-                    ir::Expression::Literal(ir::Literal::String("hello world".into()))
-                ]
+                    ir::Expression::Literal(ir::LiteralValue::String("world".into()).into()),
+                    ir::Expression::Literal(ir::LiteralValue::String("hello world".into()).into())
+                ],
+                cache: SchemaCache::new(),
             }
         )),
         input = ast::Expression::Trim(ast::TrimExpr {
@@ -878,9 +929,12 @@ mod expression {
             ir::ScalarFunctionApplication {
                 function: ir::ScalarFunction::BTrim,
                 args: vec![
-                    ir::Expression::Literal(ir::Literal::String(" ".into())),
-                    ir::Expression::Literal(ir::Literal::String(" hello world ".into()))
-                ]
+                    ir::Expression::Literal(ir::LiteralValue::String(" ".into()).into()),
+                    ir::Expression::Literal(
+                        ir::LiteralValue::String(" hello world ".into()).into()
+                    )
+                ],
+                cache: SchemaCache::new(),
             }
         )),
         input = ast::Expression::Trim(ast::TrimExpr {
@@ -929,9 +983,11 @@ mod expression {
                 args: vec![ir::Expression::ScalarFunction(
                     ir::ScalarFunctionApplication {
                         function: ir::ScalarFunction::CurrentTimestamp,
-                        args: vec![]
+                        args: vec![],
+                        cache: SchemaCache::new(),
                     }
-                ),]
+                ),],
+                cache: SchemaCache::new(),
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
@@ -952,9 +1008,11 @@ mod expression {
                 args: vec![ir::Expression::ScalarFunction(
                     ir::ScalarFunctionApplication {
                         function: ir::ScalarFunction::CurrentTimestamp,
-                        args: vec![]
+                        args: vec![],
+                        cache: SchemaCache::new(),
                     }
-                ),]
+                ),],
+                cache: SchemaCache::new(),
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
@@ -975,9 +1033,11 @@ mod expression {
                 args: vec![ir::Expression::ScalarFunction(
                     ir::ScalarFunctionApplication {
                         function: ir::ScalarFunction::CurrentTimestamp,
-                        args: vec![]
+                        args: vec![],
+                        cache: SchemaCache::new(),
                     }
-                ),]
+                ),],
+                cache: SchemaCache::new(),
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
@@ -998,9 +1058,11 @@ mod expression {
                 args: vec![ir::Expression::ScalarFunction(
                     ir::ScalarFunctionApplication {
                         function: ir::ScalarFunction::CurrentTimestamp,
-                        args: vec![]
+                        args: vec![],
+                        cache: SchemaCache::new(),
                     }
-                ),]
+                ),],
+                cache: SchemaCache::new(),
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
@@ -1021,9 +1083,11 @@ mod expression {
                 args: vec![ir::Expression::ScalarFunction(
                     ir::ScalarFunctionApplication {
                         function: ir::ScalarFunction::CurrentTimestamp,
-                        args: vec![]
+                        args: vec![],
+                        cache: SchemaCache::new(),
                     }
-                ),]
+                ),],
+                cache: SchemaCache::new(),
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
@@ -1054,10 +1118,17 @@ mod expression {
         method = algebrize_expression,
         expected = Ok(ir::Expression::SearchedCase(ir::SearchedCaseExpr {
             when_branch: vec![ir::WhenBranch {
-                when: Box::new(ir::Expression::Literal(ir::Literal::Boolean(true))),
-                then: Box::new(ir::Expression::Literal(ir::Literal::String("bar".into()))),
+                when: Box::new(ir::Expression::Literal(
+                    ir::LiteralValue::Boolean(true).into()
+                )),
+                then: Box::new(ir::Expression::Literal(
+                    ir::LiteralValue::String("bar".into()).into()
+                )),
             }],
-            else_branch: Box::new(ir::Expression::Literal(ir::Literal::String("foo".into()))),
+            else_branch: Box::new(ir::Expression::Literal(
+                ir::LiteralValue::String("foo".into()).into()
+            )),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Case(ast::CaseExpr {
             expr: None,
@@ -1075,10 +1146,15 @@ mod expression {
         method = algebrize_expression,
         expected = Ok(ir::Expression::SearchedCase(ir::SearchedCaseExpr {
             when_branch: vec![ir::WhenBranch {
-                when: Box::new(ir::Expression::Literal(ir::Literal::Boolean(true))),
-                then: Box::new(ir::Expression::Literal(ir::Literal::String("bar".into()))),
+                when: Box::new(ir::Expression::Literal(
+                    ir::LiteralValue::Boolean(true).into()
+                )),
+                then: Box::new(ir::Expression::Literal(
+                    ir::LiteralValue::String("bar".into()).into()
+                )),
             }],
-            else_branch: Box::new(ir::Expression::Literal(ir::Literal::Null)),
+            else_branch: Box::new(ir::Expression::Literal(ir::LiteralValue::Null.into())),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Case(ast::CaseExpr {
             expr: None,
@@ -1113,12 +1189,17 @@ mod expression {
         simple_case,
         method = algebrize_expression,
         expected = Ok(ir::Expression::SimpleCase(ir::SimpleCaseExpr {
-            expr: Box::new(ir::Expression::Literal(ir::Literal::Integer(1))),
+            expr: Box::new(ir::Expression::Literal(ir::LiteralValue::Integer(1).into())),
             when_branch: vec![ir::WhenBranch {
-                when: Box::new(ir::Expression::Literal(ir::Literal::Integer(2))),
-                then: Box::new(ir::Expression::Literal(ir::Literal::String("bar".into()))),
+                when: Box::new(ir::Expression::Literal(ir::LiteralValue::Integer(2).into())),
+                then: Box::new(ir::Expression::Literal(
+                    ir::LiteralValue::String("bar".into()).into()
+                )),
             }],
-            else_branch: Box::new(ir::Expression::Literal(ir::Literal::String("foo".into()))),
+            else_branch: Box::new(ir::Expression::Literal(
+                ir::LiteralValue::String("foo".into()).into()
+            )),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Case(ast::CaseExpr {
             expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
@@ -1135,12 +1216,15 @@ mod expression {
         simple_case_no_else,
         method = algebrize_expression,
         expected = Ok(ir::Expression::SimpleCase(ir::SimpleCaseExpr {
-            expr: Box::new(ir::Expression::Literal(ir::Literal::Integer(1))),
+            expr: Box::new(ir::Expression::Literal(ir::LiteralValue::Integer(1).into())),
             when_branch: vec![ir::WhenBranch {
-                when: Box::new(ir::Expression::Literal(ir::Literal::Integer(2))),
-                then: Box::new(ir::Expression::Literal(ir::Literal::String("bar".into()))),
+                when: Box::new(ir::Expression::Literal(ir::LiteralValue::Integer(2).into())),
+                then: Box::new(ir::Expression::Literal(
+                    ir::LiteralValue::String("bar".into()).into()
+                )),
             }],
-            else_branch: Box::new(ir::Expression::Literal(ir::Literal::Null)),
+            else_branch: Box::new(ir::Expression::Literal(ir::LiteralValue::Null.into())),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Case(ast::CaseExpr {
             expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
@@ -1175,14 +1259,17 @@ mod expression {
         cast_full,
         method = algebrize_expression,
         expected = Ok(ir::Expression::Cast(ir::CastExpr {
-            expr: Box::new(ir::Expression::Literal(ir::Literal::Integer(42))),
+            expr: Box::new(ir::Expression::Literal(
+                ir::LiteralValue::Integer(42).into()
+            )),
             to: ir::Type::String,
-            on_null: Box::new(ir::Expression::Literal(ir::Literal::String(
-                "was_null".into()
-            ))),
-            on_error: Box::new(ir::Expression::Literal(ir::Literal::String(
-                "was_error".into()
-            ))),
+            on_null: Box::new(ir::Expression::Literal(
+                ir::LiteralValue::String("was_null".into()).into()
+            )),
+            on_error: Box::new(ir::Expression::Literal(
+                ir::LiteralValue::String("was_error".into()).into()
+            )),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Cast(ast::CastExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
@@ -1199,10 +1286,13 @@ mod expression {
         cast_simple,
         method = algebrize_expression,
         expected = Ok(ir::Expression::Cast(ir::CastExpr {
-            expr: Box::new(ir::Expression::Literal(ir::Literal::Integer(42))),
+            expr: Box::new(ir::Expression::Literal(
+                ir::LiteralValue::Integer(42).into()
+            )),
             to: ir::Type::String,
-            on_null: Box::new(ir::Expression::Literal(ir::Literal::Null)),
-            on_error: Box::new(ir::Expression::Literal(ir::Literal::Null)),
+            on_null: Box::new(ir::Expression::Literal(ir::LiteralValue::Null.into())),
+            on_error: Box::new(ir::Expression::Literal(ir::LiteralValue::Null.into())),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Cast(ast::CastExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
@@ -1216,8 +1306,11 @@ mod expression {
         type_assert_success,
         method = algebrize_expression,
         expected = Ok(ir::Expression::TypeAssertion(ir::TypeAssertionExpr {
-            expr: Box::new(ir::Expression::Literal(ir::Literal::Integer(42))),
+            expr: Box::new(ir::Expression::Literal(
+                ir::LiteralValue::Integer(42).into()
+            )),
             target_type: ir::Type::Int32,
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::TypeAssertion(ast::TypeAssertionExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
@@ -1242,8 +1335,11 @@ mod expression {
         is_success,
         method = algebrize_expression,
         expected = Ok(ir::Expression::Is(ir::IsExpr {
-            expr: Box::new(ir::Expression::Literal(ir::Literal::Integer(42))),
+            expr: Box::new(ir::Expression::Literal(
+                ir::LiteralValue::Integer(42).into()
+            )),
             target_type: ir::TypeOrMissing::Type(ir::Type::Int32),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Is(ast::IsExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
@@ -1272,9 +1368,14 @@ mod expression {
         like_success_with_pattern,
         method = algebrize_expression,
         expected = Ok(ir::Expression::Like(ir::LikeExpr {
-            expr: Box::new(ir::Expression::Literal(ir::Literal::String("42".into()))),
-            pattern: Box::new(ir::Expression::Literal(ir::Literal::String("42".into()))),
+            expr: Box::new(ir::Expression::Literal(
+                ir::LiteralValue::String("42".into()).into()
+            )),
+            pattern: Box::new(ir::Expression::Literal(
+                ir::LiteralValue::String("42".into()).into()
+            )),
             escape: Some("foo".into()),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Like(ast::LikeExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
@@ -1286,9 +1387,14 @@ mod expression {
         like_success_no_pattern,
         method = algebrize_expression,
         expected = Ok(ir::Expression::Like(ir::LikeExpr {
-            expr: Box::new(ir::Expression::Literal(ir::Literal::String("42".into()))),
-            pattern: Box::new(ir::Expression::Literal(ir::Literal::String("42".into()))),
+            expr: Box::new(ir::Expression::Literal(
+                ir::LiteralValue::String("42".into()).into()
+            )),
+            pattern: Box::new(ir::Expression::Literal(
+                ir::LiteralValue::String("42".into()).into()
+            )),
             escape: None,
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Like(ast::LikeExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
@@ -1361,7 +1467,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::Count,
                 distinct: false,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1379,7 +1485,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::Count,
                 distinct: true,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1425,7 +1531,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::Sum,
                 distinct: false,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1443,7 +1549,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::Sum,
                 distinct: true,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1478,7 +1584,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::Avg,
                 distinct: false,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1496,7 +1602,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::Avg,
                 distinct: true,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1532,7 +1638,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::StddevPop,
                 distinct: false,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1550,7 +1656,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::StddevPop,
                 distinct: true,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1585,7 +1691,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::StddevSamp,
                 distinct: false,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1603,7 +1709,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::StddevSamp,
                 distinct: true,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1638,7 +1744,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::AddToArray,
                 distinct: false,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1656,7 +1762,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::AddToArray,
                 distinct: true,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1675,7 +1781,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::AddToArray,
                 distinct: true,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1693,7 +1799,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::AddToArray,
                 distinct: true,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1712,7 +1818,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::First,
                 distinct: false,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1730,7 +1836,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::First,
                 distinct: true,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1749,7 +1855,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::Last,
                 distinct: false,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1767,7 +1873,7 @@ mod aggregation {
             ir::AggregationFunctionApplication {
                 function: ir::AggregationFunction::Last,
                 distinct: true,
-                arg: ir::Expression::Literal(ir::Literal::Integer(42)).into(),
+                arg: ir::Expression::Literal(ir::LiteralValue::Integer(42).into()).into(),
             }
         )),
         input = ast::FunctionExpr {
@@ -1788,9 +1894,10 @@ mod aggregation {
                 distinct: false,
                 arg: Box::new(ir::Expression::Document(
                     unchecked_unique_linked_hash_map! {
-                        "a".into() => ir::Expression::Literal(ir::Literal::Integer(42)),
-                        "b".into() => ir::Expression::Literal(ir::Literal::Integer(42)),
-                    },
+                        "a".into() => ir::Expression::Literal(ir::LiteralValue::Integer(42).into()),
+                        "b".into() => ir::Expression::Literal(ir::LiteralValue::Integer(42).into()),
+                    }
+                    .into()
                 ))
             }
         )),
@@ -1824,18 +1931,18 @@ mod aggregation {
 mod select_clause {
     use crate::{
         ast,
-        ir::{self, binding_tuple::Key},
+        ir::{self, binding_tuple::Key, schema::SchemaCache},
         map, multimap,
         schema::ANY_DOCUMENT,
         unchecked_unique_linked_hash_map,
     };
-    use lazy_static::lazy_static;
 
-    lazy_static! {
-        static ref SOURCE: ir::Stage = ir::Stage::Collection(ir::Collection {
+    fn source() -> ir::Stage {
+        ir::Stage::Collection(ir::Collection {
             db: "test".into(),
             collection: "baz".into(),
-        });
+            cache: SchemaCache::new(),
+        })
     }
 
     test_algebrize!(
@@ -1848,7 +1955,7 @@ mod select_clause {
                 ast::Expression::Identifier("foo".into())
             ),]),
         },
-        source = SOURCE.clone(),
+        source = source(),
         env = map! {
             ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
         },
@@ -1864,7 +1971,7 @@ mod select_clause {
                 ast::SelectValuesExpression::Expression(ast::Expression::Document(multimap! {},)),
             ]),
         },
-        source = SOURCE.clone(),
+        source = source(),
         env = map! {},
     );
     test_algebrize!(
@@ -1880,19 +1987,20 @@ mod select_clause {
                 },)
             ),]),
         },
-        source = SOURCE.clone(),
+        source = source(),
         env = map! {},
     );
     test_algebrize!(
         select_bot_and_double_substar,
         method = algebrize_select_clause,
         expected = Ok(ir::Stage::Project(ir::Project {
-            source: Box::new(SOURCE.clone()),
+            source: Box::new(source()),
             expression: map! {
                 ("bar", 1u16).into() => ir::Expression::Reference(("bar", 1u16).into()),
-                Key::bot(1u16) => ir::Expression::Document(unchecked_unique_linked_hash_map!{}),
+                Key::bot(1u16) => ir::Expression::Document(unchecked_unique_linked_hash_map!{}.into()),
                 ("foo", 1u16).into() => ir::Expression::Reference(("foo", 0u16).into()),
-            }
+            },
+            cache: SchemaCache::new(),
         })),
         input = ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
@@ -1902,7 +2010,7 @@ mod select_clause {
                 ast::SelectValuesExpression::Substar("foo".into()),
             ]),
         },
-        source = SOURCE.clone(),
+        source = source(),
         env = map! {
             ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
             ("bar", 1u16).into() => ANY_DOCUMENT.clone(),
@@ -1924,7 +2032,7 @@ mod select_clause {
                 ast::Expression::Literal(ast::Literal::String("foo".into()))
             ),]),
         },
-        source = SOURCE.clone(),
+        source = source(),
         env = map! {},
     );
     test_algebrize!(
@@ -1938,7 +2046,7 @@ mod select_clause {
                 ast::SelectValuesExpression::Substar("foo".into()),
             ]),
         },
-        source = SOURCE.clone(),
+        source = source(),
         env = map! {
             ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
         },
@@ -1947,10 +2055,11 @@ mod select_clause {
         select_substar_body,
         method = algebrize_select_clause,
         expected = Ok(ir::Stage::Project(ir::Project {
-            source: Box::new(SOURCE.clone()),
+            source: Box::new(source()),
             expression: map! {
                 ("foo", 1u16).into() => ir::Expression::Reference(("foo", 0u16).into()),
-            }
+            },
+            cache: SchemaCache::new(),
         })),
         input = ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
@@ -1958,7 +2067,7 @@ mod select_clause {
                 vec![ast::SelectValuesExpression::Substar("foo".into()),]
             ),
         },
-        source = SOURCE.clone(),
+        source = source(),
         env = map! {
             ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
         },
@@ -1966,10 +2075,10 @@ mod select_clause {
 }
 
 mod from_clause {
-    use super::{AST_SOURCE_BAR, AST_SOURCE_FOO, IR_SOURCE_BAR, IR_SOURCE_FOO};
+    use super::{ir_source_bar, ir_source_foo, AST_SOURCE_BAR, AST_SOURCE_FOO};
     use crate::{
         ast::{self, JoinSource},
-        ir::{self, binding_tuple::Key, JoinType},
+        ir::{self, binding_tuple::Key, schema::SchemaCache, JoinType},
         map, multimap,
         schema::{Atomic, Document, Schema, ANY_DOCUMENT},
         set, unchecked_unique_linked_hash_map,
@@ -1998,11 +2107,13 @@ mod from_clause {
             source: Box::new(ir::Stage::Collection(ir::Collection {
                 db: "test".into(),
                 collection: "foo".into(),
+                cache: SchemaCache::new(),
             })),
             expression: map! {
                 ("bar", 0u16).into() =>
                     ir::Expression::Reference(("foo", 0u16).into())
-            }
+            },
+            cache: SchemaCache::new(),
         },),),
         input = Some(ast::Datasource::Collection(ast::CollectionSource {
             database: None,
@@ -2017,11 +2128,13 @@ mod from_clause {
             source: Box::new(ir::Stage::Collection(ir::Collection {
                 db: "test2".into(),
                 collection: "foo".into(),
+                cache: SchemaCache::new(),
             })),
             expression: map! {
                 ("bar", 0u16).into() =>
                     ir::Expression::Reference(("foo", 0u16).into())
-            }
+            },
+            cache: SchemaCache::new(),
         }),),
         input = Some(ast::Datasource::Collection(ast::CollectionSource {
             database: Some("test2".into()),
@@ -2032,9 +2145,10 @@ mod from_clause {
     test_algebrize!(
         empty_array,
         method = algebrize_from_clause,
-        expected = Ok(ir::Stage::Array(ir::Array {
+        expected = Ok(ir::Stage::Array(ir::ArraySource {
             array: vec![],
             alias: "bar".into(),
+            cache: SchemaCache::new(),
         }),),
         input = Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![],
@@ -2044,11 +2158,12 @@ mod from_clause {
     test_algebrize!(
         dual,
         method = algebrize_from_clause,
-        expected = Ok(ir::Stage::Array(ir::Array {
+        expected = Ok(ir::Stage::Array(ir::ArraySource {
             array: vec![ir::Expression::Document(
-                unchecked_unique_linked_hash_map! {}
+                unchecked_unique_linked_hash_map! {}.into()
             )],
             alias: "_dual".into(),
+            cache: SchemaCache::new(),
         }),),
         input = Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Document(multimap! {},)],
@@ -2096,14 +2211,16 @@ mod from_clause {
     test_algebrize!(
         single_document_array,
         method = algebrize_from_clause,
-        expected = Ok(ir::Stage::Array(ir::Array {
+        expected = Ok(ir::Stage::Array(ir::ArraySource {
             array: vec![ir::Expression::Document(
                 unchecked_unique_linked_hash_map! {
-                    "foo".into() => ir::Expression::Literal(ir::Literal::Integer(1)),
-                    "bar".into() => ir::Expression::Literal(ir::Literal::Integer(1))
+                    "foo".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
+                    "bar".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())
                 }
+                .into()
             )],
             alias: "bar".into(),
+            cache: SchemaCache::new(),
         }),),
         input = Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Document(multimap! {
@@ -2116,18 +2233,19 @@ mod from_clause {
     test_algebrize!(
         two_document_array,
         method = algebrize_from_clause,
-        expected = Ok(ir::Stage::Array(ir::Array {
+        expected = Ok(ir::Stage::Array(ir::ArraySource {
             array: vec![
                 ir::Expression::Document(unchecked_unique_linked_hash_map! {
-                    "foo".into() => ir::Expression::Literal(ir::Literal::Integer(1)),
-                    "bar".into() => ir::Expression::Literal(ir::Literal::Integer(1))
-                }),
+                    "foo".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
+                    "bar".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())
+                }.into()),
                 ir::Expression::Document(unchecked_unique_linked_hash_map! {
-                    "foo2".into() => ir::Expression::Literal(ir::Literal::Integer(41)),
-                    "bar2".into() => ir::Expression::Literal(ir::Literal::Integer(42))
-                },)
+                    "foo2".into() => ir::Expression::Literal(ir::LiteralValue::Integer(41).into()),
+                    "bar2".into() => ir::Expression::Literal(ir::LiteralValue::Integer(42).into())
+                }.into())
             ],
             alias: "bar".into(),
+            cache: SchemaCache::new(),
         }),),
         input = Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![
@@ -2146,20 +2264,21 @@ mod from_clause {
     test_algebrize!(
         two_document_with_nested_document_array,
         method = algebrize_from_clause,
-        expected = Ok(ir::Stage::Array(ir::Array {
+        expected = Ok(ir::Stage::Array(ir::ArraySource {
             array: vec![
                 ir::Expression::Document(unchecked_unique_linked_hash_map! {
-                    "foo".into() => ir::Expression::Literal(ir::Literal::Integer(1)),
-                    "bar".into() => ir::Expression::Literal(ir::Literal::Integer(1))
-                }),
+                    "foo".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
+                    "bar".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())
+                }.into()),
                 ir::Expression::Document(unchecked_unique_linked_hash_map! {
                     "foo2".into() => ir::Expression::Document(
-                        unchecked_unique_linked_hash_map!{"nested".into() => ir::Expression::Literal(ir::Literal::Integer(52))},
-                    ),
-                    "bar2".into() => ir::Expression::Literal(ir::Literal::Integer(42))
-                },)
+                        unchecked_unique_linked_hash_map!{"nested".into() => ir::Expression::Literal(ir::LiteralValue::Integer(52).into())}
+                    .into()),
+                    "bar2".into() => ir::Expression::Literal(ir::LiteralValue::Integer(42).into())
+                }.into())
             ],
             alias: "bar".into(),
+            cache: SchemaCache::new(),
         }),),
         input = Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![
@@ -2182,9 +2301,12 @@ mod from_clause {
         method = algebrize_from_clause,
         expected = Ok(ir::Stage::Join(ir::Join {
             join_type: JoinType::Left,
-            left: Box::new(IR_SOURCE_FOO.clone()),
-            right: Box::new(IR_SOURCE_BAR.clone()),
-            condition: Some(ir::Expression::Literal(ir::Literal::Boolean(true)))
+            left: Box::new(ir_source_foo()),
+            right: Box::new(ir_source_bar()),
+            condition: Some(ir::Expression::Literal(
+                ir::LiteralValue::Boolean(true).into()
+            )),
+            cache: SchemaCache::new(),
         })),
         input = Some(ast::Datasource::Join(JoinSource {
             join_type: ast::JoinType::Left,
@@ -2198,9 +2320,12 @@ mod from_clause {
         method = algebrize_from_clause,
         expected = Ok(ir::Stage::Join(ir::Join {
             join_type: JoinType::Left,
-            left: Box::new(IR_SOURCE_BAR.clone()),
-            right: Box::new(IR_SOURCE_FOO.clone()),
-            condition: Some(ir::Expression::Literal(ir::Literal::Boolean(true)))
+            left: Box::new(ir_source_bar()),
+            right: Box::new(ir_source_foo()),
+            condition: Some(ir::Expression::Literal(
+                ir::LiteralValue::Boolean(true).into()
+            )),
+            cache: SchemaCache::new(),
         })),
         input = Some(ast::Datasource::Join(JoinSource {
             join_type: ast::JoinType::Right,
@@ -2236,9 +2361,10 @@ mod from_clause {
         method = algebrize_from_clause,
         expected = Ok(ir::Stage::Join(ir::Join {
             join_type: JoinType::Inner,
-            left: Box::new(IR_SOURCE_FOO.clone()),
-            right: Box::new(IR_SOURCE_BAR.clone()),
-            condition: None
+            left: Box::new(ir_source_foo()),
+            right: Box::new(ir_source_bar()),
+            condition: None,
+            cache: SchemaCache::new(),
         })),
         input = Some(ast::Datasource::Join(JoinSource {
             join_type: ast::JoinType::Inner,
@@ -2252,9 +2378,10 @@ mod from_clause {
         method = algebrize_from_clause,
         expected = Ok(ir::Stage::Join(ir::Join {
             join_type: JoinType::Inner,
-            left: Box::new(IR_SOURCE_FOO.clone()),
-            right: Box::new(IR_SOURCE_BAR.clone()),
-            condition: None
+            left: Box::new(ir_source_foo()),
+            right: Box::new(ir_source_bar()),
+            condition: None,
+            cache: SchemaCache::new(),
         })),
         input = Some(ast::Datasource::Join(JoinSource {
             join_type: ast::JoinType::Cross,
@@ -2288,23 +2415,26 @@ mod from_clause {
         derived_single_datasource,
         method = algebrize_from_clause,
         expected = Ok(ir::Stage::Project(ir::Project {
-            source: Box::new(ir::Stage::Array(ir::Array {
+            source: Box::new(ir::Stage::Array(ir::ArraySource {
                 array: vec![ir::Expression::Document(
-                    unchecked_unique_linked_hash_map! {"foo".into() => ir::Expression::Literal(ir::Literal::Integer(1)),
-                         "bar".into() => ir::Expression::Literal(ir::Literal::Integer(1))
+                    unchecked_unique_linked_hash_map! {"foo".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
+                         "bar".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())
                     }
-                )],
-                alias: "bar".into()
+                .into())],
+                alias: "bar".into(),
+                cache: SchemaCache::new(),
             })),
             expression: map! {("d", 0u16).into() =>
                 ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
                     function: ir::ScalarFunction::MergeObjects,
                     args: vec![
                         ir::Expression::Reference(("bar", 1u16).into())
-                    ]
+                    ],
+                    cache: SchemaCache::new(),
                 }
                 )
             },
+            cache: SchemaCache::new(),
         })),
         input = Some(ast::Datasource::Derived(ast::DerivedSource {
             query: Box::new(ast::Query::Select(ast::SelectQuery {
@@ -2334,24 +2464,27 @@ mod from_clause {
         method = algebrize_from_clause,
         expected = Ok(ir::Stage::Project(ir::Project {
             source: Box::new(ir::Stage::Project(ir::Project {
-                source: Box::new(ir::Stage::Array(ir::Array {
+                source: Box::new(ir::Stage::Array(ir::ArraySource {
                     array: vec![ir::Expression::Document(
                         unchecked_unique_linked_hash_map! {"foo".into() => ir::Expression::Literal(
-                            ir::Literal::Integer(1)
+                            ir::LiteralValue::Integer(1).into()
                             ),
                             "bar".into() => ir::Expression::Literal(
-                                ir::Literal::Integer(1))
+                                ir::LiteralValue::Integer(1).into())
                         }
+                        .into()
                     )],
-                    alias: "bar".into()
+                    alias: "bar".into(),
+                    cache: SchemaCache::new(),
                 })),
                 expression: map! {
                     Key::bot(1u16) => ir::Expression::Document(
-                        unchecked_unique_linked_hash_map!{"baz".into() => ir::Expression::Literal(ir::Literal::String("hello".into()))}
-                    ),
+                        unchecked_unique_linked_hash_map!{"baz".into() => ir::Expression::Literal(ir::LiteralValue::String("hello".into()).into())}
+                    .into()),
                     ("bar", 1u16).into() =>
                         ir::Expression::Reference(("bar", 1u16).into())
-                }
+                },
+                cache: SchemaCache::new(),
             })),
             expression: map! { ("d", 0u16).into() =>
                 ir::Expression::ScalarFunction(
@@ -2359,12 +2492,14 @@ mod from_clause {
                         function: ir::ScalarFunction::MergeObjects,
                         args:
                             vec![
-                                ir::Expression::Reference(Key::bot(1u16)),
+                                ir::Expression::Reference(Key::bot(1u16).into()),
                                 ir::Expression::Reference(("bar", 1u16).into()),
                             ],
+                        cache: SchemaCache::new(),
                     }
                 )
-            }
+            },
+            cache: SchemaCache::new(),
         })),
         input = Some(ast::Datasource::Derived(ast::DerivedSource {
             query: Box::new(ast::Query::Select(ast::SelectQuery {
@@ -2402,27 +2537,30 @@ mod from_clause {
         expected = Ok(ir::Stage::Project(ir::Project {
             source: ir::Stage::Join(ir::Join {
                 join_type: ir::JoinType::Inner,
-                left: ir::Stage::Array(ir::Array {
+                left: ir::Stage::Array(ir::ArraySource {
                     array: vec![ir::Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                        "foo1".into() => ir::Expression::Literal(ir::Literal::Integer(1)),
-                        "bar1".into() => ir::Expression::Literal(ir::Literal::Integer(1))
+                        "foo1".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
+                        "bar1".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())
                                                     }
-                    )],
-                    alias: "bar1".into()
+                    .into())],
+                    alias: "bar1".into(),
+                    cache: SchemaCache::new(),
                 })
                 .into(),
-                right: ir::Stage::Array(ir::Array {
+                right: ir::Stage::Array(ir::ArraySource {
                     array: vec![ir::Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                        "foo2".into() => ir::Expression::Literal(ir::Literal::Integer(1)),
-                        "bar2".into() => ir::Expression::Literal(ir::Literal::Integer(1))
+                        "foo2".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
+                        "bar2".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())
                                                     }
-                    )],
-                    alias: "bar2".into()
+                    .into())],
+                    alias: "bar2".into(),
+                    cache: SchemaCache::new(),
                 })
                 .into(),
-                condition: None
+                condition: None,
+                cache: SchemaCache::new(),
             })
             .into(),
             expression: map! {("d", 0u16).into() =>
@@ -2430,10 +2568,12 @@ mod from_clause {
                     ir::ScalarFunctionApplication {
                         function: ir::ScalarFunction::MergeObjects,
                         args: vec![ir::Expression::Reference(("bar1", 1u16).into()),
-                                   ir::Expression::Reference(("bar2", 1u16).into())]
+                                   ir::Expression::Reference(("bar2", 1u16).into())],
+                        cache: SchemaCache::new(),
                     }
                 )
-            }
+            },
+            cache: SchemaCache::new(),
         })),
         input = Some(ast::Datasource::Derived(ast::DerivedSource {
             query: Box::new(ast::Query::Select(ast::SelectQuery {
@@ -2476,17 +2616,19 @@ mod from_clause {
         method = algebrize_from_clause,
         expected = Ok(ir::Stage::Join(ir::Join {
             join_type: ir::JoinType::Left,
-            left: Box::new(ir::Stage::Array(ir::Array {
+            left: Box::new(ir::Stage::Array(ir::ArraySource {
                 array: vec![ir::Expression::Document(
-                    unchecked_unique_linked_hash_map! {"a".to_string() => ir::Expression::Literal(ir::Literal::Integer(1))}
-                )],
-                alias: "foo".to_string()
+                    unchecked_unique_linked_hash_map! {"a".to_string() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())}
+                .into())],
+                alias: "foo".to_string(),
+                cache: SchemaCache::new(),
             })),
-            right: Box::new(ir::Stage::Array(ir::Array {
+            right: Box::new(ir::Stage::Array(ir::ArraySource {
                 array: vec![ir::Expression::Document(
-                    unchecked_unique_linked_hash_map! {"b".to_string() => ir::Expression::Literal(ir::Literal::Integer(4))}
-                )],
-                alias: "bar".to_string()
+                    unchecked_unique_linked_hash_map! {"b".to_string() => ir::Expression::Literal(ir::LiteralValue::Integer(4).into())}
+                .into())],
+                alias: "bar".to_string(),
+                cache: SchemaCache::new(),
             })),
             condition: Some(ir::Expression::ScalarFunction(
                 ir::ScalarFunctionApplication {
@@ -2494,15 +2636,19 @@ mod from_clause {
                     args: vec![
                         ir::Expression::FieldAccess(ir::FieldAccess {
                             expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
-                            field: "a".to_string()
+                            field: "a".to_string(),
+                            cache: SchemaCache::new(),
                         }),
                         ir::Expression::FieldAccess(ir::FieldAccess {
                             expr: Box::new(ir::Expression::Reference(("bar", 0u16).into())),
-                            field: "b".to_string()
+                            field: "b".to_string(),
+                            cache: SchemaCache::new(),
                         })
-                    ]
+                    ],
+                    cache: SchemaCache::new(),
                 }
-            ))
+            )),
+            cache: SchemaCache::new(),
         })),
         input = Some(ast::Datasource::Join(JoinSource {
             join_type: ast::JoinType::Left,
@@ -2592,52 +2738,56 @@ mod from_clause {
 }
 
 mod limit_or_offset_clause {
-    use super::{AST_SOURCE_FOO, IR_SOURCE_FOO};
-    use crate::{ast, ir};
+    use super::{ir_source_foo, AST_SOURCE_FOO};
+    use crate::{ast, ir, ir::schema::SchemaCache};
 
     test_algebrize!(
         limit_set,
         method = algebrize_limit_clause,
         expected = Ok(ir::Stage::Limit(ir::Limit {
-            source: Box::new(IR_SOURCE_FOO.clone()),
-            limit: 42_u64
+            source: Box::new(ir_source_foo()),
+            limit: 42_u64,
+            cache: SchemaCache::new(),
         })),
         input = Some(42_u32),
-        source = IR_SOURCE_FOO.clone(),
+        source = ir_source_foo(),
     );
     test_algebrize!(
         limit_unset,
         method = algebrize_limit_clause,
-        expected = Ok(IR_SOURCE_FOO.clone()),
+        expected = Ok(ir_source_foo()),
         input = None,
-        source = IR_SOURCE_FOO.clone(),
+        source = ir_source_foo(),
     );
     test_algebrize!(
         offset_set,
         method = algebrize_offset_clause,
         expected = Ok(ir::Stage::Offset(ir::Offset {
-            source: Box::new(IR_SOURCE_FOO.clone()),
-            offset: 3_u64
+            source: Box::new(ir_source_foo()),
+            offset: 3_u64,
+            cache: SchemaCache::new(),
         })),
         input = Some(3_u32),
-        source = IR_SOURCE_FOO.clone(),
+        source = ir_source_foo(),
     );
     test_algebrize!(
         offset_unset,
         method = algebrize_offset_clause,
-        expected = Ok(IR_SOURCE_FOO.clone()),
+        expected = Ok(ir_source_foo()),
         input = None,
-        source = IR_SOURCE_FOO.clone(),
+        source = ir_source_foo(),
     );
     test_algebrize!(
         limit_and_offset,
         method = algebrize_select_query,
         expected = Ok(ir::Stage::Limit(ir::Limit {
             source: Box::new(ir::Stage::Offset(ir::Offset {
-                source: Box::new(IR_SOURCE_FOO.clone()),
-                offset: 3
+                source: Box::new(ir_source_foo()),
+                offset: 3,
+                cache: SchemaCache::new(),
             })),
-            limit: 10
+            limit: 10,
+            cache: SchemaCache::new(),
         })),
         input = ast::SelectQuery {
             select_clause: ast::SelectClause {
@@ -2656,8 +2806,8 @@ mod limit_or_offset_clause {
 }
 
 mod set_query {
-    use super::{AST_QUERY_BAR, AST_QUERY_FOO, IR_SOURCE_BAR, IR_SOURCE_FOO};
-    use crate::{ast, ir};
+    use super::{ir_source_bar, ir_source_foo, AST_QUERY_BAR, AST_QUERY_FOO};
+    use crate::{ast, ir, ir::schema::SchemaCache};
 
     test_algebrize!(
         union_distinct_not_allowed,
@@ -2674,8 +2824,9 @@ mod set_query {
         method = algebrize_set_query,
         expected = Ok(ir::Stage::Set(ir::Set {
             operation: ir::SetOperation::UnionAll,
-            left: Box::new(IR_SOURCE_FOO.clone()),
-            right: Box::new(IR_SOURCE_BAR.clone()),
+            left: Box::new(ir_source_foo()),
+            right: Box::new(ir_source_bar()),
+            cache: SchemaCache::new(),
         })),
         input = ast::SetQuery {
             left: Box::new(AST_QUERY_FOO.clone()),
@@ -2686,65 +2837,73 @@ mod set_query {
 }
 
 mod filter_clause {
-    use super::IR_SOURCE_FOO;
-    use crate::{ast, ir};
+    use super::ir_source_foo;
+    use crate::{ast, ir, ir::schema::SchemaCache};
 
-    const TRUE_IR: ir::Expression = ir::Expression::Literal(ir::Literal::Boolean(true));
+    fn true_ir() -> ir::Expression {
+        ir::Expression::Literal(ir::LiteralValue::Boolean(true).into())
+    }
     const TRUE_AST: ast::Expression = ast::Expression::Literal(ast::Literal::Boolean(true));
 
     test_algebrize!(
         simple,
         method = algebrize_filter_clause,
         expected = Ok(ir::Stage::Filter(ir::Filter {
-            source: Box::new(IR_SOURCE_FOO.clone()),
-            condition: TRUE_IR,
+            source: Box::new(ir_source_foo()),
+            condition: true_ir(),
+            cache: SchemaCache::new(),
         })),
         input = Some(TRUE_AST),
-        source = IR_SOURCE_FOO.clone(),
+        source = ir_source_foo(),
     );
     test_algebrize!(
         none,
         method = algebrize_filter_clause,
-        expected = Ok(IR_SOURCE_FOO.clone()),
+        expected = Ok(ir_source_foo()),
         input = None,
-        source = IR_SOURCE_FOO.clone(),
+        source = ir_source_foo(),
     );
 }
 
 mod order_by_clause {
     use crate::{
-        ast, ir, map,
+        ast, ir,
+        ir::schema::SchemaCache,
+        map,
         schema::{Atomic, Document, Schema},
         set, unchecked_unique_linked_hash_map,
     };
-    use lazy_static::lazy_static;
 
-    lazy_static! {
-        static ref SOURCE: ir::Stage = ir::Stage::Collection(ir::Collection {
+    fn source() -> ir::Stage {
+        ir::Stage::Collection(ir::Collection {
             db: "test".into(),
             collection: "baz".into(),
-        });
+            cache: SchemaCache::new(),
+        })
     }
 
     test_algebrize!(
         asc_and_desc,
         method = algebrize_order_by_clause,
         expected = Ok(ir::Stage::Sort(ir::Sort {
-            source: Box::new(SOURCE.clone()),
+            source: Box::new(source()),
             specs: vec![
                 ir::SortSpecification::Asc(Box::new(ir::Expression::FieldAccess(
                     ir::FieldAccess {
                         expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
-                        field: "a".to_string()
+                        field: "a".to_string(),
+                        cache: SchemaCache::new(),
                     }
                 ))),
                 ir::SortSpecification::Desc(Box::new(ir::Expression::FieldAccess(
                     ir::FieldAccess {
                         expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
-                        field: "b".to_string()
+                        field: "b".to_string(),
+                        cache: SchemaCache::new(),
                     }
                 )))
-            ]
+            ],
+            cache: SchemaCache::new(),
         })),
         input = Some(ast::OrderByClause {
             sort_specs: vec![
@@ -2764,7 +2923,7 @@ mod order_by_clause {
                 }
             ],
         }),
-        source = SOURCE.clone(),
+        source = source(),
         env = map! {
             ("foo", 0u16).into() => Schema::Document( Document {
                 keys: map! {
@@ -2781,20 +2940,24 @@ mod order_by_clause {
         sort_key_from_source,
         method = algebrize_order_by_clause,
         expected = Ok(ir::Stage::Sort(ir::Sort {
-            source: Box::new(ir::Stage::Array(ir::Array {
+            source: Box::new(ir::Stage::Array(ir::ArraySource {
                 array: vec![ir::Expression::Document(
                     unchecked_unique_linked_hash_map! {
-                        "a".into() => ir::Expression::Literal(ir::Literal::Integer(1))
+                        "a".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())
                     }
+                    .into()
                 )],
                 alias: "arr".into(),
+                cache: SchemaCache::new(),
             })),
             specs: vec![ir::SortSpecification::Asc(Box::new(
                 ir::Expression::FieldAccess(ir::FieldAccess {
                     expr: Box::new(ir::Expression::Reference(("arr", 0u16).into())),
-                    field: "a".to_string()
+                    field: "a".to_string(),
+                    cache: SchemaCache::new(),
                 })
-            )),]
+            )),],
+            cache: SchemaCache::new(),
         })),
         input = Some(ast::OrderByClause {
             sort_specs: vec![ast::SortSpec {
@@ -2805,42 +2968,100 @@ mod order_by_clause {
                 direction: ast::SortDirection::Asc
             },],
         }),
-        source = ir::Stage::Array(ir::Array {
+        source = ir::Stage::Array(ir::ArraySource {
             array: vec![ir::Expression::Document(
                 unchecked_unique_linked_hash_map! {
-                    "a".into() => ir::Expression::Literal(ir::Literal::Integer(1))
+                    "a".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())
                 }
+                .into()
             )],
             alias: "arr".into(),
+            cache: SchemaCache::new(),
         }),
     );
 }
 
 mod group_by_clause {
-    use crate::{ast, ir, unchecked_unique_linked_hash_map};
+    use crate::{ast, ir, ir::schema::SchemaCache, unchecked_unique_linked_hash_map};
     use lazy_static::lazy_static;
 
-    lazy_static! {
-        // ARRAY DATASOURCE
-
-        // [{"a" : 1}] AS arr
-        static ref IR_ARRAY_SOURCE: ir::Stage = ir::Stage::Array(ir::Array {
-            array: vec![ir::Expression::Document(unchecked_unique_linked_hash_map! {
-                "a".into() => ir::Expression::Literal(ir::Literal::Integer(1))
-            })],
+    // ARRAY DATASOURCE
+    // [{"a" : 1}] AS arr
+    fn ir_array_source() -> ir::Stage {
+        ir::Stage::Array(ir::ArraySource {
+            array: vec![ir::Expression::Document(
+                unchecked_unique_linked_hash_map! {
+                    "a".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())
+                }
+                .into(),
+            )],
             alias: "arr".into(),
-        });
-
-        // GROUP BY KEYS
-
-        // arr.a AS key
-        static ref IR_FIELD_ACCESS: ir::OptionallyAliasedExpr = ir::OptionallyAliasedExpr::Aliased(ir::AliasedExpr {
+            cache: SchemaCache::new(),
+        })
+    }
+    // GROUP BY KEYS
+    // arr.a AS key
+    fn ir_field_access() -> ir::OptionallyAliasedExpr {
+        ir::OptionallyAliasedExpr::Aliased(ir::AliasedExpr {
             alias: "key".to_string(),
             expr: ir::Expression::FieldAccess(ir::FieldAccess {
                 expr: Box::new(ir::Expression::Reference(("arr", 0u16).into())),
-                field: "a".to_string()
-            })
-        });
+                field: "a".to_string(),
+                cache: SchemaCache::new(),
+            }),
+        })
+    }
+    // 1 AS literal
+    fn ir_literal_key() -> ir::OptionallyAliasedExpr {
+        ir::OptionallyAliasedExpr::Aliased(ir::AliasedExpr {
+            alias: "literal".into(),
+            expr: ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
+        })
+    }
+
+    // a + 1 as complex_expr
+    fn ir_field_access_complex_expr() -> ir::OptionallyAliasedExpr {
+        ir::OptionallyAliasedExpr::Aliased(ir::AliasedExpr {
+            alias: "complex_expr".into(),
+            expr: ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Add,
+                args: vec![
+                    ir::Expression::FieldAccess(ir::FieldAccess {
+                        expr: Box::new(ir::Expression::Reference(("arr", 0u16).into())),
+                        field: "a".to_string(),
+                        cache: SchemaCache::new(),
+                    }),
+                    ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
+                ],
+                cache: SchemaCache::new(),
+            }),
+        })
+    }
+    // AVG(DISTINCT arr.a) AS agg1
+    fn ir_agg_1_array() -> ir::AliasedAggregation {
+        ir::AliasedAggregation {
+            alias: "agg1".to_string(),
+            agg_expr: ir::AggregationExpr::Function(ir::AggregationFunctionApplication {
+                function: ir::AggregationFunction::Avg,
+                arg: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
+                    expr: Box::new(ir::Expression::Reference(("arr", 0u16).into())),
+                    field: "a".to_string(),
+                    cache: SchemaCache::new(),
+                })),
+                distinct: true,
+            }),
+        }
+    }
+    // COUNT(*) AS agg2
+    fn ir_agg_2() -> ir::AliasedAggregation {
+        ir::AliasedAggregation {
+            alias: "agg2".to_string(),
+            agg_expr: ir::AggregationExpr::CountStar(false),
+        }
+    }
+
+    lazy_static! {
+        // GROUP BY KEYS
         static ref AST_SUBPATH: ast::OptionallyAliasedExpr = ast::OptionallyAliasedExpr::Aliased(ast::AliasedExpr {
             expr: ast::Expression::Subpath(ast::SubpathExpr {
                 expr: Box::new(ast::Expression::Identifier("arr".to_string())),
@@ -2850,29 +3071,12 @@ mod group_by_clause {
         });
 
         // 1 AS literal
-        static ref IR_LITERAL_KEY: ir::OptionallyAliasedExpr = ir::OptionallyAliasedExpr::Aliased(ir::AliasedExpr {
-            alias: "literal".into(),
-            expr: ir::Expression::Literal(ir::Literal::Integer(1)),
-        });
         static ref AST_LITERAL_KEY: ast::OptionallyAliasedExpr = ast::OptionallyAliasedExpr::Aliased(ast::AliasedExpr {
             expr: ast::Expression::Literal(ast::Literal::Integer(1)),
             alias: "literal".into(),
         });
 
         // a + 1 AS complex_expr
-        static ref IR_FIELD_ACCESS_COMPLEX_EXPR: ir::OptionallyAliasedExpr = ir::OptionallyAliasedExpr::Aliased(ir::AliasedExpr {
-            alias: "complex_expr".into(),
-            expr: ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
-                function: ir::ScalarFunction::Add,
-                args: vec![
-                    ir::Expression::FieldAccess(ir::FieldAccess {
-                        expr: Box::new(ir::Expression::Reference(("arr", 0u16).into())),
-                        field: "a".to_string()
-                    }),
-                    ir::Expression::Literal(ir::Literal::Integer(1))
-                ]
-            })
-        });
         static ref AST_SUBPATH_COMPLEX_EXPR: ast::OptionallyAliasedExpr = ast::OptionallyAliasedExpr::Aliased(ast::AliasedExpr {
             expr: ast::Expression::Binary(ast::BinaryExpr {
                 left: Box::new(ast::Expression::Subpath(ast::SubpathExpr {
@@ -2888,17 +3092,6 @@ mod group_by_clause {
         // AGGREGATION FUNCTIONS
 
         // AVG(DISTINCT arr.a) AS agg1
-        static ref IR_AGG_1_ARRAY: ir::AliasedAggregation = ir::AliasedAggregation {
-            alias: "agg1".to_string(),
-            agg_expr: ir::AggregationExpr::Function(ir::AggregationFunctionApplication {
-                function: ir::AggregationFunction::Avg,
-                arg: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
-                    expr: Box::new(ir::Expression::Reference(("arr", 0u16).into())),
-                    field: "a".to_string()
-                })),
-                distinct: true,
-            })
-        };
         static ref AST_AGG_1_ARRAY: ast::AliasedExpr = ast::AliasedExpr {
             expr: ast::Expression::Function(ast::FunctionExpr {
                 function: ast::FunctionName::Avg,
@@ -2914,10 +3107,6 @@ mod group_by_clause {
         };
 
         // COUNT(*) AS agg2
-        static ref IR_AGG_2: ir::AliasedAggregation = ir::AliasedAggregation {
-            alias: "agg2".to_string(),
-            agg_expr: ir::AggregationExpr::CountStar(false),
-        };
         static ref AST_AGG_2: ast::AliasedExpr = ast::AliasedExpr {
             expr: ast::Expression::Function(ast::FunctionExpr {
                 function: ast::FunctionName::Count,
@@ -2935,15 +3124,16 @@ mod group_by_clause {
         group_by_key_with_aggregation_array_source,
         method = algebrize_group_by_clause,
         expected = Ok(ir::Stage::Group(ir::Group {
-            source: Box::new(IR_ARRAY_SOURCE.clone()),
-            keys: vec![IR_FIELD_ACCESS.clone()],
-            aggregations: vec![IR_AGG_1_ARRAY.clone(), IR_AGG_2.clone()],
+            source: Box::new(ir_array_source()),
+            keys: vec![ir_field_access()],
+            aggregations: vec![ir_agg_1_array(), ir_agg_2()],
+            cache: SchemaCache::new(),
         })),
         input = Some(ast::GroupByClause {
             keys: vec![AST_SUBPATH.clone()],
             aggregations: vec![AST_AGG_1_ARRAY.clone(), AST_AGG_2.clone()],
         }),
-        source = IR_ARRAY_SOURCE.clone(),
+        source = ir_array_source(),
     );
 
     // FROM [{"a": 1}] AS arr GROUP BY 1
@@ -2951,15 +3141,16 @@ mod group_by_clause {
         group_by_key_is_literal,
         method = algebrize_group_by_clause,
         expected = Ok(ir::Stage::Group(ir::Group {
-            source: Box::new(IR_ARRAY_SOURCE.clone()),
-            keys: vec![IR_LITERAL_KEY.clone()],
+            source: Box::new(ir_array_source()),
+            keys: vec![ir_literal_key()],
             aggregations: vec![],
+            cache: SchemaCache::new(),
         })),
         input = Some(ast::GroupByClause {
             keys: vec![AST_LITERAL_KEY.clone()],
             aggregations: vec![],
         }),
-        source = IR_ARRAY_SOURCE.clone(),
+        source = ir_array_source(),
     );
 
     // FROM [{"a": 1}] AS arr GROUP BY a + 1
@@ -2967,15 +3158,16 @@ mod group_by_clause {
         group_by_key_is_complex_expression,
         method = algebrize_group_by_clause,
         expected = Ok(ir::Stage::Group(ir::Group {
-            source: Box::new(IR_ARRAY_SOURCE.clone()),
-            keys: vec![IR_FIELD_ACCESS_COMPLEX_EXPR.clone()],
+            source: Box::new(ir_array_source()),
+            keys: vec![ir_field_access_complex_expr()],
             aggregations: vec![],
+            cache: SchemaCache::new(),
         })),
         input = Some(ast::GroupByClause {
             keys: vec![AST_SUBPATH_COMPLEX_EXPR.clone()],
             aggregations: vec![],
         }),
-        source = IR_ARRAY_SOURCE.clone(),
+        source = ir_array_source(),
     );
 
     // Error tests.
@@ -2992,7 +3184,7 @@ mod group_by_clause {
                 alias: "agg".to_string(),
             },],
         }),
-        source = IR_ARRAY_SOURCE.clone(),
+        source = ir_array_source(),
     );
 
     // FROM [{"a": 1}] AS arr GROUP BY arr.a AS key, arr.a AS key
@@ -3004,7 +3196,7 @@ mod group_by_clause {
             keys: vec![AST_SUBPATH.clone(), AST_SUBPATH.clone()],
             aggregations: vec![],
         }),
-        source = IR_ARRAY_SOURCE.clone(),
+        source = ir_array_source(),
     );
 
     // FROM [{"a": 1}] AS arr GROUP BY arr.a AS key AGGREGATE COUNT(*) AS a, COUNT(*) AS a
@@ -3033,7 +3225,7 @@ mod group_by_clause {
                 },
             ],
         }),
-        source = IR_ARRAY_SOURCE.clone(),
+        source = ir_array_source(),
     );
 
     // FROM [{"a": 1}] AS arr GROUP BY arr.a AS key AGGREGATE COUNT(*) AS key
@@ -3052,19 +3244,32 @@ mod group_by_clause {
                 alias: "key".into(),
             },],
         }),
-        source = IR_ARRAY_SOURCE.clone(),
+        source = ir_array_source(),
     );
 }
 
 mod subquery {
     use crate::{
         ast,
-        ir::{binding_tuple::DatasourceName, *},
+        ir::{binding_tuple::DatasourceName, schema::SchemaCache, *},
         map, multimap,
         schema::{Atomic, Document, Schema},
         set, unchecked_unique_linked_hash_map,
     };
     use lazy_static::lazy_static;
+
+    fn ir_array() -> Stage {
+        Stage::Array(ArraySource {
+            array: vec![Expression::Document(
+                unchecked_unique_linked_hash_map! {
+                    "a".into() => Expression::Literal(LiteralValue::Integer(1).into())
+                }
+                .into(),
+            )],
+            alias: "arr".into(),
+            cache: SchemaCache::new(),
+        })
+    }
     lazy_static! {
         static ref AST_ARRAY: ast::Datasource = ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Document(multimap! {
@@ -3072,24 +3277,19 @@ mod subquery {
             },)],
             alias: "arr".into()
         });
-        static ref IR_ARRAY: Stage = Stage::Array(Array {
-            array: vec![Expression::Document(unchecked_unique_linked_hash_map! {
-                "a".into() => Expression::Literal(Literal::Integer(1))
-            })],
-            alias: "arr".into()
-        });
     }
     test_algebrize!(
         uncorrelated_exists,
         method = algebrize_expression,
         expected = Ok(Expression::Exists(Box::new(Stage::Project(Project {
-            source: Box::new(IR_ARRAY.clone()),
+            source: Box::new(ir_array()),
             expression: map! {
                 (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
-                    "a".into() => Expression::Literal(Literal::Integer(1))
-                })
-            }
-        })))),
+                    "a".into() => Expression::Literal(LiteralValue::Integer(1).into())
+                }.into())
+            },
+            cache: SchemaCache::new(),
+        })).into())),
         input = ast::Expression::Exists(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
@@ -3112,16 +3312,18 @@ mod subquery {
         correlated_exists,
         method = algebrize_expression,
         expected = Ok(Expression::Exists(Box::new(Stage::Project(Project {
-            source: Box::new(IR_ARRAY.clone()),
+            source: Box::new(ir_array()),
             expression: map! {
                 (DatasourceName::Bottom, 2u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
                     "b_0".into() => Expression::FieldAccess(FieldAccess {
                         expr: Box::new(Expression::Reference(("foo", 1u16).into())),
-                        field: "b".into()
+                        field: "b".into(),
+                        cache: SchemaCache::new(),
                     })
-                })
-            }
-        })))),
+                }.into())
+            },
+            cache: SchemaCache::new(),
+        })).into())),
         input = ast::Expression::Exists(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
@@ -3152,17 +3354,18 @@ mod subquery {
     test_algebrize!(
         exists_cardinality_gt_1,
         method = algebrize_expression,
-        expected = Ok(Expression::Exists(Box::new(Stage::Array(Array {
+        expected = Ok(Expression::Exists(Box::new(Stage::Array(ArraySource {
             array: vec![
                 Expression::Document(
-                    unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(1))}
-                ),
+                    unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(LiteralValue::Integer(1).into())}
+                .into()),
                 Expression::Document(
-                    unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(Literal::Integer(2))}
-                )
+                    unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(LiteralValue::Integer(2).into())}
+                .into())
             ],
-            alias: "arr".into()
-        })))),
+            alias: "arr".into(),
+            cache: SchemaCache::new(),
+        })).into())),
         input = ast::Expression::Exists(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
@@ -3190,13 +3393,20 @@ mod subquery {
     test_algebrize!(
         exists_degree_gt_1,
         method = algebrize_expression,
-        expected = Ok(Expression::Exists(Box::new(Stage::Array(Array {
-            array: vec![Expression::Document(unchecked_unique_linked_hash_map! {
-                "a".to_string() => Expression::Literal(Literal::Integer(1)),
-                "b".to_string() => Expression::Literal(Literal::Integer(2))
-            })],
-            alias: "arr".to_string()
-        })))),
+        expected = Ok(Expression::Exists(
+            Box::new(Stage::Array(ArraySource {
+                array: vec![Expression::Document(
+                    unchecked_unique_linked_hash_map! {
+                        "a".to_string() => Expression::Literal(LiteralValue::Integer(1).into()),
+                        "b".to_string() => Expression::Literal(LiteralValue::Integer(2).into())
+                    }
+                    .into()
+                )],
+                alias: "arr".to_string(),
+                cache: SchemaCache::new(),
+            }))
+            .into()
+        )),
         input = ast::Expression::Exists(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
@@ -3223,19 +3433,23 @@ mod subquery {
         expected = Ok(Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
-                field: "a_0".to_string()
+                field: "a_0".to_string(),
+                cache: SchemaCache::new(),
             })),
             subquery: Box::new(Stage::Project(Project {
-                source: Box::new(IR_ARRAY.clone()),
+                source: Box::new(ir_array()),
                 expression: map! {
                     (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
                         "a_0".into() => Expression::FieldAccess(FieldAccess {
                             expr: Box::new(Expression::Reference(("arr", 1u16).into())),
-                            field: "a".into()
+                            field: "a".into(),
+                            cache: SchemaCache::new(),
                         })
-                    })
-                }
-            }))
+                    }.into())
+                },
+                cache: SchemaCache::new(),
+            })),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
@@ -3261,19 +3475,23 @@ mod subquery {
         expected = Ok(Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference((DatasourceName::Bottom, 2u16).into())),
-                field: "b_0".to_string()
+                field: "b_0".to_string(),
+                cache: SchemaCache::new(),
             })),
             subquery: Box::new(Stage::Project(Project {
-                source: Box::new(IR_ARRAY.clone()),
+                source: Box::new(ir_array()),
                 expression: map! {
                     (DatasourceName::Bottom, 2u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
                         "b_0".into() => Expression::FieldAccess(FieldAccess {
                             expr: Box::new(Expression::Reference(("foo", 1u16).into())),
-                            field: "b".into()
+                            field: "b".into(),
+                            cache: SchemaCache::new(),
                         })
-                    })
-                }
-            }))
+                    }.into())
+                },
+                cache: SchemaCache::new(),
+            })),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
@@ -3329,14 +3547,17 @@ mod subquery {
         expected = Ok(Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference(("arr", 1u16).into())),
-                field: "a".to_string()
+                field: "a".to_string(),
+                cache: SchemaCache::new(),
             })),
             subquery: Box::new(Stage::Project(Project {
-                source: Box::new(IR_ARRAY.clone()),
+                source: Box::new(ir_array()),
                 expression: map! {
                     ("arr", 1u16).into() => Expression::Reference(("arr", 1u16).into())
-                }
-            }))
+                },
+                cache: SchemaCache::new(),
+            })),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
@@ -3395,9 +3616,11 @@ mod subquery {
         expected = Ok(Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference(("arr", 1u16).into())),
-                field: "a".to_string()
+                field: "a".to_string(),
+                cache: SchemaCache::new(),
             })),
-            subquery: Box::new(IR_ARRAY.clone())
+            subquery: Box::new(ir_array()),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
@@ -3471,24 +3694,29 @@ mod subquery {
         expected = Ok(Expression::SubqueryComparison(SubqueryComparison {
             operator: SubqueryComparisonOp::Eq,
             modifier: SubqueryModifier::All,
-            argument: Box::new(Expression::Literal(Literal::Integer(5))),
+            argument: Box::new(Expression::Literal(LiteralValue::Integer(5).into())),
             subquery_expr: SubqueryExpr {
                 output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
-                    field: "a_0".to_string()
+                    field: "a_0".to_string(),
+                    cache: SchemaCache::new(),
                 })),
                 subquery: Box::new(Stage::Project(Project {
-                    source: Box::new(IR_ARRAY.clone()),
+                    source: Box::new(ir_array()),
                     expression: map! {
                         (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
                             "a_0".into() => Expression::FieldAccess(FieldAccess {
                                 expr: Box::new(Expression::Reference(("arr", 1u16).into())),
-                                field: "a".into()
+                                field: "a".into(),
+                                cache: SchemaCache::new(),
                             })
-                        })
-                    }
-                }))
-            }
+                        }.into())
+                    },
+                    cache: SchemaCache::new(),
+                })),
+                cache: SchemaCache::new(),
+            },
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(5))),
@@ -3519,24 +3747,29 @@ mod subquery {
         expected = Ok(Expression::SubqueryComparison(SubqueryComparison {
             operator: SubqueryComparisonOp::Eq,
             modifier: SubqueryModifier::Any,
-            argument: Box::new(Expression::Literal(Literal::Integer(5))),
+            argument: Box::new(Expression::Literal(LiteralValue::Integer(5).into())),
             subquery_expr: SubqueryExpr {
                 output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
-                    field: "a_0".to_string()
+                    field: "a_0".to_string(),
+                    cache: SchemaCache::new(),
                 })),
                 subquery: Box::new(Stage::Project(Project {
-                    source: Box::new(IR_ARRAY.clone()),
+                    source: Box::new(ir_array()),
                     expression: map! {
                         (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
                             "a_0".into() => Expression::FieldAccess(FieldAccess {
                                 expr: Box::new(Expression::Reference(("arr", 1u16).into())),
-                                field: "a".into()
+                                field: "a".into(),
+                                cache: SchemaCache::new(),
                             })
-                        })
-                    }
-                }))
-            }
+                        }.into())
+                    },
+                    cache: SchemaCache::new(),
+                })),
+                cache: SchemaCache::new(),
+            },
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(5))),
@@ -3569,25 +3802,31 @@ mod subquery {
             modifier: SubqueryModifier::All,
             argument: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference(("foo", 1u16).into())),
-                field: "b".to_string()
+                field: "b".to_string(),
+                cache: SchemaCache::new(),
             })),
             subquery_expr: SubqueryExpr {
                 output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference((DatasourceName::Bottom, 2u16).into())),
-                    field: "a_0".to_string()
+                    field: "a_0".to_string(),
+                    cache: SchemaCache::new(),
                 })),
                 subquery: Box::new(Stage::Project(Project {
-                    source: Box::new(IR_ARRAY.clone()),
+                    source: Box::new(ir_array()),
                     expression: map! {
                         (DatasourceName::Bottom, 2u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
                             "a_0".into() => Expression::FieldAccess(FieldAccess {
                                 expr: Box::new(Expression::Reference(("arr", 2u16).into())),
-                                field: "a".into()
+                                field: "a".into(),
+                                cache: SchemaCache::new(),
                             })
-                        })
-                    }
-                }))
-            }
+                        }.into())
+                    },
+                    cache: SchemaCache::new(),
+                })),
+                cache: SchemaCache::new(),
+            },
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
             expr: Box::new(ast::Expression::Identifier("b".into())),
@@ -3654,7 +3893,8 @@ mod subquery {
         expected = Ok(Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
-                field: "x".to_string()
+                field: "x".to_string(),
+                cache: SchemaCache::new(),
             })),
             subquery: Box::new(Stage::Limit(Limit {
                 source: Box::new(Stage::Project(Project {
@@ -3662,22 +3902,28 @@ mod subquery {
                         source: Box::new(Stage::Collection(Collection {
                             db: "test".to_string(),
                             collection: "bar".to_string(),
+                            cache: SchemaCache::new(),
                         })),
                         expression: map! {
                             (DatasourceName::Named("bar".to_string()), 1u16).into() => Expression::Reference(("bar".to_string(), 1u16).into())
                         },
+                        cache: SchemaCache::new(),
                     })),
                     expression: map! {
                         (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
                             "x".into() => Expression::FieldAccess(FieldAccess {
                                 expr: Box::new(Expression::Reference(("bar", 1u16).into())),
-                                field: "x".into()
+                                field: "x".into(),
+                                cache: SchemaCache::new(),
                             })
-                        })
-                    }
+                        }.into())
+                    },
+                    cache: SchemaCache::new(),
                 })),
-                limit: 1
-            }))
+                limit: 1,
+                cache: SchemaCache::new(),
+            })),
+            cache: SchemaCache::new(),
         })),
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {

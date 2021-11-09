@@ -42,6 +42,7 @@ impl Visitor for ScalarFunctionApplicationVisitor {
                         _ => vec![child.clone()],
                     })
                     .collect(),
+                cache: node.cache,
             },
             _ => node,
         }

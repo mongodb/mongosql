@@ -10,11 +10,14 @@ use crate::{
     set,
     util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
-use std::cmp::min;
-use std::collections::{BTreeMap, BTreeSet};
+use std::{
+    cell::RefCell,
+    cmp::min,
+    collections::{BTreeMap, BTreeSet},
+};
 use thiserror::Error;
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Clone)]
 pub enum Error {
     #[error("datasource {0:?} not found in schema environment")]
     DatasourceNotFoundInSchemaEnv(binding_tuple::Key),
@@ -54,6 +57,88 @@ pub enum Error {
     UnaliasedFieldAccessWithNoReference(usize),
     #[error("group key at position {0} is an unaliased non-field access expression")]
     UnaliasedNonFieldAccessExpression(usize),
+}
+
+#[derive(PartialEq, Clone, Debug)]
+struct SchemaCacheContents<T: Clone> {
+    // SchemaCacheContents stores everything from a SchemaInferenceState but the Catalog reference
+    // in order to avoid specifying a lifetime.
+    env: SchemaEnvironment,
+    scope_level: u16,
+    result: T,
+}
+
+impl<T: Clone> SchemaCacheContents<T> {
+    fn new(state: &SchemaInferenceState, result: T) -> SchemaCacheContents<T> {
+        SchemaCacheContents {
+            env: state.env.clone(),
+            scope_level: state.scope_level,
+            result,
+        }
+    }
+    /// Check if the passed-in state will result in a cache hit.
+    fn matches(&self, state: &SchemaInferenceState) -> bool {
+        self.env == state.env && self.scope_level == state.scope_level
+    }
+}
+
+/// SchemaCache caches a `Result` because `schema()` methods are fallible and always return a Result.
+#[derive(Clone, Debug)]
+pub struct SchemaCache<T: Clone>(RefCell<Option<SchemaCacheContents<Result<T, Error>>>>);
+
+impl<T: Clone> PartialEq for SchemaCache<T> {
+    fn eq(&self, _other: &Self) -> bool {
+        // Always return true since stages and expressions derive PartialEq, and we shouldn't care
+        // about the contents of the SchemaCache of the stage or expression when comparing structs
+        // which contain caches.
+        true
+    }
+}
+
+impl<T: Clone> SchemaCache<T> {
+    pub fn new() -> Self {
+        Self(RefCell::new(None))
+    }
+}
+
+impl<T: Clone> Default for SchemaCache<T> {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+pub trait CachedSchema {
+    type ReturnType: Clone;
+
+    /// Get the stored RefCell from the underlying struct this trait is implemented on if it exists.
+    /// Some types don't benefit from caching (literal and reference expressions specifically),
+    /// so this function returns an Option that may or may not contain a cache.
+    fn get_cache(&self) -> &SchemaCache<Self::ReturnType>;
+
+    /// Get the cached result if the cache exists and it contains a value.
+    fn get_cached_schema(&self) -> Option<Result<Self::ReturnType, Error>> {
+        match self.get_cache().0.borrow().clone() {
+            Some(c) => Some(c.result),
+            None => None,
+        }
+    }
+
+    /// Run schema checking algorithm for a node.
+    fn check_schema(&self, state: &SchemaInferenceState) -> Result<Self::ReturnType, Error>;
+
+    /// Cached call to `check_schema()`.
+    fn schema(&self, state: &SchemaInferenceState) -> Result<Self::ReturnType, Error> {
+        // This mutable borrow of the cache will be released when schema() is complete.
+        let mut cache = self.get_cache().0.borrow_mut();
+        match &*cache {
+            Some(contents) if contents.matches(state) => contents.result.clone(),
+            _ => {
+                let schema_result = self.check_schema(state);
+                cache.replace(SchemaCacheContents::new(state, schema_result.clone()));
+                schema_result
+            }
+        }
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -98,7 +183,24 @@ impl<'a> SchemaInferenceState<'a> {
     }
 }
 
-impl Stage {
+impl CachedSchema for Stage {
+    type ReturnType = ResultSet;
+
+    fn get_cache(&self) -> &SchemaCache<Self::ReturnType> {
+        match self {
+            Stage::Filter(s) => &s.cache,
+            Stage::Project(s) => &s.cache,
+            Stage::Group(s) => &s.cache,
+            Stage::Limit(s) => &s.cache,
+            Stage::Offset(s) => &s.cache,
+            Stage::Sort(s) => &s.cache,
+            Stage::Collection(s) => &s.cache,
+            Stage::Array(s) => &s.cache,
+            Stage::Join(s) => &s.cache,
+            Stage::Set(s) => &s.cache,
+        }
+    }
+
     /// Recursively schema checks this stage, its sources, and all
     /// contained expressions. If schema checking succeeds, returns a
     /// [`ResultSet`] describing the schema of the result set returned
@@ -106,7 +208,7 @@ impl Stage {
     /// include schema information for any datasources from outer
     /// scopes. Schema information for the current scope will be
     /// obtained by calling [`Stage::schema`] on source stages.
-    pub fn schema(&self, state: &SchemaInferenceState) -> Result<ResultSet, Error> {
+    fn check_schema(&self, state: &SchemaInferenceState) -> Result<ResultSet, Error> {
         match self {
             Stage::Filter(f) => {
                 let source_result_set = f.source.schema(state)?;
@@ -208,7 +310,7 @@ impl Stage {
                             OptionallyAliasedExpr::Unaliased(ref expr) => match expr {
                                 Expression::FieldAccess(f) => match f.expr.as_ref() {
                                     Expression::Reference(r) => (
-                                        r.clone(),
+                                        r.key.clone(),
                                         schema_binding_doc(f.field.clone(), group_key_schema),
                                     ),
                                     _ => {
@@ -582,22 +684,96 @@ impl Expression {
         Schema::Missing
     }
 
+    fn array_schema(a: &[Expression], state: &SchemaInferenceState) -> Result<Schema, Error> {
+        Ok(Schema::Array(Box::new(Expression::array_items_schema(
+            a, state,
+        )?)))
+    }
+
+    /// For array literals, we return Array(Unsat) (isomorphic with Array(AnyOf([])) for an empty array.
+    /// For other arrays we return Array(AnyOf(S1...SN)), for Schemata S1...SN inferred from the element
+    /// Expressions of the array literal.
+    fn array_items_schema(a: &[Expression], state: &SchemaInferenceState) -> Result<Schema, Error> {
+        Ok(Schema::AnyOf(
+            a.iter()
+                .map(|e| e.schema(state).map(|s| s.upconvert_missing_to_null()))
+                .collect::<Result<_, _>>()?,
+        ))
+    }
+
+    /// For document literals, we infer the most restrictive schema possible. This means
+    /// that additional_properties are not allowed.
+    fn document_schema(
+        d: &UniqueLinkedHashMap<String, Expression>,
+        state: &SchemaInferenceState,
+    ) -> Result<Schema, Error> {
+        let (mut keys, mut required) = (BTreeMap::new(), BTreeSet::new());
+        for (key, e) in d.iter() {
+            let key_schema = e.schema(state)?;
+            match key_schema.satisfies(&Schema::Missing) {
+                Satisfaction::Not => {
+                    required.insert(key.clone());
+                    keys.insert(key.clone(), key_schema);
+                }
+                Satisfaction::May => {
+                    keys.insert(key.clone(), key_schema);
+                }
+                Satisfaction::Must => (),
+            }
+        }
+        Ok(Schema::Document(Document {
+            keys,
+            required,
+            additional_properties: false,
+        }))
+    }
+}
+
+impl CachedSchema for Expression {
+    type ReturnType = Schema;
+
+    fn get_cache(&self) -> &SchemaCache<Self::ReturnType> {
+        match self {
+            Expression::Literal(s) => &s.cache,
+            Expression::Reference(r) => &r.cache,
+            Expression::Array(a) => &a.cache,
+            Expression::Document(d) => &d.cache, // TODO: investigate how to add a cache on the hashmap
+            Expression::ScalarFunction(s) => &s.cache,
+            Expression::Cast(s) => &s.cache,
+            Expression::SearchedCase(s) => &s.cache,
+            Expression::SimpleCase(s) => &s.cache,
+            Expression::TypeAssertion(s) => &s.cache,
+            Expression::Is(s) => &s.cache,
+            Expression::Like(s) => &s.cache,
+            Expression::FieldAccess(s) => &s.cache,
+            Expression::Subquery(s) => &s.cache,
+            Expression::SubqueryComparison(s) => &s.cache,
+            Expression::Exists(s) => &s.cache, // schema is always always boolean after checking the boxed stage, which is cached
+        }
+    }
+
     /// Recursively schema checks this expression, its arguments, and
     /// all contained expressions/stages. If schema checking succeeds,
     /// returns a [`Schema`] describing this expression's schema. The
     /// provided [`SchemaInferenceState`] should include schema
     /// information for all datasources in scope.
-    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+    fn check_schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
         match self {
-            Expression::Literal(lit) => lit.schema(state),
-            Expression::Reference(key) => state
+            Expression::Literal(lit) => lit.value.schema(state),
+            Expression::Reference(ReferenceExpr { key, .. }) => state
                 .env
                 .get(key)
                 .cloned()
                 .ok_or_else(|| Error::DatasourceNotFoundInSchemaEnv(key.clone())),
-            Expression::Array(a) => Expression::array_schema(a, state),
-            Expression::Document(d) => Expression::document_schema(d, state),
-            Expression::FieldAccess(FieldAccess { expr, field }) => {
+            Expression::Array(ArrayExpr { array, .. }) => Expression::array_schema(array, state),
+            Expression::Document(DocumentExpr { document, .. }) => {
+                Expression::document_schema(document, state)
+            }
+            Expression::FieldAccess(FieldAccess {
+                expr,
+                field,
+                cache: _cache,
+            }) => {
                 let accessee_schema = expr.schema(state)?;
                 if accessee_schema.satisfies(&ANY_DOCUMENT) == Satisfaction::Not {
                     return Err(Error::SchemaChecking {
@@ -622,6 +798,7 @@ impl Expression {
                 modifier: _modifier,
                 argument,
                 subquery_expr,
+                cache: _cache,
             }) => {
                 let argument_schema = argument.schema(state)?;
                 let subquery_schema = subquery_expr.schema(state)?;
@@ -635,7 +812,7 @@ impl Expression {
                     ))
                 }
             }
-            Expression::Exists(stage) => {
+            Expression::Exists(ExistsExpr { stage, .. }) => {
                 stage.schema(&state.subquery_state())?;
                 Ok(Schema::Atomic(Atomic::Boolean))
             }
@@ -674,55 +851,11 @@ impl Expression {
             }
         }
     }
-
-    fn array_schema(a: &[Expression], state: &SchemaInferenceState) -> Result<Schema, Error> {
-        Ok(Schema::Array(Box::new(Expression::array_items_schema(
-            a, state,
-        )?)))
-    }
-
-    /// For array literals, we return Array(Any) for an empty array. For other arrays
-    /// we return Array(AnyOf(S1...SN)), for Schemata S1...SN inferred from the element
-    /// Expressions of the array literal.
-    fn array_items_schema(a: &[Expression], state: &SchemaInferenceState) -> Result<Schema, Error> {
-        Ok(Schema::AnyOf(
-            a.iter()
-                .map(|e| e.schema(state).map(|s| s.upconvert_missing_to_null()))
-                .collect::<Result<_, _>>()?,
-        ))
-    }
-
-    /// For document literals, we infer the most restrictive schema possible. This means
-    /// that additional_properties are not allowed.
-    fn document_schema(
-        d: &UniqueLinkedHashMap<String, Expression>,
-        state: &SchemaInferenceState,
-    ) -> Result<Schema, Error> {
-        let (mut keys, mut required) = (BTreeMap::new(), BTreeSet::new());
-        for (key, e) in d.iter() {
-            let key_schema = e.schema(state)?;
-            match key_schema.satisfies(&Schema::Missing) {
-                Satisfaction::Not => {
-                    required.insert(key.clone());
-                    keys.insert(key.clone(), key_schema);
-                }
-                Satisfaction::May => {
-                    keys.insert(key.clone(), key_schema);
-                }
-                Satisfaction::Must => (),
-            }
-        }
-        Ok(Schema::Document(Document {
-            keys,
-            required,
-            additional_properties: false,
-        }))
-    }
 }
 
-impl Literal {
+impl LiteralValue {
     pub fn schema(&self, _state: &SchemaInferenceState) -> Result<Schema, Error> {
-        use Literal::*;
+        use LiteralValue::*;
         Ok(match self {
             Null => Schema::Atomic(Atomic::Null),
             Boolean(_) => Schema::Atomic(Atomic::Boolean),

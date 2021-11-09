@@ -4,7 +4,7 @@ use crate::{
     ir::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
-        schema::{self, SchemaInferenceState},
+        schema::{self, CachedSchema, SchemaCache, SchemaInferenceState},
     },
     map,
     schema::{Satisfaction, SchemaEnvironment},
@@ -271,6 +271,7 @@ impl<'a> Algebrizer<'a> {
                     operation: ir::SetOperation::UnionAll,
                     left: Box::new(self.algebrize_query(*ast_node.left)?),
                     right: Box::new(self.algebrize_query(*ast_node.right)?),
+                    cache: SchemaCache::new(),
                 })
             ),
         }
@@ -329,10 +330,13 @@ impl<'a> Algebrizer<'a> {
                             .ok_or_else(|| Error::NoSuchDatasource(datasource.clone()))?;
                         Ok((
                             key,
-                            ir::Expression::Reference(Key {
-                                datasource: DatasourceName::Named(s.datasource),
-                                scope,
-                            }),
+                            ir::Expression::Reference(
+                                Key {
+                                    datasource: DatasourceName::Named(s.datasource),
+                                    scope,
+                                }
+                                .into(),
+                            ),
                         ))
                     }
                 }
@@ -342,6 +346,7 @@ impl<'a> Algebrizer<'a> {
         let stage = ir::Stage::Project(ir::Project {
             source: Box::new(source),
             expression,
+            cache: SchemaCache::new(),
         });
         stage.schema(&self.schema_inference_state())?;
         Ok(stage)
@@ -360,12 +365,13 @@ impl<'a> Algebrizer<'a> {
                 if !array_is_literal {
                     return Err(Error::ArrayDatasourceMustBeLiteral);
                 }
-                let stage = ir::Stage::Array(ir::Array {
+                let stage = ir::Stage::Array(ir::ArraySource {
                     array: ve
                         .into_iter()
                         .map(|e| self.algebrize_expression(e))
                         .collect::<Result<_>>()?,
                     alias,
+                    cache: SchemaCache::new(),
                 });
                 stage.schema(&self.schema_inference_state())?;
                 Ok(stage)
@@ -374,6 +380,7 @@ impl<'a> Algebrizer<'a> {
                 let src = ir::Stage::Collection(ir::Collection {
                     db: c.database.unwrap_or_else(|| self.current_db.to_string()),
                     collection: c.collection.clone(),
+                    cache: SchemaCache::new(),
                 });
                 let stage = match c.alias {
                     Some(alias) => {
@@ -385,6 +392,7 @@ impl<'a> Algebrizer<'a> {
                         ir::Stage::Project(ir::Project {
                             source: Box::new(src),
                             expression: expr_map,
+                            cache: SchemaCache::new(),
                         })
                     }
                     None => return Err(Error::CollectionMustHaveAlias),
@@ -418,6 +426,7 @@ impl<'a> Algebrizer<'a> {
                             left: Box::new(left_src),
                             right: Box::new(right_src),
                             condition,
+                            cache: SchemaCache::new(),
                         })
                     }
                     ast::JoinType::Right => {
@@ -429,6 +438,7 @@ impl<'a> Algebrizer<'a> {
                             left: Box::new(right_src),
                             right: Box::new(left_src),
                             condition,
+                            cache: SchemaCache::new(),
                         })
                     }
                     ast::JoinType::Cross | ast::JoinType::Inner => ir::Stage::Join(ir::Join {
@@ -436,6 +446,7 @@ impl<'a> Algebrizer<'a> {
                         left: Box::new(left_src),
                         right: Box::new(right_src),
                         condition,
+                        cache: SchemaCache::new(),
                     }),
                 };
                 Ok(stage)
@@ -452,13 +463,15 @@ impl<'a> Algebrizer<'a> {
                         args: src_resultset
                             .schema_env
                             .into_iter()
-                            .map(|(k, _)| ir::Expression::Reference(k))
+                            .map(|(k, _)| ir::Expression::Reference(k.into()))
                             .collect::<Vec<_>>(),
+                        cache: SchemaCache::new(),
                     }),
                 };
                 let stage = ir::Stage::Project(ir::Project {
                     source: Box::new(src),
                     expression,
+                    cache: SchemaCache::new(),
                 });
                 stage
                     .schema(&derived_algebrizer.schema_inference_state())
@@ -487,6 +500,7 @@ impl<'a> Algebrizer<'a> {
                 ir::Stage::Filter(ir::Filter {
                     source: Box::new(source),
                     condition: expression_algebrizer.algebrize_expression(expr)?,
+                    cache: SchemaCache::new(),
                 })
             }
         };
@@ -557,6 +571,7 @@ impl<'a> Algebrizer<'a> {
                 ir::Stage::Sort(ir::Sort {
                     source: Box::new(source),
                     specs: sort_specs,
+                    cache: SchemaCache::new(),
                 })
             }
         };
@@ -620,6 +635,7 @@ impl<'a> Algebrizer<'a> {
                     source: Box::new(source),
                     keys,
                     aggregations,
+                    cache: SchemaCache::new(),
                 })
             }
         };
@@ -663,11 +679,14 @@ impl<'a> Algebrizer<'a> {
 
     pub fn algebrize_expression(&self, ast_node: ast::Expression) -> Result<ir::Expression> {
         match ast_node {
-            ast::Expression::Literal(l) => Ok(ir::Expression::Literal(self.algebrize_literal(l))),
+            ast::Expression::Literal(l) => {
+                Ok(ir::Expression::Literal(self.algebrize_literal(l).into()))
+            }
             ast::Expression::Array(a) => Ok(ir::Expression::Array(
                 a.into_iter()
                     .map(|e| self.algebrize_expression(e))
-                    .collect::<Result<_>>()?,
+                    .collect::<Result<Vec<ir::Expression>>>()?
+                    .into(),
             )),
             ast::Expression::Document(d) => Ok(ir::Expression::Document({
                 let algebrized = d
@@ -677,7 +696,7 @@ impl<'a> Algebrizer<'a> {
                 let mut out = UniqueLinkedHashMap::new();
                 out.insert_many(algebrized.into_iter())
                     .map_err(|e| Error::DuplicateDocumentKey(e.get_key_name()))?;
-                out
+                out.into()
             })),
             // If we ever see Identifier in algebrize_expression it must be an unqualified
             // reference, because we do not recurse on the expr field of Subpath if it is an
@@ -704,14 +723,14 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
-    pub fn algebrize_literal(&self, ast_node: ast::Literal) -> ir::Literal {
+    pub fn algebrize_literal(&self, ast_node: ast::Literal) -> ir::LiteralValue {
         match ast_node {
-            ast::Literal::Null => ir::Literal::Null,
-            ast::Literal::Boolean(b) => ir::Literal::Boolean(b),
-            ast::Literal::String(s) => ir::Literal::String(s),
-            ast::Literal::Integer(i) => ir::Literal::Integer(i),
-            ast::Literal::Long(l) => ir::Literal::Long(l),
-            ast::Literal::Double(d) => ir::Literal::Double(d),
+            ast::Literal::Null => ir::LiteralValue::Null,
+            ast::Literal::Boolean(b) => ir::LiteralValue::Boolean(b),
+            ast::Literal::String(s) => ir::LiteralValue::String(s),
+            ast::Literal::Integer(i) => ir::LiteralValue::Integer(i),
+            ast::Literal::Long(l) => ir::LiteralValue::Long(l),
+            ast::Literal::Double(d) => ir::LiteralValue::Double(d),
         }
     }
 
@@ -726,6 +745,7 @@ impl<'a> Algebrizer<'a> {
                 let stage = ir::Stage::Limit(ir::Limit {
                     source: Box::new(source),
                     limit: u64::from(x),
+                    cache: SchemaCache::new(),
                 });
                 stage.schema(&self.schema_inference_state())?;
                 Ok(stage)
@@ -744,6 +764,7 @@ impl<'a> Algebrizer<'a> {
                 let stage = ir::Stage::Offset(ir::Offset {
                     source: Box::new(source),
                     offset: u64::from(x),
+                    cache: SchemaCache::new(),
                 });
                 stage.schema(&self.schema_inference_state())?;
                 Ok(stage)
@@ -769,6 +790,7 @@ impl<'a> Algebrizer<'a> {
                     .into_iter()
                     .map(|e| self.algebrize_expression(e))
                     .collect::<Result<_>>()?,
+                cache: SchemaCache::new(),
             })
         )
     }
@@ -778,7 +800,8 @@ impl<'a> Algebrizer<'a> {
             self,
             ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
                 function: ir::ScalarFunction::from(u.op),
-                args: vec![self.algebrize_expression(*u.expr)?]
+                args: vec![self.algebrize_expression(*u.expr)?],
+                cache: SchemaCache::new(),
             }),
         );
     }
@@ -792,6 +815,7 @@ impl<'a> Algebrizer<'a> {
                     self.algebrize_expression(*b.left)?,
                     self.algebrize_expression(*b.right)?,
                 ],
+                cache: SchemaCache::new(),
             })
         );
     }
@@ -802,6 +826,7 @@ impl<'a> Algebrizer<'a> {
             ir::Expression::Is(ir::IsExpr {
                 expr: Box::new(self.algebrize_expression(*ast_node.expr)?),
                 target_type: ir::TypeOrMissing::from(ast_node.target_type),
+                cache: SchemaCache::new(),
             }),
         )
     }
@@ -813,6 +838,7 @@ impl<'a> Algebrizer<'a> {
                 expr: Box::new(self.algebrize_expression(*ast_node.expr)?),
                 pattern: Box::new(self.algebrize_expression(*ast_node.pattern)?),
                 escape: ast_node.escape,
+                cache: SchemaCache::new(),
             }),
         )
     }
@@ -828,6 +854,7 @@ impl<'a> Algebrizer<'a> {
             ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
                 function: ir::ScalarFunction::Between,
                 args: vec![arg, min, max,],
+                cache: SchemaCache::new(),
             })
         );
     }
@@ -845,7 +872,8 @@ impl<'a> Algebrizer<'a> {
                 args: vec![
                     self.algebrize_expression(*t.trim_chars)?,
                     self.algebrize_expression(*t.arg)?,
-                ]
+                ],
+                cache: SchemaCache::new(),
             }),
         );
     }
@@ -864,7 +892,8 @@ impl<'a> Algebrizer<'a> {
             self,
             ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
                 function,
-                args: vec![self.algebrize_expression(*e.arg)?]
+                args: vec![self.algebrize_expression(*e.arg)?],
+                cache: SchemaCache::new(),
             }),
         )
     }
@@ -878,10 +907,12 @@ impl<'a> Algebrizer<'a> {
                     ir::Expression::FieldAccess(ir::FieldAccess {
                         expr: Box::new(expr),
                         field: s,
+                        cache: SchemaCache::new(),
                     }),
                 sf => ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
                     function: ir::ScalarFunction::ComputedFieldAccess,
                     args: vec![expr, self.algebrize_expression(sf)?],
+                    cache: SchemaCache::new(),
                 }),
             }
         );
@@ -893,6 +924,7 @@ impl<'a> Algebrizer<'a> {
             ir::Expression::TypeAssertion(ir::TypeAssertionExpr {
                 expr: Box::new(self.algebrize_expression(*t.expr)?),
                 target_type: ir::Type::from(t.target_type),
+                cache: SchemaCache::new(),
             }),
         );
     }
@@ -903,7 +935,7 @@ impl<'a> Algebrizer<'a> {
             .map(|e| self.algebrize_expression(*e))
             .transpose()?
             .map(Box::new)
-            .unwrap_or_else(|| Box::new(ir::Expression::Literal(ir::Literal::Null)));
+            .unwrap_or_else(|| Box::new(ir::Expression::Literal(ir::LiteralValue::Null.into())));
         let expr = c.expr.map(|e| self.algebrize_expression(*e)).transpose()?;
         let when_branch = c
             .when_branch
@@ -924,6 +956,7 @@ impl<'a> Algebrizer<'a> {
                         expr,
                         when_branch,
                         else_branch,
+                        cache: SchemaCache::new(),
                     }),
                 )
             }
@@ -933,6 +966,7 @@ impl<'a> Algebrizer<'a> {
                     ir::Expression::SearchedCase(ir::SearchedCaseExpr {
                         when_branch,
                         else_branch,
+                        cache: SchemaCache::new(),
                     }),
                 )
             }
@@ -956,6 +990,7 @@ impl<'a> Algebrizer<'a> {
                 on_error: Box::new(
                     self.algebrize_expression(*(c.on_error.unwrap_or_else(|| null_expr!())))?
                 ),
+                cache: SchemaCache::new(),
             }),
         );
     }
@@ -970,14 +1005,16 @@ impl<'a> Algebrizer<'a> {
                 let (key, schema) = result_set.schema_env.into_iter().next().unwrap();
                 let output_expr = match &schema.get_single_field_name() {
                     Some(field) => Ok(Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
-                        expr: Box::new(ir::Expression::Reference(key)),
+                        expr: Box::new(ir::Expression::Reference(key.into())),
                         field: field.to_string(),
+                        cache: SchemaCache::new(),
                     }))),
                     None => Err(Error::InvalidSubqueryDegree),
                 }?;
                 Ok(ir::SubqueryExpr {
                     output_expr,
                     subquery,
+                    cache: SchemaCache::new(),
                 })
             }
             _ => Err(Error::InvalidSubqueryDegree),
@@ -1005,14 +1042,15 @@ impl<'a> Algebrizer<'a> {
                 operator: ir::SubqueryComparisonOp::from(s.op),
                 modifier,
                 argument: Box::new(self.algebrize_expression(*s.expr)?),
-                subquery_expr: self.algebrize_subquery_expr(*s.subquery)?
+                subquery_expr: self.algebrize_subquery_expr(*s.subquery)?,
+                cache: SchemaCache::new(),
             })
         )
     }
 
     pub fn algebrize_exists(&self, ast_node: ast::Query) -> Result<ir::Expression> {
         let exists = self.subquery_algebrizer().algebrize_query(ast_node)?;
-        schema_check_return!(self, ir::Expression::Exists(Box::new(exists)));
+        schema_check_return!(self, ir::Expression::Exists(Box::new(exists).into()));
     }
 
     fn algebrize_subpath(&self, p: ast::SubpathExpr) -> Result<ir::Expression> {
@@ -1027,6 +1065,7 @@ impl<'a> Algebrizer<'a> {
             ir::Expression::FieldAccess(ir::FieldAccess {
                 expr: Box::new(self.algebrize_expression(*p.expr)?),
                 field: p.subpath,
+                cache: SchemaCache::new(),
             }),
         );
     }
@@ -1051,6 +1090,7 @@ impl<'a> Algebrizer<'a> {
                         expr: Box::new(self.algebrize_unqualified_identifier(q)?),
                         // combinators make this clone necessary, unfortunately
                         field: cloned_field,
+                        cache: SchemaCache::new(),
                     }))
                 },
                 move |scope|
@@ -1059,8 +1099,9 @@ impl<'a> Algebrizer<'a> {
                     expr: Box::new(ir::Expression::Reference(Key {
                     datasource: possible_datasource,
                     scope,
-                })),
+                }.into())),
                 field,
+                    cache: SchemaCache::new(),
             })),
             )
     }
@@ -1088,9 +1129,10 @@ impl<'a> Algebrizer<'a> {
         if i_containing_datasources.len() == 1 {
             return Ok(ir::Expression::FieldAccess(ir::FieldAccess {
                 expr: Box::new(ir::Expression::Reference(
-                    i_containing_datasources.remove(0).0.clone(),
+                    i_containing_datasources.remove(0).0.clone().into(),
                 )),
                 field: i,
+                cache: SchemaCache::new(),
             }));
         }
 
@@ -1141,8 +1183,9 @@ impl<'a> Algebrizer<'a> {
             }
             if musts == 1 {
                 return Ok(ir::Expression::FieldAccess(ir::FieldAccess {
-                    expr: Box::new(ir::Expression::Reference(datasource.clone())),
+                    expr: Box::new(ir::Expression::Reference(datasource.clone().into())),
                     field: i,
+                    cache: SchemaCache::new(),
                 }));
             }
 

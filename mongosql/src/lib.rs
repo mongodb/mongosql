@@ -13,6 +13,7 @@ mod util;
 use crate::{
     algebrizer::Algebrizer,
     catalog::Catalog,
+    ir::schema::CachedSchema,
     parser::Parser,
     result::Result,
     schema::{Schema, SchemaEnvironment},
