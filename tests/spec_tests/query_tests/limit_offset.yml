@@ -138,7 +138,7 @@ tests:
   - description: Offset in subquery
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY a OFFSET 1)"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -149,8 +149,9 @@ tests:
                                                        'modifier': 'any',
                                                        'arg': '$bar.a',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'baz',
-                                                                     'let': {},
+                                                                     'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'baz': '$$ROOT'}},
@@ -163,7 +164,6 @@ tests:
       }}}}
     result:
       - {'bar': {'a': 2}}
-      - {'bar': {'a': 3}}
 
   - description: Limit and offset in subquery
     current_db: foo

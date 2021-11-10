@@ -614,25 +614,55 @@ impl AggregationFunction {
 }
 
 impl SubqueryExpr {
-    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+    /// Subquery schema helper used by both subquery expressions and subquery comparisons.
+    /// Returns the schema of the subquery's output expression along with the min and max sizes of
+    /// the result set of the subquery.
+    fn schema_helper(
+        &self,
+        state: &SchemaInferenceState,
+    ) -> Result<(Schema, u64, Option<u64>), Error> {
         let result_set = self.subquery.schema(&state.subquery_state())?;
+        let max_size = result_set.max_size;
+        let min_size = result_set.min_size;
         let schema = self.output_expr.schema(&SchemaInferenceState {
             scope_level: state.scope_level + 1,
             env: result_set.schema_env,
             catalog: state.catalog,
         })?;
+        Ok((schema, min_size, max_size))
+    }
+
+    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        let (schema, min_size, max_size) = self.schema_helper(state)?;
 
         // The subquery's result set MUST have a cardinality of 0 or 1. The returned schema
         // MUST include MISSING if the cardinality of the result set MAY be 0. We can exclude
         // MISSING from the returned schema if the cardinality of the result set MUST be 1.
-        if result_set.max_size == None || result_set.max_size.unwrap() > 1 {
+        if max_size == None || max_size.unwrap() > 1 {
             return Err(Error::InvalidSubqueryCardinality);
         }
-        match result_set.min_size {
+        match min_size {
             0 => Ok(Schema::AnyOf(set![schema, Schema::Missing])),
             1 => Ok(schema),
             _ => Err(Error::InvalidSubqueryCardinality),
         }
+    }
+}
+
+/// While a `SubqueryComparison` isn't strictly a `SQLFunction`, the actual comparison operation re-uses
+/// the same schema-checking that any binary comparison operator (Lt, Gt, Eq, etc.) uses. Those comparisons
+/// are represented as `ScalarFunction`s, and so that's where the schema checking lives.
+impl SQLFunction for SubqueryComparison {
+    fn as_str(&self) -> &'static str {
+        "subquery comparison"
+    }
+}
+
+impl SubqueryComparison {
+    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        let argument_schema = self.argument.schema(state)?;
+        let (subquery_schema, _, _) = self.subquery_expr.schema_helper(state)?;
+        self.get_comparison_schema(&[argument_schema, subquery_schema])
     }
 }
 
@@ -793,25 +823,7 @@ impl CachedSchema for Expression {
             Expression::SimpleCase(sc) => sc.schema(state),
             Expression::TypeAssertion(t) => t.schema(state),
             Expression::Subquery(s) => s.schema(state),
-            Expression::SubqueryComparison(SubqueryComparison {
-                operator: _operator,
-                modifier: _modifier,
-                argument,
-                subquery_expr,
-                cache: _cache,
-            }) => {
-                let argument_schema = argument.schema(state)?;
-                let subquery_schema = subquery_expr.schema(state)?;
-                if argument_schema.is_comparable_with(&subquery_schema) == Satisfaction::Must {
-                    Ok(subquery_schema)
-                } else {
-                    Err(Error::InvalidComparison(
-                        "subquery comparison",
-                        argument_schema,
-                        subquery_schema,
-                    ))
-                }
-            }
+            Expression::SubqueryComparison(sc) => sc.schema(state),
             Expression::Exists(ExistsExpr { stage, .. }) => {
                 stage.schema(&state.subquery_state())?;
                 Ok(Schema::Atomic(Atomic::Boolean))
@@ -1087,6 +1099,26 @@ trait SQLFunction {
         ))
     }
 
+    /// Returns the boolean and/or null schema for a valid comparison, or an error
+    /// if the number of operands is not two or the comparison is not valid.
+    fn get_comparison_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
+        let ret_schema = self.propagate_fixed_null_arguments(
+            arg_schemas,
+            &[Schema::Any, Schema::Any],
+            Schema::Atomic(Atomic::Boolean),
+        )?;
+
+        if arg_schemas[0].is_comparable_with(&arg_schemas[1]) == Satisfaction::Must {
+            Ok(ret_schema)
+        } else {
+            Err(Error::InvalidComparison(
+                self.as_str(),
+                arg_schemas[0].clone(),
+                arg_schemas[1].clone(),
+            ))
+        }
+    }
+
     /// as_str returns a static str representation for the SQLFunction.
     fn as_str(&self) -> &'static str;
 }
@@ -1275,26 +1307,6 @@ impl ScalarFunction {
             })?,
             Schema::Atomic(Atomic::String),
         ))
-    }
-
-    /// Returns the boolean and/or null schema for a valid comparison, or an error
-    /// if the number of operands is not two or the comparison is not valid.
-    fn get_comparison_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
-        let ret_schema = self.propagate_fixed_null_arguments(
-            arg_schemas,
-            &[Schema::Any, Schema::Any],
-            Schema::Atomic(Atomic::Boolean),
-        )?;
-
-        if arg_schemas[0].is_comparable_with(&arg_schemas[1]) == Satisfaction::Must {
-            Ok(ret_schema)
-        } else {
-            Err(Error::InvalidComparison(
-                self.as_str(),
-                arg_schemas[0].clone(),
-                arg_schemas[1].clone(),
-            ))
-        }
     }
 
     /// Returns the schema for the coalesce function, or an error if no arguments are provided.

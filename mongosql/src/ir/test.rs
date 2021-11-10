@@ -4607,8 +4607,8 @@ mod schema {
 
     // Subquery Comparisons
     test_schema!(
-        uncorrelated_subquery_comparison,
-        expected = Ok(Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)])),
+        uncorrelated_subquery_comparison_known_type,
+        expected = Ok(Schema::Atomic(Atomic::Boolean).clone()),
         input = Expression::SubqueryComparison(SubqueryComparison {
             operator: SubqueryComparisonOp::Eq,
             modifier: SubqueryModifier::All,
@@ -4633,6 +4633,41 @@ mod schema {
             },
             cache: SchemaCache::new(),
         }),
+    );
+
+    test_schema!(
+        uncorrelated_subquery_comparison_possibly_null,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Boolean),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        input =
+            Expression::SubqueryComparison(SubqueryComparison {
+                operator: SubqueryComparisonOp::Eq,
+                modifier: SubqueryModifier::All,
+                argument: Box::new(Expression::Literal(LiteralValue::Integer(5).into())),
+                subquery_expr: SubqueryExpr {
+                    output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 1u16).into())),
+                        field: "a".into(),
+                        cache: SchemaCache::new(),
+                    })),
+                    subquery: Box::new(Stage::Array(ArraySource {
+                        array: vec![
+                        Expression::Document(unchecked_unique_linked_hash_map! {
+                            "a".into() => Expression::Literal(LiteralValue::Integer(5).into())
+                        }.into()),
+                        Expression::Document(unchecked_unique_linked_hash_map! {
+                            "b".into() => Expression::Literal(LiteralValue::Integer(5).into())
+                        }.into())
+                    ],
+                        alias: "foo".into(),
+                        cache: SchemaCache::new(),
+                    })),
+                    cache: SchemaCache::new(),
+                },
+                cache: SchemaCache::new(),
+            }),
     );
 
     test_schema!(

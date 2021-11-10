@@ -873,7 +873,7 @@ impl MqlCodeGenerator {
                 let op = match s.operator {
                     Lt => "lt",
                     Lte => "lte",
-                    Neq => "neq",
+                    Neq => "ne",
                     Eq => "eq",
                     Gt => "gt",
                     Gte => "gte",
@@ -895,8 +895,8 @@ impl MqlCodeGenerator {
                 TypeOrMissing::Type(Type::Null) => {
                     let expr_code = self.codegen_expression(*expr.expr)?;
                     Bson::Document(
-                        bson::doc! {"$or": [{"$eq": [{"$type": &expr_code}, "missing"]},
-                        {"$eq": [{"$type": &expr_code}, "null"]}]},
+                        bson::doc! {"$or": [{"$eq": [{"$type": &expr_code}, "null"]},
+                        {"$eq": [{"$type": &expr_code}, "missing"]}]},
                     )
                 }
                 t => Bson::Document(

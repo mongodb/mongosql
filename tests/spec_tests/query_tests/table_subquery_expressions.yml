@@ -54,7 +54,7 @@ tests:
   - description: correctness test for eq ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -65,6 +65,7 @@ tests:
                                                        'modifier': 'any',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -83,7 +84,7 @@ tests:
   - description: correctness test for eq ANY Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target)"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -94,6 +95,7 @@ tests:
                                                        'modifier': 'any',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -111,7 +113,7 @@ tests:
   - description: correctness test for neq ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <> ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -122,6 +124,7 @@ tests:
                                                        'modifier': 'any',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -142,7 +145,7 @@ tests:
   - description: correctness test for neq ANY Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <> ANY(SELECT a FROM target)"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -153,6 +156,7 @@ tests:
                                                        'modifier': 'any',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -172,7 +176,7 @@ tests:
   - description: correctness test for lt ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v < ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -183,6 +187,7 @@ tests:
                                                        'modifier': 'any',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -201,7 +206,7 @@ tests:
   - description: correctness test for lt ANY Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v < ANY(SELECT a FROM target)"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -212,6 +217,7 @@ tests:
                                                        'modifier': 'any',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -229,7 +235,7 @@ tests:
   - description: correctness test for lte ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <= ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -240,6 +246,7 @@ tests:
                                                        'modifier': 'any',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -259,7 +266,7 @@ tests:
   - description: correctness test for lte ANY Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <= ANY(SELECT a FROM target)"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -270,6 +277,7 @@ tests:
                                                        'modifier': 'any',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -288,7 +296,7 @@ tests:
   - description: correctness test for gt ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v > ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -299,6 +307,7 @@ tests:
                                                        'modifier': 'any',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -317,7 +326,7 @@ tests:
   - description: correctness test for gt ANY Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v > ANY(SELECT a FROM target)"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -328,6 +337,7 @@ tests:
                                                        'modifier': 'any',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -345,7 +355,7 @@ tests:
   - description: correctness test for gte ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v >= ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -356,6 +366,7 @@ tests:
                                                        'modifier': 'any',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -375,7 +386,7 @@ tests:
   - description: correctness test for gte ANY Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v >= ANY(SELECT a FROM target)"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -386,6 +397,7 @@ tests:
                                                        'modifier': 'any',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -404,7 +416,6 @@ tests:
   - description: correctness test for eq ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -415,6 +426,7 @@ tests:
                                                        'modifier': 'all',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -431,7 +443,6 @@ tests:
   - description: correctness test for eq ALL Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target)"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -442,6 +453,7 @@ tests:
                                                        'modifier': 'all',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -456,36 +468,98 @@ tests:
 
   - description: correctness test for eq ALL Operator with matching result
     current_db: foo
-    query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE a = 1)"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE a = 2)"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$match': {'$expr': {'$subqueryComparison': {
-                                                       'op': '',
+                                                       'op': 'eq',
                                                        'modifier': 'all',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'target': '$$ROOT'}},
                                                                                    {'$project': {'_id': 0, 'target': '$target'}},
-                                                                                   {'$match': {'$expr': {'$sqlEq': ['$target.a', {'$literal': 1}]}}},
+                                                                                   {'$match': {'$expr': {'$sqlEq': ['$target.a', {'$literal': 2}]}}},
                                                                                    {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
                                                                      ]
                                                        }
       }}}}
     result:
-      - {'bar': {'_id': 1, 'v': 1}}
+      - {'bar': {'_id': 1, 'a': 2}}
+
+  - description: ALL comparisons are vacuously true when subquery returns no results
+    current_db: foo
+    query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE false)"
+    skip_reason: "SQL-578"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+        'op': 'eq',
+        'modifier': 'all',
+        'arg': '$bar.v',
+        'subquery': {
+          'db': 'foo',
+          'collection': 'target',
+          'let': {'bar_0': '$bar'},
+          'outputPath': ['__bot', 'a'],
+          'pipeline': [
+            {'$project': {'_id': 0, 'target': '$$ROOT'}},
+            {'$project': {'_id': 0, 'target': '$target'}},
+            {'$match': {'$expr': {'$literal': false}}},
+            {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+          ]
+        }
+      }}}}
+    result:
+      - {'_id': 1, 'v': 1}
+      - {'_id': 2, 'v': 2}
+      - {'_id': 3, 'v': 3}
+      - {'_id': 4, 'v': 4}
+      - {'_id': 5, 'v': null}
+      - {'_id': 6}
+
+  - description: ANY comparisons are vacuously false when subquery returns no results
+    current_db: foo
+    query: "SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target WHERE false)"
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
+      - {'$match': {'$expr': {'$subqueryComparison': {
+        'op': 'eq',
+        'modifier': 'any',
+        'arg': '$bar.v',
+        'subquery': {
+          'db': 'foo',
+          'collection': 'target',
+          'let': {'bar_0': '$bar'},
+          'outputPath': ['__bot', 'a'],
+          'pipeline': [
+            {'$project': {'_id': 0, 'target': '$$ROOT'}},
+            {'$project': {'_id': 0, 'target': '$target'}},
+            {'$match': {'$expr': {'$literal': false}}},
+            {'$project': {'_id': 0, '__bot': {'a': '$target.a'}}}
+          ]
+        }
+      }}}}
+    result: []
 
   - description: correctness test for neq ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <> ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -496,6 +570,7 @@ tests:
                                                        'modifier': 'all',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -514,7 +589,6 @@ tests:
   - description: correctness test for neq ALL Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <> ALL(SELECT a FROM target)"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -525,6 +599,7 @@ tests:
                                                        'modifier': 'all',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -540,7 +615,7 @@ tests:
   - description: correctness test for lt ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v < ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -551,6 +626,7 @@ tests:
                                                        'modifier': 'all',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -568,7 +644,6 @@ tests:
   - description: correctness test for lt ALL Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v < ALL(SELECT a FROM target)"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -579,6 +654,7 @@ tests:
                                                        'modifier': 'all',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -594,7 +670,7 @@ tests:
   - description: correctness test for lte ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <= ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -605,6 +681,7 @@ tests:
                                                        'modifier': 'all',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -623,7 +700,6 @@ tests:
   - description: correctness test for lte ALL Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <= ALL(SELECT a FROM target)"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -634,6 +710,7 @@ tests:
                                                        'modifier': 'all',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -649,7 +726,7 @@ tests:
   - description: correctness test for gt ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v > ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -660,6 +737,7 @@ tests:
                                                        'modifier': 'all',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -677,7 +755,6 @@ tests:
   - description: correctness test for gt ALL Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v > ALL(SELECT a FROM target)"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -688,6 +765,7 @@ tests:
                                                        'modifier': 'all',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -703,7 +781,7 @@ tests:
   - description: correctness test for gte ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v >= ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
+    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -714,6 +792,7 @@ tests:
                                                        'modifier': 'all',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -732,7 +811,6 @@ tests:
   - description: correctness test for gte ALL Operator with NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v >= ALL(SELECT a FROM target)"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -743,6 +821,7 @@ tests:
                                                        'modifier': 'all',
                                                        'arg': '$bar.v',
                                                        'subquery': {
+                                                                     'db': 'foo',
                                                                      'collection': 'target',
                                                                      'let': {'bar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
@@ -758,7 +837,6 @@ tests:
   - description: ANY subquery comparison in SELECT clause
     current_db: foo
     query: "SELECT VALUE {'v': v, 'x': bar.v = ANY (SELECT a FROM target AS target)} FROM bar AS bar"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -769,6 +847,7 @@ tests:
                                                                                         'modifier': 'any',
                                                                                         'arg': '$bar.v',
                                                                                         'subquery': {
+                                                                                                      'db': 'foo',
                                                                                                       'collection': 'target',
                                                                                                       'let': {'bar_0': '$bar'},
                                                                                                       'outputPath': ['__bot', 'a'],
@@ -780,17 +859,16 @@ tests:
                                                                                         }
       }}}}}
     result:
-      - {'__bot': {'v': 1, 'x': false}}
+      - {'__bot': {'v': 1, 'x': null}}
       - {'__bot': {'v': 2, 'x': true}}
       - {'__bot': {'v': 3, 'x': true}}
-      - {'__bot': {'v': 4, 'x': false}}
+      - {'__bot': {'v': 4, 'x': null}}
       - {'__bot': {'v': null, 'x': null}}
       - {'__bot': {'x': null}}
 
   - description: ALL subquery comparison in SELECT clause
     current_db: foo
     query: "SELECT VALUE {'v': v, 'x': bar.v = ALL (SELECT a FROM target AS target WHERE NOT(a IS NULL))} FROM bar AS bar"
-    skip_reason: "SQL-502: remove cardinality check for subquery comparisons"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -801,6 +879,7 @@ tests:
                                                                                         'modifier': 'all',
                                                                                         'arg': '$bar.v',
                                                                                         'subquery': {
+                                                                                                      'db': 'foo',
                                                                                                       'collection': 'target',
                                                                                                       'let': {'bar_0': '$bar'},
                                                                                                       'outputPath': ['__bot', 'a'],

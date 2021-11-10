@@ -1369,8 +1369,8 @@ mod function {
     );
     test_codegen_expr!(
         is_null_expr,
-        expected = Ok(bson!({"$or": [{"$eq": [{"$type": "$f"}, "missing"]},
-                                {"$eq": [{"$type": "$f"}, "null"]}]})),
+        expected = Ok(bson!({"$or": [{"$eq": [{"$type": "$f"}, "null"]},
+                                {"$eq": [{"$type": "$f"}, "missing"]}]})),
         input = Expression::Is(IsExpr {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             target_type: TypeOrMissing::Type(Type::Null),

@@ -330,7 +330,7 @@ tests:
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$or': [{'$eq': [{'$type': '$bar.v'}, 'missing']}, {'$eq': [{'$type': '$bar.v'}, 'null']}]}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$or': [{'$eq': [{'$type': '$bar.v'}, 'null']}, {'$eq': [{'$type': '$bar.v'}, 'missing']}]}}}}
     result:
       - {'__bot': {'type': 'double', 'tc': false}}
       - {'__bot': {'type': 'string', 'tc': false}}
