@@ -14,8 +14,11 @@ tests:
       - {'$project': {'_id': 0, '__bot': {'apo': {'$add': ['$arr.a', {'$literal': 1}]}, 'bpt': {'$add': ['$arr.b', {'$literal': 2}]}}}}
       - {'$project': {'_id': 0, 'derived': {'$mergeObjects': ['$__bot']}}}
       - {'$project': {'_id': 0, '__bot': {'apo': '$derived.apo', 'bpt': '$derived.bpt'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'apo': 2, 'bpt': 3}}
+      - {'': {'apo': 2, 'bpt': 3}}
 
   - description: derived table cannot reference other datasources in same FROM clause
     query: "SELECT * FROM [{'x': 1}] AS foo CROSS JOIN (SELECT * FROM [{'x': 1}] AS bar WHERE foo.x = bar.x) AS derived"

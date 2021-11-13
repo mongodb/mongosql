@@ -27,5 +27,8 @@ tests:
             ],
             'default': {'$literal': 'NO'}
           }}}}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { 'r': 'YES' } }
+      - {'': { 'r': 'YES' } }

@@ -6,8 +6,11 @@ tests:
       - {'$documents': [{'a': {'$literal': true}, 'b': {'$literal': false}, 'c': {'$literal': true}}]}
       - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'b': '$arr.b', 'c': '$arr.c', 'a_and_b_and_c': {"$sqlAnd": ["$arr.a", "$arr.b", "$arr.c"]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {"a": true, "b": false, "c": true, "a_and_b_and_c": false } }
+      - {'': {"a": true, "b": false, "c": true, "a_and_b_and_c": false } }
 
   - description: same bool or operation concatenated together is translated to single variadic bool operator
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'a_or_b_or_c': a OR b OR c} FROM [{'a': true, 'b': false, 'c': true}] AS arr"
@@ -16,5 +19,8 @@ tests:
       - {'$documents': [{'a': {'$literal': true}, 'b': {'$literal': false}, 'c': {'$literal': true}}]}
       - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'b': '$arr.b', 'c': '$arr.c', 'a_or_b_or_c': {"$sqlOr": ["$arr.a", "$arr.b", "$arr.c"]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {"a": true, "b": false, "c": true, "a_or_b_or_c": true } }
+      - {'': {"a": true, "b": false, "c": true, "a_or_b_or_c": true } }

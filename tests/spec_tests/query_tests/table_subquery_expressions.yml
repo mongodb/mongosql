@@ -858,13 +858,17 @@ tests:
                                                                                                       ]
                                                                                         }
       }}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'v': 1, 'x': null}}
-      - {'__bot': {'v': 2, 'x': true}}
-      - {'__bot': {'v': 3, 'x': true}}
-      - {'__bot': {'v': 4, 'x': null}}
-      - {'__bot': {'v': null, 'x': null}}
-      - {'__bot': {'x': null}}
+      - {'': {'v': 1, 'x': null}}
+      - {'': {'v': 2, 'x': true}}
+      - {'': {'v': 3, 'x': true}}
+      - {'': {'v': 4, 'x': null}}
+      - {'': {'v': null, 'x': null}}
+      - {'': {'x': null}}
+
 
   - description: ALL subquery comparison in SELECT clause
     current_db: foo
@@ -891,13 +895,16 @@ tests:
                                                                                                       ]
                                                                                         }
       }}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'v': 1, 'x': false}}
-      - {'__bot': {'v': 2, 'x': false}}
-      - {'__bot': {'v': 3, 'x': false}}
-      - {'__bot': {'v': 4, 'x': false}}
-      - {'__bot': {'v': null, 'x': null}}
-      - {'__bot': {'x': null}}
+      - {'': {'v': 1, 'x': false}}
+      - {'': {'v': 2, 'x': false}}
+      - {'': {'v': 3, 'x': false}}
+      - {'': {'v': 4, 'x': false}}
+      - {'': {'v': null, 'x': null}}
+      - {'': {'x': null}}
 
   - description: correctness test for EXISTS Operator
     current_db: foo
@@ -965,13 +972,16 @@ tests:
                                                                                                   {'$match': {'$expr': {'$sqlEq': ['$target.a', '$$bar_0.v']}}}
                                                                                     ]
       }}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'v': 1, 'x': false}}
-      - {'__bot': {'v': 2, 'x': true}}
-      - {'__bot': {'v': 3, 'x': true}}
-      - {'__bot': {'v': 4, 'x': false}}
-      - {'__bot': {'v': null, 'x': false}}
-      - {'__bot': {'x': false}}
+      - {'': {'v': 1, 'x': false}}
+      - {'': {'v': 2, 'x': true}}
+      - {'': {'v': 3, 'x': true}}
+      - {'': {'v': 4, 'x': false}}
+      - {'': {'v': null, 'x': false}}
+      - {'': {'x': false}}
 
   - description: IN Operator fails if it has different degree on both sides
     current_db: foo

@@ -35,9 +35,9 @@ tests:
     translation_target_db: mydb
     translation_target_coll: foo
     result:
-      - {'__bot': {'a': 1}}
-      - {'__bot': {'a': 2}}
-      - {'__bot': {'b': 1, 'c': 1}}
+      - {'': {'a': 1}}
+      - {'': {'a': 2}}
+      - {'': {'b': 1, 'c': 1}}
 
   - description: basic union correctness test
     current_db: mydb
@@ -46,8 +46,8 @@ tests:
     skip_reason: "distinct UNION not currently supported"
     translation_target_coll: foo
     result:
-      - {'__bot': {'a': 1}}
-      - {'__bot': {'a': 2}}
+      - {'': {'a': 1}}
+      - {'': {'a': 2}}
 
   - description: basic union all correctness test
     current_db: mydb
@@ -64,13 +64,16 @@ tests:
           {'$project': {'_id': 0, 'foo': '$foo'}},
           {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}},
         ]}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'a': 1}}
-      - {'__bot': {'a': 1}}
-      - {'__bot': {'a': 1}}
-      - {'__bot': {'a': 1}}
-      - {'__bot': {'a': 2}}
-      - {'__bot': {'a': 2}}
+      - {'': {'a': 1}}
+      - {'': {'a': 1}}
+      - {'': {'a': 1}}
+      - {'': {'a': 1}}
+      - {'': {'a': 2}}
+      - {'': {'a': 2}}
 
   - description: union is left associative
     current_db: mydb
@@ -80,8 +83,8 @@ tests:
     translation_target_db: mydb
     translation_target_coll: foo
     result:
-      - {'__bot': {'a': 1}}
-      - {'__bot': {'a': 2}}
+      - {'': {'a': 1}}
+      - {'': {'a': 2}}
 
   - description: union works with array datasources
     current_db: mydb
@@ -95,9 +98,12 @@ tests:
       - {'$project': {'_id': 0, 'foo': '$foo'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
       - {'$unionWith': {'pipeline': [{'$documents': {'arr': [{'b': 1}, {'b': 2}]}}]}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'a': 1}}
-      - {'__bot': {'a': 2}}
-      - {'__bot': {'a': 1}}
+      - {'': {'a': 1}}
+      - {'': {'a': 2}}
+      - {'': {'a': 1}}
       - {'arr': {'b': 1}}
       - {'arr': {'b': 2}}

@@ -34,5 +34,8 @@ tests:
                                                                 ]
                                            }}
       }}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'x': true}}
+      - {'': {'x': true}}

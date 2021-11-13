@@ -77,9 +77,12 @@ tests:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
       - {'$project': {'_id': 0, 't1': '$foo'}}
       - {'$project': {'_id': 0, '__bot': '$t1.b'}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'c': 2}}
-      - {'__bot': {'c': 3}}
+      - {'': {'c': 2}}
+      - {'': {'c': 3}}
 
   - description: select values mixed document expr and substar exprs with one substar expr for each FROM datasource
     current_db: mydb
@@ -106,9 +109,12 @@ tests:
         ],
       }}
       - {'$project': {'_id': 0, '__bot': {'a': '$t1.a'}, 't1': '$t1', 't2': '$t2', 't3': '$t3'}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'a': 1}, 't1': {'_id': 0, 'a': 1, 'b': {'c': 2}}, 't2': {'_id': 0, 'a': 10}, 't3': {'_id': 0, 'a': 100}}
-      - {'__bot': {'a': 2}, 't1': {'_id': 1, 'a': 2, 'b': {'c': 3}}, 't2': {'_id': 0, 'a': 10}, 't3': {'_id': 0, 'a': 100}}
+      - {'': {'a': 1}, 't1': {'_id': 0, 'a': 1, 'b': {'c': 2}}, 't2': {'_id': 0, 'a': 10}, 't3': {'_id': 0, 'a': 100}}
+      - {'': {'a': 2}, 't1': {'_id': 1, 'a': 2, 'b': {'c': 3}}, 't2': {'_id': 0, 'a': 10}, 't3': {'_id': 0, 'a': 100}}
 
   - description: select values mixed document expr and substar exprs with substar exprs for subset of FROM datasources
     current_db: mydb
@@ -135,9 +141,12 @@ tests:
         ],
       }}
       - {'$project': {'_id': 0, '__bot': {'a': '$t1.a'}, 't3': '$t3'}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'a': 1}, 't3': {'_id': 0, 'a': 100}}
-      - {'__bot': {'a': 2}, 't3': {'_id': 0, 'a': 100}}
+      - {'': {'a': 1}, 't3': {'_id': 0, 'a': 100}}
+      - {'': {'a': 2}, 't3': {'_id': 0, 'a': 100}}
 
   - description: select values mixed document expr and substar expr with __bot name conflict
     current_db: mydb
@@ -147,6 +156,9 @@ tests:
       - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 2}}, {'a': {'$literal': 3}, 'b': {'$literal': 4}}]}
       - {'$project': {'_id': 0, '__bot': '$$ROOT'}}
       - {'$project': {'_id': 0, '___bot': {'a': '$__bot.a'}, '__bot': '$__bot'}}
+      - { '$replaceWith': { '$unsetField': { 'field': '___bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$___bot' }
+        }}}}
     result:
-      - {'___bot': {'a': 1}, '__bot': {'a': 1, 'b': 2}}
-      - {'___bot': {'a': 3}, '__bot': {'a': 3, 'b': 4}}
+      - {'': {'a': 1}, '': {'a': 1, 'b': 2}}
+      - {'': {'a': 3}, '': {'a': 3, 'b': 4}}

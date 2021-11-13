@@ -49,9 +49,12 @@ tests:
       - { '$project': { '_id': 0, 'bar': '$$ROOT' } }
       - { '$project': { '_id': 0, 'bar': '$bar' } }
       - { '$project': { '_id': 0, '__bot': { 'a': '$bar.a' } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-        - {'__bot': {'a': 42}}
-        - {'__bot': {'a': 52}}
+        - {'': {'a': 42}}
+        - {'': {'a': 52}}
 
   - description: NULL vs MISSING in direct field ref
     current_db: 'foo'
@@ -62,9 +65,12 @@ tests:
       - { '$project': { '_id': 0, 'bar': '$$ROOT' } }
       - { '$project': { '_id': 0, 'bar': '$bar' } }
       - { '$project': { '_id': 0, '__bot': { 'b': '$bar.b' } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-        - {'__bot': {'b': null}}
-        - {'__bot': {}}
+        - {'': {'b': null}}
+        - {'': {}}
 
   - description: Normal field access
     current_db: 'foo'
@@ -75,9 +81,12 @@ tests:
       - { '$project': { '_id': 0, 'bar': '$$ROOT' } }
       - { '$project': { '_id': 0, 'bar': '$bar' } }
       - { '$project': { '_id': 0, '__bot': { 'd': '$bar.c.d' } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-        - {'__bot': {'d': 'hello'}}
-        - {'__bot': {'d': 'world'}}
+        - {'': {'d': 'hello'}}
+        - {'': {'d': 'world'}}
 
   - description: Scalar vs missing field ref
     current_db: 'foo'
@@ -88,9 +97,12 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'e': '$bar.c.e'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-        - {'__bot': {'e': 142}}
-        - {'__bot': {}}
+        - {'': {'e': 142}}
+        - {'': {}}
 
   - description: Scalar vs missing field ref- the field ref is upgraded to NULL because of plus sign
     current_db: 'foo'
@@ -101,9 +113,12 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$bar.a', 'e': '$bar.c.e', '_3': {'$add': ['$bar.a', '$bar.c.e']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-        - {'__bot': {'a': 42, 'e': 142, '_3': 184}}
-        - {'__bot': {'a': 52, '_3': null}}
+        - {'': {'a': 42, 'e': 142, '_3': 184}}
+        - {'': {'a': 52, '_3': null}}
 
   - description: MISSING upgraded to NULL due to plus sign
     current_db: 'foo'
@@ -114,9 +129,12 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'b': '$bar.b', 'e': '$bar.c.e', '_3': {'$add': ['$bar.b', '$bar.c.e']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-        - {'__bot': {'b': null, 'e': 142, '_3': null}}
-        - {'__bot': {'_3': null}}
+        - {'': {'b': null, 'e': 142, '_3': null}}
+        - {'': {'_3': null}}
 
   - description: MISSING fields in arrays are upgrade to NULLS
     current_db: 'foo'
@@ -127,6 +145,9 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'arr': ['$bar.b', {'$literal': 2}, '$bar.c.e']}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-        - {'__bot': {'arr': [null, 2, 142]}}
-        - {'__bot': {'arr': [null, 2, null]}}
+        - {'': {'arr': [null, 2, 142]}}
+        - {'': {'arr': [null, 2, null]}}

@@ -13,8 +13,11 @@ tests:
     translation:
       - {'$documents': {'arr': [{'a': 1, 'b': 1}]}}
       - {'$project': {'_id': 0, '__bot': {'a': '$arr.a'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'a': 1}}
+      - {'': {'a': 1}}
 
   - description: qualified reference to field from array datasource
     query: "SELECT VALUE {'a': arr.a} FROM [{'a': 1, 'b': 1}] AS arr"
@@ -22,8 +25,11 @@ tests:
     translation:
       - {'$documents': {'arr': [{'a': 1, 'b': 1}]}}
       - {'$project': {'_id': 0, '__bot': {'a': '$arr.a'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'a': 1}}
+      - {'': {'a': 1}}
 
   - description: array datasource must have alias
     query: "SELECT * FROM [{'a': 1}]"

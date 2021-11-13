@@ -75,10 +75,13 @@ tests:
       - {'$project': {'_id': 0, 'coll': '$$ROOT'}}
       - {'$project': {'_id': 0, 'coll': '$coll'}}
       - {'$project': {'_id': 0, '__bot': {'ubar': '$coll.bar', 'qbar': '$coll.bar'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'ubar': 11, 'qbar': 11}}
-      - {'__bot': {'ubar': -11, 'qbar': -11}}
-      - {'__bot': {'ubar': 211,'qbar': 211}}
+      - {'': {'ubar': 11, 'qbar': 11}}
+      - {'': {'ubar': -11, 'qbar': -11}}
+      - {'': {'ubar': 211,'qbar': 211}}
 
   - description: compound field references prefer qualified names to field references
     current_db: 'foo'
@@ -89,8 +92,11 @@ tests:
       - { '$project': { '_id': 0, 'nested': '$$ROOT' } }
       - { '$project': { '_id': 0, 'n': '$nested' } }
       - { '$project': { '_id': 0, '__bot': { 'a': '$n.a'} } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {}}
+      - {'': {}}
 
   - description: compound field reference is treated as unqualified if no datasource name matches first identifier
     current_db: 'foo'
@@ -101,8 +107,11 @@ tests:
       - { '$project': { '_id': 0, 'nested': '$$ROOT' } }
       - { '$project': { '_id': 0, 'nested': '$nested' } }
       - { '$project': { '_id': 0, '__bot': { 'a': '$nested.n.a' } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'a': 1}}
+      - {'': {'a': 1}}
 
   - description: field references never resolve to the catalog environment
     current_db: 'foo'
@@ -113,10 +122,13 @@ tests:
       - { '$project': { '_id': 0, 'coll': '$$ROOT' } }
       - { '$project': { '_id': 0, 'coll': '$coll' } }
       - { '$project': { '_id': 0, '__bot': { 'a': '$coll.foo.coll' } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {}}
-      - {'__bot': {}}
-      - {'__bot': {}}
+      - {'': {}}
+      - {'': {}}
+      - {'': {}}
 
   - description: unqualified references are ambiguous when there are multiple datasources without schemata
     current_db: 'foo'
@@ -141,10 +153,13 @@ tests:
         ],
       }}
       - {'$project': {'_id': 0, '__bot': {'a': '$coll.bar'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'a': 11}}
-      - {'__bot': {'a': -11}}
-      - {'__bot': {'a': 211}}
+      - {'': {'a': 11}}
+      - {'': {'a': -11}}
+      - {'': {'a': 211}}
 
   - description: unqualified references are not ambiguous when there are multiple datasources with schema that disambiguates
     current_db: 'foo'
@@ -163,10 +178,13 @@ tests:
         ],
       } }
       - { '$project': { '_id': 0, '__bot': { 'a': '$coll.bar' } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'a': 11}}
-      - {'__bot': {'a': -11}}
-      - {'__bot': {'a': 211}}
+      - {'': {'a': 11}}
+      - {'': {'a': -11}}
+      - {'': {'a': 211}}
 
   - description: unqualified collection reference refers to current database
     current_db: 'foo2'
@@ -252,8 +270,11 @@ tests:
           ]
         }
       } } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'_id': 1, 'a': 1}}
+      - {'': {'_id': 1, 'a': 1}}
 
   - description: with a qualified reference, the highest scope number for repeated qualifiers is chosen
     current_db: foo
@@ -283,10 +304,13 @@ tests:
           ]
         } }
       } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'bar': 11}}
-      - {'__bot': {'bar': -11}}
-      - {'__bot': {'bar': 211}}
+      - {'': {'bar': 11}}
+      - {'': {'bar': -11}}
+      - {'': {'bar': 211}}
 
   - description: if an unqualified reference CANNOT be from subquery's datasource and MAY be from outer query's datasource, use outer query's datasource
     current_db: foo
@@ -310,10 +334,13 @@ tests:
           ]
         } }
       } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'bar': 11}}
-      - {'__bot': {'bar': -11}}
-      - {'__bot': {'bar': 211}}
+      - {'': {'bar': 11}}
+      - {'': {'bar': -11}}
+      - {'': {'bar': 211}}
 
   - description: if an unqualified reference CANNOT be from subquery's datasource and CANNOT be from outer query's datasource, the datasource cannot be found
     current_db: foo
@@ -355,8 +382,11 @@ tests:
           ]
         } }
       } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {__bot: {}}
+      - {'': {}}
   - description: if an unqualified reference MUST be from subquery's datasource and MUST be from outer query's datasource, the highest scope number is chosen
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q LIMIT 1)} FROM schema_coll AS q"
@@ -379,10 +409,13 @@ tests:
           ]
         } }
       } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'bar': 11}}
-      - {'__bot': {'bar': 11}}
-      - {'__bot': {'bar': 11}}
+      - {'': {'bar': 11}}
+      - {'': {'bar': 11}}
+      - {'': {'bar': 11}}
 
   - description: if an unqualified reference MUST be from subquery's datasource and MAY be from outer query's datasource, use subquery's datasource
     current_db: foo
@@ -406,10 +439,13 @@ tests:
           ]
         } }
       } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'bar': 11}}
-      - {'__bot': {'bar': 11}}
-      - {'__bot': {'bar': 11}}
+      - {'': {'bar': 11}}
+      - {'': {'bar': 11}}
+      - {'': {'bar': 11}}
 
   - description: if an unqualified reference MUST be from subquery's datasource and CANNOT be from outer query's datasource, use subquery's datasource
     current_db: foo
@@ -433,5 +469,8 @@ tests:
           ]
         } }
       } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'bar': 11}}
+      - {'': {'bar': 11}}

@@ -46,16 +46,19 @@ tests:
       - {'$project': {'_id': 0, 'no_start': '$$ROOT'}}
       - {'$project': {'_id': 0, 'ns': '$no_start'}}
       - {'$project': {'_id': 0, '__bot': {'arr': '$ns.arr', 'len': '$ns.len', 'slice': {'$sqlSlice': ['$ns.arr', '$ns.len']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '-1'}}, 'slice': [3]}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}}, 'slice': []}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}}, 'slice': [1, 2]}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '3'}}, 'slice': [1, 2, 3]}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '4'}}, 'slice': [1, 2, 3]}
-      - {'__bot': {'arr': [1, 2, 3], 'len': null}, 'slice': null}
-      - {'__bot': {'arr': [1, 2, 3]}, 'slice': null}
-      - {'__bot': {'arr': null, 'len': {'$numberInt': '1'}}, 'slice': null}
-      - {'__bot': {'len': {'$numberInt': '1'}}, 'slice': null}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '-1'}}, 'slice': [3]}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}}, 'slice': []}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}}, 'slice': [1, 2]}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '3'}}, 'slice': [1, 2, 3]}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '4'}}, 'slice': [1, 2, 3]}
+      - {'': {'arr': [1, 2, 3], 'len': null}, 'slice': null}
+      - {'': {'arr': [1, 2, 3]}, 'slice': null}
+      - {'': {'arr': null, 'len': {'$numberInt': '1'}}, 'slice': null}
+      - {'': {'len': {'$numberInt': '1'}}, 'slice': null}
 
   - description: SLICE with start argument correctness test
     current_db: foo
@@ -67,27 +70,30 @@ tests:
       - {'$project': {'_id': 0, 'start': '$$ROOT'}}
       - {'$project': {'_id': 0, 's': '$start'}}
       - {'$project': {'_id': 0, '__bot': {'arr': '$s.arr', 'len': '$s.len', 'start': '$s.start', 'slice': {'$sqlSlice': ['$s.arr', '$s.start', '$s.len']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '-1'}, 'slice': []}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '0'}, 'slice': []}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '1'}, 'slice': []}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '-4'}, 'slice': [1, 2]}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '-2'}, 'slice': [2, 3]}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '0'}, 'slice': [1, 2]}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '1'}, 'slice': [2, 3]}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '2'}, 'slice': [3]}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '3'}, 'start': {'$numberInt': '-1'}, 'slice': [3]}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '3'}, 'start': {'$numberInt': '0'}, 'slice': [1, 2, 3]}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '3'}, 'start': {'$numberInt': '1'}, 'slice': [2, 3]}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '4'}, 'start': {'$numberInt': '-1'}, 'slice': [3]}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '4'}, 'start': {'$numberInt': '0'}, 'slice': [1, 2, 3]}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '4'}, 'start': {'$numberInt': '1'}, 'slice': [2, 3]}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '-1'}, 'start': {'$numberInt': '-1'}, 'slice': null}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '-1'}, 'start': {'$numberInt': '0'}, 'slice': null}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '-1'}, 'start': {'$numberInt': '1'}, 'slice': null}}
-      - {'__bot': {'arr': null, 'len': {'$numberInt': '1'}, 'start': {'$numberInt': '1'}, 'slice': null}}
-      - {'__bot': {'len': {'$numberInt': '1'}, 'start': {'$numberInt': '1'}, 'slice': null}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': null, 'start': {'$numberInt': '1'}, 'slice': null}}
-      - {'__bot': {'arr': [1, 2, 3], 'start': {'$numberInt': '1'}, 'slice': null}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '1'}, 'start': null, 'slice': null}}
-      - {'__bot': {'arr': [1, 2, 3], 'len': {'$numberInt': '1'}, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '-1'}, 'slice': []}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '0'}, 'slice': []}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '1'}, 'slice': []}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '-4'}, 'slice': [1, 2]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '-2'}, 'slice': [2, 3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '0'}, 'slice': [1, 2]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '1'}, 'slice': [2, 3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '2'}, 'slice': [3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '3'}, 'start': {'$numberInt': '-1'}, 'slice': [3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '3'}, 'start': {'$numberInt': '0'}, 'slice': [1, 2, 3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '3'}, 'start': {'$numberInt': '1'}, 'slice': [2, 3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '4'}, 'start': {'$numberInt': '-1'}, 'slice': [3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '4'}, 'start': {'$numberInt': '0'}, 'slice': [1, 2, 3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '4'}, 'start': {'$numberInt': '1'}, 'slice': [2, 3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '-1'}, 'start': {'$numberInt': '-1'}, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '-1'}, 'start': {'$numberInt': '0'}, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '-1'}, 'start': {'$numberInt': '1'}, 'slice': null}}
+      - {'': {'arr': null, 'len': {'$numberInt': '1'}, 'start': {'$numberInt': '1'}, 'slice': null}}
+      - {'': {'len': {'$numberInt': '1'}, 'start': {'$numberInt': '1'}, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'len': null, 'start': {'$numberInt': '1'}, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'start': {'$numberInt': '1'}, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '1'}, 'start': null, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '1'}, 'slice': null}}

@@ -4,22 +4,20 @@ go 1.17
 
 require (
 	github.com/10gen/candiedyaml v0.0.0-20211005165503-c4175fee6ceb
-	github.com/10gen/mongoast v0.0.0-20210818162844-d4ea856e87c5
+	github.com/10gen/mongoast v0.0.0-20211104000650-90e715423953
 	github.com/google/go-cmp v0.5.6
 	github.com/stretchr/testify v1.7.0
-	go.mongodb.org/mongo-driver v1.5.3
+	go.mongodb.org/mongo-driver v1.7.3
 )
 
 require (
 	github.com/10gen/bsonutil v0.0.0-20210706183833-20d1fc294605 // indirect
-	github.com/aws/aws-sdk-go v1.34.28 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/ericlagergren/decimal v0.0.0-20210307182354-5f8425a47c58 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/uuid v1.2.0 // indirect
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
-	github.com/klauspost/compress v1.9.5 // indirect
+	github.com/klauspost/compress v1.13.6 // indirect
 	github.com/onsi/ginkgo v1.16.4 // indirect
 	github.com/onsi/gomega v1.16.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect

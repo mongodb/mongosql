@@ -37,5 +37,6 @@ pub fn generate_mql(plan: ir::Stage) -> Result<MqlTranslation> {
         mapping_registry: MqlMappingRegistry::new(),
         scope_level: 0u16,
     };
-    cg.codegen_stage(plan)
+
+    cg.codegen_stage(plan).map(|mql| mql.replace_bot())
 }

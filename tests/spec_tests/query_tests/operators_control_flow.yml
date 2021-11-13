@@ -49,8 +49,11 @@ tests:
                                                 ],
                                                 "default": {'$literal': 'none'}
                                               }}}}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": 2, "b": null, "c": 3, "r": "none" } }
+      - {'': { "a": 2, "b": null, "c": 3, "r": "none" } }
 
   - description: Simple CASE expression - One WHEN comparison evalutes to TRUE, return corresponding THEN result
     query: "SELECT VALUE { 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' ELSE 'none' END } FROM [{'a': 2, 'b': 1}] AS arr"
@@ -67,8 +70,11 @@ tests:
             ],
             "default": 'none'
           }}}}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "r": "b" } }
+      - {'': { "r": "b" } }
 
   - description: Simple CASE expression - Multiple WHEN comparison evalutes to TRUE, return first corresponding THEN result
     current_db: foo
@@ -88,8 +94,11 @@ tests:
             ],
             "default": 'none'
           }}}}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "r": "a" } }
+      - {'': { "r": "a" } }
 
   - description: Simple CASE expression - Static type mismatch for case operand and when operand
     query: "SELECT VALUE { 'r': CASE 1 WHEN '2' THEN '2' ELSE NULL END } FROM [{}] AS _dual"
@@ -115,8 +124,11 @@ tests:
                                             ],
                                             "default": 'none'
                                           }}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": 2, "b": null, "r": "a" } }
+      - {'': { "a": 2, "b": null, "r": "a" } }
 
   - description: Searched CASE expression - One WHEN condition evalutes to TRUE, return corresponding THEN result
     current_db: foo
@@ -134,8 +146,11 @@ tests:
                                             ],
                                             "default": 'none'
                                           }}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "r": "b" } }
+      - {'': { "r": "b" } }
 
   - description: Searched CASE expression - Multiple WHEN conditions evalutes to TRUE, return first corresponding THEN result
     current_db: foo
@@ -153,6 +168,9 @@ tests:
                                             ],
                                             "default": 'none'
                                           }}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "r": "a" } }
+      - {'': { "r": "a" } }
 

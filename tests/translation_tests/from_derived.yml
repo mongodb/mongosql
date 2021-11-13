@@ -22,7 +22,10 @@ tests:
       - {'$match': {'$expr': {'$sqlGte': ['$d2.a', '$d2.b']}}}
       - {'$project': {'_id': 0, 'd1': {'$mergeObjects': ['$d2']}}}
       - {'$project': {'_id': 0, '__bot': {'a': '$d1.a', 'b': '$d1.b'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'a': 1, 'b': 1}}
-      - {'__bot': {'a': 3, 'b': 3}}
-      - {'__bot': {'a': 5, 'b': 4}}
+      - {'': {'a': 1, 'b': 1}}
+      - {'': {'a': 3, 'b': 3}}
+      - {'': {'a': 5, 'b': 4}}

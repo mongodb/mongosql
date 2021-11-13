@@ -260,14 +260,17 @@ tests:
       - {'$project': {'_id': 0, 'nullif': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$nullif'}}
       - {'$project': {'_id': 0, '__bot': {'v1': '$c.v1', 'v2': '$c.v2', 'v': {'$nullIf': ['$c.v1', '$c.v2']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'v1': 'a', 'v2': 'a', 'v': null}}
-      - {'__bot': {'v1': 'a', 'v2': 'b', 'v': 'a'}}
-      - {'__bot': {'v1': 'a', 'v2': null, 'v': 'a'}}
-      - {'__bot': {'v1': null, 'v2': 'b', 'v': null}}
-      - {'__bot': {'v1': 'a', 'v': 'a'}}
-      - {'__bot': {'v2': 'b', 'v': null}}
-      - {'__bot': {'v': null}}
+      - {'': {'v1': 'a', 'v2': 'a', 'v': null}}
+      - {'': {'v1': 'a', 'v2': 'b', 'v': 'a'}}
+      - {'': {'v1': 'a', 'v2': null, 'v': 'a'}}
+      - {'': {'v1': null, 'v2': 'b', 'v': null}}
+      - {'': {'v1': 'a', 'v': 'a'}}
+      - {'': {'v2': 'b', 'v': null}}
+      - {'': {'v': null}}
 
   - description: COALESCE(v1, v2) correctness tests
     current_db: foo
@@ -278,10 +281,13 @@ tests:
       - {'$project': {'_id': 0, 'twoArgCoalesce': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$twoArgCoalesce'}}
       - {'$project': {'_id': 0, '__bot': {'v1': '$c.v1', 'v2': '$c.v2', 'v': {'$coalesce': ['$c.v1', '$c.v2']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'v1': 123, 'v2': 456, 'v': 123}}
-      - {'__bot': {'v1': null, 'v2': 456, 'v': 456}}
-      - {'__bot': {'v2': 456, 'v': 456}}
+      - {'': {'v1': 123, 'v2': 456, 'v': 123}}
+      - {'': {'v1': null, 'v2': 456, 'v': 456}}
+      - {'': {'v2': 456, 'v': 456}}
 
   - description: COALESCE(v1, ..., vn) correctness tests
     current_db: foo
@@ -292,11 +298,14 @@ tests:
       - {'$project': {'_id': 0, 'multiArgCoalesce': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$multiArgCoalesce'}}
       - {'$project': {'_id': 0, '__bot': {'v1': '$c.v1', 'v2': '$c.v2', 'v3': '$c.v3', 'v4': '$c.v4', 'v5': '$c.v5', 'v': {'$coalesce': ['$c.v1', '$c.v2', '$c.v3', '$c.v4', '$c.v5']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'v1': 123, 'v2': null, 'v4': 789, 'v5': null, 'v': 123}}
-      - {'__bot': {'v1': null, 'v3': 456, 'v4': 789, 'v': 456}}
-      - {'__bot': {'v2': null, 'v3': null, 'v5': 789, 'v': 789}}
-      - {'__bot': {'v1': null, 'v2': null, 'v5': null, 'v': null}}
+      - {'': {'v1': 123, 'v2': null, 'v4': 789, 'v5': null, 'v': 123}}
+      - {'': {'v1': null, 'v3': 456, 'v4': 789, 'v': 456}}
+      - {'': {'v2': null, 'v3': null, 'v5': 789, 'v': 789}}
+      - {'': {'v1': null, 'v2': null, 'v5': null, 'v': null}}
 
   - description: SIZE correctness tests
     current_db: foo
@@ -307,12 +316,15 @@ tests:
       - {'$project': {'_id': 0, 'size': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$size'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$c.a', 's': {'$sqlSize': '$c.a'}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'a': [], 's': 0}}
-      - {'__bot': {'a': [1], 's': 1}}
-      - {'__bot': {'a': [1, 2, 3], 's': 3}}
-      - {'__bot': {'a': null, 's': null}}
-      - {'__bot': {'s': null}}
+      - {'': {'a': [], 's': 0}}
+      - {'': {'a': [1], 's': 1}}
+      - {'': {'a': [1, 2, 3], 's': 3}}
+      - {'': {'a': null, 's': null}}
+      - {'': {'s': null}}
 
   - description: POSITION correctness tests
     current_db: foo
@@ -323,17 +335,20 @@ tests:
       - {'$project': {'_id': 0, 'position': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$position'}}
       - {'$project': {'_id': 0, '__bot': {'s1': '$c.s1', 's2': '$c.s2', 'p': {'$sqlIndexOfCP': ['$c.s2', '$c.s1']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'s1': '', 's2': 'abc', 'p': 0}}
-      - {'__bot': {'s1': 'a', 's2': 'abc', 'p': 0}}
-      - {'__bot': {'s1': 'b', 's2': 'abc', 'p': 1}}
-      - {'__bot': {'s1': 'b', 's2': 'abbbc', 'p': 1}}
-      - {'__bot': {'s1': 'bc', 's2': 'abbcbc', 'p': 2}}
-      - {'__bot': {'s1': 'x', 's2': 'abc', 'p': -1}}
-      - {'__bot': {'s1': null, 's2': 'abc', 'p': null}}
-      - {'__bot': {'s2': 'abc', 'p': null}}
-      - {'__bot': {'s1': 'b', 's2': null, 'p': null}}
-      - {'__bot': {'s1': 'b', 'p': null}}
+      - {'': {'s1': '', 's2': 'abc', 'p': 0}}
+      - {'': {'s1': 'a', 's2': 'abc', 'p': 0}}
+      - {'': {'s1': 'b', 's2': 'abc', 'p': 1}}
+      - {'': {'s1': 'b', 's2': 'abbbc', 'p': 1}}
+      - {'': {'s1': 'bc', 's2': 'abbcbc', 'p': 2}}
+      - {'': {'s1': 'x', 's2': 'abc', 'p': -1}}
+      - {'': {'s1': null, 's2': 'abc', 'p': null}}
+      - {'': {'s2': 'abc', 'p': null}}
+      - {'': {'s1': 'b', 's2': null, 'p': null}}
+      - {'': {'s1': 'b', 'p': null}}
 
   - description: CHAR_LENGTH correctness tests
     current_db: foo
@@ -344,15 +359,18 @@ tests:
       - {'$project': {'_id': 0, 'length': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$length'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$sqlStrLenCP': '$c.s'}, 'comment': '$c.comment'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'s': '', 'len': 0}}
-      - {'__bot': {'s': 'a', 'len': 1}}
-      - {'__bot': {'s': 'ã', 'len': 1}}
-      - {'__bot': {'s': 'abc', 'len': 3}}
-      - {'__bot': {'s': '$€λG', 'len': 4, 'comment': '€ is encoded using three bytes. λ is encoded using two bytes.'}}
-      - {'__bot': {'s': '寿司', 'len': 2, 'comment': 'Each character is encoded using three bytes.'}}
-      - {'__bot': {'s': null, 'len': null}}
-      - {'__bot': {'len': null}}
+      - {'': {'s': '', 'len': 0}}
+      - {'': {'s': 'a', 'len': 1}}
+      - {'': {'s': 'ã', 'len': 1}}
+      - {'': {'s': 'abc', 'len': 3}}
+      - {'': {'s': '$€λG', 'len': 4, 'comment': '€ is encoded using three bytes. λ is encoded using two bytes.'}}
+      - {'': {'s': '寿司', 'len': 2, 'comment': 'Each character is encoded using three bytes.'}}
+      - {'': {'s': null, 'len': null}}
+      - {'': {'len': null}}
 
   - description: OCTET_LENGTH correctness tests
     current_db: foo
@@ -363,15 +381,18 @@ tests:
       - {'$project': {'_id': 0, 'length': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$length'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$sqlStrLenBytes': '$c.s'}, 'comment': '$c.comment'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'s': '', 'len': 0}}
-      - {'__bot': {'s': 'a', 'len': 1}}
-      - {'__bot': {'s': 'ã', 'len': 2}}
-      - {'__bot': {'s': 'abc', 'len': 3}}
-      - {'__bot': {'s': '$€λG', 'len': 7, 'comment': '€ is encoded using three bytes. λ is encoded using two bytes.'}}
-      - {'__bot': {'s': '寿司', 'len': 6, 'comment': 'Each character is encoded using three bytes.'}}
-      - {'__bot': {'s': null, 'len': null}}
-      - {'__bot': {'len': null}}
+      - {'': {'s': '', 'len': 0}}
+      - {'': {'s': 'a', 'len': 1}}
+      - {'': {'s': 'ã', 'len': 2}}
+      - {'': {'s': 'abc', 'len': 3}}
+      - {'': {'s': '$€λG', 'len': 7, 'comment': '€ is encoded using three bytes. λ is encoded using two bytes.'}}
+      - {'': {'s': '寿司', 'len': 6, 'comment': 'Each character is encoded using three bytes.'}}
+      - {'': {'s': null, 'len': null}}
+      - {'': {'len': null}}
 
   - description: BIT_LENGTH correctness tests
     current_db: foo
@@ -382,15 +403,18 @@ tests:
       - {'$project': {'_id': 0, 'length': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$length'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$multiply': [{'$sqlStrLenBytes': '$c.s'}, {'$literal': 8}]}, 'comment': '$c.comment'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'s': '', 'len': 0}}
-      - {'__bot': {'s': 'a', 'len': 8}}
-      - {'__bot': {'s': 'ã', 'len': 16}}
-      - {'__bot': {'s': 'abc', 'len': 24}}
-      - {'__bot': {'s': '$€λG', 'len': 56, 'comment': '€ is encoded using three bytes. λ is encoded using two bytes.'}}
-      - {'__bot': {'s': '寿司', 'len': 48, 'comment': 'Each character is encoded using three bytes.'}}
-      - {'__bot': {'s': null, 'len': null}}
-      - {'__bot': {'len': null}}
+      - {'': {'s': '', 'len': 0}}
+      - {'': {'s': 'a', 'len': 8}}
+      - {'': {'s': 'ã', 'len': 16}}
+      - {'': {'s': 'abc', 'len': 24}}
+      - {'': {'s': '$€λG', 'len': 56, 'comment': '€ is encoded using three bytes. λ is encoded using two bytes.'}}
+      - {'': {'s': '寿司', 'len': 48, 'comment': 'Each character is encoded using three bytes.'}}
+      - {'': {'s': null, 'len': null}}
+      - {'': {'len': null}}
 
   - description: EXTRACT YEAR correctness test
     current_db: foo
@@ -400,8 +424,11 @@ tests:
     translation:
       - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
       - {'$project': {'_id': 0, '__bot': {'year': {'$year': '$arr.d'}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'year': {'$numberInt': '2020'}}}
+      - {'': {'year': {'$numberInt': '2020'}}}
 
   - description: EXTRACT MONTH correctness test
     current_db: foo
@@ -411,8 +438,11 @@ tests:
     translation:
       - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
       - {'$project': {'_id': 0, '__bot': {'month': {'$month': '$arr.d'}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'month': {'$numberInt': '1'}}}
+      - {'': {'month': {'$numberInt': '1'}}}
 
   - description: EXTRACT DAY correctness test
     current_db: foo
@@ -422,8 +452,11 @@ tests:
     translation:
       - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
       - {'$project': {'_id': 0, '__bot': {'day': {'$dayOfMonth': '$arr.d'}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'day': {'$numberInt': '8'}}}
+      - {'': {'day': {'$numberInt': '8'}}}
 
   - description: EXTRACT HOUR correctness test
     current_db: foo
@@ -433,8 +466,11 @@ tests:
     translation:
       - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
       - {'$project': {'_id': 0, '__bot': {'hour': {'$hour': '$arr.d'}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'hour': {'$numberInt': '12'}}}
+      - {'': {'hour': {'$numberInt': '12'}}}
 
   - description: EXTRACT MINUTE correctness test
     current_db: foo
@@ -444,8 +480,11 @@ tests:
     translation:
       - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
       - {'$project': {'_id': 0, '__bot': {'minute': {'$minute': '$arr.d'}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'minute': {'$numberInt': '25'}}}
+      - {'': {'minute': {'$numberInt': '25'}}}
 
   - description: EXTRACT SECOND correctness test
     current_db: foo
@@ -455,8 +494,11 @@ tests:
     translation:
       - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
       - {'$project': {'_id': 0, '__bot': {'second': {'$second': '$arr.d'}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'second': {'$numberInt': '45'}}}
+      - {'': {'second': {'$numberInt': '45'}}}
 
   - description: EXTRACT FROM NULL and MISSING correctness test
     current_db: foo
@@ -467,9 +509,12 @@ tests:
       - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$nullAndMissing'}}
       - {'$project': {'_id': 0, '__bot': {'d': '$c.d', 'v': {'$year': '$c.d'}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'d': null, 'v': null}}
-      - {'__bot': {'v': null}}
+      - {'': {'d': null, 'v': null}}
+      - {'': {'v': null}}
 
   - description: SUBSTRING(str FROM start FOR length) correctness test
     current_db: foo
@@ -481,23 +526,26 @@ tests:
       - {'$project': {'_id': 0, 'substring': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$substring'}}
       - {'$project': {'_id': 0, '__bot': {'str': '$c.str', 'start': '$c.start', 'length': '$c.length', 'substr': {'$sqlSubstrCP': ['$c.str', '$c.start', '$c.length']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'str': '', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '1'}, 'substr': ''}}
-      - {'__bot': {'str': '', 'start': {'$numberInt': '1'}, 'length': {'$numberInt': '1'}, 'substr': ''}}
-      - {'__bot': {'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '-1'}, 'substr': 'abc'}}
-      - {'__bot': {'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '0'}, 'substr': ''}}
-      - {'__bot': {'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '1'}, 'substr': 'a'}}
-      - {'__bot': {'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '2'}, 'substr': 'ab'}}
-      - {'__bot': {'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '4'}, 'substr': 'abc'}}
-      - {'__bot': {'str': 'abc', 'start': {'$numberInt': '1'}, 'length': {'$numberInt': '2'}, 'substr': 'bc'}}
-      - {'__bot': {'str': 'abc', 'start': {'$numberInt': '2'}, 'length': {'$numberInt': '-1'}, 'substr': 'c'}}
-      - {'__bot': {'str': '$€λGx', 'start': {'$numberInt': '1'}, 'length': {'$numberInt': '3'}, 'substr': '€λG'}}
-      - {'__bot': {'str': null, start: {'$numberInt': '1'}, length: {'$numberInt': '1'}, 'substr': null}}
-      - {'__bot': {start: {'$numberInt': '1'}, length: {'$numberInt': '1'}, 'substr': null}}
-      - {'__bot': {'str': 'abc', start: null, length: {'$numberInt': '1'}, 'substr': null}}
-      - {'__bot': {'str': 'abc', length: {'$numberInt': '1'}, 'substr': null}}
-      - {'__bot': {'str': 'abc', 'start': {'$numberInt': '1'}, 'length': null, 'substr': null}}
-      - {'__bot': {'str': 'abc', 'start': {'$numberInt': '1'}, 'substr': null}}
+      - {'': {'str': '', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '1'}, 'substr': ''}}
+      - {'': {'str': '', 'start': {'$numberInt': '1'}, 'length': {'$numberInt': '1'}, 'substr': ''}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '-1'}, 'substr': 'abc'}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '0'}, 'substr': ''}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '1'}, 'substr': 'a'}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '2'}, 'substr': 'ab'}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '4'}, 'substr': 'abc'}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '1'}, 'length': {'$numberInt': '2'}, 'substr': 'bc'}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '2'}, 'length': {'$numberInt': '-1'}, 'substr': 'c'}}
+      - {'': {'str': '$€λGx', 'start': {'$numberInt': '1'}, 'length': {'$numberInt': '3'}, 'substr': '€λG'}}
+      - {'': {'str': null, start: {'$numberInt': '1'}, length: {'$numberInt': '1'}, 'substr': null}}
+      - {'': {start: {'$numberInt': '1'}, length: {'$numberInt': '1'}, 'substr': null}}
+      - {'': {'str': 'abc', start: null, length: {'$numberInt': '1'}, 'substr': null}}
+      - {'': {'str': 'abc', length: {'$numberInt': '1'}, 'substr': null}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '1'}, 'length': null, 'substr': null}}
+      - {'': {'str': 'abc', 'start': {'$numberInt': '1'}, 'substr': null}}
 
   - description: UPPER correctness test
     current_db: foo
@@ -508,13 +556,16 @@ tests:
       - {'$project': {'_id': 0, 'fold': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$fold'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'v': {'$sqlToUpper': '$c.s'}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'s': '', 'v': ''}}
-      - {'__bot': {'s': 'abcd', 'v': 'ABCD'}}
-      - {'__bot': {'s': 'aBcD', 'v': 'ABCD'}}
-      - {'__bot': {'s': 'ABCD', 'v': 'ABCD'}}
-      - {'__bot': {'s': null, 'v': null}}
-      - {'__bot': {'v': null}}
+      - {'': {'s': '', 'v': ''}}
+      - {'': {'s': 'abcd', 'v': 'ABCD'}}
+      - {'': {'s': 'aBcD', 'v': 'ABCD'}}
+      - {'': {'s': 'ABCD', 'v': 'ABCD'}}
+      - {'': {'s': null, 'v': null}}
+      - {'': {'v': null}}
 
   - description: LOWER correctness test
     current_db: foo
@@ -525,13 +576,16 @@ tests:
       - {'$project': {'_id': 0, 'fold': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$fold'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'v': {'$sqlToLower': '$c.s'}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'s': '', 'v': ''}}
-      - {'__bot': {'s': 'abcd', 'v': 'abcd'}}
-      - {'__bot': {'s': 'aBcD', 'v': 'abcd'}}
-      - {'__bot': {'s': 'ABCD', 'v': 'abcd'}}
-      - {'__bot': {'s': null, 'v': null}}
-      - {'__bot': {'v': null}}
+      - {'': {'s': '', 'v': ''}}
+      - {'': {'s': 'abcd', 'v': 'abcd'}}
+      - {'': {'s': 'aBcD', 'v': 'abcd'}}
+      - {'': {'s': 'ABCD', 'v': 'abcd'}}
+      - {'': {'s': null, 'v': null}}
+      - {'': {'v': null}}
 
   - description: TRIM(BOTH substr FROM str) correctness test
     current_db: foo
@@ -542,18 +596,21 @@ tests:
       - {'$project': {'_id': 0, 'trim': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$trim'}}
       - {'$project': {'_id': 0, '__bot': {'substr': '$c.substr', 'str': '$c.str', 'v': {'$trim': {'input': '$c.str', 'chars': '$c.substr'}}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'substr': '', 'str': '', 'v': ''}}
-      - {'__bot': {'substr': ' ', 'str': '', 'v': ''}}
-      - {'__bot': {'substr': ' ', 'str': '   ', 'v': ''}}
-      - {'__bot': {'substr': ' ', 'str': 'abc', 'v': 'abc'}}
-      - {'__bot': {'substr': ' ', 'str': '  abc  ', 'v': 'abc'}}
-      - {'__bot': {'substr': 'x', 'str': 'x abc x', 'v': ' abc '}}
-      - {'__bot': {'substr': '123', 'str': '123abc123', 'v': 'abc'}}
-      - {'__bot': {'substr': null, 'str': 'abc', 'v': null}}
-      - {'__bot': {'str': 'abc', 'v': null}}
-      - {'__bot': {'substr': ' ', 'str': null, 'v': null}}
-      - {'__bot': {'substr': ' ', 'v': null}}
+      - {'': {'substr': '', 'str': '', 'v': ''}}
+      - {'': {'substr': ' ', 'str': '', 'v': ''}}
+      - {'': {'substr': ' ', 'str': '   ', 'v': ''}}
+      - {'': {'substr': ' ', 'str': 'abc', 'v': 'abc'}}
+      - {'': {'substr': ' ', 'str': '  abc  ', 'v': 'abc'}}
+      - {'': {'substr': 'x', 'str': 'x abc x', 'v': ' abc '}}
+      - {'': {'substr': '123', 'str': '123abc123', 'v': 'abc'}}
+      - {'': {'substr': null, 'str': 'abc', 'v': null}}
+      - {'': {'str': 'abc', 'v': null}}
+      - {'': {'substr': ' ', 'str': null, 'v': null}}
+      - {'': {'substr': ' ', 'v': null}}
 
   - description: TRIM(LEADING substr FROM str) correctness test
     current_db: foo
@@ -564,18 +621,21 @@ tests:
       - {'$project': {'_id': 0, 'trim': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$trim'}}
       - {'$project': {'_id': 0, '__bot': {'substr': '$c.substr', 'str': '$c.str', 'v': {'$ltrim': {'input': '$c.str', 'chars': '$c.substr'}}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'substr': '', 'str': '', 'v': ''}}
-      - {'__bot': {'substr': ' ', 'str': '', 'v': ''}}
-      - {'__bot': {'substr': ' ', 'str': '   ', 'v': ''}}
-      - {'__bot': {'substr': ' ', 'str': 'abc', 'v': 'abc'}}
-      - {'__bot': {'substr': ' ', 'str': '  abc  ', 'v': 'abc  '}}
-      - {'__bot': {'substr': 'x', 'str': 'x abc x', 'v': ' abc x'}}
-      - {'__bot': {'substr': '123', 'str': '123abc123', 'v': 'abc123'}}
-      - {'__bot': {'substr': null, 'str': 'abc', 'v': null}}
-      - {'__bot': {'str': 'abc', 'v': null}}
-      - {'__bot': {'substr': ' ', 'str': null, 'v': null}}
-      - {'__bot': {'substr': ' ', 'v': null}}
+      - {'': {'substr': '', 'str': '', 'v': ''}}
+      - {'': {'substr': ' ', 'str': '', 'v': ''}}
+      - {'': {'substr': ' ', 'str': '   ', 'v': ''}}
+      - {'': {'substr': ' ', 'str': 'abc', 'v': 'abc'}}
+      - {'': {'substr': ' ', 'str': '  abc  ', 'v': 'abc  '}}
+      - {'': {'substr': 'x', 'str': 'x abc x', 'v': ' abc x'}}
+      - {'': {'substr': '123', 'str': '123abc123', 'v': 'abc123'}}
+      - {'': {'substr': null, 'str': 'abc', 'v': null}}
+      - {'': {'str': 'abc', 'v': null}}
+      - {'': {'substr': ' ', 'str': null, 'v': null}}
+      - {'': {'substr': ' ', 'v': null}}
 
   - description: TRIM(TRAILING substr FROM str) correctness test
     current_db: foo
@@ -586,18 +646,21 @@ tests:
       - {'$project': {'_id': 0, 'trim': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$trim'}}
       - {'$project': {'_id': 0, '__bot': {'substr': '$c.substr', 'str': '$c.str', 'v': {'$rtrim': {'input': '$c.str', 'chars': '$c.substr'}}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'substr': '', 'str': '', 'v': ''}}
-      - {'__bot': {'substr': ' ', 'str': '', 'v': ''}}
-      - {'__bot': {'substr': ' ', 'str': '   ', 'v': ''}}
-      - {'__bot': {'substr': ' ', 'str': 'abc', 'v': 'abc'}}
-      - {'__bot': {'substr': ' ', 'str': '  abc  ', 'v': '  abc'}}
-      - {'__bot': {'substr': 'x', 'str': 'x abc x', 'v': 'x abc '}}
-      - {'__bot': {'substr': '123', 'str': '123abc123', 'v': '123abc'}}
-      - {'__bot': {'substr': null, 'str': 'abc', 'v': null}}
-      - {'__bot': {'str': 'abc', 'v': null}}
-      - {'__bot': {'substr': ' ', 'str': null, 'v': null}}
-      - {'__bot': {'substr': ' ', 'v': null}}
+      - {'': {'substr': '', 'str': '', 'v': ''}}
+      - {'': {'substr': ' ', 'str': '', 'v': ''}}
+      - {'': {'substr': ' ', 'str': '   ', 'v': ''}}
+      - {'': {'substr': ' ', 'str': 'abc', 'v': 'abc'}}
+      - {'': {'substr': ' ', 'str': '  abc  ', 'v': '  abc'}}
+      - {'': {'substr': 'x', 'str': 'x abc x', 'v': 'x abc '}}
+      - {'': {'substr': '123', 'str': '123abc123', 'v': '123abc'}}
+      - {'': {'substr': null, 'str': 'abc', 'v': null}}
+      - {'': {'str': 'abc', 'v': null}}
+      - {'': {'substr': ' ', 'str': null, 'v': null}}
+      - {'': {'substr': ' ', 'v': null}}
 
   - description: CURRENT_TIMESTAMP(p) correctness test
     current_db: foo
@@ -607,8 +670,11 @@ tests:
     translation:
       - {'$documents': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {'v': {'$sqlGt': ['$$NOW', {'$convert': {'input': '2021-01-08T12:00:00Z', 'to': 'date', 'onNull': null, 'onError': null}}]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'v': true}}
+      - {'': {'v': true}}
 
   - description: Multiple CURRENT_TIMESTAMPs are equal across a query
     current_db: foo
@@ -618,5 +684,8 @@ tests:
     translation:
       - {'$documents': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {'v': {'$sqlEq': ['$$NOW', '$$NOW']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'v': true}}
+      - {'': {'v': true}}

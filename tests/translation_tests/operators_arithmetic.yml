@@ -14,8 +14,11 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'n': {'$add': ['$bar.a', '$bar.b', '$bar.c']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'n': {'$numberInt': '6'}}}
+      - {'': {'n': {'$numberInt': '6'}}}
 
   - description: subtraction with more than 2 operands
     current_db: foo
@@ -27,8 +30,11 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'n': {'$subtract': [{'$subtract': ['$bar.a', '$bar.b']}, '$bar.c']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'n': {'$numberInt': '-4'}}}
+      - {'': {'n': {'$numberInt': '-4'}}}
 
   - description: multiplication with more than 2 operands
     current_db: foo
@@ -40,8 +46,11 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'n': {'$multiply': ['$bar.a', '$bar.b', '$bar.c']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'n': {'$numberInt': '6'}}}
+      - {'': {'n': {'$numberInt': '6'}}}
 
   - description: division with more than 2 operands
     current_db: foo
@@ -53,5 +62,8 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'n': {'$sqlDivide': {'dividend': {'$sqlDivide': {'dividend': '$bar.a', 'divisor': '$bar.b', 'onError': {'$literal': null}}}, 'divisor': '$bar.c', 'onError': {'$literal': null}}}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'n': {'$numberInt': '0'}}}
+      - {'': {'n': {'$numberInt': '0'}}}

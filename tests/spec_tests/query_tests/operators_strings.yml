@@ -125,10 +125,13 @@ tests:
       - {'$project': {'_id': 0, 'concat': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$concat'}}
       - {'$project': {'_id': 0, '__bot': {'s1': '$c.s1', 's2': '$c.s2', 's': {'$concat': ['$c.s1', '$c.s2']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'s1': 'ab', 's2': 'c', 's': 'abc'}}
-      - {'__bot': {'s1': 'ab', 's2': null, 's': null}}
-      - {'__bot': {'s1': 'ab', 's': null}}
+      - {'': {'s1': 'ab', 's2': 'c', 's': 'abc'}}
+      - {'': {'s1': 'ab', 's2': null, 's': null}}
+      - {'': {'s1': 'ab', 's': null}}
 
   - description: LIKE ESCAPE value cannot be longer than 1 character
     query: "SELECT VALUE {'_1': 'a' LIKE '_' ESCAPE 'abc'}"
@@ -158,11 +161,14 @@ tests:
       - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
       - {'$project': {'_id': 0, 'n': '$nullAndMissing'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$n.s', 'p': '$n.p', 'r': {'$like': {'input': '$n.s', 'pattern': '$n.p'}}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'s': null, 'p': 'abc', 'r': null}}
-      - {'__bot': {'p': 'abc', 'r': null}}
-      - {'__bot': {'s': 'abc', 'p': null, 'r': null}}
-      - {'__bot': {'s': 'abc', 'r': null}}
+      - {'': {'s': null, 'p': 'abc', 'r': null}}
+      - {'': {'p': 'abc', 'r': null}}
+      - {'': {'s': 'abc', 'p': null, 'r': null}}
+      - {'': {'s': 'abc', 'r': null}}
 
   - description: LIKE operator with no ESCAPE correctness tests
     current_db: foo
@@ -174,15 +180,18 @@ tests:
       - {'$project': {'_id': 0, 'like': '$$ROOT'}}
       - {'$project': {'_id': 0, 'l': '$like'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$l.s', 'p': '$l.p', 'r': {'$like': {'input': '$l.s', 'pattern': '$l.p'}}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'s': 'abc', 'p': 'abc', 'r': true}}
-      - {'__bot': {'s': 'abc', 'p': 'a_c', 'r': true}}
-      - {'__bot': {'s': 'abc', 'p': 'a%', 'r': true}}
-      - {'__bot': {'s': 'abc', 'p': 'ab_%', 'r': true}}
-      - {'__bot': {'s': 'bc', 'p': 'abc', 'r': false}}
-      - {'__bot': {'s': 'bc', 'p': '_bc', 'r': false}}
-      - {'__bot': {'s': 'bc', 'p': 'ab%c', 'r': false}}
-      - {'__bot': {'s': 'bc', 'p': '%_bc', 'r': false}}
+      - {'': {'s': 'abc', 'p': 'abc', 'r': true}}
+      - {'': {'s': 'abc', 'p': 'a_c', 'r': true}}
+      - {'': {'s': 'abc', 'p': 'a%', 'r': true}}
+      - {'': {'s': 'abc', 'p': 'ab_%', 'r': true}}
+      - {'': {'s': 'bc', 'p': 'abc', 'r': false}}
+      - {'': {'s': 'bc', 'p': '_bc', 'r': false}}
+      - {'': {'s': 'bc', 'p': 'ab%c', 'r': false}}
+      - {'': {'s': 'bc', 'p': '%_bc', 'r': false}}
 
   - description: LIKE operator with ESCAPE correctness tests
     current_db: foo
@@ -194,8 +203,11 @@ tests:
       - {'$project': {'_id': 0, 'escape': '$$ROOT'}}
       - {'$project': {'_id': 0, 'e': '$escape'}}
       - {'$project': {'_id': 0, '__bot': {'s': '$e.s', 'p': '$e.p', 'r': {'$like': {'input': '$e.s', 'pattern': '$e.p', 'escape': {'$literal': '$'}}}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'s': 'abc', 'p': 'abc', 'r': true}}
-      - {'__bot': {'s': 'abc', 'p': 'a$_c', 'r': false}}
-      - {'__bot': {'s': 'a$_%c', 'p': 'a$$$_$%c', 'r': true}}
-      - {'__bot': {'s': 'abc', 'p': 'ab$c', 'r': true}}
+      - {'': {'s': 'abc', 'p': 'abc', 'r': true}}
+      - {'': {'s': 'abc', 'p': 'a$_c', 'r': false}}
+      - {'': {'s': 'a$_%c', 'p': 'a$$$_$%c', 'r': true}}
+      - {'': {'s': 'abc', 'p': 'ab$c', 'r': true}}

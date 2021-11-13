@@ -86,9 +86,12 @@ tests:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
       - {'$project': {'_id': 0, 'foo': '$foo'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a', 'b': '$foo.b'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'a': 1, 'b': 1}}
-      - {'__bot': {'a': 2, 'b': 2}}
+      - {'': {'a': 1, 'b': 1}}
+      - {'': {'a': 2, 'b': 2}}
 
   - description: simple sub-star correctness test
     current_db: mydb
@@ -112,9 +115,12 @@ tests:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
       - {'$project': {'_id': 0, 'foo': '$foo'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}, 'foo': '$foo'}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'a': 1}, 'foo': {'_id': 0, 'a': 1, 'b': 1}}
-      - {'__bot': {'a': 2}, 'foo': {'_id': 1, 'a': 2, 'b': 2}}
+      - {'foo': {'_id': 0, 'a': 1, 'b': 1}, '': {'a': 1}}
+      - {'foo': {'_id': 1, 'a': 2, 'b': 2}, '': {'a': 2}}
 
   - description: SELECT VALUES may create unmaterializable binding tuples
     current_db: mydb
@@ -125,6 +131,9 @@ tests:
       - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
       - { '$project': { '_id': 0, 'a': '$foo' } }
       - { '$project': { '_id': 0, '__bot': {'a': '$a.a'}, 'a': '$a' } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'a': 1}, 'a': {'_id': 0, 'a': 1, 'b': 1}}
-      - {'__bot': {'a': 2}, 'a': {'_id': 1, 'a': 2, 'b': 2}}
+      - {'a': {'_id': 0, 'a': 1, 'b': 1}, '': {'a': 1}}
+      - {'a': {'_id': 1, 'a': 2, 'b': 2}, '': {'a': 2}}

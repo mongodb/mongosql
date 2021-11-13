@@ -293,14 +293,17 @@ tests:
       - {'$project': {'_id': 0, 'numbers': '$$ROOT'}}
       - {'$project': {'_id': 0, 'numbers': '$numbers'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$numbers.a', 'b': '$numbers.b', 'c': {"$sqlLt": [ "$numbers.a", "$numbers.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": true } }
-      - {'__bot': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": false } }
-      - {'__bot': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": false } }
-      - {'__bot': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
-      - {'__bot': { "a": { "$numberDouble": "6.25" }, "c": null } }
-      - {'__bot': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": true } }
+      - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": false } }
+      - {'': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": false } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
+      - {'': { "b": { "$numberLong": "3" }, "c": null } }
 
   - description: correctness test for lte for numeric types
     current_db: foo
@@ -311,14 +314,17 @@ tests:
       - {'$project': {'_id': 0, 'numbers': '$$ROOT'}}
       - {'$project': {'_id': 0, 'numbers': '$numbers'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$numbers.a', 'b': '$numbers.b', 'c': {"$sqlLte": [ "$numbers.a", "$numbers.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": true } }
-      - {'__bot': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": true } }
-      - {'__bot': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": false } }
-      - {'__bot': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
-      - {'__bot': { "a": { "$numberDouble": "6.25" }, "c": null } }
-      - {'__bot': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": true } }
+      - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": true } }
+      - {'': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": false } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
+      - {'': { "b": { "$numberLong": "3" }, "c": null } }
 
   - description: correctness test for neq for numeric types
     current_db: foo
@@ -329,14 +335,17 @@ tests:
       - {'$project': {'_id': 0, 'numbers': '$$ROOT'}}
       - {'$project': {'_id': 0, 'numbers': '$numbers'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$numbers.a', 'b': '$numbers.b', 'c': {"$sqlNe": [ "$numbers.a", "$numbers.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": true } }
-      - {'__bot': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": false } }
-      - {'__bot': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": true } }
-      - {'__bot': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
-      - {'__bot': { "a": { "$numberDouble": "6.25" }, "c": null } }
-      - {'__bot': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": true } }
+      - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": false } }
+      - {'': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": true } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
+      - {'': { "b": { "$numberLong": "3" }, "c": null } }
 
   - description: correctness test for eq for numeric types
     current_db: foo
@@ -347,14 +356,17 @@ tests:
       - {'$project': {'_id': 0, 'numbers': '$$ROOT'}}
       - {'$project': {'_id': 0, 'numbers': '$numbers'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$numbers.a', 'b': '$numbers.b', 'c': {"$sqlEq": [ "$numbers.a", "$numbers.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": false } }
-      - {'__bot': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": true } }
-      - {'__bot': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": false } }
-      - {'__bot': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
-      - {'__bot': { "a": { "$numberDouble": "6.25" }, "c": null } }
-      - {'__bot': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": false } }
+      - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": true } }
+      - {'': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": false } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
+      - {'': { "b": { "$numberLong": "3" }, "c": null } }
 
   - description: correctness test for gt for numeric types
     current_db: foo
@@ -365,14 +377,17 @@ tests:
       - {'$project': {'_id': 0, 'numbers': '$$ROOT'}}
       - {'$project': {'_id': 0, 'numbers': '$numbers'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$numbers.a', 'b': '$numbers.b', 'c': {"$sqlGt": [ "$numbers.a", "$numbers.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": false } }
-      - {'__bot': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": false } }
-      - {'__bot': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": true } }
-      - {'__bot': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
-      - {'__bot': { "a": { "$numberDouble": "6.25" }, "c": null } }
-      - {'__bot': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": false } }
+      - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": false } }
+      - {'': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": true } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
+      - {'': { "b": { "$numberLong": "3" }, "c": null } }
 
   - description: correctness test for gte for numeric types
     current_db: foo
@@ -383,14 +398,17 @@ tests:
       - {'$project': {'_id': 0, 'numbers': '$$ROOT'}}
       - {'$project': {'_id': 0, 'numbers': '$numbers'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$numbers.a', 'b': '$numbers.b', 'c': {"$sqlGte": [ "$numbers.a", "$numbers.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": false } }
-      - {'__bot': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": true } }
-      - {'__bot': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": true } }
-      - {'__bot': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
-      - {'__bot': { "a": { "$numberDouble": "6.25" }, "c": null } }
-      - {'__bot': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": false } }
+      - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": true } }
+      - {'': { "a": { "$numberDecimal": "6.25" }, "b": { "$numberLong": "1" }, "c": true } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
+      - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
+      - {'': { "b": { "$numberLong": "3" }, "c": null } }
 
   - description: correctness test for lt for strings
     current_db: foo
@@ -401,14 +419,17 @@ tests:
       - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
       - {'$project': {'_id': 0, 'strings': '$strings'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$strings.a', 'b': '$strings.b', 'c': {"$sqlLt": [ "$strings.a", "$strings.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": "abc", "b": "def", "c": true } }
-      - {'__bot': { "a": "xyz", "b": "xyz", "c": false } }
-      - {'__bot': { "a": "xyz", "b": "abc", "c": false } }
-      - {'__bot': { "a": "", "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": "abc", "c": null } }
-      - {'__bot': { "a": "abc", "c": null } }
-      - {'__bot': { "b": "", "c": null } }
+      - {'': { "a": "abc", "b": "def", "c": true } }
+      - {'': { "a": "xyz", "b": "xyz", "c": false } }
+      - {'': { "a": "xyz", "b": "abc", "c": false } }
+      - {'': { "a": "", "b": null, "c": null } }
+      - {'': { "a": null, "b": "abc", "c": null } }
+      - {'': { "a": "abc", "c": null } }
+      - {'': { "b": "", "c": null } }
 
   - description: correctness test for lte for strings
     current_db: foo
@@ -419,14 +440,17 @@ tests:
       - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
       - {'$project': {'_id': 0, 'strings': '$strings'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$strings.a', 'b': '$strings.b', 'c': {"$sqlLte": [ "$strings.a", "$strings.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": "abc", "b": "def", "c": true } }
-      - {'__bot': { "a": "xyz", "b": "xyz", "c": true } }
-      - {'__bot': { "a": "xyz", "b": "abc", "c": false } }
-      - {'__bot': { "a": "", "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": "abc", "c": null } }
-      - {'__bot': { "a": "abc", "c": null } }
-      - {'__bot': { "b": "", "c": null } }
+      - {'': { "a": "abc", "b": "def", "c": true } }
+      - {'': { "a": "xyz", "b": "xyz", "c": true } }
+      - {'': { "a": "xyz", "b": "abc", "c": false } }
+      - {'': { "a": "", "b": null, "c": null } }
+      - {'': { "a": null, "b": "abc", "c": null } }
+      - {'': { "a": "abc", "c": null } }
+      - {'': { "b": "", "c": null } }
 
   - description: correctness test for neq for strings
     current_db: foo
@@ -437,14 +461,17 @@ tests:
       - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
       - {'$project': {'_id': 0, 'strings': '$strings'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$strings.a', 'b': '$strings.b', 'c': {"$sqlNe": [ "$strings.a", "$strings.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": "abc", "b": "def", "c": true } }
-      - {'__bot': { "a": "xyz", "b": "xyz", "c": false } }
-      - {'__bot': { "a": "xyz", "b": "abc", "c": true } }
-      - {'__bot': { "a": "", "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": "abc", "c": null } }
-      - {'__bot': { "a": "abc", "c": null } }
-      - {'__bot': { "b": "", "c": null } }
+      - {'': { "a": "abc", "b": "def", "c": true } }
+      - {'': { "a": "xyz", "b": "xyz", "c": false } }
+      - {'': { "a": "xyz", "b": "abc", "c": true } }
+      - {'': { "a": "", "b": null, "c": null } }
+      - {'': { "a": null, "b": "abc", "c": null } }
+      - {'': { "a": "abc", "c": null } }
+      - {'': { "b": "", "c": null } }
 
   - description: correctness test for eq for strings
     current_db: foo
@@ -455,14 +482,17 @@ tests:
       - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
       - {'$project': {'_id': 0, 'strings': '$strings'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$strings.a', 'b': '$strings.b', 'c': {"$sqlEq": [ "$strings.a", "$strings.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": "abc", "b": "def", "c": false } }
-      - {'__bot': { "a": "xyz", "b": "xyz", "c": true } }
-      - {'__bot': { "a": "xyz", "b": "abc", "c": false } }
-      - {'__bot': { "a": "", "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": "abc", "c": null } }
-      - {'__bot': { "a": "abc", "c": null } }
-      - {'__bot': { "b": "", "c": null } }
+      - {'': { "a": "abc", "b": "def", "c": false } }
+      - {'': { "a": "xyz", "b": "xyz", "c": true } }
+      - {'': { "a": "xyz", "b": "abc", "c": false } }
+      - {'': { "a": "", "b": null, "c": null } }
+      - {'': { "a": null, "b": "abc", "c": null } }
+      - {'': { "a": "abc", "c": null } }
+      - {'': { "b": "", "c": null } }
 
   - description: correctness test for gt for strings
     current_db: foo
@@ -473,14 +503,17 @@ tests:
       - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
       - {'$project': {'_id': 0, 'strings': '$strings'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$strings.a', 'b': '$strings.b', 'c': {"$sqlGt": [ "$strings.a", "$strings.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": "abc", "b": "def", "c": false } }
-      - {'__bot': { "a": "xyz", "b": "xyz", "c": false } }
-      - {'__bot': { "a": "xyz", "b": "abc", "c": true } }
-      - {'__bot': { "a": "", "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": "abc", "c": null } }
-      - {'__bot': { "a": "abc", "c": null } }
-      - {'__bot': { "b": "", "c": null } }
+      - {'': { "a": "abc", "b": "def", "c": false } }
+      - {'': { "a": "xyz", "b": "xyz", "c": false } }
+      - {'': { "a": "xyz", "b": "abc", "c": true } }
+      - {'': { "a": "", "b": null, "c": null } }
+      - {'': { "a": null, "b": "abc", "c": null } }
+      - {'': { "a": "abc", "c": null } }
+      - {'': { "b": "", "c": null } }
 
   - description: correctness test for gte for strings
     current_db: foo
@@ -491,14 +524,17 @@ tests:
       - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
       - {'$project': {'_id': 0, 'strings': '$strings'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$strings.a', 'b': '$strings.b', 'c': {"$sqlGte": [ "$strings.a", "$strings.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": "abc", "b": "def", "c": false } }
-      - {'__bot': { "a": "xyz", "b": "xyz", "c": true } }
-      - {'__bot': { "a": "xyz", "b": "abc", "c": true } }
-      - {'__bot': { "a": "", "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": "abc", "c": null } }
-      - {'__bot': { "a": "abc", "c": null } }
-      - {'__bot': { "b": "", "c": null } }
+      - {'': { "a": "abc", "b": "def", "c": false } }
+      - {'': { "a": "xyz", "b": "xyz", "c": true } }
+      - {'': { "a": "xyz", "b": "abc", "c": true } }
+      - {'': { "a": "", "b": null, "c": null } }
+      - {'': { "a": null, "b": "abc", "c": null } }
+      - {'': { "a": "abc", "c": null } }
+      - {'': { "b": "", "c": null } }
 
   - description: correctness test for lt for bools
     current_db: foo
@@ -509,14 +545,17 @@ tests:
       - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bools': '$bools'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$bools.a', 'b': '$bools.b', 'c': {"$sqlLt": [ "$bools.a", "$bools.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": false, "b": true, "c": true } }
-      - {'__bot': { "a": true, "b": true, "c": false } }
-      - {'__bot': { "a": true, "b": false, "c": false } }
-      - {'__bot': { "a": false, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": true, "c": null } }
-      - {'__bot': { "a": false, "c": null } }
-      - {'__bot': { "b": true, "c": null } }
+      - {'': { "a": false, "b": true, "c": true } }
+      - {'': { "a": true, "b": true, "c": false } }
+      - {'': { "a": true, "b": false, "c": false } }
+      - {'': { "a": false, "b": null, "c": null } }
+      - {'': { "a": null, "b": true, "c": null } }
+      - {'': { "a": false, "c": null } }
+      - {'': { "b": true, "c": null } }
 
   - description: correctness test for lte for bools
     current_db: foo
@@ -527,14 +566,17 @@ tests:
       - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bools': '$bools'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$bools.a', 'b': '$bools.b', 'c': {"$sqlLte": [ "$bools.a", "$bools.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": false, "b": true, "c": true } }
-      - {'__bot': { "a": true, "b": true, "c": true } }
-      - {'__bot': { "a": true, "b": false, "c": false } }
-      - {'__bot': { "a": false, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": true, "c": null } }
-      - {'__bot': { "a": false, "c": null } }
-      - {'__bot': { "b": true, "c": null } }
+      - {'': { "a": false, "b": true, "c": true } }
+      - {'': { "a": true, "b": true, "c": true } }
+      - {'': { "a": true, "b": false, "c": false } }
+      - {'': { "a": false, "b": null, "c": null } }
+      - {'': { "a": null, "b": true, "c": null } }
+      - {'': { "a": false, "c": null } }
+      - {'': { "b": true, "c": null } }
 
   - description: correctness test for neq for bools
     current_db: foo
@@ -545,14 +587,17 @@ tests:
       - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bools': '$bools'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$bools.a', 'b': '$bools.b', 'c': {"$sqlNe": [ "$bools.a", "$bools.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": false, "b": true, "c": true } }
-      - {'__bot': { "a": true, "b": true, "c": false } }
-      - {'__bot': { "a": true, "b": false, "c": true } }
-      - {'__bot': { "a": false, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": true, "c": null } }
-      - {'__bot': { "a": false, "c": null } }
-      - {'__bot': { "b": true, "c": null } }
+      - {'': { "a": false, "b": true, "c": true } }
+      - {'': { "a": true, "b": true, "c": false } }
+      - {'': { "a": true, "b": false, "c": true } }
+      - {'': { "a": false, "b": null, "c": null } }
+      - {'': { "a": null, "b": true, "c": null } }
+      - {'': { "a": false, "c": null } }
+      - {'': { "b": true, "c": null } }
 
   - description: correctness test for eq for bools
     current_db: foo
@@ -563,14 +608,17 @@ tests:
       - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bools': '$bools'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$bools.a', 'b': '$bools.b', 'c': {"$sqlEq": [ "$bools.a", "$bools.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": false, "b": true, "c": false } }
-      - {'__bot': { "a": true, "b": true, "c": true } }
-      - {'__bot': { "a": true, "b": false, "c": false } }
-      - {'__bot': { "a": false, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": true, "c": null } }
-      - {'__bot': { "a": false, "c": null } }
-      - {'__bot': { "b": true, "c": null } }
+      - {'': { "a": false, "b": true, "c": false } }
+      - {'': { "a": true, "b": true, "c": true } }
+      - {'': { "a": true, "b": false, "c": false } }
+      - {'': { "a": false, "b": null, "c": null } }
+      - {'': { "a": null, "b": true, "c": null } }
+      - {'': { "a": false, "c": null } }
+      - {'': { "b": true, "c": null } }
 
   - description: correctness test for gt for bools
     current_db: foo
@@ -581,14 +629,17 @@ tests:
       - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bools': '$bools'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$bools.a', 'b': '$bools.b', 'c': {"$sqlGt": [ "$bools.a", "$bools.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": false, "b": true, "c": false } }
-      - {'__bot': { "a": true, "b": true, "c": false } }
-      - {'__bot': { "a": true, "b": false, "c": true } }
-      - {'__bot': { "a": false, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": true, "c": null } }
-      - {'__bot': { "a": false, "c": null } }
-      - {'__bot': { "b": true, "c": null } }
+      - {'': { "a": false, "b": true, "c": false } }
+      - {'': { "a": true, "b": true, "c": false } }
+      - {'': { "a": true, "b": false, "c": true } }
+      - {'': { "a": false, "b": null, "c": null } }
+      - {'': { "a": null, "b": true, "c": null } }
+      - {'': { "a": false, "c": null } }
+      - {'': { "b": true, "c": null } }
 
   - description: correctness test for gte for bools
     current_db: foo
@@ -599,14 +650,17 @@ tests:
       - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bools': '$bools'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$bools.a', 'b': '$bools.b', 'c': {"$sqlGte": [ "$bools.a", "$bools.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": false, "b": true, "c": false } }
-      - {'__bot': { "a": true, "b": true, "c": true } }
-      - {'__bot': { "a": true, "b": false, "c": true } }
-      - {'__bot': { "a": false, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": true, "c": null } }
-      - {'__bot': { "a": false, "c": null } }
-      - {'__bot': { "b": true, "c": null } }
+      - {'': { "a": false, "b": true, "c": false } }
+      - {'': { "a": true, "b": true, "c": true } }
+      - {'': { "a": true, "b": false, "c": true } }
+      - {'': { "a": false, "b": null, "c": null } }
+      - {'': { "a": null, "b": true, "c": null } }
+      - {'': { "a": false, "c": null } }
+      - {'': { "b": true, "c": null } }
 
   - description: correctness test for lt for dates
     current_db: foo
@@ -617,14 +671,17 @@ tests:
       - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
       - {'$project': {'_id': 0, 'dates': '$dates'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlLt": [ "$dates.a", "$dates.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
-      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
 
   - description: correctness test for lte for dates
     current_db: foo
@@ -635,14 +692,17 @@ tests:
       - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
       - {'$project': {'_id': 0, 'dates': '$dates'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlLte": [ "$dates.a", "$dates.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
-      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
 
   - description: correctness test for neq for dates
     current_db: foo
@@ -653,14 +713,17 @@ tests:
       - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
       - {'$project': {'_id': 0, 'dates': '$dates'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlNe": [ "$dates.a", "$dates.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
-      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
 
   - description: correctness test for eq for dates
     current_db: foo
@@ -671,14 +734,17 @@ tests:
       - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
       - {'$project': {'_id': 0, 'dates': '$dates'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlEq": [ "$dates.a", "$dates.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
-      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
 
   - description: correctness test for gt for dates
     current_db: foo
@@ -689,14 +755,17 @@ tests:
       - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
       - {'$project': {'_id': 0, 'dates': '$dates'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlGt": [ "$dates.a", "$dates.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
-      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
 
   - description: correctness test for gte for dates
     current_db: foo
@@ -707,14 +776,17 @@ tests:
       - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
       - {'$project': {'_id': 0, 'dates': '$dates'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlGte": [ "$dates.a", "$dates.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
-      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
-      - {'__bot': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": false } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300000000" } }, "c": true } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": null, "c": null } }
+      - {'': { "a": null, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
+      - {'': { "b": { "$date": { "$numberLong": "253402300799999" } }, "c": null } }
 
 
   - description: correctness test for lt for null and missing
@@ -726,11 +798,14 @@ tests:
       - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
       - {'$project': {'_id': 0, 'nullAndMissing': '$nullAndMissing'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$nullAndMissing.a', 'b': '$nullAndMissing.b', 'c': {"$sqlLt": [ "$nullAndMissing.a", "$nullAndMissing.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": null, "b": null, "c": null } }
-      - {'__bot': { "a": null, "c": null } }
-      - {'__bot': { "b": null, "c": null } }
-      - {'__bot': { "c": null } }
+      - {'': { "a": null, "b": null, "c": null } }
+      - {'': { "a": null, "c": null } }
+      - {'': { "b": null, "c": null } }
+      - {'': { "c": null } }
 
   - description: correctness test for lte for null and missing
     current_db: foo
@@ -741,11 +816,14 @@ tests:
       - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
       - {'$project': {'_id': 0, 'nullAndMissing': '$nullAndMissing'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$nullAndMissing.a', 'b': '$nullAndMissing.b', 'c': {"$sqlLte": [ "$nullAndMissing.a", "$nullAndMissing.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": null, "b": null, "c": null } }
-      - {'__bot': { "a": null, "c": null } }
-      - {'__bot': { "b": null, "c": null } }
-      - {'__bot': { "c": null } }
+      - {'': { "a": null, "b": null, "c": null } }
+      - {'': { "a": null, "c": null } }
+      - {'': { "b": null, "c": null } }
+      - {'': { "c": null } }
 
   - description: correctness test for neq for null and missing
     current_db: foo
@@ -756,11 +834,14 @@ tests:
       - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
       - {'$project': {'_id': 0, 'nullAndMissing': '$nullAndMissing'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$nullAndMissing.a', 'b': '$nullAndMissing.b', 'c': {"$sqlNe": [ "$nullAndMissing.a", "$nullAndMissing.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": null, "b": null, "c": null } }
-      - {'__bot': { "a": null, "c": null } }
-      - {'__bot': { "b": null, "c": null } }
-      - {'__bot': { "c": null } }
+      - {'': { "a": null, "b": null, "c": null } }
+      - {'': { "a": null, "c": null } }
+      - {'': { "b": null, "c": null } }
+      - {'': { "c": null } }
 
   - description: correctness test for eq for null and missing
     current_db: foo
@@ -771,11 +852,14 @@ tests:
       - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
       - {'$project': {'_id': 0, 'nullAndMissing': '$nullAndMissing'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$nullAndMissing.a', 'b': '$nullAndMissing.b', 'c': {"$sqlEq": [ "$nullAndMissing.a", "$nullAndMissing.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": null, "b": null, "c": null } }
-      - {'__bot': { "a": null, "c": null } }
-      - {'__bot': { "b": null, "c": null } }
-      - {'__bot': { "c": null } }
+      - {'': { "a": null, "b": null, "c": null } }
+      - {'': { "a": null, "c": null } }
+      - {'': { "b": null, "c": null } }
+      - {'': { "c": null } }
 
   - description: correctness test for gt for null and missing
     current_db: foo
@@ -786,11 +870,14 @@ tests:
       - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
       - {'$project': {'_id': 0, 'nullAndMissing': '$nullAndMissing'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$nullAndMissing.a', 'b': '$nullAndMissing.b', 'c': {"$sqlGt": [ "$nullAndMissing.a", "$nullAndMissing.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": null, "b": null, "c": null } }
-      - {'__bot': { "a": null, "c": null } }
-      - {'__bot': { "b": null, "c": null } }
-      - {'__bot': { "c": null } }
+      - {'': { "a": null, "b": null, "c": null } }
+      - {'': { "a": null, "c": null } }
+      - {'': { "b": null, "c": null } }
+      - {'': { "c": null } }
 
   - description: correctness test for gte for null and missing
     current_db: foo
@@ -801,11 +888,14 @@ tests:
       - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
       - {'$project': {'_id': 0, 'nullAndMissing': '$nullAndMissing'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$nullAndMissing.a', 'b': '$nullAndMissing.b', 'c': {"$sqlGte": [ "$nullAndMissing.a", "$nullAndMissing.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": null, "b": null, "c": null } }
-      - {'__bot': { "a": null, "c": null } }
-      - {'__bot': { "b": null, "c": null } }
-      - {'__bot': { "c": null } }
+      - {'': { "a": null, "b": null, "c": null } }
+      - {'': { "a": null, "c": null } }
+      - {'': { "b": null, "c": null } }
+      - {'': { "c": null } }
 
   - description: correctness test for BETWEEN for numeric types
     current_db: foo
@@ -816,18 +906,21 @@ tests:
       - {'$project': {'_id': 0, 'betweenNumeric': '$$ROOT'}}
       - {'$project': {'_id': 0, 'betweenNumeric': '$betweenNumeric'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$betweenNumeric.a', 'b': '$betweenNumeric.b', 'c': '$betweenNumeric.c', 'r': {'$sqlBetween': ["$betweenNumeric.a", "$betweenNumeric.b", "$betweenNumeric.c"]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": { "$numberInt": "2" }, "b": { "$numberLong": "1" }, "c": { "$numberDouble": "3.1" }, "r": true } }
-      - {'__bot': { "a": { "$numberInt": "1" }, "b": { "$numberLong": "1" }, "c": { "$numberDecimal": "3.1" }, "r": true } }
-      - {'__bot': { "a": { "$numberInt": "3" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": true } }
-      - {'__bot': { "a": { "$numberInt": "0" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": false } }
-      - {'__bot': { "a": { "$numberInt": "4" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": false } }
-      - {'__bot': { "a": null, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": null } }
-      - {'__bot': { "a": { "$numberLong": "2" }, "b": null, "c": { "$numberInt": "3" }, "r": null } }
-      - {'__bot': { "a": { "$numberLong": "2" }, "b": { "$numberLong": "1" }, "c": null, "r": null } }
-      - {'__bot': { "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": null } }
-      - {'__bot': { "a": { "$numberLong": "2" }, "c": { "$numberInt": "3" }, "r": null } }
-      - {'__bot': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "1" }, "r": null } }
+      - {'': { "a": { "$numberInt": "2" }, "b": { "$numberLong": "1" }, "c": { "$numberDouble": "3.1" }, "r": true } }
+      - {'': { "a": { "$numberInt": "1" }, "b": { "$numberLong": "1" }, "c": { "$numberDecimal": "3.1" }, "r": true } }
+      - {'': { "a": { "$numberInt": "3" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": true } }
+      - {'': { "a": { "$numberInt": "0" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": false } }
+      - {'': { "a": { "$numberInt": "4" }, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": false } }
+      - {'': { "a": null, "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": null } }
+      - {'': { "a": { "$numberLong": "2" }, "b": null, "c": { "$numberInt": "3" }, "r": null } }
+      - {'': { "a": { "$numberLong": "2" }, "b": { "$numberLong": "1" }, "c": null, "r": null } }
+      - {'': { "b": { "$numberLong": "1" }, "c": { "$numberInt": "3" }, "r": null } }
+      - {'': { "a": { "$numberLong": "2" }, "c": { "$numberInt": "3" }, "r": null } }
+      - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "1" }, "r": null } }
 
   - description: correctness test for BETWEEN for strings
     current_db: foo
@@ -838,18 +931,21 @@ tests:
       - {'$project': {'_id': 0, 'betweenStrings': '$$ROOT'}}
       - {'$project': {'_id': 0, 'betweenStrings': '$betweenStrings'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$betweenStrings.a', 'b': '$betweenStrings.b', 'c': '$betweenStrings.c', 'r': {'$sqlBetween': ["$betweenStrings.a", "$betweenStrings.b", "$betweenStrings.c"]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": "y", "b": "x", "c": "z", "r": true } }
-      - {'__bot': { "a": "x", "b": "x", "c": "z", "r": true } }
-      - {'__bot': { "a": "z", "b": "x", "c": "z", "r": true } }
-      - {'__bot': { "a": "w", "b": "x", "c": "z", "r": false } }
-      - {'__bot': { "a": "~", "b": "x", "c": "z", "r": null } }
-      - {'__bot': { "a": null, "b": "x", "c": "z", "r": null } }
-      - {'__bot': { "a": "y", "b": null, "c": "z", "r": null } }
-      - {'__bot': { "a": "y", "b": "x", "c": null, "r": null } }
-      - {'__bot': { "b": "x", "c": "z", "r": null } }
-      - {'__bot': { "a": "y", "c": "z", "r": null } }
-      - {'__bot': { "a": "y", "b": "x", "r": null } }
+      - {'': { "a": "y", "b": "x", "c": "z", "r": true } }
+      - {'': { "a": "x", "b": "x", "c": "z", "r": true } }
+      - {'': { "a": "z", "b": "x", "c": "z", "r": true } }
+      - {'': { "a": "w", "b": "x", "c": "z", "r": false } }
+      - {'': { "a": "~", "b": "x", "c": "z", "r": null } }
+      - {'': { "a": null, "b": "x", "c": "z", "r": null } }
+      - {'': { "a": "y", "b": null, "c": "z", "r": null } }
+      - {'': { "a": "y", "b": "x", "c": null, "r": null } }
+      - {'': { "b": "x", "c": "z", "r": null } }
+      - {'': { "a": "y", "c": "z", "r": null } }
+      - {'': { "a": "y", "b": "x", "r": null } }
 
   - description: correctness test for BETWEEN for dates
     current_db: foo
@@ -860,16 +956,19 @@ tests:
       - {'$project': {'_id': 0, 'betweenDates': '$$ROOT'}}
       - {'$project': {'_id': 0, 'betweenDates': '$betweenDates'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$betweenDates.a', 'b': '$betweenDates.b', 'c': '$betweenDates.c', 'r': {'$sqlBetween': ["$betweenDates.a", "$betweenDates.b", "$betweenDates.c"]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': { "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "5" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "15" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": true } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "0" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": false } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "20" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": false } }
-      - {'__bot': { "a": null, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": null } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "10" } }, "b": null, "c": { "$date": { "$numberLong": "15" } }, "r": null } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "c": null, "r": null } }
-      - {'__bot': { "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": null } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "10" } }, "c": { "$date": { "$numberLong": "15" } }, "r": null } }
-      - {'__bot': { "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "r": null } }
+      - {'': { "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": true } }
+      - {'': { "a": { "$date": { "$numberLong": "5" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": true } }
+      - {'': { "a": { "$date": { "$numberLong": "15" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": true } }
+      - {'': { "a": { "$date": { "$numberLong": "0" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": false } }
+      - {'': { "a": { "$date": { "$numberLong": "20" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": false } }
+      - {'': { "a": null, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": null } }
+      - {'': { "a": { "$date": { "$numberLong": "10" } }, "b": null, "c": { "$date": { "$numberLong": "15" } }, "r": null } }
+      - {'': { "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "c": null, "r": null } }
+      - {'': { "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": null } }
+      - {'': { "a": { "$date": { "$numberLong": "10" } }, "c": { "$date": { "$numberLong": "15" } }, "r": null } }
+      - {'': { "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "r": null } }
 

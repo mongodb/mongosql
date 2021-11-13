@@ -34,29 +34,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'double']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': true}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': true}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS STRING
     current_db: foo
@@ -67,29 +70,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'string']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': true}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': true}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS DOCUMENT
     current_db: foo
@@ -100,29 +106,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'object']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': true}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': true}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS ARRAY
     current_db: foo
@@ -133,29 +142,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'array']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': true}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': true}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS BINDATA
     current_db: foo
@@ -166,29 +178,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'binData']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': true}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': true}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS UNDEFINED
     current_db: foo
@@ -199,29 +214,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'undefined']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': true}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': true}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS OBJECTID
     current_db: foo
@@ -232,29 +250,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'objectId']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': true}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': true}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS BOOL
     current_db: foo
@@ -265,29 +286,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'bool']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': true}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': true}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS BSON_DATE
     current_db: foo
@@ -298,29 +322,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'date']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': true}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': true}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS NULL
     current_db: foo
@@ -331,29 +358,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$or': [{'$eq': [{'$type': '$bar.v'}, 'null']}, {'$eq': [{'$type': '$bar.v'}, 'missing']}]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': true}}
-      - {'__bot': {'type': 'missing', 'tc': true}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': true}}
+      - {'': {'type': 'missing', 'tc': true}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS MISSING
     current_db: foo
@@ -364,29 +394,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'missing']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': true}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': true}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS REGEX
     current_db: foo
@@ -397,29 +430,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'regex']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': true}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': true}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS DBPOINTER
     current_db: foo
@@ -430,29 +466,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'dbPointer']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': true}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': true}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS JAVASCRIPT
     current_db: foo
@@ -463,29 +502,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'javascript']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': true}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': true}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS SYMBOL
     current_db: foo
@@ -496,29 +538,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'symbol']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': true}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': true}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS JAVASCRIPTWITHSCOPE
     current_db: foo
@@ -529,29 +574,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'javascriptWithScope']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': true}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': true}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS INT
     current_db: foo
@@ -562,29 +610,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'int']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': true}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': true}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS BSON_TIMESTAMP
     current_db: foo
@@ -595,29 +646,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'timestamp']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': true}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': true}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS LONG
     current_db: foo
@@ -628,29 +682,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'long']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': true}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': true}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS DECIMAL
     current_db: foo
@@ -661,29 +718,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'decimal']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': true}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': true}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS MINKEY
     current_db: foo
@@ -694,29 +754,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'minKey']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': true}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': true}}
+      - {'': {'type': 'maxKey', 'tc': false}}
 
   - description: Correctness test for IS MAXKEY
     current_db: foo
@@ -727,29 +790,32 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'maxKey']}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': false}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': false}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': false}}
-      - {'__bot': {'type': 'decimal', 'tc': false}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': true}}
+      - {'': {'type': 'double', 'tc': false}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': false}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': false}}
+      - {'': {'type': 'decimal', 'tc': false}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': true}}
 
   - description: Correctness test for IS NUMBER
     current_db: foo
@@ -760,26 +826,29 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$isNumber': '$bar.v'}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'type': 'double', 'tc': true}}
-      - {'__bot': {'type': 'string', 'tc': false}}
-      - {'__bot': {'type': 'document', 'tc': false}}
-      - {'__bot': {'type': 'array', 'tc': false}}
-      - {'__bot': {'type': 'binData', 'tc': false}}
-      - {'__bot': {'type': 'undefined', 'tc': false}}
-      - {'__bot': {'type': 'objectid', 'tc': false}}
-      - {'__bot': {'type': 'boolean', 'tc': false}}
-      - {'__bot': {'type': 'date', 'tc': false}}
-      - {'__bot': {'type': 'null', 'tc': false}}
-      - {'__bot': {'type': 'missing', 'tc': false}}
-      - {'__bot': {'type': 'regex', 'tc': false}}
-      - {'__bot': {'type': 'dbPointer', 'tc': false}}
-      - {'__bot': {'type': 'javascript', 'tc': false}}
-      - {'__bot': {'type': 'symbol', 'tc': false}}
-      - {'__bot': {'type': 'javascriptWithScope', 'tc': false}}
-      - {'__bot': {'type': 'int', 'tc': true}}
-      - {'__bot': {'type': 'timestamp', 'tc': false}}
-      - {'__bot': {'type': 'long', 'tc': true}}
-      - {'__bot': {'type': 'decimal', 'tc': true}}
-      - {'__bot': {'type': 'minKey', 'tc': false}}
-      - {'__bot': {'type': 'maxKey', 'tc': false}}
+      - {'': {'type': 'double', 'tc': true}}
+      - {'': {'type': 'string', 'tc': false}}
+      - {'': {'type': 'document', 'tc': false}}
+      - {'': {'type': 'array', 'tc': false}}
+      - {'': {'type': 'binData', 'tc': false}}
+      - {'': {'type': 'undefined', 'tc': false}}
+      - {'': {'type': 'objectid', 'tc': false}}
+      - {'': {'type': 'boolean', 'tc': false}}
+      - {'': {'type': 'date', 'tc': false}}
+      - {'': {'type': 'null', 'tc': false}}
+      - {'': {'type': 'missing', 'tc': false}}
+      - {'': {'type': 'regex', 'tc': false}}
+      - {'': {'type': 'dbPointer', 'tc': false}}
+      - {'': {'type': 'javascript', 'tc': false}}
+      - {'': {'type': 'symbol', 'tc': false}}
+      - {'': {'type': 'javascriptWithScope', 'tc': false}}
+      - {'': {'type': 'int', 'tc': true}}
+      - {'': {'type': 'timestamp', 'tc': false}}
+      - {'': {'type': 'long', 'tc': true}}
+      - {'': {'type': 'decimal', 'tc': true}}
+      - {'': {'type': 'minKey', 'tc': false}}
+      - {'': {'type': 'maxKey', 'tc': false}}

@@ -67,11 +67,14 @@ tests:
       - {'$project': {'_id': 0, 'foo': '$foo'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
       - {'$sort': {'__bot.a': 1}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     ordered: true
     result:
-      - {'__bot': {'a': 1}}
-      - {'__bot': {'a': 1}}
-      - {'__bot': {'a': 2}}
+      - {'': {'a': 1}}
+      - {'': {'a': 1}}
+      - {'': {'a': 2}}
 
   - description: descending-sort correctness test
     current_db: mydb
@@ -84,11 +87,14 @@ tests:
       - {'$project': {'_id': 0, 'foo': "$foo"}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
       - {'$sort': {'__bot.a': -1}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     ordered: true
     result:
-      - {'__bot': {'a': 2}}
-      - {'__bot': {'a': 1}}
-      - {'__bot': {'a': 1}}
+      - {'': {'a': 2}}
+      - {'': {'a': 1}}
+      - {'': {'a': 1}}
 
   - description: multiple-sort-key correctness test
     current_db: mydb
@@ -101,11 +107,14 @@ tests:
       - {'$project': {'_id': 0, 'foo': "$foo"}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a', 'b': '$foo.b'}}}
       - {'$sort': {'__bot.a': 1, '__bot.b': 1}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     ordered: true
     result:
-      - {'__bot': {'a': 1, 'b': 'abc'}}
-      - {'__bot': {'a': 1, 'b': 'def'}}
-      - {'__bot': {'a': 2, 'b': 'abc'}}
+      - {'': {'a': 1, 'b': 'abc'}}
+      - {'': {'a': 1, 'b': 'def'}}
+      - {'': {'a': 2, 'b': 'abc'}}
 
   - description: missing sorts before null
     current_db: mydb
@@ -133,11 +142,14 @@ tests:
       - {'$project': {'_id': 0, 'nullAndNonNull': '$nullAndNonNull'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$nullAndNonNull.a'}}}
       - {'$sort': {'__bot.a': 1}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     ordered: true
     result:
-      - {'__bot': {'a': null}}
-      - {'__bot': {'a': null}}
-      - {'__bot': {'a': 1}}
+      - {'': {'a': null}}
+      - {'': {'a': null}}
+      - {'': {'a': 1}}
 
   - description: sort keys must be mutually comparable types
     current_db: mydb
@@ -186,11 +198,14 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'b': '$bar.b'}}}
       - {'$sort': {'__bot.b.c': 1}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     ordered: true
     result:
-      - {'__bot': {'b': {'c': 1}}}
-      - {'__bot': {'b': {'c': 2}}}
-      - {'__bot': {'b': {'c': 3}}}
+      - {'': {'b': {'c': 1}}}
+      - {'': {'b': {'c': 2}}}
+      - {'': {'b': {'c': 3}}}
 
   - description: column references in sort keys can be compound identifiers referencing document subfields and be qualified with table name
     current_db: mydb

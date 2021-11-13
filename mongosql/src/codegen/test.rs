@@ -276,6 +276,20 @@ mod project {
                     "___bot": {"$literal": 44.0},
                     "__bot": {"$literal": 43.0},
                 }},
+                bson::doc! {
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "____bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$____bot"
+                                }
+                            }
+                        }
+                    }
+                }
             ],
         }),
         input = Stage::Project(Project {
@@ -287,6 +301,41 @@ mod project {
             },
             source: Stage::Array(ArraySource {
                 array: vec![Expression::Document(unchecked_unique_linked_hash_map!{"a".into() => Expression::Literal(LiteralValue::Integer(42).into())}.into())],
+                alias: "__bot".to_string(),
+                cache: SchemaCache::new(),
+            }).into(),
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    test_codegen_plan!(
+        bot_test,
+        expected = Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                bson::doc!{"$documents": [ {"$literal": {}}]},
+                bson::doc!{"$project": {"_id": 0, "__bot": "$$ROOT"}},
+                bson::doc!{"$project": {"_id": 0, "__bot": "$__bot", "a": {"$literal": 1}}},
+                bson::doc!{"$replaceWith": {
+                    "$unsetField": {
+                        "field": "__bot", "input": {
+                            "$setField": {
+                                "input": "$$ROOT", "field": "", "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
+            ],
+        }),
+        input = Stage::Project(Project {
+            expression: map! {
+                Key{ datasource: DatasourceName::Bottom, scope: 0u16 } => Expression::Reference(("__bot", 0u16).into()),
+                ("a", 0u16).into() => Expression::Literal(LiteralValue::Integer(1).into()),
+            },
+            source: Stage::Array(ArraySource {
+                array: vec![Expression::Document(unchecked_unique_linked_hash_map!{}.into())],
                 alias: "__bot".to_string(),
                 cache: SchemaCache::new(),
             }).into(),

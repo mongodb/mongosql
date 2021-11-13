@@ -14,8 +14,11 @@ tests:
     translation:
       - {'$documents': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': {}}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'_1': {}}}
+      - {'': {'_1': {}}}
 
   - description: SELECT VALUE empty document literal
     query: "SELECT VALUE {} FROM [{}] AS _dual"
@@ -23,8 +26,11 @@ tests:
     translation:
       - {'$documents': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {}}
+      - {'': {}}
 
   - description: SELECT non-empty document literals
     query: "SELECT VALUE {'_1': {'a': 1}, '_2': {'b': 2, 'c': 3}} FROM [{}] AS _dual"
@@ -32,8 +38,11 @@ tests:
     translation:
       - {'$documents': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': {'a': 1}}, '_2': {'$literal': {'b': 2, 'c': 3}}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'_1': {'a': 1}, '_2': {'b': 2, 'c': 3}}}
+      - {'': {'_1': {'a': 1}, '_2': {'b': 2, 'c': 3}}}
 
   - description: SELECT VALUE non-empty document literal
     query: "SELECT VALUE {'a': 1, 'b': 2, 'c': 3} FROM [{}] AS _dual"
@@ -61,8 +70,11 @@ tests:
     translation:
       - {'$documents': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {'a': {'$getField': {'field': 'a', 'input': {'a': 1, 'b': 2}}}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'a': 1}}
+      - {'': {'a': 1}}
 
   - description: Dot notation one-level field access
     query: "SELECT VALUE {'b': a.b} FROM [{'a': {'b': 100}}] AS arr"
@@ -70,8 +82,11 @@ tests:
     translation:
       - {'$documents': {'arr': [{'a': {'b': 100}}]}}
       - {'$project': {'_id': 0, '__bot': {'b': "$arr.a.b"}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'b': 100}}
+      - {'': {'b': 100}}
 
   - description: Dot notation multi-level field access
     query: "SELECT VALUE {'c': a.b.c} FROM [{'a': {'b': {'c': 100}}}] AS arr"
@@ -79,8 +94,11 @@ tests:
     translation:
       - {'$documents': {'arr': [{'a': {'b': {'c': 100}}}]}}
       - {'$project': {'_id': 0, '__bot': {'c': "$arr.a.b.c"}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'c': 100}}
+      - {'': {'c': 100}}
 
   - description: Dot notation field access from statically known non-document
     query: "SELECT 1.a"
@@ -96,12 +114,15 @@ tests:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
       - {'$project': {'_id': 0, '__bot': {'_id': '$bar._id', 'a': '$bar.a', 'b': '$bar.a.b'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'_id': 1, 'a': {'b': 1}, 'b': 1}}
-      - {'__bot': {'_id': 2, 'a': {'b': 2}, 'b': 2}}
-      - {'__bot': {'_id': 3, 'a': 3}}
-      - {'__bot': {'_id': 4, 'a': null}}
-      - {'__bot': {'_id': 5}}
+      - {'': {'_id': 1, 'a': {'b': 1}, 'b': 1}}
+      - {'': {'_id': 2, 'a': {'b': 2}, 'b': 2}}
+      - {'': {'_id': 3, 'a': 3}}
+      - {'': {'_id': 4, 'a': null}}
+      - {'': {'_id': 5}}
 
   - description: Dot notation SELECT field called star
     query: "SELECT VALUE {'*': a.`*`} FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}] AS arr"
@@ -109,8 +130,11 @@ tests:
     translation:
       - {'$documents': {'arr': [{'a': {'*': 100, 'b': 10, 'c': 1}}]}}
       - {'$project': {'_id': 0, '__bot': {'*': '$arr.a.*'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'*': 100}}
+      - {'': {'*': 100}}
 
   - description: Bracket notation field access from literal document
     query: "SELECT VALUE {'a': {'a': 1, 'b': 2}['a']} FROM [{}] AS _dual"
@@ -118,8 +142,11 @@ tests:
     translation:
       - {'$documents': {'_dual': [{}]}}
       - {'$project': {'_id': 0, '__bot': {'a': {'$getField': {'field': 'a', 'input': {'a': 1, 'b': 2}}}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'a': 1}}
+      - {'': {'a': 1}}
 
   - description: Bracket notation one-level field access
     query: "SELECT VALUE {'b': a['b']} FROM [{'a': {'b': 100}}] AS arr"
@@ -127,8 +154,11 @@ tests:
     translation:
       - {'$documents': {'arr': [{'a': {'b': 100}}]}}
       - {'$project': {'_id': 0, '__bot': {'b': '$arr.a.b'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'b': 100}}
+      - {'': {'b': 100}}
 
   - description: Bracket notation multi-level field access
     query: "SELECT VALUE {'c': a['b']['c']} FROM [{'a': {'b': {'c': 100}}}] AS arr"
@@ -136,8 +166,11 @@ tests:
     translation:
       - {'$documents': {'arr': [{'a': {'b': {'c': 100}}}]}}
       - {'$project': {'_id': 0, '__bot': {'c': '$arr.a.b.c'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'c': 100}}
+      - {'': {'c': 100}}
 
   - description: Bracket notation field access from statically known non-document
     query: "SELECT 1['a']"
@@ -150,8 +183,11 @@ tests:
     translation:
       - {'$documents': {'arr': [{'a': {'*': 100, 'b': 10, 'c': 1}}]}}
       - {'$project': {'_id': 0, '__bot': {'*': '$arr.a.*'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'*': 100}}
+      - {'': {'*': 100}}
 
   - description: Bracket notation non-string expression is invalid
     query: "SELECT a[1] FROM [{'a': {'1': 100}}]"
@@ -163,7 +199,7 @@ tests:
     query: "SELECT {'_1': a[CAST(b AS STRING)]} FROM [{'a': {'c': 100}, 'b': 'c'}] AS arr"
     skip_reason: "SQL-462; SQL-210: We don't support non-String literal subfield path now."
     result:
-      - {'__bot': {'_1': 100}}
+      - {'': {'_1': 100}}
 
   - description: Mixed notation field access
     query: "SELECT VALUE {'d': a.b['c'].d} FROM [{'a': {'b': {'c': {'d': 100}}}}] AS arr"
@@ -171,6 +207,9 @@ tests:
     translation:
       - {'$documents': {'arr': [{'a': {'b': {'c': {'d': 100}}}}]}}
       - {'$project': {'_id': 0, '__bot': {'d': '$arr.a.b.c.d'}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {'__bot': {'d': 100}}
+      - {'': {'d': 100}}
 

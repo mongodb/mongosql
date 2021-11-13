@@ -25,6 +25,10 @@ impl MqlMappingRegistry {
         self.0.get(k)
     }
 
+    pub fn remove(&mut self, k: &Key) -> Option<String> {
+        self.0.remove(k)
+    }
+
     pub fn insert<K: Into<Key>, V: Into<String>>(&mut self, k: K, v: V) -> Option<String> {
         self.0.insert(k.into(), v.into())
     }
@@ -79,6 +83,37 @@ impl MqlTranslation {
             }
             _ => Err(Error::NoFieldPathForExpr),
         }
+    }
+
+    /// replace_bot will be called after the codegen pipeline to add a stage
+    /// that replaces the unique bottom name __bot with an empty string "".
+    pub fn replace_bot(mut self) -> Self {
+        use bson::doc;
+
+        let key = Key {
+            datasource: DatasourceName::Bottom,
+            scope: 0u16,
+        };
+        let mongo_bot_name = self.mapping_registry.remove(&key);
+        return match mongo_bot_name {
+            Some(name) => {
+                self.mapping_registry.insert(key, "");
+                self.with_additional_stage(doc! {"$replaceWith":
+                    {"$unsetField":
+                        {"field": name.clone(),
+                         "input":
+                            {"$setField":
+                                {"field": "",
+                                 "input": "$$ROOT",
+                                 "value": format! ("${}", name)
+                                }
+                            }
+                        }
+                    }
+                })
+            }
+            None => self,
+        };
     }
 }
 
