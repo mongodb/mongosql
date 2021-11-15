@@ -339,7 +339,7 @@ impl CachedSchema for Stage {
                         },
                     )?;
 
-                let schema_env = g
+                let mut schema_env = g
                     .aggregations
                     .iter()
                     // Bind a document containing each aggregation function's alias
@@ -363,6 +363,41 @@ impl CachedSchema for Stage {
                     )?
                     // Union the aggregation function bindings with the group key bindings.
                     .union(schema_env);
+
+                // The calls to union() and union_schema_for_datasource() when constructing the schema environment
+                // combines schemas with the same Key under an AnyOf. However, we want group keys and aggregations under
+                // bottom to be combined under a single document. To accomplish this, we pull out the schema for bottom,
+                // and if it's an AnyOf set of documents, use Document::merge() to combine the documents.
+                let schema_env = if let Some(bot_schema) =
+                    schema_env.remove(&binding_tuple::Key::bot(state.scope_level))
+                {
+                    // Call simplify() to flatten the AnyOfs into a single set.
+                    if let Schema::AnyOf(schemas) = Schema::simplify(&bot_schema) {
+                        let merged_document =
+                            schemas.into_iter().fold(Document::empty(), |acc, schema| {
+                                acc.merge(match schema {
+                                    Schema::Document(doc) => doc,
+                                    // Bottom is always a document according to the spec, and so
+                                    // its schema can only be Document or AnyOf(documents). After
+                                    // simplification, we know that we're inside the only AnyOf,
+                                    // so there should only be documents.
+                                    _ => unreachable!(),
+                                })
+                            });
+                        schema_env.union_schema_for_datasource(
+                            binding_tuple::Key::bot(state.scope_level),
+                            Schema::Document(merged_document),
+                        )
+                    } else {
+                        // Put the value back unchanged if the top-level bottom schema wasn't AnyOf.
+                        schema_env.union_schema_for_datasource(
+                            binding_tuple::Key::bot(state.scope_level),
+                            bot_schema,
+                        )
+                    }
+                } else {
+                    schema_env
+                };
 
                 Ok(ResultSet {
                     schema_env,

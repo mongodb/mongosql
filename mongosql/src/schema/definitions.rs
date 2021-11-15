@@ -1101,6 +1101,17 @@ impl Document {
         Satisfaction::Not
     }
 
+    /// Merge two documents to produce a new document. Unlike `union()`, documents which
+    /// satisfy one of the input schemas will not satisfy the resulting schema unless one is a
+    /// subset of the other.
+    pub fn merge(self, other: Document) -> Document {
+        Document {
+            keys: Document::union_keys(self.keys, other.keys),
+            required: self.required.into_iter().chain(other.required).collect(),
+            additional_properties: self.additional_properties || other.additional_properties,
+        }
+    }
+
     #[inline]
     fn is_empty(&self) -> bool {
         self.keys.is_empty() && self.required.is_empty() && !self.additional_properties

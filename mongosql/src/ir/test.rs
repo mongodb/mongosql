@@ -5543,31 +5543,19 @@ mod schema {
             aliased_key_and_multiple_agg_functions_all_correctly_unioned_under_bottom_datasource,
             expected = Ok(ResultSet {
                 schema_env: map! {
-                    Key::bot(0u16) => Schema::AnyOf(set![
-                        Schema::Document(Document {
-                            keys: map! {
-                                "literal".into() => Schema::Atomic(Atomic::Integer),
-                            },
-                            required: set! { "literal".into() },
-                            additional_properties: false,
-                        }),
-                        Schema::AnyOf(set![
-                            Schema::Document(Document {
-                                keys: map! {
-                                    "A".into() => Schema::Atomic(Atomic::Boolean),
-                                },
-                                required: set! { "A".into() },
-                                additional_properties: false,
-                            }),
-                            Schema::Document(Document {
-                                keys: map! {
-                                    "B".into() => Schema::Atomic(Atomic::String),
-                                },
-                                required: set! { "B".into() },
-                                additional_properties: false,
-                            })
-                        ])
-                    ]),
+                    Key::bot(0u16) => Schema::Document(Document {
+                        keys: map! {
+                            "A".into() => Schema::Atomic(Atomic::Boolean),
+                            "B".into() => Schema::Atomic(Atomic::String),
+                            "literal".into() => Schema::Atomic(Atomic::Integer),
+                        },
+                        required: set! {
+                            "A".into(),
+                            "B".into(),
+                            "literal".into(),
+                        },
+                        additional_properties: false,
+                    })
                 },
                 min_size: 0,
                 max_size: Some(1),
