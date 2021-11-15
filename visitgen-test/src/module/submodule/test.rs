@@ -1,7 +1,9 @@
 use crate::module::submodule::{ast, visitor::Visitor};
 
 use linked_hash_map::LinkedHashMap;
-use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
+use mongosql_datastructures::{
+    binding_tuple::BindingTuple, unique_linked_hash_map::UniqueLinkedHashMap,
+};
 
 struct AtomVisitor {
     atom_names: Vec<String>,
@@ -367,6 +369,21 @@ fn hash_tree_atom_visitor_test() {
             .unwrap();
             m
         },
+        branch_bt1: {
+            let mut m = BindingTuple::new();
+            m.insert(("stuff", 0u16).into(), "bt_hello1".to_string());
+            m
+        },
+        branch_bt2: {
+            let mut m = BindingTuple::new();
+            m.insert(
+                ("stuff", 0u16).into(),
+                Box::new(Atom {
+                    name: "bt_hello2".to_string(),
+                }),
+            );
+            m
+        },
     };
 
     v.visit_hash_tree(e);
@@ -385,6 +402,7 @@ fn hash_tree_atom_visitor_test() {
             "unique_linked_world3".to_string(),
             "unique_linked_hello4".to_string(),
             "unique_linked_world4".to_string(),
+            "bt_hello2".to_string(),
         ],
         v.atom_names
     );

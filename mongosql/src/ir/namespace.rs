@@ -1,4 +1,4 @@
-use crate::ir::{definitions::Collection, visitor::Visitor, Project, Stage};
+use crate::ir::{definitions::Collection, visitor::Visitor, Stage};
 use serde::{Deserialize, Serialize};
 
 #[derive(Default)]
@@ -25,14 +25,6 @@ impl Visitor for NamespaceVisitor {
             collection: node.collection.clone(),
         });
         node.walk(self)
-    }
-
-    fn visit_project(&mut self, node: Project) -> Project {
-        let node = node.walk(self);
-        node.expression.iter().for_each(|(_, expr)| {
-            expr.clone().walk(self);
-        });
-        node
     }
 }
 

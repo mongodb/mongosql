@@ -117,7 +117,7 @@ impl ConstantFoldExprVisitor {
             ]
             .concat()
         } else {
-            [vec![folded_expr], non_literals].concat()
+            non_literals
         };
         if args.len() == 1 {
             return args[0].clone();
@@ -733,7 +733,13 @@ impl ConstantFoldExprVisitor {
         let mut is_all_null = true;
         for expr in &sf.args {
             match expr.schema(&EMPTY_STATE) {
-                Err(_) => break,
+                Err(_) => {
+                    // If an Err occurs, it means there is a reference in this `expr`, so we cannot
+                    // possibly know if this expression satisfies NULLISH, thus is_all_null must be
+                    // set to false.
+                    is_all_null = false;
+                    break;
+                }
                 Ok(sch) => {
                     let sat = sch.satisfies(&Schema::AnyOf(set![
                         Schema::Missing,

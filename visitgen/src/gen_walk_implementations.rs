@@ -16,6 +16,9 @@ lazy_static! {
         let mut s = HashSet::new();
         s.insert("Box");
         s.insert("HashMap");
+        s.insert("LinkedHashMap");
+        s.insert("UniqueLinkedHashMap");
+        s.insert("BindingTuple");
         s.insert("BTreeMap");
         s.insert("Option");
         s.insert("Vec");
@@ -188,6 +191,7 @@ fn gen_walk_visit_type(type_set: &HashSet<String>, ty: &Type, field_name: &str) 
             ),
             "Option" => gen_walk_visit_option(type_set, field_name, generic_args),
             "Vec" => gen_walk_visit_vec(type_set, field_name, generic_args),
+            "BindingTuple" => gen_walk_visit_binding_tuple(type_set, field_name, generic_args),
             // We just move this type as is, we don't have a way to visit it
             _ => field_name.to_owned(),
         }
@@ -273,9 +277,9 @@ fn gen_walk_visit_map(
     generic_args: Option<&Punctuated<GenericArgument, Comma>>,
     map_type_name: &str,
 ) -> String {
-    let generic_args = generic_args.expect("HashMap found with no generic arguments");
+    let generic_args = generic_args.expect("Map type found with no generic arguments");
     if generic_args.len() != 2 {
-        panic!("nonsensical HashMap definition without two generic arguments")
+        panic!("nonsensical Map definition without two generic arguments")
     }
     let key_generic = generic_args.first().expect("impossible failure");
     let key_type_name = get_generic_name(key_generic);
@@ -359,6 +363,29 @@ fn gen_walk_visit_vec(
             "{}.into_iter().map(|vec_x| {}).collect::<Vec<_>>()",
             field_name,
             gen_walk_visit_type(type_set, vec_type, "vec_x"),
+        )
+    } else {
+        field_name.to_owned()
+    }
+}
+
+fn gen_walk_visit_binding_tuple(
+    type_set: &HashSet<String>,
+    field_name: &str,
+    generic_args: Option<&Punctuated<GenericArgument, Comma>>,
+) -> String {
+    let generic_args = generic_args.expect("BindingTuple found with no generic arguments");
+    if generic_args.len() != 1 {
+        panic!("nonsensical BindingTuple definition found with more than one generic argument")
+    }
+    let bt_generic = generic_args.first().expect("impossible failure");
+    let bt_type_name = get_generic_name(bt_generic);
+    if type_set.contains(&bt_type_name) || COMPOUND_TYPES.contains(&bt_type_name as &str) {
+        let bt_type = get_generic_type(bt_generic);
+        format!(
+            "{}.into_iter().map(|(k, bt_x)| (k, {})).collect::<mongosql_datastructures::binding_tuple::BindingTuple<_>>()",
+            field_name,
+            gen_walk_visit_type(type_set, bt_type, "bt_x"),
         )
     } else {
         field_name.to_owned()

@@ -1,5 +1,7 @@
 use linked_hash_map::LinkedHashMap;
-use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
+use mongosql_datastructures::{
+    binding_tuple::BindingTuple, unique_linked_hash_map::UniqueLinkedHashMap,
+};
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 
@@ -73,4 +75,7 @@ pub struct HashTree {
     pub branch_ul2: UniqueLinkedHashMap<Box<Atom>, String>,
     pub branch_ul3: UniqueLinkedHashMap<String, Box<Atom>>,
     pub branch_ul4: UniqueLinkedHashMap<Box<Atom>, Box<Atom>>,
+
+    pub branch_bt1: BindingTuple<String>,
+    pub branch_bt2: BindingTuple<Box<Atom>>,
 }

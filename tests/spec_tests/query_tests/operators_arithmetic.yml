@@ -388,7 +388,7 @@ tests:
     translation:
       - {'$project': {'_id': 0, 'unary': '$$ROOT'}}
       - {'$project': {'_id': 0, 'unary': '$unary'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', 'n': {'$sqlDivide': {'dividend': '$unary.a', 'divisor': {'$literal': 0}, 'onError': null}}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', 'n': {'$literal': null}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
