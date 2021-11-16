@@ -54,6 +54,14 @@ macos)
     MONGO_DISTRO='osx'
     BUILD_FIPS='false'
     ;;
+macos-arm64)
+    ARCHIVE_FORMAT='zip'
+    PKG_CONFIG_PATH='/opt/homebrew/opt/openssl/lib/pkgconfig'
+    PUSH_ARCH='arm64-macos'
+    PUSH_NAME='osx'
+    MONGO_DISTRO='osx'
+    BUILD_FIPS='false'
+    ;;
 rhel62)
     PUSH_ARCH='x86_64-rhel62'
     PUSH_NAME='linux'

@@ -30,6 +30,10 @@
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~OSX"
     },
     {
+      "name": "macOS ARM",
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~MACOS-ARM64"
+    },
+    {
       "name": "RedHat / CentOS 6.2+ x64",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~RHEL62"
     },

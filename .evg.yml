@@ -1662,6 +1662,12 @@ axes:
     variables:
       _variant: macos
 
+  - id: macos-arm64
+    display_name: macOS 11 arm
+    run_on: macos-1100-arm64
+    variables:
+      _variant: macos-arm64
+
   - id: debian81
     display_name: Debian 8.1 (nightly)
     run_on:
@@ -1907,17 +1913,23 @@ buildvariants:
       then:
         add_tasks: [ ".test !.config !.oneoff-task"]
     - if:
-        os: osx
-      then:
-        add_tasks:
-          - name: sign
-            run_on: macos-1014-codesign
-    - if:
-        os: '!osx'
+        os: '*'
       then:
         add_tasks:
           - name: sign
             run_on: amazon1-2018
+    # There is no way to do disjunction of conditions in evergreen rules, so since we
+    # cannot do 'if !osx or !osx-arm64, we instead add sign above for ALL variants
+    # and then remove it and replace it on the two osx platforms.
+    - if:
+        os:
+         - osx
+         - macos-arm64
+      then:
+        remove_tasks: ['sign']
+        add_tasks:
+          - name: sign
+            run_on: macos-1014-codesign
 
 # We are disabling .tls tests on Windows because currently there
 # is no built version of openssl that supports mysql with starttls.

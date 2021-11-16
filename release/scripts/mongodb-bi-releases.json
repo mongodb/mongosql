@@ -68,6 +68,14 @@
          "target": "osx"
       },
       {
+         "arch": "aarch64",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~MACOS-ARM64"
+         },
+         "edition": "enterprise",
+         "target": "osx"
+      },
+      {
          "arch": "x86_64",
          "archive": {
             "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~RHEL62"
