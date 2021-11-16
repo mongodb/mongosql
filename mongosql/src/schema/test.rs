@@ -2171,3 +2171,62 @@ mod get_single_field_name {
         ])
     );
 }
+
+mod subtract_nullish {
+    use crate::{
+        schema::{Atomic::*, Document, Schema, Schema::*},
+        set,
+    };
+    macro_rules! test_subtract_nullish {
+        ($func_name:ident, expected = $expected:expr, _self = $self:expr) => {
+            #[test]
+            fn $func_name() {
+                let res = $self.subtract_nullish();
+                assert_eq!($expected, Schema::simplify(&res))
+            }
+        };
+    }
+
+    test_subtract_nullish!(
+        remove_nullish_from_integer_or_nullish,
+        expected = Atomic(Integer),
+        _self = AnyOf(set![Atomic(Integer), Atomic(Null), Missing])
+    );
+    test_subtract_nullish!(
+        remove_null_from_integer_or_null,
+        expected = Atomic(Integer),
+        _self = AnyOf(set![Atomic(Integer), Atomic(Null)])
+    );
+    test_subtract_nullish!(
+        subtracting_nullish_from_null_yields_unsat,
+        expected = Unsat,
+        _self = Atomic(Null)
+    );
+    test_subtract_nullish!(
+        remove_null_from_any,
+        expected = AnyOf(set![
+            Atomic(String),
+            Atomic(Integer),
+            Atomic(Long),
+            Atomic(Double),
+            Atomic(Decimal),
+            Atomic(BinData),
+            Atomic(ObjectId),
+            Atomic(Boolean),
+            Atomic(Date),
+            // no Null
+            Atomic(Regex),
+            Atomic(DbPointer),
+            Atomic(Javascript),
+            Atomic(Symbol),
+            Atomic(JavascriptWithScope),
+            Atomic(Timestamp),
+            Atomic(MinKey),
+            Atomic(MaxKey),
+            Array(Box::new(Any)),
+            Document(Document::any()),
+            // no Missing
+        ]),
+        _self = Any
+    );
+}

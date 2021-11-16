@@ -1344,9 +1344,10 @@ impl ScalarFunction {
         ))
     }
 
-    /// Returns the schema for the coalesce function, or an error if no arguments are provided.
-    /// Currently returns the schema of all args with the null schema.
-    /// See SQL-400 for tightening the schema.
+    /// Returns the schema for the `COALESCE()` function, or an error if no arguments are provided.
+    /// If there is a certainly non-nullish argument, then the result schema will be the set of
+    /// all non-nullish schema possibilities for the arguments up to and including the first
+    /// certainly non-nullish argument. Otherwise, all argument schemas (including `NULL`) are possible.
     fn get_coalesce_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
         // Coalesce requires at least one argument.
         if arg_schemas.is_empty() {
@@ -1357,9 +1358,19 @@ impl ScalarFunction {
             });
         }
 
-        let mut s = arg_schemas.iter().cloned().collect::<BTreeSet<_>>();
-        s.insert(Schema::Atomic(Atomic::Null));
-        Ok(Schema::AnyOf(s).upconvert_missing_to_null())
+        let schema = if let Some(idx) = arg_schemas
+            .iter()
+            // Search for a certainly non-null argument.
+            .position(|s| s.satisfies(&NULLISH.clone()) == Satisfaction::Not)
+        {
+            // If one exists, only consider schemas up to and including it and remove nullish schemas
+            // as a possibility.
+            Schema::AnyOf(arg_schemas.iter().cloned().take(idx + 1).collect()).subtract_nullish()
+        } else {
+            Schema::AnyOf(arg_schemas.iter().cloned().collect())
+        };
+        let schema = Schema::simplify(&schema.upconvert_missing_to_null());
+        Ok(schema)
     }
 
     /// Returns the array and/or null schema for the slice function.

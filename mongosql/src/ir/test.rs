@@ -3287,40 +3287,108 @@ mod schema {
         }),
     );
     test_schema!(
-        coalesce_returns_all_arg_schemas_with_null,
-        expected = Ok(Schema::AnyOf(set![
-            Schema::Atomic(Atomic::Null),
-            Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::String),
-            Schema::Atomic(Atomic::Boolean)
-        ])),
+        coalesce_returns_first_non_nullish_arg_omitting_null_and_missing,
+        expected = Ok(Schema::Atomic(Atomic::Long)),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Coalesce,
             args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
-                Expression::Literal(LiteralValue::Boolean(true).into())
+                Expression::Literal(LiteralValue::Null.into()),
+                Expression::Reference(("null_or_missing", 0u16).into()),
+                Expression::Literal(LiteralValue::Long(1).into()),
+                Expression::Literal(LiteralValue::Double(2.0).into()),
             ],
             cache: SchemaCache::new(),
         }),
+        schema_env = map! { ("null_or_missing", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing]) },
     );
     test_schema!(
-        coalesce_upconverts_missing_to_null,
+        coalesce_returns_up_to_first_non_nullish_arg_omitting_null_and_missing,
         expected = Ok(Schema::AnyOf(set![
-            Schema::Atomic(Atomic::Null),
             Schema::Atomic(Atomic::Integer),
-            Schema::Atomic(Atomic::Null)
+            Schema::Atomic(Atomic::Long)
         ])),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Coalesce,
             args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Reference(("missing", 0u16).into()),
+                Expression::Literal(LiteralValue::Null.into()),
+                Expression::Reference(("integer_or_null", 0u16).into()),
+                Expression::Reference(("null_or_missing", 0u16).into()),
+                Expression::Literal(LiteralValue::Long(1).into()),
+                Expression::Literal(LiteralValue::Double(2.0).into()),
             ],
             cache: SchemaCache::new(),
         }),
-        schema_env = map! {
+        schema_env = map! {("integer_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)]),
+            ("null_or_missing", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing])
+        },
+    );
+    test_schema!(
+        coalesce_with_any_schema_and_nullish_args_yields_non_nullish_with_null,
+        expected = Ok(Schema::simplify(&Schema::AnyOf(set![
+            NON_NULLISH.clone(),
+            Schema::Atomic(Atomic::Null),
+        ]))),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Coalesce,
+            args: vec![
+                Expression::Literal(LiteralValue::Null.into()),
+                Expression::Reference(("any", 0u16).into()),
+                Expression::Reference(("missing", 0u16).into()),
+                Expression::Reference(("null_or_missing", 0u16).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+        schema_env = map! {("any", 0u16).into() => Schema::Any,
             ("missing", 0u16).into() => Schema::Missing,
+            ("null_or_missing", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing])
+        },
+    );
+    test_schema!(
+        coalesce_with_any_schema_and_non_nullish_arg_yields_non_nullish_schema,
+        expected = Ok(NON_NULLISH.clone()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Coalesce,
+            args: vec![
+                Expression::Reference(("any", 0u16).into()),
+                Expression::Literal(LiteralValue::Integer(1).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+        schema_env = map! {("any", 0u16).into() => Schema::Any},
+    );
+    test_schema!(
+        coalesce_with_only_nullish_args_yields_only_null,
+        expected = Ok(Schema::Atomic(Atomic::Null)),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Coalesce,
+            args: vec![
+                Expression::Literal(LiteralValue::Null.into()),
+                Expression::Reference(("missing", 0u16).into()),
+                Expression::Reference(("null_or_missing", 0u16).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+        schema_env = map! {("missing", 0u16).into() => Schema::Missing,
+            ("null_or_missing", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing])
+        },
+    );
+    test_schema!(
+        coalesce_with_all_potentially_nullish_args_includes_null_and_omits_missing,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+            Schema::Atomic(Atomic::Long),
+        ])),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Coalesce,
+            args: vec![
+                Expression::Reference(("integer_or_null", 0u16).into()),
+                Expression::Reference(("long_or_missing", 0u16).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+        schema_env = map! {("integer_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)]),
+            ("long_or_missing", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Long), Schema::Missing])
         },
     );
 

@@ -7,12 +7,12 @@ use crate::{
     schema::Schema::{AnyOf, Unsat},
     set,
 };
-
+use enum_iterator::IntoEnumIterator;
 use lazy_static::lazy_static;
 use std::{
     collections::{BTreeMap, BTreeSet},
     convert::TryFrom,
-    iter::{FromIterator, Iterator},
+    iter::{once, FromIterator, Iterator},
     str::FromStr,
 };
 use thiserror::Error;
@@ -160,7 +160,7 @@ pub enum Schema {
     Document(Document),
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy, IntoEnumIterator)]
 pub enum Atomic {
     String,
     Integer,
@@ -371,6 +371,15 @@ impl TryFrom<Schema> for json_schema::Schema {
 }
 
 lazy_static! {
+    // The types represented by Schema::Any, unrolled into an AnyOf().
+    pub static ref UNFOLDED_ANY: Schema = Schema::AnyOf(
+        Atomic::into_enum_iter() // All atomic schemas.
+            .map(Schema::Atomic)
+            .chain(once(ANY_DOCUMENT.clone())) // Any document.
+            .chain(once(ANY_ARRAY.clone())) // Any array.
+            .chain(once(Schema::Missing.clone())) // Or missing.
+            .collect()
+    );
     // Special Document Schemas.
     pub static ref ANY_DOCUMENT: Schema = Schema::Document(Document::any());
     pub static ref EMPTY_DOCUMENT: Schema = Schema::Document(Document::empty());
@@ -382,6 +391,8 @@ lazy_static! {
     // Nullish Schemas (Schemas that additionally allow for Null or Missing).
     pub static ref NULLISH: Schema =
         Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing,]);
+    pub static ref NON_NULLISH: Schema = Schema::Any.subtract_nullish();
+
     pub static ref ANY_ARRAY_OR_NULLISH: Schema = Schema::AnyOf(set![
         Schema::Array(Box::new(Schema::Any)),
         Schema::Atomic(Atomic::Null),
@@ -689,11 +700,10 @@ impl Schema {
                     .map(|e| e.upconvert_missing_to_null())
                     .collect(),
             ),
-            Schema::Any
-            | Schema::Atomic(_)
-            | Schema::Document(_)
-            | Schema::Array(_)
-            | Schema::Unsat => self,
+            // Any implicitly contains both missing and null, subtract missing from the schema to
+            // upconvert missing to null in an Any schema.
+            Schema::Any => Schema::Any.subtract_nullish(),
+            Schema::Atomic(_) | Schema::Document(_) | Schema::Array(_) | Schema::Unsat => self,
         }
     }
 
@@ -745,6 +755,30 @@ impl Schema {
                 _ => None,
             },
             _ => None,
+        }
+    }
+
+    /// Set-subtracts Null and Missing from the given schema. Ensures that for every schema `S1`,
+    /// `(S1.subtract_nullish() == Unsat) or S1.subtract_nullish().satisfies(AnyOf(Null, Missing)) == Not`
+    pub fn subtract_nullish(self) -> Schema {
+        let nullish = &NULLISH.clone();
+        match self {
+            AnyOf(schemas) => AnyOf(
+                schemas
+                    .into_iter()
+                    .filter(|schema| schema.satisfies(nullish) != Satisfaction::Must)
+                    .map(|schema| schema.subtract_nullish())
+                    .collect(),
+            ),
+            Schema::Any => UNFOLDED_ANY.clone().subtract_nullish(),
+            schema => {
+                // If the schemas overlap fully, then their difference is empty.
+                if schema.satisfies(nullish) == Satisfaction::Must {
+                    Unsat
+                } else {
+                    schema
+                }
+            }
         }
     }
 }
