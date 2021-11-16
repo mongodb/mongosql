@@ -1,6 +1,7 @@
 tests:
   - description: multi-level field access from literal document is constant folded
     query: "SELECT VALUE {'c': {'a': {'b': {'c': 1}}}.a.b['c']} FROM [{}] AS _dual"
+    skip_reason: "SQL-593"
     translation:
       - {'$documents': [{'$literal': {}}]}
       - {'$project': {'_id': 0, '_dual': '$$ROOT'}}

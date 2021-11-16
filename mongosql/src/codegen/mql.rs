@@ -821,7 +821,7 @@ impl MqlCodeGenerator {
                     }
                 }))
             }
-            TypeAssertion(_) => unimplemented!(),
+            TypeAssertion(ta) => self.codegen_expression(*ta.expr),
             ScalarFunction(sa) => {
                 use crate::ir::ScalarFunction::*;
                 Ok(match sa.function {

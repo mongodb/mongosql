@@ -196,8 +196,8 @@ tests:
   
   - description: cardinality of 1 should be inferrable from group by constant
     current_db: foo
-    skip_reason: "SQL-483: implement codegen for TypeAssert"
-    query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT avg_salary FROM employees AS emp GROUP BY NULL AS _ AGGREGATE AVG(salary::!DOUBLE) AS avg_salary)} FROM employees AS emp"
+    query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT avg_salary FROM employees AS emp GROUP BY NULL AS _ AGGREGATE AVG(salary) AS avg_salary)} FROM employees AS emp"
+    skip_reason: "SQL-503: GROUP BY not propagating mapping registry"
     translation_target_db: foo
     translation_target_coll: employees
     translation:

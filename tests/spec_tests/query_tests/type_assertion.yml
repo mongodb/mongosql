@@ -42,29 +42,33 @@ tests:
   - description: correctness test for type assertion in schema mode
     current_db: "foo"
     query: "SELECT v1::!INT AS v1 FROM bar_schema"
-    skip_reason: "SQL-483: implement codegen for TypeAssert"
     translation_target_db: foo
     translation_target_coll: bar_schema
     translation:
       - { '$project': { '_id': 0, 'bar_schema': '$$ROOT' } }
       - { '$project': { '_id': 0, 'bar_schema': '$bar_schema' } }
       - { '$project': { '_id': 0, '__bot': { 'v1': '$bar_schema.v1' } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+        { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
-      - {v1: "abc"}
-      - {v1: {"$numberInt": "2"}}
-      - {v1: null}
+      - {'': {v1: "abc"}}
+      - {'': {v1: {"$numberInt": "2"}}}
+      - {'': {v1: null}}
 
   - description: correctness test for type assertion in schema-less mode, target type can be any
     current_db: "foo"
     query: "SELECT v1::!DOUBLE AS v1 FROM bar"
-    skip_reason: "SQL-483: implement codegen for TypeAssert"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - { '$project': { '_id': 0, 'bar': '$$ROOT' } }
       - { '$project': { '_id': 0, 'bar': '$bar' } }
       - { '$project': { '_id': 0, '__bot': { 'v1': '$bar.v1' } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+          }}}}
     result:
-      - {v1: "abc"}
-      - {v1: {"$numberInt": "2"}}
-      - {v1: null}
+      - {'': {v1: "abc"}}
+      - {'': {v1: {"$numberInt": "2"}}}
+      - {'': {v1: null}}

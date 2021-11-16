@@ -230,18 +230,18 @@ tests:
       algebrize_error: "all possible group key values must have mutually comparable types"
 
     - description: GROUP BY keys may be table-qualified
-      query: "SELECT * FROM foo.poly AS a GROUP by a.a.a::!INT AS a"
-      skip_reason: "SQL-483: implement codegen for TypeAssert"
+      query: "SELECT * FROM foo.poly AS a GROUP by a.a::!INT AS a"
+      skip_reason: "SQL-503: GROUP BY not propagating mapping registry"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: poly
       translation:
         - {'$project': {'_id': 0, 'a': '$$ROOT'}}
-        - {'$group': {'_id': {'a': '$a.a.a'}}}
+        - {'$group': {'_id': {'a': '$a.a'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a'}}}
         - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
         - {'$project': {'_id': 0, 'a': '$poly'}}
-        - {'$group': {'_id': {'a': '$a.a.a'}}}
+        - {'$group': {'_id': {'a': '$a.a'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -333,15 +333,15 @@ tests:
       algebrize_error: "unknown field 'bar'"
 
     - description: GROUP BY keys may be document field references
-      query: "SELECT * FROM foo.poly AS b GROUP by a.a.a::!INT AS a"
-      skip_reason: "SQL-483: implement codegen for TypeAssert"
+      query: "SELECT * FROM foo.poly AS b GROUP by a.a::!INT AS a"
+      skip_reason: "SQL-503: GROUP BY not propagating mapping registry"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: poly
       translation:
         - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
         - {'$project': {'_id': 0, 'b': '$poly'}}
-        - {'$group': {'_id': {'a': '$b.a.a.a'}}}
+        - {'$group': {'_id': {'a': '$b.a.a'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -510,7 +510,7 @@ tests:
 
     - description: ADD_TO_ARRAY correctness test
       query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(a.a::!INT) AS garr"
-      skip_reason: "SQL-483: implement codegen for TypeAssert"
+      skip_reason: "SQL-503"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: poly
@@ -532,7 +532,7 @@ tests:
 
     - description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
       query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(DISTINCT a.a::!INT) AS garr"
-      skip_reason: "SQL-483: implement codegen for TypeAssert"
+      skip_reason: "SQL-515 Incorrect schema env when algebrizing derived datasources"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: poly
@@ -606,7 +606,7 @@ tests:
 
     - description: ADD_TO_SET correctness test
       query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_SET(a.a::!INT) AS gset"
-      skip_reason: "SQL-483: implement codegen for TypeAssert"
+      skip_reason: "SQL-515 Incorrect schema env when algebrizing derived datasources"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: poly
@@ -627,8 +627,8 @@ tests:
         - {'': {"a": null, "gset": [null]}}
 
     - description: AVG correctness test
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE AVG(a::!DOUBLE) AS gavg"
-      skip_reason: "SQL-483: implement codegen for TypeAssert"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE AVG(a::!INT) AS gavg"
+      skip_reason: "SQL-503"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: poly
@@ -670,7 +670,7 @@ tests:
 
     - description: COUNT correctness test
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE COUNT(a) AS gcount"
-      skip_reason: "SQL-483: implement codegen for TypeAssert"
+      skip_reason: "SQL-503"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: poly
@@ -702,7 +702,7 @@ tests:
 
     - description: COUNT(MISSING) and COUNT(NULL) skip MISSING and NULL values
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE COUNT(a.a) AS gcounta, COUNT(NULL) AS gcountn"
-      skip_reason: "SQL-483: implement codegen for TypeAssert"
+      skip_reason: "SQL-503"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: poly
@@ -738,7 +738,7 @@ tests:
 
     - description: FIRST correctness test
       query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a::!INT AS a AGGREGATE FIRST(a) AS gfirst"
-      skip_reason: "SQL-483: implement codegen for TypeAssert"
+      skip_reason: "SQL-515 Incorrect schema env when algebrizing derived datasources"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: poly
@@ -778,7 +778,7 @@ tests:
 
     - description: LAST correctness test
       query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a::!INT AS a AGGREGATE LAST(a) AS glast"
-      skip_reason: "SQL-483: implement codegen for TypeAssert"
+      skip_reason: "SQL-515 Incorrect schema env when algebrizing derived datasources"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: poly
@@ -847,7 +847,7 @@ tests:
 
     - description: MERGE_DOCUMENTS correctness test
       query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly2 AS poly2 ORDER BY _id) AS arr GROUP BY a.a::!INT AS a AGGREGATE MERGE_DOCUMENTS(a::!DOCUMENT) AS gmerge"
-      skip_reason: "SQL-483: implement codegen for TypeAssert"
+      skip_reason: "SQL-515 Incorrect schema env when algebrizing derived datasources"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: poly2
@@ -916,8 +916,8 @@ tests:
       algebrize_error: "Argument to MIN must have statically mutually comparable type"
 
     - description: STDDEV_POP correctness test
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE STDDEV_POP(a::!DOUBLE) AS gstdp"
-      skip_reason: "SQL-483: implement codegen for TypeAssert"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE STDDEV_POP(a::INT) AS gstdp"
+      skip_reason: "SQL-503"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: poly
@@ -954,8 +954,8 @@ tests:
       algebrize_error: "Argument to STDDEV_POP must be statically determined as NUMERIC"
 
     - description: STDDEV_SAMP correctness test
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE STDDEV_SAMP(a::!DOUBLE) as gstds"
-      skip_reason: "SQL-483: implement codegen for TypeAssert"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE STDDEV_SAMP(a::!INT) as gstds"
+      skip_reason: "SQL-503"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: poly
@@ -983,19 +983,17 @@ tests:
 
     - description: STDDEV_SAMP star is currently an error
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE STDDEV_SAMP(*) AS gstds"
-      skip_reason: "SQL-483: implement codegen for TypeAssert"
       should_compile: false
       algebrize_error: "* is not an allowed argument to STDDEV_SAMP"
 
     - description: STDDEV_SAMP requires a statically numeric argument
       query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE STDDEV_SAMP(a) AS gstds"
-      skip_reason: "SQL-483: implement codegen for TypeAssert"
       should_compile: false
       algebrize_error: "Argument to STDDEV_SAMP must be statically determined as NUMERIC"
 
     - description: SUM correctness test
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE SUM(a::!DOUBLE) AS gsum"
-      skip_reason: "SQL-483: implement codegen for TypeAssert"
+      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE SUM(a::!INT) AS gsum"
+      skip_reason: "SQL-503"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: poly

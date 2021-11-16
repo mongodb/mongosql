@@ -873,6 +873,7 @@ tests:
   - description: ALL subquery comparison in SELECT clause
     current_db: foo
     query: "SELECT VALUE {'v': v, 'x': bar.v = ALL (SELECT a FROM target AS target WHERE NOT(a IS NULL))} FROM bar AS bar"
+    skip_reason: "SQL-593"
     translation_target_db: foo
     translation_target_coll: bar
     translation:

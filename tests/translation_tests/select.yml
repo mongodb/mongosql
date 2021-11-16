@@ -70,7 +70,6 @@ tests:
   - description: select values non-literal document expr correctness test
     current_db: mydb
     query: "SELECT VALUE t1.b::!DOCUMENT FROM foo AS t1"
-    skip_reason: "SQL-483: implement codegen for TypeAssert"
     translation_target_db: mydb
     translation_target_coll: foo
     translation:

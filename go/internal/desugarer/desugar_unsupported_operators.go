@@ -120,7 +120,7 @@ func desugarSQLSlice(f *ast.Function) ast.Expr {
 	var expr ast.Expr = ast.NewFunction("$slice", args)
 	if len(args.Elements) == 3 {
 		expr = ast.NewConditional(
-			ast.NewBinary(ast.LessThanOrEquals, args.Elements[1], zeroLiteral),
+			ast.NewBinary(ast.LessThanOrEquals, args.Elements[2], zeroLiteral),
 			nullLiteral,
 			expr,
 		)

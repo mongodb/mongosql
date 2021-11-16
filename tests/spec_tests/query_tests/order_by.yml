@@ -59,7 +59,6 @@ tests:
   - description: ascending-sort correctness test
     current_db: mydb
     query: "SELECT VALUE {'a': a::!INT} FROM foo AS foo ORDER BY a ASC"
-    skip_reason: "SQL-483: implement codegen for TypeAssert"
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
@@ -79,7 +78,6 @@ tests:
   - description: descending-sort correctness test
     current_db: mydb
     query: "SELECT VALUE {'a': a::!INT} FROM foo AS foo ORDER BY a DESC"
-    skip_reason: "SQL-483: implement codegen for TypeAssert"
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
@@ -99,7 +97,6 @@ tests:
   - description: multiple-sort-key correctness test
     current_db: mydb
     query: "SELECT VALUE {'a': a::!INT, 'b': b::!STRING} FROM foo AS foo ORDER BY a ASC, b ASC"
-    skip_reason: "SQL-483: implement codegen for TypeAssert"
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
@@ -133,8 +130,7 @@ tests:
 
   - description: null sorts before non-null values
     current_db: mydb
-    query: "SELECT {'a': a::!INT} FROM nullAndNonNull AS nullAndNonNull ORDER BY a ASC"
-    skip_reason: "SQL-483: implement codegen for TypeAssert"
+    query: "SELECT VALUE {'a': a::!INT} FROM nullAndNonNull AS nullAndNonNull ORDER BY a ASC"
     translation_target_db: mydb
     translation_target_coll: nullAndNonNull
     translation:

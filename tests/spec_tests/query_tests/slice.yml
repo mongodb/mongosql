@@ -39,7 +39,6 @@ tests:
   - description: SLICE without start argument correctness test
     current_db: foo
     query: "SELECT VALUE {'arr': arr, 'len': len, 'slice': SLICE(arr::!ARRAY, len::!INT)} FROM no_start AS ns"
-    skip_reason: "SQL-483: implement codegen for TypeAssert"
     translation_target_db: foo
     translation_target_coll: no_start
     translation:
@@ -50,20 +49,19 @@ tests:
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
     result:
-      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '-1'}}, 'slice': [3]}
-      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}}, 'slice': []}
-      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}}, 'slice': [1, 2]}
-      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '3'}}, 'slice': [1, 2, 3]}
-      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '4'}}, 'slice': [1, 2, 3]}
-      - {'': {'arr': [1, 2, 3], 'len': null}, 'slice': null}
-      - {'': {'arr': [1, 2, 3]}, 'slice': null}
-      - {'': {'arr': null, 'len': {'$numberInt': '1'}}, 'slice': null}
-      - {'': {'len': {'$numberInt': '1'}}, 'slice': null}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '-1'}, 'slice': [3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'slice': []}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'slice': [1, 2]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '3'}, 'slice': [1, 2, 3]}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '4'}, 'slice': [1, 2, 3]}}
+      - {'': {'arr': [1, 2, 3], 'len': null, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'slice': null}}
+      - {'': {'arr': null, 'len': {'$numberInt': '1'}, 'slice': null}}
+      - {'': {'len': {'$numberInt': '1'}, 'slice': null}}
 
   - description: SLICE with start argument correctness test
     current_db: foo
     query: "SELECT VALUE {'arr': arr, 'len': len, 'start': start, 'slice': SLICE(arr::!ARRAY, start::!INT, len::!INT)} FROM start AS s"
-    skip_reason: "SQL-483: implement codegen for TypeAssert"
     translation_target_db: foo
     translation_target_coll: start
     translation:
@@ -74,9 +72,9 @@ tests:
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
     result:
-      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '-1'}, 'slice': []}}
-      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '0'}, 'slice': []}}
-      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '1'}, 'slice': []}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '-1'}, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '0'}, 'slice': null}}
+      - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '1'}, 'slice': null}}
       - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '-4'}, 'slice': [1, 2]}}
       - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '-2'}, 'slice': [2, 3]}}
       - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '2'}, 'start': {'$numberInt': '0'}, 'slice': [1, 2]}}

@@ -10,7 +10,7 @@ tests:
   - description: nested derived tables correctness test
     current_db: foo
     query: "SELECT VALUE {'a': a, 'b': b} FROM (SELECT * FROM (SELECT _id::!INT, a::!INT, b::!INT FROM bar ORDER BY _id) AS d2 WHERE a >= b) AS d1"
-    skip_reason: "SQL-483: implement codegen for TypeAssert"
+    skip_reason: "SQL-515 Incorrect schema env when algebrizing derived datasources"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
