@@ -142,3 +142,21 @@ impl Expression {
         }
     }
 }
+
+pub fn parse_like_expr(
+    expr: Box<Expression>,
+    pattern: Box<Expression>,
+    escape: Option<String>,
+) -> Result<Box<Expression>, LalrpopError<'static>> {
+    if escape.clone().map_or(1, |s| s.len()) == 1 {
+        Ok(Box::new(Expression::Like(LikeExpr {
+            expr,
+            pattern,
+            escape,
+        })))
+    } else {
+        Err(LalrpopError::from(
+            "Escape character must be a string of length 1.".to_string(),
+        ))
+    }
+}

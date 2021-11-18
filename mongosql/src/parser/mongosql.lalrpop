@@ -441,8 +441,8 @@ IsTier<Expression,NextTier>: Box<Expression> = {
 }
 
 LikeTier<Expr, NextTier>: Box<Expression> = {
-  <e1:LikeTier<Expr, NextTier>> LIKE <e2:NextTier> <s:(ESCAPE <String>)?> => Box::new(Expression::Like(LikeExpr{expr:e1, pattern:e2, escape:s})),
-  <e1:LikeTier<Expr, NextTier>> NOT_LIKE <e2:NextTier> <s:(ESCAPE <String>)?> => Box::new(Expression::Unary(UnaryExpr{op:UnaryOp::Not, expr:Box::new(Expression::Like(LikeExpr{expr:e1, pattern:e2, escape:s}))})),
+  <e1:LikeTier<Expr, NextTier>> LIKE <e2:NextTier> <s:(ESCAPE <String>)?> =>? parse_like_expr(e1, e2, s),
+  <e1:LikeTier<Expr, NextTier>> NOT_LIKE <e2:NextTier> <s:(ESCAPE <String>)?> =>? Ok(Box::new(Expression::Unary(UnaryExpr{op:UnaryOp::Not, expr:parse_like_expr(e1, e2, s)?}))),
   NextTier,
 }
 

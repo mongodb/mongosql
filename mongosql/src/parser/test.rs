@@ -501,9 +501,29 @@ mod operator {
         input = "select col1 LIKE '%a!% b' ESCAPE '!'"
     );
     parsable!(
+        like_escape_empty,
+        expected = false,
+        input = "select col1 LIKE 'blah' ESCAPE ''"
+    );
+    parsable!(
+        like_escape_multichar,
+        expected = false,
+        input = "select col1 LIKE 'blah' ESCAPE 'blah'"
+    );
+    parsable!(
         not_like_escape,
         expected = true,
         input = "select col1 NOT LIKE '%a!% b' ESCAPE '!'"
+    );
+    parsable!(
+        not_like_escape_empty,
+        expected = false,
+        input = "select col1 NOT LIKE 'blah' ESCAPE ''"
+    );
+    parsable!(
+        not_like_escape_multichar,
+        expected = false,
+        input = "select col1 NOT LIKE 'blah' ESCAPE 'blah'"
     );
     parsable!(
         where_is,

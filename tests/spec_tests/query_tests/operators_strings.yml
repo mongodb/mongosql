@@ -135,13 +135,11 @@ tests:
 
   - description: LIKE ESCAPE value cannot be longer than 1 character
     query: "SELECT VALUE {'_1': 'a' LIKE '_' ESCAPE 'abc'}"
-    skip_reason: "SQL-486: invalid escape character should be a parse error"
     should_compile: false
     parse_error: "ESCAPE character must be exactly 1 character"
 
   - description: LIKE ESCAPE value cannot be empty string
     query: "SELECT VALUE {'_1': 'a' LIKE '_' ESCAPE ''}"
-    skip_reason: "SQL-486: invalid escape character should be a parse error"
     should_compile: false
     parse_error: "ESCAPE character must be exactly 1 character"
 
@@ -154,7 +152,7 @@ tests:
   - description: LIKE operator - NULL or MISSING arguments result in NULL
     current_db: foo
     query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p} FROM nullAndMissing AS n"
-    skip_reason: "SQL-486: invalid pattern should be a parse error"
+    skip_reason: "SQL-330: Update $like desugarer to work for non-literal patterns"
     translation_target_db: foo
     translation_target_coll: nullAndMissing
     translation:
@@ -173,7 +171,7 @@ tests:
   - description: LIKE operator with no ESCAPE correctness tests
     current_db: foo
     query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p} FROM `like` AS l"
-    skip_reason: "SQL-486: invalid escape character should be a parse error"
+    skip_reason: "SQL-330: Update $like desugarer to work for non-literal patterns"
     translation_target_db: foo
     translation_target_coll: like
     translation:
