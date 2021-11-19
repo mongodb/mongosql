@@ -7,7 +7,6 @@ tests:
   - description: addition with more than 2 operands
     current_db: foo
     query: "SELECT VALUE {'n': a::!INT + b::!INT + c::!INT} FROM bar AS bar"
-    skip_reason: "SQL-609"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -53,7 +52,6 @@ tests:
   - description: multiplication with more than 2 operands
     current_db: foo
     query: "SELECT VALUE {'n': a::!INT * b::!INT * c::!INT} FROM bar AS bar"
-    skip_reason: "SQL-609"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
