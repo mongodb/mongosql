@@ -2136,6 +2136,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"f": "$foo"}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"f": "$_id.f"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2157,6 +2171,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"_id": "$foo"}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"_id": "$_id._id"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2237,6 +2265,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2285,6 +2327,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"foo_a": "$foo.a", "__unaliasedKey2": "$foo.b", "foo_c": "$foo.c"}}},
                 bson::doc!{"$project": {"_id": 0, "foo": {"b": "$_id.__unaliasedKey2"}, "__bot": {"foo_a": "$_id.foo_a", "foo_c": "$_id.foo_c"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2325,6 +2381,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"__unaliasedKey2": "$foo.a", "___unaliasedKey2": "$foo.b"}}},
                 bson::doc!{"$project": {"_id": 0, "foo": {"b": "$_id.___unaliasedKey2"}, "__bot": {"__unaliasedKey2": "$_id.__unaliasedKey2"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2376,6 +2446,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$push": "$foo.a"}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2405,6 +2489,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlAvg": {"var": "$foo.a", "distinct": false}}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2434,6 +2532,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlCount": {"var": "$foo.a", "distinct": true}}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2463,6 +2575,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$first": "$foo.a"}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2492,6 +2618,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlLast": "$foo.a"}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2521,6 +2661,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$max": "$foo.a"}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2550,6 +2704,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlMergeObjects": {"var": "$foo.a", "distinct": true}}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2579,6 +2747,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$min": "$foo.a"}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2608,6 +2790,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlStdDevPop": {"var": "$foo.a", "distinct": true}}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2637,6 +2833,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlStdDevSamp": {"var": "$foo.a", "distinct": true}}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2666,6 +2876,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlSum": {"var": "$foo.a", "distinct": true}}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2695,6 +2919,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlCount": {"var": "$$ROOT", "distinct": true}}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {
@@ -2716,6 +2954,20 @@ mod group_by {
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
                 bson::doc!{"$group": {"_id": {"__id": "$foo.a"}, "__id": {"$sqlSum": {"var": "$foo.a", "distinct": true}}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"__id": "$_id.__id", "_id": "$__id"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
             ],
         }),
         input = Stage::Group(Group {

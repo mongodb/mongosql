@@ -197,7 +197,6 @@ tests:
   - description: cardinality of 1 should be inferrable from group by constant
     current_db: foo
     query: "SELECT VALUE {'name': name, 'avg_salary': (SELECT avg_salary FROM employees AS emp GROUP BY NULL AS _ AGGREGATE AVG(salary) AS avg_salary)} FROM employees AS emp"
-    skip_reason: "SQL-503: GROUP BY not propagating mapping registry"
     translation_target_db: foo
     translation_target_coll: employees
     translation:
@@ -206,13 +205,14 @@ tests:
       - {'$project': {'_id': 0, '__bot': {
                                            'name': '$emp.name',
                                            'avg_salary': {'$subquery': {
+                                                                         'db': 'foo',
                                                                          'collection': 'employees',
                                                                          'let': {'emp_0': '$emp'},
-                                                                         'ouputPath': ['__bot', 'avg_salary'],
+                                                                         'outputPath': ['__bot', 'avg_salary'],
                                                                          'pipeline': [
                                                                                        {'$project': {'_id': 0, 'employees': '$$ROOT'}},
                                                                                        {'$project': {'_id': 0, 'emp': '$employees'}},
-                                                                                       {'$group': {'_id': {'_': null}, 'avg_salary': {'$sqlAvg': {'var': '$emp.salary', 'distinct': false}}}},
+                                                                                       {'$group': {'_id': {'_': {'$literal': null}}, 'avg_salary': {'$sqlAvg': {'var': '$emp.salary', 'distinct': false}}}},
                                                                                        {'$project': {'_id': 0, '__bot': {'_': '$_id._', 'avg_salary': '$avg_salary'}}},
                                                                                        {'$project': {'_id': 0, '__bot': {'avg_salary': '$__bot.avg_salary'}}}
                                                                          ]
@@ -222,10 +222,10 @@ tests:
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
     result:
-      - {'': {'name': 'a', 'avg_salary': 4}}
-      - {'': {'name': 'b', 'avg_salary': 4}}
-      - {'': {'name': 'c', 'avg_salary': 4}}
-      - {'': {'name': 'd', 'avg_salary': 4}}
+      - {'': {'name': 'a', 'avg_salary': {'$numberDouble': "4"}}}
+      - {'': {'name': 'b', 'avg_salary': {'$numberDouble': "4"}}}
+      - {'': {'name': 'c', 'avg_salary': {'$numberDouble': "4"}}}
+      - {'': {'name': 'd', 'avg_salary': {'$numberDouble': "4"}}}
 
   - description: nested subquery should be able to access field from its grandparent query correctness test
     current_db: foo

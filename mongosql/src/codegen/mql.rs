@@ -228,18 +228,26 @@ impl Type {
 }
 
 impl MqlCodeGenerator {
-    fn get_unique_bot_name(project_names: &BindingTuple<ir::Expression>) -> String {
+    /// Generate a unique bottom name given a predicate closure. Keeps pre-pending
+    /// `_` until the predicate returns false, indicating that that name is not in use.
+    fn generate_unique_bot_name<F>(name_exists: F) -> String
+    where
+        F: Fn(&String) -> bool,
+    {
         let mut ret = "__bot".to_string();
-        if project_names.is_empty() {
-            return ret;
-        }
-        // find the current scope, if it is not the same in all keys in this
-        // Project expression, it is because of an Algebrization error.
-        let current_scope = project_names.keys().next().unwrap().scope;
-        while project_names.contains_key(&(ret.clone(), current_scope).into()) {
+        while name_exists(&ret) {
             ret.insert(0, '_');
         }
         ret
+    }
+    fn get_unique_bot_name(project_names: &BindingTuple<ir::Expression>) -> String {
+        if project_names.is_empty() {
+            return "__bot".to_string();
+        }
+        let current_scope = project_names.keys().next().unwrap().scope;
+        MqlCodeGenerator::generate_unique_bot_name(|s| {
+            project_names.contains_key(&(s.clone(), current_scope).into())
+        })
     }
 
     fn get_datasource_name(datasource: &DatasourceName, unique_bot_name: &str) -> String {
@@ -500,6 +508,7 @@ impl MqlCodeGenerator {
         let mut bot_body = doc! {};
         let mut project_body = doc! {"_id": 0};
         let mut counter = 1;
+        let mut output_registry = MqlMappingRegistry::new();
 
         // There shouldn't be any duplicate group key aliases post-algebrization.
         let unique_aliases = group
@@ -526,39 +535,43 @@ impl MqlCodeGenerator {
                         format!("__unaliasedKey{}", counter),
                     );
                     if let ir::Expression::FieldAccess(ref fa) = expr {
-                        // Throw an error if the FieldAccess expr doesn't resolve to a
-                        // compound identifier.
-                        match expression_generator
-                            .codegen_expression(*fa.expr.clone())?
-                            .as_str()
-                        {
-                            Some(datasource) => {
-                                let stripped_ds =
-                                    datasource.strip_prefix('$').unwrap_or(datasource);
-                                // _id will be 0 instead of a Document. We assume it is
-                                // always a Document in the else.
-                                if stripped_ds == "_id" {
+                        // We know that after the aliasing rewrite pass, any unaliased group key can
+                        // only have one layer of field access. Nested field accesses would have been
+                        // rewritten to aliased expressions, so at this point the left hand side expression
+                        // of the FieldAccess inside an OptionallyAliasedExpression must be a Reference.
+                        let key = match *fa.expr {
+                            ir::Expression::Reference(ir::ReferenceExpr { ref key, .. }) => key,
+                            _ => return Err(Error::InvalidGroupKey),
+                        };
+                        let datasource = source_translation
+                            .mapping_registry
+                            .0
+                            .get(key)
+                            .ok_or_else(|| Error::ReferenceNotFound(key.clone()))?;
+                        // _id will be 0 instead of a Document. We assume it is
+                        // always a Document in the else.
+                        if datasource == "_id" {
+                            output_registry.insert(key.clone(), datasource);
+                            project_body.insert(
+                                datasource,
+                                bson::bson! {{fa.field.clone(): format!("$_id.{}", alias)}},
+                            )
+                        } else {
+                            match project_body.get_mut(datasource) {
+                                // We can safely unwrap here since `doc` will always be a
+                                // Bson::Document.
+                                Some(doc) => doc
+                                    .as_document_mut()
+                                    .unwrap()
+                                    .insert(fa.field.clone(), format!("$_id.{}", alias)),
+                                None => {
+                                    output_registry.insert(key.clone(), datasource);
                                     project_body.insert(
-                                        stripped_ds,
+                                        datasource,
                                         bson::bson! {{fa.field.clone(): format!("$_id.{}", alias)}},
                                     )
-                                } else {
-                                    match project_body.get_mut(stripped_ds) {
-	                                    // We can safely unwrap here since `doc` will always be a
-	                                    // Bson::Document.
-	                                    Some(doc) => {
-	                                        doc
-	                                        .as_document_mut()
-	                                        .unwrap()
-	                                        .insert(fa.field.clone(), format!("$_id.{}", alias))}
-	                                    None => project_body.insert(
-	                                        stripped_ds,
-	                                        bson::bson! {{fa.field.clone(): format!("$_id.{}", alias)}},
-	                                    ),
-	                                }
                                 }
                             }
-                            None => return Err(Error::InvalidGroupKey),
                         };
                     };
                     (expr, alias)
@@ -617,11 +630,15 @@ impl MqlCodeGenerator {
             group_body.insert(unique_agg_alias, agg_func_doc);
         }
         if !bot_body.is_empty() {
-            project_body.insert("__bot", bot_body);
+            let bot_name =
+                MqlCodeGenerator::generate_unique_bot_name(|s| project_body.contains_key(s));
+            project_body.insert(bot_name.clone(), bot_body);
+            output_registry.insert(Key::bot(self.scope_level), bot_name);
         }
         Ok(source_translation
             .with_additional_stage(doc! {"$group": group_body})
-            .with_additional_stage(doc! {"$project": project_body}))
+            .with_additional_stage(doc! {"$project": project_body})
+            .with_mapping_registry(output_registry))
     }
 
     fn codegen_sort(&self, sort: ir::Sort) -> Result<MqlTranslation> {

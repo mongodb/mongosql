@@ -1,9 +1,8 @@
 tests:
   - description: aggregated field name of _id will be prepended with _ in $group stage
     query: "SELECT * FROM [{'a': 1}, {'a': 1}, {'a': 3}] AS arr GROUP BY a AS a AGGREGATE SUM(a) AS _id"
-    skip_reason: "SQL-503: incorrect mapping registry"
     translation:
-      - {'$documents': [{'a': 1}, {'a': 1}, {'a': 3}]}
+      - {'$documents': [{'a': {'$literal': 1}}, {'a': {'$literal': 1}}, {'a': {'$literal': 3}}]}
       - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$group': {'_id': {'a': '$arr.a'}, '__id': {'$sqlSum': {'var': '$arr.a', 'distinct': false}}}}
       - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', '_id': '$__id'}}}
@@ -16,12 +15,11 @@ tests:
 
   - description: field name for unaliased group key will be prepended with _ if conflicted with user provided group key alias
     query: "SELECT VALUE {'a': a} FROM [{'a': 1, 'b': 1}, {'a': 1, 'b': 1}, {'a': 3, 'b': 3}] AS arr GROUP BY a, b AS __unaliasedKey1"
-    skip_reason: "SQL-503: incorrect mapping registry"
     translation:
-      - {'$documents': [{'a': 1, 'b': 1}, {'a': 1, 'b': 1}, {'a': 3, 'b': 3}]}
+      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}, {'a': {'$literal': 1}, 'b': {'$literal': 1}}, {'a': {'$literal': 3}, 'b': {'$literal': 3}}]}
       - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$group': {'_id': {'___unaliasedKey1': '$arr.a', '__unaliasedKey1': '$arr.b'}}}
-      - {'$project': {'_id': 0, '__bot': {'b': '$_id.__unaliasedKey1'}, 'arr': {'a': '$_id.___unaliasedKey1'}}}
+      - {'$project': {'_id': 0, 'arr': {'a': '$_id.___unaliasedKey1'}, '__bot': {'__unaliasedKey1': '$_id.__unaliasedKey1'}}}
       - {'$project': {'_id': 0, '__bot': {'a': '$arr.a'}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -29,3 +27,19 @@ tests:
     result:
       - {'': {'a': {'$numberint': '1'}}}
       - {'': {'a': {'$numberint': '3'}}}
+
+  - description: __bot projection will be prepended with _ if conflicted with existing fieldname
+    query: "SELECT * FROM [{'a': 1, 'b': 1}, {'a': 1, 'b': 1}, {'a': 3, 'b': 3}] AS __bot GROUP BY a AGGREGATE SUM(b) as sumb"
+    translation:
+      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}, {'a': {'$literal': 1}, 'b': {'$literal': 1}}, {'a': {'$literal': 3}, 'b': {'$literal': 3}}]}
+      - {'$project': {'_id': 0, '__bot': '$$ROOT'}}
+      - {'$group': {'_id': {'__unaliasedKey1': '$__bot.a'}, 'sumb': {'$sqlSum': {'var': '$__bot.b', 'distinct': false}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$_id.__unaliasedKey1'}, '___bot': {'sumb': '$sumb'}}}
+      - { '$replaceWith': {
+            '$unsetField': {
+              'field': '___bot',
+              'input': { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$___bot' }}
+            }
+          }
+        }
+    result: []

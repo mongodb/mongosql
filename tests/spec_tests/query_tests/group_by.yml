@@ -20,22 +20,17 @@ catalog_data:
       - {'_id': {'$numberInt': '3'}}
       - {'_id': {'$numberInt': '4'}, 'n': {'$numberInt': '1'}}
 
-    poly:
+    baz:
       - {'_id': {'$numberInt': '1'}, 'a':{'a': {'$numberInt': '1'},'b': {'$numberInt': '2'}}}
       - {'_id': {'$numberInt': '2'}, 'a':{'a': {'$numberInt': '2'},'b': {'$numberInt': '2'}}}
       - {'_id': {'$numberInt': '3'}, 'a':{'a': {'$numberInt': '2'},'b': {'$numberInt': '3'}}}
-      - {'_id': {'$numberInt': '4'}, 'a': {'$numberInt': '3'}}
-      - {'_id': {'$numberInt': '5'}, 'a': {'$numberInt': '3'}}
-      - {'_id': {'$numberInt': '6'}, 'a': {'$numberInt': '4'}}
+      - {'_id': {'$numberInt': '4'}, 'a':{'a': null,'b': null}}
 
-    poly2:
-      - {'_id': {'$numberInt': '1'}, 'a':{'a': {'$numberInt': '1'},'b': {'$numberInt': '2'}}}
-      - {'_id': {'$numberInt': '2'}, 'a':{'a': {'$numberInt': '2'},'b': {'$numberInt': '2'}}}
-      - {'_id': {'$numberInt': '3'}, 'a':{'a': {'$numberInt': '2'},'b': {'$numberInt': '3'}}}
-      - {'_id': {'$numberInt': '4'}, 'a': {'$numberInt': '3'}}
-      - {'_id': {'$numberInt': '5'}, 'a': {'$numberInt': '3'}}
-      - {'_id': {'$numberInt': '6'}, 'a': {'$numberInt': '4'}}
-      - {'_id': {'$numberInt': '7'}, 'a':{'c': {'$numberInt': '1'}}}
+    baz2:
+      - {'_id': {'$numberInt': '1'}, 'a': {'$numberInt': '1'}, 'doc': {'a': 'a'}}
+      - {'_id': {'$numberInt': '2'}, 'a': {'$numberInt': '1'}, 'doc': {'b': 'b'}}
+      - {'_id': {'$numberInt': '3'}, 'a': {'$numberInt': '2'}, 'doc': {'a': 'c'}}
+      - {'_id': {'$numberInt': '4'}, 'a': {'$numberInt': '2'}, 'doc': {'a': 'd'}}
 
     numerics:
       - {'_id': {'$numberInt': '1'}, 'a': {'$numberDecimal': '3.0'}}
@@ -82,47 +77,50 @@ catalog_schema:
           }
         }
       },
-      'poly': {
+      'baz': {
         'bsonType': 'object',
         'required': [ '_id', 'a' ],
         'additionalProperties': false,
         'properties': {
           '_id': { 'bsonType': 'int' },
           'a': {
-            'anyOf': [
-              { 'bsonType': 'int' },
-              {
-                'bsonType': 'object',
-                'required': [ 'a', 'b' ],
-                'additionalProperties': false,
-                'properties': {
-                  'a': { 'bsonType': 'int' },
-                  'b': { 'bsonType': 'int' },
-                }
-              }
-            ]
+            'bsonType': 'object',
+            'required': [ 'a', 'b' ],
+            'additionalProperties': false,
+            'properties': {
+              'a': {
+                'anyOf':
+                  [
+                    { 'bsonType': 'int' },
+                    { 'bsonType': !!str 'null' }
+                  ]
+              },
+              'b': {
+                'anyOf':
+                  [
+                    { 'bsonType': 'int' },
+                    { 'bsonType': !!str 'null' }
+                  ]
+              },
+            }
           },
         }
       },
-      'poly2': {
+      'baz2': {
         'bsonType': 'object',
         'required': [ '_id', 'a' ],
         'additionalProperties': false,
         'properties': {
           '_id': { 'bsonType': 'int' },
-          'a': {
-            'anyOf': [
-              { 'bsonType': 'int' },
-              {
-                'bsonType': 'object',
-                'properties': {
-                  'a': { 'bsonType': 'int' },
-                  'b': { 'bsonType': 'int' },
-                  'c': { 'bsonType': 'int' },
-                }
-              }
-            ]
-          },
+          'a': { 'bsonType': 'int' },
+          'doc': {
+            'bsonType': 'object',
+            'required': [],
+            'properties': {
+              'a': {'bsonType': 'string'},
+              'b': {'bsonType': 'string'}
+            }
+          }
         }
       },
       'numerics': {
@@ -191,14 +189,13 @@ tests:
 
     - description: GROUP BY hello creates only one group
       query: "SELECT * FROM foo.bar AS bar GROUP BY 'hello' AS n"
-      skip_reason: "SQL-503: incorrect mapping registry"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: bar
       translation:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
         - {'$project': {'_id': 0, 'bar': '$bar'}}
-        - {'$group': {'_id': {'n': 'hello'}}}
+        - {'$group': {'_id': {'n': {'$literal': 'hello'}}}}
         - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -208,7 +205,6 @@ tests:
 
     - description: GROUP BY MISSING converts MISSING to NULL; NULL is not DISTINCT from NULL, but is distinct from non-null values
       query: "SELECT * FROM foo.nullAndMissing AS a GROUP BY a.n AS n"
-      skip_reason: "SQL-503: incorrect mapping registry"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: nullAndMissing
@@ -225,23 +221,19 @@ tests:
         - {'': {"n": {"$numberInt": "1"}}}
 
     - description: group keys must be mutually comparable types
-      query: "SELECT * FROM foo.poly AS a GROUP BY {'out': a.a} AS doc"
+      query: "SELECT * FROM foo.baz AS a GROUP BY {'out': a.a} AS doc"
       should_compile: false
       algebrize_error: "all possible group key values must have mutually comparable types"
 
     - description: GROUP BY keys may be table-qualified
-      query: "SELECT * FROM foo.poly AS a GROUP by a.a::!INT AS a"
-      skip_reason: "SQL-503: GROUP BY not propagating mapping registry"
+      query: "SELECT * FROM foo.baz AS a GROUP by a.a.a AS a"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: poly
+      translation_target_coll: baz
       translation:
-        - {'$project': {'_id': 0, 'a': '$$ROOT'}}
-        - {'$group': {'_id': {'a': '$a.a'}}}
-        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a'}}}
-        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'a': '$poly'}}
-        - {'$group': {'_id': {'a': '$a.a'}}}
+        - {'$project': {'_id': 0, 'baz': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'a': '$baz'}}
+        - {'$group': {'_id': {'a': '$a.a.a'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -332,52 +324,33 @@ tests:
       should_compile: false
       algebrize_error: "unknown field 'bar'"
 
-    - description: GROUP BY keys may be document field references
-      query: "SELECT * FROM foo.poly AS b GROUP by a.a::!INT AS a"
-      skip_reason: "SQL-503: GROUP BY not propagating mapping registry"
-      current_db: foo
-      translation_target_db: foo
-      translation_target_coll: poly
-      translation:
-        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'b': '$poly'}}
-        - {'$group': {'_id': {'a': '$b.a.a'}}}
-        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a'}}}
-        - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-             { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-          }}}}
-      result:
-        -  {'': {'a': null}}
-
     - description: GROUP BY arbitrary expression
-      query: "SELECT * FROM foo.bar AS bar GROUP BY a / 2 AS ad2"
-      skip_reason: "SQL-503: Group stage doesn't output new mapping registry"
+      query: "SELECT * FROM foo.bar AS bar GROUP BY a + 2 AS ap2"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: bar
       translation:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
         - {'$project': {'_id': 0, 'bar': '$bar'}}
-        - {'$group': {'_id': {'ad2': {'$divde': {'dividend': '$bar.a', 'divisor': {'$literal': 2}, 'onError': null}}}}}
-        - {'$project': {'_id': 0, '__bot': {'ad2': '$_id.a'}}}
+        - {'$group': {'_id': {'ap2': {'$add': [{'$literal': 2}, '$bar.a']}}}}
+        - {'$project': {'_id': 0, '__bot': {'ap2': '$_id.ap2'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
           }}}}
       result:
-        - {'': {"ad2": {"$numberInt": "0"}} }
-        - {'': {"ad2": {"$numberInt": "5"}} }
-        - {'': {"ad2": {"$numberInt": "55"}} }
+        - {'': {"ap2": {"$numberInt": "3"}} }
+        - {'': {"ap2": {"$numberInt": "13"}} }
+        - {'': {"ap2": {"$numberInt": "113"}} }
 
     - description: single DISTINCT aggregation function correctness test
       query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS suma"
-      skip_reason: "SQL-495: wrap literals in $literal document"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: bar
       translation:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
         - {'$project': {'_id': 0, 'bar': '$bar'}}
-        - {'$group': {'_id': {'n': null}, 'suma': {'$sqlSum': {'var': '$bar.a', 'distinct': true}}}}
+        - {'$group': {'_id': {'n': {'$literal': null}}, 'suma': {'$sqlSum': {'var': '$bar.a', 'distinct': true}}}}
         - {'$project': {'_id': 0, '__bot': {'n': '$_id.n', 'suma': '$suma'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -386,30 +359,29 @@ tests:
         - {'': {"n": null, "suma": {"$numberInt": "123"}} }
 
     - description: argument to DISTINCT aggregation function must have statically determined type that is mutually comparable
-      query: "SELECT * FROM foo.poly AS poly GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS suma"
+      query: "SELECT * FROM foo.baz AS baz GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS suma"
       should_compile: false
       algebrize_error: "Argument to DISTINCT aggregation function must have statically provably mutually comparable type"
 
     - description: argument to DISTINCT aggregation function cannot have type DOCUMENT
-      query: "SELECT * FROM foo.poly AS poly GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::!DOCUMENT) AS suma"
+      query: "SELECT * FROM foo.baz AS baz GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::!DOCUMENT) AS suma"
       should_compile: false
       algebrize_error: "Argument to DISTINCT aggregation function must have statically provably mutually comparable type"
 
     - description: argument to DISTINCT aggregation function cannot have type ARRAY
-      query: "SELECT * FROM foo.poly AS poly GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::!ARRAY) AS suma"
+      query: "SELECT * FROM foo.baz AS baz GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a::!ARRAY) AS suma"
       should_compile: false
       algebrize_error: "Argument to DISTINCT aggregation function must have statically provably mutually comparable type"
 
     - description: correctness test for DISTINCT and non-DISTINCT aggregation over same field
       query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS dsuma, SUM(a) AS suma"
-      skip_reason: "SQL-495: wrap literals in $literal document"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: bar
       translation:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
         - {'$project': {'_id': 0, 'bar': '$bar'}}
-        - {'$group': {'_id': {'n': null}, 'dsuma': {'$sqlSum': {'var': '$bar.a', 'distinct': true}}, 'suma': {'$sqlSum': {'var': '$bar.a', 'distinct': false}}}}
+        - {'$group': {'_id': {'n': {'$literal': null}}, 'dsuma': {'$sqlSum': {'var': '$bar.a', 'distinct': true}}, 'suma': {'$sqlSum': {'var': '$bar.a', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'n': '$_id.n', 'dsuma': '$dsuma', 'suma': '$suma'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -419,15 +391,15 @@ tests:
 
     - description: multi-DISTINCT aggregation function correctness test
       query: "SELECT VALUE {'suma': suma, 'countc': countc} FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS suma, COUNT(DISTINCT c) AS countc"
-      skip_reason: "SQL-503: incorrect mapping registry"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: bar
       translation:
         - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
         - {'$project': {'_id': 0, 'bar': '$bar'}}
-        - {'$group': {'_id': {'n': null}, 'dsuma': {'$sqlSum': {'var': '$bar.a', 'distinct': true}}, 'countc': {'$sqlCount': {'var': '$bar.c', 'distinct': true}}}}
-        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n', 'dsuma': '$dsuma', 'countc': '$countc'}}}
+        - {'$group': {'_id': {'n': {'$literal': null}}, 'suma': {'$sqlSum': {'var': '$bar.a', 'distinct': true}}, 'countc': {'$sqlCount': {'var': '$bar.c', 'distinct': true}}}}
+        - {'$project': {'_id': 0, '__bot': {'n': '$_id.n', 'suma': '$suma', 'countc': '$countc'}}}
+        - {'$project': {'_id': 0, '__bot': {'suma': '$__bot.suma', 'countc': '$__bot.countc'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
           }}}}
@@ -435,15 +407,14 @@ tests:
         - {'': {"suma": {"$numberInt": "123"}, "countc": {"$numberInt": "2"}} }
 
     - description: multi-item group key correctness test
-      query: "SELECT * FROM foo.bar AS bar GROUP BY a AS a, b AS b AGGREGATE SUM(c) AS sumc"
-      skip_reason: "SQL-503: incorrect mapping registry"
+      query: "SELECT * FROM foo.multi AS multi GROUP BY a AS a, b AS b AGGREGATE SUM(c) AS sumc"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: bar
+      translation_target_coll: multi
       translation:
-        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'bar': '$bar'}}
-        - {'$group': {'_id': {'a': '$bar.a', 'b': '$bar.b'}, 'sumc': {$sqlSum: {'var': '$bar.c', 'distinct': false}}}}
+        - {'$project': {'_id': 0, 'multi': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'multi': '$multi'}}
+        - {'$group': {'_id': {'a': '$multi.a', 'b': '$multi.b'}, 'sumc': {$sqlSum: {'var': '$multi.c', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'b': '$_id.b', 'sumc': '$sumc'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -454,17 +425,16 @@ tests:
         - {'': {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}, "sumc": {"$numberInt": "4"}} }
 
     - description: multi-item group key with HAVING correctness test
-      query: "SELECT * FROM foo.bar AS bar GROUP BY a AS a, b AS b AGGREGATE SUM(c) AS sumc HAVING a != 1 AND sumc != 4"
-      skip_reason: "SQL-503: incorrect mapping registry"
+      query: "SELECT * FROM foo.multi AS multi GROUP BY a AS a, b AS b AGGREGATE SUM(c) AS sumc HAVING a != 1 AND sumc != 4"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: bar
+      translation_target_coll: multi
       translation:
-        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'bar': '$bar'}}
-        - {'$group': {'_id': {'a': '$bar.a', 'b': '$bar.b'}, 'sumc': {$sqlSum: {'var': '$bar.c', 'distinct': false}}}}
+        - {'$project': {'_id': 0, 'multi': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'multi': '$multi'}}
+        - {'$group': {'_id': {'a': '$multi.a', 'b': '$multi.b'}, 'sumc': {$sqlSum: {'var': '$multi.c', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'b': '$_id.b', 'sumc': '$sumc'}}}
-        - {'$match': { $and: [ {'$neq': ['$__bot.a', 1]}, {'$neq': ['$__bot.b', 4]}]}}
+        - {'$match': { $expr: {'$sqlAnd': [{'$sqlNe': ['$__bot.a', {'$literal': 1}]}, {'$sqlNe': ['$__bot.sumc', {'$literal': 4}]}]}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
           }}}}
@@ -472,12 +442,12 @@ tests:
         - {'': {"a": {"$numberInt": "2"}, "b": {"$numberInt": "2"}, "sumc": {"$numberInt": "5"}} }
 
     - description: AGGREGATE expressions must be aggregation functions not arbitrary expressions
-      query: "SELECT * FROM foo.bar AS bar GROUP BY a::!INT AS a AGGREGATE 1 + SUM(a) as suma"
+      query: "SELECT * FROM foo.bar AS bar GROUP BY a AS a AGGREGATE 1 + SUM(a) as suma"
       should_compile: false
       algebrize_error: "Expressions in AGGREGATE phrase must be aggregation function applications not arbitrary expressions"
 
     - description: AGGREGATE expressions must be aggregation functions not scalar functions
-      query: "SELECT * FROM foo.bar AS bar GROUP BY a::!INT AS a AGGREGATE UPPER(a) as upper"
+      query: "SELECT * FROM foo.bar AS bar GROUP BY a AS a AGGREGATE UPPER(a) as upper"
       should_compile: false
       algebrize_error: "Expressions in AGGREGATE phrase must be aggregation function applications not scalar function applications"
 
@@ -487,13 +457,12 @@ tests:
       algebrize_error: "No such field a"
 
     - description: Aggregation functions are not allowed in SELECT VALUE
-      query: "SELECT VALUE {'suma': SUM(a + 2) } FROM bar AS bar GROUP BY b::!INT AS b"
+      query: "SELECT VALUE {'suma': SUM(a + 2) } FROM bar AS bar GROUP BY b AS b"
       should_compile: false
       algebrize_error: "Aggregation functions are not allowed in SELECT VALUE clause"
 
     - description: HAVING without GROUP BY works as a WHERE clause but happens after the WHERE clause
       query: "SELECT * FROM foo.bar AS bar WHERE a < 15 HAVING a > 5"
-      skip_reason: "SQL-503: incorrect mapping registry"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: bar
@@ -502,22 +471,19 @@ tests:
         - {'$project': {'_id': 0, 'bar': '$bar'}}
         - {'$match': {'$expr': {'$sqlLt': ['$bar.a', {'$literal': 15}]}}}
         - {'$match': {'$expr': {'$sqlGt': ['$bar.a', {'$literal': 5}]}}}
-        - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-             { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-          }}}}
       result:
-        - {'': {"a": {"$numberInt": "11"},"b": {"$numberInt": "22"},"c": {"$numberInt": "3"}} }
+        - {'bar': {"_id": {"$numberInt": "3"}, "a": {"$numberInt": "11"},"b": {"$numberInt": "22"},"c": {"$numberInt": "3"}} }
 
     - description: ADD_TO_ARRAY correctness test
-      query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(a.a::!INT) AS garr"
-      skip_reason: "SQL-503"
+      query: "SELECT * FROM (SELECT _id, a FROM foo.baz AS baz) AS arr GROUP BY a.a AS a AGGREGATE ADD_TO_ARRAY(a.a) AS garr"
+      skip_reason: "SQL-515"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: poly
+      translation_target_coll: baz
       translation:
-        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'poly': '$poly'}}
-        - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
+        - {'$project': {'_id': 0, 'baz': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'baz': '$baz'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$baz._id', 'a': '$baz.a'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
         - {'$group': {'_id': {'a': '$arr.a.a'}, 'garr': {'$push': '$arr.a.a'}}}
@@ -531,15 +497,15 @@ tests:
         - {'': {"a": null, "garr": [null, null, null]} }
 
     - description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
-      query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(DISTINCT a.a::!INT) AS garr"
-      skip_reason: "SQL-515 Incorrect schema env when algebrizing derived datasources"
+      query: "SELECT * FROM (SELECT _id, a FROM foo.baz AS baz ORDER BY _id) AS arr GROUP BY a.a AS a AGGREGATE ADD_TO_ARRAY(DISTINCT a.a) AS garr"
+      skip_reason: "SQL-515"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: poly
+      translation_target_coll: baz
       translation:
-        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'poly': '$poly'}}
-        - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
+        - {'$project': {'_id': 0, 'baz': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'baz': '$baz'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$baz._id', 'a': '$baz.a'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
         - {'$group': {'_id': {'a': '$arr.a.a'}, 'garr': {'$addToSet': '$arr.a.a'}}}
@@ -550,7 +516,7 @@ tests:
         - {"a": null, "garr": []}
 
     - description: ADD_TO_ARRAY star is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_ARRAY(*) AS garr"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE ADD_TO_ARRAY(*) AS garr"
       should_compile: false
       algebrize_error: "* is not an allowed argument to ADD_TO_ARRAY"
 
@@ -595,25 +561,25 @@ tests:
         - {'': {"gset": [{ "$numberInt": "3" }]}}
 
     - description: ADD_TO_SET star is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE ADD_TO_SET(*) AS gset"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE ADD_TO_SET(*) AS gset"
       should_compile: false
       algebrize_error: "* is not an allowed argument to ADD_TO_SET"
 
     - description: ADD_TO_SET requires all elements have statically mutually comparable type
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE ADD_TO_SET(a) AS gset"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE ADD_TO_SET(a) AS gset"
       should_compile: false
       algebrize_error: "Argument to ADD_TO_SET must have statically mutually comparable type"
 
     - description: ADD_TO_SET correctness test
-      query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a.a::!INT AS a AGGREGATE ADD_TO_SET(a.a::!INT) AS gset"
-      skip_reason: "SQL-515 Incorrect schema env when algebrizing derived datasources"
+      query: "SELECT * FROM (SELECT _id, a FROM foo.baz AS baz ORDER BY _id) AS arr GROUP BY a.a AS a AGGREGATE ADD_TO_SET(a.a) AS gset"
+      skip_reason: "SQL-515"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: poly
+      translation_target_coll: baz
       translation:
-        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'poly': '$poly'}}
-        - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
+        - {'$project': {'_id': 0, 'baz': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'baz': '$baz'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$baz._id', 'a': '$baz.a'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
         - {'$group': {'_id': {'a': '$arr.a.a'}, 'gset': {'$addToSet': '$arr.a.a'}}}
@@ -627,125 +593,109 @@ tests:
         - {'': {"a": null, "gset": [null]}}
 
     - description: AVG correctness test
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE AVG(a::!INT) AS gavg"
-      skip_reason: "SQL-503"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE AVG(a.b) AS gavg"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: poly
+      translation_target_coll: baz
       translation:
-        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'arr': 'poly'}}
-        - {'$group': {'_id': {'a': '$arr.a'}, 'gavg': {'$sqlAvg': {'var': '$bar.a', 'distinct': false}}}}
+        - {'$project': {'_id': 0, 'baz': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'arr': '$baz'}}
+        - {'$group': {'_id': {'a': '$arr.a.a'}, 'gavg': {'$sqlAvg': {'var': '$arr.a.b', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gavg': '$gavg'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
           }}}}
       result:
         - {'': {
-            "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
-            "gavg": {"$numberInt": "0"}
+            "a": {"$numberInt": "1"},
+            "gavg": {"$numberDouble": "2"}
           }}
-        - {'': {
-            "a": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}},
-            "gavg": {"$numberInt": "0"}
+        - { '': {
+           "a": { "$numberInt": "2" },
+          "gavg": { "$numberDouble": "2.5" }
           }}
-        - {'': {
-            "a": {"$numberInt": "3"},
-            "gavg": {"$numberInt": "3"}
-          }}
-        - {'': {
-            "a": {"$numberInt": "4"},
-            "gavg": {"$numberInt": "4"}
-          }}
+        - { '': {
+          "a": null ,
+          "gavg": null
+           }}
 
     - description: AVG star is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE AVG(*) AS gavg"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE AVG(*) AS gavg"
       should_compile: false
       algebrize_error: "* is not an allowed argument to AVG"
 
     - description: AVG requires a statically numeric argument
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE AVG(a) AS gavg"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE AVG(a) AS gavg"
       should_compile: false
       algebrize_error: "Argument to AVG must be statically determined as NUMERIC"
 
     - description: COUNT correctness test
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE COUNT(a) AS gcount"
-      skip_reason: "SQL-503"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE COUNT(a.a) AS gcount"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: poly
+      translation_target_coll: baz
       translation:
-        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'arr': '$poly'}}
-        - {'$group': {'_id': {'a': '$arr.a'}, 'gcount': {'$sqlCount': {'var': '$bar.a', 'distinct': false}}}}
+        - {'$project': {'_id': 0, 'baz': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'arr': '$baz'}}
+        - {'$group': {'_id': {'a': '$arr.a.a'}, 'gcount': {'$sqlCount': {'var': '$arr.a.a', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gcount': '$gcount'}}}
-        - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+        - {'$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
           }}}}
       result:
         - {'': {
-            "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
-            "gcount": {"$numberInt": "2"}
-          }}
-        - {'': {
-            "a": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}},
+            "a": {"$numberInt": "1"},
             "gcount": {"$numberInt": "1"}
           }}
         - {'': {
-            "a": {"$numberInt": "3"},
+            "a": {"$numberInt": "2"},
             "gcount": {"$numberInt": "2"}
           }}
         - {'': {
-            "a": {"$numberInt": "4"},
-            "gcount": {"$numberInt": "1"}
+            "a": null,
+            "gcount": {"$numberInt": "0"}
           }}
 
     - description: COUNT(MISSING) and COUNT(NULL) skip MISSING and NULL values
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE COUNT(a.a) AS gcounta, COUNT(NULL) AS gcountn"
-      skip_reason: "SQL-503"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE COUNT(a.a) AS gcounta, COUNT(NULL) AS gcountn"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: poly
+      translation_target_coll: baz
       translation:
-        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'arr': '$poly'}}
-        - {'$group': {'_id': {'a': '$arr.a'}, 'gcounta': {'$sqlCount': {'var': '$arr.a', 'distinct': false}, 'gcountn': {'$sqlCount': {'var': null, 'distinct': false}}}}}
+        - {'$project': {'_id': 0, 'baz': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'arr': '$baz'}}
+        - {'$group': {'_id': {'a': '$arr.a.a'}, 'gcounta': {'$sqlCount': {'var': '$arr.a.a', 'distinct': false}}, 'gcountn': {'$sqlCount': {'var': {'$literal': null}, 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gcounta': '$gcounta', 'gcountn': '$gcountn'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
           }}}}
       result:
         - {'': {
-            "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
-            "gcounta": {"$numberInt": "2"},
-            "gcountn": {"$numberInt": "0"}
-          }}
+          "a": {"$numberInt": "1"},
+          "gcounta": {"$numberInt": "1"},
+          "gcountn": {"$numberInt": "0"}
+        }}
         - {'': {
-            "a": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}},
-            "gcounta": {"$numberInt": "1"},
-            "gcountn": {"$numberInt": "0"}
-          }}
+          "a": {"$numberInt": "2"},
+          "gcounta": {"$numberInt": "2"},
+          "gcountn": {"$numberInt": "0"}
+        }}
         - {'': {
-            "a": {"$numberInt": "3"},
-            "gcounta": {"$numberInt": "0"},
-            "gcountn": {"$numberInt": "0"}
-          }}
-        - {'': {
-            "a": {"$numberInt": "4"},
-            "gcounta": {"$numberInt": "0"},
-            "gcountn": {"$numberInt": "0"}
-          }}
+          "a": null,
+          "gcounta": {"$numberInt": "0"},
+          "gcountn": {"$numberInt": "0"}
+        }}
 
     - description: FIRST correctness test
-      query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a::!INT AS a AGGREGATE FIRST(a) AS gfirst"
+      query: "SELECT * FROM (SELECT _id, a FROM foo.baz AS baz ORDER BY _id) AS arr GROUP BY a.a AS a AGGREGATE FIRST(a) AS gfirst"
       skip_reason: "SQL-515 Incorrect schema env when algebrizing derived datasources"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: poly
+      translation_target_coll: baz
       translation:
-        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'poly': '$poly'}}
-        - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
+        - {'$project': {'_id': 0, 'baz': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'baz': '$baz'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$baz._id', 'a': '$baz.a'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
         - {'$group': {'_id': {'a': '$arr.a'}, 'gfirst': {'$first': '$bar.a'}}}
@@ -755,37 +705,33 @@ tests:
           }}}}
       result:
         - {'': {
-            "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
+            "a": {"$numberInt": "1"},
             "gfirst": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}}
           }}
         - {'': {
-            "a": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}},
-            "gfirst": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}}
+            "a": {"$numberInt": "2"},
+            "gfirst": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "2"}}
           }}
-        - {'': {
-            "a": {"$numberInt": "3"},
-            "gfirst": {"$numberInt": "3"}
-          }}
-        - {'': {
-            "a": {"$numberInt": "4"},
-            "gfirst": {"$numberInt": "4"}
+        - { '': {
+            "a": null ,
+            "gfirst": { "a": null, "b": null }
           }}
 
     - description: FIRST star is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE FIRST(*) AS gfirst"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE FIRST(*) AS gfirst"
       should_compile: false
       algebrize_error: "* is not an allowed argument to FIRST"
 
     - description: LAST correctness test
-      query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly AS poly ORDER BY _id) AS arr GROUP BY a::!INT AS a AGGREGATE LAST(a) AS glast"
+      query: "SELECT * FROM (SELECT _id, a FROM foo.baz AS baz ORDER BY _id) AS arr GROUP BY a.a AS a AGGREGATE LAST(a) AS glast"
       skip_reason: "SQL-515 Incorrect schema env when algebrizing derived datasources"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: poly
+      translation_target_coll: baz
       translation:
-        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'poly': '$poly'}}
-        - {'$project': {'_id': 0, '__bot': {'_id': '$poly._id', 'a': '$poly.a'}}}
+        - {'$project': {'_id': 0, 'baz': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'baz': '$baz'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$baz._id', 'a': '$baz.a'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
         - {'$group': {'_id': {'a': '$arr.a'}, 'glast': {'$sqlLast': {'var': '$bar.a', 'distinct': false}}}}
@@ -795,30 +741,25 @@ tests:
           }}}}
       result:
         - {'': {
-            "a": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}},
-            "glast": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}}
-          }}
+          "a": {"$numberInt": "1"},
+          "gfirst": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}}
+        }}
         - {'': {
-            "a": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}},
-            "glast": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}}
-          }}
-        - {'': {
-            "a": {"$numberInt": "3"},
-            "glast": {"$numberInt": "3"}
-          }}
-        - {'': {
-            "a": {"$numberInt": "4"},
-            "glast": {"$numberInt": "4"}
-          }}
+          "a": {"$numberInt": "2"},
+          "gfirst": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}}
+        }}
+        - { '': {
+           "a": null,
+          "gfirst": { "a": null, "b": null }
+        }}
 
     - description: LAST star is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE LAST(*) AS glast"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE LAST(*) AS glast"
       should_compile: false
       algebrize_error: "* is not an allowed argument to LAST"
 
     - description: MAX correctness test
       query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MAX(b) AS gmax"
-      skip_reason: "SQL-503: incorrect mapping registry"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: bar
@@ -836,25 +777,25 @@ tests:
         -  {'': {'a': {'$numberInt': '111'}, 'gmax': {'$numberInt': '142'}}}
 
     - description: MAX star is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MAX(*) AS gmax"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE MAX(*) AS gmax"
       should_compile: false
       algebrize_error: "* is not an allowed argument to MAX"
 
     - description: MAX must have statically mutually comparable type
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MAX(a) AS gmax"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE MAX(a) AS gmax"
       should_compile: false
       algebrize_error: "Argument to MAX must have statically mutually comparable type"
 
     - description: MERGE_DOCUMENTS correctness test
-      query: "SELECT * FROM (SELECT _id::!INT, a FROM foo.poly2 AS poly2 ORDER BY _id) AS arr GROUP BY a.a::!INT AS a AGGREGATE MERGE_DOCUMENTS(a::!DOCUMENT) AS gmerge"
+      query: "SELECT * FROM (SELECT _id, a, doc FROM foo.baz2 AS baz2 ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE MERGE_DOCUMENTS(doc) AS gmerge"
       skip_reason: "SQL-515 Incorrect schema env when algebrizing derived datasources"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: poly2
+      translation_target_coll: baz2
       translation:
-        - {'$project': {'_id': 0, 'poly2': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'poly2': '$poly2'}}
-        - {'$project': {'_id': 0, '__bot': {'_id': '$poly2._id', 'a': '$poly2.a'}}}
+        - {'$project': {'_id': 0, 'baz2': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'baz2': '$baz2'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$baz2._id', 'a': '$baz2.a'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
         - {'$group': {'_id': {'a': '$arr.a'}, 'gmerge': {'$sqlMergeObjects': {'var': '$bar.a', 'distinct': false}}}}
@@ -865,30 +806,25 @@ tests:
       result:
         - {'': {
             "a": {"$numberInt": "1"},
-            "gmerge": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}}
+            "gmerge": {"a": "a", "b": "b"}
           }}
         - {'': {
             "a": {"$numberInt": "2"},
-            "gmerge": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}}
-          }}
-        - {'': {
-            "a": null,
-            "gmerge": {"c": {"$numberInt": "1"}}
+            "gmerge": {"a": "d"}
           }}
 
     - description: MERGE_DOCUMENTS star is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MERGE_DOCUMENTS(*) AS gmerge"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE MERGE_DOCUMENTS(*) AS gmerge"
       should_compile: false
       algebrize_error: "* is not an allowed argument to MERGE_DOCUMENTS"
 
     - description: MERGE_DOCUMENTS requires a statically document argument
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MERGE_DOCUMENTS(a) AS gmerge"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE MERGE_DOCUMENTS(a) AS gmerge"
       should_compile: false
       algebrize_error: "Argument to MERGE_DOCUMENTS must be statically determined as DOCUMENT"
 
     - description: MIN correctness test
       query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MIN(b) AS gmin"
-      skip_reason: "SQL-503: incorrect mapping registry"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: bar
@@ -906,25 +842,24 @@ tests:
         - {'': {'a': {'$numberInt': '111'}, 'gmin': {'$numberInt': '142'}}}
 
     - description: MIN star is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MIN(*) AS gmin"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE MIN(*) AS gmin"
       should_compile: false
       algebrize_error: "* is not an allowed argument to MIN"
 
     - description: MIN must have statically mutually comparable type
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE MIN(a) AS gmin"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE MIN(a) AS gmin"
       should_compile: false
       algebrize_error: "Argument to MIN must have statically mutually comparable type"
 
     - description: STDDEV_POP correctness test
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE STDDEV_POP(a::INT) AS gstdp"
-      skip_reason: "SQL-503"
+      query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_POP(b) AS gstdp"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: poly
+      translation_target_coll: bar
       translation:
-        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'arr': '$poly'}}
-        - {'$group': {'_id': {'a': '$arr.a.a'}, 'gstdp': {'$sqlStdDevPop': {'var': '$arr.a', 'distinct': false}}}}
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'arr': '$bar'}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'gstdp': {'$sqlStdDevPop': {'var': '$arr.b', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gstdp': '$gstdp'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -932,99 +867,97 @@ tests:
       result:
         - {'': {
             "a": {"$numberInt": "1"},
-            "gstdp": {"$numberInt": "0"}
+            "gstdp": {"$numberDouble": "16.99673171197595"}
           }}
         - {'': {
-            "a": {"$numberInt": "2"},
-            "gstdp": {"$numberInt": "0"}
+            "a": {"$numberInt": "11"},
+            "gstdp": {"$numberDouble": "0"}
           }}
-        - {'': {
-            "a": null,
-            "gstdp": {"$numberDouble": "0.4714045207910316"}
+        - { '': {
+          "a": { "$numberInt": "111" },
+          "gstdp": { "$numberDouble": "0" }
           }}
 
     - description: STDDEV_POP star is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE STDDEV_POP(*) AS gstdp"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE STDDEV_POP(*) AS gstdp"
       should_compile: false
       algebrize_error: "* is not an allowed argument to STDDEV_POP"
 
     - description: STDDEV_POP requires a statically numeric argument
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE STDDEV_POP(a) AS gstdp"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE STDDEV_POP(a) AS gstdp"
       should_compile: false
       algebrize_error: "Argument to STDDEV_POP must be statically determined as NUMERIC"
 
     - description: STDDEV_SAMP correctness test
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE STDDEV_SAMP(a::!INT) as gstds"
-      skip_reason: "SQL-503"
+      query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_SAMP(b) as gstds"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: poly
+      translation_target_coll: bar
       translation:
-        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'arr': '$poly'}}
-        - {'$group': {'_id': {'a': '$arr.a.a'}, 'gstds': {'$sqlStdDevSamp': {'var': '$arr.a', 'distinct': false}}}}
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'arr': '$bar'}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'gstds': {'$sqlStdDevSamp': {'var': '$arr.b', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gstds': '$gstds'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
           }}}}
       result:
         - {'': {
-            "a": {"$numberInt": "1"},
-            "gstds": {"$numberInt": "0"}
-          }}
+          "a": {"$numberInt": "1"},
+          "gstds": {"$numberDouble": "20.81665999466133"}
+        }}
         - {'': {
-            "a": {"$numberInt": "2"},
-            "gstds": {"$numberInt": "0"}
-          }}
-        - {'': {
-            "a": null,
-            "gstds": {"$numberDouble": "0.4714045207910316"}
-          }}
+          "a": {"$numberInt": "11"},
+          "gstds": null
+        }}
+        - { '': {
+          "a": { "$numberInt": "111" },
+          "gstds": null
+        } }
 
     - description: STDDEV_SAMP star is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE STDDEV_SAMP(*) AS gstds"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE STDDEV_SAMP(*) AS gstds"
       should_compile: false
       algebrize_error: "* is not an allowed argument to STDDEV_SAMP"
 
     - description: STDDEV_SAMP requires a statically numeric argument
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE STDDEV_SAMP(a) AS gstds"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE STDDEV_SAMP(a) AS gstds"
       should_compile: false
       algebrize_error: "Argument to STDDEV_SAMP must be statically determined as NUMERIC"
 
     - description: SUM correctness test
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a.a::!INT AS a AGGREGATE SUM(a::!INT) AS gsum"
-      skip_reason: "SQL-503"
+      query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE SUM(b) AS gsum"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: poly
+      translation_target_coll: bar
       translation:
-        - {'$project': {'_id': 0, 'poly': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'arr': '$poly'}}
-        - {'$group': {'_id': {'a': '$arr.a.a'}, 'gsum':  {'$sqlSum': {'var': '$arr.a', 'distinct': false}}}}
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'arr': '$bar'}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'gsum':  {'$sqlSum': {'var': '$arr.b', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gsum': '$gsum'}}}
         - {'$replaceWith' : {'$unsetField' : {'field' : '__bot', 'input' :
              {'$setField' :  {'field' : '' , 'input' : '$$ROOT', 'value' : '$__bot'}
           }}}}
       result:
         - {'': {
-            "a": {"$numberInt": "1"},
-            "gsum": {"$numberInt": "0"}
-          }}
+          "a": {"$numberInt": "1"},
+          "gsum": {"$numberInt": "56"}
+        }}
         - {'': {
-            "a": {"$numberInt": "2"},
-            "gsum": {"$numberInt": "0"}
-          }}
-        - {'': {
-            "a": null,
-            "gsum": {"$numberInt": "10"}
-          }}
+          "a": {"$numberInt": "11"},
+          "gsum": {"$numberInt": "22"}
+        }}
+        - { '': {
+          "a": { "$numberInt": "111" },
+          "gsum": { "$numberInt": "142" }
+        }}
 
     - description: SUM star is currently an error
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE SUM(*) AS gsum"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE SUM(*) AS gsum"
       should_compile: false
       algebrize_error: "* is not an allowed argument to SUM"
 
     - description: SUM requires a statically numeric argument
-      query: "SELECT * FROM foo.poly AS arr GROUP BY a::!INT AS a AGGREGATE SUM(a) AS gsum"
+      query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE SUM(a) AS gsum"
       should_compile: false
       algebrize_error: "Argument to SUM must be statically determined as NUMERIC"
