@@ -769,6 +769,10 @@ impl ConstantFoldExprVisitor {
                 for (key, value) in document.iter() {
                     result_doc.insert(key.clone(), value.clone());
                 }
+            } else if result_doc.is_empty() {
+                // If there is a non-constant argument and the result_doc is empty, just return the
+                // input function.
+                return Expression::ScalarFunction(sf);
             } else {
                 return Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::MergeObjects,
@@ -1095,6 +1099,7 @@ impl Visitor for ConstantFoldExprVisitor {
             Stage::Project(_) => st,
             Stage::Set(_) => st,
             Stage::Sort(_) => st,
+            Stage::Derived(_) => st,
         }
     }
 }

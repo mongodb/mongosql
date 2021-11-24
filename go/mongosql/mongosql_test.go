@@ -401,7 +401,6 @@ func TestGetNamespaces(t *testing.T) {
 			name:          "namespaces nested in derived table",
 			db:            "test",
 			sql:           "SELECT * FROM (SELECT * FROM foo) d",
-			skipReason:    "SQL-515: Incorrect schema env when algebrizing derived datasources",
 			expectedError: false,
 			expectedNamespaces: []mongosql.Namespace{
 				{

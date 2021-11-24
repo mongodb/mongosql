@@ -198,6 +198,7 @@ impl CachedSchema for Stage {
             Stage::Array(s) => &s.cache,
             Stage::Join(s) => &s.cache,
             Stage::Set(s) => &s.cache,
+            Stage::Derived(s) => &s.cache,
         }
     }
 
@@ -563,6 +564,11 @@ impl CachedSchema for Stage {
                     }),
                 }
             }
+            Stage::Derived(s) => s.source.schema(&SchemaInferenceState {
+                scope_level: state.scope_level + 1,
+                env: state.env.clone(),
+                catalog: state.catalog,
+            }),
         }
     }
 }

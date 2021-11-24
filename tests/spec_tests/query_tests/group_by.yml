@@ -37,6 +37,11 @@ catalog_data:
       - {'_id': {'$numberInt': '2'}, 'a': {'$numberDouble': '3.0'}}
       - {'_id': {'$numberInt': '3'}, 'a': {'$numberInt': '3'}}
 
+    dupes:
+      - {'_id': {'$numberInt': '1'}, 'a': {'$numberInt': '1'}}
+      - {'_id': {'$numberInt': '2'}, 'a': {'$numberInt': '2'}}
+      - {'_id': {'$numberInt': '3'}, 'a': {'$numberInt': '1'}}
+
 catalog_schema:
   {
     'foo': {
@@ -108,7 +113,7 @@ catalog_schema:
       },
       'baz2': {
         'bsonType': 'object',
-        'required': [ '_id', 'a' ],
+        'required': [ '_id', 'a', 'doc' ],
         'additionalProperties': false,
         'properties': {
           '_id': { 'bsonType': 'int' },
@@ -139,6 +144,15 @@ catalog_schema:
           }
         },
       },
+      'dupes': {
+        'bsonType': 'object',
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': 'int' },
+          'a': { 'bsonType': 'int' }
+        },
+      }
     }
   }
 
@@ -475,45 +489,46 @@ tests:
         - {'bar': {"_id": {"$numberInt": "3"}, "a": {"$numberInt": "11"},"b": {"$numberInt": "22"},"c": {"$numberInt": "3"}} }
 
     - description: ADD_TO_ARRAY correctness test
-      query: "SELECT * FROM (SELECT _id, a FROM foo.baz AS baz) AS arr GROUP BY a.a AS a AGGREGATE ADD_TO_ARRAY(a.a) AS garr"
-      skip_reason: "SQL-515"
+      query: "SELECT * FROM (SELECT _id, a, b FROM foo.bar AS bar ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE ADD_TO_ARRAY(arr.b) AS garr"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: baz
+      translation_target_coll: bar
       translation:
-        - {'$project': {'_id': 0, 'baz': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'baz': '$baz'}}
-        - {'$project': {'_id': 0, '__bot': {'_id': '$baz._id', 'a': '$baz.a'}}}
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$bar._id', 'a': '$bar.a', 'b': '$bar.b'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
-        - {'$group': {'_id': {'a': '$arr.a.a'}, 'garr': {'$push': '$arr.a.a'}}}
-        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'b': '$_id.b', 'garr': '$garr'}}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'garr': {'$push': '$arr.b'}}}
+        - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'garr': '$garr'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
           }}}}
       result:
-        - {'': {"a": {"$numberInt": "1"},"garr": [{"$numberInt": "1"}]} }
-        - {'': {"a": {"$numberInt": "2"},"garr": [{"$numberInt": "2"}, {"$numberInt": "2"}]} }
-        - {'': {"a": null, "garr": [null, null, null]} }
+        - {'': {"a": {"$numberInt": "1"},"garr": [{"$numberInt": "2"}, {"$numberInt": "12"}, {"$numberInt": "42"}]} }
+        - {'': {"a": {"$numberInt": "11"},"garr": [{"$numberInt": "22"}]} }
+        - {'': {"a": {"$numberInt": "111"},"garr": [{"$numberInt": "142"}]} }
 
     - description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
-      query: "SELECT * FROM (SELECT _id, a FROM foo.baz AS baz ORDER BY _id) AS arr GROUP BY a.a AS a AGGREGATE ADD_TO_ARRAY(DISTINCT a.a) AS garr"
-      skip_reason: "SQL-515"
+      query: "SELECT * FROM (SELECT _id, a FROM foo.bar AS bar ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE ADD_TO_ARRAY(DISTINCT a) AS garr"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: baz
+      translation_target_coll: bar
       translation:
-        - {'$project': {'_id': 0, 'baz': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'baz': '$baz'}}
-        - {'$project': {'_id': 0, '__bot': {'_id': '$baz._id', 'a': '$baz.a'}}}
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$bar._id', 'a': '$bar.a'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
-        - {'$group': {'_id': {'a': '$arr.a.a'}, 'garr': {'$addToSet': '$arr.a.a'}}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'garr': {'$addToSet': '$arr.a'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'garr': '$garr'}}}
+        - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+          }}}}
       result:
-        - {"a": {"$numberInt": "1"},"garr": [{"$numberInt": "1"}]}
-        - {"a": {"$numberInt": "2"},"garr": [{"$numberInt": "2"}]}
-        - {"a": null, "garr": []}
+        - {'': {"a": {"$numberInt": "1"},"garr": [{"$numberInt": "1"}]}}
+        - {'': {"a": {"$numberInt": "11"},"garr": [{"$numberInt": "11"}]}}
+        - {'': {"a": {"$numberInt": "111"},"garr": [{"$numberInt": "111"}]}}
 
     - description: ADD_TO_ARRAY star is currently an error
       query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE ADD_TO_ARRAY(*) AS garr"
@@ -522,7 +537,6 @@ tests:
 
     - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in DECIMAL)
       query: "SELECT VALUE {'gset' : gset} FROM (SELECT * FROM foo.numerics AS numerics ORDER BY _id ASC) AS _numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
-      skip_reason: "SQL-515: incorrect schema env when algebrizing derived datasources"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: numerics
@@ -530,19 +544,18 @@ tests:
         - {'$project': {'_id': 0, 'numerics': '$$ROOT'}}
         - {'$project': {'_id': 0, 'numerics': '$numerics'}}
         - {'$sort': {'numerics._id': 1}}
-        - {'$project': {'_id': 0, 'numeric': {'$mergeObjects': ['$numerics']}}}
-        - {'$group': {'_id': {'_': null}, 'gset': {'$addToSet': '$numerics.a'}}}
+        - {'$project': {'_id': 0, '_numeric': {'$mergeObjects': ['$numerics']}}}
+        - {'$group': {'_id': {'_': {'$literal': null}}, 'gset': {'$addToSet': '$_numeric.a'}}}
         - {'$project': {'_id': 0, '__bot': {'_': '$_id._', 'gset': '$gset'}}}
         - {'$project': {'_id': 0, '__bot': {'gset': '$__bot.gset'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
           }}}}
       result:
-        - {'': {'gset': [{ '$numberDecimal': '3' }]}}
+        - {'': {'gset': [{ '$numberDecimal': '3.0' }]}}
 
     - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in INT)
       query: "SELECT VALUE {'gset': gset} FROM (SELECT * FROM foo.numerics AS numerics ORDER BY _id DESC) AS `numeric` GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
-      skip_reason: "SQL-515: incorrect schema env when algebrizing derived datasources"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: numerics
@@ -551,8 +564,8 @@ tests:
         - {'$project': {'_id': 0, 'numerics': '$numerics'}}
         - {'$sort': {'numerics._id': -1}}
         - {'$project': {'_id': 0, 'numeric': {'$mergeObjects': ['$numerics']}}}
-        - {'$group': {'_id': {'_': null}, 'gset': {'$addToSet': '$numerics.a'}}}
-        - {'$project': {'_id': 0, '__bot': {'_': '_id._', 'gset': '$gset'}}}
+        - {'$group': {'_id': {'_': {'$literal': null}}, 'gset': {'$addToSet': '$numeric.a'}}}
+        - {'$project': {'_id': 0, '__bot': {'_': '$_id._', 'gset': '$gset'}}}
         - {'$project': {'_id': 0, '__bot': {'gset': '$__bot.gset'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -572,7 +585,6 @@ tests:
 
     - description: ADD_TO_SET correctness test
       query: "SELECT * FROM (SELECT _id, a FROM foo.baz AS baz ORDER BY _id) AS arr GROUP BY a.a AS a AGGREGATE ADD_TO_SET(a.a) AS gset"
-      skip_reason: "SQL-515"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: baz
@@ -687,18 +699,17 @@ tests:
         }}
 
     - description: FIRST correctness test
-      query: "SELECT * FROM (SELECT _id, a FROM foo.baz AS baz ORDER BY _id) AS arr GROUP BY a.a AS a AGGREGATE FIRST(a) AS gfirst"
-      skip_reason: "SQL-515 Incorrect schema env when algebrizing derived datasources"
+      query: "SELECT * FROM (SELECT _id, a, b FROM foo.bar AS bar ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE FIRST(arr.b) AS gfirst"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: baz
+      translation_target_coll: bar
       translation:
-        - {'$project': {'_id': 0, 'baz': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'baz': '$baz'}}
-        - {'$project': {'_id': 0, '__bot': {'_id': '$baz._id', 'a': '$baz.a'}}}
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$bar._id', 'a': '$bar.a', 'b': '$bar.b'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
-        - {'$group': {'_id': {'a': '$arr.a'}, 'gfirst': {'$first': '$bar.a'}}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'gfirst': {'$first': '$arr.b'}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gfirst': '$gfirst'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -706,15 +717,15 @@ tests:
       result:
         - {'': {
             "a": {"$numberInt": "1"},
-            "gfirst": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}}
+            "gfirst": {"$numberInt": "2"}
           }}
         - {'': {
-            "a": {"$numberInt": "2"},
-            "gfirst": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "2"}}
+            "a": {"$numberInt": "11"},
+            "gfirst": {"$numberInt": "22"}
           }}
         - { '': {
-            "a": null ,
-            "gfirst": { "a": null, "b": null }
+            "a": {"$numberInt": "111"},
+            "gfirst": {"$numberInt": "142"}
           }}
 
     - description: FIRST star is currently an error
@@ -723,35 +734,54 @@ tests:
       algebrize_error: "* is not an allowed argument to FIRST"
 
     - description: LAST correctness test
-      query: "SELECT * FROM (SELECT _id, a FROM foo.baz AS baz ORDER BY _id) AS arr GROUP BY a.a AS a AGGREGATE LAST(a) AS glast"
-      skip_reason: "SQL-515 Incorrect schema env when algebrizing derived datasources"
+      query: "SELECT * FROM (SELECT _id, a, b FROM foo.bar AS bar ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE LAST(arr.b) AS glast"
       current_db: foo
       translation_target_db: foo
-      translation_target_coll: baz
+      translation_target_coll: bar
       translation:
-        - {'$project': {'_id': 0, 'baz': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'baz': '$baz'}}
-        - {'$project': {'_id': 0, '__bot': {'_id': '$baz._id', 'a': '$baz.a'}}}
+        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'bar': '$bar'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$bar._id', 'a': '$bar.a', 'b': '$bar.b'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
-        - {'$group': {'_id': {'a': '$arr.a'}, 'glast': {'$sqlLast': {'var': '$bar.a', 'distinct': false}}}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'glast': {'$sqlLast': {'var': '$arr.b', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'glast': '$glast'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-             { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
           }}}}
       result:
         - {'': {
           "a": {"$numberInt": "1"},
-          "gfirst": {"a": {"$numberInt": "1"}, "b": {"$numberInt": "2"}}
+          "glast": {"$numberInt": "42"}
         }}
         - {'': {
-          "a": {"$numberInt": "2"},
-          "gfirst": {"a": {"$numberInt": "2"}, "b": {"$numberInt": "3"}}
+          "a": {"$numberInt": "11"},
+          "glast": {"$numberInt": "22"}
         }}
         - { '': {
-           "a": null,
-          "gfirst": { "a": null, "b": null }
+          "a": {"$numberInt": "111"},
+          "glast": {"$numberInt": "142"}
         }}
+    - description: LAST DISTINCT correctness test
+      query: "SELECT glast FROM (SELECT _id, a FROM foo.dupes AS dupes ORDER BY _id) AS arr GROUP BY NULL AS _ AGGREGATE LAST(DISTINCT arr.a) AS glast"
+      skip_reason: "SQL-621"
+      current_db: foo
+      translation_target_db: foo
+      translation_target_coll: dupes
+      translation:
+        - {'$project': {'_id': 0, 'dupes': '$$ROOT'}}
+        - {'$project': {'_id': 0, 'dupes': '$dupes'}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$dupes._id', 'a': '$dupes.a'}}}
+        - {'$sort': {'__bot._id': 1}}
+        - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
+        - {'$group': {'_id': {'_': {'$literal': null}}, 'glast': {'$sqlLast': {'var': '$arr.a', 'distinct': true}}}}
+        - {'$project': {'_id': 0, '__bot': {'_': '$_id._', 'glast': '$glast'}}}
+        - {'$project': {'_id': 0, '__bot': {'glast': '$__bot.glast'}}}
+        - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+          }}}}
+      result:
+        - {'': {'glast': {'$numberInt': '2'}}}
 
     - description: LAST star is currently an error
       query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE LAST(*) AS glast"
@@ -788,17 +818,16 @@ tests:
 
     - description: MERGE_DOCUMENTS correctness test
       query: "SELECT * FROM (SELECT _id, a, doc FROM foo.baz2 AS baz2 ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE MERGE_DOCUMENTS(doc) AS gmerge"
-      skip_reason: "SQL-515 Incorrect schema env when algebrizing derived datasources"
       current_db: foo
       translation_target_db: foo
       translation_target_coll: baz2
       translation:
         - {'$project': {'_id': 0, 'baz2': '$$ROOT'}}
         - {'$project': {'_id': 0, 'baz2': '$baz2'}}
-        - {'$project': {'_id': 0, '__bot': {'_id': '$baz2._id', 'a': '$baz2.a'}}}
+        - {'$project': {'_id': 0, '__bot': {'_id': '$baz2._id', 'a': '$baz2.a', 'doc': '$baz2.doc'}}}
         - {'$sort': {'__bot._id': 1}}
         - {'$project': {'_id': 0, 'arr': {'$mergeObjects': ['$__bot']}}}
-        - {'$group': {'_id': {'a': '$arr.a'}, 'gmerge': {'$sqlMergeObjects': {'var': '$bar.a', 'distinct': false}}}}
+        - {'$group': {'_id': {'a': '$arr.a'}, 'gmerge': {'$sqlMergeObjects': {'var': '$arr.doc', 'distinct': false}}}}
         - {'$project': {'_id': 0, '__bot': {'a': '$_id.a', 'gmerge': '$gmerge'}}}
         - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
              { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }

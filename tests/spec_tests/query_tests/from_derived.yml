@@ -52,7 +52,6 @@ tests:
   - description: there is no ambiguity with one schema-less datasource in a derived table
     current_db: test
     query: "SELECT * FROM (SELECT * FROM foo AS foo) AS derived"
-    skip_reason: "SQL-515: incorrect schema env when algebrizing derived datasources"
     translation_target_db: test
     translation_target_coll: foo
     translation:
@@ -60,7 +59,7 @@ tests:
       - {'$project': {'_id': 0, 'foo': '$foo'}}
       - {'$project': {'_id': 0, 'derived': {'$mergeObjects': ['$foo']}}}
     result:
-      - {'derived': {'x': 11, 'y': 12}}
+      - {'derived': {'_id': {'$numberInt': "0"}, 'x': 11, 'y': 12}}
 
   - description: derived table merges namespaces under alias namespace
     current_db: test

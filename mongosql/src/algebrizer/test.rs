@@ -2414,26 +2414,29 @@ mod from_clause {
     test_algebrize!(
         derived_single_datasource,
         method = algebrize_from_clause,
-        expected = Ok(ir::Stage::Project(ir::Project {
-            source: Box::new(ir::Stage::Array(ir::ArraySource {
-                array: vec![ir::Expression::Document(
-                    unchecked_unique_linked_hash_map! {"foo".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
-                         "bar".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())
+        expected = Ok(ir::Stage::Derived(ir::Derived {
+            source: Box::new(ir::Stage::Project(ir::Project {
+                source: Box::new(ir::Stage::Array(ir::ArraySource {
+                    array: vec![ir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {"foo".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
+                             "bar".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())
+                        }
+                    .into())],
+                    alias: "bar".into(),
+                    cache: SchemaCache::new(),
+                })),
+                expression: map! {("d", 0u16).into() =>
+                    ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                        function: ir::ScalarFunction::MergeObjects,
+                        args: vec![
+                            ir::Expression::Reference(("bar", 1u16).into())
+                        ],
+                        cache: SchemaCache::new(),
                     }
-                .into())],
-                alias: "bar".into(),
+                    )
+                },
                 cache: SchemaCache::new(),
             })),
-            expression: map! {("d", 0u16).into() =>
-                ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
-                    function: ir::ScalarFunction::MergeObjects,
-                    args: vec![
-                        ir::Expression::Reference(("bar", 1u16).into())
-                    ],
-                    cache: SchemaCache::new(),
-                }
-                )
-            },
             cache: SchemaCache::new(),
         })),
         input = Some(ast::Datasource::Derived(ast::DerivedSource {
@@ -2462,43 +2465,46 @@ mod from_clause {
     test_algebrize!(
         derived_multiple_datasources,
         method = algebrize_from_clause,
-        expected = Ok(ir::Stage::Project(ir::Project {
+        expected = Ok(ir::Stage::Derived(ir::Derived {
             source: Box::new(ir::Stage::Project(ir::Project {
-                source: Box::new(ir::Stage::Array(ir::ArraySource {
-                    array: vec![ir::Expression::Document(
-                        unchecked_unique_linked_hash_map! {"foo".into() => ir::Expression::Literal(
-                            ir::LiteralValue::Integer(1).into()
-                            ),
-                            "bar".into() => ir::Expression::Literal(
-                                ir::LiteralValue::Integer(1).into())
-                        }
-                        .into()
-                    )],
-                    alias: "bar".into(),
+                source: Box::new(ir::Stage::Project(ir::Project {
+                    source: Box::new(ir::Stage::Array(ir::ArraySource {
+                        array: vec![ir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {"foo".into() => ir::Expression::Literal(
+                                ir::LiteralValue::Integer(1).into()
+                                ),
+                                "bar".into() => ir::Expression::Literal(
+                                    ir::LiteralValue::Integer(1).into())
+                            }
+                            .into()
+                        )],
+                        alias: "bar".into(),
+                        cache: SchemaCache::new(),
+                    })),
+                    expression: map! {
+                        Key::bot(1u16) => ir::Expression::Document(
+                            unchecked_unique_linked_hash_map!{"baz".into() => ir::Expression::Literal(ir::LiteralValue::String("hello".into()).into())}
+                        .into()),
+                        ("bar", 1u16).into() =>
+                            ir::Expression::Reference(("bar", 1u16).into())
+                    },
                     cache: SchemaCache::new(),
                 })),
-                expression: map! {
-                    Key::bot(1u16) => ir::Expression::Document(
-                        unchecked_unique_linked_hash_map!{"baz".into() => ir::Expression::Literal(ir::LiteralValue::String("hello".into()).into())}
-                    .into()),
-                    ("bar", 1u16).into() =>
-                        ir::Expression::Reference(("bar", 1u16).into())
+                expression: map! { ("d", 0u16).into() =>
+                    ir::Expression::ScalarFunction(
+                        ir::ScalarFunctionApplication {
+                            function: ir::ScalarFunction::MergeObjects,
+                            args:
+                                vec![
+                                    ir::Expression::Reference(Key::bot(1u16).into()),
+                                    ir::Expression::Reference(("bar", 1u16).into()),
+                                ],
+                            cache: SchemaCache::new(),
+                        }
+                    )
                 },
                 cache: SchemaCache::new(),
             })),
-            expression: map! { ("d", 0u16).into() =>
-                ir::Expression::ScalarFunction(
-                    ir::ScalarFunctionApplication {
-                        function: ir::ScalarFunction::MergeObjects,
-                        args:
-                            vec![
-                                ir::Expression::Reference(Key::bot(1u16).into()),
-                                ir::Expression::Reference(("bar", 1u16).into()),
-                            ],
-                        cache: SchemaCache::new(),
-                    }
-                )
-            },
             cache: SchemaCache::new(),
         })),
         input = Some(ast::Datasource::Derived(ast::DerivedSource {
@@ -2534,45 +2540,48 @@ mod from_clause {
     test_algebrize!(
         derived_join_datasources_distinct_keys_succeeds,
         method = algebrize_from_clause,
-        expected = Ok(ir::Stage::Project(ir::Project {
-            source: ir::Stage::Join(ir::Join {
-                join_type: ir::JoinType::Inner,
-                left: ir::Stage::Array(ir::ArraySource {
-                    array: vec![ir::Expression::Document(
-                        unchecked_unique_linked_hash_map! {
-                        "foo1".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
-                        "bar1".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())
-                                                    }
-                    .into())],
-                    alias: "bar1".into(),
-                    cache: SchemaCache::new(),
-                })
-                .into(),
-                right: ir::Stage::Array(ir::ArraySource {
-                    array: vec![ir::Expression::Document(
-                        unchecked_unique_linked_hash_map! {
-                        "foo2".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
-                        "bar2".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())
-                                                    }
-                    .into())],
-                    alias: "bar2".into(),
-                    cache: SchemaCache::new(),
-                })
-                .into(),
-                condition: None,
-                cache: SchemaCache::new(),
-            })
-            .into(),
-            expression: map! {("d", 0u16).into() =>
-                ir::Expression::ScalarFunction(
-                    ir::ScalarFunctionApplication {
-                        function: ir::ScalarFunction::MergeObjects,
-                        args: vec![ir::Expression::Reference(("bar1", 1u16).into()),
-                                   ir::Expression::Reference(("bar2", 1u16).into())],
+        expected = Ok(ir::Stage::Derived(ir::Derived {
+            source: Box::new(ir::Stage::Project(ir::Project {
+                source: ir::Stage::Join(ir::Join {
+                    join_type: ir::JoinType::Inner,
+                    left: ir::Stage::Array(ir::ArraySource {
+                        array: vec![ir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
+                            "foo1".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
+                            "bar1".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())
+                                                        }
+                        .into())],
+                        alias: "bar1".into(),
                         cache: SchemaCache::new(),
-                    }
-                )
-            },
+                    })
+                    .into(),
+                    right: ir::Stage::Array(ir::ArraySource {
+                        array: vec![ir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
+                            "foo2".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
+                            "bar2".into() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())
+                                                        }
+                        .into())],
+                        alias: "bar2".into(),
+                        cache: SchemaCache::new(),
+                    })
+                    .into(),
+                    condition: None,
+                    cache: SchemaCache::new(),
+                })
+                .into(),
+                expression: map! {("d", 0u16).into() =>
+                    ir::Expression::ScalarFunction(
+                        ir::ScalarFunctionApplication {
+                            function: ir::ScalarFunction::MergeObjects,
+                            args: vec![ir::Expression::Reference(("bar1", 1u16).into()),
+                                       ir::Expression::Reference(("bar2", 1u16).into())],
+                            cache: SchemaCache::new(),
+                        }
+                    )
+                },
+                cache: SchemaCache::new(),
+            })),
             cache: SchemaCache::new(),
         })),
         input = Some(ast::Datasource::Derived(ast::DerivedSource {

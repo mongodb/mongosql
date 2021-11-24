@@ -2469,6 +2469,49 @@ mod group_by {
                 alias: "agg".into(),
                 agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::AddToArray,
+                    distinct: false,
+                    arg: Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into(),
+                        cache: SchemaCache::new(),
+                    }))
+                })
+            }],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_codegen_plan!(
+        add_to_set,
+        expected = Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$addToSet": "$foo.a"}}},
+                bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
+                bson::doc!{
+                    "$replaceWith": {
+                        "$unsetField": {
+                            "field": "__bot",
+                            "input": {
+                                "$setField": {
+                                    "input": "$$ROOT",
+                                    "field": "",
+                                    "value": "$__bot"
+                                }
+                            }
+                        }
+                    }
+                },
+            ],
+        }),
+        input = Stage::Group(Group {
+            source: source_ir(),
+            keys: key_foo_a(),
+            aggregations: vec![AliasedAggregation {
+                alias: "agg".into(),
+                agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
+                    function: AggregationFunction::AddToArray,
                     distinct: true,
                     arg: Box::new(Expression::FieldAccess(FieldAccess {
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
@@ -2616,7 +2659,7 @@ mod group_by {
             collection: Some("foo".to_string()),
             pipeline: vec![
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
-                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlLast": "$foo.a"}}},
+                bson::doc!{"$group": {"_id": {"foo_a": "$foo.a"}, "agg": {"$sqlLast": {"var": "$foo.a", "distinct": true}}}},
                 bson::doc!{"$project": {"_id": 0, "__bot": {"foo_a": "$_id.foo_a", "agg": "$agg"}}},
                 bson::doc!{
                     "$replaceWith": {

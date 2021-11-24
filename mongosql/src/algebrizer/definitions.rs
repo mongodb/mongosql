@@ -481,7 +481,11 @@ impl<'a> Algebrizer<'a> {
                         }
                         _ => Error::SchemaChecking(e),
                     })?;
-                Ok(stage)
+
+                Ok(ir::Stage::Derived(ir::Derived {
+                    source: Box::new(stage),
+                    cache: SchemaCache::new(),
+                }))
             }
         }
     }

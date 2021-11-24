@@ -487,6 +487,11 @@ impl MqlCodeGenerator {
                     .with_mapping_registry(output_registry)
                     .with_additional_stage(doc! {"$unionWith": union_body}))
             }
+            Derived(s) => MqlCodeGenerator {
+                mapping_registry: self.mapping_registry.clone(),
+                scope_level: self.scope_level + 1,
+            }
+            .codegen_stage(*s.source),
         }
     }
 
@@ -604,11 +609,17 @@ impl MqlCodeGenerator {
                         "distinct": f.distinct
                     };
                     match f.function {
-                        AddToArray => doc! {"$push": var},
+                        AddToArray => {
+                            if f.distinct {
+                                doc! {"$addToSet": var}
+                            } else {
+                                doc! {"$push": var}
+                            }
+                        }
                         Avg => doc! {"$sqlAvg": distinct_body},
                         Count => doc! {"$sqlCount": distinct_body},
                         First => doc! {"$first": var},
-                        Last => doc! {"$sqlLast": var},
+                        Last => doc! {"$sqlLast": distinct_body},
                         Max => doc! {"$max": var},
                         MergeDocuments => doc! {"$sqlMergeObjects": distinct_body},
                         Min => doc! {"$min": var},
