@@ -31,6 +31,7 @@ impl Pass for AggregateRewritePass {
 ///   - `Error::AggregateInGroupByAggListNotAliased`
 ///   - `Error::AggregationFunctionInGroupByAggListAndElsewhere`
 ///
+#[derive(Default)]
 pub struct AggregateUsageCheckVisitor {
     pub error: Option<Error>,
 
@@ -57,20 +58,6 @@ impl AggregateUsageCheckVisitor {
     //   - SELECT * ... GROUP BY x AGGREGATE SUM(x) HAVING SUM(x) > 0  =>  invalid
     fn has_invalid_agg_mix(&self) -> bool {
         self.num_group_by_agg_funcs > 0 && self.num_non_group_by_agg_funcs > 0
-    }
-}
-
-impl Default for AggregateUsageCheckVisitor {
-    fn default() -> Self {
-        Self {
-            error: None,
-
-            in_group_by_key_list: false,
-            in_group_by_agg_func_list: false,
-
-            num_group_by_agg_funcs: 0,
-            num_non_group_by_agg_funcs: 0,
-        }
     }
 }
 

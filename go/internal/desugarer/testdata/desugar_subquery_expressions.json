@@ -66,6 +66,12 @@
             }
           }
         }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
+        }
       }
     ]
   },
@@ -129,6 +135,12 @@
               "in": "$$docExpr.arr.a"
             }
           }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
         }
       }
     ]
@@ -219,6 +231,12 @@
             }
           }
         }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
+        }
       }
     ]
   },
@@ -304,6 +322,12 @@
                     "in": "$$docExpr.p_1.p_2"
                   }
                 }
+              }
+            },
+            {
+              "$project": {
+                "_id": 0,
+                "__subquery_result_0": 0
               }
             }
           ],
@@ -526,6 +550,15 @@
             }
           }
         }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0,
+          "__subquery_result_1": 0,
+          "__subquery_result_2": 0,
+          "__subquery_result_3": 0
+        }
       }
     ]
   },
@@ -567,6 +600,12 @@
               0
             ]
           }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
         }
       }
     ]
@@ -628,6 +667,12 @@
               0
             ]
           }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
         }
       }
     ]
@@ -702,6 +747,12 @@
             ]
           }
         }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
+        }
       }
     ]
   },
@@ -768,6 +819,12 @@
               }
             }
           }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
         }
       }
     ]
@@ -841,6 +898,12 @@
               }
             }
           }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
         }
       }
     ]
@@ -939,6 +1002,12 @@
             }
           }
         }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
+        }
       }
     ]
   },
@@ -1035,6 +1104,12 @@
               }
             }
           }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
         }
       }
     ]

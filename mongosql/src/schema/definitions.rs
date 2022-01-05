@@ -132,21 +132,11 @@ impl FromIterator<(Key, Schema)> for SchemaEnvironment {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Default)]
 pub struct ResultSet {
     pub schema_env: SchemaEnvironment,
     pub min_size: u64,
     pub max_size: Option<u64>,
-}
-
-impl Default for ResultSet {
-    fn default() -> Self {
-        Self {
-            schema_env: SchemaEnvironment::default(),
-            min_size: 0,
-            max_size: None,
-        }
-    }
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]

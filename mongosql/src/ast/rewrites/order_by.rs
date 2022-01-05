@@ -19,6 +19,7 @@ impl Pass for PositionalSortKeyRewritePass {
 }
 
 /// The visitor that performs the rewrites for the `PositionalSortKeyRewritePass`.
+#[derive(Default)]
 struct PositionalSortKeyRewriteVisitor {
     select_exprs: Option<Vec<ast::SelectExpression>>,
     error: Option<Error>,
@@ -65,15 +66,6 @@ impl PositionalSortKeyRewriteVisitor {
                 self.error = Some(err);
                 key
             }
-        }
-    }
-}
-
-impl Default for PositionalSortKeyRewriteVisitor {
-    fn default() -> Self {
-        Self {
-            select_exprs: None,
-            error: None,
         }
     }
 }

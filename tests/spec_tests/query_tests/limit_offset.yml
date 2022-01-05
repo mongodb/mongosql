@@ -138,7 +138,6 @@ tests:
   - description: Offset in subquery
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY a OFFSET 1)"
-    skip_reason: "SQL-578"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
@@ -163,7 +162,7 @@ tests:
                                                        }
       }}}}
     result:
-      - {'bar': {'a': 2}}
+      - {'bar': {'_id': 1, 'a': 2}}
 
   - description: Limit and offset in subquery
     current_db: foo

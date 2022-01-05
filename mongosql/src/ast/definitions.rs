@@ -15,6 +15,7 @@ macro_rules! multimap {
 	};
 }
 
+#[allow(clippy::large_enum_variant)]
 #[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum Query {
     Select(SelectQuery),

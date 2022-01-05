@@ -102,6 +102,12 @@
             }
           }
         }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
+        }
       }
     ]
   },
@@ -220,6 +226,12 @@
                         }
                       }
                     }
+                  },
+                  {
+                    "$project": {
+                      "_id": 0,
+                      "__subquery_result_0": 0
+                    }
                   }
                 ],
                 "as": "eca58228-b657-498a-b76e-f48a9161a404"
@@ -270,6 +282,12 @@
               "in": "$$docExpr.x"
             }
           }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
         }
       }
     ]
@@ -419,6 +437,12 @@
             }
           }
         }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
+        }
       }
     ]
   },
@@ -480,6 +504,12 @@
                     "in": "$$docExpr.x"
                   }
                 }
+              }
+            },
+            {
+              "$project": {
+                "_id": 0,
+                "__subquery_result_0": 0
               }
             }
           ],
@@ -565,6 +595,12 @@
                     "in": "$$docExpr.x"
                   }
                 }
+              }
+            },
+            {
+              "$project": {
+                "_id": 0,
+                "__subquery_result_0": 0
               }
             }
           ],
@@ -652,6 +688,12 @@
         }
       },
       {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
+        }
+      },
+      {
         "$unwind": {
           "path": "$eca58228-b657-498a-b76e-f48a9161a404",
           "preserveNullAndEmptyArrays": false
@@ -732,6 +774,12 @@
       },
       {
         "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
+        }
+      },
+      {
+        "$project": {
           "acc": {
             "$avg": "$acc"
           }
@@ -808,6 +856,12 @@
             ]
           }
         }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
+        }
       }
     ]
   },
@@ -883,6 +937,12 @@
               }
             }
           }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
         }
       }
     ]
@@ -1193,6 +1253,12 @@
               "in": "$$docExpr.v"
             }
           }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
         }
       }
     ]
@@ -1581,6 +1647,12 @@
             }
           }
         }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
+        }
       }
     ]
   },
@@ -1828,6 +1900,12 @@
               "in": "$$docExpr.acc"
             }
           }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "__subquery_result_0": 0
         }
       }
     ]

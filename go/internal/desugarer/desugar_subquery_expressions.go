@@ -27,12 +27,17 @@ var subqueryExprDesugarers = map[string]subqueryExprDesugarer{
 // subquery expressions.
 func desugarSubqueryExprs(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 
-	// A subquery expression is desugared into two parts:
+	// A subquery expression is desugared into three parts:
 	//   1. A $lookup stage that is placed before the containing stage. This
 	//      $lookup stage performs the subquery.
 	//   2. An expression that replaces the subquery expression in the
 	//      containing stage. This replacement is dependent on the type of
 	//      subquery expression.
+	//   3. A $project stage that is placed after the containing stage. This
+	//      $project stage removes the field introduced by the $lookup. If
+	//      there are multiple subquery expressions in a stage, there will
+	//      be multiple $lookup stages but only one $project stage at the
+	//      end.
 	//
 	// At minimum, we know the pipeline will be at least the same length, so
 	// we start with that capacity.
@@ -45,6 +50,8 @@ func desugarSubqueryExprs(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 		// to make the "as" names unique.
 		subqueryCounter := 0
 
+		var asNames []string
+
 		out, _ := ast.Visit(stage, func(v ast.Visitor, n ast.Node) ast.Node {
 			switch tn := n.(type) {
 			case *ast.Pipeline:
@@ -55,6 +62,7 @@ func desugarSubqueryExprs(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 					asName := fmt.Sprintf("__subquery_result_%d", subqueryCounter)
 					replacement, lookupStage := desugarerFunc(tn, asName)
 					newStages = append(newStages, lookupStage)
+					asNames = append(asNames, asName)
 					subqueryCounter += 1
 
 					// There is no need to walk the replacement expr.
@@ -66,6 +74,11 @@ func desugarSubqueryExprs(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 		})
 
 		newStages = append(newStages, out.(ast.Stage))
+
+		// If $lookup stages were introduced, we must exclude those fields at the end
+		if len(asNames) > 0 {
+			newStages = append(newStages, makeExclusionStage(asNames))
+		}
 	}
 
 	return ast.NewPipeline(newStages...)
@@ -335,4 +348,15 @@ func parseSubqueryComparisonArgs(rawArg ast.Expr, outputPathRoot string) subquer
 
 func constantToString(expr ast.Expr) string {
 	return expr.(*ast.Constant).Value.StringValue()
+}
+
+func makeExclusionStage(asNames []string) *ast.ProjectStage {
+	exclusions := make([]ast.ProjectItem, len(asNames)+1)
+	exclusions[0] = ast.NewExcludeProjectItem(ast.NewFieldRef("_id", nil))
+
+	for i, asName := range asNames {
+		exclusions[i+1] = ast.NewExcludeProjectItem(ast.NewFieldRef(asName, nil))
+	}
+
+	return ast.NewProjectStage(exclusions...)
 }

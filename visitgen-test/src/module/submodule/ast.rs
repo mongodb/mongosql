@@ -33,7 +33,7 @@ pub struct Plus {
     pub right: Box<Expression>,
 }
 
-#[allow(clippy::box_vec, clippy::vec_box)]
+#[allow(clippy::box_collection, clippy::vec_box)]
 #[derive(Debug, Clone)]
 pub struct Tree {
     pub branch_b1: Box<String>,
@@ -58,7 +58,7 @@ pub struct Tree {
     pub branch_m1: BTreeMap<Box<Vec<Atom>>, Box<Vec<Expression>>>,
 }
 
-#[allow(clippy::box_vec)]
+#[allow(clippy::box_collection)]
 #[derive(Debug, Clone)]
 pub struct HashTree {
     pub branch_m1: HashMap<String, String>,
