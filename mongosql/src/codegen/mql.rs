@@ -8,10 +8,7 @@ use crate::{
     map,
 };
 use bson::Bson;
-use std::{
-    collections::{BTreeMap, BTreeSet},
-    convert::{From, TryFrom},
-};
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct MqlMappingRegistry(BTreeMap<Key, String>);

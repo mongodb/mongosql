@@ -2,7 +2,6 @@ use crate::ast::*;
 use crate::parser::util::*;
 use lalrpop_util::ParseError;
 use std::str::FromStr;
-use std::convert::TryFrom;
 
 grammar;
 

@@ -1,7 +1,4 @@
-use std::{
-    collections::{btree_map, BTreeMap},
-    iter::{FromIterator, Iterator},
-};
+use std::collections::{btree_map, BTreeMap};
 
 #[derive(Debug)]
 pub struct DuplicateKeyError {

@@ -18,7 +18,6 @@ use crate::{
     result::Result,
     schema::{Schema, SchemaEnvironment},
 };
-use std::convert::TryFrom;
 
 /// Contains all the information needed to execute the MQL translation of a SQL query.
 #[derive(Debug)]

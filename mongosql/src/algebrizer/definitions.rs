@@ -10,7 +10,7 @@ use crate::{
     schema::{Satisfaction, SchemaEnvironment},
     util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
-use std::{collections::BTreeSet, convert::TryFrom};
+use std::collections::BTreeSet;
 use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;

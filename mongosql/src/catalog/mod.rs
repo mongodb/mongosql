@@ -1,5 +1,5 @@
 use crate::schema::Schema;
-use std::{collections::BTreeMap, iter::FromIterator};
+use std::collections::BTreeMap;
 
 #[derive(Debug, Ord, PartialOrd, Eq, PartialEq, Clone)]
 pub struct Namespace {

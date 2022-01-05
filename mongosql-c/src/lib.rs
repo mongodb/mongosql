@@ -1,7 +1,6 @@
 use mongosql::{catalog::*, json_schema, schema};
 use std::{
     collections::BTreeMap,
-    convert::TryFrom,
     ffi::{CStr, CString, NulError},
     os::raw,
     panic,

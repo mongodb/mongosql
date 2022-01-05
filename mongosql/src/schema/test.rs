@@ -22,7 +22,6 @@ mod to_bson {
         ($func_name:ident, expected = $bson_doc:expr, input = $resultset_schema:expr) => {
             #[test]
             fn $func_name() {
-                use std::convert::TryFrom;
                 let b = bson::to_bson(
                     &crate::json_schema::Schema::try_from($resultset_schema).unwrap(),
                 )
@@ -146,7 +145,6 @@ mod from_json {
         schema::{Atomic::*, Document, Schema::*},
         set,
     };
-    use std::convert::TryFrom;
     macro_rules! test_from_json_schema {
         ($func_name:ident, schema_schema = $schema_schema:expr, json_schema = $json_schema:expr) => {
             #[test]

@@ -1,4 +1,3 @@
-use std::convert::TryFrom;
 use variant_count::VariantCount;
 
 #[macro_export]

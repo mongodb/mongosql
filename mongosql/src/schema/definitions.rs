@@ -11,8 +11,7 @@ use enum_iterator::IntoEnumIterator;
 use lazy_static::lazy_static;
 use std::{
     collections::{BTreeMap, BTreeSet},
-    convert::TryFrom,
-    iter::{once, FromIterator, Iterator},
+    iter::once,
     str::FromStr,
 };
 use thiserror::Error;

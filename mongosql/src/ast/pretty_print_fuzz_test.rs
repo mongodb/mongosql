@@ -54,7 +54,6 @@ mod arbitrary {
     use crate::ast::definitions::*;
     use quickcheck::{Arbitrary, Gen};
     use rand::{thread_rng, Rng};
-    use std::convert::TryFrom;
 
     // For SELECT, GROUP BY, and ORDER BY clauses
     static MIN_CLAUSE_EXPRS: u32 = 1; // minimum number of expressions in an arbitrary clause
