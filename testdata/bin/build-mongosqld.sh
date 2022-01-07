@@ -15,6 +15,10 @@
 
     echo "done building mongosqld"
 
+	echo "running 'mongosqld --version'"
+	$out --version
+	echo "done running 'mongosqld --version'"
+
 ) > $LOG_FILE 2>&1
 
 print_exit_msg

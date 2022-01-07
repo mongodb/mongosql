@@ -4,6 +4,7 @@ if [ "$VARIANT" != "" ]; then
     ARCHIVE_FORMAT='tgz'
     JAVA_HOME='/opt/java/jdk8'
     GOROOT='/opt/golang/go1.16'
+    GOBINDIR="$GOROOT/bin"
     BUILD_GSSAPI='true'
     BUILD_FIPS='true'
 fi
@@ -48,7 +49,7 @@ debian10)
     ;;
 macos)
     ARCHIVE_FORMAT='zip'
-    PKG_CONFIG_PATH='/usr/local/opt/openssl/lib/pkgconfig'
+    PKG_CONFIG_PATH='/usr/local/opt/openssl@1.1/lib/pkgconfig'
     PUSH_ARCH='x86_64'
     PUSH_NAME='osx'
     MONGO_DISTRO='osx'

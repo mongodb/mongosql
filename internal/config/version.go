@@ -3,6 +3,8 @@ package config
 import (
 	"fmt"
 	"io"
+
+	"github.com/10gen/openssl"
 )
 
 var (
@@ -13,8 +15,11 @@ var (
 	Gitspec = "built-without-git-spec"
 )
 
-// PrintVersionAndGitspec prints out the version and the gitspec.
-func PrintVersionAndGitspec(toolName string, w io.Writer) {
+// PrintVersionInfo prints out the version, gitspec, runtime openssl
+// version, and build-time openssl version.
+func PrintVersionInfo(toolName string, w io.Writer) {
 	_, _ = fmt.Fprintf(w, "%v version: %v\n", toolName, VersionStr)
 	_, _ = fmt.Fprintf(w, "git version: %v\n", Gitspec)
+	_, _ = fmt.Fprintf(w, "openssl version: %v\n", openssl.Version)
+	_, _ = fmt.Fprintf(w, "openssl build version: %v\n", openssl.BuildVersion)
 }

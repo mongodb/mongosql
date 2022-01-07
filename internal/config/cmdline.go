@@ -215,7 +215,7 @@ func ParseArgs(cfg *Config, args []string) ([]string, error) {
 	}
 
 	if opts.Version != nil && *opts.Version {
-		PrintVersionAndGitspec("mongosqld", os.Stdout)
+		PrintVersionInfo("mongosqld", os.Stdout)
 		return nil, ErrExitEarly
 	}
 

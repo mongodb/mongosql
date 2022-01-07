@@ -26,7 +26,7 @@ func main() {
 	}
 
 	if opts.Version {
-		config.PrintVersionAndGitspec("mongodrdl", os.Stdout)
+		config.PrintVersionInfo("mongodrdl", os.Stdout)
 		os.Exit(procutil.ExitClean)
 	}
 

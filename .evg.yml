@@ -729,6 +729,7 @@ tasks:
   tags:
     - oneoff-task
     - code-quality
+    - cq-skip
   commands:
     - func: "evergreen validate"
 

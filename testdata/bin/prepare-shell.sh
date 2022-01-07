@@ -29,11 +29,6 @@ fi
 GOBIN="$GOPATH/bin"
 GOCACHE="$SQLPROXY_TEST_CACHE_DIR/go-build"
 
-# if we are using a non-default GOROOT, also set GOBINDIR
-if [ "$GOROOT" != '' ]; then
-	GOBINDIR="$GOROOT"/bin
-fi
-
 # The default for go version < 1.13 is to not use go modules.
 # We explicitly turn it on in preparation for the update
 GO111MODULE="on"
