@@ -417,9 +417,9 @@ TypeTier<Expr, NextTier>: Box<Expression> = {
     NextTier,
 };
 
-BetweenTier<Expr, NextTier>: Box<Expression> = {
-  <e1:BetweenTier<Expr, NextTier>> BETWEEN <e2:NextTier> =>? parse_between_expr(e1, *e2, false),
-  <e1:BetweenTier<Expr, NextTier>> <n:NotOp> BETWEEN <e2:NextTier> =>? parse_between_expr(e1, *e2, true),
+BetweenTier<Expr, ArgTier, NextTier>: Box<Expression> = {
+  <e1:BetweenTier<Expr, ArgTier, NextTier>> BETWEEN <e2:ArgTier> =>? parse_between_expr(e1, *e2, false),
+  <e1:BetweenTier<Expr, ArgTier, NextTier>> <n:NotOp> BETWEEN <e2:ArgTier> =>? parse_between_expr(e1, *e2, true),
   NextTier,
 }
 
@@ -447,7 +447,7 @@ LikeTier<Expr, NextTier>: Box<Expression> = {
 
 Tier1Expr = LikeTier<Expression, Tier2Expr>;
 Tier2Expr = IsTier<Expression, Tier3Expr>;
-Tier3Expr = BetweenTier<Expression, Tier4Expr>;
+Tier3Expr = BetweenTier<Expression, Tier6Expr, Tier4Expr>;
 Tier4Expr = BinaryTier<InOp, Tier5Expr>;
 Tier5Expr = BinaryTier<OrOp, Tier6Expr>;
 Tier6Expr = BinaryTier<AndOp, Tier7Expr>;

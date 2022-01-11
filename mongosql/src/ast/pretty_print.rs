@@ -361,11 +361,11 @@ impl ExpressionTier {
     }
 }
 
-impl BinaryExpr {
+impl BinaryOp {
     fn get_tier(&self) -> ExpressionTier {
         use BinaryOp::*;
         use ExpressionTier::*;
-        match self.op {
+        match self {
             In | NotIn => Tier4Expr,
             Or => Tier5Expr,
             And => Tier6Expr,
@@ -374,6 +374,12 @@ impl BinaryExpr {
             Add | Sub => Tier9Expr,
             Mul | Div => Tier10Expr,
         }
+    }
+}
+
+impl BinaryExpr {
+    fn get_tier(&self) -> ExpressionTier {
+        self.op.get_tier()
     }
 }
 
@@ -691,11 +697,12 @@ impl Display for TrimSpec {
 
 impl Display for BetweenExpr {
     fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let tier = self.get_tier();
+        let between_tier = self.get_tier();
+        let sub_tier = BinaryOp::And.get_tier();
         let (formatted_expr, formatted_min, formatted_max) = (
-            tier.format_sub_expr(&*self.expr),
-            tier.format_sub_expr(&*self.min),
-            tier.format_sub_expr(&*self.max),
+            between_tier.format_sub_expr(&*self.expr),
+            sub_tier.format_sub_expr(&*self.min),
+            sub_tier.format_sub_expr(&*self.max),
         );
         write!(
             f,

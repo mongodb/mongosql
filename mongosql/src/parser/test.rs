@@ -471,6 +471,12 @@ mod operator {
         expected = true,
         input = "select CASE when a BETWEEN b and c THEN a ELSE b END"
     );
+    parsable!(
+        in_op_in_between_expr,
+        expected = true,
+        input = "SELECT a BETWEEN (b IN c) AND d"
+    );
+
     parsable!(is_type, expected = true, input = "select a IS STRING");
     parsable!(
         is_not_type,

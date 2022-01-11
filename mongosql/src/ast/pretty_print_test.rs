@@ -1016,6 +1016,16 @@ expression_printer_test!(
     input = "x BETWEEN y AND (z IS INT)"
 );
 expression_printer_test!(
+    in_is_lower_prec_than_between,
+    expected = "x BETWEEN (y IN z) AND p",
+    input = "x BETWEEN (y IN z) AND p"
+);
+expression_printer_test!(
+    plus_is_higher_prec_than_between,
+    expected = "x BETWEEN y + z AND p",
+    input = "x BETWEEN (y + z) AND p"
+);
+expression_printer_test!(
     between_is_higher_prec_than_is,
     expected = "x BETWEEN y AND z IS INT",
     input = "(x BETWEEN y AND z) IS INT"
