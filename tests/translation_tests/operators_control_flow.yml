@@ -1,7 +1,6 @@
 tests:
   - description: Nested Case expression translation
     query: "SELECT VALUE { 'r': CASE 1 WHEN (CASE 2 WHEN a THEN 2 ELSE 1 END) THEN 'YES' ELSE 'NO' END} FROM [{'a': 1, 'b': 1}] AS arr"
-    skip_reason: "SQL-500: fix $let document"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
