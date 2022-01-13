@@ -74,21 +74,51 @@ mod arbitrary {
     static NEST_LOWER_BOUND: usize = 10; // At most 5 levels of nesting
     static NEST_UPPER_BOUND: usize = 25; // At least 2 levels of nesting
 
+    /// Return an arbitrary String without null characters and with
+    /// the specified exact length.
+    ///
+    /// These Strings can be used for aliases, identifiers, or literals.
+    fn arbitrary_string_with_len(len: usize) -> String {
+        loop {
+            let s = arbitrary_string_with_max_len(len);
+            if s.len() == len {
+                break s;
+            }
+        }
+    }
+
+    /// Return an arbitrary String without null characters and with
+    /// the specified maximum length.
+    ///
+    /// These Strings can be used for aliases, identifiers, or literals.
+    fn arbitrary_string_with_max_len(max_len: usize) -> String {
+        let g = &mut Gen::new(max_len as usize);
+        String::arbitrary(g).replace("\u{0}", "")
+    }
+
     /// Return an arbitrary String without null characters.
     ///
     /// These Strings can be used for aliases, identifiers, or literals.
     fn arbitrary_string() -> String {
-        let g = &mut Gen::new(rand_len(1, 20) as usize);
-        String::arbitrary(g).replace("\u{0}", "")
+        arbitrary_string_with_max_len(rand_len(1, 20) as usize)
+    }
+
+    /// Return an arbitrary Option<T>, using the provided Fn to
+    /// construct the value if the chosen variant is Some.
+    fn arbitrary_optional<T, F>(g: &mut Gen, f: F) -> Option<T>
+    where
+        F: Fn() -> T,
+    {
+        if bool::arbitrary(g) {
+            None
+        } else {
+            Some(f())
+        }
     }
 
     /// Return an arbitrary Option<String> without null characters.
     fn arbitrary_optional_string(g: &mut Gen) -> Option<String> {
-        if bool::arbitrary(g) {
-            None
-        } else {
-            Some(arbitrary_string())
-        }
+        arbitrary_optional(g, arbitrary_string)
     }
 
     fn arbitrary_expr_terminal(g: &mut Gen) -> Expression {
@@ -645,7 +675,7 @@ mod arbitrary {
             Self {
                 expr: Box::new(Expression::arbitrary(g)),
                 pattern: Box::new(Expression::arbitrary(g)),
-                escape: arbitrary_optional_string(g),
+                escape: arbitrary_optional(g, || arbitrary_string_with_len(1)),
             }
         }
     }
