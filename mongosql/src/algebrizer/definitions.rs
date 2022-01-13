@@ -780,12 +780,25 @@ impl<'a> Algebrizer<'a> {
         if f.set_quantifier == Some(ast::SetQuantifier::Distinct) {
             return Err(Error::DistinctScalarFunction);
         }
+
         // get the arguments as a vec of ast::Expressions. If the arguments are
         // Star this must be a COUNT function, otherwise it is an error.
         let args = match f.args {
-            ast::FunctionArguments::Args(ve) => ve,
             ast::FunctionArguments::Star => return Err(Error::StarInNonCount),
+            ast::FunctionArguments::Args(ve) => ve,
         };
+
+        // if the function is CURRENT_TIMESTAMP with exactly one arg,
+        // throw away the argument. we break the spec intentionally
+        // here by ignoring the date-precision argument. this is
+        // implemented during algebrization instead of rewriting
+        // because all other rewrites are compliant with the spec, and
+        // this would be the only non-spec-compliant rewrite.
+        let args = match (f.function, args.len()) {
+            (ast::FunctionName::CurrentTimestamp, 1) => Vec::new(),
+            _ => args,
+        };
+
         schema_check_return!(
             self,
             ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {

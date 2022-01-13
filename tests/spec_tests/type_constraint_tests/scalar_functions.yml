@@ -77,6 +77,6 @@ tests:
 
   - description: CURRENT_TIMESTAMP operand must have type INT or NULL, or be MISSING
     query: "SELECT CURRENT_TIMESTAMP(arg1) FROM foo"
-    skip_reason: "SQL-592: Remove CURRENT_TIMESTAMP argument during algebrization"
+    skip_reason: "SQL-671: ignoring arg incorrectly allows invalid types"
     valid_types:
       - { "arg1": *int }
