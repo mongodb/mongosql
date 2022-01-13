@@ -6,28 +6,28 @@ variables:
 
 tests:
   - description: AVG argument must be numeric
-    query: "SELECT * FROM foo GROUP BY NULL AGGREGATE AVG(arg1) AS avg"
+    query: "SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE AVG(arg1) AS avg"
     valid_types:
       - {"arg1": *numerics}
 
   - description: MERGE_DOCUMENTS argument must be document
-    query: "SELECT * FROM foo GROUP BY NULL AGGREGATE MERGE_DOCUMENTS(arg1) AS merge"
+    query: "SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE MERGE_DOCUMENTS(arg1) AS merge"
     skip_reason: "SQL-590: Support nullish document arguments"
     valid_types:
       - {"arg1": *document}
 
   - description: STDDEV_POP argument must be numeric
-    query: "SELECT * FROM foo GROUP BY NULL AGGREGATE STDDEV_POP(arg1) AS pop"
+    query: "SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE STDDEV_POP(arg1) AS pop"
     valid_types:
       - {"arg1": *numerics}
 
   - description: STDDEV_SAMP argument must be numeric
-    query: "SELECT * FROM foo GROUP BY NULL AGGREGATE STDDEV_SAMP(arg1) AS samp"
+    query: "SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE STDDEV_SAMP(arg1) AS samp"
     valid_types:
       - {"arg1": *numerics}
 
   - description: SUM argument must be numeric
-    query: "SELECT * FROM foo GROUP BY NULL AGGREGATE SUM(arg1) AS sum"
+    query: "SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(arg1) AS sum"
     valid_types:
       - {"arg1": *numerics}
 

@@ -129,19 +129,20 @@ mod aggregate {
     test_rewrite!(
         one_func_in_select_clause,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1 FROM foo GROUP BY NULL AGGREGATE SUM(x) AS _agg1"),
+        expected =
+            Ok("SELECT _agg1 FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"),
         input = "SELECT SUM(x) FROM foo",
     );
     test_rewrite!(
         different_funcs_in_select_by_clause,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1, _agg2 FROM foo GROUP BY NULL AGGREGATE SUM(x) AS _agg1, COUNT(y) AS _agg2"),
+        expected = Ok("SELECT _agg1, _agg2 FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1, COUNT(y) AS _agg2"),
         input = "SELECT SUM(x), COUNT(y) FROM foo",
     );
     test_rewrite!(
         identical_funcs_in_select_clause,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1, _agg2, _agg2, _agg1 FROM foo GROUP BY NULL AGGREGATE SUM(x) AS _agg1, SUM(x + 1) AS _agg2"),
+        expected = Ok("SELECT _agg1, _agg2, _agg2, _agg1 FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1, SUM(x + 1) AS _agg2"),
         input = "SELECT SUM(x), SUM(x+1), SUM(x+1), SUM(x) FROM foo",
     );
 
@@ -158,7 +159,7 @@ mod aggregate {
         one_func_in_having_clause_no_group_by,
         pass = AggregateRewritePass,
         expected =
-            Ok("SELECT * FROM foo GROUP BY NULL AGGREGATE SUM(x) AS _agg1 HAVING _agg1 > 42"),
+            Ok("SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1 HAVING _agg1 > 42"),
         input = "SELECT * FROM foo HAVING SUM(x) > 42",
     );
     test_rewrite!(
@@ -182,7 +183,7 @@ mod aggregate {
     test_rewrite!(
         identical_funcs_in_having_clause_alias_order_dictated_by_select,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1, _agg2, _agg2, _agg1 FROM foo GROUP BY NULL AGGREGATE SUM(x) AS _agg1, SUM(x + 1) AS _agg2 HAVING _agg2 > 42 AND _agg1 < 42"),
+        expected = Ok("SELECT _agg1, _agg2, _agg2, _agg1 FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1, SUM(x + 1) AS _agg2 HAVING _agg2 > 42 AND _agg1 < 42"),
         input = "SELECT SUM(x), SUM(x+1), SUM(x+1), SUM(x) FROM foo HAVING SUM(x+1) > 42 AND SUM(x) < 42",
     );
 
@@ -190,43 +191,43 @@ mod aggregate {
     test_rewrite!(
         top_level_select_and_subquery_select_different_funcs,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1 FROM (SELECT _agg1 GROUP BY NULL AGGREGATE COUNT(y) AS _agg1) AS z GROUP BY NULL AGGREGATE SUM(x) AS _agg1"),
+        expected = Ok("SELECT _agg1 FROM (SELECT _agg1 GROUP BY NULL AS _groupKey1 AGGREGATE COUNT(y) AS _agg1) AS z GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"),
         input = "SELECT SUM(x) FROM (SELECT COUNT(y)) AS z",
     );
     test_rewrite!(
         top_level_select_and_subquery_select_identical_funcs,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1 FROM (SELECT _agg1 GROUP BY NULL AGGREGATE SUM(x) AS _agg1) AS z GROUP BY NULL AGGREGATE SUM(x) AS _agg1"),
+        expected = Ok("SELECT _agg1 FROM (SELECT _agg1 GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1) AS z GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"),
         input = "SELECT SUM(x) FROM (SELECT SUM(x)) AS z",
     );
     test_rewrite!(
         top_level_select_and_subquery_group_by_aggregate_not_modified,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1 FROM (SELECT * FROM foo GROUP BY x AGGREGATE COUNT(y) AS z) AS z GROUP BY NULL AGGREGATE SUM(x) AS _agg1"),
+        expected = Ok("SELECT _agg1 FROM (SELECT * FROM foo GROUP BY x AGGREGATE COUNT(y) AS z) AS z GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"),
         input = "SELECT SUM(x) FROM (SELECT * FROM foo GROUP BY x AGGREGATE COUNT(y) AS z) AS z",
     );
     test_rewrite!(
         top_level_select_and_subquery_having,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1 FROM (SELECT * FROM foo GROUP BY NULL AGGREGATE COUNT(y) AS _agg1 HAVING _agg1 > 42) AS z GROUP BY NULL AGGREGATE SUM(x) AS _agg1"),
+        expected = Ok("SELECT _agg1 FROM (SELECT * FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE COUNT(y) AS _agg1 HAVING _agg1 > 42) AS z GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"),
         input = "SELECT SUM(x) FROM (SELECT * FROM foo HAVING COUNT(y) > 42) AS z",
     );
     test_rewrite!(
         top_level_select_and_subquery_exists,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1 FROM foo WHERE EXISTS(SELECT * FROM bar GROUP BY NULL AGGREGATE COUNT(y) AS _agg1 HAVING _agg1 > 42) GROUP BY NULL AGGREGATE SUM(x) AS _agg1"),
+        expected = Ok("SELECT _agg1 FROM foo WHERE EXISTS(SELECT * FROM bar GROUP BY NULL AS _groupKey1 AGGREGATE COUNT(y) AS _agg1 HAVING _agg1 > 42) GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"),
         input = "SELECT SUM(x) FROM foo WHERE EXISTS(SELECT * FROM bar HAVING COUNT(y) > 42)",
     );
     test_rewrite!(
         subquery_in_func_in_top_level_select,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT _agg1 FROM foo GROUP BY NULL AGGREGATE SUM(x <> ANY(SELECT _agg1 FROM bar GROUP BY NULL AGGREGATE SUM(x) AS _agg1)) AS _agg1"),
+        expected = Ok("SELECT _agg1 FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x <> ANY(SELECT _agg1 FROM bar GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1)) AS _agg1"),
         input = "SELECT SUM(x <> ANY(SELECT SUM(x) FROM bar)) FROM foo",
     );
     test_rewrite!(
         subquery_in_func_in_group_by_agg_list,
         pass = AggregateRewritePass,
-        expected = Ok("SELECT * FROM foo GROUP BY x AGGREGATE SUM(x <> ANY(SELECT _agg1 FROM bar GROUP BY NULL AGGREGATE SUM(x) AS _agg1)) AS z"),
+        expected = Ok("SELECT * FROM foo GROUP BY x AGGREGATE SUM(x <> ANY(SELECT _agg1 FROM bar GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1)) AS z"),
         input = "SELECT * FROM foo GROUP BY x AGGREGATE SUM(x <> ANY(SELECT SUM(x) FROM bar)) AS z",
     );
 

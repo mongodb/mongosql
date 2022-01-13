@@ -23,7 +23,7 @@ tests:
     algebrize_error: "alias 'a' used two times"
 
   - description: Cannot use duplicate explicit aliases for aggregations
-    query: "SELECT * FROM [{'a': 1}] arr GROUP BY NULL AGGREGATE count(a) AS a, count(a) AS a"
+    query: "SELECT * FROM [{'a': 1}] arr GROUP BY NULL AS _groupKey1 AGGREGATE count(a) AS a, count(a) AS a"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     algebrize_error: "alias 'a' used two times"
@@ -47,7 +47,7 @@ tests:
     algebrize_error: "alias '_groupKey1' used two times"
 
   - description: Cannot use duplicate generated aliases for aggregations
-    query: "SELECT * FROM [{'a': 1}] arr GROUP BY NULL AGGREGATE count(a), count(a) AS _agg1"
+    query: "SELECT * FROM [{'a': 1}] arr GROUP BY NULL AS _groupKey1 AGGREGATE count(a), count(a) AS _agg1"
     skip_reason: "SQL-462: re-enable tests with array datasources"
     should_compile: false
     algebrize_error: "alias '_agg1' used two times"

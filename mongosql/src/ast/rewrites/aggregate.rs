@@ -207,9 +207,10 @@ impl Visitor for AggregateAliasingVisitor {
         // Otherwise, create a new key list only containing the `NULL` literal.
         let keys = match node.group_by_clause {
             Some(g) => g.keys,
-            None => vec![OptionallyAliasedExpr::Unaliased(Expression::Literal(
-                Literal::Null,
-            ))],
+            None => vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
+                expr: Expression::Literal(Literal::Null),
+                alias: "_groupKey1".to_string(),
+            })],
         };
 
         // Return a select query containing a new `GROUP BY` clause with the aggregation function aliases.

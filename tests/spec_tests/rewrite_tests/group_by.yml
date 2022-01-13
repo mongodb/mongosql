@@ -1,8 +1,7 @@
 tests:
   - description: Rewrite aggregate without GROUP BY to GROUP BY NULL
     query: "SELECT COUNT(*) FROM bar"
-    result: "SELECT VALUE {'_1' : _agg1} FROM bar AS bar GROUP BY NULL AS _groupKey1 AGGREGATE COUNT(*) AS _agg1"
-    skip_reason: "SQL-548: Add rewrite pass for aggregations without GROUP BY"
+    result: "SELECT VALUE {'_1': _agg1} FROM bar AS bar GROUP BY NULL AS _groupKey1 AGGREGATE COUNT(*) AS _agg1"
 
   - description: Rewrite aggregate from multiple copies of same aggregate expression must create only one aggregate expression
     query: "SELECT SUM(a + 1) + 2, SUM(a + 1) + 2 FROM bar AS bar GROUP BY b HAVING SUM(a + 1) > 14"
