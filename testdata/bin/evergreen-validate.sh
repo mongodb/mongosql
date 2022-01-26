@@ -6,7 +6,7 @@
 (
       set -o errexit
 
-      OUTPUT=$(~/evergreen validate -f .evg.yml)
+      OUTPUT=$(~/evergreen validate -p sqlproxy -f .evg.yml)
 
       echo $OUTPUT
 

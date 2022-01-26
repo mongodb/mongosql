@@ -7,7 +7,7 @@
     set -o errexit
     set -o verbose
 
-    [ ! -d ${ARTIFACTS_DIR}/mongosql-auth-java ] && git clone git://github.com/mongodb/mongosql-auth-java.git ${ARTIFACTS_DIR}/mongosql-auth-java
+    [ ! -d ${ARTIFACTS_DIR}/mongosql-auth-java ] && git clone https://github.com/mongodb/mongosql-auth-java.git ${ARTIFACTS_DIR}/mongosql-auth-java
 
     cd $ARTIFACTS_DIR/mongosql-auth-java
     ./gradlew -version

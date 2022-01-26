@@ -652,6 +652,7 @@ variables:
   - &run-make-target
     # the task name in evg should correspond to a make target.
     name: test
+    exec_timeout_secs: 14400 # 4h
     commands:
       - func: "install dependencies"
       - func: "run make"
@@ -703,6 +704,7 @@ tasks:
         var_parallel: "2"
 
 - name: compile
+  exec_timeout_secs: 600 # 10m
   commands:
     - func: "build mongosqld"
     - func: "build mongodrdl"
@@ -715,6 +717,7 @@ tasks:
   tags:
     - oneoff-task
     - code-quality
+  exec_timeout_secs: 300 # 5m
   commands:
     - func: "check source lint"
 
@@ -722,6 +725,7 @@ tasks:
   tags:
     - oneoff-task
     - code-quality
+  exec_timeout_secs: 900 # 15m
   commands:
     - func: "check yamllint"
 
@@ -729,7 +733,7 @@ tasks:
   tags:
     - oneoff-task
     - code-quality
-    - cq-skip
+  exec_timeout_secs: 60 # 1m
   commands:
     - func: "evergreen validate"
 
@@ -760,12 +764,14 @@ tasks:
   depends_on:
   - name: sign
     variant: '.packager'
+  exec_timeout_secs: 300 # 5m
   commands:
     - func: "release BI Connector"
 
 - name: sign
   depends_on:
     - name: compile
+  exec_timeout_secs: 300 # 5m
   commands:
     - func: "fetch packages"
     - func: "sign msi installer"
@@ -777,6 +783,7 @@ tasks:
   tags:
     - integration
     - test
+  exec_timeout_secs: 3600 # 1h 
   commands:
     - func: "start mongodb"
     - func: "build mongosqld"
@@ -789,6 +796,7 @@ tasks:
   tags:
     - integration
     - test
+  exec_timeout_secs: 3600 # 1h 
   commands:
     - func: "start mongodb"
     - func: "build mongosqld"
@@ -804,6 +812,7 @@ tasks:
     - integration
     - test
     - nopushdown
+  exec_timeout_secs: 3600 # 1h 
   commands:
     - func: "start mongodb"
     - func: "build mongosqld"
@@ -819,6 +828,7 @@ tasks:
   tags:
     - integration
     - test
+  exec_timeout_secs: 3600 # 1h 
   commands:
     - func: "start mongodb"
     - func: "build mongosqld"
@@ -831,6 +841,7 @@ tasks:
   tags:
     - integration
     - test
+  exec_timeout_secs: 3600 # 1h 
   commands:
     - func: "start mongodb"
     - func: "build mongosqld"
@@ -844,6 +855,7 @@ tasks:
     - integration
     - test
     - nopushdown
+  exec_timeout_secs: 3600 # 1h 
   commands:
     - func: "start mongodb"
     - func: "build mongosqld"
@@ -1640,6 +1652,7 @@ tasks:
 
 - name: module-tests
   tags: ["test"]
+  exec_timeout_secs: 3600 # 1h 
   commands:
     - func: "start mongodb"
     - func: "run unit tests"

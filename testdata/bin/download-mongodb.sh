@@ -69,6 +69,13 @@ set_mongodb_binaries ()
            edition="base"
        fi
 
+	   echo "running curator with args:"
+	   echo "  --target $distro"
+	   echo "  --arch $arch"
+	   echo "  --version $version_for_curator"
+	   echo "  --edition $edition"
+	   echo "  --path $cache"
+
        $GOBIN/curator artifacts download \
            --target $distro \
            --arch $arch \
