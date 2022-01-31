@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LATEST="5.0-stable"
+LATEST="5.2-stable"
 
 get_latest_for_distro() {
    distro=$1
@@ -69,12 +69,12 @@ set_mongodb_binaries ()
            edition="base"
        fi
 
-	   echo "running curator with args:"
-	   echo "  --target $distro"
-	   echo "  --arch $arch"
-	   echo "  --version $version_for_curator"
-	   echo "  --edition $edition"
-	   echo "  --path $cache"
+       echo "running curator with args:"
+       echo "  --target $distro"
+       echo "  --arch $arch"
+       echo "  --version $version_for_curator"
+       echo "  --edition $edition"
+       echo "  --path $cache"
 
        $GOBIN/curator artifacts download \
            --target $distro \

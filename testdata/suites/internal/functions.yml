@@ -964,6 +964,8 @@ testcases:
       - [null, null]
     expected_types: [int, float]
     id: atan_2_arguments
+    #BI-2677: Investigate atan2 changes on mongodb version 5.2
+    skip: true
     sql: select a, atan(a, 2) from scalar
     unordered: true
 
