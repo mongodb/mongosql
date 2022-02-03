@@ -288,12 +288,12 @@ functions:
           export LD_LIBRARY_PATH="$(cd .. && pwd)"
 
           echo "downloading mongodb"
-          curl -O https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-rhel70-5.0.3.tgz
-          tar zxvf mongodb-linux-x86_64-rhel70-5.0.3.tgz
+          curl -O https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-rhel70-5.1.1.tgz
+          tar zxvf mongodb-linux-x86_64-rhel70-5.1.1.tgz
           mkdir -p data_db
 
           echo "starting mongodb"
-          mongodb-linux-x86_64-rhel70-5.0.3/bin/mongod --dbpath data_db &
+          mongodb-linux-x86_64-rhel70-5.1.1/bin/mongod --dbpath data_db &
 
           echo "run spec tests"
           go test -v ./... -tags spectests | tee spec-test-results.txt

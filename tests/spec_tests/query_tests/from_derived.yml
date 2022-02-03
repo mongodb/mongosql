@@ -64,16 +64,16 @@ tests:
   - description: derived table merges namespaces under alias namespace
     current_db: test
     query: "SELECT * FROM (SELECT foo.*, bar.* FROM [{'a': 1}] foo JOIN [{'b': 2}] bar) AS derived"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: test
     translation_target_coll: foo
     translation:
-      - {'$documents': {'foo': [{'a': 1}]}}
+      - {'$documents': [{'a': {'$literal': 1}}]}
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
       - {'$join': {
         'joinType': 'inner',
-        'pipeline': [{'$documents': {'bar': [{'b': 2}]}}],
-      }}
-      - {'$project': {'_id': 0, 'foo': '$foo', 'bar': '$bar'}}
-      - {'$project': {'_id': 0, 'derived': {'$mergeObjects': ['$foo', '$bar']}}}
+        'pipeline': [{'$documents': [{'b': {'$literal': 2}}]}, {'$project': {'_id': 0, 'bar': '$$ROOT'}}],
+        }}
+      - {'$project': {'_id': 0, 'bar': '$bar', 'foo': '$foo'}}
+      - {'$project': {'_id': 0, 'derived': {'$mergeObjects': ['$bar', '$foo']}}}
     result:
-      - {'derived': {'a': 1, 'b': 2}}
+      - {'derived': {'b': 2, 'a': 1}}

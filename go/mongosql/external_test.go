@@ -354,7 +354,15 @@ func TestSpecResultSets(t *testing.T) {
 						assert.NoError(t, err)
 
 						var actualResultSet []bson.D
-						actualCursor, err := client.Database(testCase.TranslationDB).Collection(testCase.TranslationColl).Aggregate(context.Background(), pipelineBsonD)
+						var actualCursor *mongo.Cursor
+						if translation.TargetCollection == "" {
+							actualCursor, err = client.Database(testCase.TranslationDB).
+								Aggregate(context.Background(), pipelineBsonD)
+						} else {
+							actualCursor, err = client.Database(testCase.TranslationDB).
+								Collection(testCase.TranslationColl).
+								Aggregate(context.Background(), pipelineBsonD)
+						}
 						assert.NoError(t, err)
 						err = actualCursor.All(context.Background(), &actualResultSet)
 						assert.NoError(t, err)
