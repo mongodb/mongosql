@@ -350,7 +350,9 @@ impl TryFrom<Schema> for json_schema::Schema {
                 properties: None,
                 required: None,
                 additional_properties: None,
-                items: Some(Box::new(json_schema::Schema::try_from(*a)?)),
+                items: Some(json_schema::Items::Single(Box::new(
+                    json_schema::Schema::try_from(*a)?,
+                ))),
                 any_of: None,
                 one_of: None,
             },
@@ -840,10 +842,22 @@ impl TryFrom<json_schema::Schema> for Schema {
                 one_of: None,
             } => match bson_type {
                 json_schema::BsonType::Single(s) => match s.as_str() {
-                    "array" => match items {
-                        Some(i) => Ok(Schema::Array(Box::new(Schema::try_from(*i)?))),
-                        None => Ok(Schema::Array(Box::new(Schema::Any))),
-                    },
+                    "array" => Ok(Schema::Array(Box::new(match items {
+                        // The single-schema variant of the `items`
+                        // field constrains all elements of the array.
+                        Some(json_schema::Items::Single(i)) => Schema::try_from(*i)?,
+                        // The multiple-schema variant of the `items`
+                        // field only asserts the schemas for the
+                        // array items at specified indexes, and
+                        // imposes no constraint on items at larger
+                        // indexes. As such, the only schema that can
+                        // describe all elements of the array is
+                        // `Any`.
+                        Some(json_schema::Items::Multiple(_)) => Schema::Any,
+                        // No `items` field means no constraints on
+                        // array elements.
+                        None => Schema::Any,
+                    }))),
                     "object" => Ok(Schema::Document(Document::try_from(json_schema::Schema {
                         properties,
                         required,

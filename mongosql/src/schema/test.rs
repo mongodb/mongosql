@@ -139,7 +139,7 @@ mod to_bson {
 mod from_json {
     use crate::{
         json_schema,
-        json_schema::BsonType,
+        json_schema::{BsonType, Items},
         map, schema,
         schema::definitions::Error,
         schema::{Atomic::*, Document, Schema::*},
@@ -338,10 +338,10 @@ mod from_json {
         schema_schema = Ok(Array(Box::new(Atomic(Integer)))),
         json_schema = json_schema::Schema {
             bson_type: Some(BsonType::Single("array".to_string())),
-            items: Some(Box::new(json_schema::Schema {
+            items: Some(Items::Single(Box::new(json_schema::Schema {
                 bson_type: Some(BsonType::Single("int".to_string())),
                 ..Default::default()
-            })),
+            }))),
             ..Default::default()
         }
     );
@@ -351,10 +351,10 @@ mod from_json {
         schema_schema = Ok(AnyOf(set![Atomic(Integer)])),
         json_schema = json_schema::Schema {
             bson_type: Some(BsonType::Multiple(vec!["int".to_string(),])),
-            items: Some(Box::new(json_schema::Schema {
+            items: Some(Items::Single(Box::new(json_schema::Schema {
                 bson_type: Some(BsonType::Single("int".to_string())),
                 ..Default::default()
-            })),
+            }))),
             ..Default::default()
         }
     );
@@ -364,6 +364,19 @@ mod from_json {
         schema_schema = Ok(Array(Box::new(Any))),
         json_schema = json_schema::Schema {
             bson_type: Some(BsonType::Single("array".to_string())),
+            ..Default::default()
+        }
+    );
+
+    test_from_json_schema!(
+        bson_type_array_multiple_items_becomes_any,
+        schema_schema = Ok(Array(Box::new(Any))),
+        json_schema = json_schema::Schema {
+            bson_type: Some(BsonType::Single("array".to_string())),
+            items: Some(Items::Multiple(vec![json_schema::Schema {
+                bson_type: Some(BsonType::Single("int".to_string())),
+                ..Default::default()
+            }])),
             ..Default::default()
         }
     );
@@ -395,10 +408,10 @@ mod from_json {
             }}),
             required: Some(vec!["a".to_string()]),
             additional_properties: Some(true),
-            items: Some(Box::new(json_schema::Schema {
+            items: Some(Items::Single(Box::new(json_schema::Schema {
                 bson_type: Some(BsonType::Single("int".to_string())),
                 ..Default::default()
-            })),
+            }))),
             ..Default::default()
         }
     );
@@ -418,10 +431,10 @@ mod from_json {
                 "array".to_string(),
                 "object".to_string()
             ])),
-            items: Some(Box::new(json_schema::Schema {
+            items: Some(Items::Single(Box::new(json_schema::Schema {
                 bson_type: Some(BsonType::Single("int".to_string())),
                 ..Default::default()
-            })),
+            }))),
             ..Default::default()
         }
     );

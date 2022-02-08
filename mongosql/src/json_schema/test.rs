@@ -2,17 +2,16 @@ use crate::json_schema::*;
 use std::collections::HashMap;
 
 macro_rules! validate_json_schema {
-    ($func_name:ident, expected_schema = $expected_schema:expr, expected_json = $expected_json:expr, input = $input:expr, ) => {
+    ($func_name:ident, expected_schema = $expected_schema:expr, $(expected_json = $expected_json:expr,)? input = $input:expr, ) => {
         #[test]
         fn $func_name() {
             let s: Schema = serde_json::from_str($input).unwrap();
             assert_eq!(s, *$expected_schema);
 
-            let expected_json = if $expected_json == "" {
-                $input
-            } else {
-                $expected_json
-            };
+            #[allow(unused_mut, unused_assignments)]
+            let mut expected_json = $input;
+			$(expected_json = $expected_json;)?
+
             assert_eq!(
                 serde_json::to_string($expected_schema).unwrap(),
                 expected_json
@@ -36,7 +35,6 @@ macro_rules! hashmap(
 validate_json_schema!(
     empty_schema,
     expected_schema = &Schema::default(),
-    expected_json = "",
     input = "{}",
 );
 validate_json_schema!(
@@ -45,7 +43,6 @@ validate_json_schema!(
         bson_type: Some(BsonType::Single("int".to_string())),
         ..Default::default()
     },
-    expected_json = "",
     input = r#"{"bsonType":"int"}"#,
 );
 validate_json_schema!(
@@ -57,7 +54,6 @@ validate_json_schema!(
         ])),
         ..Default::default()
     },
-    expected_json = "",
     input = r#"{"bsonType":["int","null"]}"#,
 );
 validate_json_schema!(
@@ -71,7 +67,6 @@ validate_json_schema!(
         }),
         ..Default::default()
     },
-    expected_json = "",
     input = r#"{"properties":{"a":{"bsonType":"int"}}}"#,
 );
 validate_json_schema!(
@@ -80,7 +75,6 @@ validate_json_schema!(
         required: Some(vec!["a".to_string(), "b".to_string()]),
         ..Default::default()
     },
-    expected_json = "",
     input = r#"{"required":["a","b"]}"#,
 );
 validate_json_schema!(
@@ -89,19 +83,17 @@ validate_json_schema!(
         additional_properties: Some(true),
         ..Default::default()
     },
-    expected_json = "",
     input = r#"{"additionalProperties":true}"#,
 );
 validate_json_schema!(
     schema_with_items,
     expected_schema = &Schema {
-        items: Some(Box::new(Schema {
+        items: Some(Items::Single(Box::new(Schema {
             bson_type: Some(BsonType::Single("int".to_string())),
             ..Default::default()
-        })),
+        }))),
         ..Default::default()
     },
-    expected_json = "",
     input = r#"{"items":{"bsonType":"int"}}"#,
 );
 validate_json_schema!(
@@ -119,7 +111,6 @@ validate_json_schema!(
         ]),
         ..Default::default()
     },
-    expected_json = "",
     input = r#"{"anyOf":[{"bsonType":"int"},{"bsonType":"null"}]}"#,
 );
 validate_json_schema!(
@@ -137,7 +128,6 @@ validate_json_schema!(
         ]),
         ..Default::default()
     },
-    expected_json = "",
     input = r#"{"oneOf":[{"bsonType":"int"},{"bsonType":"null"}]}"#,
 );
 validate_json_schema!(
@@ -162,10 +152,10 @@ validate_json_schema!(
         } }),
         required: Some(vec!["a".to_string()]),
         additional_properties: Some(true),
-        items: Some(Box::new(Schema {
+        items: Some(Items::Single(Box::new(Schema {
             bson_type: Some(BsonType::Single("int".to_string())),
             ..Default::default()
-        })),
+        }))),
         any_of: Some(vec![Schema {
             bson_type: Some(BsonType::Single("int".to_string())),
             ..Default::default()
@@ -175,6 +165,14 @@ validate_json_schema!(
             ..Default::default()
         }]),
     },
-    expected_json = "",
     input = r#"{"bsonType":["object","array"],"properties":{"a":{"bsonType":"int"}},"required":["a"],"additionalProperties":true,"items":{"bsonType":"int"},"anyOf":[{"bsonType":"int"}],"oneOf":[{"bsonType":"int"}]}"#,
+);
+validate_json_schema!(
+    schema_with_items_as_array,
+    expected_schema = &Schema {
+        bson_type: Some(BsonType::Single("array".to_string())),
+        items: Some(Items::Multiple(vec![Schema::default()])),
+        ..Default::default()
+    },
+    input = r#"{"bsonType":"array","items":[{}]}"#,
 );

@@ -1,5 +1,5 @@
 #[cfg(test)]
-mod json_schema_test;
+mod test;
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -16,7 +16,7 @@ pub struct Schema {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub additional_properties: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub items: Option<Box<Schema>>,
+    pub items: Option<Items>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub any_of: Option<Vec<Schema>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -28,4 +28,11 @@ pub struct Schema {
 pub enum BsonType {
     Single(String),
     Multiple(Vec<String>),
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+#[serde(untagged)]
+pub enum Items {
+    Single(Box<Schema>),
+    Multiple(Vec<Schema>),
 }

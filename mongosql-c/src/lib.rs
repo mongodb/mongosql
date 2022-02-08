@@ -90,7 +90,7 @@ pub fn build_catalog(base_64_doc: &str) -> Result<Catalog, String> {
     let json_schemas: BTreeMap<String, BTreeMap<String, json_schema::Schema>> =
         bson::from_reader(&mut bson_doc_bytes.as_slice()).map_err(|e| {
             format!(
-                "failed to convert BSON document to json_schema::Schema: {}",
+                "failed to convert BSON catalog to json_schema::Schema format: {}",
                 e
             )
         })?;

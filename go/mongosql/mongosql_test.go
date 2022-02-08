@@ -314,6 +314,38 @@ func TestCatalogSchemaEmpty(t *testing.T) {
 	checkResultSetSchema(t, expectedResultSetSchema, translation.ResultSetSchema)
 }
 
+// TestArrayStyleItems verifies that translation succeeds with a
+// catalog schema containing an array-style `items` field.
+func TestArrayStyleItems(t *testing.T) {
+	schema := bson.M{
+		"bsonType": "object",
+		"properties": bson.M{
+			"a": bson.M{
+				"bsonType": "array",
+				"items":    []bson.M{{"bsonType": "int"}},
+			},
+		},
+	}
+
+	bytes, err := bson.Marshal(&schema)
+	if err != nil {
+		t.Fatalf("failed to marshal: %v", err)
+	}
+
+	catalogSchema := map[string]map[string]bsoncore.Document{
+		"bar": {"foo": bsoncore.Document(bytes)},
+	}
+
+	_, err = mongosql.Translate(mongosql.TranslationArgs{
+		DB:            "bar",
+		SQL:           "select * from foo",
+		CatalogSchema: catalogSchema,
+	})
+	if err != nil {
+		t.Fatalf("expected err to be nil, got '%s'", err)
+	}
+}
+
 func TestGetNamespaces(t *testing.T) {
 	tests := []struct {
 		name               string
