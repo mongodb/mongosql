@@ -6,22 +6,27 @@ use crate::{
 use lazy_static::lazy_static;
 
 macro_rules! test_algebrize {
-    ($func_name:ident, method = $method:ident, expected = $expected:expr, input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)?) => {
+    ($func_name:ident, method = $method:ident, $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
         #[test]
         fn $func_name() {
             use crate::{
                 algebrizer::{Algebrizer, Error},
                 catalog::Catalog,
+                SchemaCheckingMode,
             };
             let catalog = Catalog::default();
 
             #[allow(unused_mut, unused_assignments)]
-            let mut algebrizer = Algebrizer::new("test".into(), &catalog, 0u16);
-            $(algebrizer = Algebrizer::with_schema_env("test".into(), $env, &catalog, 1u16);)?
+            let mut schema_checking_mode = SchemaCheckingMode::Strict;
+            $(schema_checking_mode = $schema_checking_mode;)?
 
-            let expected: Result<_, Error> = $expected;
+            #[allow(unused_mut, unused_assignments)]
+            let mut algebrizer = Algebrizer::new("test".into(), &catalog, 0u16, schema_checking_mode);
+            $(algebrizer = Algebrizer::with_schema_env("test".into(), $env, &catalog, 1u16, schema_checking_mode);)?
+
             let res: Result<_, Error> = algebrizer.$method($ast $(, $source)?);
-            assert_eq!(expected, res);
+            $(assert!(matches!(res, $expected_pat));)?
+            $(assert_eq!(res, $expected);)?
         }
     };
 }
@@ -3958,5 +3963,50 @@ mod subquery {
             limit: Some(1),
             offset: None,
         }))),
+    );
+}
+
+mod schema_checking_mode {
+    use crate::{
+        ast,
+        ir::{schema::SchemaCache, *},
+        Schema,
+    };
+
+    test_algebrize!(
+        comparison_fails_in_strict_mode,
+        method = algebrize_order_by_clause,
+        expected = Err(Error::SchemaChecking(
+            schema::Error::SortKeyNotSelfComparable(0, Schema::Any)
+        )),
+        input = Some(ast::OrderByClause {
+            sort_specs: vec![ast::SortSpec {
+                key: ast::SortKey::Simple(ast::Expression::Identifier("a".into())),
+                direction: ast::SortDirection::Asc
+            }]
+        }),
+        source = Stage::Collection(Collection {
+            db: "".into(),
+            collection: "test".into(),
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    test_algebrize!(
+        comparison_passes_in_relaxed_mode,
+        method = algebrize_order_by_clause,
+        expected_pat = Ok(_),
+        input = Some(ast::OrderByClause {
+            sort_specs: vec![ast::SortSpec {
+                key: ast::SortKey::Simple(ast::Expression::Identifier("a".into())),
+                direction: ast::SortDirection::Asc
+            }]
+        }),
+        source = Stage::Collection(Collection {
+            db: "".into(),
+            collection: "foo".into(),
+            cache: SchemaCache::new(),
+        }),
+        schema_checking_mode = SchemaCheckingMode::Relaxed,
     );
 }

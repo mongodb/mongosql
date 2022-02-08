@@ -41,8 +41,12 @@ func callTranslate(args TranslationArgs) (string, error) {
 		return "", fmt.Errorf("failed to marshal catalog schema to BSON: %w", err)
 	}
 	cCatalogSchema := C.CString(base64.StdEncoding.EncodeToString(catalogSchemaBson))
+	cRelaxSchemaChecking := C.int(0)
+	if args.relaxSchemaChecking {
+		cRelaxSchemaChecking = C.int(1)
+	}
 
-	cTranslationBase64 := C.translate(cDB, cSQL, cCatalogSchema)
+	cTranslationBase64 := C.translate(cDB, cSQL, cCatalogSchema, cRelaxSchemaChecking)
 	translationBase64 := C.GoString(cTranslationBase64)
 
 	C.free(unsafe.Pointer(cSQL))

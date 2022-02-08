@@ -1,4 +1,4 @@
-use mongosql::{catalog::*, json_schema, schema};
+use mongosql::{catalog::*, json_schema, schema, SchemaCheckingMode};
 use std::{
     collections::BTreeMap,
     ffi::{CStr, CString, NulError},
@@ -18,16 +18,19 @@ pub extern "C" fn version() -> *mut raw::c_char {
 
 /// Returns an extjson-encoded version of
 /// [Translation](/mongosql/struct.Translation.html) for the provided
-/// SQL query, database, and catalog schema.
+/// SQL query, database, catalog schema, and schema checking mode.
 #[no_mangle]
 pub extern "C" fn translate(
     current_db: *const libc::c_char,
     sql: *const libc::c_char,
     catalog: *const libc::c_char,
+    relax_schema_checking: libc::c_int,
 ) -> *const raw::c_char {
     let previous_hook = panic::take_hook();
     panic::set_hook(Box::new(|_| {}));
-    let result = panic::catch_unwind(|| translate_sql_bson_base64(current_db, sql, catalog));
+    let result = panic::catch_unwind(|| {
+        translate_sql_bson_base64(current_db, sql, catalog, relax_schema_checking)
+    });
     panic::set_hook(previous_hook);
 
     let payload = match result {
@@ -53,11 +56,17 @@ fn translate_sql_bson_base64(
     current_db: *const libc::c_char,
     sql: *const libc::c_char,
     catalog: *const libc::c_char,
+    relax_schema_checking: libc::c_int,
 ) -> Result<mongosql::Translation, String> {
     let current_db =
         from_extern_string(current_db).map_err(|_| "current_db not valid UTF-8".to_string())?;
     let sql =
         from_extern_string(sql).map_err(|_| "sql query string not valid UTF-8".to_string())?;
+    let schema_checking_mode = match relax_schema_checking {
+        1 => Ok(SchemaCheckingMode::Relaxed),
+        0 => Ok(SchemaCheckingMode::Strict),
+        n => Err(format!("invalid value {} for relax_schema_checking", n)),
+    }?;
     let catalog_str = from_extern_string(catalog)
         .map_err(|_| "catalog schema string not valid UTF-8".to_string())?;
     let catalog = build_catalog(catalog_str.as_str())?;
@@ -70,7 +79,8 @@ fn translate_sql_bson_base64(
         }
     }
 
-    mongosql::translate_sql(&current_db, &sql, &catalog).map_err(|e| format!("{}", e))
+    mongosql::translate_sql(&current_db, &sql, &catalog, schema_checking_mode)
+        .map_err(|e| format!("{}", e))
 }
 
 /// Converts the given base64-encoded bson document into a Catalog.

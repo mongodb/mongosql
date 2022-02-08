@@ -5,7 +5,7 @@ use crate::{
     map,
     parser::Parser,
     schema::{Atomic, Document, Schema},
-    set,
+    set, SchemaCheckingMode,
 };
 use itertools::Itertools;
 use lazy_static::lazy_static;
@@ -248,7 +248,7 @@ fn validate_algebrization(types: Vec<String>, ast: Query, is_valid: bool) -> Res
         })
         .collect::<Result<Vec<Schema>, Error>>()?;
     let catalog = create_catalog(schemas)?;
-    let algebrizer = Algebrizer::new(TEST_DB, &catalog, 0u16);
+    let algebrizer = Algebrizer::new(TEST_DB, &catalog, 0u16, SchemaCheckingMode::Strict);
     let plan = algebrizer
         .algebrize_query(ast)
         .map_err(|e| Error::AlgebrizationFailed(format!("{:?}", e)));

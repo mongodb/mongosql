@@ -27,6 +27,10 @@ type TranslationArgs struct {
 	CatalogSchema map[string]map[string]bsoncore.Document
 	// skipDesugaring skips desugaring the translation pipeline if it's set to true
 	skipDesugaring bool
+	// relaxSchemaChecking relaxes schema checking for comparisons if it's
+	// set to true. This means that schema checking will pass unless a type
+	// constraint has been violated.
+	relaxSchemaChecking bool
 }
 
 // Translation represents the result of translating a sql query to
@@ -122,9 +126,10 @@ type Namespace struct {
 // to be in the provided database.
 func GetNamespaces(dbName, sqlStatement string) ([]Namespace, error) {
 	translation, err := Translate(TranslationArgs{
-		DB:            dbName,
-		SQL:           sqlStatement,
-		CatalogSchema: nil,
+		DB:                  dbName,
+		SQL:                 sqlStatement,
+		CatalogSchema:       nil,
+		relaxSchemaChecking: true,
 	})
 	if err != nil {
 		return nil, err

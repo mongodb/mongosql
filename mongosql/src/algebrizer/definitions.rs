@@ -9,6 +9,7 @@ use crate::{
     map,
     schema::{Satisfaction, SchemaEnvironment},
     util::unique_linked_hash_map::UniqueLinkedHashMap,
+    SchemaCheckingMode,
 };
 use std::collections::BTreeSet;
 use thiserror::Error;
@@ -193,15 +194,22 @@ pub struct Algebrizer<'a> {
     schema_env: SchemaEnvironment,
     catalog: &'a Catalog,
     scope_level: u16,
+    schema_checking_mode: SchemaCheckingMode,
 }
 
 impl<'a> Algebrizer<'a> {
-    pub fn new(current_db: &'a str, catalog: &'a Catalog, scope_level: u16) -> Self {
+    pub fn new(
+        current_db: &'a str,
+        catalog: &'a Catalog,
+        scope_level: u16,
+        schema_checking_mode: SchemaCheckingMode,
+    ) -> Self {
         Self::with_schema_env(
             current_db,
             SchemaEnvironment::default(),
             catalog,
             scope_level,
+            schema_checking_mode,
         )
     }
 
@@ -210,12 +218,14 @@ impl<'a> Algebrizer<'a> {
         schema_env: SchemaEnvironment,
         catalog: &'a Catalog,
         scope_level: u16,
+        schema_checking_mode: SchemaCheckingMode,
     ) -> Self {
         Self {
             current_db,
             schema_env,
             catalog,
             scope_level,
+            schema_checking_mode,
         }
     }
 
@@ -224,6 +234,7 @@ impl<'a> Algebrizer<'a> {
             env: self.schema_env.clone(),
             catalog: self.catalog,
             scope_level: self.scope_level,
+            schema_checking_mode: self.schema_checking_mode,
         }
     }
 
@@ -233,6 +244,7 @@ impl<'a> Algebrizer<'a> {
             schema_env: self.schema_env.clone(),
             catalog: self.catalog,
             scope_level: self.scope_level + 1,
+            schema_checking_mode: self.schema_checking_mode,
         }
     }
 
@@ -452,8 +464,12 @@ impl<'a> Algebrizer<'a> {
                 Ok(stage)
             }
             ast::Datasource::Derived(d) => {
-                let derived_algebrizer =
-                    Algebrizer::new(self.current_db, self.catalog, self.scope_level + 1);
+                let derived_algebrizer = Algebrizer::new(
+                    self.current_db,
+                    self.catalog,
+                    self.scope_level + 1,
+                    self.schema_checking_mode,
+                );
                 let src = derived_algebrizer.algebrize_query(*d.query)?;
                 let src_resultset = src.schema(&derived_algebrizer.schema_inference_state())?;
                 let expression = map! {

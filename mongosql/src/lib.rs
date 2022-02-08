@@ -5,6 +5,7 @@ mod codegen;
 #[cfg(test)]
 mod internal_spec_test;
 mod ir;
+pub use ir::schema::SchemaCheckingMode;
 pub mod json_schema;
 mod parser;
 mod result;
@@ -54,21 +55,26 @@ impl Translation {
 
 /// Returns the MQL translation for the provided SQL query in the
 /// specified db.
-pub fn translate_sql(current_db: &str, sql: &str, catalog: &Catalog) -> Result<Translation> {
+pub fn translate_sql(
+    current_db: &str,
+    sql: &str,
+    catalog: &Catalog,
+    schema_checking_mode: SchemaCheckingMode,
+) -> Result<Translation> {
     // parse the query and apply syntactic rewrites
     let p = Parser::new();
     let ast = p.parse_query(sql)?;
     let ast = ast::rewrites::rewrite_query(ast)?;
 
     // construct the algebrizer and use it to build an ir plan
-    let algebrizer = Algebrizer::new(current_db, catalog, 0u16);
+    let algebrizer = Algebrizer::new(current_db, catalog, 0u16, schema_checking_mode);
     let plan = algebrizer.algebrize_query(ast)?;
 
     // flatten variadic function
     let plan = ir::flatten::flatten_variadic_functions(plan);
 
     // constant fold stages
-    let plan = ir::constant_folding::fold_constants(plan);
+    let plan = ir::constant_folding::fold_constants(plan, schema_checking_mode);
 
     let namespaces = ir::namespace::get_namespaces(plan.clone());
 

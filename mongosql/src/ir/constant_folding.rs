@@ -6,27 +6,34 @@ use crate::{
         visitor::Visitor,
     },
     schema::{Atomic, Satisfaction, Schema, SchemaEnvironment},
-    set,
+    set, SchemaCheckingMode,
 };
 use lazy_static::lazy_static;
 
-#[derive(Default)]
-struct ConstantFoldExprVisitor;
+#[derive(Copy, Clone)]
+struct ConstantFoldExprVisitor {
+    schema_checking_mode: SchemaCheckingMode,
+}
 
 lazy_static! {
     static ref DEFAULT_CATALOG: Catalog = Catalog::default();
-    static ref EMPTY_STATE: SchemaInferenceState<'static> = SchemaInferenceState {
-        scope_level: 0u16,
-        env: SchemaEnvironment::default(),
-        catalog: &DEFAULT_CATALOG,
-    };
 }
 
 impl ConstantFoldExprVisitor {
+    // get_empty_state returns an empty state with the appropriate schema checking mode
+    fn get_empty_state(&self) -> SchemaInferenceState {
+        SchemaInferenceState {
+            scope_level: 0u16,
+            env: SchemaEnvironment::default(),
+            catalog: &DEFAULT_CATALOG,
+            schema_checking_mode: self.schema_checking_mode,
+        }
+    }
+
     // Checks if a vector of expressions contains a null or missing expression
-    fn has_null_arg(args: &[Expression]) -> bool {
+    fn has_null_arg(self, args: &[Expression]) -> bool {
         for expr in args {
-            match expr.schema(&EMPTY_STATE) {
+            match expr.schema(&self.get_empty_state()) {
                 Err(_) => return false,
                 Ok(sch) => {
                     if sch.satisfies(&Schema::AnyOf(set![
@@ -66,7 +73,7 @@ impl ConstantFoldExprVisitor {
     fn fold_logical_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
         let (nullish, non_nullish): (Vec<Expression>, Vec<Expression>) =
             sf.args.clone().into_iter().partition(|e| {
-                e.schema(&EMPTY_STATE)
+                e.schema(&self.get_empty_state())
                     .unwrap_or(Schema::Any)
                     .satisfies(&Schema::AnyOf(set![
                         Schema::Missing,
@@ -134,7 +141,7 @@ impl ConstantFoldExprVisitor {
         &mut self,
         sf: ScalarFunctionApplication,
     ) -> Expression {
-        if Self::has_null_arg(&sf.args) {
+        if self.has_null_arg(&sf.args) {
             return Expression::Literal(LiteralValue::Null.into());
         }
         if sf.args.is_empty() {
@@ -463,7 +470,7 @@ impl ConstantFoldExprVisitor {
             sf.args.len() == 1,
             "Unary function should only have one arg"
         );
-        if Self::has_null_arg(&sf.args) {
+        if self.has_null_arg(&sf.args) {
             return Expression::Literal(LiteralValue::Null.into());
         }
         let arg = sf.args[0].clone();
@@ -586,7 +593,7 @@ impl ConstantFoldExprVisitor {
     // Constant folds the substring function
     fn fold_substring_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
         use std::cmp;
-        if Self::has_null_arg(&sf.args) {
+        if self.has_null_arg(&sf.args) {
             return Expression::Literal(LiteralValue::Null.into());
         }
         let (string, start, len) = if sf.args.len() == 2 {
@@ -644,7 +651,7 @@ impl ConstantFoldExprVisitor {
         if sf.args.is_empty() {
             return Expression::Literal(LiteralValue::String("".to_string()).into());
         }
-        if Self::has_null_arg(&sf.args) {
+        if self.has_null_arg(&sf.args) {
             return Expression::Literal(LiteralValue::Null.into());
         }
         let mut result = Vec::<Expression>::new();
@@ -732,7 +739,7 @@ impl ConstantFoldExprVisitor {
         }
         let mut is_all_null = true;
         for expr in &sf.args {
-            match expr.schema(&EMPTY_STATE) {
+            match expr.schema(&self.get_empty_state()) {
                 Err(_) => {
                     // If an Err occurs, it means there is a reference in this `expr`, so we cannot
                     // possibly know if this expression satisfies NULLISH, thus is_all_null must be
@@ -791,7 +798,7 @@ impl ConstantFoldExprVisitor {
     // Constant folds the slice function
     fn fold_slice_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
         use std::cmp;
-        if Self::has_null_arg(&sf.args) {
+        if self.has_null_arg(&sf.args) {
             return Expression::Literal(LiteralValue::Null.into());
         }
         if sf.args.len() == 2 {
@@ -873,7 +880,7 @@ impl ConstantFoldExprVisitor {
             sf.args.len() == 2,
             "Binary functions must only have two args"
         );
-        if Self::has_null_arg(&sf.args) {
+        if self.has_null_arg(&sf.args) {
             return Expression::Literal(LiteralValue::Null.into());
         }
         let (left, right) = (sf.args[0].clone(), sf.args[1].clone());
@@ -897,7 +904,7 @@ impl ConstantFoldExprVisitor {
 
     // Constant folds the is expression
     fn fold_is_expr(&mut self, is_expr: IsExpr) -> Expression {
-        let schema = is_expr.expr.schema(&EMPTY_STATE);
+        let schema = is_expr.expr.schema(&self.get_empty_state());
         let target_schema = Schema::from(is_expr.target_type);
         match schema {
             Err(_) => Expression::Is(is_expr),
@@ -916,7 +923,7 @@ impl ConstantFoldExprVisitor {
     // Constant folds the cast expression
     fn fold_cast_expr(&mut self, cast_expr: CastExpr) -> Expression {
         use crate::schema::{ANY_ARRAY, ANY_DOCUMENT};
-        let schema = cast_expr.expr.schema(&EMPTY_STATE);
+        let schema = cast_expr.expr.schema(&self.get_empty_state());
         let target_schema = Schema::from(cast_expr.to);
         if schema.is_err() {
             return Expression::Cast(cast_expr);
@@ -1104,7 +1111,9 @@ impl Visitor for ConstantFoldExprVisitor {
     }
 }
 
-pub fn fold_constants(st: Stage) -> Stage {
-    let mut cf = ConstantFoldExprVisitor::default();
+pub fn fold_constants(st: Stage, schema_checking_mode: SchemaCheckingMode) -> Stage {
+    let mut cf = ConstantFoldExprVisitor {
+        schema_checking_mode,
+    };
     cf.visit_stage(st)
 }

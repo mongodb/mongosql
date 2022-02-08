@@ -77,7 +77,11 @@ func callTranslate(args TranslationArgs) (string, error) {
 	}
 	catalogSchemaBase64 := base64.StdEncoding.EncodeToString(catalogSchemaBson)
 	dbArg, sqlArg, catalogArg := stringToUnsafePointer(args.DB), stringToUnsafePointer(args.SQL), stringToUnsafePointer(catalogSchemaBase64)
-	ret1, _, _ := translateProc.Call(uintptr(dbArg), uintptr(sqlArg), uintptr(catalogArg))
+	relaxSchemaCheckingArg := 0
+	if args.relaxSchemaChecking {
+		relaxSchemaCheckingArg = 1
+	}
+	ret1, _, _ := translateProc.Call(uintptr(dbArg), uintptr(sqlArg), uintptr(catalogArg), uintptr(relaxSchemaCheckingArg))
 	translationBase64 := uintptrToString(ret1)
 
 	// delete the returned uintptr

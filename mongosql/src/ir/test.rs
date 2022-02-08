@@ -1,8 +1,8 @@
 macro_rules! test_schema {
-    ($func_name:ident, $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? input = $input:expr, $(schema_env = $schema_env:expr,)? $(catalog = $catalog:expr,)?) => {
+    ($func_name:ident, $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? input = $input:expr, $(schema_env = $schema_env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
         #[test]
         fn $func_name() {
-            use crate::{ir::schema::SchemaInferenceState, schema::SchemaEnvironment, catalog::Catalog};
+            use crate::{ir::schema::SchemaInferenceState, schema::SchemaEnvironment, SchemaCheckingMode, catalog::Catalog};
 
             let input = $input;
 
@@ -14,7 +14,11 @@ macro_rules! test_schema {
             let mut catalog = Catalog::default();
             $(catalog = $catalog;)?
 
-            let state = SchemaInferenceState::new(0u16, schema_env, &catalog);
+            #[allow(unused_mut, unused_assignments)]
+            let mut schema_checking_mode = SchemaCheckingMode::Strict;
+            $(schema_checking_mode = $schema_checking_mode;)?
+
+            let state = SchemaInferenceState::new(0u16, schema_env, &catalog, schema_checking_mode);
             let actual = input.schema(&state);
 
             $(assert!(matches!(actual, $expected_pat));)?
@@ -24,13 +28,18 @@ macro_rules! test_schema {
 }
 
 macro_rules! test_constant_fold {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
+    ($func_name:ident, expected = $expected:expr, input = $input:expr, $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
         #[test]
         fn $func_name() {
-            use crate::ir::constant_folding::*;
+            use crate::ir::{constant_folding::*, schema::SchemaCheckingMode};
             let input = $input;
             let expected = $expected;
-            let actual = fold_constants(input);
+
+            #[allow(unused_mut, unused_assignments)]
+            let mut schema_checking_mode = SchemaCheckingMode::Strict;
+            $(schema_checking_mode = $schema_checking_mode;)?
+
+            let actual = fold_constants(input, schema_checking_mode);
             assert_eq!(actual, expected);
         }
     };

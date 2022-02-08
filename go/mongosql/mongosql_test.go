@@ -442,6 +442,18 @@ func TestGetNamespaces(t *testing.T) {
 			},
 		},
 		{
+			name:          "relaxed schema checking",
+			db:            "test",
+			sql:           "SELECT * FROM foo ORDER BY _id",
+			expectedError: false,
+			expectedNamespaces: []mongosql.Namespace{
+				{
+					Database:   "test",
+					Collection: "foo",
+				},
+			},
+		},
+		{
 			name:               "syntactically invalid query errors",
 			db:                 "test",
 			sql:                "SELECT * FROM [{'a': 1}]", // no alias is syntactically invalid

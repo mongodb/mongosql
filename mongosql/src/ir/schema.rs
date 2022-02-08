@@ -141,11 +141,22 @@ pub trait CachedSchema {
     }
 }
 
+#[derive(Debug, Copy, Clone)]
+pub enum SchemaCheckingMode {
+    // In strict mode, schema checking will fail unless all type
+    // constraints are satisfied.
+    Strict,
+    // In relaxed mode, schema checking will pass unless a type constraint
+    // is violated.
+    Relaxed,
+}
+
 #[derive(Debug, Clone)]
 pub struct SchemaInferenceState<'a> {
     pub scope_level: u16,
     pub env: SchemaEnvironment,
     pub catalog: &'a Catalog,
+    pub schema_checking_mode: SchemaCheckingMode,
 }
 
 impl<'a> SchemaInferenceState<'a> {
@@ -153,11 +164,13 @@ impl<'a> SchemaInferenceState<'a> {
         scope_level: u16,
         env: SchemaEnvironment,
         catalog: &'a Catalog,
+        schema_checking_mode: SchemaCheckingMode,
     ) -> SchemaInferenceState {
         SchemaInferenceState {
             scope_level,
             env,
             catalog,
+            schema_checking_mode,
         }
     }
 
@@ -171,6 +184,7 @@ impl<'a> SchemaInferenceState<'a> {
                 .map_err(|e| Error::DuplicateKey(e.key))?,
             catalog: self.catalog,
             scope_level: self.scope_level,
+            schema_checking_mode: self.schema_checking_mode,
         })
     }
 
@@ -179,7 +193,37 @@ impl<'a> SchemaInferenceState<'a> {
             scope_level: self.scope_level + 1,
             env: self.env.clone(),
             catalog: self.catalog,
+            schema_checking_mode: self.schema_checking_mode,
         }
+    }
+
+    /// check_satisfies computes the satisfaction level of [`schema1`] -> [`schema2`],
+    /// and checks if it's in line with the schema checking mode.
+    pub fn check_satisfies(&self, schema1: &Schema, schema2: &Schema) -> bool {
+        self.check_satisfaction(schema1.satisfies(schema2))
+    }
+
+    /// check_comparable_with computes the satisfaction level
+    /// for comparing [`schema1`] to [`schema2`], and checks if it's in line
+    /// with the schema checking mode.
+    pub fn check_comparable_with(&self, schema1: &Schema, schema2: &Schema) -> bool {
+        self.check_satisfaction(schema1.is_comparable_with(schema2))
+    }
+
+    /// check_self_comparable computes the satisfaction level
+    /// for comparing [`schema`] to itself, and checks if it's in line
+    /// with the schema checking mode.
+    pub fn check_self_comparable(&self, schema: &Schema) -> bool {
+        self.check_satisfaction(schema.is_self_comparable())
+    }
+
+    pub fn check_satisfaction(&self, satisfaction: Satisfaction) -> bool {
+        matches!(
+            (self.schema_checking_mode, satisfaction),
+            (SchemaCheckingMode::Relaxed, Satisfaction::May)
+                | (SchemaCheckingMode::Relaxed, Satisfaction::Must)
+                | (SchemaCheckingMode::Strict, Satisfaction::Must)
+        )
     }
 }
 
@@ -215,7 +259,7 @@ impl CachedSchema for Stage {
                 let source_result_set = f.source.schema(state)?;
                 let state = state.with_merged_schema_env(source_result_set.schema_env.clone())?;
                 let cond_schema = f.condition.schema(&state)?;
-                if cond_schema.satisfies(&BOOLEAN_OR_NULLISH) != Satisfaction::Must {
+                if !state.check_satisfies(&cond_schema, &BOOLEAN_OR_NULLISH) {
                     return Err(Error::SchemaChecking {
                         name: "filter condition",
                         required: BOOLEAN_OR_NULLISH.clone(),
@@ -237,7 +281,7 @@ impl CachedSchema for Stage {
                     .iter()
                     .map(|(k, e)| match e.schema(&state) {
                         Ok(s) => {
-                            if s.satisfies(&ANY_DOCUMENT) != Satisfaction::Must {
+                            if !state.check_satisfies(&s, &ANY_DOCUMENT) {
                                 Err(Error::SchemaChecking {
                                     name: "project datasource",
                                     required: ANY_DOCUMENT.clone(),
@@ -293,8 +337,9 @@ impl CachedSchema for Stage {
                             .schema(&state)
                             .map(|s| s.upconvert_missing_to_null())?;
 
-                        // The group key must have a schema that is self-comparable.
-                        if group_key_schema.is_self_comparable() != Satisfaction::Must {
+                        // If schema checking is in strict mode, the group key must have a
+                        // schema that is self-comparable, otherwise it must or may have one.
+                        if !state.check_self_comparable(&group_key_schema) {
                             return Err(Error::GroupKeyNotSelfComparable(index, group_key_schema));
                         }
 
@@ -438,7 +483,7 @@ impl CachedSchema for Stage {
                     .try_for_each(|(index, spec)| match spec {
                         SortSpecification::Asc(a) | SortSpecification::Desc(a) => {
                             let schema = a.schema(&state)?;
-                            if schema.is_self_comparable() != Satisfaction::Must {
+                            if !state.check_self_comparable(&schema) {
                                 return Err(Error::SortKeyNotSelfComparable(index, schema));
                             }
                             Ok(())
@@ -464,7 +509,7 @@ impl CachedSchema for Stage {
             }
             Stage::Array(a) => {
                 let array_items_schema = Expression::array_items_schema(&a.array, state)?;
-                if array_items_schema.satisfies(&ANY_DOCUMENT) == Satisfaction::Must {
+                if state.check_satisfies(&array_items_schema, &ANY_DOCUMENT) {
                     Ok(ResultSet {
                         schema_env: map! {
                             (a.alias.clone(), state.scope_level).into() => array_items_schema,
@@ -488,7 +533,7 @@ impl CachedSchema for Stage {
                 let state = state.with_merged_schema_env(right_result_set.schema_env.clone())?;
                 if let Some(e) = &j.condition {
                     let cond_schema = e.schema(&state)?;
-                    if cond_schema.satisfies(&BOOLEAN_OR_NULLISH) != Satisfaction::Must {
+                    if !state.check_satisfies(&cond_schema, &BOOLEAN_OR_NULLISH) {
                         return Err(Error::SchemaChecking {
                             name: "join condition",
                             required: BOOLEAN_OR_NULLISH.clone(),
@@ -568,6 +613,7 @@ impl CachedSchema for Stage {
                 scope_level: state.scope_level + 1,
                 env: state.env.clone(),
                 catalog: state.catalog,
+                schema_checking_mode: state.schema_checking_mode,
             }),
         }
     }
@@ -594,23 +640,31 @@ impl AggregationExpr {
 impl AggregationFunctionApplication {
     pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
         let arg_schema = self.arg.schema(state)?;
-        if self.distinct && arg_schema.is_self_comparable() != Satisfaction::Must {
+        if self.distinct && !state.check_self_comparable(&arg_schema) {
             return Err(Error::AggregationArgumentMustBeSelfComparable(
                 format!("{} DISTINCT", self.function.as_str()),
                 arg_schema,
             ));
         }
-        self.function.schema(arg_schema)
+        self.function.schema(state, arg_schema)
     }
 }
 
 impl AggregationFunction {
-    pub fn schema(&self, arg_schema: Schema) -> Result<Schema, Error> {
+    pub fn schema(
+        &self,
+        state: &SchemaInferenceState,
+        arg_schema: Schema,
+    ) -> Result<Schema, Error> {
         use crate::ir::AggregationFunction::*;
         Ok(match self {
             AddToArray => Schema::Array(Box::new(arg_schema)),
             Avg | StddevPop | StddevSamp => {
-                self.schema_check_fixed_args(&[arg_schema.clone()], &[NUMERIC_OR_NULLISH.clone()])?;
+                self.schema_check_fixed_args(
+                    state,
+                    &[arg_schema.clone()],
+                    &[NUMERIC_OR_NULLISH.clone()],
+                )?;
                 // we cannot use get_arithmetic_schema for Avg, StddevPop, StddevSamp
                 // because they never return Long or Integer results, even for Long
                 // or Integer inputs.
@@ -637,7 +691,7 @@ impl AggregationFunction {
             ]),
             First | Last => arg_schema,
             Min | Max => {
-                if arg_schema.is_self_comparable() != Satisfaction::Must {
+                if !state.check_self_comparable(&arg_schema) {
                     return Err(Error::AggregationArgumentMustBeSelfComparable(
                         self.as_str().to_string(),
                         arg_schema,
@@ -646,10 +700,14 @@ impl AggregationFunction {
                 arg_schema
             }
             MergeDocuments => {
-                self.schema_check_fixed_args(&[arg_schema.clone()], &[ANY_DOCUMENT.clone()])?;
+                self.schema_check_fixed_args(
+                    state,
+                    &[arg_schema.clone()],
+                    &[ANY_DOCUMENT.clone()],
+                )?;
                 arg_schema
             }
-            Sum => self.get_arithmetic_schema(&[arg_schema])?,
+            Sum => self.get_arithmetic_schema(state, &[arg_schema])?,
         })
     }
 }
@@ -669,6 +727,7 @@ impl SubqueryExpr {
             scope_level: state.scope_level + 1,
             env: result_set.schema_env,
             catalog: state.catalog,
+            schema_checking_mode: state.schema_checking_mode,
         })?;
         Ok((schema, min_size, max_size))
     }
@@ -703,7 +762,7 @@ impl SubqueryComparison {
     pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
         let argument_schema = self.argument.schema(state)?;
         let (subquery_schema, _, _) = self.subquery_expr.schema_helper(state)?;
-        self.get_comparison_schema(&[argument_schema, subquery_schema])
+        self.get_comparison_schema(state, &[argument_schema, subquery_schema])
     }
 }
 
@@ -755,7 +814,7 @@ impl Expression {
         Schema::Missing
     }
 
-    fn array_schema(a: &[Expression], state: &SchemaInferenceState) -> Result<Schema, Error> {
+    fn array_schema(state: &SchemaInferenceState, a: &[Expression]) -> Result<Schema, Error> {
         Ok(Schema::Array(Box::new(Expression::array_items_schema(
             a, state,
         )?)))
@@ -775,8 +834,8 @@ impl Expression {
     /// For document literals, we infer the most restrictive schema possible. This means
     /// that additional_properties are not allowed.
     fn document_schema(
-        d: &UniqueLinkedHashMap<String, Expression>,
         state: &SchemaInferenceState,
+        d: &UniqueLinkedHashMap<String, Expression>,
     ) -> Result<Schema, Error> {
         let (mut keys, mut required) = (BTreeMap::new(), BTreeSet::new());
         for (key, e) in d.iter() {
@@ -836,9 +895,9 @@ impl CachedSchema for Expression {
                 .get(key)
                 .cloned()
                 .ok_or_else(|| Error::DatasourceNotFoundInSchemaEnv(key.clone())),
-            Expression::Array(ArrayExpr { array, .. }) => Expression::array_schema(array, state),
+            Expression::Array(ArrayExpr { array, .. }) => Expression::array_schema(state, array),
             Expression::Document(DocumentExpr { document, .. }) => {
-                Expression::document_schema(document, state)
+                Expression::document_schema(state, document)
             }
             Expression::FieldAccess(FieldAccess {
                 expr,
@@ -875,7 +934,7 @@ impl CachedSchema for Expression {
             }
             Expression::Like(l) => {
                 let expr_schema = l.expr.schema(state)?;
-                if expr_schema.satisfies(&STRING_OR_NULLISH) != Satisfaction::Must {
+                if !state.check_satisfies(&expr_schema, &STRING_OR_NULLISH) {
                     return Err(Error::SchemaChecking {
                         name: "Like",
                         required: STRING_OR_NULLISH.clone(),
@@ -883,7 +942,7 @@ impl CachedSchema for Expression {
                     });
                 }
                 let pattern_schema = l.pattern.schema(state)?;
-                if pattern_schema.satisfies(&STRING_OR_NULLISH) != Satisfaction::Must {
+                if !state.check_satisfies(&pattern_schema, &STRING_OR_NULLISH) {
                     return Err(Error::SchemaChecking {
                         name: "Like",
                         required: STRING_OR_NULLISH.clone(),
@@ -927,7 +986,7 @@ impl ScalarFunctionApplication {
             .iter()
             .map(|x| x.schema(state))
             .collect::<Result<Vec<_>, _>>()?;
-        self.function.schema(&args)
+        self.function.schema(state, &args)
     }
 }
 
@@ -1002,7 +1061,11 @@ trait SQLFunction {
     /// If any argument May be Nullish we return AnyOf(Maxed Numeric Schema, Null). If
     /// any argument Must be NULLISH we return Null. If no argument may be NULLISH we return
     /// Maxed Numeric Schema.
-    fn get_arithmetic_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
+    fn get_arithmetic_schema(
+        &self,
+        state: &SchemaInferenceState,
+        arg_schemas: &[Schema],
+    ) -> Result<Schema, Error> {
         use schema::{Atomic::*, Schema::*};
 
         fn get_arithmetic_schema_aux(schemas: &[Schema]) -> Result<Schema, Error> {
@@ -1025,7 +1088,7 @@ trait SQLFunction {
             retain(&schemas_collected)
         }
 
-        match self.schema_check_variadic_args(arg_schemas, NUMERIC_OR_NULLISH.clone())? {
+        match self.schema_check_variadic_args(state, arg_schemas, NUMERIC_OR_NULLISH.clone())? {
             Satisfaction::Must => Ok(Atomic(Null)),
             Satisfaction::Not => get_arithmetic_schema_aux(arg_schemas),
             Satisfaction::May => Ok(Schema::simplify(&AnyOf(set![
@@ -1055,13 +1118,14 @@ trait SQLFunction {
     /// The satisfaction result returns whether a NULLISH argument is a possibility.
     fn schema_check_fixed_args(
         &self,
+        state: &SchemaInferenceState,
         arg_schemas: &[Schema],
         required_schemas: &[Schema],
     ) -> Result<Satisfaction, Error> {
         self.ensure_arg_count(arg_schemas.len(), required_schemas.len())?;
         let mut total_null_sat = Satisfaction::Not;
         for (i, arg) in arg_schemas.iter().enumerate() {
-            if arg.satisfies(&required_schemas[i]) != Satisfaction::Must {
+            if !state.check_satisfies(arg, &required_schemas[i]) {
                 return Err(Error::SchemaChecking {
                     name: self.as_str(),
                     required: required_schemas[i].clone(),
@@ -1083,10 +1147,12 @@ trait SQLFunction {
     /// value that's compared against each of the arguments.
     fn schema_check_variadic_args(
         &self,
+        state: &SchemaInferenceState,
         arg_schemas: &[Schema],
         required_schema: Schema,
     ) -> Result<Satisfaction, Error> {
         self.schema_check_fixed_args(
+            state,
             arg_schemas,
             &std::iter::repeat(required_schema)
                 .take(arg_schemas.len())
@@ -1115,12 +1181,13 @@ trait SQLFunction {
     /// number of arguments.
     fn propagate_fixed_null_arguments(
         &self,
+        state: &SchemaInferenceState,
         arg_schemas: &[Schema],
         required_schemas: &[Schema],
         base_return_schema: Schema,
     ) -> Result<Schema, Error> {
         Ok(self.propagate_null_arguments_helper(
-            self.schema_check_fixed_args(arg_schemas, required_schemas)?,
+            self.schema_check_fixed_args(state, arg_schemas, required_schemas)?,
             base_return_schema,
         ))
     }
@@ -1130,26 +1197,32 @@ trait SQLFunction {
     /// functions.
     fn propagate_variadic_null_arguments(
         &self,
+        state: &SchemaInferenceState,
         arg_schemas: &[Schema],
         required_schema: Schema,
         base_return_schema: Schema,
     ) -> Result<Schema, Error> {
         Ok(self.propagate_null_arguments_helper(
-            self.schema_check_variadic_args(arg_schemas, required_schema)?,
+            self.schema_check_variadic_args(state, arg_schemas, required_schema)?,
             base_return_schema,
         ))
     }
 
     /// Returns the boolean and/or null schema for a valid comparison, or an error
     /// if the number of operands is not two or the comparison is not valid.
-    fn get_comparison_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
+    fn get_comparison_schema(
+        &self,
+        state: &SchemaInferenceState,
+        arg_schemas: &[Schema],
+    ) -> Result<Schema, Error> {
         let ret_schema = self.propagate_fixed_null_arguments(
+            state,
             arg_schemas,
             &[Schema::Any, Schema::Any],
             Schema::Atomic(Atomic::Boolean),
         )?;
 
-        if arg_schemas[0].is_comparable_with(&arg_schemas[1]) == Satisfaction::Must {
+        if state.check_comparable_with(&arg_schemas[0], &arg_schemas[1]) {
             Ok(ret_schema)
         } else {
             Err(Error::InvalidComparison(
@@ -1177,11 +1250,16 @@ impl SQLFunction for AggregationFunction {
 }
 
 impl ScalarFunction {
-    pub fn schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
+    pub fn schema(
+        &self,
+        state: &SchemaInferenceState,
+        arg_schemas: &[Schema],
+    ) -> Result<Schema, Error> {
         use ScalarFunction::*;
         match self {
             // String operators.
             Concat => self.propagate_fixed_null_arguments(
+                state,
                 arg_schemas,
                 &[STRING_OR_NULLISH.clone(), STRING_OR_NULLISH.clone()],
                 Schema::Atomic(Atomic::String),
@@ -1189,34 +1267,43 @@ impl ScalarFunction {
             // Unary arithmetic operators.
             Pos | Neg => {
                 self.ensure_arg_count(arg_schemas.len(), 1)?;
-                self.get_arithmetic_schema(arg_schemas)
+                self.get_arithmetic_schema(state, arg_schemas)
             }
             // Arithmetic operators with variadic arguments.
-            Add | Mul => self.get_arithmetic_schema(arg_schemas),
+            Add | Mul => self.get_arithmetic_schema(state, arg_schemas),
             // Arithmetic operators with fixed (two) arguments.
             Sub | Div => {
                 self.ensure_arg_count(arg_schemas.len(), 2)?;
-                self.get_arithmetic_schema(arg_schemas)
+                self.get_arithmetic_schema(state, arg_schemas)
             }
             // Comparison operators.
-            Lt | Lte | Neq | Eq | Gt | Gte => self.get_comparison_schema(arg_schemas),
+            Lt | Lte | Neq | Eq | Gt | Gte => self.get_comparison_schema(state, arg_schemas),
             Between => {
                 self.schema_check_fixed_args(
+                    state,
                     arg_schemas,
                     &[Schema::Any, Schema::Any, Schema::Any],
                 )?;
                 Ok(Schema::AnyOf(set![
-                    self.get_comparison_schema(&[arg_schemas[0].clone(), arg_schemas[1].clone()])?,
-                    self.get_comparison_schema(&[arg_schemas[0].clone(), arg_schemas[2].clone()])?,
+                    self.get_comparison_schema(
+                        state,
+                        &[arg_schemas[0].clone(), arg_schemas[1].clone()],
+                    )?,
+                    self.get_comparison_schema(
+                        state,
+                        &[arg_schemas[0].clone(), arg_schemas[2].clone()],
+                    )?,
                 ]))
             }
             // Boolean operators.
             Not => self.propagate_fixed_null_arguments(
+                state,
                 arg_schemas,
                 &[BOOLEAN_OR_NULLISH.clone()],
                 Schema::Atomic(Atomic::Boolean),
             ),
             And | Or => self.propagate_variadic_null_arguments(
+                state,
                 arg_schemas,
                 BOOLEAN_OR_NULLISH.clone(),
                 Schema::Atomic(Atomic::Boolean),
@@ -1224,6 +1311,7 @@ impl ScalarFunction {
             // Computed Field Access operator when the field is not known until runtime.
             ComputedFieldAccess => {
                 self.schema_check_fixed_args(
+                    state,
                     arg_schemas,
                     &[ANY_DOCUMENT.clone(), Schema::Atomic(Atomic::String)],
                 )?;
@@ -1231,7 +1319,7 @@ impl ScalarFunction {
             }
             // Conditional scalar functions.
             NullIf => {
-                self.get_comparison_schema(arg_schemas)?;
+                self.get_comparison_schema(state, arg_schemas)?;
                 Ok(Schema::AnyOf(set![
                     arg_schemas[0].clone().upconvert_missing_to_null(),
                     Schema::Atomic(Atomic::Null),
@@ -1239,51 +1327,61 @@ impl ScalarFunction {
             }
             Coalesce => self.get_coalesce_schema(arg_schemas),
             // Array scalar functions.
-            Slice => self.get_slice_schema(arg_schemas),
+            Slice => self.get_slice_schema(state, arg_schemas),
             Size => self.propagate_fixed_null_arguments(
+                state,
                 arg_schemas,
                 &[ANY_ARRAY_OR_NULLISH.clone()],
                 Schema::Atomic(Atomic::Integer),
             ),
             // Numeric value scalar functions.
             Position => self.propagate_fixed_null_arguments(
+                state,
                 arg_schemas,
                 &[STRING_OR_NULLISH.clone(), STRING_OR_NULLISH.clone()],
                 Schema::Atomic(Atomic::Integer),
             ),
             CharLength | OctetLength | BitLength => self.propagate_fixed_null_arguments(
+                state,
                 arg_schemas,
                 &[STRING_OR_NULLISH.clone()],
                 Schema::Atomic(Atomic::Integer),
             ),
             Year | Month | Day | Hour | Minute | Second => self.propagate_fixed_null_arguments(
+                state,
                 arg_schemas,
                 &[DATE_OR_NULLISH.clone()],
                 Schema::Atomic(Atomic::Integer),
             ),
             // String value scalar functions.
-            Substring => self.get_substring_schema(arg_schemas),
+            Substring => self.get_substring_schema(state, arg_schemas),
             Upper | Lower => self.propagate_fixed_null_arguments(
+                state,
                 arg_schemas,
                 &[STRING_OR_NULLISH.clone()],
                 Schema::Atomic(Atomic::String),
             ),
             LTrim | RTrim | BTrim => self.propagate_fixed_null_arguments(
+                state,
                 arg_schemas,
                 &[STRING_OR_NULLISH.clone(), STRING_OR_NULLISH.clone()],
                 Schema::Atomic(Atomic::String),
             ),
             // Datetime value scalar function.
             CurrentTimestamp => {
-                self.schema_check_fixed_args(arg_schemas, &[])?;
+                self.schema_check_fixed_args(state, arg_schemas, &[])?;
                 Ok(Schema::Atomic(Atomic::Date))
             }
-            MergeObjects => self.schema_check_merge_objects(arg_schemas),
+            MergeObjects => self.schema_check_merge_objects(state, arg_schemas),
         }
     }
 
-    fn schema_check_merge_objects(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
-        self.schema_check_variadic_args(arg_schemas, ANY_DOCUMENT.clone())?;
+    fn schema_check_merge_objects(
+        &self,
+        state: &SchemaInferenceState,
+        arg_schemas: &[Schema],
+    ) -> Result<Schema, Error> {
+        self.schema_check_variadic_args(state, arg_schemas, ANY_DOCUMENT.clone())?;
         // union all AnyOf arg_schemas into union Document schemata
         arg_schemas
             .iter()
@@ -1329,9 +1427,14 @@ impl ScalarFunction {
     ///
     /// We first check the schema for 3 args. If the check fails specifically due
     /// to an incorrect argument count, we check the schema for 2 args instead.
-    fn get_substring_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
+    fn get_substring_schema(
+        &self,
+        state: &SchemaInferenceState,
+        arg_schemas: &[Schema],
+    ) -> Result<Schema, Error> {
         Ok(self.propagate_null_arguments_helper(
             self.schema_check_fixed_args(
+                state,
                 arg_schemas,
                 &[
                     STRING_OR_NULLISH.clone(),
@@ -1341,6 +1444,7 @@ impl ScalarFunction {
             )
             .or_else(|err| match err {
                 Error::IncorrectArgumentCount { .. } => self.schema_check_fixed_args(
+                    state,
                     arg_schemas,
                     &[STRING_OR_NULLISH.clone(), INTEGER_OR_NULLISH.clone()],
                 ),
@@ -1388,9 +1492,14 @@ impl ScalarFunction {
     ///
     /// We first check the schema for 3 args. If the check fails specifically due
     /// to an incorrect argument count, we check the schema for 2 args instead.
-    fn get_slice_schema(&self, arg_schemas: &[Schema]) -> Result<Schema, Error> {
+    fn get_slice_schema(
+        &self,
+        state: &SchemaInferenceState,
+        arg_schemas: &[Schema],
+    ) -> Result<Schema, Error> {
         Ok(self.propagate_null_arguments_helper(
             self.schema_check_fixed_args(
+                state,
                 arg_schemas,
                 &[
                     ANY_ARRAY.clone(),
@@ -1400,6 +1509,7 @@ impl ScalarFunction {
             )
             .or_else(|err| match err {
                 Error::IncorrectArgumentCount { .. } => self.schema_check_fixed_args(
+                    state,
                     arg_schemas,
                     &[ANY_ARRAY.clone(), INTEGER_OR_NULLISH.clone()],
                 ),
@@ -1430,7 +1540,7 @@ impl CastExpr {
         }
 
         // If the original expression is being cast to its own type, return that type.
-        if expr_schema.satisfies(&type_schema) == Satisfaction::Must {
+        if state.check_satisfies(&expr_schema, &type_schema) {
             return Ok(type_schema);
         }
 
@@ -1475,7 +1585,7 @@ impl SchemaCheckCaseExpr for SearchedCaseExpr {
     fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
         // All WHEN conditions for a SearchedCaseExpr must be boolean or nullish.
         let check_when_schema = &|when_schema: &Schema| {
-            if when_schema.satisfies(&BOOLEAN_OR_NULLISH) != Satisfaction::Must {
+            if !state.check_satisfies(when_schema, &BOOLEAN_OR_NULLISH) {
                 return Err(Error::SchemaChecking {
                     name: "SearchedCase",
                     required: BOOLEAN_OR_NULLISH.clone(),
@@ -1499,7 +1609,7 @@ impl SchemaCheckCaseExpr for SimpleCaseExpr {
         // The case operand for a SimpleCaseExpr must be comparable with all WHEN operands.
         let case_operand_schema = self.expr.schema(state)?;
         let check_when_schema = &|when_schema: &Schema| {
-            if case_operand_schema.is_comparable_with(when_schema) != Satisfaction::Must {
+            if !state.check_comparable_with(&case_operand_schema, when_schema) {
                 return Err(Error::InvalidComparison(
                     "SimpleCase",
                     case_operand_schema.clone(),
