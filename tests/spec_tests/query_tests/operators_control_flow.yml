@@ -57,18 +57,20 @@ tests:
 
   - description: Simple CASE expression - One WHEN comparison evalutes to TRUE, return corresponding THEN result
     query: "SELECT VALUE { 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' ELSE 'none' END } FROM [{'a': 2, 'b': 1}] AS arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'a': 2, 'b': 1}]}}
+      - {'$documents': [{'a': {'$literal': 2}, 'b': {'$literal': 1}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'r': {'$let': {
         'vars': {'target': { $literal: 1 }},
         'in':
           {"$switch": {
             "branches": [
-            {"case": { "$sqlEq": [ '$$target', "$arr.a" ] }, "then": 'a' },
-            {"case": { "$sqlEq": [ '$$target', "$arr.b" ] }, "then": 'b' },
+            {"case": { "$sqlEq": [ '$$target', "$arr.a" ] }, "then": {'$literal': 'a'} },
+            {"case": { "$sqlEq": [ '$$target', "$arr.b" ] }, "then": {'$literal': 'b'} },
             ],
-            "default": 'none'
+            "default": {'$literal': 'none'}
           }}}}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -77,22 +79,21 @@ tests:
       - {'': { "r": "b" } }
 
   - description: Simple CASE expression - Multiple WHEN comparison evalutes to TRUE, return first corresponding THEN result
-    current_db: foo
     query: "SELECT VALUE { 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' ELSE 'none' END } FROM [{'a': 1, 'b': 1}] AS arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
     translation_target_db: foo
-    translation_target_coll: bar
     translation:
-      - {'$documents': {'arr': [{'a': 1, 'b': 1}]}}
+      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'r': {'$let': {
         'vars': {'target': { $literal: 1 }},
         'in':
           {"$switch": {
             "branches": [
-            {"case": { "$sqlEq": [ '$$target', "$arr.a" ] }, "then": 'a' },
-            {"case": { "$sqlEq": [ '$$target', "$arr.b" ] }, "then": 'b' },
+            {"case": { "$sqlEq": [ '$$target', "$arr.a" ] }, "then": {'$literal': 'a'} },
+            {"case": { "$sqlEq": [ '$$target', "$arr.b" ] }, "then": {'$literal': 'b'} },
             ],
-            "default": 'none'
+            "default": {'$literal': 'none'}
           }}}}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -102,7 +103,8 @@ tests:
 
   - description: Simple CASE expression - Static type mismatch for case operand and when operand
     query: "SELECT VALUE { 'r': CASE 1 WHEN '2' THEN '2' ELSE NULL END } FROM [{}] AS _dual"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     should_compile: false
     algebrize_error: "type mismatch in CASE expression, operands must have comparable types (found STRING and INT)"
 
@@ -122,7 +124,7 @@ tests:
                                             {"case": { "$sqlEq": [ "$bar.b", { $literal: 1 } ] }, "then": 'b' },
                                             {"case": { "$sqlNe": [ "$bar.c", { $literal: 0 } ] }, "then": 'c' }
                                             ],
-                                            "default": 'none'
+                                            "default": {'$literal': 'none'}
                                           }}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -131,20 +133,20 @@ tests:
       - {'': { "a": 2, "b": null, "r": "a" } }
 
   - description: Searched CASE expression - One WHEN condition evalutes to TRUE, return corresponding THEN result
+    skip_reason: 'SQL-719: disable constant folding for translation tests'
     current_db: foo
     query: "SELECT VALUE { 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' ELSE 'none' END } FROM [{'a': 2, 'b': 1}] AS arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
-      - {'$documents': {'arr': [{'a': 1, 'b': 1}]}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$bar.a', 'b': '$bar.b',
-                                          'r': {"$switch": {
+      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'r': {"$switch": {
                                             "branches": [
-                                            {"case": { "$sqlEq": [ "$arr.a", { $literal: 1 } ] }, "then": 'a' },
-                                            {"case": { "$sqlEq": [ "$arr.b", { $literal: 1 } ] }, "then": 'b' },
+                                            {"case": { "$sqlEq": [ "$arr.a", { $literal: 1 } ] }, "then": {'$literal': 'a'} },
+                                            {"case": { "$sqlEq": [ "$arr.b", { $literal: 1 } ] }, "then": {'$literal': 'b'} },
                                             ],
-                                            "default": 'none'
+                                            "default": {'$literal': 'none'}
                                           }}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -155,18 +157,17 @@ tests:
   - description: Searched CASE expression - Multiple WHEN conditions evalutes to TRUE, return first corresponding THEN result
     current_db: foo
     query: "SELECT VALUE { 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' ELSE 'none' END } FROM [{'a': 1, 'b': 1}] AS arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
-      - {'$documents': {'arr': [{'a': 1, 'b': 1}]}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$bar.a', 'b': '$bar.b',
-                                          'r': {"$switch": {
+      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'r': {"$switch": {
                                             "branches": [
-                                            {"case": { "$sqlEq": [ "$arr.a", { $literal: 1 } ] }, "then": 'a' },
-                                            {"case": { "$sqlEq": [ "$arr.b", { $literal: 1 } ] }, "then": 'b' },
+                                            {"case": { "$sqlEq": [ "$arr.a", { $literal: 1 } ] }, "then": {'$literal': 'a'} },
+                                            {"case": { "$sqlEq": [ "$arr.b", { $literal: 1 } ] }, "then": {'$literal': 'b'} },
                                             ],
-                                            "default": 'none'
+                                            "default": {'$literal': 'none'}
                                           }}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }

@@ -89,15 +89,17 @@ tests:
   - description: union works with array datasources
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo AS foo UNION ALL SELECT * FROM [{'b': 1}, {'b': 2}] AS arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
     ordered: false
     translation_target_db: mydb
-    translation_target_collection: foo
+    translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
       - {'$project': {'_id': 0, 'foo': '$foo'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
-      - {'$unionWith': {'pipeline': [{'$documents': {'arr': [{'b': 1}, {'b': 2}]}}]}}
+      - {'$unionWith': {'pipeline': [
+          {'$documents': [{'b': {'$literal': 1}}, {'b': {'$literal': 2}}]},
+          {'$project': {'_id': 0, 'arr': '$$ROOT'}},
+        ]}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}

@@ -1,9 +1,11 @@
 tests:
   - description: Undelimited identifier containing a . character is a compound identifier
-    query: "SELECT VALUE {'c': a.c} FROM [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}] arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    query: "SELECT VALUE {'c': a.c} FROM [{'a': {'c': 1}}, {'a': 3}] arr"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}]}}
+      - {'$documents': [{'a': {'c': {'$literal': 1}}}, {'a': {'$literal': 3}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'c': '$arr.a.c'}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -14,22 +16,27 @@ tests:
 
   - description: Delimited identifier containing a . character includes the .
     query: "SELECT VALUE {'a.c': `a.c`} FROM [{'a': {'c': 1}, 'a.c': 2}, {'a': 3, 'a.c': 4}] arr"
-    skip_reason: "SQL-462. Also, dots in field names not yet supported"
+    skip_reason: 'SQL-683: codegen for fields with dots not supported'
+    current_db: test
+    translation_target_db: test
     result:
       - {'': {'a.c': 2}}
       - {'': {'a.c': 4}}
 
   - description: Undelimited identifier starting with digit is not parsed as an identifier
     query: "SELECT 1a FROM [{'1a': 2}] arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     should_compile: false
     parse_error: "undelimited identifiers may not start with a digit"
 
   - description: Delimited identifier starting with digit is an identifier
     query: "SELECT VALUE {'1a': `1a`} FROM [{'1a': 2}] arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'1a': 2}]}}
+      - {'$documents': [{'1a': {'$literal': 2}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'1a': '$arr.1a'}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -39,22 +46,26 @@ tests:
 
   - description: Backtick delimited identifiers containing delimiter characters
     query: "SELECT VALUE {'a`b': `a``b`, 'a\"b': `a\"b`, 'a`\"b': `a``\"b`} FROM [{'a`b': 1, 'a\"b': 2, 'a`\"b': 3}] arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'a`b': 1, 'a"b': 2, 'a`"b': 3}]}}
+      - {'$documents': [{'a`b': {'$literal': 1}, 'a"b': {'$literal': 2}, 'a`"b': {'$literal': 3}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'a`b': '$arr.a`b', 'a"b': '$arr.a"b', 'a`"b': '$arr.a`"b'}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
     result:
-      - {'': {'a`b': 1, 'a\"b': 2, 'a`\"b': 3}}
+      - {'': {'a`b': 1, 'a"b': 2, 'a`"b': 3}}
 
   - description: Double quote delimited identifiers containing delimiter characters
     query: "SELECT VALUE {'a`b': \"a`b\", 'a\"b': \"a\"\"b\", 'a`\"b': \"a`\"\"b\"} FROM [{'a`b': 1, 'a\"b': 2, 'a`\"b': 3}] arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'a`b': 1, 'a"b': 2, 'a`"b': 3}]}}
-      - {'$project': {'_id': 0, '__bot': {'a`b': 'arr.a`b', 'a"b': '$arr.a"b', 'a`"b': '$arr.a`"b'}}}
+      - {'$documents': [{'a`b': {'$literal': 1}, 'a"b': {'$literal': 2}, 'a`"b': {'$literal': 3}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a`b': '$arr.a`b', 'a"b': '$arr.a"b', 'a`"b': '$arr.a`"b'}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -63,9 +74,11 @@ tests:
 
   - description: Regular and delimited identifiers
     query: "SELECT VALUE {'a': a, 'b': `b`} FROM [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}] arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}]}}
+      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 2}}, {'a': {'$literal': 3}, 'b': {'$literal': 4}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'b': '$arr.b'}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -76,15 +89,18 @@ tests:
 
   - description: Undelimited identifier with non-ASCII characters is invalid
     query: "SELECT VALUE {'αβγ': αβγ} FROM [{'αβγ': 1}] arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     should_compile: false
     parse_error: "undelimited identifiers should only contain alphanumerics"
     
   - description: Delimited identifier with non-ASCII characters
     query: "SELECT VALUE {'αβγ': `αβγ`} FROM [{'αβγ': 1}] arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'αβγ': 1}]}}
+      - {'$documents': [{'αβγ': {'$literal': 1}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'αβγ': '$arr.αβγ'}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -94,9 +110,11 @@ tests:
 
   - description: Compound identifier with more than 3 parts
     query: "SELECT VALUE {'d': a.b.c.d} FROM [{'a': {'b': {'c': {'d': 1}}}}] arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'a': {'b': {'c': {'d': 1}}}}]}}
+      - {'$documents': [{'a': {'b': {'c': {'d': {'$literal': 1}}}}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'d': '$arr.a.b.c.d'}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -106,15 +124,19 @@ tests:
 
   - description: Compound identifier with mixed delimited and undelimited components
     query: "SELECT VALUE {'c': `a.b`.c} FROM [{'a.b': {'c': 1}, 'a': {'b': {'c': 2}, 'b.c': 3}}] arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources; dots in field names not yet supported"
+    skip_reason: 'SQL-683: codegen for fields with dots not supported'
+    current_db: test
+    translation_target_db: test
     result:
       - {'': {'c': 1}}
 
   - description: Case-sensitive identifiers
     query: "SELECT VALUE {'a': a, 'A': A} FROM [{'a': 1, 'A': 2}, {'a': 3}, {'A': 4}] arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'a': 1, 'A': 2}, {'a': 3}, {'A': 4}]}}
+      - {'$documents': [{'a': {'$literal': 1}, 'A': {'$literal': 2}}, {'a': {'$literal': 3}}, {'A': {'$literal': 4}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'A': '$arr.A'}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -126,9 +148,12 @@ tests:
 
   - description: Empty identifiers
     query: "SELECT VALUE {'empty': ``} FROM [{'': 2}] AS arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    skip_reason: 'SQL-683: codegen for empty fields not supported'
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'': 2}]}}
+      - {'$documents': [{'': {'$literal': 2}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'empty': {'$getField': {'field': '', 'input': '$arr'}}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }

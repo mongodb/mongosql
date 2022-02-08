@@ -860,8 +860,9 @@ impl MqlCodeGenerator {
                         ]
                     }),
                     ComputedFieldAccess => {
-                        return Err(Error::UnsupportedFunction(ComputedFieldAccess))
-                    } // depend on new $getField operator in SQL-282
+                        // Adding this feature is tracked in SQL-673
+                        return Err(Error::UnsupportedFunction(ComputedFieldAccess));
+                    }
                     CurrentTimestamp => Bson::String("$$NOW".to_string()),
                     CharLength | OctetLength | Size | Upper | Lower | Year | Month | Day | Hour
                     | Minute | Second => {

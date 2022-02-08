@@ -159,12 +159,16 @@ catalog_schema:
 tests:
     - description: GROUP BY with empty input outputs empty
       query: "SELECT * FROM [] AS arr GROUP BY NULL AS n"
-      skip_reason: "SQL-462: re-enable tests with array datasources"
-      current_db: foo
+      current_db: test
+      translation_target_db: test
       translation:
-        - {'$documents': {'arr': []}}
-        - {'$group': {'_id': {'n': null}}}
+        - {'$documents': []}
+        - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+        - {'$group': {'_id': {'n': {'$literal': null}}}}
         - {'$project': {'_id': 0, '__bot': {'n': '$_id.n'}}}
+        - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+             { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+          }}}}
       result: []
 
     - description: GROUP BY NULL creates only one group

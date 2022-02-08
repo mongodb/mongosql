@@ -419,7 +419,7 @@ tests:
   - description: EXTRACT YEAR correctness test
     current_db: foo
     query: "SELECT VALUE {'year': EXTRACT(YEAR FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    skip_reason: 'SQL-620: type assertions are treated as complex exprs'
     translation_target_db: foo
     translation:
       - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
@@ -433,7 +433,7 @@ tests:
   - description: EXTRACT MONTH correctness test
     current_db: foo
     query: "SELECT VALUE {'month': EXTRACT(MONTH FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    skip_reason: 'SQL-620: type assertions are treated as complex exprs'
     translation_target_db: foo
     translation:
       - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
@@ -447,7 +447,7 @@ tests:
   - description: EXTRACT DAY correctness test
     current_db: foo
     query: "SELECT VALUE {'day': EXTRACT(DAY FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    skip_reason: 'SQL-620: type assertions are treated as complex exprs'
     translation_target_db: foo
     translation:
       - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
@@ -461,7 +461,7 @@ tests:
   - description: EXTRACT HOUR correctness test
     current_db: foo
     query: "SELECT VALUE {'hour': EXTRACT(HOUR FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    skip_reason: 'SQL-620: type assertions are treated as complex exprs'
     translation_target_db: foo
     translation:
       - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
@@ -475,7 +475,7 @@ tests:
   - description: EXTRACT MINUTE correctness test
     current_db: foo
     query: "SELECT VALUE {'minute': EXTRACT(MINUTE FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    skip_reason: 'SQL-620: type assertions are treated as complex exprs'
     translation_target_db: foo
     translation:
       - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
@@ -489,7 +489,7 @@ tests:
   - description: EXTRACT SECOND correctness test
     current_db: foo
     query: "SELECT VALUE {'second': EXTRACT(SECOND FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    skip_reason: 'SQL-620: type assertions are treated as complex exprs'
     translation_target_db: foo
     translation:
       - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
@@ -665,11 +665,11 @@ tests:
   - description: CURRENT_TIMESTAMP(p) correctness test
     current_db: foo
     query: "SELECT VALUE {'v': CURRENT_TIMESTAMP(1) > '2021-01-08T12:00:00Z'::TIMESTAMP} FROM [{}] AS _dual"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
-      - {'$documents': {'_dual': [{}]}}
-      - {'$project': {'_id': 0, '__bot': {'v': {'$sqlGt': ['$$NOW', {'$convert': {'input': '2021-01-08T12:00:00Z', 'to': 'date', 'onNull': null, 'onError': null}}]}}}}
+      - {'$documents': [{"$literal": {}}]}
+      - {'$project': {'_id': 0, '_dual': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'v': {'$sqlGt': ['$$NOW', {'$convert': {'input': {'$literal': '2021-01-08T12:00:00Z'}, 'to': 'date', 'onNull': {'$literal': null}, 'onError': {'$literal': null}}}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -679,10 +679,10 @@ tests:
   - description: Multiple CURRENT_TIMESTAMPs are equal across a query
     current_db: foo
     query: "SELECT VALUE {'v': CURRENT_TIMESTAMP(6) = CURRENT_TIMESTAMP(6)} FROM [{}] AS _dual"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
     translation_target_db: foo
     translation:
-      - {'$documents': {'_dual': [{}]}}
+      - {'$documents': [{'$literal': {}}]}
+      - {'$project': {'_id': 0, '_dual': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'v': {'$sqlEq': ['$$NOW', '$$NOW']}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }

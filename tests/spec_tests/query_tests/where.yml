@@ -32,9 +32,11 @@ catalog_schema:
 tests:
   - description: WHERE with BOOLEAN returning expression
     query: "SELECT * FROM [{'a': 1}, {'a': 2}, {'a': 3}] AS arr WHERE a >= 2"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'a': 1}, {'a': 2}, {'a': 3}]}}
+      - {'$documents': [{'a': {'$literal': 1}}, {'a': {'$literal': 2}}, {'a': {'$literal': 3}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$match': {'$expr': {'$sqlGte': ['$arr.a', {'$literal': 2}]}}}
     result:
       - {'arr': {'a': 2}}
@@ -42,49 +44,57 @@ tests:
 
   - description: WHERE with CAST to BOOLEAN
     query: "SELECT * FROM [{'a': 0}, {'a': 1}, {'a': 2}, {'a': 3}] AS arr WHERE CAST(a AS BOOLEAN)"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'a': 1}, {'a': 2}, {'a': 3}]}}
-      - {'$match': {'$expr': {'$convert': {'input': '$arr.a', 'to': 'bool', 'onNull': null, 'onError': null}}}}
+      - {'$documents': [{'a': {'$literal': 0}}, {'a': {'$literal': 1}}, {'a': {'$literal': 2}}, {'a': {'$literal': 3}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+      - {'$match': {'$expr': {'$convert': {'input': '$arr.a', 'to': 'bool', 'onNull': {'$literal': null}, 'onError': {'$literal': null}}}}}
     result:
       - {'arr': {'a': 1}}
       - {'arr': {'a': 2}}
       - {'arr': {'a': 3}}
 
   - description: WHERE with CASE that must return BOOLEAN
-    query: "SELECT * FROM [{'a': true}, {'a': 1}, {'a': false}, {'a': true}, {}] AS arr WHERE CASE WHEN a IS BOOLEAN THEN a ELSE false END"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    query: "SELECT * FROM [{'a': false}, {'a': true}] AS arr WHERE CASE WHEN a IS BOOLEAN THEN a ELSE false END"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'a': true}, {'a': 1}, {'a': false}, {'a': true}, {}]}}
+      - {'$documents': [{'a': {'$literal': false}}, {'a': {'$literal': true}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$match': {'$expr': {"$switch": {
             "branches": [
-            {"case": {'$sqlEq': [{$type: '$arr.a'}, 'bool']}, "then": '$arr.a' },
+            {"case": {'$eq': [{$type: '$arr.a'}, 'bool']}, "then": '$arr.a' },
             ],
             "default": {'$literal': false}
           }}}}
     result:
       - {'arr': {'a': true}}
-      - {'arr': {'a': true}}
 
   - description: NULL is a valid BOOLEAN
     query: "SELECT * FROM [{'a': true}, {'a': 1}, {'a': false}, {'a': true}] AS arr WHERE NULL"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'a': true}, {'a': 1}, {'a': false}, {'a': true}]}}
+      - {'$documents': [{'a': {'$literal': true}}, {'a': {'$literal': 1}}, {'a': {'$literal': false}}, {'a': {'$literal': true}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$match': {'$expr': {'$literal': null}}}
     result: []
 
   - description: WHERE must be statically determined to be a BOOLEAN
     query: "SELECT * FROM [{'a': 1}] AS arr WHERE a"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     should_compile: false
     algebrize_error:  "WHERE clause expression must be BOOLEAN. Try changing to 'WHERE CAST(a AS BOOLEAN)'"
 
   - description: WHERE statically determined to be BOOLEAN from literal
     query: "SELECT * FROM [{'a': true}] AS arr WHERE a"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'a': true}, {'a': 1}, {'a': false}, {'a': true}]}}
+      - {'$documents': [{'a': {'$literal': true}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$match': {'$expr': '$arr.a'}}
     result:
       - {'arr': {'a': true}}

@@ -218,83 +218,97 @@ func TestSpecTranslations(t *testing.T) {
 	cwd, err := os.Getwd()
 	assert.NoError(t, err)
 
-	for _, dir := range []string{queryTestsDir, translationTestsDir} {
-		path := cwd + "/" + dir
-		tests, err := ioutil.ReadDir(path)
-		if err != nil {
-			t.Fatalf("directory does not exist: '%s'", path)
-		}
+	type testDir = struct {
+		name string
+		path string
+	}
+	testDirs := []testDir{
+		{name: "query", path: queryTestsDir},
+		{name: "translation", path: translationTestsDir},
+	}
 
-		for _, testFile := range tests {
-			if !strings.HasSuffix(testFile.Name(), ".yml") {
-				continue
+	for _, dir := range testDirs {
+		t.Run(dir.name, func(t *testing.T) {
+			path := cwd + "/" + dir.path
+			tests, err := ioutil.ReadDir(path)
+			if err != nil {
+				t.Fatalf("directory does not exist: '%s'", path)
 			}
-			yaml, err := readYamlFile(path + "/" + testFile.Name())
-			assert.NoError(t, err)
 
-			for _, testCase := range yaml.Tests {
-				if testCase.SkipReason != "" {
+			for _, testFile := range tests {
+				if !strings.HasSuffix(testFile.Name(), ".yml") {
 					continue
 				}
-				catalogSchema, err := toCoreDocument(yaml.CatalogSchema)
-				assert.NoError(t, err)
+				t.Run(testFile.Name(), func(t *testing.T) {
+					yaml, err := readYamlFile(path + "/" + testFile.Name())
+					assert.NoError(t, err)
 
-				t.Run(testCase.Description, func(t *testing.T) {
-					args := TranslationArgs{
-						DB:             testCase.CurrentDb,
-						SQL:            testCase.Query,
-						CatalogSchema:  catalogSchema,
-						skipDesugaring: true,
-					}
-
-					translation, err := Translate(args)
-
-					if testCase.AlgebrizeError != "" {
-						if err == nil {
-							t.Fatal("expected an algebrize error")
-						}
-						assert.Contains(t, err.Error(), "algebrize error")
-					} else if testCase.ParseError != "" {
-						if err == nil {
-							t.Fatal("expected a parse error")
-						}
-						assert.Contains(t, err.Error(), "parse error")
-					} else {
-						if err == nil {
-							var actualPipeline []bson.D
-							val := bson.RawValue{
-								Type:  bsontype.Array,
-								Value: translation.Pipeline,
+					for _, testCase := range yaml.Tests {
+						t.Run(testCase.Description, func(t *testing.T) {
+							if testCase.SkipReason != "" {
+								t.Skip(testCase.SkipReason)
 							}
-							// Candiedyaml's unmarshaller uses int64, while the BSON unmarshaller uses int32.
-							// This registry forces the BSON unmarshaller to use int64.
-							registry := bson.NewRegistryBuilder().
-								RegisterTypeMapEntry(bsontype.Int32, reflect.TypeOf(int64(0))).
-								Build()
-							err := val.UnmarshalWithRegistry(registry, &actualPipeline)
 
-							// We have to marshal and then unmarshal the expected pipeline
-							// because candiedyaml will convert an array that's inside a bson.D
-							// into an []interface{}, instead of a bson.A{}.
-							var expectedPipeline []bson.D
-							_, expectedBytes, err := bson.MarshalValue(testCase.Translation)
+							catalogSchema, err := toCoreDocument(yaml.CatalogSchema)
 							assert.NoError(t, err)
-							v := bson.RawValue{
-								Type:  bsontype.Array,
-								Value: expectedBytes,
+
+							args := TranslationArgs{
+								DB:             testCase.CurrentDb,
+								SQL:            testCase.Query,
+								CatalogSchema:  catalogSchema,
+								skipDesugaring: true,
 							}
-							err = v.Unmarshal(&expectedPipeline)
-							assert.NoError(t, err)
-							if !reflect.DeepEqual(expectedPipeline, actualPipeline) {
-								t.Fatalf("expected translations to be equal, but they weren't:\nexpected:%v\nactual:%v\n", expectedPipeline, actualPipeline)
+
+							translation, err := Translate(args)
+
+							if testCase.AlgebrizeError != "" {
+								if err == nil {
+									t.Fatal("expected an algebrize error, but algebrization succeeded")
+								}
+								assert.Contains(t, err.Error(), "algebrize error")
+							} else if testCase.ParseError != "" {
+								if err == nil {
+									t.Fatal("expected a parse error")
+								}
+								assert.Contains(t, err.Error(), "parse error")
+							} else {
+								if err == nil {
+									var actualPipeline []bson.D
+									val := bson.RawValue{
+										Type:  bsontype.Array,
+										Value: translation.Pipeline,
+									}
+									// Candiedyaml's unmarshaller uses int64, while the BSON unmarshaller uses int32.
+									// This registry forces the BSON unmarshaller to use int64.
+									registry := bson.NewRegistryBuilder().
+										RegisterTypeMapEntry(bsontype.Int32, reflect.TypeOf(int64(0))).
+										Build()
+									err := val.UnmarshalWithRegistry(registry, &actualPipeline)
+
+									// We have to marshal and then unmarshal the expected pipeline
+									// because candiedyaml will convert an array that's inside a bson.D
+									// into an []interface{}, instead of a bson.A{}.
+									var expectedPipeline []bson.D
+									_, expectedBytes, err := bson.MarshalValue(testCase.Translation)
+									assert.NoError(t, err)
+									v := bson.RawValue{
+										Type:  bsontype.Array,
+										Value: expectedBytes,
+									}
+									err = v.Unmarshal(&expectedPipeline)
+									assert.NoError(t, err)
+									if !reflect.DeepEqual(expectedPipeline, actualPipeline) {
+										t.Fatalf("expected translations to be equal, but they weren't:\nexpected:%v\nactual:%v\n", expectedPipeline, actualPipeline)
+									}
+								} else {
+									t.Fatalf("translation unexpectedly failed: %v", err.Error())
+								}
 							}
-						} else {
-							t.Fatalf("translation unexpectedly failed: %v", err.Error())
-						}
+						})
 					}
 				})
 			}
-		}
+		})
 	}
 }
 
@@ -312,76 +326,79 @@ func TestSpecResultSets(t *testing.T) {
 	assert.NoError(t, err)
 
 	for _, testFile := range queryTests {
-		yaml, err := readYamlFile(queryTestsPath + "/" + testFile.Name())
-		assert.NoError(t, err)
-
-		assert.NoError(t, loadCatalogData(client, yaml.CatalogData))
-
-		for _, testCase := range yaml.Tests {
-			if testCase.SkipReason != "" {
-				continue
-			}
-			catalogSchema, err := toCoreDocument(yaml.CatalogSchema)
+		t.Run(testFile.Name(), func(t *testing.T) {
+			yaml, err := readYamlFile(queryTestsPath + "/" + testFile.Name())
 			assert.NoError(t, err)
 
-			t.Run(testCase.Description, func(t *testing.T) {
-				args := TranslationArgs{
-					DB:            testCase.CurrentDb,
-					SQL:           testCase.Query,
-					CatalogSchema: catalogSchema,
-				}
+			assert.NoError(t, loadCatalogData(client, yaml.CatalogData))
 
-				translation, err := Translate(args)
-
-				if testCase.AlgebrizeError != "" {
-					if err == nil {
-						t.Fatal("expected an algebrize error")
+			for _, testCase := range yaml.Tests {
+				t.Run(testCase.Description, func(t *testing.T) {
+					if testCase.SkipReason != "" {
+						t.Skip(testCase.SkipReason)
 					}
-					assert.Contains(t, err.Error(), "algebrize error")
-				} else if testCase.ParseError != "" {
-					if err == nil {
-						t.Fatal("expected a parse error")
+
+					catalogSchema, err := toCoreDocument(yaml.CatalogSchema)
+					assert.NoError(t, err)
+
+					args := TranslationArgs{
+						DB:            testCase.CurrentDb,
+						SQL:           testCase.Query,
+						CatalogSchema: catalogSchema,
 					}
-					assert.Contains(t, err.Error(), "parse error")
-				} else {
-					if err == nil {
-						var pipelineBsonD []bson.D
-						val := bson.RawValue{
-							Type:  bsontype.Array,
-							Value: translation.Pipeline,
-						}
-						err := val.Unmarshal(&pipelineBsonD)
-						assert.NoError(t, err)
 
-						var actualResultSet []bson.D
-						var actualCursor *mongo.Cursor
-						if translation.TargetCollection == "" {
-							actualCursor, err = client.Database(testCase.TranslationDB).
-								Aggregate(context.Background(), pipelineBsonD)
-						} else {
-							actualCursor, err = client.Database(testCase.TranslationDB).
-								Collection(testCase.TranslationColl).
-								Aggregate(context.Background(), pipelineBsonD)
-						}
-						assert.NoError(t, err)
-						err = actualCursor.All(context.Background(), &actualResultSet)
-						assert.NoError(t, err)
+					translation, err := Translate(args)
 
-						// Normalize the expected result set in case it uses extendedJSON notation.
-						normalizedExpectedResultSet, err := normalizeBSON(testCase.Result)
-						assert.NoError(t, err)
-
-						if testCase.Ordered {
-							assert.NoError(t, compareOrderedSets(normalizedExpectedResultSet, actualResultSet))
-						} else {
-							assert.NoError(t, compareUnorderedSets(normalizedExpectedResultSet, actualResultSet))
+					if testCase.AlgebrizeError != "" {
+						if err == nil {
+							t.Fatal("expected an algebrize error")
 						}
+						assert.Contains(t, err.Error(), "algebrize error")
+					} else if testCase.ParseError != "" {
+						if err == nil {
+							t.Fatal("expected a parse error")
+						}
+						assert.Contains(t, err.Error(), "parse error")
 					} else {
-						t.Fatalf("translation unexpectedly failed: %v", err.Error())
+						if err == nil {
+							var pipelineBsonD []bson.D
+							val := bson.RawValue{
+								Type:  bsontype.Array,
+								Value: translation.Pipeline,
+							}
+							err := val.Unmarshal(&pipelineBsonD)
+							assert.NoError(t, err)
+
+							var actualResultSet []bson.D
+							var actualCursor *mongo.Cursor
+							if translation.TargetCollection == "" {
+								actualCursor, err = client.Database(testCase.TranslationDB).
+									Aggregate(context.Background(), pipelineBsonD)
+							} else {
+								actualCursor, err = client.Database(testCase.TranslationDB).
+									Collection(testCase.TranslationColl).
+									Aggregate(context.Background(), pipelineBsonD)
+							}
+							assert.NoError(t, err)
+							err = actualCursor.All(context.Background(), &actualResultSet)
+							assert.NoError(t, err)
+
+							// Normalize the expected result set in case it uses extendedJSON notation.
+							normalizedExpectedResultSet, err := normalizeBSON(testCase.Result)
+							assert.NoError(t, err)
+
+							if testCase.Ordered {
+								assert.NoError(t, compareOrderedSets(normalizedExpectedResultSet, actualResultSet))
+							} else {
+								assert.NoError(t, compareUnorderedSets(normalizedExpectedResultSet, actualResultSet))
+							}
+						} else {
+							t.Fatalf("translation unexpectedly failed: %v", err.Error())
+						}
 					}
-				}
-			})
-		}
-		assert.NoError(t, deleteCatalogData(client, yaml.CatalogData))
+				})
+			}
+			assert.NoError(t, deleteCatalogData(client, yaml.CatalogData))
+		})
 	}
 }

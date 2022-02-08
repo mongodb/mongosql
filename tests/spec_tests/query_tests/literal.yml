@@ -1,9 +1,11 @@
 tests:
   - description: Null literal
     query: "SELECT VALUE {'_1': null, '_2': NULL, '_3': nUlL} FROM [{}] AS _dual"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'_dual': [{}]}}
+      - {'$documents': [{'$literal': {}}]}
+      - {'$project': {'_id': 0, '_dual': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': null}, '_2': {'$literal': null}, '_3': {'$literal': null}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -13,9 +15,11 @@ tests:
 
   - description: Boolean literals
     query: "SELECT VALUE {'_1': true, '_2': TRUE, '_3': TruE, '_4': false, '_5': FALSE, '_6': fAlSe} FROM [{}] AS _dual"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'_dual': [{}]}}
+      - {'$documents': [{'$literal': {}}]}
+      - {'$project': {'_id': 0, '_dual': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': true}, '_2': {'$literal': true}, '_3': {'$literal': true}, '_4': {'$literal': false}, '_5': {'$literal': false}, '_6': {'$literal': false}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -25,9 +29,11 @@ tests:
 
   - description: String literals
     query: "SELECT VALUE {'_1': '', '_2': 'abc', '_3': 'αβγ'} FROM [{}] AS _dual"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'_dual': [{}]}}
+      - {'$documents': [{'$literal': {}}]}
+      - {'$project': {'_id': 0, '_dual': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': ''}, '_2': {'$literal': 'abc'}, '_3': {'$literal': 'αβγ'}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -37,9 +43,11 @@ tests:
 
   - description: Unsigned integer literals
     query: "SELECT VALUE {'_1': 0, '_2': 1, '_3': 10, '_4': 11, '_5': 567} FROM [{}] AS _dual"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'_dual': [{}]}}
+      - {'$documents': [{'$literal': {}}]}
+      - {'$project': {'_id': 0, '_dual': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': 0}, '_2': {'$literal': 1}, '_3': {'$literal': 10}, '_4': {'$literal': 11}, '_5': {'$literal': 567}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -49,9 +57,11 @@ tests:
 
   - description: Signed integer literals
     query: "SELECT VALUE {'_1': -0, '_2': +0, '_3': -1, '_4': +1, '_5': -10, '_6': +10, '_7': -789, '_8': +789} FROM [{}] AS _dual"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'_dual': [{}]}}
+      - {'$documents': [{'$literal': {}}]}
+      - {'$project': {'_id': 0, '_dual': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': 0}, '_2': {'$literal': 0}, '_3': {'$literal': -1}, '_4': {'$literal': 1}, '_5': {'$literal': -10}, '_6': {'$literal': 10}, '_7': {'$literal': -789}, '_8': {'$literal': 789}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -60,10 +70,13 @@ tests:
       - {'': {'_1': 0, '_2': 0, '_3': -1, '_4': 1, '_5': -10, '_6': 10, '_7': -789, '_8': 789}}
 
   - description: Unsigned double literals (no exponent parts)
+    skip_reason: 'SQL-718: fix failing double tests'
     query: "SELECT VALUE {'_1': 0., '_2': 1., '_3': 0.123, '_4': 2.0, '_5': 3.4, '_6': 50.607, '_7': .1} FROM [{}] AS _dual"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'_dual': [{}]}}
+      - {'$documents': [{'$literal': {}}]}
+      - {'$project': {'_id': 0, '_dual': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': 0}, '_2': {'$literal': 1}, '_3': {'$literal': 0.123}, '_4': {'$literal': 2.0}, '_5': {'$literal': 3.4}, '_6': {'$literal': 50.607}, '_7': {'$literal': 0.1}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -72,10 +85,13 @@ tests:
       - {'': {'_1': 0, '_2': 1, '_3': 0.123, '_4': 2.0, '_5': 3.4, '_6': 50.607, '_7': 0.1}}
 
   - description: Unsigned double literals (exponent parts)
+    skip_reason: 'SQL-718: fix failing double tests'
     query: "SELECT VALUE {'_1': 1e2, '_2': 2E3, '_3': 3.0e4, '_4': 4.567E22, '_5': 8.e23, '_6': 9.E2, '_7': .1e3, '_8': .2E3, '_9': 5e000, '_10': 10E00} FROM [{}] AS _dual"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'_dual': [{}]}}
+      - {'$documents': [{'$literal': {}}]}
+      - {'$project': {'_id': 0, '_dual': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': 100}, '_2': {'$literal': 2000}, '_3': {'$literal': 30000}, '_4': {'$literal': 4.567e+22}, '_5': {'$literal': 8e+23}, '_6': {'$literal': 900}, '_7': {'$literal': 100}, '_8': {'$literal': 200}, '_9': {'$literal': 5}, '_10': {'$literal': 10}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -84,10 +100,13 @@ tests:
       - {'': {'_1': 100, '_2': 2000, '_3': 30000, '_4': 4.567e+22, '_5': 8e+23, '_6': 900, '_7': 100, '_8': 200, '_9': 5, '_10': 10}}
 
   - description: Signed double literals (no exponent parts)
+    skip_reason: 'SQL-718: fix failing double tests'
     query: "SELECT VALUE {'_1': -0., '_2': +0., '_3': -1., '_4': +1., '_5': -0.123, '_6': +0.123, '_7': -2.0, '_8': +2.0, '_9': -3.4, '_10': +3.4, '_11': -50.607, '_12': +50.607, '_13': -.1, '_14': +.1} FROM [{}] AS _dual"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'_dual': [{}]}}
+      - {'$documents': [{'$literal': {}}]}
+      - {'$project': {'_id': 0, '_dual': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': 0}, '_2': {'$literal': 0}, '_3': {'$literal': -1}, '_4': {'$literal': 1}, '_5': {'$literal': -0.123}, '_6': {'$literal': 0.123}, '_7': {'$literal': -2.0}, '_8': {'$literal': 2.0}, '_9': {'$literal': -3.4}, '_10': {'$literal': 3.4}, '_11': {'$literal': -50.607}, '_12': {'$literal': 50.607}, '_13': {'$literal': -.1}, '_14': {'$literal': .1}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
@@ -96,10 +115,13 @@ tests:
       - {'': {'_1': 0, '_2': 0, '_3': -1, '_4': 1, '_5': -0.123, '_6': 0.123, '_7': -2.0, '_8': 2.0, '_9': -3.4, '_10': 3.4, '_11': -50.607, '_12': 50.607, '_13': -.1, '_14': .1}}
 
   - description: Signed double literals (exponent parts)
+    skip_reason: 'SQL-718: fix failing double tests'
     query: "SELECT VALUE {'_1': -1e-2, '_2': -3.0e+4, '_3': -4.567e22, '_4': +8.e-23, '_5': +.1e+3, '_6': +5e00} FROM [{}] AS _dual"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'_dual': [{}]}}
+      - {'$documents': [{'$literal': {}}]}
+      - {'$project': {'_id': 0, '_dual': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'_1': {'$literal': -.01}, '_2': {'$literal': -30000}, '_3': {'$literal': -4.567e+22}, '_4': {'$literal': 8e-23}, '_5': {'$literal': 100}, '_6': {'$literal': 5}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }

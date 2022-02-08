@@ -7,40 +7,46 @@ catalog_data:
 
 tests:
   - description: both unqualified and qualified references to derived table datasource fields are allowed
-    query: "SELECT VALUE {'apo': apo, 'bpt': derived.bpt} FROM (SELECT VALUE {'apo': a + 1, 'bpt': b + 2} FROM [{'a': 1, 'b': 1}] AS arr) AS derived"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    query: "SELECT VALUE {'asub': asub, 'bsub': derived.bsub} FROM (SELECT VALUE {'asub': a, 'bsub': b} FROM [{'a': 1, 'b': 1}] AS arr) AS derived"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'a': 1, 'b': 1}]}}
-      - {'$project': {'_id': 0, '__bot': {'apo': {'$add': ['$arr.a', {'$literal': 1}]}, 'bpt': {'$add': ['$arr.b', {'$literal': 2}]}}}}
+      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'asub': '$arr.a', 'bsub': '$arr.b'}}}
       - {'$project': {'_id': 0, 'derived': {'$mergeObjects': ['$__bot']}}}
-      - {'$project': {'_id': 0, '__bot': {'apo': '$derived.apo', 'bpt': '$derived.bpt'}}}
+      - {'$project': {'_id': 0, '__bot': {'asub': '$derived.asub', 'bsub': '$derived.bsub'}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
     result:
-      - {'': {'apo': 2, 'bpt': 3}}
+      - {'': {'asub': 1, 'bsub': 1}}
 
   - description: derived table cannot reference other datasources in same FROM clause
     query: "SELECT * FROM [{'x': 1}] AS foo CROSS JOIN (SELECT * FROM [{'x': 1}] AS bar WHERE foo.x = bar.x) AS derived"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     should_compile: false
     algebrize_error: "no field 'foo' in datasource 'bar'"
 
   - description: derived table must have alias
     query: "SELECT * FROM (SELECT * FROM [{a: 1}] AS arr)"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     should_compile: false
     parse_error: "expected <alias>, found EOI"
 
   - description: datasource names in derived table are not visible outside of derived table query
     query: "SELECT derived.foo.x FROM (SELECT * FROM [{'x': 1}] AS foo, [{'a': 1}] AS bar) AS derived"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     should_compile: false
     algebrize_error: "Unknown field 'foo'"
 
   - description: derived table query with data sources that statically have ambiguous field must report a static error
     query: "SELECT * FROM (SELECT * FROM [{'x': 1, 'y': 2}] AS foo, [{'a': 1, 'x': 3}] AS bar) AS derived"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     should_compile: false
     algebrize_error: "Ambiguous field 'x' in derived table"
 
@@ -62,10 +68,9 @@ tests:
       - {'derived': {'_id': {'$numberInt': "0"}, 'x': 11, 'y': 12}}
 
   - description: derived table merges namespaces under alias namespace
-    current_db: test
     query: "SELECT * FROM (SELECT foo.*, bar.* FROM [{'a': 1}] foo JOIN [{'b': 2}] bar) AS derived"
+    current_db: test
     translation_target_db: test
-    translation_target_coll: foo
     translation:
       - {'$documents': [{'a': {'$literal': 1}}]}
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}

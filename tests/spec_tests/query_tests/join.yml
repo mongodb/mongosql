@@ -176,9 +176,9 @@ tests:
       - {'bar': {'_id': 1, 'foo': 42}, 'bar2': {'_id': 0, 'foo': 42, 'baz': 63}}
 
   - description: join predicates can only reference datasource names from their own join
-    current_db: mydb
-    query: "SELECT * FROM [{'v': 1}] AS a INNER JOIN ([{'v': 1}] AS b INNER JOIN [{'v': 1}] AS c ON a.v = b.v)"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    query: "SELECT * FROM [{'v': 1}] AS a INNER JOIN [{'v': 1}] AS b ON b.v = c.v INNER JOIN [{'v': 1}] AS c"
+    current_db: test
+    translation_target_db: test
     should_compile: false
     algebrize_error: "unknown field 'a.v'"
 

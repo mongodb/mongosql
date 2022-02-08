@@ -6,57 +6,53 @@ catalog_data:
 tests:
   - description: Cannot use duplicate implicit aliases for fields
     query: "SELECT a, a FROM [{'a': 1}] arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
     should_compile: false
     algebrize_error: "alias 'a' used two times"
 
   - description: Cannot use duplicate explicit aliases for fields
     query: "SELECT a AS alias, a AS alias FROM [{'a': 1}] arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
     should_compile: false
     algebrize_error: "alias 'alias' used two times"
 
   - description: Cannot use duplicate explicit aliases for group keys
     query: "SELECT * FROM [{'a': 1}] arr GROUP BY a AS a, a AS a"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
     should_compile: false
     algebrize_error: "alias 'a' used two times"
 
   - description: Cannot use duplicate explicit aliases for aggregations
     query: "SELECT * FROM [{'a': 1}] arr GROUP BY NULL AS _groupKey1 AGGREGATE count(a) AS a, count(a) AS a"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
     should_compile: false
     algebrize_error: "alias 'a' used two times"
 
   - description: Aliases must be unique across both keys and aggregations in GROUP clauses
     query: "SELECT * FROM [{'a': 1}] arr GROUP BY a AS a AGGREGATE count(a) AS a"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
     should_compile: false
     algebrize_error: "alias 'a' used two times"
 
   - description: Cannot use duplicate generated aliases for fields
     query: "SELECT a AS _2, a+1 FROM [{'a': 1}] arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
     should_compile: false
     algebrize_error: "alias '_2' used two times"
 
   - description: Cannot use duplicate generated aliases for group keys
     query: "SELECT * FROM [{'a': 1}] arr GROUP BY a + 1, a AS _groupKey1"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
     should_compile: false
     algebrize_error: "alias '_groupKey1' used two times"
 
-  - description: Cannot use duplicate generated aliases for aggregations
-    query: "SELECT * FROM [{'a': 1}] arr GROUP BY NULL AS _groupKey1 AGGREGATE count(a), count(a) AS _agg1"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
-    should_compile: false
-    algebrize_error: "alias '_agg1' used two times"
-
   - description: Can use different aliases for same field
     query: "SELECT VALUE {'a1': a, 'a2': a} FROM [{'a': 1}] arr"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
-      - {'$documents': {'arr': [{'a': 1}]}}
+      - {'$documents': [{'a': {'$literal': 1}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'a1': '$arr.a', 'a2': '$arr.a'}}}
       - {'$replaceWith' : {'$unsetField' : {'field' : '__bot', 'input' :
            {'$setField' :  {'field' : '' , 'input' : '$$ROOT', 'value' : '$__bot'}
@@ -66,7 +62,8 @@ tests:
 
   - description: _id is a valid alias for datasources
     query: "SELECT * FROM [{'a': 1}] _id"
-    skip_reason: "SQL-462: re-enable tests with array datasources"
+    current_db: test
+    translation_target_db: test
     translation:
       - {'$documents': [{'a': {'$literal': 1}}]}
       - {'$project': {'_id': '$$ROOT'}}
