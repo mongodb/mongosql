@@ -68,28 +68,19 @@ Make sure the libraries are available at the proper urls:
 - Windows:
   https://translators-connectors-releases.s3.us-east-1.amazonaws.com/mongosql-rs/{windows}/<SemVer>/mongosql.dll
 
-#### Announce Release on Slack
-
-The following template will be used for the Slack Release Announcement, which will be announced in the #enterprise-tools channel:
-
-```
-We are pleased to announce version X.Y.Z of the MongoDB MongoSQL Compiler.
-
-<INSERT-DESCRIPTION>
-
-The MongoSQL Compiler libraries are available at the follwing URLS:
-* POSIX:
-  https://translators-connectors-releases.s3.us-east-1.amazonaws.com/mongosql-rs/{rhel76,ubuntu1804,macos}/X.Y.Z/libmongosql.a
-* Windows:
-  https://translators-connectors-releases.s3.us-east-1.amazonaws.com/mongosql-rs/{windows}/X.Y.Z/mongosql.dll
-```
-
-#### Close Release Ticket
-Move the JIRA ticket tracking this release to the "Closed" state.
+#### Update and Close Release Ticket
+Find the JIRA ticket tracking this release.
+Edit the description to include a link to the JIRA release notes, and move it to the "Closed" state.
 
 #### Ensure next release ticket and fixVersion created
 Ensure that a JIRA ticket tracking the next release has been created
 and is assigned the appropriate fixVersion.
 
 #### Ensure Downstream Tickets Created
-Manually create MHOUSE ticket for integrating the new release into ADL
+Manually create MHOUSE ticket for integrating the new release into ADL, and link it as "Depends On" the release ticket
+
+#### Announce Release on Slack
+Use the following messsage template to announce the release in the #enterprise-tools channel:
+
+> Hello! We've released mongosql-rs version <VERSION>
+> More information, including release notes, can be found on the Release Ticket: <JIRA Link>
