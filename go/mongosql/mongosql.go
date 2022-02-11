@@ -2,6 +2,7 @@ package mongosql
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 
 	"github.com/10gen/mongosql-rs/go/internal/desugarer"
@@ -56,6 +57,38 @@ type Translation struct {
 	namespaces []Namespace
 }
 
+// TranslationError is an error type that includes additional
+// information about whether an error is "internal" or "external"
+// (i.e. whether it is safe and useful to expose to end users).
+type TranslationError struct {
+	internal bool
+	err      error
+}
+
+// NewInternalError creates a TranslationError from the provided error
+// that should not be exposed to end users.
+func NewInternalError(err error) TranslationError {
+	return TranslationError{internal: true, err: err}
+}
+
+// NewExternalError creates a TranslationError from the provided error
+// that is okay/useful to expose to end users.
+func NewExternalError(err error) TranslationError {
+	return TranslationError{internal: false, err: err}
+}
+
+// Error implements the error interface by returning the string
+// representation of the underlying error.
+func (e TranslationError) Error() string {
+	return e.err.Error()
+}
+
+// IsInternal returns true if this is an "internal" error that should
+// not be exposed to end users, and false otherwise.
+func (e TranslationError) IsInternal() bool {
+	return e.internal
+}
+
 // Translate accepts TranslationArgs, returning a Translation and an
 // error if the translation failed. If the returned error is non-nil,
 // the returned Translation should be disregarded.
@@ -70,27 +103,33 @@ func Translate(args TranslationArgs) (Translation, error) {
 		Collection      string            `bson:"target_collection"`
 		Pipeline        []bson.D          `bson:"pipeline"`
 		Error           string            `bson:"error"`
+		ErrorIsInternal bool              `bson:"error_is_internal"`
 		ResultSetSchema bsoncore.Document `bson:"result_set_schema"`
 		Namespaces      []Namespace       `bson:"namespaces"`
 	}{}
 
 	translationBytes, err := base64.StdEncoding.DecodeString(base64TranslationResult)
 	if err != nil {
-		panic(err)
+		return Translation{}, NewInternalError(fmt.Errorf("failed to decode base64 translation result: %w", err))
 	}
 
 	err = bson.Unmarshal(translationBytes, &translationResult)
 	if err != nil {
-		return Translation{}, fmt.Errorf("failed to unmarshal translation result BSON into struct: %w", err)
+		return Translation{}, NewInternalError(fmt.Errorf("failed to unmarshal translation result BSON into struct: %w", err))
 	}
 
 	if translationResult.Error != "" {
-		return Translation{}, fmt.Errorf(translationResult.Error)
+		if translationResult.ErrorIsInternal {
+			err = NewInternalError(errors.New(translationResult.Error))
+		} else {
+			err = NewExternalError(errors.New(translationResult.Error))
+		}
+		return Translation{}, err
 	}
 
 	typ, pipelineBytes, err := bson.MarshalValue(translationResult.Pipeline)
 	if err != nil {
-		return Translation{}, fmt.Errorf("failed to marshal pipeline to bytes: %w", err)
+		return Translation{}, NewInternalError(fmt.Errorf("failed to marshal pipeline to bytes: %w", err))
 	}
 	if typ.String() != "array" {
 		// this should never occur, but is here as a sanity check
@@ -100,7 +139,7 @@ func Translate(args TranslationArgs) (Translation, error) {
 	if !args.skipDesugaring {
 		pipelineBytes, err = desugarer.Desugar(pipelineBytes, translationResult.DB)
 		if err != nil {
-			return Translation{}, fmt.Errorf("failed to desugar pipeline: %w", err)
+			return Translation{}, NewInternalError(fmt.Errorf("failed to desugar pipeline: %w", err))
 		}
 	}
 

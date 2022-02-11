@@ -126,6 +126,15 @@ func TestTranslateError(t *testing.T) {
 		t.Fatalf("expected error to be non-nil, but it was nil")
 	}
 
+	tErr, ok := err.(mongosql.TranslationError)
+	if !ok {
+		t.Fatalf("expected error to be a TranslationError, but it wasn't")
+	}
+
+	if tErr.IsInternal() {
+		t.Fatalf("semantic translation errors should be external, but an internal error was found")
+	}
+
 	if !strings.Contains(err.Error(), "parse error: Unrecognized token `notavalidquery`") {
 		t.Fatalf("error message did not contain expected text: %q", err.Error())
 	}
@@ -140,6 +149,15 @@ func TestTranslatePanic(t *testing.T) {
 
 	if err == nil {
 		t.Fatalf("expected error to be non-nil, but it was nil")
+	}
+
+	tErr, ok := err.(mongosql.TranslationError)
+	if !ok {
+		t.Fatalf("expected error to be a TranslationError, but it wasn't")
+	}
+
+	if !tErr.IsInternal() {
+		t.Fatalf("an error from a caught panic should be internal, but an external error was found")
 	}
 
 	if !strings.Contains(err.Error(), "caught panic during translation: panic thrown") {

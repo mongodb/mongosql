@@ -36,14 +36,15 @@ pub extern "C" fn translate(
     let payload = match result {
         Ok(result) => match result {
             Ok(translation) => translation_success_payload(translation),
-            Err(msg) => translation_failure_payload(msg),
+            Err(msg) => translation_failure_payload(msg, ErrorVisibility::External),
         },
         Err(err) => {
-            if let Some(msg) = err.downcast_ref::<&'static str>() {
-                translation_failure_payload(format!("caught panic during translation: {}", msg))
+            let msg = if let Some(msg) = err.downcast_ref::<&'static str>() {
+                format!("caught panic during translation: {}", msg)
             } else {
-                translation_failure_payload(format!("caught panic during translation: {:?}", err))
-            }
+                format!("caught panic during translation: {:?}", err)
+            };
+            translation_failure_payload(msg, ErrorVisibility::Internal)
         }
     };
 
@@ -131,12 +132,25 @@ fn translation_success_payload(t: mongosql::Translation) -> String {
     base64::encode(bson::to_vec(&translation).expect("serializing bson to bytes failed"))
 }
 
+/// ErrorVisibility describes whether an error is "internal" or
+/// "external" (i.e. whether it is safe and useful to expose to end
+/// users).
+enum ErrorVisibility {
+    Internal,
+    External,
+}
+
 /// Returns a base64-encoded BSON document representing the payload
 /// returned for an unsuccessful translation with the provided error
 /// message.
-fn translation_failure_payload(error: String) -> String {
+fn translation_failure_payload(error: String, error_visibility: ErrorVisibility) -> String {
+    let internal = match error_visibility {
+        ErrorVisibility::Internal => true,
+        ErrorVisibility::External => false,
+    };
     let translation = bson::doc! {
         "error": error,
+        "error_is_internal": internal,
     };
 
     let mut buf = Vec::new();

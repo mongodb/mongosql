@@ -73,7 +73,7 @@ func callTranslate(args TranslationArgs) (string, error) {
 	// Convert the catalog schema into a base64-encoded bson document
 	catalogSchemaBson, err := bson.Marshal(args.CatalogSchema)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal catalog schema to BSON: %w", err)
+		return "", NewInternalError(fmt.Errorf("failed to marshal catalog schema to BSON: %w", err))
 	}
 	catalogSchemaBase64 := base64.StdEncoding.EncodeToString(catalogSchemaBson)
 	dbArg, sqlArg, catalogArg := stringToUnsafePointer(args.DB), stringToUnsafePointer(args.SQL), stringToUnsafePointer(catalogSchemaBase64)
