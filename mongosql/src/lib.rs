@@ -23,34 +23,11 @@ use crate::{
 /// Contains all the information needed to execute the MQL translation of a SQL query.
 #[derive(Debug)]
 pub struct Translation {
-    pub target_db: Option<String>,
+    pub target_db: String,
     pub target_collection: Option<String>,
     pub pipeline: bson::Bson,
     pub result_set_schema: json_schema::Schema,
     pub namespaces: Vec<ir::namespace::Namespace>,
-}
-
-impl Translation {
-    fn new(
-        result_set_schema: json_schema::Schema,
-        namespaces: Vec<ir::namespace::Namespace>,
-        mql_translation: codegen::MqlTranslation,
-    ) -> Self {
-        let pipeline = bson::Bson::Array(
-            mql_translation
-                .pipeline
-                .into_iter()
-                .map(bson::Bson::Document)
-                .collect(),
-        );
-        Self {
-            target_db: mql_translation.database,
-            target_collection: mql_translation.collection,
-            pipeline,
-            result_set_schema,
-            namespaces,
-        }
-    }
 }
 
 /// Returns the MQL translation for the provided SQL query in the
@@ -85,11 +62,33 @@ pub fn translate_sql(
 
     // generate mql from the ir plan
     let mql_translation = codegen::generate_mql(plan)?;
-    Ok(Translation::new(
-        mql_schema_env_to_json_schema(schema_env, &mql_translation.mapping_registry)?,
+
+    // A non-empty database value is needed for mongoast
+    let target_db = mql_translation
+        .database
+        .clone()
+        .unwrap_or_else(|| current_db.to_string());
+
+    let target_collection = mql_translation.collection;
+
+    let pipeline = bson::Bson::Array(
+        mql_translation
+            .pipeline
+            .into_iter()
+            .map(bson::Bson::Document)
+            .collect(),
+    );
+
+    let result_set_schema =
+        mql_schema_env_to_json_schema(schema_env, &mql_translation.mapping_registry)?;
+
+    Ok(Translation {
+        target_db,
+        target_collection,
+        pipeline,
+        result_set_schema,
         namespaces,
-        mql_translation,
-    ))
+    })
 }
 
 // mql_schema_env_to_json_schema converts a SchemaEnvironment to a json_schema::Schema with an

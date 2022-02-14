@@ -165,6 +165,22 @@ func TestTranslatePanic(t *testing.T) {
 	}
 }
 
+func TestDatabaseResultNotEmpty(t *testing.T) {
+	translation, err := mongosql.Translate(mongosql.TranslationArgs{
+		DB:            "test",
+		SQL:           "select 1",
+		CatalogSchema: nil,
+	})
+
+	if err != nil {
+		t.Fatalf("expected err to be nil, got '%s'", err)
+	}
+
+	if translation.TargetDB == "" {
+		t.Fatalf("expected non-empty TargetDB, but it was empty")
+	}
+}
+
 func TestCatalogSchema(t *testing.T) {
 	schema := bson.M{
 		"bsonType": "object",
