@@ -174,6 +174,7 @@ pub fn parse_type_constraint_yaml(path: &str) -> Result<TypeConstraintYamlTest, 
 #[test]
 #[ignore]
 pub fn run_rewrite_tests() -> Result<(), Error> {
+    use crate::ast::pretty_print::PrettyPrint;
     let paths = load_file_paths(PathBuf::from(REWRITE_DIR)).unwrap();
     for path in paths {
         let yaml = parse_rewrite_yaml(&path).unwrap();
@@ -188,7 +189,7 @@ pub fn run_rewrite_tests() -> Result<(), Error> {
                         Some(_) => assert!(rewrite_res.is_err()),
                         None => {
                             let expected = test.result.unwrap();
-                            let actual = format!("{}", rewrite_res.unwrap());
+                            let actual = rewrite_res.unwrap().pretty_print().unwrap();
                             if expected != actual {
                                 return Err(Error::RewriteTest {
                                     test: test.description,

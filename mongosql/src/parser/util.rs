@@ -1,4 +1,7 @@
-use crate::{ast::*, parser::lalrpop::LalrpopError};
+use crate::{
+    ast::{pretty_print::PrettyPrint, *},
+    parser::lalrpop::LalrpopError,
+};
 use std::str::FromStr;
 
 /// process_delimited_ident removes the outer delimiters from an identifier and
@@ -121,11 +124,11 @@ pub fn parse_simple_datasource(
         })),
         Expression::Subpath(_) => Err(LalrpopError::from(format!(
             "collection data sources can only have database qualification, found: {}",
-            expr,
+            expr.pretty_print().unwrap(),
         ))),
         _ => Err(LalrpopError::from(format!(
             "found unsupported expression used as datasource: {}",
-            expr,
+            expr.pretty_print().unwrap(),
         ))),
     }
 }

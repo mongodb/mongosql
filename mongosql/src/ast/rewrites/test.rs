@@ -1,4 +1,4 @@
-use crate::ast::rewrites::*;
+use crate::ast::{pretty_print::PrettyPrint, rewrites::*};
 
 macro_rules! test_rewrite {
     ($func_name:ident, pass = $pass:expr, expected = $expected:expr, input = $input:expr,) => {
@@ -15,7 +15,7 @@ macro_rules! test_rewrite {
                 .parse_query(input)
                 .expect("input query failed to parse");
 
-            let actual = pass.apply(query).map(|q| format!("{}", q));
+            let actual = pass.apply(query).map(|q| q.pretty_print().unwrap());
 
             assert_eq!(expected, actual);
         }

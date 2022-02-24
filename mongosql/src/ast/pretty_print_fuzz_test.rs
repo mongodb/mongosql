@@ -4,12 +4,12 @@ mod fuzz_test {
     use crate::{
         ast::{
             definitions::*,
+            pretty_print::PrettyPrint,
             rewrites::{Pass, SingleTupleRewritePass},
         },
         parser::Parser,
     };
     use quickcheck::*;
-    use std::io::Write;
 
     #[test]
     // For arbitrary Query q, this test asserts the property:
@@ -20,15 +20,11 @@ mod fuzz_test {
     // pretty string results in the original query.
     fn prop_pretty_print_parse_is_idempotent() {
         fn pretty_print_query(q: Query) -> TestResult {
-            // Display is fallible, but the format! macro does not propagate the error -- it
-            // simply panics.  So we first use the write! macro to see if the pretty printer
-            // fails. If it does, we discard this input.  Otherwise we proceed to assert the
-            // property.
-            let mut w = Vec::new();
-            let res = write!(&mut w, "{}", q);
-            if res.is_err() {
-                return TestResult::discard();
-            }
+            // First pretty print the Query.
+            let p = match q.pretty_print() {
+                Err(_) => return TestResult::discard(),
+                Ok(p) => p,
+            };
 
             // When we reparse after pretty printing,  some parenthesized  expressions are
             // interpreted as single-element tuples.  This is an intentional choice in the
@@ -36,7 +32,6 @@ mod fuzz_test {
             // tuples into their single expressions.  We discard any  tests that encounter
             // rewrite errors,  though the  SingleTupleRewritePass  should never return an
             // error anyway.
-            let p = format!("{}", q);
             let reparsed = SingleTupleRewritePass.apply(Parser::new().parse_query(&p).unwrap());
             match reparsed {
                 Err(_) => TestResult::discard(),
@@ -93,7 +88,7 @@ mod arbitrary {
     /// These Strings can be used for aliases, identifiers, or literals.
     fn arbitrary_string_with_max_len(max_len: usize) -> String {
         let g = &mut Gen::new(max_len as usize);
-        String::arbitrary(g).replace("\u{0}", "")
+        String::arbitrary(g).replace('\u{0}', "")
     }
 
     /// Return an arbitrary String without null characters.
@@ -175,7 +170,9 @@ mod arbitrary {
             Self {
                 left: Box::new(Query::arbitrary(g)),
                 op: SetOperator::arbitrary(g),
-                right: Box::new(Query::arbitrary(g)),
+                // Only generate Select queries for the RHS
+                // because the parser always produces left-deep Set Queries.
+                right: Box::new(Query::Select(SelectQuery::arbitrary(g))),
             }
         }
     }
@@ -326,10 +323,21 @@ mod arbitrary {
 
     impl Arbitrary for JoinSource {
         fn arbitrary(g: &mut Gen) -> Self {
+            let rng = &(0..Datasource::VARIANT_COUNT - 1).collect::<Vec<_>>();
+            // The RHS should not be a Join because the parser always produces left-deep Joins.  To
+            // avoid right-deep joins, we subtract 1 from the Datasource VARIANT_COUNT to remove
+            // the possiblity of generating a Join and directly generate an arbitrary non-Join RHS
+            // datasource here.
+            let rhs = Box::new(match g.choose(rng).unwrap() {
+                0 => Datasource::Array(ArraySource::arbitrary(g)),
+                1 => Datasource::Collection(CollectionSource::arbitrary(g)),
+                2 => Datasource::Derived(DerivedSource::arbitrary(g)),
+                _ => panic!("missing Datasource variant(s)"),
+            });
             Self {
                 join_type: JoinType::arbitrary(g),
                 left: Box::new(Datasource::arbitrary(g)),
-                right: Box::new(Datasource::arbitrary(g)),
+                right: rhs,
                 condition: Option::arbitrary(g),
             }
         }

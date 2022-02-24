@@ -1,5 +1,5 @@
 use crate::{
-    ast,
+    ast::{self, pretty_print::PrettyPrint},
     catalog::Catalog,
     ir::{
         self,
@@ -133,7 +133,7 @@ impl TryFrom<ast::FunctionName> for ir::ScalarFunction {
             | ast::FunctionName::StddevPop
             | ast::FunctionName::StddevSamp
             | ast::FunctionName::Sum => {
-                return Err(Error::AggregationInPlaceOfScalar(f.to_string()))
+                return Err(Error::AggregationInPlaceOfScalar(f.pretty_print().unwrap()))
             }
         })
     }
@@ -169,7 +169,7 @@ impl TryFrom<ast::FunctionName> for ir::AggregationFunction {
             | ast::FunctionName::Slice
             | ast::FunctionName::Substring
             | ast::FunctionName::Upper => {
-                return Err(Error::ScalarInPlaceOfAggregation(f.to_string()))
+                return Err(Error::ScalarInPlaceOfAggregation(f.pretty_print().unwrap()))
             }
         })
     }

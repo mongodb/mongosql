@@ -1,5 +1,6 @@
 use crate::ast::{
     self,
+    pretty_print::PrettyPrint,
     rewrites::{Error, Pass, Result},
     visitor::Visitor,
 };
@@ -264,7 +265,7 @@ impl Visitor for AggregateAliasingVisitor {
                 // If the aggregation function has already been seen, get the existing alias from `agg_funcs`.
                 // Otherwise, create a new alias for the function and store it in `agg_funcs`.
                 // In both cases, replace the function with an Identifier containing the alias.
-                let func_key = format!("{}", f);
+                let func_key = f.pretty_print().unwrap();
                 match self.agg_funcs.get(&func_key) {
                     // We can safely unwrap the alias here because any value retrieved
                     // from `agg_funcs` would have been previously inserted with an alias.

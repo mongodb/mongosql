@@ -1,4 +1,6 @@
-use crate::ast::{rewrites::tuples::SingleTupleRewriteVisitor, visitor::Visitor};
+use crate::ast::{
+    pretty_print::PrettyPrint, rewrites::tuples::SingleTupleRewriteVisitor, visitor::Visitor,
+};
 use crate::parser::Parser;
 
 macro_rules! query_printer_test {
@@ -6,7 +8,7 @@ macro_rules! query_printer_test {
         #[test]
         fn $func_name() {
             let res = Parser::new().parse_query($input).unwrap();
-            let out = format!("{}", res);
+            let out = res.pretty_print().unwrap();
             assert_eq!($expected, out);
         }
     };
@@ -18,7 +20,7 @@ macro_rules! expression_printer_test {
         fn $func_name() {
             let res = Parser::new().parse_expression($input).unwrap();
             let res = SingleTupleRewriteVisitor {}.visit_expression(res);
-            let out = format!("{}", res);
+            let out = res.pretty_print().unwrap();
             assert_eq!($expected, out);
         }
     };

@@ -1,202 +1,225 @@
-use std::fmt::{Display, Error, Formatter, Result};
-
 use crate::ast::*;
+use thiserror::Error;
 
 fn identifier_to_string(s: &str) -> String {
     if ident_needs_delimiters(s) {
-        format!("`{}`", s.replace("`", "``"))
+        format!("`{}`", s.replace('`', "``"))
     } else {
         s.to_string()
     }
 }
 
+#[derive(Debug, Clone, Copy, Error, PartialEq, Eq)]
+pub enum Error {
+    #[error("set queries cannot be right associative")]
+    RightAssociativeSetQuery,
+    #[error("joins cannot be right associative")]
+    RightAssociativeJoin,
+}
+
+type Result<T> = std::result::Result<T, Error>;
+
 // Escape single quotes in string literal by doubling them.
 fn escape_string_literal(s: &str) -> String {
-    s.replace("'", "''")
+    s.replace('\'', "''")
 }
 
-impl Display for Query {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+/// A trait for any data structure that supports pretty printing to a String
+/// that has the posssibility of failing.
+pub trait PrettyPrint {
+    fn pretty_print(&self) -> Result<String>;
+}
+
+impl PrettyPrint for Query {
+    fn pretty_print(&self) -> Result<String> {
         match self {
-            Query::Select(q) => write!(f, "{}", q),
-            Query::Set(q) => write!(f, "{}", q),
+            Query::Select(q) => q.pretty_print(),
+            Query::Set(q) => q.pretty_print(),
         }
     }
 }
 
-impl Display for SetQuery {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        // TODO: SQL-499: Address fallibility of AST pretty printer
+impl PrettyPrint for SetQuery {
+    fn pretty_print(&self) -> Result<String> {
         if matches!(self.right.as_ref(), Query::Set(_)) {
-            return Err(Error {});
+            return Err(Error::RightAssociativeSetQuery);
         }
-        write!(f, "{} {} {}", self.left, self.op, self.right)
+        Ok(format!(
+            "{} {} {}",
+            self.left.pretty_print()?,
+            self.op.pretty_print()?,
+            self.right.pretty_print()?
+        ))
     }
 }
 
-impl Display for SetOperator {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                SetOperator::Union => "UNION",
-                SetOperator::UnionAll => "UNION ALL",
-            }
-        )
+impl PrettyPrint for SetOperator {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            SetOperator::Union => "UNION",
+            SetOperator::UnionAll => "UNION ALL",
+        }
+        .to_string())
     }
 }
 
-impl Display for SelectQuery {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
+impl PrettyPrint for SelectQuery {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
             "{}{}{}{}{}{}{}{}",
-            self.select_clause,
+            self.select_clause.pretty_print()?,
             self.from_clause
                 .as_ref()
-                .map_or("".to_string(), |x| format!(" FROM {}", x)),
+                .map_or(Ok("".to_string()), |x| Ok(format!(
+                    " FROM {}",
+                    x.pretty_print()?
+                )))?,
             self.where_clause
                 .as_ref()
-                .map_or("".to_string(), |x| format!(" WHERE {}", x)),
+                .map_or(Ok("".to_string()), |x| Ok(format!(
+                    " WHERE {}",
+                    x.pretty_print()?
+                )))?,
             self.group_by_clause
                 .as_ref()
-                .map_or("".to_string(), |x| x.to_string()),
+                .map_or(Ok("".to_string()), |x| x.pretty_print())?,
             self.having_clause
                 .as_ref()
-                .map_or("".to_string(), |x| format!(" HAVING {}", x)),
+                .map_or(Ok("".to_string()), |x| Ok(format!(
+                    " HAVING {}",
+                    x.pretty_print()?
+                )))?,
             self.order_by_clause
                 .as_ref()
-                .map_or("".to_string(), |x| x.to_string()),
+                .map_or(Ok("".to_string()), |x| x.pretty_print())?,
             self.limit
                 .map_or("".to_string(), |x| format!(" LIMIT {}", x)),
             self.offset
                 .map_or("".to_string(), |x| format!(" OFFSET {}", x)),
-        )
+        ))
     }
 }
 
-impl Display for SelectClause {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "SELECT{}{}", self.set_quantifier, self.body)
+impl PrettyPrint for SelectClause {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
+            "SELECT{}{}",
+            self.set_quantifier.pretty_print()?,
+            self.body.pretty_print()?
+        ))
     }
 }
 
-impl Display for SetQuantifier {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                SetQuantifier::All => "",
-                SetQuantifier::Distinct => " DISTINCT",
-            }
-        )
+impl PrettyPrint for SetQuantifier {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            SetQuantifier::All => "",
+            SetQuantifier::Distinct => " DISTINCT",
+        }
+        .to_string())
     }
 }
 
-impl Display for SelectBody {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl PrettyPrint for SelectBody {
+    fn pretty_print(&self) -> Result<String> {
         match self {
-            SelectBody::Standard(v) => write!(
-                f,
+            SelectBody::Standard(v) => Ok(format!(
                 " {}",
                 v.iter()
-                    .map(|x| format!("{}", x))
-                    .collect::<Vec<_>>()
+                    .map(|x| x.pretty_print())
+                    .collect::<Result<Vec<_>>>()?
                     .join(", ")
-            ),
+            )),
             SelectBody::Values(v) => {
                 let kwd = if v.len() > 1 { "VALUES" } else { "VALUE" };
-                write!(
-                    f,
+                Ok(format!(
                     " {} {}",
                     kwd,
                     v.iter()
-                        .map(|x| format!("{}", x))
-                        .collect::<Vec<_>>()
+                        .map(|x| x.pretty_print())
+                        .collect::<Result<Vec<_>>>()?
                         .join(", ")
-                )
+                ))
             }
         }
     }
 }
 
-impl Display for SelectExpression {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl PrettyPrint for SelectExpression {
+    fn pretty_print(&self) -> Result<String> {
         match self {
-            SelectExpression::Star => write!(f, "*"),
-            SelectExpression::Substar(s) => write!(f, "{}", s),
-            SelectExpression::Expression(e) => write!(f, "{}", e),
+            SelectExpression::Star => Ok("*".to_string()),
+            SelectExpression::Substar(s) => s.pretty_print(),
+            SelectExpression::Expression(e) => e.pretty_print(),
         }
     }
 }
 
-impl Display for SubstarExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}.*", identifier_to_string(self.datasource.as_str()))
+impl PrettyPrint for SubstarExpr {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
+            "{}.*",
+            identifier_to_string(self.datasource.as_str())
+        ))
     }
 }
 
-impl Display for OptionallyAliasedExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl PrettyPrint for OptionallyAliasedExpr {
+    fn pretty_print(&self) -> Result<String> {
         match self {
-            OptionallyAliasedExpr::Aliased(ae) => write!(f, "{}", ae),
-            OptionallyAliasedExpr::Unaliased(e) => write!(f, "{}", e),
+            OptionallyAliasedExpr::Aliased(ae) => ae.pretty_print(),
+            OptionallyAliasedExpr::Unaliased(e) => e.pretty_print(),
         }
     }
 }
 
-impl Display for AliasedExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
+impl PrettyPrint for AliasedExpr {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
             "{} AS {}",
-            self.expr,
+            self.expr.pretty_print()?,
             identifier_to_string(self.alias.as_ref())
-        )
+        ))
     }
 }
 
-impl Display for SelectValuesExpression {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl PrettyPrint for SelectValuesExpression {
+    fn pretty_print(&self) -> Result<String> {
         match self {
-            SelectValuesExpression::Substar(s) => write!(f, "{}", s),
-            SelectValuesExpression::Expression(e) => write!(f, "{}", e),
+            SelectValuesExpression::Substar(s) => s.pretty_print(),
+            SelectValuesExpression::Expression(e) => e.pretty_print(),
         }
     }
 }
 
-impl Display for Datasource {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl PrettyPrint for Datasource {
+    fn pretty_print(&self) -> Result<String> {
         match self {
-            Datasource::Array(a) => write!(f, "{}", a),
-            Datasource::Collection(c) => write!(f, "{}", c),
-            Datasource::Derived(d) => write!(f, "{}", d),
-            Datasource::Join(j) => write!(f, "{}", j),
+            Datasource::Array(a) => a.pretty_print(),
+            Datasource::Collection(c) => c.pretty_print(),
+            Datasource::Derived(d) => d.pretty_print(),
+            Datasource::Join(j) => j.pretty_print(),
         }
     }
 }
 
-impl Display for ArraySource {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
+impl PrettyPrint for ArraySource {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
             "[{}] AS {}",
             self.array
                 .iter()
-                .map(|x| format!("{}", x))
-                .collect::<Vec<_>>()
+                .map(|x| x.pretty_print())
+                .collect::<Result<Vec<_>>>()?
                 .join(", "),
             identifier_to_string(self.alias.as_str()),
-        )
+        ))
     }
 }
 
-impl Display for CollectionSource {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
+impl PrettyPrint for CollectionSource {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
             "{}{}{}",
             self.database.as_ref().map_or("".to_string(), |x| format!(
                 "{}.",
@@ -207,64 +230,60 @@ impl Display for CollectionSource {
                 " AS {}",
                 identifier_to_string(x)
             )),
-        )
+        ))
     }
 }
 
-impl Display for DerivedSource {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
+impl PrettyPrint for DerivedSource {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
             "({}) AS {}",
-            self.query,
+            self.query.pretty_print()?,
             identifier_to_string(self.alias.as_str())
-        )
+        ))
     }
 }
 
-impl Display for JoinSource {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        // TODO: SQL-499: Address fallibility of AST pretty printer
+impl PrettyPrint for JoinSource {
+    fn pretty_print(&self) -> Result<String> {
         if matches!(self.right.as_ref(), Datasource::Join(_)) {
-            return Err(Error {});
+            return Err(Error::RightAssociativeJoin);
         }
-        write!(
-            f,
+        Ok(format!(
             "{} {} JOIN {}{}",
-            self.left,
-            self.join_type,
-            self.right,
+            self.left.pretty_print()?,
+            self.join_type.pretty_print()?,
+            self.right.pretty_print()?,
             self.condition
                 .as_ref()
-                .map_or("".to_string(), |x| format!(" ON {}", x)),
-        )
+                .map_or(Ok("".to_string()), |x| Ok(format!(
+                    " ON {}",
+                    x.pretty_print()?
+                )))?,
+        ))
     }
 }
 
-impl Display for JoinType {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                JoinType::Left => "LEFT",
-                JoinType::Right => "RIGHT",
-                JoinType::Cross => "CROSS",
-                JoinType::Inner => "INNER",
-            }
-        )
+impl PrettyPrint for JoinType {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            JoinType::Left => "LEFT",
+            JoinType::Right => "RIGHT",
+            JoinType::Cross => "CROSS",
+            JoinType::Inner => "INNER",
+        }
+        .to_string())
     }
 }
 
-impl Display for GroupByClause {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
+impl PrettyPrint for GroupByClause {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
             " GROUP BY {}{}",
             self.keys
                 .iter()
-                .map(|x| format!("{}", x))
-                .collect::<Vec<_>>()
+                .map(|x| x.pretty_print())
+                .collect::<Result<Vec<_>>>()?
                 .join(", "),
             if self.aggregations.is_empty() {
                 "".to_string()
@@ -273,90 +292,90 @@ impl Display for GroupByClause {
                     " AGGREGATE {}",
                     self.aggregations
                         .iter()
-                        .map(|y| format!("{}", y))
-                        .collect::<Vec<_>>()
+                        .map(|y| y.pretty_print())
+                        .collect::<Result<Vec<_>>>()?
                         .join(", ")
                 )
             }
-        )
+        ))
     }
 }
 
-impl Display for OrderByClause {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
+impl PrettyPrint for OrderByClause {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
             " ORDER BY {}",
             self.sort_specs
                 .iter()
-                .map(|x| format!("{}", x))
-                .collect::<Vec<_>>()
+                .map(|x| x.pretty_print())
+                .collect::<Result<Vec<_>>>()?
                 .join(", "),
-        )
+        ))
     }
 }
 
-impl Display for SortSpec {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}{}", self.key, self.direction)
+impl PrettyPrint for SortSpec {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
+            "{}{}",
+            self.key.pretty_print()?,
+            self.direction.pretty_print()?
+        ))
     }
 }
 
-impl Display for SortKey {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl PrettyPrint for SortKey {
+    fn pretty_print(&self) -> Result<String> {
         match self {
-            SortKey::Simple(s) => write!(f, "{}", s),
-            SortKey::Positional(u) => write!(f, "{}", u),
+            SortKey::Simple(s) => s.pretty_print(),
+            SortKey::Positional(u) => Ok(u.to_string()),
         }
     }
 }
 
-impl Display for SortDirection {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                SortDirection::Asc => " ASC",
-                SortDirection::Desc => " DESC",
-            }
-        )
+impl PrettyPrint for SortDirection {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            SortDirection::Asc => " ASC",
+            SortDirection::Desc => " DESC",
+        }
+        .to_string())
     }
 }
 
 // The tier numbers here match the Expr tiers in the parser.
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy)]
 enum ExpressionTier {
-    Tier1Expr,
-    Tier2Expr,
-    Tier3Expr,
-    Tier4Expr,
-    Tier5Expr,
-    Tier6Expr,
-    Tier7Expr,
-    Tier8Expr,
-    Tier9Expr,
-    Tier10Expr,
-    Tier11Expr,
-    Tier12Expr,
-    Tier13Expr,
-    BottomExpr,
+    Tier1,
+    Tier2,
+    Tier3,
+    Tier4,
+    Tier5,
+    Tier6,
+    Tier7,
+    Tier8,
+    Tier9,
+    Tier10,
+    Tier11,
+    Tier12,
+    Tier13,
+    Bottom,
 }
 
 impl ExpressionTier {
-    fn format_sub_expr(&self, sub_expr: &Expression) -> String {
+    fn format_sub_expr(&self, sub_expr: &Expression) -> Result<String> {
         if *self >= sub_expr.get_tier() {
-            format!("({})", sub_expr)
+            Ok(format!("({})", sub_expr.pretty_print()?))
         } else {
-            format!("{}", sub_expr)
+            sub_expr.pretty_print()
         }
     }
 
-    fn strict_format_sub_expr(&self, sub_expr: &Expression) -> String {
+    fn strict_format_sub_expr(&self, sub_expr: &Expression) -> Result<String> {
         if *self > sub_expr.get_tier() {
-            format!("({})", sub_expr)
+            Ok(format!("({})", sub_expr.pretty_print()?))
         } else {
-            format!("{}", sub_expr)
+            sub_expr.pretty_print()
         }
     }
 }
@@ -366,13 +385,13 @@ impl BinaryOp {
         use BinaryOp::*;
         use ExpressionTier::*;
         match self {
-            In | NotIn => Tier4Expr,
-            Or => Tier5Expr,
-            And => Tier6Expr,
-            Comparison(_) => Tier7Expr,
-            Concat => Tier8Expr,
-            Add | Sub => Tier9Expr,
-            Mul | Div => Tier10Expr,
+            In | NotIn => Tier4,
+            Or => Tier5,
+            And => Tier6,
+            Comparison(_) => Tier7,
+            Concat => Tier8,
+            Add | Sub => Tier9,
+            Mul | Div => Tier10,
         }
     }
 }
@@ -385,37 +404,37 @@ impl BinaryExpr {
 
 impl UnaryExpr {
     fn get_tier(&self) -> ExpressionTier {
-        ExpressionTier::Tier11Expr
+        ExpressionTier::Tier11
     }
 }
 
 impl LikeExpr {
     fn get_tier(&self) -> ExpressionTier {
-        ExpressionTier::Tier1Expr
+        ExpressionTier::Tier1
     }
 }
 
 impl IsExpr {
     fn get_tier(&self) -> ExpressionTier {
-        ExpressionTier::Tier2Expr
+        ExpressionTier::Tier2
     }
 }
 
 impl BetweenExpr {
     fn get_tier(&self) -> ExpressionTier {
-        ExpressionTier::Tier3Expr
+        ExpressionTier::Tier3
     }
 }
 
 impl SubqueryComparisonExpr {
     fn get_tier(&self) -> ExpressionTier {
-        ExpressionTier::Tier7Expr
+        ExpressionTier::Tier7
     }
 }
 
 impl TypeAssertionExpr {
     fn get_tier(&self) -> ExpressionTier {
-        ExpressionTier::Tier12Expr
+        ExpressionTier::Tier12
     }
 }
 
@@ -436,92 +455,92 @@ impl Expression {
             // formatting for all the following is handled specially and will never conditionally
             // wrap arguments in parentheses
             Array(_) | Case(_) | Cast(_) | Document(_) | Exists(_) | Function(_) | Trim(_)
-            | Extract(_) | Identifier(_) | Literal(_) | Subquery(_) | Tuple(_) => BottomExpr,
+            | Extract(_) | Identifier(_) | Literal(_) | Subquery(_) | Tuple(_) => Bottom,
         }
     }
 }
 
 impl SubpathExpr {
     fn get_tier(&self) -> ExpressionTier {
-        ExpressionTier::Tier13Expr
+        ExpressionTier::Tier13
     }
 }
 
 impl AccessExpr {
     fn get_tier(&self) -> ExpressionTier {
-        ExpressionTier::BottomExpr
+        ExpressionTier::Bottom
     }
 }
 
-impl Display for Expression {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl PrettyPrint for Expression {
+    fn pretty_print(&self) -> Result<String> {
         use Expression::*;
         match self {
-            Identifier(s) => write!(f, "{}", identifier_to_string(s)),
-            Is(i) => write!(f, "{}", i),
-            Like(l) => write!(f, "{}", l),
-            TypeAssertion(t) => write!(f, "{}", t),
-            Cast(c) => write!(f, "{}", c),
-            Literal(l) => write!(f, "{}", l),
-            Unary(u) => write!(f, "{}", u),
-            Binary(b) => write!(f, "{}", b),
-            Extract(e) => write!(f, "{}", e),
-            Trim(t) => write!(f, "{}", t),
-            Function(fun) => write!(f, "{}", fun),
-            Access(a) => write!(f, "{}", a),
-            Subpath(sp) => write!(f, "{}", sp),
-            Array(a) => write!(
-                f,
+            Identifier(s) => Ok(identifier_to_string(s)),
+            Is(i) => i.pretty_print(),
+            Like(l) => l.pretty_print(),
+            TypeAssertion(t) => t.pretty_print(),
+            Cast(c) => c.pretty_print(),
+            Literal(l) => l.pretty_print(),
+            Unary(u) => u.pretty_print(),
+            Binary(b) => b.pretty_print(),
+            Extract(e) => e.pretty_print(),
+            Trim(t) => t.pretty_print(),
+            Function(fun) => fun.pretty_print(),
+            Access(a) => a.pretty_print(),
+            Subpath(sp) => sp.pretty_print(),
+            Array(a) => Ok(format!(
                 "[{}]",
                 a.iter()
-                    .map(|x| format!("{}", x))
-                    .collect::<Vec<_>>()
+                    .map(|x| x.pretty_print())
+                    .collect::<Result<Vec<_>>>()?
                     .join(", ")
-            ),
-            Tuple(t) => write!(
-                f,
+            )),
+            Tuple(t) => Ok(format!(
                 "({})",
                 t.iter()
-                    .map(|x| format!("{}", x))
-                    .collect::<Vec<_>>()
+                    .map(|x| x.pretty_print())
+                    .collect::<Result<Vec<_>>>()?
                     .join(", ")
-            ),
-            Document(d) => write!(
-                f,
+            )),
+            Document(d) => Ok(format!(
                 "{{{}}}",
                 d.iter()
-                    .map(|kv| format!("'{}': {}", escape_string_literal(&kv.key), kv.value))
-                    .collect::<Vec<_>>()
+                    .map(|kv| Ok(format!(
+                        "'{}': {}",
+                        escape_string_literal(&kv.key),
+                        kv.value.pretty_print()?
+                    )))
+                    .collect::<Result<Vec<_>>>()?
                     .join(", ")
-            ),
-            Between(b) => write!(f, "{}", b),
-            Case(c) => write!(f, "{}", c),
-            Subquery(q) => write!(f, "({})", q),
-            Exists(q) => write!(f, "EXISTS({})", q),
-            SubqueryComparison(sc) => write!(f, "{}", sc),
+            )),
+            Between(b) => b.pretty_print(),
+            Case(c) => c.pretty_print(),
+            Subquery(q) => Ok(format!("({})", q.pretty_print()?)),
+            Exists(q) => Ok(format!("EXISTS({})", q.pretty_print()?)),
+            SubqueryComparison(sc) => sc.pretty_print(),
         }
     }
 }
 
-impl Display for IsExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let formatted_expr = self.get_tier().format_sub_expr(&self.expr);
+impl PrettyPrint for IsExpr {
+    fn pretty_print(&self) -> Result<String> {
+        let formatted_expr = self.get_tier().format_sub_expr(&self.expr)?;
         match self.target_type {
-            TypeOrMissing::Missing => write!(f, "{} IS MISSING", formatted_expr),
-            TypeOrMissing::Type(t) => write!(f, "{} IS {}", formatted_expr, t),
-            TypeOrMissing::Number => write!(f, "{} IS NUMBER", formatted_expr),
+            TypeOrMissing::Missing => Ok(format!("{} IS MISSING", formatted_expr)),
+            TypeOrMissing::Type(t) => Ok(format!("{} IS {}", formatted_expr, t.pretty_print()?)),
+            TypeOrMissing::Number => Ok(format!("{} IS NUMBER", formatted_expr)),
         }
     }
 }
 
-impl Display for LikeExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl PrettyPrint for LikeExpr {
+    fn pretty_print(&self) -> Result<String> {
         let (formatted_expr, formatted_pattern) = (
-            self.get_tier().strict_format_sub_expr(&self.expr),
-            self.get_tier().format_sub_expr(&self.pattern),
+            self.get_tier().strict_format_sub_expr(&self.expr)?,
+            self.get_tier().format_sub_expr(&self.pattern)?,
         );
-        write!(
-            f,
+        Ok(format!(
             "{} LIKE {}{}",
             formatted_expr,
             formatted_pattern,
@@ -529,212 +548,245 @@ impl Display for LikeExpr {
                 " ESCAPE '{}'",
                 escape_string_literal(x)
             ))
-        )
+        ))
     }
 }
 
-impl Display for TypeAssertionExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let formatted_expr = self.get_tier().format_sub_expr(&self.expr);
-        write!(f, "{}::!{}", formatted_expr, self.target_type)
+impl PrettyPrint for TypeAssertionExpr {
+    fn pretty_print(&self) -> Result<String> {
+        let formatted_expr = self.get_tier().format_sub_expr(&self.expr)?;
+        Ok(format!(
+            "{}::!{}",
+            formatted_expr,
+            self.target_type.pretty_print()?
+        ))
     }
 }
 
-impl Display for CastExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
+impl PrettyPrint for CastExpr {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
             "CAST({} AS {}{}{})",
-            self.expr,
-            self.to,
+            self.expr.pretty_print()?,
+            self.to.pretty_print()?,
             self.on_null
                 .as_ref()
-                .map_or("".to_string(), |x| format!(", {} ON NULL", x)),
+                .map_or(Ok("".to_string()), |x| Ok(format!(
+                    ", {} ON NULL",
+                    x.pretty_print()?
+                )))?,
             self.on_error
                 .as_ref()
-                .map_or("".to_string(), |x| format!(", {} ON ERROR", x))
-        )
+                .map_or(Ok("".to_string()), |x| Ok(format!(
+                    ", {} ON ERROR",
+                    x.pretty_print()?
+                )))?
+        ))
     }
 }
 
-impl Display for AccessExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let formatted_expr = self.get_tier().strict_format_sub_expr(&*self.expr);
-        write!(f, "{}[{}]", formatted_expr, self.subfield)
+impl PrettyPrint for AccessExpr {
+    fn pretty_print(&self) -> Result<String> {
+        let formatted_expr = self.get_tier().strict_format_sub_expr(&*self.expr)?;
+        Ok(format!(
+            "{}[{}]",
+            formatted_expr,
+            self.subfield.pretty_print()?
+        ))
     }
 }
 
-impl Display for SubpathExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl PrettyPrint for SubpathExpr {
+    fn pretty_print(&self) -> Result<String> {
         let subpath = identifier_to_string(&self.subpath);
-        let formatted_expr = self.get_tier().strict_format_sub_expr(&*self.expr);
-        write!(f, "{}.{}", formatted_expr, subpath)
+        let formatted_expr = self.get_tier().strict_format_sub_expr(&*self.expr)?;
+        Ok(format!("{}.{}", formatted_expr, subpath))
     }
 }
 
-impl Display for FunctionExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl PrettyPrint for FunctionExpr {
+    fn pretty_print(&self) -> Result<String> {
         match self.function {
-            FunctionName::Position => fmt_position(f, &self.args),
+            FunctionName::Position => pretty_print_position(&self.args),
             _ => match self.set_quantifier {
-                Some(SetQuantifier::Distinct) => {
-                    write!(f, "{}(DISTINCT {})", self.function, self.args)
-                }
-                Some(SetQuantifier::All) => write!(f, "{}(ALL {})", self.function, self.args),
-                None => write!(f, "{}({})", self.function, self.args),
+                Some(SetQuantifier::Distinct) => Ok(format!(
+                    "{}(DISTINCT {})",
+                    self.function.pretty_print()?,
+                    self.args.pretty_print()?
+                )),
+                Some(SetQuantifier::All) => Ok(format!(
+                    "{}(ALL {})",
+                    self.function.pretty_print()?,
+                    self.args.pretty_print()?
+                )),
+                None => Ok(format!(
+                    "{}({})",
+                    self.function.pretty_print()?,
+                    self.args.pretty_print()?
+                )),
             },
         }
     }
 }
 
-fn fmt_position(f: &mut Formatter<'_>, args: &FunctionArguments) -> Result {
+fn pretty_print_position(args: &FunctionArguments) -> Result<String> {
     match args {
         FunctionArguments::Star => unreachable!(),
         FunctionArguments::Args(args) => {
             assert!(args.len() == 2);
-            write!(f, "POSITION({} IN {})", args[0], args[1])
+            Ok(format!(
+                "POSITION({} IN {})",
+                args[0].pretty_print()?,
+                args[1].pretty_print()?
+            ))
         }
     }
 }
 
-impl Display for FunctionName {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "{}", self.as_str())
+impl PrettyPrint for FunctionName {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(self.as_str().to_string())
     }
 }
 
-impl Display for FunctionArguments {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl PrettyPrint for FunctionArguments {
+    fn pretty_print(&self) -> Result<String> {
         match self {
-            FunctionArguments::Star => write!(f, "*"),
-            FunctionArguments::Args(ve) => write!(
-                f,
-                "{}",
-                ve.iter()
-                    .map(|e| e.to_string())
-                    .collect::<Vec<_>>()
-                    .join(", ")
-            ),
+            FunctionArguments::Star => Ok("*".to_string()),
+            FunctionArguments::Args(ve) => Ok(ve
+                .iter()
+                .map(|e| e.pretty_print())
+                .collect::<Result<Vec<_>>>()?
+                .join(", ")),
         }
     }
 }
 
-impl Display for SubqueryComparisonExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let formatted_expr = self.get_tier().format_sub_expr(&self.expr);
-        write!(
-            f,
+impl PrettyPrint for SubqueryComparisonExpr {
+    fn pretty_print(&self) -> Result<String> {
+        let formatted_expr = self.get_tier().format_sub_expr(&self.expr)?;
+        Ok(format!(
             "{} {} {}({})",
-            formatted_expr, self.op, self.quantifier, self.subquery
-        )
+            formatted_expr,
+            self.op.pretty_print()?,
+            self.quantifier.pretty_print()?,
+            self.subquery.pretty_print()?
+        ))
     }
 }
 
-impl Display for SubqueryQuantifier {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self {
-            SubqueryQuantifier::All => write!(f, "ALL"),
-            SubqueryQuantifier::Any => write!(f, "ANY"),
+impl PrettyPrint for SubqueryQuantifier {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            SubqueryQuantifier::All => "ALL",
+            SubqueryQuantifier::Any => "ANY",
         }
+        .to_string())
     }
 }
 
-impl Display for Type {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Type::Array => "ARRAY",
-                Type::BinData => "BINDATA",
-                Type::Boolean => "BOOLEAN",
-                Type::Datetime => "TIMESTAMP",
-                Type::DbPointer => "DBPOINTER",
-                Type::Decimal128 => "DECIMAL",
-                Type::Document => "DOCUMENT",
-                Type::Double => "DOUBLE",
-                Type::Int32 => "INT",
-                Type::Int64 => "LONG",
-                Type::Javascript => "JAVASCRIPT",
-                Type::JavascriptWithScope => "JAVASCRIPTWITHSCOPE",
-                Type::MaxKey => "MAXKEY",
-                Type::MinKey => "MINKEY",
-                Type::Null => "NULL",
-                Type::ObjectId => "OBJECTID",
-                Type::RegularExpression => "REGEX",
-                Type::String => "STRING",
-                Type::Symbol => "SYMBOL",
-                Type::Timestamp => "BSON_TIMESTAMP",
-                Type::Undefined => "UNDEFINED",
-            }
-        )
+impl PrettyPrint for Type {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            Type::Array => "ARRAY",
+            Type::BinData => "BINDATA",
+            Type::Boolean => "BOOLEAN",
+            Type::Datetime => "TIMESTAMP",
+            Type::DbPointer => "DBPOINTER",
+            Type::Decimal128 => "DECIMAL",
+            Type::Document => "DOCUMENT",
+            Type::Double => "DOUBLE",
+            Type::Int32 => "INT",
+            Type::Int64 => "LONG",
+            Type::Javascript => "JAVASCRIPT",
+            Type::JavascriptWithScope => "JAVASCRIPTWITHSCOPE",
+            Type::MaxKey => "MAXKEY",
+            Type::MinKey => "MINKEY",
+            Type::Null => "NULL",
+            Type::ObjectId => "OBJECTID",
+            Type::RegularExpression => "REGEX",
+            Type::String => "STRING",
+            Type::Symbol => "SYMBOL",
+            Type::Timestamp => "BSON_TIMESTAMP",
+            Type::Undefined => "UNDEFINED",
+        }
+        .to_string())
     }
 }
 
-impl Display for ExtractSpec {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let out = match self {
+impl PrettyPrint for ExtractSpec {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
             ExtractSpec::Year => "YEAR",
             ExtractSpec::Month => "MONTH",
             ExtractSpec::Day => "DAY",
             ExtractSpec::Hour => "HOUR",
             ExtractSpec::Minute => "MINUTE",
             ExtractSpec::Second => "SECOND",
-        };
-        write!(f, "{}", out)
-    }
-}
-
-impl Display for TrimSpec {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        match self {
-            TrimSpec::Leading => write!(f, "LEADING"),
-            TrimSpec::Trailing => write!(f, "TRAILING"),
-            TrimSpec::Both => write!(f, "BOTH"),
         }
+        .to_string())
     }
 }
 
-impl Display for BetweenExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl PrettyPrint for TrimSpec {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            TrimSpec::Leading => "LEADING",
+            TrimSpec::Trailing => "TRAILING",
+            TrimSpec::Both => "BOTH",
+        }
+        .to_string())
+    }
+}
+
+impl PrettyPrint for BetweenExpr {
+    fn pretty_print(&self) -> Result<String> {
         let between_tier = self.get_tier();
         let sub_tier = BinaryOp::And.get_tier();
         let (formatted_expr, formatted_min, formatted_max) = (
-            between_tier.format_sub_expr(&*self.expr),
-            sub_tier.format_sub_expr(&*self.min),
-            sub_tier.format_sub_expr(&*self.max),
+            between_tier.format_sub_expr(&*self.expr)?,
+            sub_tier.format_sub_expr(&*self.min)?,
+            sub_tier.format_sub_expr(&*self.max)?,
         );
-        write!(
-            f,
+        Ok(format!(
             "{} BETWEEN {} AND {}",
             formatted_expr, formatted_min, formatted_max
-        )
+        ))
     }
 }
 
-impl Display for CaseExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
+impl PrettyPrint for CaseExpr {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
             "CASE {}{}{} END",
             self.expr
                 .as_ref()
-                .map_or("".to_string(), |x| format!("{} ", x)),
+                .map_or(Ok("".to_string()), |x| Ok(format!(
+                    "{} ",
+                    x.pretty_print()?
+                )))?,
             self.when_branch
                 .iter()
-                .map(|x| format!("{}", x))
-                .collect::<Vec<_>>()
+                .map(|x| x.pretty_print())
+                .collect::<Result<Vec<_>>>()?
                 .join(" "),
             self.else_branch
                 .as_ref()
-                .map_or("".to_string(), |x| format!(" ELSE {}", x)),
-        )
+                .map_or(Ok("".to_string()), |x| Ok(format!(
+                    " ELSE {}",
+                    x.pretty_print()?
+                )))?,
+        ))
     }
 }
 
-impl Display for WhenBranch {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "WHEN {} THEN {}", self.when, self.then)
+impl PrettyPrint for WhenBranch {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
+            "WHEN {} THEN {}",
+            self.when.pretty_print()?,
+            self.then.pretty_print()?
+        ))
     }
 }
 
@@ -755,121 +807,123 @@ fn ident_needs_delimiters(s: &str) -> bool {
     false
 }
 
-impl Display for Literal {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl PrettyPrint for Literal {
+    fn pretty_print(&self) -> Result<String> {
         match self {
-            Literal::Null => write!(f, "NULL"),
-            Literal::Boolean(b) => write!(f, "{}", b),
-            Literal::String(s) => write!(f, "'{}'", escape_string_literal(s)),
-            Literal::Integer(i) => write!(f, "{}", i),
-            Literal::Long(l) => write!(f, "{}", l),
+            Literal::Null => Ok("NULL".to_string()),
+            Literal::Boolean(b) => Ok(b.to_string()),
+            Literal::String(s) => Ok(format!("'{}'", escape_string_literal(s))),
+            Literal::Integer(i) => Ok(i.to_string()),
+            Literal::Long(l) => Ok(l.to_string()),
             Literal::Double(d) => {
                 let d = d.to_string();
-                if !d.contains('.') {
-                    write!(f, "{}.0", d)
+                Ok(if !d.contains('.') {
+                    format!("{}.0", d)
                 } else {
-                    write!(f, "{}", d)
-                }
+                    d
+                })
             }
         }
     }
 }
 
-impl Display for UnaryExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        let formatted_expr = self.get_tier().strict_format_sub_expr(&*self.expr);
-        write!(f, "{}{}", self.op, formatted_expr)
+impl PrettyPrint for UnaryExpr {
+    fn pretty_print(&self) -> Result<String> {
+        let formatted_expr = self.get_tier().strict_format_sub_expr(&*self.expr)?;
+        Ok(format!("{}{}", self.op.pretty_print()?, formatted_expr))
     }
 }
 
-impl Display for UnaryOp {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                UnaryOp::Pos => "+",
-                UnaryOp::Neg => "-",
-                UnaryOp::Not => "NOT ",
-            }
-        )
+impl PrettyPrint for UnaryOp {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            UnaryOp::Pos => "+",
+            UnaryOp::Neg => "-",
+            UnaryOp::Not => "NOT ",
+        }
+        .to_string())
     }
 }
 
-impl Display for ExtractExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(f, "EXTRACT({} FROM {})", self.extract_spec, self.arg)
+impl PrettyPrint for ExtractExpr {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
+            "EXTRACT({} FROM {})",
+            self.extract_spec.pretty_print()?,
+            self.arg.pretty_print()?
+        ))
     }
 }
 
-impl Display for TrimExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl PrettyPrint for TrimExpr {
+    fn pretty_print(&self) -> Result<String> {
         let trim_spec = match self.trim_spec {
             TrimSpec::Both => "BOTH",
             TrimSpec::Leading => "LEADING",
             TrimSpec::Trailing => "TRAILING",
         };
         match *self.trim_chars {
-            Expression::Literal(Literal::String(ref s)) if s.as_str() == " " => {
-                write!(f, "TRIM({} FROM {})", trim_spec, self.arg)
-            }
-            _ => write!(
-                f,
+            Expression::Literal(Literal::String(ref s)) if s.as_str() == " " => Ok(format!(
+                "TRIM({} FROM {})",
+                trim_spec,
+                self.arg.pretty_print()?
+            )),
+            _ => Ok(format!(
                 "TRIM({} {} FROM {})",
-                trim_spec, self.trim_chars, self.arg
-            ),
+                trim_spec,
+                self.trim_chars.pretty_print()?,
+                self.arg.pretty_print()?
+            )),
         }
     }
 }
 
-impl Display for BinaryExpr {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
+impl PrettyPrint for BinaryExpr {
+    fn pretty_print(&self) -> Result<String> {
         let tier = self.get_tier();
         // This assumes all binary operators are left associative, which is currently true.
         // Right associative operators would need to use strict_format_sub_expr on the right
         // argument.
         let (formatted_left, formatted_right) = (
-            tier.strict_format_sub_expr(&*self.left),
-            tier.format_sub_expr(&*self.right),
+            tier.strict_format_sub_expr(&*self.left)?,
+            tier.format_sub_expr(&*self.right)?,
         );
-        write!(f, "{} {} {}", formatted_left, self.op, formatted_right,)
+        Ok(format!(
+            "{} {} {}",
+            formatted_left,
+            self.op.pretty_print()?,
+            formatted_right
+        ))
     }
 }
 
-impl Display for BinaryOp {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                BinaryOp::Or => "OR".to_string(),
-                BinaryOp::And => "AND".to_string(),
-                BinaryOp::Comparison(c) => c.to_string(),
-                BinaryOp::Concat => "||".to_string(),
-                BinaryOp::Add => "+".to_string(),
-                BinaryOp::Sub => "-".to_string(),
-                BinaryOp::Mul => "*".to_string(),
-                BinaryOp::Div => "/".to_string(),
-                BinaryOp::In => "IN".to_string(),
-                BinaryOp::NotIn => "NOT IN".to_string(),
-            }
-        )
+impl PrettyPrint for BinaryOp {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            BinaryOp::Or => "OR".to_string(),
+            BinaryOp::And => "AND".to_string(),
+            BinaryOp::Comparison(c) => c.pretty_print()?,
+            BinaryOp::Concat => "||".to_string(),
+            BinaryOp::Add => "+".to_string(),
+            BinaryOp::Sub => "-".to_string(),
+            BinaryOp::Mul => "*".to_string(),
+            BinaryOp::Div => "/".to_string(),
+            BinaryOp::In => "IN".to_string(),
+            BinaryOp::NotIn => "NOT IN".to_string(),
+        })
     }
 }
 
-impl Display for ComparisonOp {
-    fn fmt(&self, f: &mut Formatter<'_>) -> Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                ComparisonOp::Lt => "<",
-                ComparisonOp::Lte => "<=",
-                ComparisonOp::Gte => ">=",
-                ComparisonOp::Gt => ">",
-                ComparisonOp::Eq => "=",
-                ComparisonOp::Neq => "<>",
-            }
-        )
+impl PrettyPrint for ComparisonOp {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            ComparisonOp::Lt => "<",
+            ComparisonOp::Lte => "<=",
+            ComparisonOp::Gte => ">=",
+            ComparisonOp::Gt => ">",
+            ComparisonOp::Eq => "=",
+            ComparisonOp::Neq => "<>",
+        }
+        .to_string())
     }
 }
