@@ -7,7 +7,7 @@ require (
 	github.com/10gen/mongoast v0.0.0-20220202232313-a44e0ea02a4e
 	github.com/google/go-cmp v0.5.7
 	github.com/stretchr/testify v1.7.0
-	go.mongodb.org/mongo-driver v1.8.3
+	go.mongodb.org/mongo-driver v1.8.2
 )
 
 require (
