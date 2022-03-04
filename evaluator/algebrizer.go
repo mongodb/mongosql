@@ -322,6 +322,7 @@ func (a *algebrizer) valueKind() values.SQLValueKind {
 
 func (a *algebrizer) clone() *algebrizer {
 	return &algebrizer{
+		ctx:                         a.ctx,
 		cfg:                         a.cfg,
 		parent:                      a.parent,
 		selectID:                    a.selectID,
@@ -335,6 +336,7 @@ func (a *algebrizer) clone() *algebrizer {
 
 func (a *algebrizer) newSubqueryExprAlgebrizer() *algebrizer {
 	return &algebrizer{
+		ctx:                         a.ctx,
 		cfg:                         a.cfg,
 		parent:                      a,
 		selectID:                    a.selectIDGenerator.generate(),
@@ -348,6 +350,7 @@ func (a *algebrizer) newSubqueryExprAlgebrizer() *algebrizer {
 
 func (a *algebrizer) newDerivedTableAlgebrizer() *algebrizer {
 	return &algebrizer{
+		ctx:                         a.ctx,
 		cfg:                         a.cfg,
 		selectID:                    a.selectIDGenerator.generate(),
 		selectIDGenerator:           a.selectIDGenerator,
