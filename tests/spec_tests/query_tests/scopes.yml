@@ -165,7 +165,7 @@ tests:
     current_db: 'foo'
     query: "SELECT VALUE {'a': bar} FROM foo.schema_coll AS coll JOIN foo.schema_foo AS coll2"
     translation_target_db: foo
-    translation_target_coll: coll
+    translation_target_coll: schema_coll
     translation:
       - { '$project': { '_id': 0, 'schema_coll': '$$ROOT' } }
       - { '$project': { '_id': 0, 'coll': '$schema_coll' } }

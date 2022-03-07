@@ -81,7 +81,7 @@ tests:
   - description: Simple CASE expression - Multiple WHEN comparison evalutes to TRUE, return first corresponding THEN result
     query: "SELECT VALUE { 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' ELSE 'none' END } FROM [{'a': 1, 'b': 1}] AS arr"
     current_db: test
-    translation_target_db: foo
+    translation_target_db: test
     translation:
       - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}]}
       - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
@@ -137,7 +137,6 @@ tests:
     current_db: foo
     query: "SELECT VALUE { 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' ELSE 'none' END } FROM [{'a': 2, 'b': 1}] AS arr"
     translation_target_db: foo
-    translation_target_coll: bar
     translation:
       - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}]}
       - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
@@ -158,7 +157,6 @@ tests:
     current_db: foo
     query: "SELECT VALUE { 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' ELSE 'none' END } FROM [{'a': 1, 'b': 1}] AS arr"
     translation_target_db: foo
-    translation_target_coll: bar
     translation:
       - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}]}
       - {'$project': {'_id': 0, 'arr': '$$ROOT'}}

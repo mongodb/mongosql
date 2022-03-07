@@ -1,8 +1,8 @@
 tests:
   - description: Nested Case expression translation
+    current_db: test
     query: "SELECT VALUE { 'r': CASE 1 WHEN (CASE 2 WHEN a THEN 2 ELSE 1 END) THEN 'YES' ELSE 'NO' END} FROM [{'a': 1, 'b': 1}] AS arr"
-    translation_target_db: foo
-    translation_target_coll: bar
+    translation_target_db: test
     translation:
       - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}]}
       - {'$project': {'_id': 0, 'arr': '$$ROOT'}}

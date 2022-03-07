@@ -274,6 +274,16 @@ func TestSpecTranslations(t *testing.T) {
 								assert.Contains(t, err.Error(), "parse error")
 							} else {
 								if err == nil {
+									// Check that translation database and collection are correct
+									if testCase.TranslationDB != translation.TargetDB {
+										t.Fatalf("actual translation db does not match expected translation db:\n\texpected: %v\n\t  actual: %v",
+											testCase.TranslationDB, translation.TargetDB)
+									}
+									if testCase.TranslationColl != translation.TargetCollection {
+										t.Fatalf("actual translation collection does not match expected translation collection:\n\texpected: %v\n\t  actual: %v",
+											testCase.TranslationColl, translation.TargetCollection)
+									}
+
 									var actualPipeline []bson.D
 									val := bson.RawValue{
 										Type:  bsontype.Array,
