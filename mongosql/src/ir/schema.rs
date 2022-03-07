@@ -5,7 +5,7 @@ use crate::{
     schema::{
         Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_ARRAY,
         ANY_ARRAY_OR_NULLISH, ANY_DOCUMENT, BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, EMPTY_DOCUMENT,
-        INTEGER_OR_NULLISH, NULLISH, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
+        INTEGER_OR_NULLISH, NULLISH, NUMERIC, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
     },
     set,
     util::unique_linked_hash_map::UniqueLinkedHashMap,
@@ -1078,10 +1078,11 @@ trait SQLFunction {
                 .map(|s| match s {
                     AnyOf(ao) => AnyOf(
                         ao.into_iter()
-                            .filter(|sch| !matches!(sch, Missing) && !matches!(sch, Atomic(Null)))
+                            .filter(|sch| sch.satisfies(&NUMERIC.clone()) == Satisfaction::Must)
                             .collect::<BTreeSet<_>>(),
                     ),
                     Atomic(a) if a.is_numeric() => s.clone(),
+                    Any => NUMERIC.clone(),
                     _ => unreachable!(),
                 })
                 .collect::<BTreeSet<_>>();

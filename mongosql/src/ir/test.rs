@@ -2514,6 +2514,83 @@ mod schema {
         },
     );
 
+    test_schema!(
+        arithmetic_any_returns_all_numerics_and_null,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Integer),
+            Schema::Atomic(Atomic::Null),
+        ])),
+        input = AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Sum,
+            arg: Box::new(Expression::Reference(("foo", 0u16).into())),
+            distinct: false,
+        }),
+        schema_env = map! {
+            ("foo", 0u16).into() => Schema::Any,
+        },
+        schema_checking_mode = SchemaCheckingMode::Relaxed,
+    );
+
+    test_schema!(
+        arithmetic_filter_out_non_numerics,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Double),
+        ])),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Add,
+            args: vec![
+                Expression::Reference(("foo", 0u16).into()),
+                Expression::Reference(("bar", 0u16).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+        schema_env = map! {
+            ("foo", 0u16).into() => Schema::Atomic(Atomic::Double),
+            ("bar", 0u16).into() =>Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::String),
+                Schema::Atomic(Atomic::DbPointer),
+                Schema::Atomic(Atomic::Timestamp),
+            ]),
+        },
+        schema_checking_mode = SchemaCheckingMode::Relaxed,
+    );
+
+    test_schema!(
+        arithmetic_numeric_and_non_numeric_error,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Add",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Add,
+            args: vec![
+                Expression::Reference(("foo", 0u16).into()),
+                Expression::Reference(("bar", 0u16).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+        schema_env = map! {
+            ("foo", 0u16).into() => Schema::Atomic(Atomic::Double),
+            ("bar", 0u16).into() =>Schema::Atomic(Atomic::String),
+        },
+        schema_checking_mode = SchemaCheckingMode::Relaxed,
+    );
+
     // Arithmetic function errors.
     test_schema!(
         sub_requires_exactly_two_args,

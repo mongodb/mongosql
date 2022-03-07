@@ -404,6 +404,12 @@ lazy_static! {
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);
+    pub static ref NUMERIC: Schema = Schema::AnyOf(set![
+        Schema::Atomic(Atomic::Integer),
+        Schema::Atomic(Atomic::Long),
+        Schema::Atomic(Atomic::Double),
+        Schema::Atomic(Atomic::Decimal),
+    ]);
     pub static ref NUMERIC_OR_NULLISH: Schema = Schema::AnyOf(set![
         Schema::Atomic(Atomic::Integer),
         Schema::Atomic(Atomic::Long),
