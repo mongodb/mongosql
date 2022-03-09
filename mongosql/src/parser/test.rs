@@ -507,6 +507,11 @@ mod operator {
         input = "select col1 LIKE '%a!% b' ESCAPE '!'"
     );
     parsable!(
+        like_escape_multibyte_unicode,
+        expected = true,
+        input = "select col1 LIKE '%a!% b' ESCAPE '山'"
+    );
+    parsable!(
         like_escape_empty,
         expected = false,
         input = "select col1 LIKE 'blah' ESCAPE ''"
@@ -1377,6 +1382,11 @@ mod scalar_function {
         position_binary_mul,
         expected = true,
         input = "select position(1*2 IN 2)"
+    );
+    parsable!(
+        position_is_op,
+        expected = true,
+        input = "SELECT POSITION(x IN (`foo` IS DOCUMENT)) from bar"
     );
     parsable!(
         position_unary_neg,

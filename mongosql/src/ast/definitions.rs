@@ -418,6 +418,15 @@ pub enum FunctionArguments {
     Args(Vec<Expression>),
 }
 
+impl FunctionArguments {
+    pub fn is_empty(&self) -> bool {
+        match self {
+            FunctionArguments::Star => false,
+            FunctionArguments::Args(a) => a.is_empty(),
+        }
+    }
+}
+
 #[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
 pub enum ExtractSpec {
     Year,

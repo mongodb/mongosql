@@ -151,7 +151,12 @@ pub fn parse_like_expr(
     pattern: Box<Expression>,
     escape: Option<String>,
 ) -> Result<Box<Expression>, LalrpopError<'static>> {
-    if escape.clone().map_or(1, |s| s.len()) == 1 {
+    if escape
+        .clone()
+        // String::len is in bytes, not characters!
+        .map_or(1, |s| s.chars().count())
+        == 1
+    {
         Ok(Box::new(Expression::Like(LikeExpr {
             expr,
             pattern,

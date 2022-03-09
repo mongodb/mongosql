@@ -606,18 +606,18 @@ expression_printer_test!(
     expected = "NOT (true OR false)",
     input = "not (true OR false)"
 );
-expression_printer_test!(unary_neg, expected = "-3", input = "- 3");
-expression_printer_test!(unary_neg_parens, expected = "-(3 + 4)", input = "-(3+4)");
-expression_printer_test!(unary_pos, expected = "+3", input = "+ (3)");
-expression_printer_test!(unary_pos_parens, expected = "+(3 + 4)", input = "+(3+4)");
+expression_printer_test!(unary_neg, expected = "- 3", input = "- 3");
+expression_printer_test!(unary_neg_parens, expected = "- (3 + 4)", input = "-(3+4)");
+expression_printer_test!(unary_pos, expected = "+ 3", input = "+ (3)");
+expression_printer_test!(unary_pos_parens, expected = "+ (3 + 4)", input = "+(3+4)");
 expression_printer_test!(
     unary_negative_sub_function,
-    expected = "4 - +SUM(bar)",
+    expected = "4 - + SUM(bar)",
     input = "4 - + SUM(bar)"
 );
 expression_printer_test!(
     unary_positive_sub_function,
-    expected = "4 - -SUM(bar)",
+    expected = "4 - - SUM(bar)",
     input = "4 - - SUM(bar)"
 );
 expression_printer_test!(
@@ -833,6 +833,11 @@ expression_printer_test!(
     expected = "POSITION('x' IN 'y')",
     input = "position('x' in 'y')"
 );
+expression_printer_test!(
+    position_in_is_expr,
+    expected = "POSITION('x' IN ('y' IS DOCUMENT))",
+    input = "position('x' in ('y' is document))"
+);
 
 expression_printer_test!(
     function_upper,
@@ -1009,8 +1014,8 @@ expression_printer_test!(
 // precedence tests
 expression_printer_test!(
     unary_is_lower_prec_than_assert,
-    expected = "(-x)::!INT",
-    input = "(-x)::!INT"
+    expected = "(- x)::!INT",
+    input = "(- x)::!INT"
 );
 expression_printer_test!(
     is_is_lower_prec_than_between,

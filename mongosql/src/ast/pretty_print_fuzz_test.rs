@@ -26,13 +26,24 @@ mod fuzz_test {
                 Ok(p) => p,
             };
 
+            let reparsed = Parser::new().parse_query(&p);
+            let reparsed = match reparsed {
+                Ok(parsed) => parsed,
+                Err(ref e) => {
+                    // If we failed to parse, we want to show the Error, the pretty printed
+                    // query, and the query AST so we can more easily see the issue.
+                    // The panic will print the query AST.
+                    panic!("\nError:\n{:?}\n=========\n{}\n\n_________\n\n", e, p);
+                }
+            };
+
             // When we reparse after pretty printing,  some parenthesized  expressions are
             // interpreted as single-element tuples.  This is an intentional choice in the
             // parser on our part. The SingleTupleRewritePass unwraps these single-element
             // tuples into their single expressions.  We discard any  tests that encounter
             // rewrite errors,  though the  SingleTupleRewritePass  should never return an
             // error anyway.
-            let reparsed = SingleTupleRewritePass.apply(Parser::new().parse_query(&p).unwrap());
+            let reparsed = SingleTupleRewritePass.apply(reparsed);
             match reparsed {
                 Err(_) => TestResult::discard(),
                 Ok(r) => TestResult::from_bool(q == r),
@@ -66,21 +77,8 @@ mod arbitrary {
     // MAX_NEST and prevent further nesting. When MAX_NEST is met or exceeded, nesting
     // ceases and a terminal expression (or subquery) is returned.
     static MAX_NEST: usize = 50;
-    static NEST_LOWER_BOUND: usize = 10; // At most 5 levels of nesting
-    static NEST_UPPER_BOUND: usize = 25; // At least 2 levels of nesting
-
-    /// Return an arbitrary String without null characters and with
-    /// the specified exact length.
-    ///
-    /// These Strings can be used for aliases, identifiers, or literals.
-    fn arbitrary_string_with_len(len: usize) -> String {
-        loop {
-            let s = arbitrary_string_with_max_len(len);
-            if s.len() == len {
-                break s;
-            }
-        }
-    }
+    static NEST_LOWER_BOUND: usize = 10;
+    static NEST_UPPER_BOUND: usize = 25;
 
     /// Return an arbitrary String without null characters and with
     /// the specified maximum length.
@@ -94,7 +92,7 @@ mod arbitrary {
     /// Return an arbitrary String without null characters.
     ///
     /// These Strings can be used for aliases, identifiers, or literals.
-    fn arbitrary_string() -> String {
+    fn arbitrary_string(_: &mut Gen) -> String {
         arbitrary_string_with_max_len(rand_len(1, 20) as usize)
     }
 
@@ -102,25 +100,33 @@ mod arbitrary {
     /// construct the value if the chosen variant is Some.
     fn arbitrary_optional<T, F>(g: &mut Gen, f: F) -> Option<T>
     where
-        F: Fn() -> T,
+        F: Fn(&mut Gen) -> T,
     {
         if bool::arbitrary(g) {
             None
         } else {
-            Some(f())
+            Some(f(g))
         }
     }
 
-    /// Return an arbitrary Option<String> without null characters.
-    fn arbitrary_optional_string(g: &mut Gen) -> Option<String> {
-        arbitrary_optional(g, arbitrary_string)
+    /// arbitrary_identifier generates an arbitraty identifier, currently
+    /// it just uses arbitrary_string, but this allows us to fine tune
+    /// easily if we decide to use different rules for identifiers from
+    /// strings.
+    fn arbitrary_identifier(g: &mut Gen) -> String {
+        arbitrary_string(g)
+    }
+
+    /// Return an arbitrary Option<String> conforming to identifier charset.
+    fn arbitrary_optional_identifier(g: &mut Gen) -> Option<String> {
+        arbitrary_optional(g, arbitrary_identifier)
     }
 
     fn arbitrary_expr_terminal(g: &mut Gen) -> Expression {
         if bool::arbitrary(g) {
             Expression::Literal(Literal::arbitrary(g))
         } else {
-            Expression::Identifier(arbitrary_string())
+            Expression::Identifier(arbitrary_identifier(g))
         }
     }
 
@@ -251,9 +257,9 @@ mod arbitrary {
     }
 
     impl Arbitrary for SubstarExpr {
-        fn arbitrary(_g: &mut Gen) -> Self {
+        fn arbitrary(g: &mut Gen) -> Self {
             Self {
-                datasource: arbitrary_string(),
+                datasource: arbitrary_identifier(g),
             }
         }
     }
@@ -277,7 +283,7 @@ mod arbitrary {
                 array: (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
                     .map(|_| Expression::arbitrary(g))
                     .collect(),
-                alias: arbitrary_string(),
+                alias: arbitrary_identifier(g),
             }
         }
     }
@@ -285,9 +291,9 @@ mod arbitrary {
     impl Arbitrary for CollectionSource {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
-                database: arbitrary_optional_string(g),
-                collection: arbitrary_string(),
-                alias: arbitrary_optional_string(g),
+                database: arbitrary_optional_identifier(g),
+                collection: arbitrary_identifier(g),
+                alias: arbitrary_optional_identifier(g),
             }
         }
     }
@@ -296,7 +302,7 @@ mod arbitrary {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
                 query: Box::new(Query::arbitrary(g)),
-                alias: arbitrary_string(),
+                alias: arbitrary_identifier(g),
             }
         }
     }
@@ -316,7 +322,7 @@ mod arbitrary {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
                 expr: Expression::arbitrary(g),
-                alias: arbitrary_string(),
+                alias: arbitrary_identifier(g),
             }
         }
     }
@@ -388,7 +394,7 @@ mod arbitrary {
                 ),
                 13 => Self::Access(AccessExpr::arbitrary(nested_g)),
                 14 => Self::Subpath(SubpathExpr::arbitrary(nested_g)),
-                15 => Self::Identifier(arbitrary_string()),
+                15 => Self::Identifier(arbitrary_identifier(g)),
                 16 => Self::Is(IsExpr::arbitrary(nested_g)),
                 17 => Self::Like(LikeExpr::arbitrary(nested_g)),
                 18 => Self::Literal(Literal::arbitrary(nested_g)),
@@ -402,7 +408,7 @@ mod arbitrary {
     impl Arbitrary for DocumentPair {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
-                key: arbitrary_string(),
+                key: arbitrary_string(g),
                 value: Expression::arbitrary(g),
             }
         }
@@ -649,10 +655,10 @@ mod arbitrary {
         // TODO: SQL-467: Do not special-case SubpathExpr expr
         //   - For now, it is special-cased to avoid the problem of
         //     the parser rejecting expressions like 1.a, for example
-        fn arbitrary(_g: &mut Gen) -> Self {
+        fn arbitrary(g: &mut Gen) -> Self {
             Self {
-                expr: Box::new(Expression::Identifier(arbitrary_string())),
-                subpath: arbitrary_string(),
+                expr: Box::new(Expression::Identifier(arbitrary_identifier(g))),
+                subpath: arbitrary_identifier(g),
             }
         }
     }
@@ -680,10 +686,14 @@ mod arbitrary {
 
     impl Arbitrary for LikeExpr {
         fn arbitrary(g: &mut Gen) -> Self {
+            let escape = match char::arbitrary(g) {
+                '\0' => 'x',
+                c => c,
+            };
             Self {
                 expr: Box::new(Expression::arbitrary(g)),
                 pattern: Box::new(Expression::arbitrary(g)),
-                escape: arbitrary_optional(g, || arbitrary_string_with_len(1)),
+                escape: arbitrary_optional(g, |_| escape).map(|x| x.to_string()),
             }
         }
     }
@@ -791,7 +801,7 @@ mod arbitrary {
                 1 => {
                     let rng = &(0..2).collect::<Vec<i32>>();
                     Self::Simple(match g.choose(rng).unwrap() {
-                        0 => Expression::Identifier(arbitrary_string()),
+                        0 => Expression::Identifier(arbitrary_identifier(g)),
                         1 => Expression::Subpath(SubpathExpr::arbitrary(g)),
                         _ => panic!(),
                     })
@@ -818,7 +828,7 @@ mod arbitrary {
             match g.choose(rng).unwrap() {
                 0 => Self::Null,
                 1 => Self::Boolean(bool::arbitrary(g)),
-                2 => Self::String(arbitrary_string()),
+                2 => Self::String(arbitrary_string(g)),
                 3 => Self::Integer(i32::arbitrary(g).saturating_abs()),
                 4 => {
                     let long = i64::arbitrary(g).saturating_abs();

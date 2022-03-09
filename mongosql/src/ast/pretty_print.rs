@@ -1,5 +1,116 @@
 use crate::ast::*;
+use lazy_static::lazy_static;
+use regex::RegexSet;
 use thiserror::Error;
+
+lazy_static! {
+    pub static ref KEYWORDS: RegexSet = RegexSet::new(&[
+        r"(?i)aggregate$",
+        r"(?i)all$",
+        r"(?i)and$",
+        r"(?i)any$",
+        r"(?i)array$",
+        r"(?i)as$",
+        r"(?i)asc$",
+        r"(?i)between$",
+        r"(?i)bindata$",
+        r"(?i)bit$",
+        r"(?i)bool$",
+        r"(?i)boolean$",
+        r"(?i)both$",
+        r"(?i)bson_date$",
+        r"(?i)bson_timestamp$",
+        r"(?i)by$",
+        r"(?i)case$",
+        r"(?i)cast$",
+        r"(?i)char$",
+        r"(?i)character$",
+        r"(?i)char\s+varying$",
+        r"(?i)character\s+varying$",
+        r"(?i)cross$",
+        r"(?i)current_timestamp$",
+        r"(?i)day$",
+        r"(?i)dbpointer$",
+        r"(?i)dec$",
+        r"(?i)decimal$",
+        r"(?i)desc$",
+        r"(?i)distinct$",
+        r"(?i)document$",
+        r"(?i)double$",
+        r"(?i)else$",
+        r"(?i)end$",
+        r"(?i)error$",
+        r"(?i)escape$",
+        r"(?i)exists$",
+        r"(?i)extract$",
+        r"(?i)false$",
+        r"(?i)fetch\s+first$",
+        r"(?i)fetch\s+last$",
+        r"(?i)float$",
+        r"(?i)for$",
+        r"(?i)from$",
+        r"(?i)group$",
+        r"(?i)having$",
+        r"(?i)hour$",
+        r"(?i)in$",
+        r"(?i)inner$",
+        r"(?i)int$",
+        r"(?i)integer$",
+        r"(?i)is$",
+        r"(?i)javascript$",
+        r"(?i)javascriptwithscope$",
+        r"(?i)join$",
+        r"(?i)leading$",
+        r"(?i)like$",
+        r"(?i)left$",
+        r"(?i)limit$",
+        r"(?i)long$",
+        r"(?i)maxkey$",
+        r"(?i)minkey$",
+        r"(?i)minute$",
+        r"(?i)missing$",
+        r"(?i)month$",
+        r"(?i)natural$",
+        r"(?i)not$",
+        r"(?i)not\s+in$",
+        r"(?i)not\s+like$",
+        r"(?i)null$",
+        r"(?i)numeric$",
+        r"(?i)number$",
+        r"(?i)objectid$",
+        r"(?i)offset$",
+        r"(?i)on$",
+        r"(?i)or$",
+        r"(?i)order$",
+        r"(?i)outer$",
+        r"(?i)position$",
+        r"(?i)precision$",
+        r"(?i)real$",
+        r"(?i)regex$",
+        r"(?i)right$",
+        r"(?i)rows?\s+only$",
+        r"(?i)second$",
+        r"(?i)smallint$",
+        r"(?i)some$",
+        r"(?i)string$",
+        r"(?i)substring$",
+        r"(?i)symbol$",
+        r"(?i)then$",
+        r"(?i)timestamp$",
+        r"(?i)trailing$",
+        r"(?i)trim$",
+        r"(?i)true$",
+        r"(?i)undefined$",
+        r"(?i)union$",
+        r"(?i)value$",
+        r"(?i)values$",
+        r"(?i)varchar$",
+        r"(?i)when$",
+        r"(?i)where$",
+        r"(?i)year$",
+    ])
+    .unwrap();
+}
 
 fn identifier_to_string(s: &str) -> String {
     if ident_needs_delimiters(s) {
@@ -606,6 +717,9 @@ impl PrettyPrint for SubpathExpr {
 
 impl PrettyPrint for FunctionExpr {
     fn pretty_print(&self) -> Result<String> {
+        if self.function == FunctionName::CurrentTimestamp && self.args.is_empty() {
+            return Ok("current_timestamp".to_string());
+        }
         match self.function {
             FunctionName::Position => pretty_print_position(&self.args),
             _ => match self.set_quantifier {
@@ -634,10 +748,17 @@ fn pretty_print_position(args: &FunctionArguments) -> Result<String> {
         FunctionArguments::Star => unreachable!(),
         FunctionArguments::Args(args) => {
             assert!(args.len() == 2);
+            let tier = BinaryOp::In.get_tier();
+            // This assumes the In operator is left associative, which is currently true.  If it
+            // were right associative we would need to use strict_format_sub_expr on the right
+            // argument.
+            let (formatted_left, formatted_right) = (
+                tier.strict_format_sub_expr(&args[0])?,
+                tier.format_sub_expr(&args[1])?,
+            );
             Ok(format!(
                 "POSITION({} IN {})",
-                args[0].pretty_print()?,
-                args[1].pretty_print()?
+                formatted_left, formatted_right
             ))
         }
     }
@@ -804,6 +925,9 @@ fn ident_needs_delimiters(s: &str) -> bool {
             return true;
         }
     }
+    if KEYWORDS.is_match(s) {
+        return true;
+    }
     false
 }
 
@@ -837,8 +961,8 @@ impl PrettyPrint for UnaryExpr {
 impl PrettyPrint for UnaryOp {
     fn pretty_print(&self) -> Result<String> {
         Ok(match self {
-            UnaryOp::Pos => "+",
-            UnaryOp::Neg => "-",
+            UnaryOp::Pos => "+ ",
+            UnaryOp::Neg => "- ",
             UnaryOp::Not => "NOT ",
         }
         .to_string())
