@@ -1,0 +1,5 @@
+tests:
+  - description: remove OUTER => false if provided
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    query: "SELECT * FROM UNWIND(foo, PATH => x, OUTER => false)"
+    result: "SELECT * FROM UNWIND(foo, PATH => x)"

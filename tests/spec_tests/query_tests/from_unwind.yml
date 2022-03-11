@@ -1,0 +1,262 @@
+catalog_data:
+  test:
+    foo:
+      - {'_id': 0, 'arr': [1, 2, 3]}
+      - {'_id': 1, 'arr': [4, 5, 6]}
+    bar:
+      - {'_id': 0, 'arr': [10, 20, 30]}
+      - {'_id': 1, 'arr': [40, 50, 60]}
+    nested:
+      - {'_id': 0, 'a': {'b': {'c': [1, 2, 3], 'x': 30}, 'y': 20}, 'z': 10}
+      - {'_id': 1, 'a': {'b': {'c': [4, 5, 6], 'x': 300}, 'y': 200}, 'z': 100}
+    two_d:
+      - {'_id': 0, 'arr': [[1, 2], [3, 4]]}
+      - {'_id': 1, 'arr': [[10, 20], [30, 40]]}
+    non_arrays:
+      - {'_id': 0, 'arr': [1, 2], 'comment': "array"}
+      - {'_id': 1, 'arr': "not array", 'comment': "string"}
+      - {'_id': 2, 'arr': {'a': [3, 4]}, 'comment': "object"}
+    empty_null_and_missing:
+      - {'_id': 0, 'arr': [], 'comment': "empty"}
+      - {'_id': 1, 'arr': [1, 2], 'comment': "non-empty"}
+      - {'_id': 2, 'arr': null, 'comment': "null"}
+      - {'_id': 3, 'comment': "missing"}
+    index_conflict:
+      - {'_id': 0, arr: [1, 2], i: "abc"}
+      - {'_id': 1, arr: [3, 4]}
+
+catalog_schema:
+  {
+    'test': {
+      'foo': {
+        'bsonType': "object",
+        'required': ["_id", "arr"],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'arr': { 'bsonType': "array" }
+        }
+      },
+      'nested': {
+        'bsonType': "object",
+        'required': ["_id", "a", "z"],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': {
+            'bsonType': "object",
+            'required': ["b", "y"],
+            'additionalProperties': false,
+            'properties': {
+              'b': {
+                'bsonType': "object",
+                'required': ["c", "x"],
+                'additionalProperties': false,
+                'properties': {
+                  'c': { 'bsonType': "array" },
+                  'x': { 'bsonType': "int" }
+                }
+              },
+              'y': { 'bsonType': "int" }
+            }
+          },
+          'z': { 'bsonType': "int" }
+        }
+      },
+      'non_arrays': {
+        'bsonType': "object",
+        'required': ["_id", "arr", "comment"],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'arr': {
+            "anyOf": [
+              { "bsonType": "array" },
+              { "bsonType": "string" },
+              { "bsonType": "object" }
+            ]
+          },
+          'comment': { 'bsonType': "string" }
+        }
+      },
+      'empty_null_and_missing': {
+        'bsonType': "object",
+        'required': ["_id", "comment"],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'arr': {
+            "anyOf": [
+              { "bsonType": "array" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          'comment': { 'bsonType': "string" }
+        }
+      }
+    }
+  }
+
+tests:
+  - description: basic correctness test
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo, PATH => arr)"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    result:
+      - {'foo': {'_id': 0, 'arr': 1}}
+      - {'foo': {'_id': 0, 'arr': 2}}
+      - {'foo': {'_id': 0, 'arr': 3}}
+      - {'foo': {'_id': 1, 'arr': 4}}
+      - {'foo': {'_id': 1, 'arr': 5}}
+      - {'foo': {'_id': 1, 'arr': 6}}
+
+  - description: basic correctness test for explicitly aliased datasource
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo AS f, PATH => arr)"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    result:
+      - {'f': {'_id': 0, 'arr': 1}}
+      - {'f': {'_id': 0, 'arr': 2}}
+      - {'f': {'_id': 0, 'arr': 3}}
+      - {'f': {'_id': 1, 'arr': 4}}
+      - {'f': {'_id': 1, 'arr': 5}}
+      - {'f': {'_id': 1, 'arr': 6}}
+
+  - description: basic correctness test for index option
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo, PATH => arr, INDEX => i)"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    result:
+      - {'foo': {'_id': 0, 'arr': 1, 'i': 0}}
+      - {'foo': {'_id': 0, 'arr': 2, 'i': 1}}
+      - {'foo': {'_id': 0, 'arr': 3, 'i': 2}}
+      - {'foo': {'_id': 1, 'arr': 4, 'i': 0}}
+      - {'foo': {'_id': 1, 'arr': 5, 'i': 1}}
+      - {'foo': {'_id': 1, 'arr': 6, 'i': 2}}
+
+  - description: there are no type constraints on the field referenced by PATH, and non-array fields are not unwound
+    current_db: test
+    query: "SELECT * FROM UNWIND(non_arrays, PATH => arr, INDEX => i)"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    result:
+      - {'non_arrays': {'_id': 0, 'arr': 1, 'comment': "array", 'i': 0}}
+      - {'non_arrays': {'_id': 0, 'arr': 2, 'comment': "array", 'i': 1}}
+      - {'non_arrays': {'_id': 1, 'arr': "not array", 'comment': "string", 'i': null}}
+      - {'non_arrays': {'_id': 2, 'arr': {'a': [3, 4]}, 'comment': "object", 'i': null}}
+
+  - description: unwinding a nested array puts the unwound value at the same nested path
+    current_db: test
+    query: "SELECT * FROM UNWIND(nested, PATH => a.b.c, INDEX => i)"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    result:
+      - {'nested': {'_id': 0, 'a': {'b': {'c': 1, 'x': 30}, 'y': 20}, 'z': 10, 'i': 0}}
+      - {'nested': {'_id': 0, 'a': {'b': {'c': 2, 'x': 30}, 'y': 20}, 'z': 10, 'i': 1}}
+      - {'nested': {'_id': 0, 'a': {'b': {'c': 3, 'x': 30}, 'y': 20}, 'z': 10, 'i': 2}}
+      - {'nested': {'_id': 1, 'a': {'b': {'c': 4, 'x': 300}, 'y': 200}, 'z': 100, 'i': 0}}
+      - {'nested': {'_id': 1, 'a': {'b': {'c': 5, 'x': 300}, 'y': 200}, 'z': 100, 'i': 1}}
+      - {'nested': {'_id': 1, 'a': {'b': {'c': 6, 'x': 300}, 'y': 200}, 'z': 100, 'i': 2}}
+
+  - description: unwind datasources can be unwound
+    current_db: test
+    query: "SELECT * FROM UNWIND(UNWIND(two_d, PATH => arr), PATH => arr)"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    result:
+      - {'foo': {'_id': 0, 'arr': 1}}
+      - {'foo': {'_id': 0, 'arr': 2}}
+      - {'foo': {'_id': 0, 'arr': 3}}
+      - {'foo': {'_id': 0, 'arr': 4}}
+      - {'foo': {'_id': 1, 'arr': 10}}
+      - {'foo': {'_id': 1, 'arr': 20}}
+      - {'foo': {'_id': 1, 'arr': 30}}
+      - {'foo': {'_id': 1, 'arr': 40}}
+
+  - description: join datasources can be unwound, unwound field is nested under correct namespace (left)
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo JOIN bar, PATH => foo.arr)"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    result:
+      - {'foo': {'_id': 0, 'arr': 1}, 'bar': {'_id': 0, 'arr': [10, 20, 30]}}
+      - {'foo': {'_id': 0, 'arr': 2}, 'bar': {'_id': 0, 'arr': [10, 20, 30]}}
+      - {'foo': {'_id': 0, 'arr': 3}, 'bar': {'_id': 0, 'arr': [10, 20, 30]}}
+      - {'foo': {'_id': 0, 'arr': 1}, 'bar': {'_id': 1, 'arr': [40, 50, 60]}}
+      - {'foo': {'_id': 0, 'arr': 2}, 'bar': {'_id': 1, 'arr': [40, 50, 60]}}
+      - {'foo': {'_id': 0, 'arr': 3}, 'bar': {'_id': 1, 'arr': [40, 50, 60]}}
+      - {'foo': {'_id': 1, 'arr': 4}, 'bar': {'_id': 0, 'arr': [10, 20, 30]}}
+      - {'foo': {'_id': 1, 'arr': 5}, 'bar': {'_id': 0, 'arr': [10, 20, 30]}}
+      - {'foo': {'_id': 1, 'arr': 6}, 'bar': {'_id': 0, 'arr': [10, 20, 30]}}
+      - {'foo': {'_id': 1, 'arr': 4}, 'bar': {'_id': 1, 'arr': [40, 50, 60]}}
+      - {'foo': {'_id': 1, 'arr': 5}, 'bar': {'_id': 1, 'arr': [40, 50, 60]}}
+      - {'foo': {'_id': 1, 'arr': 6}, 'bar': {'_id': 1, 'arr': [40, 50, 60]}}
+
+  - description: join datasources can be unwound, unwound field is nested under correct namespace (right)
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo JOIN bar, PATH => bar.arr)"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    result:
+      - {'foo': {'_id': 0, 'arr': [1, 2, 3]}, 'bar': {'_id': 0, 'arr': 10}}
+      - {'foo': {'_id': 0, 'arr': [1, 2, 3]}, 'bar': {'_id': 0, 'arr': 20}}
+      - {'foo': {'_id': 0, 'arr': [1, 2, 3]}, 'bar': {'_id': 0, 'arr': 30}}
+      - {'foo': {'_id': 1, 'arr': [4, 5, 6]}, 'bar': {'_id': 0, 'arr': 10}}
+      - {'foo': {'_id': 1, 'arr': [4, 5, 6]}, 'bar': {'_id': 0, 'arr': 20}}
+      - {'foo': {'_id': 1, 'arr': [4, 5, 6]}, 'bar': {'_id': 0, 'arr': 30}}
+      - {'foo': {'_id': 0, 'arr': [1, 2, 3]}, 'bar': {'_id': 1, 'arr': 40}}
+      - {'foo': {'_id': 0, 'arr': [1, 2, 3]}, 'bar': {'_id': 1, 'arr': 50}}
+      - {'foo': {'_id': 0, 'arr': [1, 2, 3]}, 'bar': {'_id': 1, 'arr': 60}}
+      - {'foo': {'_id': 1, 'arr': [4, 5, 6]}, 'bar': {'_id': 1, 'arr': 40}}
+      - {'foo': {'_id': 1, 'arr': [4, 5, 6]}, 'bar': {'_id': 1, 'arr': 50}}
+      - {'foo': {'_id': 1, 'arr': [4, 5, 6]}, 'bar': {'_id': 1, 'arr': 60}}
+
+  - description: documents containing empty array, null, or missing values are omitted if OUTER => false (default)
+    current_db: test
+    query: "SELECT * FROM UNWIND(empty_null_and_missing AS c, PATH => arr, INDEX => i)"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    result:
+      - {'c': {'_id': 1, 'arr': 1, 'comment': "non-empty", 'i': 0}}
+      - {'c': {'_id': 1, 'arr': 2, 'comment': "non-empty", 'i': 1}}
+
+  - description: documents containing empty array, null, or missing values are retained if OUTER => true
+    current_db: test
+    query: "SELECT * FROM UNWIND(empty_null_and_missing AS c, PATH => arr, INDEX => i, OUTER => true)"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    result:
+      - {'c': {'_id': 0, 'comment': "empty", 'i': null}}
+      - {'c': {'_id': 1, 'arr': 1, 'comment': "non-empty", 'i': 0}}
+      - {'c': {'_id': 1, 'arr': 2, 'comment': "non-empty", 'i': 1}}
+      - {'c': {'_id': 2, 'arr': null, 'comment': "null", 'i': null}}
+      - {'c': {'_id': 3, 'comment': "missing", 'i': null}}
+
+  - description: PATH option is required
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo)"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    algebrize_error: "PATH argument required for UNWIND"
+
+  - description: PATH must be an identifier
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo, PATH => [arr])"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    parse_error: "expected identifier"
+
+  - description: INDEX must be simple identifier
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo, PATH => arr, INDEX => invalid.index.identifier)"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    parse_error: "expected simple identifier"
+
+  - description: duplicate option keys are disallowed
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo, PATH => arr, PATH => invalid)"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    algebrize_error: "can only specify each UNWIND option at most once"
+
+  - description: unknown option keys are disallowed
+    current_db: test
+    query: "SELECT * FROM UNWIND(foo, PATH => arr, INVALID => invalid)"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    algebrize_error: "unknown UNWIND option 'INVALID'"
+
+  - description: error unless we can definitely prove there is no name conflict for INDEX alias
+    current_db: test
+    query: "SELECT * FROM UNWIND(index_conflict, PATH => arr, INDEX => i)"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    algebrize_error: "alias 'i' used two times"
