@@ -1,5 +1,4 @@
 //go:build spectests
-// +build spectests
 
 package mongosql
 
