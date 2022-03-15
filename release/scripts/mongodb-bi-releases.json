@@ -130,6 +130,15 @@
          "target": "rhel81"
       },
       {
+         "arch": "s390x",
+         "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~RHEL80-ZSERIES"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "rhel80"
+      },
+      {
          "arch": "x86_64",
          "archive": {
             "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~SUSE12-64"

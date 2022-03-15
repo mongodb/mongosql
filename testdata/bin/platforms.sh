@@ -90,6 +90,11 @@ rhel82-arm64)
     PUSH_NAME='linux'
     MONGO_ARCH='aarch64'
     ;;
+rhel80-zseries)
+  PUSH_ARCH='s390x-rhel80'
+  PUSH_NAME='linux'
+  CC='s390x-redhat-linux-gcc'
+  ;;
 suse12)
     PUSH_ARCH='x86_64-suse12'
     PUSH_NAME='linux'

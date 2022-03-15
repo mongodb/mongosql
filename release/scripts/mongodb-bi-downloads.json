@@ -58,6 +58,10 @@
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~RHEL82-ARM64"
     },
     {
+      "name": "RedHat / CentOS 8.0 s390x",
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~RHEL80-ZSERIES"
+    },
+    {
       "name": "SUSE 12 x64",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~SUSE12-64"
     },
