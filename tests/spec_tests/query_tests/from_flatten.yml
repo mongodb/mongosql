@@ -1,0 +1,197 @@
+catalog_data:
+  mydb:
+    foo:
+      - {'_id': 0, 'a': {'b': 1}}
+    docOrInt:
+      - {'_id': 0, 'a': {'b': 1}}
+      - {'_id': 1, 'a': 2}
+    mustCollide:
+      - {'_id': 0, 'a': {'b': 1}, 'a_b': 2}
+    mayCollide:
+      - {'_id': 0, 'a': { 'b': 1 }, 'a_b': 2}
+    noSchemaInfo:
+      - {'_id': 0, 'a': {'b': 1}}
+
+catalog_schema:
+  {
+    'mydb': {
+      'foo': {
+        'bsonType': "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': {
+            'bsonType': "object",
+            'required': [ 'b' ],
+            'additionalProperties': false,
+            'properties': {
+              'b': { 'bsonType': "int" },
+            }
+          },
+        }
+      },
+      'docOrInt': {
+        'bsonType': "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': true,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': {
+            'anyOf':
+              [
+                { 'bsonType': 'int' },
+                {
+                  'bsonType': "object",
+                  'required': [ 'b' ],
+                  'additionalProperties': false,
+                  'properties': {
+                    'b': { 'bsonType': "int" }
+                  }
+                }
+              ]
+          },
+        }
+      },
+      'mustCollide': {
+        'bsonType': "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': {
+            'bsonType': "object",
+            'required': [ 'b' ],
+            'additionalProperties': false,
+            'properties': {
+              'b': { 'bsonType': "int" },
+            }
+          },
+          'a_b': { 'bsonType': "int" }
+        }
+      },
+      'mayCollide': {
+        'bsonType': "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': true,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': {
+            'bsonType': "object",
+            'required': [ 'b' ],
+            'additionalProperties': false,
+            'properties': {
+              'b': { 'bsonType': "int" },
+            }
+          }
+        }
+      },
+    },
+  }
+
+tests:
+  - description: basic correctness test
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(foo)"
+    skip_reason: "SQL-571: Implement FLATTEN"
+    result:
+      - { 'foo': { 'a_b': 1 } }
+
+  - description: datasource argument can optionally include an alias
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(foo as f)"
+    skip_reason: "SQL-571: Implement FLATTEN"
+    result:
+      - { 'f': { 'a_b': 1 } }
+
+  - description: basic correctness test for user-specified separator
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(foo, separator => ':') "
+    skip_reason: "SQL-571: Implement FLATTEN"
+    result:
+      - { 'foo': { 'a:b': 1 } }
+
+  - description: user-specified separator with length less than one is allowed
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(foo, separator => '') "
+    skip_reason: "SQL-571: Implement FLATTEN"
+    result:
+      - { 'foo': { 'ab': 1 } }
+
+  - description: user-specified separator with length greater than one is allowed
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(foo, separator => '_DOT_') "
+    skip_reason: "SQL-571: Implement FLATTEN"
+    result:
+      - { 'foo': { 'a_DOT_b': 1 } }
+
+  - description: a user-specified depth greater than max nesting depth causes all documents to be flattened
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(foo, depth => 5)"
+    skip_reason: "SQL-571: Implement FLATTEN"
+    result:
+      - { 'foo': { 'a_b': 1 } }
+
+  - description: a user-specified depth less than max nesting depth causes more deeply nested documents to remain unflattened
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(foo, depth => 0)"
+    skip_reason: "SQL-571: Implement FLATTEN"
+    result:
+      - { 'foo': { 'a': { 'b': 1 } } }
+
+  - description: user-specified depth must be an integer literal
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(foo, depth => 1.2)"
+    skip_reason: "SQL-571: Implement FLATTEN"
+    parse_error: "'depth' must be an integer literal"
+
+  - description: user-specified separator must be a string literal
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(foo, separator => 1)"
+    skip_reason: "SQL-571: Implement FLATTEN"
+    parse_error: "'separator' must be a string literal"
+
+  - description: error on unknown option keys
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(foo, INVALID => a)"
+    skip_reason: "SQL-571: Implement FLATTEN"
+    parse_error: "unsupported FLATTEN option 'INVALID'"
+
+  - description: error on duplicate option keys
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(foo, depth => 1, depth => 2)"
+    skip_reason: "SQL-571: Implement FLATTEN"
+    parse_error: "duplicate option key 'depth'"
+
+  - description: do not flatten schemas that MAY be document
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(docOrInt)"
+    skip_reason: "SQL-571: Implement FLATTEN"
+    algebrize_error: "cannot flatten polymorphic object fields"
+
+  - description: flatten is a no-op if there is no schema information
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(noSchemaInfo)"
+    skip_reason: "SQL-571: Implement FLATTEN"
+    result:
+      - { 'noSchemaInfo': { 'a': { 'b': 1 } } }
+
+  - description: error if naming collision MUST occur
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(mustCollide)"
+    skip_reason: "SQL-571: Implement FLATTEN"
+    algebrize_error: "duplicate field name 'a_b'"
+
+  - description: error if naming collision MAY occur (additionalProperties is set to true)
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(mayCollide)"
+    skip_reason: "SQL-571: Implement FLATTEN"
+    algebrize_error: "field name 'a_b' MAY be duplicated"
+
+  - description: FLATTENing a FLATTENed datasource is allowed
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(FLATTEN(foo))"
+    skip_reason: "SQL-571: Implement FLATTEN"
+    result:
+      - { 'foo': { 'a_b': 1 } }
+
