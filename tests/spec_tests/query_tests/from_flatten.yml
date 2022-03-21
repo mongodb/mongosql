@@ -161,7 +161,7 @@ tests:
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo, depth => 1, depth => 2)"
     skip_reason: "SQL-571: Implement FLATTEN"
-    parse_error: "duplicate option key 'depth'"
+    algebrize_error: "duplicate option key 'depth'"
 
   - description: do not flatten schemas that MAY be document
     current_db: mydb

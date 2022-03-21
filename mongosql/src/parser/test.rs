@@ -2965,3 +2965,119 @@ mod comments {
     SELECT foo",
     );
 }
+
+mod flatten {
+    use crate::{
+        ast::*,
+        parser::{Error, Parser},
+    };
+    parsable!(
+        standard_parse,
+        expected = true,
+        input = "SELECT * FROM FLATTEN(foo)"
+    );
+    parsable!(
+        datasource_explicitly_aliased,
+        expected = true,
+        input = "SELECT * FROM FLATTEN(foo as f)"
+    );
+    parsable!(
+        depth,
+        expected = true,
+        input = "SELECT * FROM FLATTEN(foo, depth => 1)"
+    );
+    parsable!(
+        separator,
+        expected = true,
+        input = "SELECT * FROM FLATTEN(foo, separator => '%')"
+    );
+    parsable!(
+        depth_and_separator,
+        expected = true,
+        input = "SELECT * FROM FLATTEN(foo, depth => 1, separator => '%')"
+    );
+    parsable!(
+        separator_and_depth,
+        expected = true,
+        input = "SELECT * FROM FLATTEN(foo, separator => '%', depth => 1)"
+    );
+    parsable!(
+        separator_len_gt_1,
+        expected = true,
+        input = "SELECT * FROM FLATTEN(foo, separator => 'hello')"
+    );
+    parsable!(
+        array_datasource,
+        expected = true,
+        input = "SELECT * FROM FLATTEN([{'a': 1}] as arr)"
+    );
+    parsable!(
+        join_datasource,
+        expected = true,
+        input = "SELECT * FROM FLATTEN(foo JOIN bar)"
+    );
+    parsable!(
+        derived_datasource,
+        expected = true,
+        input = "SELECT * FROM FLATTEN((SELECT * FROM foo) as derived)"
+    );
+    parsable!(
+        flatten_datasource,
+        expected = true,
+        input = "SELECT * FROM FLATTEN(FLATTEN(foo))"
+    );
+    parsable!(
+        depth_neg,
+        expected = false,
+        input = "SELECT * FROM FLATTEN(foo, depth => -1)"
+    );
+    parsable!(
+        depth_not_int,
+        expected = false,
+        input = "SELECT * FROM FLATTEN(foo, depth => 1.2)"
+    );
+    parsable!(
+        no_datasource,
+        expected = false,
+        input = "SELECT * FROM FLATTEN()"
+    );
+    parsable!(
+        missing_comma,
+        expected = false,
+        input = "SELECT * FROM FLATTEN(foo depth => 1)"
+    );
+    parsable!(
+        extra_comma,
+        expected = false,
+        input = "SELECT * FROM FLATTEN(foo,)"
+    );
+    validate_ast!(
+        duplicate_options,
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
+            select_clause: SelectClause {
+                set_quantifier: SetQuantifier::All,
+                body: SelectBody::Standard(vec![SelectExpression::Star])
+            },
+            from_clause: Some(Datasource::Flatten(FlattenSource {
+                datasource: Box::new(Datasource::Collection(CollectionSource {
+                    database: None,
+                    collection: "foo".to_string(),
+                    alias: None
+                })),
+                options: vec![
+                    FlattenOption::Depth(1),
+                    FlattenOption::Separator('%'.to_string()),
+                    FlattenOption::Depth(2)
+                ]
+            })),
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        }),
+        input = "SELECT * FROM FLATTEN(foo, depth => 1, separator => '%', depth => 2)",
+    );
+}

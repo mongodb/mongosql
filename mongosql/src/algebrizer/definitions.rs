@@ -503,6 +503,7 @@ impl<'a> Algebrizer<'a> {
                     cache: SchemaCache::new(),
                 }))
             }
+            ast::Datasource::Flatten(_) => unimplemented!(),
         }
     }
 

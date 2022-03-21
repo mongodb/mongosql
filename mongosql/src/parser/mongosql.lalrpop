@@ -1,5 +1,4 @@
-use crate::ast::*;
-use crate::parser::util::*;
+use crate::{ast::*, parser::util::*};
 use lalrpop_util::ParseError;
 use std::str::FromStr;
 
@@ -73,9 +72,19 @@ JoinDatasource: Datasource = {
     },
 }
 
+FlattenDatasource: Datasource = {
+  FLATTEN LEFT_PAREN <d:Datasource> <o:(COMMA <CommaPlus<FlattenOption>>)?> RIGHT_PAREN => Datasource::Flatten(FlattenSource{datasource: Box::new(d), options: o.unwrap_or(vec![])})
+}
+
+FlattenOption: FlattenOption = {
+  SEPARATOR ARROW <s:String> => FlattenOption::Separator(s),
+  DEPTH ARROW <d:Unsigned32> => FlattenOption::Depth(d)
+}
+
 Datasource: Datasource = {
     <SimpleDatasource>,
     <JoinDatasource>,
+    <FlattenDatasource>
 }
 
 JoinType: JoinType = {
@@ -669,6 +678,7 @@ match {
   r"/\*([^\*]*\*+[^\*/])*([^\*]*\*+|[^\*])*\*/" => { },
   r"(?i)select" => SELECT,
   "+" => ADD,
+  "=>" => ARROW,
   ":" => COLON,
   "," => COMMA,
   "||" => CONCAT,
@@ -719,6 +729,7 @@ match {
   r"(?i)dbpointer" => DBPOINTER,
   r"(?i)dec" => DEC,
   r"(?i)decimal" => DECIMAL,
+  r"(?i)depth" => DEPTH,
   r"(?i)desc" => DESC,
   r"(?i)distinct" => DISTINCT,
   r"(?i)document" => DOCUMENT,
@@ -731,6 +742,7 @@ match {
   r"(?i)extract" => EXTRACT,
   r"(?i)false" => FALSE,
   r"(?i)fetch\s+(first|next)" => FETCH_FIRST,
+  r"(?i)flatten" => FLATTEN,
   r"(?i)float" => FLOAT,
   r"(?i)for" => FOR,
   r"(?i)from" => FROM,
@@ -775,6 +787,7 @@ match {
   r"(?i)right" => RIGHT,
   r"(?i)rows?\s+only" => ROWS_ONLY,
   r"(?i)second" => SECOND,
+  r"(?i)separator" => SEPARATOR,
   r"(?i)smallint" => SMALLINT,
   r"(?i)some" => SOME,
   r"(?i)string" => STRING_TYPE,
