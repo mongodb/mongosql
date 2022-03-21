@@ -58,17 +58,14 @@ tests:
   - description: "Rewrite type alias BIT to BOOL"
     query: "SELECT CAST(a AS BIT) FROM foo AS foo"
     result: "SELECT VALUE {'_1': CAST(a AS BOOL)} FROM foo AS foo"
-    skip_reason: "SQL-541: Add rewrite pass for type aliases"
 
   - description: "Rewrite type alias BOOLEAN to BOOL"
     query: "SELECT CAST(a AS BOOLEAN) FROM foo AS foo"
     result: "SELECT VALUE {'_1': CAST(a AS BOOL)} FROM foo AS foo"
-    skip_reason: "SQL-541: Add rewrite pass for type aliases"
 
   - description: "Rewrite type alias TIMESTAMP to BSON_DATE"
     query: "SELECT CAST(a AS TIMESTAMP) FROM foo AS foo"
     result: "SELECT VALUE {'_1': CAST(a AS BSON_DATE)} FROM foo AS foo"
-    skip_reason: "SQL-541: Add rewrite pass for type aliases"
 
   - description: "Rewrite type alias INTEGER to INT"
     query: "SELECT CAST(a AS INTEGER) FROM foo AS foo"

@@ -812,8 +812,8 @@ impl PrettyPrint for Type {
         Ok(match self {
             Type::Array => "ARRAY",
             Type::BinData => "BINDATA",
-            Type::Boolean => "BOOLEAN",
-            Type::Datetime => "TIMESTAMP",
+            Type::Boolean => "BOOL",
+            Type::Datetime => "BSON_DATE",
             Type::DbPointer => "DBPOINTER",
             Type::Decimal128 => "DECIMAL",
             Type::Document => "DOCUMENT",

@@ -429,7 +429,7 @@ expression_printer_test!(
 );
 expression_printer_test!(
     type_bson_date,
-    expected = "x::!TIMESTAMP",
+    expected = "x::!BSON_DATE",
     input = "x::!TIMESTAMP"
 );
 expression_printer_test!(
@@ -452,12 +452,12 @@ expression_printer_test!(
 );
 expression_printer_test!(
     cast_sigil_boolean,
-    expected = "CAST(4 + foo AS BOOLEAN)",
+    expected = "CAST(4 + foo AS BOOL)",
     input = "(4 + foo)::boolean"
 );
 expression_printer_test!(
     cast_sigil_bson_date,
-    expected = "CAST(4 + foo AS TIMESTAMP)",
+    expected = "CAST(4 + foo AS BSON_DATE)",
     input = "(4 + foo)::bson_date"
 );
 expression_printer_test!(
@@ -1039,12 +1039,12 @@ expression_printer_test!(
 );
 expression_printer_test!(
     is_is_higher_prec_than_like,
-    expected = "(x LIKE y) IS BOOLEAN",
+    expected = "(x LIKE y) IS BOOL",
     input = "(x LIKE y) IS BOOL"
 );
 expression_printer_test!(
     is_is_equal_prec_to_is,
-    expected = "(x IS BOOLEAN) IS BOOLEAN",
+    expected = "(x IS BOOL) IS BOOL",
     input = "(x IS BOOL) IS BOOL"
 );
 expression_printer_test!(
