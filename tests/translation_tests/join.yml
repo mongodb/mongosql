@@ -1,0 +1,52 @@
+catalog_data:
+  db:
+    foo:
+      - {'_id': 0, 'a': 1}
+    bar:
+      - {'_id': 0, 'b': 1}
+
+catalog_schema:
+  {
+    'db': {
+      'foo': {
+        'bsonType': "object",
+        'required': [ "_id", "a" ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': { 'bsonType': "int" },
+        }
+      },
+      'bar': {
+        'bsonType': "object",
+        'required': [ "_id", "b" ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'b': { 'bsonType': "int" }
+        }
+      }
+    }
+  }
+
+tests:
+  - description: translations ensure let variables start with lowercase letters
+    current_db: db
+    query: "SELECT * FROM foo AS Foo INNER JOIN bar AS Bar ON Foo.a = Bar.b"
+    translation_target_db: db
+    translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'Foo': '$foo'}}
+      - {'$join': {
+        'collection': 'bar',
+        'joinType': 'inner',
+        'let': {'foo_0': '$Foo'},
+        'pipeline': [
+          {'$project': {'_id': 0, 'bar': '$$ROOT'}},
+          {'$project': {'_id': 0, 'Bar': '$bar'}},
+        ],
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$foo_0.a', '$Bar.b']}}},
+      }}
+    result:
+      - {'Foo': {'_id': 0, 'a': 1}, 'Bar': {'_id': 0, 'b': 1}}

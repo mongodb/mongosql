@@ -1210,6 +1210,89 @@ mod join {
             cache: SchemaCache::new(),
         }),
     );
+    test_codegen_plan!(
+        capitalized_datasource_name_is_lowercased_for_var,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("Col".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "Col": "$$ROOT"}}, bson::doc!{
+                "$join": {
+                    "database": "mydb2",
+                    "collection": "col2",
+                    "joinType": "left",
+                    "let": {"col_0": "$Col"},
+                    "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}],
+                    "condition": {"$match": {"$expr": "$$col_0"}}
+                }
+            }],
+        }),
+        input = Stage::Join(Join {
+            condition: Some(Expression::Reference(("Col", 0u16).into())),
+            left: Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "Col".to_string(),
+                cache: SchemaCache::new(),
+            }).into(),
+            right: Stage::Collection(Collection {
+                db: "mydb2".to_string(),
+                collection: "col2".to_string(),
+                cache: SchemaCache::new(),
+            }).into(),
+            join_type: JoinType::Left,
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_codegen_plan!(
+        let_binding_name_conflict_appends_underscores_for_uniqueness,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("Foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id" : 0, "Foo": "$$ROOT"}},
+                bson::doc!{
+                    "$join": {
+                        "collection": "foo",
+                        "joinType": "inner",
+                        "pipeline": [{"$project": {"_id": 0, "foo": "$$ROOT"}}],
+                    }
+                },
+                bson::doc!{
+                    "$join": {
+                        "collection": "bar",
+                        "joinType": "inner",
+                        "let": {"foo_0": "$Foo", "foo_0_": "$foo"},
+                        "pipeline": [{"$project": {"_id": 0, "bar": "$$ROOT"}}],
+                        "condition": {"$match": {"$expr": {"$literal": true}}}
+                    }
+                },
+            ],
+        }),
+        input = Stage::Join(Join {
+            condition: Some(Expression::Literal(LiteralValue::Boolean(true).into())),
+            left: Stage::Join(Join {
+                condition: None,
+                left: Stage::Collection(Collection {
+                    db: "mydb".to_string(),
+                    collection: "Foo".to_string(),
+                    cache: SchemaCache::new(),
+                }).into(),
+                right: Stage::Collection(Collection {
+                    db: "mydb".to_string(),
+                    collection: "foo".to_string(),
+                    cache: SchemaCache::new(),
+                }).into(),
+                join_type: JoinType::Inner,
+                cache: SchemaCache::new(),
+            }).into(),
+            right: Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "bar".to_string(),
+                cache: SchemaCache::new(),
+            }).into(),
+            join_type: JoinType::Inner,
+            cache: SchemaCache::new(),
+        }),
+    );
 }
 
 mod union {
@@ -3255,6 +3338,108 @@ mod subquery {
             })),
             cache: SchemaCache::new(),
         }),
+    );
+    test_codegen_expr!(
+        capitalized_datasource_name_is_lowercased_for_var,
+        expected = Ok(bson::bson!(
+            {"$subquery": {
+                "db": "test",
+                "collection": "bar",
+                "let": {"foo_0": "$Foo",},
+                "outputPath": ["__bot", "a"],
+                "pipeline": [
+                    {"$project": {"_id": 0, "bar": "$$ROOT"}},
+                    {"$project": {"_id": 0,"__bot": {"a": "$$foo_0.a"}}}
+                ]
+            }}
+        )),
+        input = Expression::Subquery(SubqueryExpr {
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
+                field: "a".into(),
+                cache: SchemaCache::new(),
+            })),
+            subquery: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "bar".into(),
+                    cache: SchemaCache::new(),
+                })),
+                expression: map! {
+                    (Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
+                        "a".into() => Expression::FieldAccess(FieldAccess{
+                            expr: Box::new(Expression::Reference(("Foo", 0u16).into())),
+                            field: "a".into(),
+                            cache: SchemaCache::new(),
+                        })
+                    }.into())
+                },
+                cache: SchemaCache::new(),
+            })),
+            cache: SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("Foo", 0u16), "Foo");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        let_binding_name_conflict_appends_underscores_for_uniqueness,
+        expected = Ok(bson::bson!(
+            {"$subquery": {
+                "db": "test",
+                "collection": "bar",
+                "let": {"foo_0": "$Foo", "foo_0_": "$foo"},
+                "outputPath": ["__bot", "a"],
+                "pipeline": [
+                    {"$project": {"_id": 0, "bar": "$$ROOT"}},
+                    {"$project": {"_id": 0, "__bot": {"a": {"$sqlEq": ["$$foo_0.a", "$$foo_0_.a"]}}}}
+                ]
+            }}
+        )),
+        input = Expression::Subquery(SubqueryExpr {
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
+                field: "a".into(),
+                cache: SchemaCache::new(),
+            })),
+            subquery: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "test".into(),
+                    collection: "bar".into(),
+                    cache: SchemaCache::new(),
+                })),
+                expression: map! {
+                    (Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
+                        "a".into() => Expression::ScalarFunction(ScalarFunctionApplication {
+                            function: ScalarFunction::Eq,
+                            args: vec![
+                                Expression::FieldAccess(FieldAccess{
+                                    expr: Box::new(Expression::Reference(("Foo", 0u16).into())),
+                                    field: "a".into(),
+                                    cache: SchemaCache::new(),
+                                }),
+                                Expression::FieldAccess(FieldAccess{
+                                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                                    field: "a".into(),
+                                    cache: SchemaCache::new(),
+                                }),
+                            ],
+                            cache: SchemaCache::new(),
+                        })
+                    }.into())
+                },
+                cache: SchemaCache::new(),
+            })),
+            cache: SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("Foo", 0u16), "Foo");
+            mr.insert(("foo", 0u16), "foo");
+            mr
+        },
     );
     test_codegen_expr!(
         subquery_comparison_uncorrelated,

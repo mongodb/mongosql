@@ -5,6 +5,30 @@ catalog_data:
     foo_a:
       - {'_id': 0, 'b': 1}
 
+catalog_schema:
+  {
+    'db': {
+      'foo': {
+        'bsonType': "object",
+        'required': [ "_id", "a_b" ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a_b': { 'bsonType': "int" },
+        }
+      },
+      'foo_a': {
+        'bsonType': "object",
+        'required': [ "_id", "b" ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'b': { 'bsonType': "int" }
+        }
+      }
+    }
+  }
+
 tests:
   - description: correlated columns with potential naming conflict translate without conflict
     current_db: db
@@ -39,3 +63,32 @@ tests:
         }}}}
     result:
       - {'': {'x': true}}
+
+  - description: translations ensure let variables start with lowercase letters
+    current_db: db
+    query: "SELECT VALUE {'x': (SELECT b AS b FROM foo_a AS foo_a WHERE foo_a.b = Foo.a_b LIMIT 1)} FROM foo AS Foo"
+    translation_target_db: db
+    translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'Foo': '$foo'}}
+      - {'$project': {'_id': 0, '__bot': {
+                                            'x': {'$subquery': {
+                                                                 'db': 'db',
+                                                                 'collection': 'foo_a',
+                                                                 'let': {'foo_0': '$Foo'},
+                                                                 'outputPath': ['__bot', 'b'],
+                                                                 'pipeline': [
+                                                                   {'$project': {'_id': 0, 'foo_a': '$$ROOT'}},
+                                                                   {'$project': {'_id': 0, 'foo_a': '$foo_a'}},
+                                                                   {'$match': {'$expr': {'$sqlEq': ['$foo_a.b', '$$foo_0.a_b']}}},
+                                                                   {'$project': {'_id': 0, '__bot': {'b': '$foo_a.b'}}},
+                                                                   {'$limit': 1}
+                                                                 ]
+                                            }}
+      }}}
+      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
+          {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}
+        }}}}
+    result:
+      - {'': {'x': 1}}

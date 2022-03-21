@@ -262,10 +262,12 @@ impl MqlCodeGenerator {
     }
 
     /// generate_let_bindings binds each datasource in the correlated mapping registry
-    /// to a generated name of the form <datasource name>_<nesting depth>. It returns
+    /// to a generated name of the form lower(<datasource name>)_<nesting depth>. It returns
     /// the resulting $let document along with a new mapping registry that contains the
-    /// generated names. Naming conflicts are resolved by prepending underscores until the
-    /// generated name is unique.
+    /// generated names. Naming conflicts are resolved by appending underscores until the
+    /// generated name is unique. We must lowercase the datasource name and append underscores
+    /// (as opposed to prepend) because aggregation variables are only allowed to start with
+    /// lowercase ASCII letters or non-ASCII characters.
     fn generate_let_bindings(self) -> Result<(bson::Document, MqlMappingRegistry)> {
         let mut let_bindings: bson::Document = map![];
         let new_mapping_registry = MqlMappingRegistry(
@@ -277,9 +279,10 @@ impl MqlCodeGenerator {
                         "{}_{}",
                         MqlCodeGenerator::get_datasource_name(&key.datasource, "__bot"),
                         key.scope
-                    );
+                    )
+                    .to_ascii_lowercase();
                     while let_bindings.contains_key(&generated_name) {
-                        generated_name.insert(0, '_');
+                        generated_name.push('_');
                     }
                     let_bindings.insert(generated_name.clone(), format!("${}", value));
                     generated_name.insert(0, '$');
