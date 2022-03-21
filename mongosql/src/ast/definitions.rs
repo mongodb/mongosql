@@ -370,7 +370,7 @@ impl FunctionName {
             FunctionName::AddToSet => "ADD_TO_SET",
             FunctionName::BitLength => "BIT_LENGTH",
             FunctionName::Avg => "AVG",
-            FunctionName::CharLength => "CHARACTER_LENGTH",
+            FunctionName::CharLength => "CHAR_LENGTH",
             FunctionName::Coalesce => "COALESCE",
             FunctionName::Count => "COUNT",
             FunctionName::CurrentTimestamp => "CURRENT_TIMESTAMP",
