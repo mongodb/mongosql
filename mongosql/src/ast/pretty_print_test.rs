@@ -747,12 +747,12 @@ expression_printer_test!(
 
 expression_printer_test!(
     case_basic,
-    expected = "CASE WHEN x + 3 = y THEN true WHEN x + 4 = y THEN false END",
+    expected = "CASE WHEN x + 3 = y THEN true WHEN x + 4 = y THEN false ELSE NULL END",
     input = "CASE WHEN x + 3 = y THEN true WHEN x + 4 = y THEN false END"
 );
 expression_printer_test!(
     case_basic_with_expr,
-    expected = "CASE foo * 3 WHEN x + 3 = y THEN true WHEN x + 4 = y THEN false END",
+    expected = "CASE foo * 3 WHEN x + 3 = y THEN true WHEN x + 4 = y THEN false ELSE NULL END",
     input = "CASE foo * 3 WHEN x + 3 = y THEN true WHEN x + 4 = y THEN false END"
 );
 expression_printer_test!(

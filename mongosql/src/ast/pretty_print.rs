@@ -912,7 +912,7 @@ impl PrettyPrint for CaseExpr {
                 .join(" "),
             self.else_branch
                 .as_ref()
-                .map_or(Ok("".to_string()), |x| Ok(format!(
+                .map_or(Ok(" ELSE NULL".to_string()), |x| Ok(format!(
                     " ELSE {}",
                     x.pretty_print()?
                 )))?,

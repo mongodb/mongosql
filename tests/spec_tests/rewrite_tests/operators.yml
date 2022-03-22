@@ -17,10 +17,8 @@ tests:
 
   - description: Rewrite simple CASE expression to include explicit ELSE NULL
     query: "SELECT CASE 1 WHEN 2 THEN 1 END"
-    result: "SELECT VALUE { '_1': CASE 1 WHEN 2 THEN 1 ELSE NULL END } FROM [{}] AS _dual"
-    skip_reason: "SQL-542: Add rewrite pass for CASE expr"
+    result: "SELECT VALUE {'_1': CASE 1 WHEN 2 THEN 1 ELSE NULL END} FROM [{}] AS _dual"
 
   - description: Rewrite searched CASE expression to include explicit ELSE NULL
     query: "SELECT CASE WHEN 1 = 2 THEN 1 END"
     result: "SELECT VALUE {'_1': CASE WHEN 1 = 2 THEN 1 ELSE NULL END} FROM [{}] AS _dual"
-    skip_reason: "SQL-542: Add rewrite pass for CASE expr"
