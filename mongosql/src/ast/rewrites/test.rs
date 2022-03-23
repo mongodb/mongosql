@@ -304,6 +304,22 @@ mod aggregate {
         expected = Err(Error::AggregationFunctionInGroupByAggListAndElsewhere),
         input = "SELECT * FROM foo WHERE EXISTS(SELECT SUM(x) FROM foo GROUP BY x AGGREGATE COUNT(y) AS z)",
     );
+
+    // ALL aggregation function test
+    test_rewrite!(
+        all_agg_becomes_unmodified_agg,
+        pass = AggregateRewritePass,
+        expected =
+            Ok("SELECT _agg1 FROM foo GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1"),
+        input = "SELECT SUM(ALL x) FROM foo",
+    );
+    test_rewrite!(
+        nested_all,
+        pass = AggregateRewritePass,
+        expected =
+            Ok("SELECT _agg2 GROUP BY NULL AS _groupKey1 AGGREGATE SUM(x) AS _agg1, SUM(_agg1) AS _agg2"),
+        input = "SELECT SUM(ALL SUM(ALL x))",
+    );
 }
 
 mod in_tuple {

@@ -60,7 +60,6 @@ tests:
   - description: Rewrite ALL agg_functions into unmodified agg_functions
     query: "SELECT VALUE {'sum': sum} FROM foo AS foo GROUP BY z AGGREGATE SUM(ALL x) AS sum"
     result: "SELECT VALUE {'sum': sum} FROM foo AS foo GROUP BY z AGGREGATE SUM(x) AS sum"
-    skip_reason: "SQL-547: Add rewrite pass for aggregation functions"
 
   - description: Aggregation functions are not allowed in SELECT with explicit AGGREGATE phrase
     query: "SELECT COUNT(*), suma FROM bar AS bar GROUP BY NULL AS n AGGREGATE SUM(a) AS suma"

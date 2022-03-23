@@ -20,7 +20,11 @@ impl Pass for AggregateRewritePass {
 
         // If there's no error from the first visitor, use the second
         // visitor to safely create aliases for any aggregation functions.
-        Ok(AggregateAliasingVisitor::default().visit_query(query))
+        let query = AggregateAliasingVisitor::default().visit_query(query);
+
+        // Use the third visitor to rewrite aggregation functions that
+        // use the ALL set quantifier.
+        Ok(AggregateSetQuantifierVisitor::default().visit_query(query))
     }
 }
 
@@ -285,6 +289,31 @@ impl Visitor for AggregateAliasingVisitor {
                 }
             }
             _ => e.walk(self),
+        }
+    }
+}
+
+/// Rewrites SetQuantifier::All aggregation functions into unmodified
+/// aggregation functions.
+#[derive(Default)]
+pub struct AggregateSetQuantifierVisitor;
+
+impl Visitor for AggregateSetQuantifierVisitor {
+    fn visit_function_expr(&mut self, f: ast::FunctionExpr) -> ast::FunctionExpr {
+        use ast::{FunctionExpr, SetQuantifier};
+        // Walk first in case there are nested aggregation functions.
+        let f = f.walk(self);
+        if f.function.is_aggregation_function() {
+            match f.set_quantifier {
+                Some(SetQuantifier::All) => FunctionExpr {
+                    function: f.function,
+                    args: f.args,
+                    set_quantifier: None,
+                },
+                _ => f,
+            }
+        } else {
+            f
         }
     }
 }
