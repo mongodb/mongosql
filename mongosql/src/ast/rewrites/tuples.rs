@@ -25,22 +25,20 @@ impl Visitor for InTupleRewriteVisitor {
         // Visit children, rewriting if appropriate.
         let node = node.walk(self);
 
-        // If `node` is an IN expression, then bind it to `in_expr`, else return the original `node` unmodified.
-        let in_expr = if let Expression::Binary(
-            ref in_expr @ BinaryExpr {
-                left: _,
-                right: _,
-                op: BinaryOp::In,
-            },
-        ) = node
-        {
-            in_expr.clone()
-        } else {
-            return node;
+        // If `node` is an IN or NOT IN expression, then bind it to `expr`, else return the
+        // original `node` unmodified.
+        let expr = match node {
+            Expression::Binary(ref expr)
+                if expr.op == BinaryOp::In || expr.op == BinaryOp::NotIn =>
+            {
+                expr.clone()
+            }
+            _ => return node,
         };
 
-        // If the right side of `in_expr` is a tuple, then bind its elements to `tuple_elems`, else return the original `node` unmodified.
-        let tuple_elems = if let Expression::Tuple(elems) = *in_expr.right {
+        // If the right side of `expr` is a tuple, then bind its elements to `tuple_elems`,
+        // else return the original `node` unmodified.
+        let tuple_elems = if let Expression::Tuple(elems) = *expr.right {
             elems
         } else {
             return node;
@@ -83,12 +81,17 @@ impl Visitor for InTupleRewriteVisitor {
             offset: None,
         });
 
-        // Build the AST for a subquery comparison representing `<left> = ANY <subquery>`.
-        // Return it as a replacement for the original `IN` expression.
+        // Build the AST for a subquery comparison representing `<left> = ANY <subquery>`
+        // or `<left> <> ALL <subquery>`. Return it as a replacement for the original
+        // `IN` or `NOT IN` expression.
+        let (op, quantifier) = match expr.op {
+            BinaryOp::In => (ComparisonOp::Eq, SubqueryQuantifier::Any),
+            _ => (ComparisonOp::Neq, SubqueryQuantifier::All),
+        };
         Expression::SubqueryComparison(SubqueryComparisonExpr {
-            expr: in_expr.left,
-            op: ComparisonOp::Eq,
-            quantifier: SubqueryQuantifier::Any,
+            expr: expr.left,
+            op,
+            quantifier,
             subquery: Box::new(subquery),
         })
     }

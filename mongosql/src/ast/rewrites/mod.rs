@@ -14,6 +14,8 @@ mod order_by;
 pub use order_by::PositionalSortKeyRewritePass;
 mod aggregate;
 pub use aggregate::AggregateRewritePass;
+mod table_subquery;
+use table_subquery::TableSubqueryRewritePass;
 
 #[cfg(test)]
 mod test;
@@ -54,6 +56,7 @@ pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
         &AggregateRewritePass,
         &InTupleRewritePass,
         &SingleTupleRewritePass,
+        &TableSubqueryRewritePass,
     ];
 
     let mut rewritten = query;

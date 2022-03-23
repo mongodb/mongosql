@@ -322,6 +322,12 @@ mod in_tuple {
         input = "SELECT a IN (b, c)",
     );
     test_rewrite!(
+        one_element_tuple_not_in,
+        pass = InTupleRewritePass,
+        expected = Ok("SELECT a <> ALL(SELECT _1 FROM [{'_1': b}] AS _arr)"),
+        input = "SELECT a NOT IN (b)",
+    );
+    test_rewrite!(
         nested,
         pass = InTupleRewritePass,
         expected = Ok("SELECT a = ANY(SELECT _1 FROM [{'_1': b = ANY(SELECT _1 FROM [{'_1': c}] AS _arr)}] AS _arr)"),
@@ -627,5 +633,22 @@ mod single_tuple {
         pass = SingleTupleRewritePass,
         expected = Ok("SELECT * FROM (SELECT (a, b)) AS z"),
         input = "SELECT * FROM (SELECT (a, b)) AS z",
+    );
+}
+
+mod table_subquery {
+    use super::*;
+
+    test_rewrite!(
+        in_to_eq_any,
+        pass = TableSubqueryRewritePass,
+        expected = Ok("SELECT * FROM table1 WHERE col1 = ANY(SELECT col1 FROM table2)"),
+        input = "SELECT * FROM table1 WHERE col1 IN (SELECT col1 FROM table2)",
+    );
+    test_rewrite!(
+        not_in_to_neq_all,
+        pass = TableSubqueryRewritePass,
+        expected = Ok("SELECT * FROM table1 WHERE col1 <> ALL(SELECT col1 FROM table2)"),
+        input = "SELECT * FROM table1 WHERE col1 NOT IN (SELECT col1 FROM table2)",
     );
 }
