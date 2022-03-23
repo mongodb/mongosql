@@ -462,10 +462,7 @@ func GetReadPreference(cs connstring.ConnString) (*readpref.ReadPref, error) {
 }
 
 func validateConnString(cs connstring.ConnString) error {
-	if cs.Username != "" || cs.PasswordSet ||
-		cs.AuthSource != "" || cs.AuthMechanism != "" ||
-		len(cs.AuthMechanismProperties) != 0 {
-
+	if cs.HasAuthParameters() {
 		return fmt.Errorf("--mongo-uri may not contain any authentication information")
 	}
 	if cs.Database != "" {

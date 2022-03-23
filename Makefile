@@ -67,7 +67,7 @@ test: test-unit test-module-integration test-integration
 test-connect-failure: start-all _test-connect-failure
 _test-connect-failure: EXPECTED_STATUS = 1
 _test-connect-failure:
-	$(ENV) $(EXPECTED) testdata/bin/test-simple-connect.sh
+	$(ENV) $(EXPECTED) DELAY=15s testdata/bin/test-simple-connect.sh
 
 test-connect-success: start-all _test-connect-success
 _test-connect-success: EXPECTED_STATUS = 0
