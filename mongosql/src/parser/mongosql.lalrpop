@@ -81,10 +81,21 @@ FlattenOption: FlattenOption = {
   DEPTH ARROW <d:Unsigned32> => FlattenOption::Depth(d)
 }
 
+UnwindDatasource: Datasource = {
+  UNWIND LEFT_PAREN <d:Datasource> <o:(COMMA <CommaPlus<UnwindOption>>)?> RIGHT_PAREN => Datasource::Unwind(UnwindSource{datasource: Box::new(d), options: o.unwrap_or(vec![])})
+}
+
+UnwindOption: UnwindOption = {
+  PATH ARROW <p:Tier13Expr> =>? parse_unwind_path(*p),
+  INDEX ARROW <i:Identifier> => UnwindOption::Index(i),
+  OUTER ARROW <o:Boolean> => UnwindOption::Outer(o)
+}
+
 Datasource: Datasource = {
     <SimpleDatasource>,
     <JoinDatasource>,
-    <FlattenDatasource>
+    <FlattenDatasource>,
+    <UnwindDatasource>
 }
 
 JoinType: JoinType = {
@@ -736,6 +747,7 @@ match {
   r"(?i)having" => HAVING,
   r"(?i)hour" => HOUR,
   r"(?i)in" => IN,
+  r"(?i)index" => INDEX,
   r"(?i)inner" => INNER,
   r"(?i)int" => INT_TYPE,
   r"(?i)integer" => INTEGER,
@@ -766,6 +778,7 @@ match {
   r"(?i)or" => OR,
   r"(?i)order" => ORDER,
   r"(?i)outer" => OUTER,
+  r"(?i)path" => PATH,
   r"(?i)position" => POSITION,
   r"(?i)precision" => PRECISION,
   r"(?i)real" => REAL,
@@ -786,6 +799,7 @@ match {
   r"(?i)true" => TRUE,
   r"(?i)undefined" => UNDEFINED,
   r"(?i)union" => UNION,
+  r"(?i)unwind" => UNWIND,
   r"(?i)values?" => VALUE,
   r"(?i)varchar" => VARCHAR,
   r"(?i)when" => WHEN,

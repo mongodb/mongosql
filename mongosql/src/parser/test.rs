@@ -3027,6 +3027,11 @@ mod flatten {
         input = "SELECT * FROM FLATTEN(FLATTEN(foo))"
     );
     parsable!(
+        unwind_datasource,
+        expected = true,
+        input = "SELECT * FROM FLATTEN(UNWIND(foo, PATH => arr))"
+    );
+    parsable!(
         depth_neg,
         expected = false,
         input = "SELECT * FROM FLATTEN(foo, depth => -1)"
@@ -3079,5 +3084,144 @@ mod flatten {
             offset: None,
         }),
         input = "SELECT * FROM FLATTEN(foo, depth => 1, separator => '%', depth => 2)",
+    );
+}
+
+mod unwind {
+    use crate::{
+        ast::*,
+        parser::{Error, Parser},
+    };
+    // Note it is syntactically valid to omit PATH even though that is semantically invalid
+    parsable!(
+        standard_parse,
+        expected = true,
+        input = "SELECT * FROM UNWIND(foo)"
+    );
+    parsable!(
+        datasource_explicitly_aliased,
+        expected = true,
+        input = "SELECT * FROM UNWIND(foo as f)"
+    );
+    parsable!(
+        path,
+        expected = true,
+        input = "SELECT * FROM UNWIND(foo, PATH => arr)"
+    );
+    parsable!(
+        index,
+        expected = true,
+        input = "SELECT * FROM UNWIND(foo, PATH => arr, INDEX => i)"
+    );
+    parsable!(
+        outer,
+        expected = true,
+        input = "SELECT * FROM UNWIND(foo, PATH => arr, OUTER => true)"
+    );
+    parsable!(
+        path_and_index_and_outer,
+        expected = true,
+        input = "SELECT * FROM UNWIND(foo, PATH => arr, INDEX => i, OUTER => true)"
+    );
+    parsable!(
+        outer_and_path_and_index,
+        expected = true,
+        input = "SELECT * FROM UNWIND(foo, OUTER => true, PATH => arr, INDEX => i)"
+    );
+    parsable!(
+        index_and_outer_and_path,
+        expected = true,
+        input = "SELECT * FROM UNWIND(foo, INDEX => i, OUTER => true, PATH => arr)"
+    );
+    parsable!(
+        multi_part_path,
+        expected = true,
+        input = "SELECT * FROM UNWIND(foo, PATH => a.b.c)"
+    );
+    parsable!(
+        array_datasource,
+        expected = true,
+        input = "SELECT * FROM UNWIND([{'a': [1]}] AS arr, PATH => a)"
+    );
+    parsable!(
+        join_datasource,
+        expected = true,
+        input = "SELECT * FROM UNWIND(foo JOIN bar, PATH => bar.arr)"
+    );
+    parsable!(
+        derived_datasource,
+        expected = true,
+        input = "SELECT * FROM UNWIND((SELECT * FROM foo) AS derived, PATH => arr)"
+    );
+    parsable!(
+        flatten_datasource,
+        expected = true,
+        input = "SELECT * FROM UNWIND(FLATTEN(foo), PATH => arr)"
+    );
+    parsable!(
+        unwind_datasource,
+        expected = true,
+        input = "SELECT * FROM UNWIND(UNWIND(foo, PATH => arr), PATH => arr)"
+    );
+    parsable!(
+        path_not_ident,
+        expected = false,
+        input = "SELECT * FROM UNWIND(foo, PATH => 'arr')"
+    );
+    parsable!(
+        index_not_ident,
+        expected = false,
+        input = "SELECT * FROM UNWIND(foo, INDEX => 'i')"
+    );
+    parsable!(
+        outer_not_bool,
+        expected = false,
+        input = "SELECT * FROM UNWIND(foo, OUTER => 1)"
+    );
+    parsable!(
+        no_datasource_or_options,
+        expected = false,
+        input = "SELECT * FROM UNWIND()"
+    );
+    parsable!(
+        missing_comma,
+        expected = false,
+        input = "SELECT * FROM UNWIND(foo PATH => arr)"
+    );
+    parsable!(
+        extra_comma,
+        expected = false,
+        input = "SELECT * FROM UNWIND(foo,)"
+    );
+    validate_ast!(
+        duplicate_options,
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
+            select_clause: SelectClause {
+                set_quantifier: SetQuantifier::All,
+                body: SelectBody::Standard(vec![SelectExpression::Star])
+            },
+            from_clause: Some(Datasource::Unwind(UnwindSource {
+                datasource: Box::new(Datasource::Collection(CollectionSource {
+                    database: None,
+                    collection: "foo".to_string(),
+                    alias: None
+                })),
+                options: vec![
+                    UnwindOption::Path(Expression::Identifier("arr".into())),
+                    UnwindOption::Index("i".into()),
+                    UnwindOption::Index("idx".into()),
+                    UnwindOption::Path(Expression::Identifier("a".into())),
+                    UnwindOption::Outer(false),
+                ]
+            })),
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        }),
+        input = "SELECT * FROM UNWIND(foo, PATH => arr, INDEX => i, INDEX => idx, PATH => a, OUTER => false)",
     );
 }

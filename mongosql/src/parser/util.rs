@@ -92,6 +92,16 @@ pub fn parse_sort_key(e: Expression) -> Result<SortKey, LalrpopError<'static>> {
     }
 }
 
+pub fn parse_unwind_path(e: Expression) -> Result<UnwindOption, LalrpopError<'static>> {
+    match e {
+        Expression::Identifier(_) => Ok(UnwindOption::Path(e)),
+        Expression::Subpath(_) => Ok(UnwindOption::Path(e)),
+        _ => Err(LalrpopError::from(
+            "UNWIND PATH must be an identifier or compound identifier".to_string(),
+        )),
+    }
+}
+
 pub fn parse_simple_datasource(
     ae: OptionallyAliasedExpr,
 ) -> Result<Datasource, LalrpopError<'static>> {

@@ -504,6 +504,7 @@ impl<'a> Algebrizer<'a> {
                 }))
             }
             ast::Datasource::Flatten(_) => unimplemented!(),
+            ast::Datasource::Unwind(_) => unimplemented!(),
         }
     }
 

@@ -100,6 +100,7 @@ pub enum Datasource {
     Derived(DerivedSource),
     Join(JoinSource),
     Flatten(FlattenSource),
+    Unwind(UnwindSource),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -182,6 +183,19 @@ pub struct FlattenSource {
 pub enum FlattenOption {
     Separator(String),
     Depth(u32),
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct UnwindSource {
+    pub datasource: Box<Datasource>,
+    pub options: Vec<UnwindOption>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum UnwindOption {
+    Path(Expression),
+    Index(String),
+    Outer(bool),
 }
 
 #[derive(PartialEq, Debug, Clone, VariantCount)]

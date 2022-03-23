@@ -311,6 +311,7 @@ impl PrettyPrint for Datasource {
             Datasource::Derived(d) => d.pretty_print(),
             Datasource::Join(j) => j.pretty_print(),
             Datasource::Flatten(_) => unimplemented!(),
+            Datasource::Unwind(_) => unimplemented!(),
         }
     }
 }
