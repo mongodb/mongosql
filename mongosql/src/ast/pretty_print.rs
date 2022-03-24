@@ -310,7 +310,7 @@ impl PrettyPrint for Datasource {
             Datasource::Collection(c) => c.pretty_print(),
             Datasource::Derived(d) => d.pretty_print(),
             Datasource::Join(j) => j.pretty_print(),
-            Datasource::Flatten(_) => unimplemented!(),
+            Datasource::Flatten(f) => f.pretty_print(),
             Datasource::Unwind(_) => unimplemented!(),
         }
     }
@@ -386,6 +386,35 @@ impl PrettyPrint for JoinType {
             JoinType::Inner => "INNER",
         }
         .to_string())
+    }
+}
+
+impl PrettyPrint for FlattenSource {
+    fn pretty_print(&self) -> Result<String> {
+        // Omit the default separator for brevity
+        let options = self
+            .options
+            .iter()
+            .filter(|option| !(matches!(option, FlattenOption::Separator(s) if s == "_")))
+            .map(|option| option.pretty_print())
+            .collect::<Result<Vec<_>>>()?;
+        Ok(match options.len() {
+            0 => format!("FLATTEN({})", self.datasource.pretty_print()?),
+            _ => format!(
+                "FLATTEN({}, {})",
+                self.datasource.pretty_print()?,
+                options.join(", ")
+            ),
+        })
+    }
+}
+
+impl PrettyPrint for FlattenOption {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            FlattenOption::Separator(s) => format!("SEPARATOR => '{}'", escape_string_literal(s)),
+            FlattenOption::Depth(d) => format!("DEPTH => {}", d),
+        })
     }
 }
 

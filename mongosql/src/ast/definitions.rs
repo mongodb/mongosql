@@ -179,7 +179,7 @@ pub struct FlattenSource {
     pub options: Vec<FlattenOption>,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum FlattenOption {
     Separator(String),
     Depth(u32),

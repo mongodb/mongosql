@@ -217,6 +217,33 @@ query_printer_test!(
     expected = "SELECT foo.* FROM (SELECT * FROM bar) AS foo LEFT JOIN [{'a': 32}] AS zar ON true CROSS JOIN foo AS foo ON 42 = 43",
     input = "SeLeCT foo.* from (SELECT * FROM bar) foo LEFT JOIN [{'a': 32}] zar oN TRUE JOIN foo AS foo ON 42 = 43"
 );
+query_printer_test!(
+    flatten_collection,
+    expected = "SELECT * FROM FLATTEN(foo)",
+    input = "SeLeCT * from FLATTEN(foo)"
+);
+query_printer_test!(
+    flatten_collection_with_separator,
+    expected = "SELECT * FROM FLATTEN(foo, SEPARATOR => '%')",
+    input = "SeLeCT * from FLATTEN(foo, separator => '%')"
+);
+query_printer_test!(
+    flatten_collection_with_depth,
+    expected = "SELECT * FROM FLATTEN(foo, DEPTH => 1)",
+    input = "SeLeCT * from FLATTEN(foo, depth => 1)"
+);
+query_printer_test!(
+    flatten_collection_with_multiple_options_preserves_order_and_duplicates,
+    expected =
+        "SELECT * FROM FLATTEN(foo, SEPARATOR => '%', DEPTH => 1, SEPARATOR => ':', DEPTH => 2)",
+    input =
+        "SeLeCT * from FLATTEN(foo, separator => '%', depth => 1, separator => ':', depth => 2)"
+);
+query_printer_test!(
+    flatten_separator_contains_string_delimiter,
+    expected = "SELECT * FROM FLATTEN(foo, SEPARATOR => '''')",
+    input = "SeLeCT * from FLATTEN(foo, separator => '''')"
+);
 
 query_printer_test!(
     select_where_1,
