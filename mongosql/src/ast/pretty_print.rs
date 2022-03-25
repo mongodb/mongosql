@@ -311,7 +311,7 @@ impl PrettyPrint for Datasource {
             Datasource::Derived(d) => d.pretty_print(),
             Datasource::Join(j) => j.pretty_print(),
             Datasource::Flatten(f) => f.pretty_print(),
-            Datasource::Unwind(_) => unimplemented!(),
+            Datasource::Unwind(u) => u.pretty_print(),
         }
     }
 }
@@ -414,6 +414,36 @@ impl PrettyPrint for FlattenOption {
         Ok(match self {
             FlattenOption::Separator(s) => format!("SEPARATOR => '{}'", escape_string_literal(s)),
             FlattenOption::Depth(d) => format!("DEPTH => {}", d),
+        })
+    }
+}
+
+impl PrettyPrint for UnwindSource {
+    fn pretty_print(&self) -> Result<String> {
+        let options = self
+            .options
+            .iter()
+            .filter(|o| !matches!(o, UnwindOption::Outer(false)))
+            .map(|o| o.pretty_print())
+            .collect::<Result<Vec<_>>>()?;
+
+        Ok(match options.len() {
+            0 => format!("UNWIND({})", self.datasource.pretty_print()?),
+            _ => format!(
+                "UNWIND({}, {})",
+                self.datasource.pretty_print()?,
+                options.join(", ")
+            ),
+        })
+    }
+}
+
+impl PrettyPrint for UnwindOption {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            UnwindOption::Path(p) => format!("PATH => {}", p.pretty_print()?),
+            UnwindOption::Index(i) => format!("INDEX => {}", identifier_to_string(i)),
+            UnwindOption::Outer(o) => format!("OUTER => {}", o),
         })
     }
 }

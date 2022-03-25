@@ -191,7 +191,7 @@ pub struct UnwindSource {
     pub options: Vec<UnwindOption>,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum UnwindOption {
     Path(Expression),
     Index(String),

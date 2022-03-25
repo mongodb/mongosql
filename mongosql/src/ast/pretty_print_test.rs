@@ -246,6 +246,54 @@ query_printer_test!(
 );
 
 query_printer_test!(
+    unwind_collection,
+    expected = "SELECT * FROM UNWIND(foo)",
+    input = "SELECT * FROM UNWIND(foo)"
+);
+
+query_printer_test!(
+    unwind_collection_with_path,
+    expected = "SELECT * FROM UNWIND(foo, PATH => arr)",
+    input = "SELECT * FROM UNWIND(foo, path => arr)"
+);
+
+query_printer_test!(
+    unwind_collection_with_delimited_path,
+    expected = "SELECT * FROM UNWIND(foo, PATH => `x.arr`)",
+    input = "SELECT * FROM UNWIND(foo, path => `x.arr`)"
+);
+
+query_printer_test!(
+    unwind_collection_with_index,
+    expected = "SELECT * FROM UNWIND(foo, INDEX => i)",
+    input = "SELECT * FROM UNWIND(foo, index => i)"
+);
+
+query_printer_test!(
+    unwind_collection_with_delimited_index,
+    expected = "SELECT * FROM UNWIND(foo, INDEX => `x.i`)",
+    input = "SELECT * FROM UNWIND(foo, index => `x.i`)"
+);
+
+query_printer_test!(
+    unwind_collection_with_outer_true,
+    expected = "SELECT * FROM UNWIND(foo, OUTER => true)",
+    input = "SELECT * FROM UNWIND(foo, outer => true)"
+);
+
+query_printer_test!(
+    unwind_collection_with_outer_false,
+    expected = "SELECT * FROM UNWIND(foo)",
+    input = "SELECT * FROM UNWIND(foo, outer => false)"
+);
+
+query_printer_test!(
+    unwind_collection_with_multiple_options_preserves_order_and_duplicates,
+    expected = "SELECT * FROM UNWIND(foo, PATH => arr, OUTER => true, INDEX => i, PATH => a)",
+    input = "SELECT * FROM UNWIND(foo, path => arr, outer => false, outer => true, index => i, path => a)"
+);
+
+query_printer_test!(
     select_where_1,
     expected = "SELECT * FROM foo AS bar WHERE 1",
     input = "SELECT * FROM foo bar WHERE 1"

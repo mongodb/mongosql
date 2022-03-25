@@ -273,6 +273,7 @@ mod arbitrary {
                 2 => Self::Derived(DerivedSource::arbitrary(g)),
                 3 => Self::Join(JoinSource::arbitrary(g)),
                 4 => Self::Flatten(FlattenSource::arbitrary(g)),
+                5 => Self::Unwind(UnwindSource::arbitrary(g)),
                 _ => panic!("missing Datasource variant(s)"),
             }
         }
@@ -340,6 +341,7 @@ mod arbitrary {
                 1 => Datasource::Collection(CollectionSource::arbitrary(g)),
                 2 => Datasource::Derived(DerivedSource::arbitrary(g)),
                 3 => Datasource::Flatten(FlattenSource::arbitrary(g)),
+                4 => Datasource::Unwind(UnwindSource::arbitrary(g)),
                 _ => panic!("missing Datasource variant(s)"),
             });
             Self {
@@ -382,6 +384,35 @@ mod arbitrary {
                 0 => Self::Separator(arbitrary_string(g)),
                 1 => Self::Depth(u32::arbitrary(g)),
                 _ => panic!("missing Flatten variant(s)"),
+            }
+        }
+    }
+
+    impl Arbitrary for UnwindSource {
+        fn arbitrary(g: &mut Gen) -> Self {
+            Self {
+                datasource: Box::new(Datasource::arbitrary(g)),
+                options: (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
+                    .map(|_| UnwindOption::arbitrary(g))
+                    .collect(),
+            }
+        }
+    }
+
+    impl Arbitrary for UnwindOption {
+        fn arbitrary(g: &mut Gen) -> Self {
+            let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
+            match g.choose(rng).unwrap() {
+                0 => {
+                    // The parser only supports Identifiers or Subpath expressions for PATH.
+                    match bool::arbitrary(g) {
+                        true => Self::Path(Expression::Identifier(arbitrary_identifier(g))),
+                        false => Self::Path(Expression::Subpath(SubpathExpr::arbitrary(g))),
+                    }
+                }
+                1 => Self::Index(arbitrary_identifier(g)),
+                2 => Self::Outer(bool::arbitrary(g)),
+                _ => panic!("missing UnwindOption variant(s)"),
             }
         }
     }
