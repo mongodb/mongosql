@@ -173,7 +173,7 @@ impl ScalarFunction {
             CurrentTimestamp => return None,
             Year => "$year",
             Month => "$month",
-            Day => "$day",
+            Day => "$dayOfMonth",
             Hour => "$hour",
             Minute => "$minute",
             Second => "$second",

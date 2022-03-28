@@ -2113,7 +2113,7 @@ mod function {
     );
     test_codegen_expr!(
         extract_day_expr,
-        expected = Ok(bson!({"$day": "$f"})),
+        expected = Ok(bson!({"$dayOfMonth": "$f"})),
         input = ScalarFunction(ScalarFunctionApplication {
             function: Day,
             args: vec![Expression::Reference(("f", 0u16).into()),],
