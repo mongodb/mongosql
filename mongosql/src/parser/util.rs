@@ -133,7 +133,7 @@ pub fn parse_simple_datasource(
             alias,
         })),
         Expression::Subpath(_) => Err(LalrpopError::from(format!(
-            "collection data sources can only have database qualification, found: {}",
+            "collection datasources can only have database qualification, found: {}",
             expr.pretty_print().unwrap(),
         ))),
         _ => Err(LalrpopError::from(format!(

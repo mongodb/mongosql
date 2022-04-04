@@ -28,7 +28,7 @@ tests:
     current_db: test
     translation_target_db: test
     should_compile: false
-    parse_error: "undelimited identifiers may not start with a digit"
+    parse_error: "Unrecognized token `1a`"
 
   - description: Delimited identifier starting with digit is an identifier
     query: "SELECT VALUE {'1a': `1a`} FROM [{'1a': 2}] arr"
@@ -92,7 +92,7 @@ tests:
     current_db: test
     translation_target_db: test
     should_compile: false
-    parse_error: "undelimited identifiers should only contain alphanumerics"
+    parse_error: "Invalid token at 24"
     
   - description: Delimited identifier with non-ASCII characters
     query: "SELECT VALUE {'αβγ': `αβγ`} FROM [{'αβγ': 1}] arr"

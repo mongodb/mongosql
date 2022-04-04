@@ -64,7 +64,7 @@ mod positional_sort_key {
     test_rewrite!(
         star_reference_fails,
         pass = PositionalSortKeyRewritePass,
-        expected = Err(Error::NoAliasForSortKeyAtPosition(1)),
+        expected = Err(Error::PositionalSortKeyWithSelectStar),
         input = "SELECT * FROM foo ORDER BY 1",
     );
     test_rewrite!(
@@ -96,6 +96,12 @@ mod positional_sort_key {
         pass = PositionalSortKeyRewritePass,
         expected = Err(Error::PositionalSortKeyWithSelectValue),
         input = "SELECT VALUE {'a': a} FROM foo ORDER BY 1",
+    );
+    test_rewrite!(
+        select_star_fails,
+        pass = PositionalSortKeyRewritePass,
+        expected = Err(Error::PositionalSortKeyWithSelectStar),
+        input = "SELECT * FROM foo ORDER BY 1",
     );
 }
 

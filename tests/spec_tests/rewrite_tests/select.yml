@@ -61,4 +61,4 @@ tests:
 
   - description: SELECT VALUE is not supported in subquery expressions
     query: "SELECT VALUE {'a': (SELECT VALUE {'b': b} FROM bar AS bar)} FROM foo AS foo"
-    error: "SELECT VALUE is not supported in subquery expressions"
+    error: "the top-level SELECT in a subquery expression must be a standard SELECT"

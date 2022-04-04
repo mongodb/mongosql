@@ -260,17 +260,16 @@ func TestSpecTranslations(t *testing.T) {
 							}
 
 							translation, err := Translate(args)
-
 							if testCase.AlgebrizeError != "" {
 								if err == nil {
 									t.Fatal("expected an algebrize error, but algebrization succeeded")
 								}
-								assert.Contains(t, err.Error(), "algebrize error")
+								assert.Contains(t, err.Error(), "algebrize error: "+testCase.AlgebrizeError)
 							} else if testCase.ParseError != "" {
 								if err == nil {
 									t.Fatal("expected a parse error")
 								}
-								assert.Contains(t, err.Error(), "parse error")
+								assert.Contains(t, err.Error(), "parse error: "+testCase.ParseError)
 							} else {
 								if err == nil {
 									// Check that translation database and collection are correct

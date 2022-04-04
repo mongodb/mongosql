@@ -967,16 +967,16 @@ tests:
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v IN(SELECT * FROM target)"
     should_compile: false
-    algebrize_error: "Operand should contain 1 column(s)"
+    algebrize_error: "subquery expressions must have a degree of 1"
 
   - description: ANY Operator fails if it has different degree on both sides
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <> ANY(SELECT * FROM target)"
     should_compile: false
-    algebrize_error: "Operand should contain 1 column(s)"
+    algebrize_error: "subquery expressions must have a degree of 1"
 
   - description: ALL Operator fails if it has different degree on both sides
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT * FROM target)"
     should_compile: false
-    algebrize_error: "Operand should contain 1 column(s)"
+    algebrize_error: "subquery expressions must have a degree of 1"

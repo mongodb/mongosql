@@ -130,7 +130,7 @@ fn identifier_to_string(s: &str) -> String {
 pub enum Error {
     #[error("set queries cannot be right associative")]
     RightAssociativeSetQuery,
-    #[error("joins cannot be right associative")]
+    #[error("JOINs cannot be right associative")]
     RightAssociativeJoin,
 }
 

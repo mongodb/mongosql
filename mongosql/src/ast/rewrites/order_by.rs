@@ -58,6 +58,7 @@ impl PositionalSortKeyRewriteVisitor {
                 expr: _,
                 alias,
             }))) => Ok(alias),
+            Some(SelectExpression::Star) => Err(Error::PositionalSortKeyWithSelectStar),
             Some(_) => Err(Error::NoAliasForSortKeyAtPosition(position)),
         };
         match alias {

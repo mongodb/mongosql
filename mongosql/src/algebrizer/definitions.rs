@@ -26,11 +26,11 @@ macro_rules! schema_check_return {
 
 #[derive(Debug, Error, PartialEq)]
 pub enum Error {
-    #[error("add_to_set should be removed before try_from")]
+    #[error("ADD_TO_SET should be removed before try_from")]
     AddToSetDoesNotExistInIr,
     #[error("all SELECT queries must have a FROM clause")]
     NoFromClause,
-    #[error("standard SELECT bodies are invalid except for SELECT *")]
+    #[error("standard SELECT expressions can only contain *")]
     NonStarStandardSelectBody,
     #[error("collection datasources must have aliases")]
     CollectionMustHaveAlias,

@@ -42,7 +42,7 @@ tests:
     current_db: test
     translation_target_db: test
     should_compile: false
-    parse_error: "expected <alias>, found EOI"
+    parse_error: "array datasources must have aliases"
 
   - description: empty array datasource is allowed
     query: "SELECT * FROM [] AS arr"
@@ -67,21 +67,21 @@ tests:
     query: "SELECT * FROM [{'a': 1}, null] AS arr"
     current_db: test
     should_compile: false
-    algebrize_error: "array datasource elements must be documents"
+    algebrize_error: 'schema checking failed for array datasource items: required Document(Document { keys: {}, required: {}, additional_properties: true }), found AnyOf({Atomic(Null), Document(Document { keys: {"a": Atomic(Integer)}, required: {"a"}, additional_properties: false })})'
 
   - description: array datasource must be array literal
     query: "SELECT * FROM {'a': [{'b': 1}]}['a'] AS arr"
     should_compile: false
-    parse_error: "array datasource must be array literal"
+    parse_error: "found unsupported expression used as datasource: {'a': [{'b': 1}]}['a']"
 
   - description: array datasource cannot be referenced as value
     query: "SELECT arr FROM [{'a': 1}] AS arr"
     current_db: test
     should_compile: false
-    algebrize_error: "unknown field 'arr'"
+    algebrize_error: "field `arr` cannot be resolved to any datasource"
 
   - description: references in array datasources are disallowed
     query: "SELECT (SELECT * FROM [{'a': foo.a}] AS arr) FROM foo"
     current_db: test
     should_compile: false
-    algebrize_error: "field 'a' cannot be referenced in array datasource"
+    algebrize_error: "array datasource must be constant"

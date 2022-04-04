@@ -27,33 +27,33 @@ tests:
     current_db: test
     translation_target_db: test
     should_compile: false
-    algebrize_error: "no field 'foo' in datasource 'bar'"
+    algebrize_error: "field `foo` cannot be resolved to any datasource"
 
   - description: derived table must have alias
-    query: "SELECT * FROM (SELECT * FROM [{a: 1}] AS arr)"
+    query: "SELECT * FROM (SELECT * FROM [{'a': 1}] AS arr)"
     current_db: test
     translation_target_db: test
     should_compile: false
-    parse_error: "expected <alias>, found EOI"
+    parse_error: "derived query datasources must have aliases"
 
   - description: datasource names in derived table are not visible outside of derived table query
     query: "SELECT derived.foo.x FROM (SELECT * FROM [{'x': 1}] AS foo, [{'a': 1}] AS bar) AS derived"
     current_db: test
     translation_target_db: test
     should_compile: false
-    algebrize_error: "Unknown field 'foo'"
+    algebrize_error: "cannot access field foo because it does not exist"
 
-  - description: derived table query with data sources that statically have ambiguous field must report a static error
+  - description: derived table query with datasources that statically have ambiguous field must report a static error
     query: "SELECT * FROM (SELECT * FROM [{'x': 1, 'y': 2}] AS foo, [{'a': 1, 'x': 3}] AS bar) AS derived"
     current_db: test
     translation_target_db: test
     should_compile: false
-    algebrize_error: "Ambiguous field 'x' in derived table"
+    algebrize_error: 'derived table datasources Must have overlapping keys, schemata: Document(Document { keys: {"a": Atomic(Integer), "x": Atomic(Integer)}, required: {"a", "x"}, additional_properties: false }) and Document(Document { keys: {"x": Atomic(Integer), "y": Atomic(Integer)}, required: {"x", "y"}, additional_properties: false })'
 
   - description: derived table can result in ambiguous fields when the datasource fields are not enumerable and must report a static error
     query: "SELECT * FROM (SELECT * FROM foo AS foo, bar AS bar) AS derived"
     should_compile: false
-    algebrize_error: "The keys of datasources 'foo', 'bar' are not enumerable, and may be ambiguous. Try replacing 'SELECT *' with direct references, or providing schemata for 'foo', 'bar'"
+    algebrize_error: "derived table datasources May have overlapping keys, schemata: Document(Document { keys: {}, required: {}, additional_properties: true }) and Document(Document { keys: {}, required: {}, additional_properties: true })"
 
   - description: there is no ambiguity with one schema-less datasource in a derived table
     current_db: test

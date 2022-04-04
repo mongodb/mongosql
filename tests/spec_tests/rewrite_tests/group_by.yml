@@ -63,5 +63,5 @@ tests:
 
   - description: Aggregation functions are not allowed in SELECT with explicit AGGREGATE phrase
     query: "SELECT COUNT(*), suma FROM bar AS bar GROUP BY NULL AS n AGGREGATE SUM(a) AS suma"
-    error: "Aggregation functions cannot be used in SELECT clause when there is an explicit AGGREGATE phrase"
+    error: "cannot specify aggregation functions in GROUP BY AGGREGATE clause and elsewhere"
 

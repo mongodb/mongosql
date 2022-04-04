@@ -1999,7 +1999,7 @@ mod from {
         cannot_have_more_than_one_qualifier,
         expected = false,
         expected_error =
-            "collection data sources can only have database qualification, found: car.bar.foo",
+            "collection datasources can only have database qualification, found: car.bar.foo",
         input = "SELECT * FROM car.bar.foo"
     );
     parsable!(

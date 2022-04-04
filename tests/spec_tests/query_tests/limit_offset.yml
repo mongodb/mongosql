@@ -72,25 +72,25 @@ tests:
     current_db: foo
     query: "SELECT * FROM bar ORDER BY a LIMIT -1"
     should_compile: false
-    parse_error: "LIMIT must be positive"
+    parse_error: "Unrecognized token `-`"
 
   - description: Limit number must be integer
     current_db: foo
     query: "SELECT * FROM bar ORDER BY a LIMIT 1.1"
     should_compile: false
-    parse_error: "LIMIT must be an integer number"
+    parse_error: "Unrecognized token `1.1`"
 
   - description: Offset number must be positive
     current_db: foo
     query: "SELECT * FROM bar ORDER BY a OFFSET -1"
     should_compile: false
-    parse_error: "OFFSET must be positive"
+    parse_error: "Unrecognized token `-`"
 
   - description: Offset number must be integer
     current_db: foo
     query: "SELECT * FROM bar ORDER BY a OFFSET 1.1"
     should_compile: false
-    parse_error: "OFFSET must be an integer number"
+    parse_error: "Unrecognized token `1.1`"
 
   - description: Select with limit and offset
     current_db: foo

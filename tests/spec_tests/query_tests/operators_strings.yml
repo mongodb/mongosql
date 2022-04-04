@@ -136,18 +136,18 @@ tests:
   - description: LIKE ESCAPE value cannot be longer than 1 character
     query: "SELECT VALUE {'_1': 'a' LIKE '_' ESCAPE 'abc'}"
     should_compile: false
-    parse_error: "ESCAPE character must be exactly 1 character"
+    parse_error: "Escape character must be a string of length 1"
 
   - description: LIKE ESCAPE value cannot be empty string
     query: "SELECT VALUE {'_1': 'a' LIKE '_' ESCAPE ''}"
     should_compile: false
-    parse_error: "ESCAPE character must be exactly 1 character"
+    parse_error: "Escape character must be a string of length 1"
 
   - description: LIKE ESCAPE value cannot be non-literal
     current_db: foo
     query: "SELECT VALUE {'_1': 'a' LIKE '_' ESCAPE s} FROM `like` AS `like`"
     should_compile: false
-    parse_error: "ESCAPE value must be literal"
+    parse_error: "Unrecognized token `s`"
 
   - description: LIKE operator - NULL or MISSING arguments result in NULL
     current_db: foo

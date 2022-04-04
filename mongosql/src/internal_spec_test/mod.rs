@@ -72,6 +72,8 @@ pub enum Error {
     ParsingFailed(String),
     #[error("unexpected rewrite error: {0}")]
     RewritesFailed(String),
+    #[error("rewrite should have failed with error: {0}")]
+    RewriteDidNotFail(String),
     #[error("unexpected algebrize error: {0}")]
     AlgebrizationFailed(String),
     #[error("algebrization should have failed, but it didn't")]
@@ -186,7 +188,10 @@ pub fn run_rewrite_tests() -> Result<(), Error> {
                     let ast = parse_res.map_err(|e| Error::ParsingFailed(format!("{:?}", e)))?;
                     let rewrite_res = rewrite_query(ast);
                     match test.error {
-                        Some(_) => assert!(rewrite_res.is_err()),
+                        Some(expected_err) => match rewrite_res {
+                            Ok(_) => return Err(Error::RewriteDidNotFail(expected_err)),
+                            Err(e) => assert_eq!(expected_err, e.to_string()),
+                        },
                         None => {
                             let expected = test.result.unwrap();
                             let actual = rewrite_res.unwrap().pretty_print().unwrap();

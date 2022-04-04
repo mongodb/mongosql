@@ -106,7 +106,7 @@ tests:
     current_db: test
     translation_target_db: test
     should_compile: false
-    algebrize_error: "type mismatch in CASE expression, operands must have comparable types (found STRING and INT)"
+    algebrize_error: "invalid comparison for SimpleCase: Atomic(Integer) cannot be compared to Atomic(String)"
 
   - description: Searched CASE expression - No WHEN condition evalutes to TRUE, return ELSE result
     current_db: foo

@@ -8,43 +8,43 @@ tests:
     query: "SELECT a, a FROM [{'a': 1}] arr"
     current_db: test
     should_compile: false
-    algebrize_error: "alias 'a' used two times"
+    algebrize_error: 'found duplicate document key "a"'
 
   - description: Cannot use duplicate explicit aliases for fields
     query: "SELECT a AS alias, a AS alias FROM [{'a': 1}] arr"
     current_db: test
     should_compile: false
-    algebrize_error: "alias 'alias' used two times"
+    algebrize_error: 'found duplicate document key "alias"'
 
   - description: Cannot use duplicate explicit aliases for group keys
     query: "SELECT * FROM [{'a': 1}] arr GROUP BY a AS a, a AS a"
     current_db: test
     should_compile: false
-    algebrize_error: "alias 'a' used two times"
+    algebrize_error: 'found duplicate document key "a"'
 
   - description: Cannot use duplicate explicit aliases for aggregations
     query: "SELECT * FROM [{'a': 1}] arr GROUP BY NULL AS _groupKey1 AGGREGATE count(a) AS a, count(a) AS a"
     current_db: test
     should_compile: false
-    algebrize_error: "alias 'a' used two times"
+    algebrize_error: 'found duplicate document key "a"'
 
   - description: Aliases must be unique across both keys and aggregations in GROUP clauses
     query: "SELECT * FROM [{'a': 1}] arr GROUP BY a AS a AGGREGATE count(a) AS a"
     current_db: test
     should_compile: false
-    algebrize_error: "alias 'a' used two times"
+    algebrize_error: 'found duplicate document key "a"'
 
   - description: Cannot use duplicate generated aliases for fields
     query: "SELECT a AS _2, a+1 FROM [{'a': 1}] arr"
     current_db: test
     should_compile: false
-    algebrize_error: "alias '_2' used two times"
+    algebrize_error: 'found duplicate document key "_2"'
 
   - description: Cannot use duplicate generated aliases for group keys
     query: "SELECT * FROM [{'a': 1}] arr GROUP BY a + 1, a AS _groupKey1"
     current_db: test
     should_compile: false
-    algebrize_error: "alias '_groupKey1' used two times"
+    algebrize_error: 'found duplicate document key "_groupKey1"'
 
   - description: Can use different aliases for same field
     query: "SELECT VALUE {'a1': a, 'a2': a} FROM [{'a': 1}] arr"
@@ -73,12 +73,12 @@ tests:
   - description: Cannot use duplicate implicit aliases for collections
     query: "SELECT * FROM foo, foo"
     should_compile: false
-    algebrize_error: "alias 'foo' used two times"
+    algebrize_error: 'cannot create schema environment with duplicate key: Key { datasource: Named("foo"), scope: 0 }'
 
   - description: Cannot use duplicate explicit aliases for collections
     query: "SELECT * FROM foo AS alias, foo AS alias"
     should_compile: false
-    algebrize_error: "alias 'alias' used two times"
+    algebrize_error: 'cannot create schema environment with duplicate key: Key { datasource: Named("alias"), scope: 0 }'
 
   - description: Can use different alias for same collection
     current_db: db

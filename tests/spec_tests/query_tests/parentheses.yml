@@ -38,7 +38,7 @@ tests:
       - {'': { "a": 6, "b": 2, "c": 11, "a+b*c": 28, "(a+b)*c": 88 }}
       - {'': { "a": 6, "b": 1, "c": 10, "a+b*c": 16, "(a+b)*c": 70 }}
   
-  - description: parentheses are not allowed on any data source except a derived table
+  - description: parentheses are not allowed on any datasource except a derived table or a join
     query: "SELECT * FROM (ternary) AS ternary"
     should_compile: false
-    parse_error: "unexpected <identifier> 'ternary' after '(', expected 'SELECT'"
+    parse_error: "found unsupported expression used as datasource: (ternary)"

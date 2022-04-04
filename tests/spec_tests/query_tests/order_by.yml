@@ -151,7 +151,7 @@ tests:
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo ORDER BY a ASC"
     should_compile: false
-    algebrize_error: "sort keys must be mutually comparable types"
+    algebrize_error: "sort key at position 0 is not statically comparable to itself because it has the schema AnyOf({Any, Missing})"
 
   - description: column references in sort keys can be qualified with table name after select star
     current_db: mydb
@@ -220,29 +220,29 @@ tests:
 
   - description: ordering by ambiguous column reference is an error
     current_db: mydb
-    query: "SELECT VALUES {'a': a}, bar.* FROM bar AS bar ORDER BY a ASC"
+    query: "SELECT VALUES {'a': 1}, bar.* FROM bar AS bar ORDER BY a ASC"
     should_compile: false
-    algebrize_error: "ambiguous sort key 'a'"
+    algebrize_error: "ambiguous field `a`"
 
   - description: ordering by qualified column reference is an error if qualifier is not in scope
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM nullAndMissing AS n ORDER BY n.a ASC"
     should_compile: false
-    algebrize_error: "unknown datasource 'n' in sort key 'n.a'"
+    algebrize_error: "field `n` cannot be resolved to any datasource"
 
   - description: ordering by a non-integer constant expression is an error
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo ORDER BY 1.0 DESC"
     should_compile: false
-    parse_error: "sort key must be a column reference or integer column index"
+    parse_error: "failed to parse ORDER BY sort key"
 
   - description: ordering by a complex expression is an error
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo ORDER BY 1 + 2 DESC"
     should_compile: false
-    parse_error: "sort key must be a column reference or integer column index"
+    parse_error: "Unrecognized token `+`"
 
   - description: ordering by a negative number is an error because it is a complex expr
     query: "SELECT a FROM foo ORDER BY -1"
     should_compile: false
-    parse_error: "sort key must be a column reference or integer column index"
+    parse_error: "Unrecognized token `-`"

@@ -27,6 +27,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[error("positional sort keys are not allowed with SELECT VALUE")]
     PositionalSortKeyWithSelectValue,
+    #[error("positional sort keys are not allowed with SELECT *")]
+    PositionalSortKeyWithSelectStar,
     #[error("positional sort key {0} out of range")]
     PositionalSortKeyOutOfRange(usize),
     #[error("positional sort key {0} references a select expression with no alias")]
@@ -35,7 +37,7 @@ pub enum Error {
     AggregationFunctionInGroupByKeyList,
     #[error("cannot specify aggregation functions in GROUP BY AGGREGATE clause and elsewhere")]
     AggregationFunctionInGroupByAggListAndElsewhere,
-    #[error("all select expressions must be given aliases before the SelectRewritePass")]
+    #[error("all SELECT expressions must be given aliases before the SelectRewritePass")]
     NoAliasForSelectExpression,
     #[error("the top-level SELECT in a subquery expression must be a standard SELECT")]
     SubqueryWithSelectValue,

@@ -9,23 +9,23 @@ tests:
 
   - description: positional sort key not allowed with SELECT VALUE
     query: "SELECT VALUE {'a': a} FROM foo AS foo ORDER BY 1"
-    error: "positional sort keys not allowed with SELECT VALUE"
+    error: "positional sort keys are not allowed with SELECT VALUE"
 
   - description: positional sort key not allowed with star select expr
     query: "SELECT * FROM foo AS foo ORDER BY 1"
-    error: "positional sort keys not allowed with star select expressions"
+    error: "positional sort keys are not allowed with SELECT *"
 
   - description: positional sort key not allowed with sub-star select expr
     query: "SELECT foo.* FROM foo AS foo ORDER BY 1"
-    error: "positional sort keys not allowed with star select expressions"
+    error: "positional sort key 1 references a select expression with no alias"
 
   - description: out-of-range positional sort key not allowed
     query: "SELECT a FROM foo AS foo ORDER BY 2"
-    error: "select expression index 2 out of range"
+    error: "positional sort key 2 out of range"
 
   - description: zero positional sort key not allowed
     query: "SELECT a FROM foo AS foo ORDER BY 0"
-    error: "select expression index 0 out of range"
+    error: "positional sort key 0 out of range"
 
   - description: rewrite implicit sort direction to asc
     query:  "SELECT VALUE {'a': a} FROM foo AS foo ORDER BY a"

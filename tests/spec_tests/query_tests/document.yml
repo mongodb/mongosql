@@ -67,14 +67,14 @@ tests:
   - description: SELECT non-empty document literal with invalid (non-string) keys
     query: "SELECT {1: 1, 2: 2}"
     should_compile: false
-    parse_error: "invalid key 1: keys must be type string"
+    parse_error: "Unrecognized token `1`"
 
   - description: FROM non-empty document literal with invalid (non-string) keys
     query: "SELECT * FROM [{1: 1, 2: 2}]"
     current_db: test
     translation_target_db: test
     should_compile: false
-    parse_error: "invalid key 1: keys must be type string"
+    parse_error: "Unrecognized token `1`"
 
   - description: Dot notation field access from literal document
     skip_reason: 'SQL-719: disable constant folding for translation tests'
@@ -120,9 +120,9 @@ tests:
       - {'': {'c': 100}}
 
   - description: Dot notation field access from statically known non-document
-    query: "SELECT 1.a"
+    query: "SELECT a.b FROM [{'a': 1}] AS arr"
     should_compile: false
-    parse_error: "unexpected 'a' in double"
+    algebrize_error: "schema checking failed for FieldAccess: required Document(Document { keys: {}, required: {}, additional_properties: true }), found AnyOf({Atomic(Integer)})"
 
   - description: Dot notation field access from expression that evaluates to non-document at runtime
     current_db: foo
@@ -203,7 +203,7 @@ tests:
   - description: Bracket notation field access from statically known non-document
     query: "SELECT 1['a']"
     should_compile: false
-    algebrize_error: "cannot use field access on non-document types"
+    algebrize_error: "schema checking failed for FieldAccess: required Document(Document { keys: {}, required: {}, additional_properties: true }), found Atomic(Integer)"
 
   - description: Bracket notation SELECT field called star
     query: "SELECT VALUE {'*': a['*']} FROM [{'a': {'*': 100, 'b': 10, 'c': 1}}] AS arr"
@@ -224,7 +224,7 @@ tests:
     current_db: test
     translation_target_db: test
     should_compile: false
-    algebrize_error: "field access expression must statically evaluate to string"
+    algebrize_error: "schema checking failed for ComputedFieldAccess: required Atomic(String), found Atomic(Integer)"
 
   - description: Bracket notation CAST to STRING expression
     query: "SELECT {'_1': a[CAST(b AS STRING)]} FROM [{'a': {'c': 100}, 'b': 'c'}] AS arr"

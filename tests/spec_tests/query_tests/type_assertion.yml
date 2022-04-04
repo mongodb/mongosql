@@ -37,7 +37,7 @@ tests:
     current_db: "foo"
     query: "SELECT v1::!DOUBLE AS v1 FROM bar_schema"
     should_compile: false
-    algebrize_error: "v1 cannot be asserted to DOUBLE type"
+    algebrize_error: "schema checking failed for ::!: required Atomic(Double), found AnyOf({Atomic(String), Atomic(Integer), Atomic(Null)})"
 
   - description: correctness test for type assertion in schema mode
     current_db: "foo"
