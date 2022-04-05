@@ -3017,6 +3017,11 @@ mod flatten {
         input = "SELECT * FROM FLATTEN(foo JOIN bar)"
     );
     parsable!(
+        comma_join_datasource_with_option,
+        expected = true,
+        input = "SELECT * FROM FLATTEN(foo, bar, separator => '%')"
+    );
+    parsable!(
         derived_datasource,
         expected = true,
         input = "SELECT * FROM FLATTEN((SELECT * FROM foo) as derived)"

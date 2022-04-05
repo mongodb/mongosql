@@ -233,6 +233,11 @@ query_printer_test!(
     input = "SeLeCT * from FLATTEN(foo, depth => 1)"
 );
 query_printer_test!(
+    flatten_comma_join_datasource_with_option,
+    expected = "SELECT * FROM FLATTEN(foo CROSS JOIN bar, SEPARATOR => '%')",
+    input = "SELECT * FRoM FLATTEN(foo, bar, separator => '%')"
+);
+query_printer_test!(
     flatten_collection_with_multiple_options_preserves_order_and_duplicates,
     expected =
         "SELECT * FROM FLATTEN(foo, SEPARATOR => '%', DEPTH => 1, SEPARATOR => ':', DEPTH => 2)",
