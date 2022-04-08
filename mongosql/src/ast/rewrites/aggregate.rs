@@ -180,6 +180,7 @@ pub struct AggregateAliasingVisitor {
     pub next_agg_id: u32,
     pub agg_funcs: LinkedHashMap<String, ast::AliasedExpr>,
     pub in_group_by_agg_func_list: bool,
+    pub in_select_values: bool,
 }
 
 impl Default for AggregateAliasingVisitor {
@@ -188,6 +189,7 @@ impl Default for AggregateAliasingVisitor {
             next_agg_id: 1,
             agg_funcs: LinkedHashMap::new(),
             in_group_by_agg_func_list: false,
+            in_select_values: false,
         }
     }
 }
@@ -228,6 +230,24 @@ impl Visitor for AggregateAliasingVisitor {
         }
     }
 
+    fn visit_select_body(&mut self, node: ast::SelectBody) -> ast::SelectBody {
+        use ast::SelectBody;
+
+        // Are we already in a SELECT VALUES clause?
+        let was_in_select_value = self.in_select_values;
+        match node {
+            SelectBody::Values(_) => self.in_select_values = true,
+            SelectBody::Standard(_) => self.in_select_values = false,
+        }
+        // Walk the select body
+        let node = node.walk(self);
+
+        // Restore our in_select_values state
+        self.in_select_values = was_in_select_value;
+
+        node
+    }
+
     // Sets a boolean value in the visitor accordingly before walking the `GROUP BY`
     // clause's aggregation function list.
     //
@@ -256,7 +276,10 @@ impl Visitor for AggregateAliasingVisitor {
     fn visit_expression(&mut self, e: ast::Expression) -> ast::Expression {
         use ast::*;
         match e {
-            Expression::Function(f) if f.function.is_aggregation_function() => {
+            // Aggregate function in SELECT VALUES are not rewritten, so don't process them
+            Expression::Function(f)
+                if f.function.is_aggregation_function() && !self.in_select_values =>
+            {
                 // Walk first, in case the function's arguments contain any subquery expressions.
                 let f = f.walk(self);
 

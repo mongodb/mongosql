@@ -65,3 +65,10 @@ tests:
     query: "SELECT COUNT(*), suma FROM bar AS bar GROUP BY NULL AS n AGGREGATE SUM(a) AS suma"
     error: "cannot specify aggregation functions in GROUP BY AGGREGATE clause and elsewhere"
 
+  - description: Agg functions in a SELECT VALUE clause are not rewritten
+    query: "SELECT VALUE {'sumb': SUM(b)} FROM bar AS bar"
+    result: "SELECT VALUE {'sumb': SUM(b)} FROM bar AS bar"
+
+  - description: agg functions rewrite is applied to standard selects nested inside a SELECT VALUE
+    query: "SELECT VALUE {'sumb': SUM(b), 'avg_salary': (SELECT AVG(a) FROM foo) } FROM bar"
+    result: "SELECT VALUE {'sumb': SUM(b), 'avg_salary': (SELECT VALUE {'_1': _agg1} FROM foo AS foo GROUP BY NULL AS _groupKey1 AGGREGATE AVG(a) AS _agg1)} FROM bar AS bar"

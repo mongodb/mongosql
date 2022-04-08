@@ -485,10 +485,9 @@ tests:
       algebrize_error: "field `a` cannot be resolved to any datasource"
 
     - description: Aggregation functions are not allowed in SELECT VALUE
-      query: "SELECT VALUE {'suma': SUM(a)} FROM foo.bar AS bar GROUP BY a AS a AGGREGATE SUM(a) as suma"
+      query: "SELECT VALUE {'suma': SUM(a)} FROM foo.bar AS bar GROUP BY a AS a"
       should_compile: false
-      skip_reason: "SQL-808: Aggregation functions are not allowed in SELECT VALUE"
-      algebrize_error: "Aggregation functions are not allowed in SELECT VALUE clause"
+      algebrize_error: "aggregation function SUM used in scalar position"
 
     - description: HAVING without GROUP BY works as a WHERE clause but happens after the WHERE clause
       query: "SELECT * FROM foo.bar AS bar WHERE a < 15 HAVING a > 5"

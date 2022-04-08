@@ -53,9 +53,9 @@ pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
     let passes: Vec<&dyn Pass> = vec![
         &AddAliasRewritePass,
         &PositionalSortKeyRewritePass,
+        &AggregateRewritePass,
         &SelectRewritePass,
         &ImplicitFromRewritePass,
-        &AggregateRewritePass,
         &InTupleRewritePass,
         &SingleTupleRewritePass,
         &TableSubqueryRewritePass,
