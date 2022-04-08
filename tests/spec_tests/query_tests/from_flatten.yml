@@ -106,60 +106,60 @@ tests:
 
   - description: basic correctness test for user-specified separator
     current_db: mydb
-    query: "SELECT * FROM FLATTEN(foo, separator => ':') "
+    query: "SELECT * FROM FLATTEN(foo WITH separator => ':') "
     skip_reason: "SQL-571: Implement FLATTEN"
     result:
       - { 'foo': { 'a:b': 1 } }
 
   - description: user-specified separator with length less than one is allowed
     current_db: mydb
-    query: "SELECT * FROM FLATTEN(foo, separator => '') "
+    query: "SELECT * FROM FLATTEN(foo WITH separator => '') "
     skip_reason: "SQL-571: Implement FLATTEN"
     result:
       - { 'foo': { 'ab': 1 } }
 
   - description: user-specified separator with length greater than one is allowed
     current_db: mydb
-    query: "SELECT * FROM FLATTEN(foo, separator => '_DOT_') "
+    query: "SELECT * FROM FLATTEN(foo WITH separator => '_DOT_') "
     skip_reason: "SQL-571: Implement FLATTEN"
     result:
       - { 'foo': { 'a_DOT_b': 1 } }
 
   - description: a user-specified depth greater than max nesting depth causes all documents to be flattened
     current_db: mydb
-    query: "SELECT * FROM FLATTEN(foo, depth => 5)"
+    query: "SELECT * FROM FLATTEN(foo WITH depth => 5)"
     skip_reason: "SQL-571: Implement FLATTEN"
     result:
       - { 'foo': { 'a_b': 1 } }
 
   - description: a user-specified depth less than max nesting depth causes more deeply nested documents to remain unflattened
     current_db: mydb
-    query: "SELECT * FROM FLATTEN(foo, depth => 0)"
+    query: "SELECT * FROM FLATTEN(foo WITH depth => 0)"
     skip_reason: "SQL-571: Implement FLATTEN"
     result:
       - { 'foo': { 'a': { 'b': 1 } } }
 
   - description: user-specified depth must be an integer literal
     current_db: mydb
-    query: "SELECT * FROM FLATTEN(foo, depth => 1.2)"
+    query: "SELECT * FROM FLATTEN(foo WITH depth => 1.2)"
     skip_reason: "SQL-571: Implement FLATTEN"
     parse_error: "'depth' must be an integer literal"
 
   - description: user-specified separator must be a string literal
     current_db: mydb
-    query: "SELECT * FROM FLATTEN(foo, separator => 1)"
+    query: "SELECT * FROM FLATTEN(foo WITH separator => 1)"
     skip_reason: "SQL-571: Implement FLATTEN"
     parse_error: "'separator' must be a string literal"
 
   - description: error on unknown option keys
     current_db: mydb
-    query: "SELECT * FROM FLATTEN(foo, INVALID => a)"
+    query: "SELECT * FROM FLATTEN(foo WITH INVALID => a)"
     skip_reason: "SQL-571: Implement FLATTEN"
     parse_error: "unsupported FLATTEN option 'INVALID'"
 
   - description: error on duplicate option keys
     current_db: mydb
-    query: "SELECT * FROM FLATTEN(foo, depth => 1, depth => 2)"
+    query: "SELECT * FROM FLATTEN(foo WITH depth => 1, depth => 2)"
     skip_reason: "SQL-571: Implement FLATTEN"
     algebrize_error: "duplicate option key 'depth'"
 

@@ -1476,7 +1476,7 @@ impl ScalarFunction {
         {
             // If one exists, only consider schemas up to and including it and remove nullish schemas
             // as a possibility.
-            Schema::AnyOf(arg_schemas.iter().cloned().take(idx + 1).collect()).subtract_nullish()
+            Schema::AnyOf(arg_schemas.iter().take(idx + 1).cloned().collect()).subtract_nullish()
         } else {
             Schema::AnyOf(arg_schemas.iter().cloned().collect())
         };

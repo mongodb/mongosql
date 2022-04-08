@@ -113,6 +113,7 @@ lazy_static! {
         r"(?i)varchar$",
         r"(?i)when$",
         r"(?i)where$",
+        r"(?i)with$",
         r"(?i)year$",
     ])
     .unwrap();
@@ -407,7 +408,7 @@ impl PrettyPrint for FlattenSource {
         Ok(match options.len() {
             0 => format!("FLATTEN({})", self.datasource.pretty_print()?),
             _ => format!(
-                "FLATTEN({}, {})",
+                "FLATTEN({} WITH {})",
                 self.datasource.pretty_print()?,
                 options.join(", ")
             ),
@@ -436,7 +437,7 @@ impl PrettyPrint for UnwindSource {
         Ok(match options.len() {
             0 => format!("UNWIND({})", self.datasource.pretty_print()?),
             _ => format!(
-                "UNWIND({}, {})",
+                "UNWIND({} WITH {})",
                 self.datasource.pretty_print()?,
                 options.join(", ")
             ),

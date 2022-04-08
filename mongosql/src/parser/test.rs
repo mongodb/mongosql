@@ -2984,27 +2984,27 @@ mod flatten {
     parsable!(
         depth,
         expected = true,
-        input = "SELECT * FROM FLATTEN(foo, depth => 1)"
+        input = "SELECT * FROM FLATTEN(foo WITH depth => 1)"
     );
     parsable!(
         separator,
         expected = true,
-        input = "SELECT * FROM FLATTEN(foo, separator => '%')"
+        input = "SELECT * FROM FLATTEN(foo WITH separator => '%')"
     );
     parsable!(
         depth_and_separator,
         expected = true,
-        input = "SELECT * FROM FLATTEN(foo, depth => 1, separator => '%')"
+        input = "SELECT * FROM FLATTEN(foo WITH depth => 1, separator => '%')"
     );
     parsable!(
         separator_and_depth,
         expected = true,
-        input = "SELECT * FROM FLATTEN(foo, separator => '%', depth => 1)"
+        input = "SELECT * FROM FLATTEN(foo WITH separator => '%', depth => 1)"
     );
     parsable!(
         separator_len_gt_1,
         expected = true,
-        input = "SELECT * FROM FLATTEN(foo, separator => 'hello')"
+        input = "SELECT * FROM FLATTEN(foo WITH separator => 'hello')"
     );
     parsable!(
         array_datasource,
@@ -3019,7 +3019,7 @@ mod flatten {
     parsable!(
         comma_join_datasource_with_option,
         expected = true,
-        input = "SELECT * FROM FLATTEN(foo, bar, separator => '%')"
+        input = "SELECT * FROM FLATTEN(foo, bar WITH separator => '%')"
     );
     parsable!(
         derived_datasource,
@@ -3034,17 +3034,17 @@ mod flatten {
     parsable!(
         unwind_datasource,
         expected = true,
-        input = "SELECT * FROM FLATTEN(UNWIND(foo, PATH => arr))"
+        input = "SELECT * FROM FLATTEN(UNWIND(foo WITH PATH => arr))"
     );
     parsable!(
         depth_neg,
         expected = false,
-        input = "SELECT * FROM FLATTEN(foo, depth => -1)"
+        input = "SELECT * FROM FLATTEN(foo WITH depth => -1)"
     );
     parsable!(
         depth_not_int,
         expected = false,
-        input = "SELECT * FROM FLATTEN(foo, depth => 1.2)"
+        input = "SELECT * FROM FLATTEN(foo WITH depth => 1.2)"
     );
     parsable!(
         no_datasource,
@@ -3052,14 +3052,14 @@ mod flatten {
         input = "SELECT * FROM FLATTEN()"
     );
     parsable!(
-        missing_comma,
+        missing_with,
         expected = false,
         input = "SELECT * FROM FLATTEN(foo depth => 1)"
     );
     parsable!(
-        extra_comma,
+        extra_with,
         expected = false,
-        input = "SELECT * FROM FLATTEN(foo,)"
+        input = "SELECT * FROM FLATTEN(foo WITH)"
     );
     validate_ast!(
         duplicate_options,
@@ -3088,7 +3088,7 @@ mod flatten {
             limit: None,
             offset: None,
         }),
-        input = "SELECT * FROM FLATTEN(foo, depth => 1, separator => '%', depth => 2)",
+        input = "SELECT * FROM FLATTEN(foo WITH depth => 1, separator => '%', depth => 2)",
     );
 }
 
@@ -3111,77 +3111,77 @@ mod unwind {
     parsable!(
         path,
         expected = true,
-        input = "SELECT * FROM UNWIND(foo, PATH => arr)"
+        input = "SELECT * FROM UNWIND(foo WITH PATH => arr)"
     );
     parsable!(
         index,
         expected = true,
-        input = "SELECT * FROM UNWIND(foo, PATH => arr, INDEX => i)"
+        input = "SELECT * FROM UNWIND(foo WITH PATH => arr, INDEX => i)"
     );
     parsable!(
         outer,
         expected = true,
-        input = "SELECT * FROM UNWIND(foo, PATH => arr, OUTER => true)"
+        input = "SELECT * FROM UNWIND(foo WITH PATH => arr, OUTER => true)"
     );
     parsable!(
         path_and_index_and_outer,
         expected = true,
-        input = "SELECT * FROM UNWIND(foo, PATH => arr, INDEX => i, OUTER => true)"
+        input = "SELECT * FROM UNWIND(foo WITH PATH => arr, INDEX => i, OUTER => true)"
     );
     parsable!(
         outer_and_path_and_index,
         expected = true,
-        input = "SELECT * FROM UNWIND(foo, OUTER => true, PATH => arr, INDEX => i)"
+        input = "SELECT * FROM UNWIND(foo WITH OUTER => true, PATH => arr, INDEX => i)"
     );
     parsable!(
         index_and_outer_and_path,
         expected = true,
-        input = "SELECT * FROM UNWIND(foo, INDEX => i, OUTER => true, PATH => arr)"
+        input = "SELECT * FROM UNWIND(foo WITH INDEX => i, OUTER => true, PATH => arr)"
     );
     parsable!(
         multi_part_path,
         expected = true,
-        input = "SELECT * FROM UNWIND(foo, PATH => a.b.c)"
+        input = "SELECT * FROM UNWIND(foo WITH PATH => a.b.c)"
     );
     parsable!(
         array_datasource,
         expected = true,
-        input = "SELECT * FROM UNWIND([{'a': [1]}] AS arr, PATH => a)"
+        input = "SELECT * FROM UNWIND([{'a': [1]}] AS arr WITH PATH => a)"
     );
     parsable!(
         join_datasource,
         expected = true,
-        input = "SELECT * FROM UNWIND(foo JOIN bar, PATH => bar.arr)"
+        input = "SELECT * FROM UNWIND(foo JOIN bar WITH PATH => bar.arr)"
     );
     parsable!(
         derived_datasource,
         expected = true,
-        input = "SELECT * FROM UNWIND((SELECT * FROM foo) AS derived, PATH => arr)"
+        input = "SELECT * FROM UNWIND((SELECT * FROM foo) AS derived WITH PATH => arr)"
     );
     parsable!(
         flatten_datasource,
         expected = true,
-        input = "SELECT * FROM UNWIND(FLATTEN(foo), PATH => arr)"
+        input = "SELECT * FROM UNWIND(FLATTEN(foo) WITH PATH => arr)"
     );
     parsable!(
         unwind_datasource,
         expected = true,
-        input = "SELECT * FROM UNWIND(UNWIND(foo, PATH => arr), PATH => arr)"
+        input = "SELECT * FROM UNWIND(UNWIND(foo WITH PATH => arr) WITH PATH => arr)"
     );
     parsable!(
         path_not_ident,
         expected = false,
-        input = "SELECT * FROM UNWIND(foo, PATH => 'arr')"
+        input = "SELECT * FROM UNWIND(foo WITH PATH => 'arr')"
     );
     parsable!(
         index_not_ident,
         expected = false,
-        input = "SELECT * FROM UNWIND(foo, INDEX => 'i')"
+        input = "SELECT * FROM UNWIND(foo WITH INDEX => 'i')"
     );
     parsable!(
         outer_not_bool,
         expected = false,
-        input = "SELECT * FROM UNWIND(foo, OUTER => 1)"
+        input = "SELECT * FROM UNWIND(foo WITH OUTER => 1)"
     );
     parsable!(
         no_datasource_or_options,
@@ -3189,14 +3189,14 @@ mod unwind {
         input = "SELECT * FROM UNWIND()"
     );
     parsable!(
-        missing_comma,
+        missing_with,
         expected = false,
         input = "SELECT * FROM UNWIND(foo PATH => arr)"
     );
     parsable!(
-        extra_comma,
+        extra_with,
         expected = false,
-        input = "SELECT * FROM UNWIND(foo,)"
+        input = "SELECT * FROM UNWIND(foo WITH)"
     );
     validate_ast!(
         duplicate_options,
@@ -3227,6 +3227,6 @@ mod unwind {
             limit: None,
             offset: None,
         }),
-        input = "SELECT * FROM UNWIND(foo, PATH => arr, INDEX => i, INDEX => idx, PATH => a, OUTER => false)",
+        input = "SELECT * FROM UNWIND(foo WITH PATH => arr, INDEX => i, INDEX => idx, PATH => a, OUTER => false)",
     );
 }

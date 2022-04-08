@@ -224,30 +224,30 @@ query_printer_test!(
 );
 query_printer_test!(
     flatten_collection_with_separator,
-    expected = "SELECT * FROM FLATTEN(foo, SEPARATOR => '%')",
-    input = "SeLeCT * from FLATTEN(foo, separator => '%')"
+    expected = "SELECT * FROM FLATTEN(foo WITH SEPARATOR => '%')",
+    input = "SeLeCT * from FLATTEN(foo with separator => '%')"
 );
 query_printer_test!(
     flatten_collection_with_depth,
-    expected = "SELECT * FROM FLATTEN(foo, DEPTH => 1)",
-    input = "SeLeCT * from FLATTEN(foo, depth => 1)"
+    expected = "SELECT * FROM FLATTEN(foo WITH DEPTH => 1)",
+    input = "SeLeCT * from FLATTEN(foo with depth => 1)"
 );
 query_printer_test!(
     flatten_comma_join_datasource_with_option,
-    expected = "SELECT * FROM FLATTEN(foo CROSS JOIN bar, SEPARATOR => '%')",
-    input = "SELECT * FRoM FLATTEN(foo, bar, separator => '%')"
+    expected = "SELECT * FROM FLATTEN(foo CROSS JOIN bar WITH SEPARATOR => '%')",
+    input = "SELECT * FRoM FLATTEN(foo, bar with separator => '%')"
 );
 query_printer_test!(
     flatten_collection_with_multiple_options_preserves_order_and_duplicates,
     expected =
-        "SELECT * FROM FLATTEN(foo, SEPARATOR => '%', DEPTH => 1, SEPARATOR => ':', DEPTH => 2)",
+        "SELECT * FROM FLATTEN(foo WITH SEPARATOR => '%', DEPTH => 1, SEPARATOR => ':', DEPTH => 2)",
     input =
-        "SeLeCT * from FLATTEN(foo, separator => '%', depth => 1, separator => ':', depth => 2)"
+        "SeLeCT * from FLATTEN(foo with separator => '%', depth => 1, separator => ':', depth => 2)"
 );
 query_printer_test!(
     flatten_separator_contains_string_delimiter,
-    expected = "SELECT * FROM FLATTEN(foo, SEPARATOR => '''')",
-    input = "SeLeCT * from FLATTEN(foo, separator => '''')"
+    expected = "SELECT * FROM FLATTEN(foo WITH SEPARATOR => '''')",
+    input = "SeLeCT * from FLATTEN(foo with separator => '''')"
 );
 
 query_printer_test!(
@@ -258,44 +258,44 @@ query_printer_test!(
 
 query_printer_test!(
     unwind_collection_with_path,
-    expected = "SELECT * FROM UNWIND(foo, PATH => arr)",
-    input = "SELECT * FROM UNWIND(foo, path => arr)"
+    expected = "SELECT * FROM UNWIND(foo WITH PATH => arr)",
+    input = "SELECT * FROM UNWIND(foo with path => arr)"
 );
 
 query_printer_test!(
     unwind_collection_with_delimited_path,
-    expected = "SELECT * FROM UNWIND(foo, PATH => `x.arr`)",
-    input = "SELECT * FROM UNWIND(foo, path => `x.arr`)"
+    expected = "SELECT * FROM UNWIND(foo WITH PATH => `x.arr`)",
+    input = "SELECT * FROM UNWIND(foo with path => `x.arr`)"
 );
 
 query_printer_test!(
     unwind_collection_with_index,
-    expected = "SELECT * FROM UNWIND(foo, INDEX => i)",
-    input = "SELECT * FROM UNWIND(foo, index => i)"
+    expected = "SELECT * FROM UNWIND(foo WITH INDEX => i)",
+    input = "SELECT * FROM UNWIND(foo with index => i)"
 );
 
 query_printer_test!(
     unwind_collection_with_delimited_index,
-    expected = "SELECT * FROM UNWIND(foo, INDEX => `x.i`)",
-    input = "SELECT * FROM UNWIND(foo, index => `x.i`)"
+    expected = "SELECT * FROM UNWIND(foo WITH INDEX => `x.i`)",
+    input = "SELECT * FROM UNWIND(foo with index => `x.i`)"
 );
 
 query_printer_test!(
     unwind_collection_with_outer_true,
-    expected = "SELECT * FROM UNWIND(foo, OUTER => true)",
-    input = "SELECT * FROM UNWIND(foo, outer => true)"
+    expected = "SELECT * FROM UNWIND(foo WITH OUTER => true)",
+    input = "SELECT * FROM UNWIND(foo with outer => true)"
 );
 
 query_printer_test!(
     unwind_collection_with_outer_false,
     expected = "SELECT * FROM UNWIND(foo)",
-    input = "SELECT * FROM UNWIND(foo, outer => false)"
+    input = "SELECT * FROM UNWIND(foo WITH outer => false)"
 );
 
 query_printer_test!(
     unwind_collection_with_multiple_options_preserves_order_and_duplicates,
-    expected = "SELECT * FROM UNWIND(foo, PATH => arr, OUTER => true, INDEX => i, PATH => a)",
-    input = "SELECT * FROM UNWIND(foo, path => arr, outer => false, outer => true, index => i, path => a)"
+    expected = "SELECT * FROM UNWIND(foo WITH PATH => arr, OUTER => true, INDEX => i, PATH => a)",
+    input = "SELECT * FROM UNWIND(foo with path => arr, outer => false, outer => true, index => i, path => a)"
 );
 
 query_printer_test!(

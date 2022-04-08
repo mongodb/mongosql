@@ -73,7 +73,7 @@ JoinDatasource: Datasource = {
 }
 
 FlattenDatasource: Datasource = {
-  FLATTEN LEFT_PAREN <d:Datasource> <o:(COMMA <CommaPlus<FlattenOption>>)?> RIGHT_PAREN => Datasource::Flatten(FlattenSource{datasource: Box::new(d), options: o.unwrap_or(vec![])})
+  FLATTEN LEFT_PAREN <d:Datasource> <o:(WITH <CommaPlus<FlattenOption>>)?> RIGHT_PAREN => Datasource::Flatten(FlattenSource{datasource: Box::new(d), options: o.unwrap_or(vec![])})
 }
 
 FlattenOption: FlattenOption = {
@@ -82,7 +82,7 @@ FlattenOption: FlattenOption = {
 }
 
 UnwindDatasource: Datasource = {
-  UNWIND LEFT_PAREN <d:Datasource> <o:(COMMA <CommaPlus<UnwindOption>>)?> RIGHT_PAREN => Datasource::Unwind(UnwindSource{datasource: Box::new(d), options: o.unwrap_or(vec![])})
+  UNWIND LEFT_PAREN <d:Datasource> <o:(WITH <CommaPlus<UnwindOption>>)?> RIGHT_PAREN => Datasource::Unwind(UnwindSource{datasource: Box::new(d), options: o.unwrap_or(vec![])})
 }
 
 UnwindOption: UnwindOption = {
@@ -804,6 +804,7 @@ match {
   r"(?i)varchar" => VARCHAR,
   r"(?i)when" => WHEN,
   r"(?i)where" => WHERE,
+  r"(?i)with" => WITH,
   r"(?i)year" => YEAR,
   r"[0-9]+" => INT,
   r#"'([^\x00']|'')*'"# => STRING,

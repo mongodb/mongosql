@@ -100,7 +100,7 @@ catalog_schema:
 tests:
   - description: basic correctness test
     current_db: test
-    query: "SELECT * FROM UNWIND(foo, PATH => arr)"
+    query: "SELECT * FROM UNWIND(foo WITH PATH => arr)"
     skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: foo
@@ -118,7 +118,7 @@ tests:
 
   - description: basic correctness test for explicitly aliased datasource
     current_db: test
-    query: "SELECT * FROM UNWIND(foo AS f, PATH => arr)"
+    query: "SELECT * FROM UNWIND(foo AS f WITH PATH => arr)"
     skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: foo
@@ -136,7 +136,7 @@ tests:
 
   - description: basic correctness test for index option
     current_db: test
-    query: "SELECT * FROM UNWIND(foo, PATH => arr, INDEX => i)"
+    query: "SELECT * FROM UNWIND(foo WITH PATH => arr, INDEX => i)"
     skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: foo
@@ -154,7 +154,7 @@ tests:
 
   - description: there are no type constraints on the field referenced by PATH, and non-array fields are not unwound
     current_db: test
-    query: "SELECT * FROM UNWIND(non_arrays, PATH => arr, INDEX => i)"
+    query: "SELECT * FROM UNWIND(non_arrays WITH PATH => arr, INDEX => i)"
     skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: non_arrays
@@ -170,7 +170,7 @@ tests:
 
   - description: unwinding a nested array puts the unwound value at the same nested path
     current_db: test
-    query: "SELECT * FROM UNWIND(nested, PATH => a.b.c, INDEX => i)"
+    query: "SELECT * FROM UNWIND(nested WITH PATH => a.b.c, INDEX => i)"
     skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: nested
@@ -188,7 +188,7 @@ tests:
 
   - description: unwind datasources can be unwound
     current_db: test
-    query: "SELECT * FROM UNWIND(UNWIND(two_d, PATH => arr), PATH => arr)"
+    query: "SELECT * FROM UNWIND(UNWIND(two_d WITH PATH => arr), PATH => arr)"
     skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: two_d
@@ -209,7 +209,7 @@ tests:
 
   - description: join datasources can be unwound, unwound field is nested under correct namespace (left)
     current_db: test
-    query: "SELECT * FROM UNWIND(foo JOIN bar, PATH => foo.arr)"
+    query: "SELECT * FROM UNWIND(foo JOIN bar WITH PATH => foo.arr)"
     skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: foo
@@ -241,7 +241,7 @@ tests:
 
   - description: join datasources can be unwound, unwound field is nested under correct namespace (right)
     current_db: test
-    query: "SELECT * FROM UNWIND(foo JOIN bar, PATH => bar.arr)"
+    query: "SELECT * FROM UNWIND(foo JOIN bar WITH PATH => bar.arr)"
     skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: foo
@@ -273,7 +273,7 @@ tests:
 
   - description: documents containing empty array, null, or missing values are omitted if OUTER => false (default)
     current_db: test
-    query: "SELECT * FROM UNWIND(empty_null_and_missing AS c, PATH => arr, INDEX => i)"
+    query: "SELECT * FROM UNWIND(empty_null_and_missing AS c WITH PATH => arr, INDEX => i)"
     skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: empty_null_and_missing
@@ -287,7 +287,7 @@ tests:
 
   - description: documents containing empty array, null, or missing values are retained if OUTER => true
     current_db: test
-    query: "SELECT * FROM UNWIND(empty_null_and_missing AS c, PATH => arr, INDEX => i, OUTER => true)"
+    query: "SELECT * FROM UNWIND(empty_null_and_missing AS c WITH PATH => arr, INDEX => i, OUTER => true)"
     skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: empty_null_and_missing
@@ -310,30 +310,30 @@ tests:
 
   - description: PATH must be an identifier
     current_db: test
-    query: "SELECT * FROM UNWIND(foo, PATH => [arr])"
+    query: "SELECT * FROM UNWIND(foo WITH PATH => [arr])"
     skip_reason: "SQL-571: implement UNWIND datasource"
     parse_error: "expected identifier"
 
   - description: INDEX must be simple identifier
     current_db: test
-    query: "SELECT * FROM UNWIND(foo, PATH => arr, INDEX => invalid.index.identifier)"
+    query: "SELECT * FROM UNWIND(foo WITH PATH => arr, INDEX => invalid.index.identifier)"
     skip_reason: "SQL-571: implement UNWIND datasource"
     parse_error: "expected simple identifier"
 
   - description: duplicate option keys are disallowed
     current_db: test
-    query: "SELECT * FROM UNWIND(foo, PATH => arr, PATH => invalid)"
+    query: "SELECT * FROM UNWIND(foo WITH PATH => arr, PATH => invalid)"
     skip_reason: "SQL-571: implement UNWIND datasource"
     algebrize_error: "can only specify each UNWIND option at most once"
 
   - description: unknown option keys are disallowed
     current_db: test
-    query: "SELECT * FROM UNWIND(foo, PATH => arr, INVALID => invalid)"
+    query: "SELECT * FROM UNWIND(foo WITH PATH => arr, INVALID => invalid)"
     skip_reason: "SQL-571: implement UNWIND datasource"
     algebrize_error: "unknown UNWIND option 'INVALID'"
 
   - description: error unless we can definitely prove there is no name conflict for INDEX alias
     current_db: test
-    query: "SELECT * FROM UNWIND(index_conflict, PATH => arr, INDEX => i)"
+    query: "SELECT * FROM UNWIND(index_conflict WITH PATH => arr, INDEX => i)"
     skip_reason: "SQL-571: implement UNWIND datasource"
     algebrize_error: "alias 'i' used two times"
