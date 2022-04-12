@@ -72,19 +72,24 @@ impl PositionalSortKeyRewriteVisitor {
 }
 
 impl Visitor for PositionalSortKeyRewriteVisitor {
+    fn visit_query(&mut self, node: ast::Query) -> ast::Query {
+        // Whenever we encounter a subquery or derived table anywhere within the query,
+        // we use a new visitor with fresh state. This ensures visit_select_body can
+        // safely set select_exprs, and visit_order_by_clause can safely use select_exprs
+        // and know it is the correct, corresponding SELECT clause.
+        let mut visitor = PositionalSortKeyRewriteVisitor::default();
+        node.walk(&mut visitor)
+    }
+
     fn visit_select_body(&mut self, node: ast::SelectBody) -> ast::SelectBody {
         use ast::*;
 
-        // Walk the children first, rewriting if appropriate.
-        let node = node.walk(self);
-
-        // It is important that we set `self.select_exprs` even if it is `None` so that we don't carry over state from subqueries.
         self.select_exprs = match node {
             SelectBody::Standard(ref exprs) => Some(exprs.clone()),
             SelectBody::Values(_) => None,
         };
 
-        node
+        node.walk(self)
     }
 
     fn visit_order_by_clause(&mut self, node: ast::OrderByClause) -> ast::OrderByClause {

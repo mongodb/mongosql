@@ -56,6 +56,44 @@ mod positional_sort_key {
         input = "SELECT b AS b, (SELECT a AS a FROM foo ORDER BY 1) FROM bar",
     );
     test_rewrite!(
+        subquery_in_different_clause_does_not_pollute_parent_state,
+        pass = PositionalSortKeyRewritePass,
+        expected = Ok("SELECT b AS b FROM bar WHERE (SELECT a AS a FROM foo) > 1 ORDER BY b ASC"),
+        input = "SELECT b AS b FROM bar WHERE (SELECT a AS a FROM foo) > 1 ORDER BY 1",
+    );
+    test_rewrite!(
+        parent_does_not_pollute_subquery_in_different_clause_state,
+        pass = PositionalSortKeyRewritePass,
+        expected = Ok("SELECT b AS b FROM bar WHERE (SELECT a AS a FROM foo ORDER BY a ASC) > 1"),
+        input = "SELECT b AS b FROM bar WHERE (SELECT a AS a FROM foo ORDER BY 1) > 1",
+    );
+    test_rewrite!(
+        rewrite_both_parent_and_subquery,
+        pass = PositionalSortKeyRewritePass,
+        expected =
+            Ok("SELECT b AS b, (SELECT a AS a FROM foo ORDER BY a ASC) FROM bar ORDER BY b ASC"),
+        input = "SELECT b AS b, (SELECT a AS a FROM foo ORDER BY 1) FROM bar ORDER BY 1",
+    );
+    test_rewrite!(
+        derived_table_does_not_pollute_parent_state,
+        pass = PositionalSortKeyRewritePass,
+        expected = Ok("SELECT b AS b FROM (SELECT a AS a, b AS b FROM foo) AS sub ORDER BY b ASC"),
+        input = "SELECT b AS b FROM (SELECT a AS a, b AS b FROM foo) AS sub ORDER BY 1",
+    );
+    test_rewrite!(
+        parent_does_not_pollute_derived_table_state,
+        pass = PositionalSortKeyRewritePass,
+        expected = Ok("SELECT b AS b FROM (SELECT a AS a, b AS b FROM foo ORDER BY a ASC) AS sub"),
+        input = "SELECT b AS b FROM (SELECT a AS a, b AS b FROM foo ORDER BY 1) AS sub",
+    );
+    test_rewrite!(
+        rewrite_both_parent_and_derived_table,
+        pass = PositionalSortKeyRewritePass,
+        expected =
+            Ok("SELECT b AS b FROM (SELECT a AS a, b AS b FROM foo ORDER BY a ASC) AS sub ORDER BY b ASC"),
+        input = "SELECT b AS b FROM (SELECT a AS a, b AS b FROM foo ORDER BY 1) AS sub ORDER BY 1",
+    );
+    test_rewrite!(
         reference_aliases_not_modified,
         pass = PositionalSortKeyRewritePass,
         expected = Ok("SELECT a AS a FROM foo ORDER BY a ASC, one ASC"),
@@ -98,10 +136,16 @@ mod positional_sort_key {
         input = "SELECT VALUE {'a': a} FROM foo ORDER BY 1",
     );
     test_rewrite!(
-        select_star_fails,
+        select_star_from_derived_outer_order_fails,
         pass = PositionalSortKeyRewritePass,
         expected = Err(Error::PositionalSortKeyWithSelectStar),
-        input = "SELECT * FROM foo ORDER BY 1",
+        input = "SELECT * FROM (SELECT a AS a FROM foo) AS sub ORDER BY 1",
+    );
+    test_rewrite!(
+        select_star_from_derived_inner_order_rewrites,
+        pass = PositionalSortKeyRewritePass,
+        expected = Ok("SELECT * FROM (SELECT a AS a FROM foo ORDER BY a ASC) AS sub"),
+        input = "SELECT * FROM (SELECT a AS a FROM foo ORDER BY 1) AS sub",
     );
 }
 
