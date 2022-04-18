@@ -4,7 +4,7 @@ use crate::ast::{
     visitor::Visitor,
 };
 
-/// Finds all expressions of the form `<expr> IN (<e1>, <e2>, ...)` and rewrites them to `<expr> = ANY (SELECT _1 FROM [{'_1': <e1>}, {'_1': <e2>}, ...] AS _arr)`.
+/// Finds all expressions of the form `<expr> [NOT] IN (<e1>, <e2>, ...)` and rewrites them to `<expr> [NOT] IN (SELECT _1 FROM [{'_1': <e1>}, {'_1': <e2>}, ...] AS _arr)`.
 pub struct InTupleRewritePass;
 
 impl Pass for InTupleRewritePass {
@@ -44,7 +44,7 @@ impl Visitor for InTupleRewriteVisitor {
             return node;
         };
 
-        // Build the AST for a FROM clause representing `SELECT _1`.
+        // Build the AST for a SELECT clause representing `SELECT _1`.
         let select_clause = SelectClause {
             set_quantifier: SetQuantifier::All,
             body: SelectBody::Standard(vec![SelectExpression::Expression(
@@ -81,18 +81,10 @@ impl Visitor for InTupleRewriteVisitor {
             offset: None,
         });
 
-        // Build the AST for a subquery comparison representing `<left> = ANY <subquery>`
-        // or `<left> <> ALL <subquery>`. Return it as a replacement for the original
-        // `IN` or `NOT IN` expression.
-        let (op, quantifier) = match expr.op {
-            BinaryOp::In => (ComparisonOp::Eq, SubqueryQuantifier::Any),
-            _ => (ComparisonOp::Neq, SubqueryQuantifier::All),
-        };
-        Expression::SubqueryComparison(SubqueryComparisonExpr {
-            expr: expr.left,
-            op,
-            quantifier,
-            subquery: Box::new(subquery),
+        Expression::Binary(BinaryExpr {
+            left: expr.left,
+            op: expr.op,
+            right: Box::new(Expression::Subquery(Box::new(subquery))),
         })
     }
 }

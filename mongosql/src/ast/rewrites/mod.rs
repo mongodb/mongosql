@@ -51,13 +51,13 @@ pub trait Pass {
 /// Rewrite the provided query by applying rewrites as specified in the MongoSQL spec.
 pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
     let passes: Vec<&dyn Pass> = vec![
+        &InTupleRewritePass,
+        &SingleTupleRewritePass,
         &AddAliasRewritePass,
         &PositionalSortKeyRewritePass,
         &AggregateRewritePass,
         &SelectRewritePass,
         &ImplicitFromRewritePass,
-        &InTupleRewritePass,
-        &SingleTupleRewritePass,
         &TableSubqueryRewritePass,
     ];
 

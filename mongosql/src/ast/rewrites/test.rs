@@ -378,25 +378,25 @@ mod in_tuple {
     test_rewrite!(
         one_element_tuple,
         pass = InTupleRewritePass,
-        expected = Ok("SELECT a = ANY(SELECT _1 FROM [{'_1': b}] AS _arr)"),
+        expected = Ok("SELECT a IN (SELECT _1 FROM [{'_1': b}] AS _arr)"),
         input = "SELECT a IN (b)",
     );
     test_rewrite!(
         two_element_tuple,
         pass = InTupleRewritePass,
-        expected = Ok("SELECT a = ANY(SELECT _1 FROM [{'_1': b}, {'_1': c}] AS _arr)"),
+        expected = Ok("SELECT a IN (SELECT _1 FROM [{'_1': b}, {'_1': c}] AS _arr)"),
         input = "SELECT a IN (b, c)",
     );
     test_rewrite!(
         one_element_tuple_not_in,
         pass = InTupleRewritePass,
-        expected = Ok("SELECT a <> ALL(SELECT _1 FROM [{'_1': b}] AS _arr)"),
+        expected = Ok("SELECT a NOT IN (SELECT _1 FROM [{'_1': b}] AS _arr)"),
         input = "SELECT a NOT IN (b)",
     );
     test_rewrite!(
         nested,
         pass = InTupleRewritePass,
-        expected = Ok("SELECT a = ANY(SELECT _1 FROM [{'_1': b = ANY(SELECT _1 FROM [{'_1': c}] AS _arr)}] AS _arr)"),
+        expected = Ok("SELECT a IN (SELECT _1 FROM [{'_1': b IN (SELECT _1 FROM [{'_1': c}] AS _arr)}] AS _arr)"),
         input = "SELECT a IN (b IN (c))",
     );
     test_rewrite!(
