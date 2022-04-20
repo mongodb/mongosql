@@ -435,6 +435,7 @@ tasks:
     depends_on:
       - name: compile
     commands:
+      - func: "install rust toolchain"
       - func: "download c library"
       - func: "run spec tests"
       - func: "upload spec test results"
