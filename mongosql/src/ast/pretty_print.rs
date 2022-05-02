@@ -538,6 +538,7 @@ enum ExpressionTier {
     Tier11,
     Tier12,
     Tier13,
+    Tier14,
     Bottom,
 }
 
@@ -564,13 +565,24 @@ impl BinaryOp {
         use BinaryOp::*;
         use ExpressionTier::*;
         match self {
-            In | NotIn => Tier4,
-            Or => Tier5,
-            And => Tier6,
-            Comparison(_) => Tier7,
-            Concat => Tier8,
-            Add | Sub => Tier9,
-            Mul | Div => Tier10,
+            In | NotIn => Tier6,
+            Or => Tier1,
+            And => Tier2,
+            Comparison(_) => Tier8,
+            Concat => Tier9,
+            Add | Sub => Tier10,
+            Mul | Div => Tier11,
+        }
+    }
+}
+
+impl UnaryOp {
+    fn get_tier(&self) -> ExpressionTier {
+        use ExpressionTier::*;
+        use UnaryOp::*;
+        match self {
+            Not => Tier3,
+            Pos | Neg => Tier12,
         }
     }
 }
@@ -583,37 +595,37 @@ impl BinaryExpr {
 
 impl UnaryExpr {
     fn get_tier(&self) -> ExpressionTier {
-        ExpressionTier::Tier11
+        self.op.get_tier()
     }
 }
 
 impl LikeExpr {
     fn get_tier(&self) -> ExpressionTier {
-        ExpressionTier::Tier1
+        ExpressionTier::Tier5
     }
 }
 
 impl IsExpr {
     fn get_tier(&self) -> ExpressionTier {
-        ExpressionTier::Tier2
+        ExpressionTier::Tier4
     }
 }
 
 impl BetweenExpr {
     fn get_tier(&self) -> ExpressionTier {
-        ExpressionTier::Tier3
+        ExpressionTier::Tier7
     }
 }
 
 impl SubqueryComparisonExpr {
     fn get_tier(&self) -> ExpressionTier {
-        ExpressionTier::Tier7
+        ExpressionTier::Tier8
     }
 }
 
 impl TypeAssertionExpr {
     fn get_tier(&self) -> ExpressionTier {
-        ExpressionTier::Tier12
+        ExpressionTier::Tier13
     }
 }
 
@@ -641,7 +653,7 @@ impl Expression {
 
 impl SubpathExpr {
     fn get_tier(&self) -> ExpressionTier {
-        ExpressionTier::Tier13
+        ExpressionTier::Tier14
     }
 }
 
@@ -949,11 +961,10 @@ impl PrettyPrint for TrimSpec {
 impl PrettyPrint for BetweenExpr {
     fn pretty_print(&self) -> Result<String> {
         let between_tier = self.get_tier();
-        let sub_tier = BinaryOp::And.get_tier();
         let (formatted_expr, formatted_min, formatted_max) = (
             between_tier.format_sub_expr(&*self.expr)?,
-            sub_tier.format_sub_expr(&*self.min)?,
-            sub_tier.format_sub_expr(&*self.max)?,
+            between_tier.format_sub_expr(&*self.min)?,
+            between_tier.format_sub_expr(&*self.max)?,
         );
         Ok(format!(
             "{} BETWEEN {} AND {}",

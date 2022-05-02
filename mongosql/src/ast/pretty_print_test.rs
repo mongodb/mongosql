@@ -476,29 +476,29 @@ expression_printer_test!(
 expression_printer_test!(empty_identifier, expected = "``", input = "``");
 expression_printer_test!(
     is_missing,
-    expected = "true AND (x IS MISSING)",
+    expected = "true AND x IS MISSING",
     input = "true AND (x IS MISSING)"
 );
 expression_printer_test!(
     is_type,
-    expected = "true AND (x IS INT)",
+    expected = "true AND x IS INT",
     input = "true AND (x IS int)"
 );
 
 expression_printer_test!(
     like_simple,
-    expected = "true AND (x LIKE '%hello%')",
+    expected = "true AND x LIKE '%hello%'",
     input = "true AND (x LIKE '%hello%')"
 );
 expression_printer_test!(
     like_escape,
-    expected = "true AND (x LIKE '%hello%' ESCAPE '@')",
+    expected = "true AND x LIKE '%hello%' ESCAPE '@'",
     input = "true AND (x LIKE '%hello%' ESCAPE '@')"
 );
 
 expression_printer_test!(
     like_escape_with_single_quote,
-    expected = "true AND (x LIKE '%hello%' ESCAPE '''')",
+    expected = "true AND x LIKE '%hello%' ESCAPE ''''",
     input = "true AND (x LIKE '%hello%' ESCAPE '''')"
 );
 
@@ -699,11 +699,6 @@ expression_printer_test!(
     unary_positive_sub_function,
     expected = "4 - - SUM(bar)",
     input = "4 - - SUM(bar)"
-);
-expression_printer_test!(
-    unary_not_sub_function,
-    expected = "4 - NOT SUM(bar)",
-    input = "4 - not SUM(bar)"
 );
 
 expression_printer_test!(
@@ -1118,8 +1113,8 @@ expression_printer_test!(
     input = "(x BETWEEN y AND z) IS INT"
 );
 expression_printer_test!(
-    is_is_higher_prec_than_like,
-    expected = "(x LIKE y) IS BOOL",
+    is_is_lower_prec_than_like,
+    expected = "x LIKE y IS BOOL",
     input = "(x LIKE y) IS BOOL"
 );
 expression_printer_test!(

@@ -18,40 +18,6 @@ pub fn process_delimited_ident(value: &str) -> String {
     }
 }
 
-pub fn parse_between_expr(
-    e1: Box<Expression>,
-    e2: Expression,
-    not: bool,
-) -> Result<Box<Expression>, LalrpopError<'static>> {
-    match e2 {
-        Expression::Binary(BinaryExpr { left, op, right }) => {
-            if op != BinaryOp::And {
-                Err(LalrpopError::from(
-                    "invalid BinaryOp in BetweenExpr".to_string(),
-                ))
-            } else if not {
-                Ok(Box::new(Expression::Unary(UnaryExpr {
-                    op: UnaryOp::Not,
-                    expr: Box::new(Expression::Between(BetweenExpr {
-                        expr: e1,
-                        min: left,
-                        max: right,
-                    })),
-                })))
-            } else {
-                Ok(Box::new(Expression::Between(BetweenExpr {
-                    expr: e1,
-                    min: left,
-                    max: right,
-                })))
-            }
-        }
-        _ => Err(LalrpopError::from(
-            "failed to parse BetweenExpr".to_string(),
-        )),
-    }
-}
-
 pub fn parse_position_func(e: Expression) -> Result<FunctionExpr, LalrpopError<'static>> {
     match e {
         Expression::Binary(BinaryExpr { left, op, right }) => {

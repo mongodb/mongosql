@@ -594,95 +594,6 @@ mod operator {
     );
 
     validate_ast!(
-        binary_sub_unary_neg_ast,
-        method = parse_expression,
-        expected = Expression::Binary(BinaryExpr {
-            left: Box::new(Expression::Identifier("b".to_string())),
-            op: BinaryOp::Sub,
-            right: Box::new(Expression::Unary(UnaryExpr {
-                op: UnaryOp::Neg,
-                expr: Box::new(Expression::Identifier("a".to_string()))
-            }))
-        }),
-        input = "b- -a",
-    );
-
-    validate_ast!(
-        binary_mul_add_ast,
-        method = parse_expression,
-        expected = Expression::Binary(BinaryExpr {
-            left: Box::new(Expression::Binary(BinaryExpr {
-                left: Box::new(Expression::Identifier("c".to_string())),
-                op: BinaryOp::Mul,
-                right: Box::new(Expression::Identifier("a".to_string()))
-            })),
-            op: BinaryOp::Add,
-            right: Box::new(Expression::Identifier("b".to_string()))
-        }),
-        input = "c*a+b",
-    );
-
-    validate_ast!(
-        binary_add_concat_ast,
-        method = parse_expression,
-        expected = Expression::Binary(BinaryExpr {
-            left: Box::new(Expression::Binary(BinaryExpr {
-                left: Box::new(Expression::Identifier("a".to_string())),
-                op: BinaryOp::Add,
-                right: Box::new(Expression::Identifier("b".to_string()))
-            })),
-            op: BinaryOp::Concat,
-            right: Box::new(Expression::Identifier("c".to_string()))
-        }),
-        input = "a+b||c",
-    );
-
-    validate_ast!(
-        binary_concat_compare_ast,
-        method = parse_expression,
-        expected = Expression::Binary(BinaryExpr {
-            left: Box::new(Expression::Identifier("c".to_string())),
-            op: BinaryOp::Comparison(ComparisonOp::Gt),
-            right: Box::new(Expression::Binary(BinaryExpr {
-                left: Box::new(Expression::Identifier("a".to_string())),
-                op: BinaryOp::Concat,
-                right: Box::new(Expression::Identifier("b".to_string()))
-            }))
-        }),
-        input = "c>a||b",
-    );
-
-    validate_ast!(
-        binary_compare_and_ast,
-        method = parse_expression,
-        expected = Expression::Binary(BinaryExpr {
-            left: Box::new(Expression::Binary(BinaryExpr {
-                left: Box::new(Expression::Identifier("a".to_string())),
-                op: BinaryOp::Comparison(ComparisonOp::Lt),
-                right: Box::new(Expression::Identifier("b".to_string()))
-            })),
-            op: BinaryOp::And,
-            right: Box::new(Expression::Identifier("c".to_string()))
-        }),
-        input = "a<b AND c",
-    );
-
-    validate_ast!(
-        binary_and_or_ast,
-        method = parse_expression,
-        expected = Expression::Binary(BinaryExpr {
-            left: Box::new(Expression::Binary(BinaryExpr {
-                left: Box::new(Expression::Identifier("a".to_string())),
-                op: BinaryOp::And,
-                right: Box::new(Expression::Identifier("b".to_string()))
-            })),
-            op: BinaryOp::Or,
-            right: Box::new(Expression::Identifier("b".to_string()))
-        }),
-        input = "a AND b OR b",
-    );
-
-    validate_ast!(
         between_ast,
         method = parse_expression,
         expected = Expression::Between(BetweenExpr {
@@ -751,6 +662,273 @@ mod operator {
             else_branch: Some(Box::new(Expression::Identifier("c".to_string())))
         }),
         input = "case a when a=b then a else c end",
+    );
+}
+
+mod operator_precedence {
+    use crate::ast::*;
+    use crate::parser::Parser;
+
+    validate_ast!(
+        comparison_binds_more_tightly_than_between,
+        method = parse_expression,
+        expected = Expression::Between(BetweenExpr {
+            expr: Box::new(Expression::Binary(BinaryExpr {
+                left: Box::new(Expression::Identifier("a".to_string())),
+                op: BinaryOp::Comparison(ComparisonOp::Eq),
+                right: Box::new(Expression::Identifier("b".to_string()))
+            })),
+            min: Box::new(Expression::Identifier("c".to_string())),
+            max: Box::new(Expression::Identifier("d".to_string()))
+        }),
+        input = "a = b BETWEEN c AND d",
+    );
+
+    validate_ast!(
+        between_binds_more_tightly_than_in,
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Between(BetweenExpr {
+                expr: Box::new(Expression::Identifier("a".to_string())),
+                min: Box::new(Expression::Identifier("b".to_string())),
+                max: Box::new(Expression::Identifier("c".to_string()))
+            })),
+            op: BinaryOp::In,
+            right: Box::new(Expression::Tuple(vec![
+                Expression::Identifier("x".to_string()),
+                Expression::Identifier("y".to_string())
+            ]))
+        }),
+        input = "a BETWEEN b AND c IN (x, y)",
+    );
+
+    validate_ast!(
+        in_binds_more_tightly_than_like,
+        method = parse_expression,
+        expected = Expression::Like(LikeExpr {
+            expr: Box::new(Expression::Identifier("a".to_string())),
+            pattern: Box::new(Expression::Binary(BinaryExpr {
+                left: Box::new(Expression::Identifier("x".to_string())),
+                op: BinaryOp::In,
+                right: Box::new(Expression::Tuple(vec![
+                    Expression::Identifier("y".to_string()),
+                    Expression::Identifier("z".to_string()),
+                ]))
+            })),
+            escape: None
+        }),
+        input = "a LIKE x IN (y, z)",
+    );
+
+    validate_ast!(
+        like_binds_more_tightly_than_is,
+        method = parse_expression,
+        expected = Expression::Is(IsExpr {
+            expr: Box::new(Expression::Like(LikeExpr {
+                expr: Box::new(Expression::Identifier("a".to_string())),
+                pattern: Box::new(Expression::Identifier("b".to_string())),
+                escape: None,
+            })),
+            target_type: TypeOrMissing::Type(Type::Null)
+        }),
+        input = "a LIKE b IS NULL",
+    );
+
+    validate_ast!(
+        is_binds_more_tightly_than_not,
+        method = parse_expression,
+        expected = Expression::Unary(UnaryExpr {
+            op: UnaryOp::Not,
+            expr: Box::new(Expression::Is(IsExpr {
+                expr: Box::new(Expression::Identifier("a".to_string())),
+                target_type: TypeOrMissing::Type(Type::Null)
+            }))
+        }),
+        input = "NOT a IS NULL",
+    );
+
+    validate_ast!(
+        not_binds_more_tightly_than_and,
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Unary(UnaryExpr {
+                op: UnaryOp::Not,
+                expr: Box::new(Expression::Identifier("a".to_string())),
+            })),
+            op: BinaryOp::And,
+            right: Box::new(Expression::Identifier("b".to_string()))
+        }),
+        input = "NOT a AND b",
+    );
+
+    validate_ast!(
+        and_binds_more_tightly_than_or,
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Binary(BinaryExpr {
+                left: Box::new(Expression::Identifier("a".to_string())),
+                op: BinaryOp::And,
+                right: Box::new(Expression::Identifier("b".to_string()))
+            })),
+            op: BinaryOp::Or,
+            right: Box::new(Expression::Identifier("c".to_string()))
+        }),
+        input = "a AND b OR c",
+    );
+
+    validate_ast!(
+        binary_arithmetic_binds_more_tightly_than_unary_not,
+        method = parse_expression,
+        expected = Expression::Unary(UnaryExpr {
+            op: UnaryOp::Not,
+            expr: Box::new(Expression::Binary(BinaryExpr {
+                left: Box::new(Expression::Identifier("a".to_string())),
+                op: BinaryOp::Mul,
+                right: Box::new(Expression::Identifier("b".to_string()))
+            }))
+        }),
+        input = "NOT a * b",
+    );
+
+    validate_ast!(
+        unary_binds_more_tightly_than_binary_sub,
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Identifier("b".to_string())),
+            op: BinaryOp::Sub,
+            right: Box::new(Expression::Unary(UnaryExpr {
+                op: UnaryOp::Neg,
+                expr: Box::new(Expression::Identifier("a".to_string()))
+            }))
+        }),
+        input = "b- -a",
+    );
+
+    validate_ast!(
+        unary_binds_more_tightly_than_binary_div,
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Unary(UnaryExpr {
+                op: UnaryOp::Neg,
+                expr: Box::new(Expression::Identifier("a".to_string()))
+            })),
+            op: BinaryOp::Div,
+            right: Box::new(Expression::Identifier("b".to_string()))
+        }),
+        input = "-a/b",
+    );
+
+    validate_ast!(
+        binary_mul_add_ast,
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Binary(BinaryExpr {
+                left: Box::new(Expression::Identifier("a".to_string())),
+                op: BinaryOp::Mul,
+                right: Box::new(Expression::Identifier("b".to_string()))
+            })),
+            op: BinaryOp::Add,
+            right: Box::new(Expression::Binary(BinaryExpr {
+                left: Box::new(Expression::Identifier("x".to_string())),
+                op: BinaryOp::Mul,
+                right: Box::new(Expression::Identifier("y".to_string()))
+            }))
+        }),
+        input = "a*b+x*y",
+    );
+
+    validate_ast!(
+        binary_div_sub_ast,
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Binary(BinaryExpr {
+                left: Box::new(Expression::Identifier("a".to_string())),
+                op: BinaryOp::Div,
+                right: Box::new(Expression::Identifier("b".to_string()))
+            })),
+            op: BinaryOp::Sub,
+            right: Box::new(Expression::Binary(BinaryExpr {
+                left: Box::new(Expression::Identifier("x".to_string())),
+                op: BinaryOp::Div,
+                right: Box::new(Expression::Identifier("y".to_string()))
+            }))
+        }),
+        input = "a/b-x/y",
+    );
+
+    validate_ast!(
+        binary_add_concat_ast,
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Binary(BinaryExpr {
+                left: Box::new(Expression::Identifier("a".to_string())),
+                op: BinaryOp::Add,
+                right: Box::new(Expression::Identifier("b".to_string()))
+            })),
+            op: BinaryOp::Concat,
+            right: Box::new(Expression::Identifier("c".to_string()))
+        }),
+        input = "a+b||c",
+    );
+
+    validate_ast!(
+        binary_concat_compare_ast,
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Identifier("c".to_string())),
+            op: BinaryOp::Comparison(ComparisonOp::Gt),
+            right: Box::new(Expression::Binary(BinaryExpr {
+                left: Box::new(Expression::Identifier("a".to_string())),
+                op: BinaryOp::Concat,
+                right: Box::new(Expression::Identifier("b".to_string()))
+            }))
+        }),
+        input = "c>a||b",
+    );
+
+    validate_ast!(
+        binary_compare_and_ast,
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Binary(BinaryExpr {
+                left: Box::new(Expression::Identifier("a".to_string())),
+                op: BinaryOp::Comparison(ComparisonOp::Lt),
+                right: Box::new(Expression::Identifier("b".to_string()))
+            })),
+            op: BinaryOp::And,
+            right: Box::new(Expression::Identifier("c".to_string()))
+        }),
+        input = "a<b AND c",
+    );
+
+    validate_ast!(
+        cast_precedence_binary,
+        method = parse_expression,
+        expected = Expression::Binary(BinaryExpr {
+            left: Box::new(Expression::Identifier("a".to_string())),
+            op: BinaryOp::Mul,
+            right: Box::new(Expression::Cast(CastExpr {
+                expr: Box::new(Expression::Identifier("b".to_string())),
+                to: Type::Int32,
+                on_null: None,
+                on_error: None,
+            }))
+        }),
+        input = "a * b::int",
+    );
+    validate_ast!(
+        cast_precedence_unary,
+        method = parse_expression,
+        expected = Expression::Unary(UnaryExpr {
+            op: UnaryOp::Not,
+            expr: Box::new(Expression::Cast(CastExpr {
+                expr: Box::new(Expression::Identifier("a".to_string())),
+                to: Type::Boolean,
+                on_null: None,
+                on_error: None,
+            }))
+        }),
+        input = "NOT a::bool",
     );
 }
 
@@ -1401,7 +1579,7 @@ mod scalar_function {
     parsable!(
         position_binary_or,
         expected = true,
-        input = "select position(a OR b IN expected = true)"
+        input = "select position((a OR b) IN expected = true)"
     );
     parsable!(
         position_binary_compare,
@@ -2032,6 +2210,7 @@ mod from {
         input = "SELECT * FROM foo NATURAL JOIN bar"
     );
 }
+
 mod where_test {
     use crate::ast::*;
     use crate::parser::{Error, Parser};
@@ -2520,35 +2699,6 @@ mod type_conversion {
             )))),
         }),
         input = "CAST(v AS DECIMAL(1), 'null' ON NULL, 'error' ON ERROR)",
-    );
-    validate_ast!(
-        cast_precedence_binary,
-        method = parse_expression,
-        expected = Expression::Binary(BinaryExpr {
-            left: Box::new(Expression::Identifier("a".to_string())),
-            op: BinaryOp::Mul,
-            right: Box::new(Expression::Cast(CastExpr {
-                expr: Box::new(Expression::Identifier("b".to_string())),
-                to: Type::Int32,
-                on_null: None,
-                on_error: None,
-            }))
-        }),
-        input = "a * b::int",
-    );
-    validate_ast!(
-        cast_precedence_unary,
-        method = parse_expression,
-        expected = Expression::Unary(UnaryExpr {
-            op: UnaryOp::Not,
-            expr: Box::new(Expression::Cast(CastExpr {
-                expr: Box::new(Expression::Identifier("a".to_string())),
-                to: Type::Boolean,
-                on_null: None,
-                on_error: None,
-            }))
-        }),
-        input = "NOT a::bool",
     );
 }
 

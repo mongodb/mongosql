@@ -889,7 +889,7 @@ impl MqlCodeGenerator {
                             sa.function.mql_op().unwrap(): {
                                 "dividend": self.codegen_expression(sa.args[0].clone())?,
                                 "divisor": self.codegen_expression(sa.args[1].clone())?,
-                                "onError": Bson::Null
+                                "onError": {"$literal": Bson::Null}
                             }
                         })
                     }

@@ -86,7 +86,7 @@ UnwindDatasource: Datasource = {
 }
 
 UnwindOption: UnwindOption = {
-  PATH ARROW <p:Tier13Expr> =>? parse_unwind_path(*p),
+  PATH ARROW <p:Tier14Expr> =>? parse_unwind_path(*p),
   INDEX ARROW <i:Identifier> => UnwindOption::Index(i),
   OUTER ARROW <o:Boolean> => UnwindOption::Outer(o)
 }
@@ -128,7 +128,7 @@ SortSpec: SortSpec = {
 }
 
 SortKey: SortKey = {
-  Tier13Expr =>? parse_sort_key(*<>),
+  Tier14Expr =>? parse_sort_key(*<>),
 }
 
 SortDirection: SortDirection = {
@@ -302,10 +302,10 @@ Extract: ExtractExpr = {
   },
 }
 
-// This production uses `Tier4Expr` instead of `Expression IN Expression` to avoid
+// This production uses `Tier6Expr` instead of `Expression IN Expression` to avoid
 // shift-reduce conflicts with IN predicate subqueries.
 Position: FunctionExpr = {
-  POSITION LEFT_PAREN <e:Tier4Expr> RIGHT_PAREN =>? parse_position_func(*e),
+  POSITION LEFT_PAREN <e:Tier6Expr> RIGHT_PAREN =>? parse_position_func(*e),
 }
 
 Substring: FunctionExpr = {
@@ -361,11 +361,11 @@ DocumentExpr: Expression = {
   		Expression::Document(l.into_iter().map(|(k,v)| DocumentPair{key: k, value: v}).collect())
 }
 
-// This production uses Tier12Expr instead of Expression to avoid shift-reduce conflicts
-// with other Expressions. We're specifically using Tier12Expr because the LHS cannot be
+// This production uses Tier13Expr instead of Expression to avoid shift-reduce conflicts
+// with other Expressions. We're specifically using Tier13Expr because the LHS cannot be
 // a Binary or Unary expr.
 AccessExpr: AccessExpr = {
-  <e:Tier12Expr> LEFT_BRACKET <s:Expression> RIGHT_BRACKET => AccessExpr{expr:e, subfield:Box::new(s)},
+  <e:Tier13Expr> LEFT_BRACKET <s:Expression> RIGHT_BRACKET => AccessExpr{expr:e, subfield:Box::new(s)},
 }
 
 Identifier: String = {
@@ -423,9 +423,22 @@ TypeTier<Expr, NextTier>: Box<Expression> = {
     NextTier,
 };
 
-BetweenTier<Expr, ArgTier, NextTier>: Box<Expression> = {
-  <e1:BetweenTier<Expr, ArgTier, NextTier>> BETWEEN <e2:ArgTier> =>? parse_between_expr(e1, *e2, false),
-  <e1:BetweenTier<Expr, ArgTier, NextTier>> <n:NotOp> BETWEEN <e2:ArgTier> =>? parse_between_expr(e1, *e2, true),
+BetweenTier<Expr, NextTier>: Box<Expression> = {
+  <e1:BetweenTier<Expr, NextTier>> BETWEEN <e2:NextTier> AND <e3:NextTier> =>
+      Box::new(Expression::Between(BetweenExpr {
+          expr: e1,
+          min: e2,
+          max: e3,
+      })),
+  <e1:BetweenTier<Expr, NextTier>> <n:NotOp> BETWEEN <e2:NextTier> AND <e3:NextTier> =>
+      Box::new(Expression::Unary(UnaryExpr {
+          op: UnaryOp::Not,
+          expr: Box::new(Expression::Between(BetweenExpr {
+              expr: e1,
+              min: e2,
+              max: e3,
+          })),
+      })),
   NextTier,
 }
 
@@ -451,19 +464,20 @@ LikeTier<Expr, NextTier>: Box<Expression> = {
   NextTier,
 }
 
-Tier1Expr = LikeTier<Expression, Tier2Expr>;
-Tier2Expr = IsTier<Expression, Tier3Expr>;
-Tier3Expr = BetweenTier<Expression, Tier6Expr, Tier4Expr>;
-Tier4Expr = BinaryTier<InOp, Tier5Expr>;
-Tier5Expr = BinaryTier<OrOp, Tier6Expr>;
-Tier6Expr = BinaryTier<AndOp, Tier7Expr>;
-Tier7Expr = ComparisonTier<Expression, Tier8Expr>;
-Tier8Expr = BinaryTier<ConcatOp, Tier9Expr>;
-Tier9Expr = BinaryTier<AddOp, Tier10Expr>;
-Tier10Expr = BinaryTier<MulOp, Tier11Expr>;
-Tier11Expr = UnaryTier<UnaryOp, Tier12Expr>;
-Tier12Expr = TypeTier<Expression, Tier13Expr>;
-Tier13Expr = SubpathTier<Expression, BottomExpr>;
+Tier1Expr = BinaryTier<OrOp, Tier2Expr>;
+Tier2Expr = BinaryTier<AndOp, Tier3Expr>;
+Tier3Expr = UnaryTier<NotOp, Tier4Expr>;
+Tier4Expr = IsTier<Expression, Tier5Expr>;
+Tier5Expr = LikeTier<Expression, Tier6Expr>;
+Tier6Expr = BinaryTier<InOp, Tier7Expr>;
+Tier7Expr = BetweenTier<Expression, Tier8Expr>;
+Tier8Expr = ComparisonTier<Expression, Tier9Expr>;
+Tier9Expr = BinaryTier<ConcatOp, Tier10Expr>;
+Tier10Expr = BinaryTier<AddOp, Tier11Expr>;
+Tier11Expr = BinaryTier<MulOp, Tier12Expr>;
+Tier12Expr = UnaryTier<UnaryOp, Tier13Expr>;
+Tier13Expr = TypeTier<Expression, Tier14Expr>;
+Tier14Expr = SubpathTier<Expression, BottomExpr>;
 
 BottomExpr: Box<Expression> = {
   AccessExpr => Box::new(Expression::Access(<>)),
@@ -529,8 +543,7 @@ NotOp: UnaryOp = {
 
 UnaryOp: UnaryOp = {
   ADD => UnaryOp::Pos,
-  SUB => UnaryOp::Neg,
-  NotOp,
+  SUB => UnaryOp::Neg
 }
 
 Literal: Literal = {

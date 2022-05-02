@@ -1,0 +1,415 @@
+catalog_data:
+  db:
+    and_or_tier:
+      - {'_id': 0, 'a': false, 'b': true, 'c': true}
+      - {'_id': 1, 'a': false, 'b': false, 'c': true}
+    not_and_tier:
+      - {'_id': 0, 'a': true, 'b': false}
+      - {'_id': 1, 'a': true, 'b': null}
+      - {'_id': 2, 'a': false, 'b': null}
+    mul_add_tier:
+      - {'_id': 0, 'a': 1, 'b': 1, 'c': 1}
+      - {'_id': 1, 'a': 6, 'b': 3, 'c': 3}
+    subpath_type_tier:
+      - {'_id': 0, 'a': {'b': true, 'c': 1}}
+
+catalog_schema:
+  {
+    'db': {
+      'and_or_tier': {
+        'bsonType': 'object',
+        'required': [ '_id', 'a', 'b', 'c' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': 'int'
+          },
+          'a': { 'bsonType': 'bool' },
+          'b': { 'bsonType': 'bool' },
+          'c': { 'bsonType': 'bool' }
+        }
+      },
+      'not_and_tier': {
+        'bsonType': 'object',
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': 'int'
+          },
+          'a': { 'bsonType': 'bool' },
+          'b': {
+            'anyOf': [
+              { 'bsonType': 'bool' },
+              { 'bsonType': !!str "null" }
+            ]
+          }
+        }
+      },
+      'mul_add_tier': {
+        'bsonType': 'object',
+        'required': [ '_id', 'a', 'b', 'c' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': {
+            'bsonType': 'int'
+          },
+          'a': { 'bsonType': 'int' },
+          'b': { 'bsonType': 'int' },
+          'c': { 'bsonType': 'int' }
+        }
+      }
+    }
+  }
+
+tests:
+  # The expression
+  #
+  #   a AND b OR c
+  #
+  # is parsed as
+  #
+  #   (a AND b) OR c
+  #
+  # not as
+  #
+  #   a AND (b OR c)
+  - description: AND binds tighter than OR
+    current_db: db
+    query: "SELECT VALUE {'a': a, 'b': b, 'c': c, 'v': a AND b OR c, 'alt': a AND (b OR c)} FROM and_or_tier AS coll"
+    translation_target_db: db
+    translation_target_coll: and_or_tier
+    translation:
+      - {'$project': {'_id': 0, 'and_or_tier': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'coll': '$and_or_tier'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$coll.a', 'b': '$coll.b', 'c': '$coll.c',
+                                          'v': {'$sqlOr': [{'$sqlAnd': ['$coll.a', '$coll.b']}, '$coll.c']},
+                                          'alt': {'$sqlAnd': ['$coll.a', {'$sqlOr': ['$coll.b', '$coll.c']}]},
+      }}}
+      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
+            {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
+        }}}
+    result:
+      - {'': {'a': false, 'b': true, 'c': true, 'v': true, 'alt': false}}
+      - {'': {'a': false, 'b': false, 'c': true, 'v': true, 'alt': false}}
+
+  # The expression
+  #
+  #   NOT a AND b
+  #
+  # is parsed as
+  #
+  #   (NOT a) AND b
+  #
+  # not as
+  #
+  #   NOT (a AND b)
+  - description: NOT binds tighter than AND
+    current_db: db
+    query: "SELECT VALUE {'a': a, 'b': b, 'v': NOT a AND b, 'alt': NOT (a AND b)} FROM not_and_tier AS coll"
+    translation_target_db: db
+    translation_target_coll: not_and_tier
+    translation:
+      - {'$project': {'_id': 0, 'not_and_tier': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'coll': '$not_and_tier'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$coll.a', 'b': '$coll.b',
+                                          'v': {'$sqlAnd': [{'$sqlNot': ['$coll.a']}, '$coll.b']},
+                                          'alt': {'$sqlNot': [{'$sqlAnd': ['$coll.a', '$coll.b']}]}
+      }}}
+      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
+            {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
+        }}}
+    result:
+      - {'': {'a': true, 'b': false, 'v': false, 'alt': true}}
+      - {'': {'a': true, 'b': null, 'v': false, 'alt': null}}
+      - {'': {'a': false, 'b': null, 'v': null, 'alt': true}}
+
+  # The expression
+  #
+  #   NOT a IS <type>
+  #
+  # is parsed as
+  #
+  #   NOT (a IS <type>)
+  #
+  # not as
+  #
+  #   (NOT a) IS <type>
+  - description: IS binds tighter than NOT
+    current_db: db
+    query: "SELECT VALUE {'a': a, 'v': NOT a IS BOOL, 'alt': (NOT a) IS BOOL} FROM [{'a': true}, {'a': null}] AS arr"
+    translation_target_db: db
+    translation:
+      - {'$documents': [{'a': {'$literal': true}}, {'a': {'$literal': null}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a',
+                                          'v': {'$sqlNot': [{'$eq': [{'$type': '$arr.a'}, 'bool']}]},
+                                          'alt': {'$eq': [{'$type': {'$sqlNot': ['$arr.a']}}, 'bool']}
+      }}}
+      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
+        {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
+      }}}
+    result:
+      - {'': {'a': true, 'v': false, 'alt': true}}
+      - {'': {'a': null, 'v': true, 'alt': false}}
+
+  # The expression
+  #
+  #   a LIKE b IS <type>
+  #
+  # is parsed as
+  #
+  #   (a LIKE b) IS <type>
+  #
+  # not as
+  #
+  #   a LIKE (b IS <type>)
+  - description: LIKE binds tighter than IS
+    current_db: db
+    query: "SELECT VALUE {'a': a, 'b': b, 'v': a LIKE b IS NULL} FROM [{'a': 'str', 'b': 'str'}, {'a': 'str', 'b': null}] AS arr"
+    skip_reason: "SQL-330: Update $like desugarer to work for non-literal patterns"
+    translation_target_db: db
+    translation:
+      - {'$documents': [{'a': {'$literal': true}, 'b': {'$literal': 1}}, {'a': {'$literal': true}, 'b': {'$literal': null}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'b': '$arr.b', 'v': {'$eq': [{'$type': {'$like': {'input': '$arr.a', 'pattern': '$arr.b'}}}, 'null']}}}}
+      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
+        {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
+      }}}
+    result:
+      - {'': {'a': 'str', 'b': 'str', 'v': false}}
+      - {'': {'a': 'str', 'b': null, 'v': true}}
+
+  # The expression
+  #
+  #   a LIKE b IN <tuple>
+  #
+  # is parsed as
+  #
+  #   a LIKE (b IN <tuple>)
+  #
+  # not as
+  #
+  #   (a LIKE b) IN <tuple>
+  #
+  # This test breaks the convention of using "core syntax" in the query field.
+  # <expr> IN <tuple> is syntactically rewritten to <expr> = ANY <subquery> in
+  # the "core syntax". Here, though, we leave IN in the query intentionally to
+  # show precedence behavior.
+  - description: IN binds tighter than LIKE
+    current_db: db
+    query: "SELECT VALUE {'v': a LIKE b IN ('str', 'string')} FROM [{'a': 'str', 'b': 'string'}] AS arr"
+    algebrize_error: "schema checking failed for Like: required AnyOf({Missing, Atomic(String), Atomic(Null)}), found Atomic(Boolean)"
+
+  # The expression
+  #
+  #   a BETWEEN b AND c IN <tuple>
+  #
+  # is parsed as
+  #
+  #   (a BETWEEN b AND c) IN <tuple>
+  #
+  # not as
+  #
+  #   a BETWEEN b AND (c IN <tuple>)
+  #
+  # This test breaks the convention of using "core syntax" in the query field.
+  # <expr> IN <tuple> is syntactically rewritten to <expr> = ANY <subquery> in
+  # the "core syntax". Here, though, we leave IN in the query intentionally to
+  # show precedence behavior.
+  - description: BETWEEN binds tighter than IN
+    current_db: db
+    query: "SELECT VALUE {'a': a, 'v': a BETWEEN 0 AND 2 IN (true)} FROM [{'a': 1}, {'a': 3}] AS arr"
+    translation_target_db: db
+    translation:
+      - {'$documents': [{'a': {'$literal': 1}}, {'a': {'$literal': 3}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'v': {'$subqueryComparison': {
+                                                                  'op': 'eq',
+                                                                  'modifier': 'any',
+                                                                  'arg': {'$sqlBetween': ['$arr.a', {'$literal': 0}, {'$literal': 2}]},
+                                                                  'subquery': {
+                                                                    'let': {'arr_0': '$arr'},
+                                                                    'outputPath': ['__bot', '_1'],
+                                                                    'pipeline': [
+                                                                      {'$documents': [{'_1': {'$literal': true}}]},
+                                                                      {'$project': {'_id': 0, '_arr': '$$ROOT'}},
+                                                                      {'$project': {'_id': 0, '__bot': {'_1': '$_arr._1'}}}
+                                                                    ]
+                                                                  }}}
+      }}}
+      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
+        {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
+      }}}
+    result:
+      - {'': {'a': 1, 'v': true}}
+      - {'': {'a': 3, 'v': false}}
+
+  # The expression
+  #
+  #   a <comp op> b BETWEEN c AND d
+  #
+  # is parsed as
+  #
+  #   (a <comp op> b) BETWEEN c AND d
+  #
+  # not as
+  #
+  #   a <comp op> (b BETWEEN c AND d)
+  - description: comparison ops bind tighter than BETWEEN
+    current_db: db
+    query: "SELECT VALUE {'v': a = b BETWEEN c AND d} FROM [{'a': 1.5, 'b': 1.5, 'c': 1, 'd': 2}] AS arr"
+    algebrize_error: "invalid comparison for Between: Atomic(Boolean) cannot be compared to AnyOf({Atomic(Integer)})"
+
+  # The expression
+  #
+  #   a || b <comp op> c
+  #
+  # is parsed as
+  #
+  #   (a || b) <comp op> c
+  #
+  # not as
+  #
+  #   a || (b <comp op> c)
+  - description: "|| binds tighter than comparison ops"
+    current_db: db
+    query: "SELECT VALUE {'a': a, 'b': b, 'c': c, 'v': a || b = c} FROM [{'a': 'a', 'b': 'b', 'c': 'ab'}] AS arr"
+    translation_target_db: db
+    translation:
+      - {'$documents': [{'a': {'$literal': 'a'}, 'b': {'$literal': 'b'}, 'c': {'$literal': 'ab'}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'b': '$arr.b', 'c': '$arr.c', 'v': {'$sqlEq': [{'$concat': ['$arr.a', '$arr.b']}, '$arr.c']}}}}
+      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
+        {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
+      }}}
+    result:
+      - {'': {'a': 'a', 'b': 'b', 'c': 'ab', 'v': true}}
+
+  # The expression
+  #
+  #   a +/- b || c
+  #
+  # is parsed as
+  #
+  #   (a +/- b) || c
+  #
+  # not as
+  #
+  #   a +/- (b || c)
+  - description: add/sub bind tighter than ||
+    current_db: db
+    query: "SELECT VALUE {'v': a + b || c} FROM [{'a': 1.5, 'b': 1, 'c': 'str'}] AS arr"
+    # If || was higher precedence than +, the error would read "... found Atomic(Integer)"
+    algebrize_error: "schema checking failed for Concat: required AnyOf({Missing, Atomic(String), Atomic(Null)}), found Atomic(Double)"
+
+  # The expression
+  #
+  #   a *// b +/- c
+  #
+  # is parsed as
+  #
+  #   (a *// b) +/- c
+  #
+  # not as
+  #
+  #   a *// (b +/- c)
+  - description: mul/div bind tighter than add/sub
+    current_db: db
+    query: "SELECT VALUE {'a': a, 'b': b, 'c': c, 'v': a * b + c, 'alt': a * (b + c)} FROM mul_add_tier AS coll"
+    translation_target_db: db
+    translation_target_coll: mul_add_tier
+    translation:
+      - {'$project': {'_id': 0, 'mul_add_tier': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'coll': '$mul_add_tier'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$coll.a', 'b': '$coll.b', 'c': '$coll.c',
+                                          'v': {'$add': [{'$multiply': ['$coll.a', '$coll.b']}, '$coll.c']},
+                                          'alt': {'$multiply': ["$coll.a", {'$add': ['$coll.b', '$coll.c']}]},
+      }}}
+      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
+        {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
+      }}}
+    result:
+      - {'': {'a': 1, 'b': 1, 'c': 1, 'v': 2, 'alt': 2}}
+      - {'': {'a': 6, 'b': 3, 'c': 3, 'v': 21, 'alt': 36}}
+
+  # The expression
+  #
+  #   +/- a *// b
+  #
+  # is parsed as
+  #
+  #   (+/- a) *// b
+  #
+  # not as
+  #
+  #   +/- (a *// b)
+  - description: unary ops bind tighter than mul/div
+    current_db: db
+    query: "SELECT VALUE {'a': a, 'b': b, 'v': - a * b, 'alt': - (a * b)} FROM [{'a': -1, 'b': 1}] AS arr"
+    skip_reason: "SQL-859: Support literal expressions in array datasources"
+    translation_target_db: db
+    translation:
+      - {'$documents': [{'a': {'$literal': -1}, 'b': {'$literal': 1}}]}
+      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'b': '$arr.b',
+                                          'v': {'$multiply': [{'$multiply': ['$arr.a', {'$literal': -1}]}, '$arr.b']},
+                                          'alt': {'$multiply': [{'$multiply': ['$arr.a', '$arr.b']}, {'$literal': -1}]}
+      }}}
+      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
+        {'$setField': {'field': '', 'input': '$$ROOT', 'value': '$__bot'}}
+      }}}
+    result:
+      - {'': {'a': -1, 'b': 1, 'v': 1, 'alt': 1}}
+
+  # The expression
+  #
+  #   +/- a::/::!<type>
+  #
+  # is parsed as
+  #
+  #   +/- (a::/::!<type>)
+  #
+  # not as
+  #
+  #   (+/- a)::/::!<type>
+  #
+  # This test breaks the convention of using "core syntax" in the query field.
+  # <expr>::<type> is syntactically rewritten to CAST(<expr> AS <type>) in the
+  # "core syntax". Here, though, we leave :: in the query intentionally to
+  # show precedence behavior.
+  - description: type ops bind tighter than unary ops
+    current_db: db
+    query: "SELECT VALUE {'v': +a::STRING} FROM [{'a': 1}] AS arr"
+    algebrize_error: "schema checking failed for Pos: required AnyOf({Missing, Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal), Atomic(Null)}), found AnyOf({Atomic(String), Atomic(Null)})"
+
+  # The expression
+  #
+  #   a.b::/::!<type>
+  #
+  # is parsed as
+  #
+  #   (a.b)::/::!<type>
+  #
+  # not as
+  #
+  #   a.(b::/::!<type>)
+  #
+  # This test breaks the convention of using "core syntax" in the query field.
+  # <expr>::<type> is syntactically rewritten to CAST(<expr> AS <type>) in the
+  # "core syntax". Here, though, we leave :: in the query intentionally to
+  # show precedence behavior.
+  - description: subpath op binds tighter than type ops
+    current_db: db
+    query: "SELECT VALUE {'a': a, 'v': a.b::INT} FROM subpath_type_tier AS coll"
+    translation_target_db: db
+    translation_target_coll: subpath_type_tier
+    translation:
+      - {'$project': {'_id': 0, 'subpath_type_tier': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'coll': '$subpath_type_tier'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$coll.a', 'v': {'$convert': {'input': '$coll.a.b', 'to': 'int', 'onNull': {$literal : null}, 'onError': {$literal : null}}}}}}
+      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
+        {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
+      }}}
+    result:
+      - {'': {'a': {'b': true, 'c': 1}, 'v': 1}}

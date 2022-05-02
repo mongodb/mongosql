@@ -1636,7 +1636,7 @@ mod function {
     test_codegen_expr!(
         div_expr,
         expected = Ok(
-            bson::bson! ({"$sqlDivide": {"dividend": "$f", "divisor": {"$literal": 1}, "onError": bson::Bson::Null}})
+            bson::bson! ({"$sqlDivide": {"dividend": "$f", "divisor": {"$literal": 1}, "onError": {"$literal": bson::Bson::Null}}})
         ),
         input = ScalarFunction(ScalarFunctionApplication {
             function: Div,

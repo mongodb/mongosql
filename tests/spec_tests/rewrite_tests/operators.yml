@@ -1,19 +1,19 @@
 tests:
-  - description: Rewrite s NOT LIKE p to NOT (s LIKE p)
+  - description: Rewrite s NOT LIKE p to NOT s LIKE p
     query: "SELECT 'a' NOT LIKE 'b'"
-    result: "SELECT VALUE {'_1': NOT ('a' LIKE 'b')} FROM [{}] AS _dual"
+    result: "SELECT VALUE {'_1': NOT 'a' LIKE 'b'} FROM [{}] AS _dual"
 
-  - description: Rewrite x NOT BETWEEN y AND z to NOT (x BETWEEN y AND z)
+  - description: Rewrite x NOT BETWEEN y AND z to NOT x BETWEEN y AND z
     query: "SELECT 1 NOT BETWEEN 2 AND 3"
-    result: "SELECT VALUE {'_1': NOT (1 BETWEEN 2 AND 3)} FROM [{}] AS _dual"
+    result: "SELECT VALUE {'_1': NOT 1 BETWEEN 2 AND 3} FROM [{}] AS _dual"
 
   - description: Rewrite neq
     query: "SELECT 1 != 2"
     result: "SELECT VALUE {'_1': 1 <> 2} FROM [{}] AS _dual"
 
-  - description: Rewrite e IS NOT t to NOT (e IS t)
+  - description: Rewrite e IS NOT t to NOT e IS t
     query: "SELECT 1 IS NOT LONG"
-    result: "SELECT VALUE {'_1': NOT (1 IS LONG)} FROM [{}] AS _dual"
+    result: "SELECT VALUE {'_1': NOT 1 IS LONG} FROM [{}] AS _dual"
 
   - description: Rewrite simple CASE expression to include explicit ELSE NULL
     query: "SELECT CASE 1 WHEN 2 THEN 1 END"
