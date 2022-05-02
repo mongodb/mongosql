@@ -80,3 +80,9 @@ tests:
     skip_reason: "SQL-671: ignoring arg incorrectly allows invalid types"
     valid_types:
       - { "arg1": *int }
+
+  - description: SPLIT operand type constraints
+    query: "SELECT SPLIT(arg1, arg2, arg3) FROM foo"
+    skip_reason: "SQL-816: Implement required Tableau string functions in MongoSQL"
+    valid_types:
+      - { "arg1": *string, "arg2": *string, "arg3": *int }

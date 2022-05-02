@@ -82,6 +82,26 @@ catalog_data:
       - {'_id': 8, 'str': 'abc'}
       - {'_id': 9, 'substr': ' ', 'str': null}
       - {'_id': 10, 'substr': ' '}
+    split:
+      - {'_id': 0, 'str': '', 'delim': '-', 'tokenNum': { '$numberInt': '0' }}
+      - {'_id': 1, 'str': 'abcd', 'delim': '-', 'tokenNum': { '$numberInt': '0' }}
+      - {'_id': 2, 'str': 'abcd', 'delim': '', 'tokenNum': { '$numberInt': '0' }}
+      - {'_id': 3, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '1' }}
+      - {'_id': 4, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '-2' }}
+      - {'_id': 5, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '0' }}
+      - {'_id': 6, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '7' }}
+      - {'_id': 7, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '-7' }}
+      - {'_id': 8, 'str': 'a/\bee/\c/\d', 'delim': '/\', 'tokenNum': { '$numberInt': '2' }}
+      - {'_id': 9, 'str': null, 'delim': '-', 'tokenNum': { '$numberInt': '0' }}
+      - {'_id': 10, 'str': 'a-bee-c-d', 'delim': null, 'tokenNum': { '$numberInt': '0' }}
+      - {'_id': 11, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': null}
+      - {'_id': 12, 'delim': '-', 'tokenNum': { '$numberInt': '0' } }
+      - {'_id': 13, 'str': 'a-bee-c-d', 'tokenNum': { '$numberInt': '0' } }
+      - {'_id': 14, 'str': 'a-bee-c-d', 'delim': '-' }
+      - {'_id': 15, 'str': 'λ-bee-寿-d', 'delim': '-', 'tokenNum': { '$numberInt': '2' }}
+      - {'_id': 16, 'str': 'λ€bee€寿€d', 'delim': '€', 'tokenNum': { '$numberInt': '2' }}
+      - {'_id': 17}
+
 
 catalog_schema:
   {
@@ -242,6 +262,34 @@ catalog_schema:
           "s2": {
             "anyOf": [
               { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "split": {
+        "bsonType": "object",
+        'required': [ '_id', 'str', 'delim', 'tokenNum' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "str": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "delim": {
+            "anyOf": [
+              { "bsonType": "string" },
+              { "bsonType": !!str "null" }
+            ]
+          },
+          "tokenNum": {
+            "anyOf": [
+              { "bsonType": "int" },
               { "bsonType": !!str "null" }
             ]
           }
@@ -689,3 +737,27 @@ tests:
         }}}}
     result:
       - {'': {'v': true}}
+
+  - description: SPLIT correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'str': str, 'delim': delim, 'tokenNum': tokenNum, 'v': SPLIT(str, delim, tokenNum)} FROM `split` AS c"
+    skip_reason: "SQL-816: Implement required Tableau string functions in MongoSQL"
+    result:
+      - {'': {'str': '', 'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': ''}}
+      - {'': {'str': 'abcd', 'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': 'abcd'}}
+      - {'': {'str': 'abcd', 'delim': '', 'tokenNum': {'$numberInt': '0'}, 'v': null}}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': {'$numberInt': '1'}, 'v': 'bee'}}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': {'$numberInt': '-2'}, 'v': 'c'}}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': 'a'}}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': {'$numberInt': '7'}, 'v': ''}}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': {'$numberInt': '-7'}, 'v': ''}}
+      - {'': {'str': 'a/\bee/\c/\d', 'delim': '/\', 'tokenNum': {'$numberInt': '2'}, 'v': 'c'}}
+      - {'': {'str': null, 'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': null}}
+      - {'': {'str': 'a-bee-c-d', 'delim': null, 'tokenNum': {'$numberInt': '0'}, 'v': null}}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': null, 'v': null}}
+      - {'': {'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': null}}
+      - {'': {'str': 'a-bee-c-d', 'tokenNum': {'$numberInt': '0'}, 'v': null}}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'v': null}}
+      - {'': {'str': 'λ-bee-寿-d', 'delim': '-', 'tokenNum': {'$numberInt': '2'}, 'v': '寿'}}
+      - {'': {'str': 'λ€bee€寿€d', 'delim': '€', 'tokenNum': {'$numberInt': '2'}, 'v': '寿'}}
+      - {'': {'v': null}}
