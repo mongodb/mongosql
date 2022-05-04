@@ -1,3 +1,11 @@
+variables:
+  numericTypes: &numericTypes
+    - { "bsonType": "int" }
+    - { "bsonType": "long" }
+    - { "bsonType": "double" }
+    - { "bsonType": "decimal" }
+    - { "bsonType": !!str "null" }
+
 catalog_data:
   foo:
     nullif:
@@ -82,6 +90,187 @@ catalog_data:
       - {'_id': 8, 'str': 'abc'}
       - {'_id': 9, 'substr': ' ', 'str': null}
       - {'_id': 10, 'substr': ' '}
+    abs:
+      - { '_id': 0, 'v': { "$numberInt": "1" }}
+      - { '_id': 1, 'v': { "$numberLong": "-1" }}
+      - { '_id': 2, 'v': { "$numberDouble": "-1" }}
+      - { '_id': 3, 'v': { "$numberDecimal": "-1" }}
+      - { '_id': 4, 'v': { '$numberDouble': 'NaN' }}
+      - { '_id': 5, 'v': { '$numberDouble': 'Infinity' }}
+      - { '_id': 6, 'v': { '$numberDouble': '-Infinity' }}
+      - { '_id': 7, 'v': null }
+      - { '_id': 8 }
+    ceilAndFloor:
+      - { '_id': 0, 'v': { "$numberInt": "7" }}
+      - { '_id': 1, 'v': { "$numberLong": "7" }}
+      - { '_id': 2, 'v': { "$numberDouble": "-7.8" }}
+      - { '_id': 3, 'v': { "$numberDecimal": "7.8" }}
+      - { '_id': 4, 'v': { '$numberDouble': 'NaN' }}
+      - { '_id': 5, 'v': { '$numberDouble': 'Infinity' }}
+      - { '_id': 6, 'v': { '$numberDouble': '-Infinity' }}
+      - { '_id': 7, 'v': null }
+      - { '_id': 8 }
+    log:
+      - { '_id': 0, 'v': { "$numberInt": "-100" }, 'base': { "$numberInt": "10" }}
+      - { '_id': 1, 'v': { "$numberInt": "0" }, 'base': { "$numberLong": "10" }}
+      - { '_id': 2, 'v': { "$numberInt": "100" }, 'base': { "$numberDouble": "-10" }}
+      - { '_id': 3, 'v': { "$numberInt": "100" }, 'base': { "$numberDecimal": "0" }}
+      - { '_id': 4, 'v': { "$numberInt": "100" }, 'base': null }
+      - { '_id': 5, 'v': { "$numberInt": "100" }}
+      - { '_id': 6, 'v': { "$numberLong": "100" }, 'base': { "$numberInt": "10" }}
+      - { '_id': 7, 'v': { "$numberLong": "100" }, 'base': { "$numberLong": "10" }}
+      - { '_id': 8, 'v': { "$numberLong": "100" }, 'base': { "$numberDouble": "10" }}
+      - { '_id': 9, 'v': { "$numberLong": "100" }, 'base': { "$numberDecimal": "10" }}
+      - { '_id': 10, 'v': { "$numberLong": "100" }, 'base': null }
+      - { '_id': 11, 'v': { "$numberLong": "100" }}
+      - { '_id': 12, 'v': { "$numberDouble": "100" }, 'base': { "$numberInt": "10" }}
+      - { '_id': 13, 'v': { "$numberDouble": "100" }, 'base': { "$numberLong": "10" }}
+      - { '_id': 14, 'v': { "$numberDouble": "100" }, 'base': { "$numberDouble": "10" }}
+      - { '_id': 15, 'v': { "$numberDouble": "100" }, 'base': { "$numberDecimal": "10" }}
+      - { '_id': 16, 'v': { "$numberDouble": "100" }, 'base': null }
+      - { '_id': 17, 'v': { "$numberDouble": "100" }}
+      - { '_id': 18, 'v': { "$numberDecimal": "100" }, 'base': { "$numberInt": "10" }}
+      - { '_id': 19, 'v': { "$numberDecimal": "100" }, 'base': { "$numberLong": "10" }}
+      - { '_id': 20, 'v': { "$numberDecimal": "100" }, 'base': { "$numberDouble": "10" }}
+      - { '_id': 21, 'v': { "$numberDecimal": "100" }, 'base': { "$numberDecimal": "10" }}
+      - { '_id': 22, 'v': { "$numberDecimal": "100" }, 'base': null }
+      - { '_id': 23, 'v': { "$numberDecimal": "100" }}
+      - { '_id': 24, 'v': { '$numberDouble': 'NaN' }, 'base': { "$numberInt": "10" }}
+      - { '_id': 25, 'v': { "$numberInt": "100" }, 'base': { '$numberDouble': 'NaN' }}
+      - { '_id': 26, 'v': { '$numberDouble': 'Infinity' }, 'base': { "$numberInt": "10" }}
+      - { '_id': 27, 'v': { "$numberInt": "100" }, 'base': { '$numberDouble': 'Infinity' }}
+      - { '_id': 28, 'v': { '$numberDouble': '-Infinity' }, 'base': { "$numberInt": "10" }}
+      - { '_id': 29, 'v': { "$numberInt": "100" }, 'base': { '$numberDouble': '-Infinity' }}
+      - { '_id': 30, 'v': null,  'base': { "$numberInt": "10" }}
+      - { '_id': 31, 'v': null, 'base': null }
+      - { '_id': 32, 'v': null }
+      - { '_id': 33 }
+    mod:
+      - { '_id': 0, 'v': { "$numberInt": "-80" }, 'divisor': { "$numberInt": "7" }}
+      - { '_id': 1, 'v': { "$numberInt": "0" }, 'divisor': { "$numberLong": "7" }}
+      - { '_id': 2, 'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "-7" }}
+      - { '_id': 3, 'v': { "$numberInt": "80" }, 'divisor': { "$numberDecimal": "0" }}
+      - { '_id': 4, 'v': { "$numberInt": "80" }, 'divisor': null }
+      - { '_id': 5, 'v': { "$numberInt": "80" }}
+      - { '_id': 6, 'v': { "$numberLong": "80" }, 'divisor': { "$numberInt": "7" }}
+      - { '_id': 7, 'v': { "$numberLong": "80" }, 'divisor': { "$numberLong": "7" }}
+      - { '_id': 8, 'v': { "$numberLong": "80" }, 'divisor': { "$numberDouble": "7" }}
+      - { '_id': 9, 'v': { "$numberLong": "80" }, 'divisor': { "$numberDecimal": "7" }}
+      - { '_id': 10, 'v': { "$numberLong": "80" }, 'divisor': null }
+      - { '_id': 11, 'v': { "$numberLong": "80" }}
+      - { '_id': 12, 'v': { "$numberDouble": "80" }, 'divisor': { "$numberInt": "7" }}
+      - { '_id': 13, 'v': { "$numberDouble": "80" }, 'divisor': { "$numberLong": "7" }}
+      - { '_id': 14, 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDouble": "7" }}
+      - { '_id': 15, 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDecimal": "7" }}
+      - { '_id': 16, 'v': { "$numberDouble": "80" }, 'divisor': null }
+      - { '_id': 17, 'v': { "$numberDouble": "80" }}
+      - { '_id': 18, 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberInt": "7" }}
+      - { '_id': 19, 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberLong": "7" }}
+      - { '_id': 20, 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDouble": "7" }}
+      - { '_id': 21, 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDecimal": "7" }}
+      - { '_id': 22, 'v': { "$numberDecimal": "80" }, 'divisor': null }
+      - { '_id': 23, 'v': { "$numberDecimal": "80" }}
+      - { '_id': 24, 'v': { '$numberDouble': 'NaN' }, 'divisor': { "$numberInt": "7" }}
+      - { '_id': 25, 'v': { "$numberInt": "80" }, 'divisor': { '$numberDouble': 'NaN' }}
+      - { '_id': 26, 'v': { '$numberDouble': 'Infinity' }, 'divisor': { "$numberInt": "7" }}
+      - { '_id': 27, 'v': { "$numberInt": "80" }, 'divisor': { '$numberDouble': 'Infinity' }}
+      - { '_id': 28, 'v': { '$numberDouble': '-Infinity' }, 'divisor': { "$numberInt": "7" }}
+      - { '_id': 29, 'v': { "$numberInt": "80" }, 'divisor': { '$numberDouble': '-Infinity' }}
+      - { '_id': 30, 'v': null, 'divisor': { "$numberInt": "7" }}
+      - { '_id': 31, 'v': null, 'divisor': null }
+      - { '_id': 32, 'v': null }
+      - { '_id': 33 }
+    pow:
+      - { '_id': 0, 'v': { "$numberInt": "-5" }, 'exponent': { "$numberInt": "2" }}
+      - { '_id': 1, 'v': { "$numberInt": "0" }, 'exponent': { "$numberLong": "2" }}
+      - { '_id': 2, 'v': { "$numberInt": "5" }, 'exponent': { "$numberDouble": "-2" }}
+      - { '_id': 3, 'v': { "$numberInt": "5" }, 'exponent': { "$numberDecimal": "0" }}
+      - { '_id': 4, 'v': { "$numberInt": "5" }, 'exponent': null }
+      - { '_id': 5, 'v': { "$numberInt": "5" }}
+      - { '_id': 6, 'v': { "$numberLong": "5" }, 'exponent': { "$numberInt": "2" }}
+      - { '_id': 7, 'v': { "$numberLong": "5" }, 'exponent': { "$numberLong": "2" }}
+      - { '_id': 8, 'v': { "$numberLong": "5" }, 'exponent': { "$numberDouble": "2" }}
+      - { '_id': 9, 'v': { "$numberLong": "5" }, 'exponent': { "$numberDecimal": "2" }}
+      - { '_id': 10, 'v': { "$numberLong": "5" }, 'exponent': null }
+      - { '_id': 11, 'v': { "$numberLong": "5" }}
+      - { '_id': 12, 'v': { "$numberDouble": "5" }, 'exponent': { "$numberInt": "2" }}
+      - { '_id': 13, 'v': { "$numberDouble": "5" }, 'exponent': { "$numberLong": "2" }}
+      - { '_id': 14, 'v': { "$numberDouble": "5" }, 'exponent': { "$numberDouble": "2" }}
+      - { '_id': 15, 'v': { "$numberDouble": "5" }, 'exponent': { "$numberDecimal": "2" }}
+      - { '_id': 16, 'v': { "$numberDouble": "5" }, 'exponent': null }
+      - { '_id': 17, 'v': { "$numberDouble": "5" }}
+      - { '_id': 18, 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberInt": "2" }}
+      - { '_id': 19, 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberLong": "2" }}
+      - { '_id': 20, 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberDouble": "2" }}
+      - { '_id': 21, 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberDecimal": "2" }}
+      - { '_id': 22, 'v': { "$numberDecimal": "5" }, 'exponent': null }
+      - { '_id': 23, 'v': { "$numberDecimal": "5" }}
+      - { '_id': 24, 'v': { '$numberDouble': 'NaN' }, 'exponent': { "$numberInt": "2" }}
+      - { '_id': 25, 'v': { "$numberInt": "5" }, 'exponent': { '$numberDouble': 'NaN' }}
+      - { '_id': 26, 'v': { '$numberDouble': 'Infinity' }, 'exponent': { "$numberInt": "2" }}
+      - { '_id': 27, 'v': { "$numberInt": "5" }, 'exponent': { '$numberDouble': 'Infinity' }}
+      - { '_id': 28, 'v': { '$numberDouble': '-Infinity' }, 'exponent': { "$numberInt": "2" }}
+      - { '_id': 29, 'v': { "$numberInt": "5" }, 'exponent': { '$numberDouble': '-Infinity' }}
+      - { '_id': 30, 'v': null, 'exponent': { "$numberInt": "2" }}
+      - { '_id': 31, 'v': null, 'exponent': null }
+      - { '_id': 32, 'v': null }
+      - { '_id': 33 }
+    radians:
+      - { '_id': 0, 'degrees': { "$numberInt": "90" }}
+      - { '_id': 1, 'degrees': { "$numberLong": "-90" }}
+      - { '_id': 2, 'degrees': { "$numberDouble": "0" }}
+      - { '_id': 3, 'degrees': { "$numberDecimal": "90" }}
+      - { '_id': 4, 'degrees': { '$numberDouble': 'NaN' }}
+      - { '_id': 5, 'degrees': { '$numberDouble': 'Infinity' }}
+      - { '_id': 6, 'degrees': { '$numberDouble': '-Infinity' }}
+      - { '_id': 7, 'degrees': null }
+      - { '_id': 8 }
+    round:
+      - { '_id': 0, 'v': { "$numberInt": "-1234" }, 'place': { "$numberInt": "-2" }}
+      - { '_id': 1, 'v': { "$numberInt": "0" }, 'place': { "$numberLong": "-2" }}
+      - { '_id': 2, 'v': { "$numberInt": "1234" }, 'place': null }
+      - { '_id': 3, 'v': { "$numberInt": "1234" }}
+      - { '_id': 4, 'v': { "$numberLong": "1234" }, 'place': { "$numberInt": "2" }}
+      - { '_id': 5, 'v': { "$numberLong": "1234" }, 'place': { "$numberLong": "0" }}
+      - { '_id': 6, 'v': { "$numberLong": "1234" }, 'place': null }
+      - { '_id': 7, 'v': { "$numberLong": "1234" }}
+      - { '_id': 8, 'v': { "$numberDouble": "1234.5678" }, 'place': { "$numberInt": "2" }}
+      - { '_id': 9, 'v': { "$numberDouble": "1234.5678" }, 'place': { "$numberLong": "2" }}
+      - { '_id': 10, 'v': { "$numberDouble": "1234.5678" }, 'place': null }
+      - { '_id': 11, 'v': { "$numberDouble": "1234.5678" }}
+      - { '_id': 12, 'v': { "$numberDecimal": "1234.5678" }, 'place': { "$numberInt": "2" }}
+      - { '_id': 13, 'v': { "$numberDecimal": "1234.5678" }, 'place': { "$numberLong": "2" }}
+      - { '_id': 14, 'v': { "$numberDecimal": "1234.5678" }, 'place': null }
+      - { '_id': 15, 'v': { "$numberDecimal": "1234.5678" }}
+      - { '_id': 16, 'v': { '$numberDouble': 'NaN' }, 'place': { "$numberInt": "2" }}
+      - { '_id': 17, 'v': { '$numberDouble': 'Infinity' }, 'place': { "$numberInt": "2" }}
+      - { '_id': 18, 'v': { '$numberDouble': '-Infinity' }, 'place': { "$numberInt": "2" }}
+      - { '_id': 19, 'v': { "$numberInt": "1234" }, 'place': { "$numberInt": "-21" }}
+      - { '_id': 20, 'v': { "$numberInt": "1234" }, 'place': { "$numberInt": "101" }}
+      - { '_id': 21, 'v': null, 'place': { "$numberInt": "-2" }}
+      - { '_id': 22, 'v': null, 'place': null }
+      - { '_id': 23, 'v': null }
+      - { '_id': 24 }
+    sqrt:
+      - { '_id': 0, 'v': { "$numberInt": "16" }}
+      - { '_id': 1, 'v': { "$numberLong": "-16" }}
+      - { '_id': 2, 'v': { "$numberDouble": "0" }}
+      - { '_id': 3, 'v': { "$numberDecimal": "16" }}
+      - { '_id': 4, 'v': { '$numberDouble': 'NaN' }}
+      - { '_id': 5, 'v': { '$numberDouble': 'Infinity' }}
+      - { '_id': 6, 'v': { '$numberDouble': '-Infinity' }}
+      - { '_id': 7, 'v': null }
+      - { '_id': 8 }
+    trigonometry:
+      - { '_id': 0, 'radians': { "$numberInt": "1" }}
+      - { '_id': 1, 'radians': { "$numberLong": "-1" }}
+      - { '_id': 2, 'radians': { "$numberDouble": "0" }}
+      - { '_id': 3, 'radians': { "$numberDecimal": "0.7854" }}
+      - { '_id': 4, 'radians': { '$numberDouble': 'NaN' }}
+      - { '_id': 5, 'radians': { '$numberDouble': 'Infinity' }}
+      - { '_id': 6, 'radians': { '$numberDouble': '-Infinity' }}
+      - { '_id': 7, 'radians': null }
+      - { '_id': 8 }
     split:
       - {'_id': 0, 'str': '', 'delim': '-', 'tokenNum': { '$numberInt': '0' }}
       - {'_id': 1, 'str': 'abcd', 'delim': '-', 'tokenNum': { '$numberInt': '0' }}
@@ -265,6 +454,114 @@ catalog_schema:
               { "bsonType": !!str "null" }
             ]
           }
+        }
+      },
+      "abs": {
+        "bsonType": "object",
+        'required': [ '_id', 'v' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes }
+        }
+      },
+      "ceilAndFloor": {
+        "bsonType": "object",
+        'required': [ '_id', 'v' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes }
+        }
+      },
+      "log": {
+        "bsonType": "object",
+        'required': [ '_id', 'v', 'base' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes },
+          "base": { "anyOf": *numericTypes }
+        }
+      },
+      "mod": {
+        "bsonType": "object",
+        'required': [ '_id', 'v', 'divisor' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes },
+          "divisor": { "anyOf": *numericTypes }
+        }
+      },
+      "pow": {
+        "bsonType": "object",
+        'required': [ '_id', 'v', 'exponent', ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes },
+          "exponent": { "anyOf": *numericTypes }
+        }
+      },
+      "radians": {
+        "bsonType": "object",
+        'required': [ '_id', 'degrees' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "degrees": { "anyOf": *numericTypes }
+        }
+      },
+      "round": {
+        "bsonType": "object",
+        'required': [ '_id', 'v', 'place' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes },
+          "place": { "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" },
+              { "bsonType": !!str "null" }
+            ]
+          }
+        }
+      },
+      "sqrt": {
+        "bsonType": "object",
+        'required': [ '_id', 'v' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "v": { "anyOf": *numericTypes }
+        }
+      },
+      "trigonometry": {
+        "bsonType": "object",
+        'required': [ '_id', 'radians' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "radians": { "anyOf": *numericTypes }
         }
       },
       "split": {
@@ -737,6 +1034,318 @@ tests:
         }}}}
     result:
       - {'': {'v': true}}
+
+  - description: ABS correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'n': ABS(v)} FROM `abs` AS c"
+    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    translation_target_db: foo
+    translation_target_coll: abs
+    result:
+      - {'': {'v': { "$numberInt": "1" }, 'n': { "$numberInt": "1" }}}
+      - {'': {'v': { "$numberLong": "-1" }, 'n': { "$numberLong": "1" }}}
+      - {'': {'v': { "$numberDouble": "-1" }, 'n': { "$numberDouble": "1" }}}
+      - {'': {'v': { "$numberDecimal": "-1" }, 'n': { "$numberDecimal": "1" }}}
+      - {'': {'v': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'v': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': {'v': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': {'v': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: CEIL correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'n': CEIL(v)} FROM ceilAndFloor AS c"
+    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    translation_target_db: foo
+    translation_target_coll: ceilAndFloor
+    result:
+      - {'': {'v': { "$numberInt": "7" }, 'n': { "$numberInt": "7" }}}
+      - {'': {'v': { "$numberLong": "7" }, 'n': { "$numberLong": "7" }}}
+      - {'': {'v': { "$numberDouble": "-7.8" }, 'n': { "$numberDouble": "-7" }}}
+      - {'': {'v': { "$numberDecimal": "7.8" }, 'n': { "$numberDecimal": "8" }}}
+      - {'': {'v': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'v': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': {'v': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "-Infinity" }}}
+      - {'': {'v': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: COS correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'radians': radians, 'n': COS(radians)} FROM trigonometry AS c"
+    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    translation_target_db: foo
+    translation_target_coll: trigonometry
+    result:
+      - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "0.5403023058681398" }}}
+      - {'': {'radians': { "$numberLong": "1" }, 'n': { "$numberDouble": "0.5403023058681398" }}}
+      - {'': {'radians': { "$numberDouble": "0.7854" }, 'n': { "$numberDouble": "0.7071054825112363" }}}
+      - {'': {'radians': { "$numberDecimal": "0.7854" }, 'n': { "$numberDecimal": "0.7071054825112363062434428987321810" }}}
+      - {'': {'radians': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'radians': { "$numberDouble": "Infinity" }, 'n': null }}
+      - {'': {'radians': { "$numberDouble": "-Infinity" }, 'n': null }}
+      - {'': {'radians': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: DEGREES correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'radians': radians, 'n': DEGREES(radians)} FROM trigonometry AS c"
+    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    translation_target_db: foo
+    translation_target_coll: trigonometry
+    result:
+      - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "57.29577951308232" }}}
+      - {'': {'radians': { "$numberLong": "1" }, 'n': { "$numberDouble": "57.29577951308232" }}}
+      - {'': {'radians': { "$numberDouble": "0.7854" }, 'n': { "$numberDouble": "45.00010522957486" }}}
+      - {'': {'radians': { "$numberDecimal": "0.7854" }, 'n': { "$numberDecimal": "45.00010522957485481663727079099820" }}}
+      - {'': {'radians': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'radians': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': {'radians': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "-Infinity" }}}
+      - {'': {'radians': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: FLOOR correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'n': FLOOR(v)} FROM ceilAndFloor AS c"
+    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    translation_target_db: foo
+    translation_target_coll: ceilAndFloor
+    result:
+      - {'': {'v': { "$numberInt": "7" }, 'n': { "$numberInt": "7" }}}
+      - {'': {'v': { "$numberLong": "7" }, 'n': { "$numberLong": "7" }}}
+      - {'': {'v': { "$numberDouble": "-7.8" }, 'n': { "$numberDouble": "-8" }}}
+      - {'': {'v': { "$numberDecimal": "7.8" }, 'n': { "$numberDecimal": "7" }}}
+      - {'': {'v': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'v': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': {'v': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "-Infinity" }}}
+      - {'': {'v': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: LOG correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'base': base, 'n': LOG(v, base)} FROM `log` AS c"
+    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    translation_target_db: foo
+    translation_target_coll: log
+    result:
+      - {'': {'v': { "$numberInt": "-100" }, 'base': { "$numberInt": "10" }, 'n': null }}
+      - {'': {'v': { "$numberInt": "0" }, 'base': { "$numberLong": "10" }, 'n': null }}
+      - {'': {'v': { "$numberInt": "100" }, 'base': { "$numberDouble": "-10" }, 'n': null }}
+      - {'': {'v': { "$numberInt": "100" }, 'base': { "$numberDecimal": "0" }, 'n': null }}
+      - {'': {'v': { "$numberInt": "100" }, 'base': null, 'n': null }}
+      - {'': {'v': { "$numberInt": "100" }, 'n': null }}
+      - {'': { 'v': { "$numberLong": "100" }, 'base': { "$numberInt": "10" }, 'n': { "$numberDouble": "2" }}}
+      - {'': { 'v': { "$numberLong": "100" }, 'base': { "$numberLong": "10" }, 'n': { "$numberDouble": "2" }}}
+      - {'': { 'v': { "$numberLong": "100" }, 'base': { "$numberDouble": "10" }, 'n': { "$numberDouble": "2" }}}
+      - {'': { 'v': { "$numberLong": "100" }, 'base': { "$numberDecimal": "10" }, 'n': { "$numberDecimal": "2" }}}
+      - {'': { 'v': { "$numberLong": "100" }, 'base': null, 'n': null }}
+      - {'': { 'v': { "$numberLong": "100" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "100" }, 'base': { "$numberInt": "10" }, 'n': { "$numberDouble": "2" }}}
+      - {'': { 'v': { "$numberDouble": "100" }, 'base': { "$numberLong": "10" }, 'n': { "$numberDouble": "2" }}}
+      - {'': { 'v': { "$numberDouble": "100" }, 'base': { "$numberDouble": "10" }, 'n': { "$numberDouble": "2" }}}
+      - {'': { 'v': { "$numberDouble": "100" }, 'base': { "$numberDecimal": "10" }, 'n': { "$numberDecimal": "2" }}}
+      - {'': { 'v': { "$numberDouble": "100" }, 'base': null, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "100" }, 'n': null }}
+      - {'': { 'v': { "$numberDecimal": "100" }, 'base': { "$numberInt": "10" }, 'n': { "$numberDecimal": "2" }}}
+      - {'': { 'v': { "$numberDecimal": "100" }, 'base': { "$numberLong": "10" }, 'n': { "$numberDecimal": "2" }}}
+      - {'': { 'v': { "$numberDecimal": "100" }, 'base': { "$numberDouble": "10" }, 'n': { "$numberDecimal": "2" }}}
+      - {'': { 'v': { "$numberDecimal": "100" }, 'base': { "$numberDecimal": "10" }, 'n': { "$numberDecimal": "2" }}}
+      - {'': { 'v': { "$numberDecimal": "100" }, 'base': null, 'n': null }}
+      - {'': { 'v': { "$numberDecimal": "100" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "NaN" }, 'base': { "$numberDouble": "10" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberDouble": "100" }, 'base': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberDouble": "Infinity" }, 'base': { "$numberDouble": "10" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': { 'v': { "$numberDouble": "100" }, 'base': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "0" }}}
+      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'base': { "$numberDouble": "10" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "100" }, 'base': { "$numberDouble": "-Infinity" }, 'n': null }}
+      - {'': { 'v': null, 'base': { "$numberInt": "10" }, 'n': null }}
+      - {'': { 'v': null, 'base': null, 'n': null }}
+      - {'': { 'v': null, 'n': null }}
+      - {'': { 'n': null }}
+
+  - description: MOD correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'divisor': divisor, 'n': MOD(v, divisor)} FROM `mod` AS c"
+    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    translation_target_db: foo
+    translation_target_coll: mod
+    result:
+      - {'': {'v': { "$numberInt": "-80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberInt": "-3" }}}
+      - {'': {'v': { "$numberInt": "0" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberLong": "0" }}}
+      - {'': {'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "-7" }, 'n': { "$numberInt": "3" }}}
+      - {'': {'v': { "$numberInt": "80" }, 'divisor': { "$numberDecimal": "0" }, 'n': null }}
+      - {'': {'v': { "$numberInt": "80" }, 'divisor': null, 'n': null }}
+      - {'': {'v': { "$numberInt": "80" }, 'n': null }}
+      - {'': { 'v': { "$numberLong": "80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberLong": "3" }}}
+      - {'': { 'v': { "$numberLong": "80" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberLong": "3" }}}
+      - {'': { 'v': { "$numberLong": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberLong": "3" }}}
+      - {'': { 'v': { "$numberLong": "80" }, 'divisor': { "$numberDecimal": "7" }, 'n': { "$numberDecimal": "3" }}}
+      - {'': { 'v': { "$numberLong": "80" }, 'divisor': null, 'n': null }}
+      - {'': { 'v': { "$numberLong": "80" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "3" }}}
+      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberDouble": "3" }}}
+      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDouble": "3" }}}
+      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDecimal": "7" }, 'n': { "$numberDecimal": "3.0000000000000" }}}
+      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': null, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "80" }, 'n': null }}
+      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDecimal": "3" }}}
+      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberDecimal": "3" }}}
+      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDecimal": "3.0000000000000" }}}
+      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDecimal": "7" }, 'n': { "$numberDecimal": "3" }}}
+      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': null, 'n': null }}
+      - {'': { 'v': { "$numberDecimal": "80" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "NaN" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberDouble": "Infinity" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "80" }}}
+      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDouble": "NaN" } }}
+      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "80" }}}
+      - {'': { 'v': null, 'divisor': { "$numberInt": "7" }, 'n': null }}
+      - {'': { 'v': null, 'divisor': null, 'n': null }}
+      - {'': { 'v': null, 'n': null }}
+      - {'': { 'n': null }}
+
+  - description: POW correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'exponent': exponent, 'n': POW(v, exponent)} FROM `pow` AS c"
+    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    translation_target_db: foo
+    translation_target_coll: pow
+    result:
+      - {'': {'v': { "$numberInt": "-5" }, 'exponent': { "$numberInt": "2" }, 'n': { "$numberInt": "25" }}}
+      - {'': {'v': { "$numberInt": "0" }, 'exponent': { "$numberLong": "2" }, 'n': { "$numberLong": "0" }}}
+      - {'': {'v': { "$numberInt": "5" }, 'exponent': { "$numberDouble": "-2" }, 'n': { "$numberDouble": "0.04" }}}
+      - {'': {'v': { "$numberInt": "5" }, 'exponent': { "$numberDecimal": "0" }, 'n': { "$numberDecimal": "1.000000000000000000000000000000000" }}}
+      - {'': {'v': { "$numberInt": "5" }, 'exponent': null, 'n': null }}
+      - {'': {'v': { "$numberInt": "5" }, 'n': null }}
+      - {'': { 'v': { "$numberLong": "5" }, 'exponent': { "$numberInt": "2" }, 'n': { "$numberLong": "25" }}}
+      - {'': { 'v': { "$numberLong": "5" }, 'exponent': { "$numberLong": "2" }, 'n': { "$numberLong": "25" }}}
+      - {'': { 'v': { "$numberLong": "5" }, 'exponent': { "$numberDouble": "2" }, 'n': { "$numberDouble": "25" }}}
+      - {'': { 'v': { "$numberLong": "5" }, 'exponent': { "$numberDecimal": "2" }, 'n': { "$numberDecimal": "25.00000000000000000000000000000000" }}}
+      - {'': { 'v': { "$numberLong": "5" }, 'exponent': null, 'n': null }}
+      - {'': { 'v': { "$numberLong": "5" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "5" }, 'exponent': { "$numberInt": "2" }, 'n': { "$numberDouble": "25" }}}
+      - {'': { 'v': { "$numberDouble": "5" }, 'exponent': { "$numberLong": "2" }, 'n': { "$numberDouble": "25" }}}
+      - {'': { 'v': { "$numberDouble": "5" }, 'exponent': { "$numberDouble": "2" }, 'n': { "$numberDouble": "25" }}}
+      - {'': { 'v': { "$numberDouble": "5" }, 'exponent': { "$numberDecimal": "2" }, 'n': { "$numberDecimal": "25.00000000000000000000000000000000" }}}
+      - {'': { 'v': { "$numberDouble": "5" }, 'exponent': null, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "5" }, 'n': null }}
+      - {'': { 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberInt": "2" }, 'n': { "$numberDecimal": "25.00000000000000000000000000000000" }}}
+      - {'': { 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberLong": "2" }, 'n': { "$numberDecimal": "25.00000000000000000000000000000000" }}}
+      - {'': { 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberDouble": "2" }, 'n': { "$numberDecimal": "25.00000000000000000000000000000000" }}}
+      - {'': { 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberDecimal": "2" }, 'n': { "$numberDecimal": "25.00000000000000000000000000000000" }}}
+      - {'': { 'v': { "$numberDecimal": "5" }, 'exponent': null, 'n': null }}
+      - {'': { 'v': { "$numberDecimal": "5" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "NaN" }, 'exponent': { "$numberDouble": "2" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberDouble": "5" }, 'exponent': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberDouble": "Infinity" }, 'exponent': { "$numberDouble": "2" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': { 'v': { "$numberDouble": "5" }, 'exponent': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'exponent': { "$numberDouble": "2" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': { 'v': { "$numberDouble": "5" }, 'exponent': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "0" }}}
+      - {'': { 'v': null, 'exponent': { "$numberInt": "2" }, 'n': null }}
+      - {'': { 'v': null, 'exponent': null, 'n': null }}
+      - {'': { 'v': null, 'n': null }}
+      - {'': { 'n': null }}
+
+  - description: RADIANS correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'degrees': degrees, 'n': RADIANS(degrees)} FROM `radians` AS c"
+    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    translation_target_db: foo
+    translation_target_coll: radians
+    result:
+      - {'': {'degrees': { "$numberInt": "90" }, 'n': { "$numberDouble": "1.5707963267948966" }}}
+      - {'': {'degrees': { "$numberLong": "-90" }, 'n': { "$numberDouble": "-1.5707963267948966" }}}
+      - {'': {'degrees': { "$numberDouble": "0" }, 'n': { "$numberDouble": "0" }}}
+      - {'': {'degrees': { "$numberDecimal": "90" }, 'n': { "$numberDecimal": "1.570796326794896619231321691639752" }}}
+      - {'': {'degrees': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'degrees': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': {'degrees': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "-Infinity" }}}
+      - {'': {'degrees': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: ROUND correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'place': place, 'n': ROUND(v, place)} FROM `round` AS c"
+    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    translation_target_db: foo
+    translation_target_coll: round
+    result:
+      - {'': { 'v': { "$numberInt": "-1234" }, 'place': { "$numberInt": "-2" }, 'n': { "$numberInt": "-1200" }}}
+      - {'': { 'v': { "$numberInt": "0" }, 'place': { "$numberLong": "-2" }, 'n': { "$numberInt": "0" }}}
+      - {'': { 'v': { "$numberInt": "1234" }, 'place': null, 'n': null }}
+      - {'': { 'v': { "$numberInt": "1234" }, 'n': null }}
+      - {'': { 'v': { "$numberLong": "1234" }, 'place': { "$numberInt": "2" }, 'n': { "$numberLong": "1234" }}}
+      - {'': { 'v': { "$numberLong": "1234" }, 'place': { "$numberLong": "0" }, 'n': { "$numberLong": "1234" }}}
+      - {'': { 'v': { "$numberLong": "1234" }, 'place': null, 'n': null }}
+      - {'': { 'v': { "$numberLong": "1234" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "1234.5678" }, 'place': { "$numberInt": "2" }, 'n': { "$numberDouble": "1234.57" }}}
+      - {'': { 'v': { "$numberDouble": "1234.5678" }, 'place': { "$numberLong": "2" }, 'n': { "$numberDouble": "1234.57" }}}
+      - {'': { 'v': { "$numberDouble": "1234.5678" }, 'place': null, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "1234.5678" }, 'n': null }}
+      - {'': { 'v': { "$numberDecimal": "1234.5678" }, 'place': { "$numberInt": "2" }, 'n': { "$numberDecimal": "1234.57" }}}
+      - {'': { 'v': { "$numberDecimal": "1234.5678" }, 'place': { "$numberLong": "2" }, 'n': { "$numberDecimal": "1234.57" }}}
+      - {'': { 'v': { "$numberDecimal": "1234.5678" }, 'place': null, 'n': null }}
+      - {'': { 'v': { "$numberDecimal": "1234.5678" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "NaN" }, 'place': { "$numberLong": "2" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberDouble": "Infinity" }, 'place': { "$numberLong": "2" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'place': { "$numberLong": "2" }, 'n': { "$numberDouble": "-Infinity" }}}
+      - {'': { 'v': { "$numberInt": "1234" }, 'place': { "$numberInt": "-21" }, 'n': null }}
+      - {'': { 'v': { "$numberInt": "1234" }, 'place': { "$numberInt": "101" }, 'n': null }}
+      - {'': { 'v': null, 'place': { "$numberInt": "-2" }, 'n': null }}
+      - {'': { 'v': null, 'place': null, 'n': null }}
+      - {'': { 'v': null, 'n': null }}
+      - {'': { 'n': null }}
+
+  - description: SIN correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'radians': radians, 'n': SIN(radians)} FROM trigonometry AS c"
+    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    translation_target_db: foo
+    translation_target_coll: trigonometry
+    result:
+      - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "0.8414709848078965" }}}
+      - {'': {'radians': { "$numberLong": "-1" }, 'n': { "$numberDouble": "-0.8414709848078965" }}}
+      - {'': {'radians': { "$numberDouble": "0" }, 'n': { "$numberDouble": "0" }}}
+      - {'': {'radians': { "$numberDecimal": "0.7854" }, 'n': { "$numberDecimal": "0.7071080798594735943581292183798444" }}}
+      - {'': {'radians': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'radians': { "$numberDouble": "Infinity" }, 'n': null }}
+      - {'': {'radians': { "$numberDouble": "-Infinity" }, 'n': null }}
+      - {'': {'radians': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: SQRT correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'v': v, 'n': SQRT(v1, v2)} FROM `sqrt` AS c"
+    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    translation_target_db: foo
+    translation_target_coll: sqrt
+    result:
+      - {'': {'v': { "$numberInt": "16" }, 'n': { "$numberDouble": "4" }}}
+      - {'': {'v': { "$numberLong": "-16" }, 'n': null }}
+      - {'': {'v': { "$numberDouble": "0" }, 'n': { "$numberDouble": "0" }}}
+      - {'': {'v': { "$numberDecimal": "16" }, 'n': { "$numberDecimal": "4" }}}
+      - {'': {'v': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'v': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': {'v': { "$numberDouble": "-Infinity" }, 'n': null }}
+      - {'': {'v': null, 'n': null }}
+      - {'': {'n': null }}
+
+  - description: TAN correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'radians': radians, 'n': TAN(radians)} FROM trigonometry AS c"
+    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    translation_target_db: foo
+    translation_target_coll: trigonometry
+    result:
+      - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "1.5574077246549023" }}}
+      - {'': {'radians': { "$numberLong": "-1" }, 'n': { "$numberDouble": "-1.5574077246549023" }}}
+      - {'': {'radians': { "$numberDouble": "0" }, 'n': { "$numberDouble": "0" }}}
+      - {'': {'radians': { "$numberDecimal": "0.7854" }, 'n': { "$numberDecimal": "1.000003673211849615154628758416483" }}}
+      - {'': {'radians': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': {'radians': { "$numberDouble": "Infinity" }, 'n': null }}
+      - {'': {'radians': { "$numberDouble": "-Infinity" }, 'n': null }}
+      - {'': {'radians': null, 'n': null }}
+      - {'': {'n': null }}
 
   - description: SPLIT correctness tests
     current_db: foo
