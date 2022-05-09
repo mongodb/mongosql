@@ -1041,6 +1041,13 @@ tests:
     skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: abs
+    translation:
+      - { '$project': { '_id': 0, 'abs': '$$ROOT' }}
+      - { '$project': { '_id': 0, 'c': '$abs' }}
+      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'n': { '$abs': '$c.v' }}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
       - {'': {'v': { "$numberInt": "1" }, 'n': { "$numberInt": "1" }}}
       - {'': {'v': { "$numberLong": "-1" }, 'n': { "$numberLong": "1" }}}
@@ -1058,6 +1065,13 @@ tests:
     skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: ceilAndFloor
+    translation:
+      - { '$project': { '_id': 0, 'ceilAndFloor': '$$ROOT' }}
+      - { '$project': { '_id': 0, 'c': '$ceilAndFloor' }}
+      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'n': { '$ceil': '$c.v' }}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
       - {'': {'v': { "$numberInt": "7" }, 'n': { "$numberInt": "7" }}}
       - {'': {'v': { "$numberLong": "7" }, 'n': { "$numberLong": "7" }}}
@@ -1075,6 +1089,13 @@ tests:
     skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: trigonometry
+    translation:
+      - { '$project': { '_id': 0, 'trigonometry': '$$ROOT' }}
+      - { '$project': { '_id': 0, 'c': '$trigonometry' }}
+      - { '$project': { '_id': 0, '__bot': { 'radians': '$c.radians', 'n': { '$sqlCos': '$c.radians' }}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
       - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "0.5403023058681398" }}}
       - {'': {'radians': { "$numberLong": "1" }, 'n': { "$numberDouble": "0.5403023058681398" }}}
@@ -1092,6 +1113,13 @@ tests:
     skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: trigonometry
+    translation:
+      - { '$project': { '_id': 0, 'trigonometry': '$$ROOT' }}
+      - { '$project': { '_id': 0, 'c': '$trigonometry' }}
+      - { '$project': { '_id': 0, '__bot': { 'radians': '$c.radians', 'n': { '$radiansToDegrees': '$c.radians' }}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
       - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "57.29577951308232" }}}
       - {'': {'radians': { "$numberLong": "1" }, 'n': { "$numberDouble": "57.29577951308232" }}}
@@ -1109,6 +1137,13 @@ tests:
     skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: ceilAndFloor
+    translation:
+      - { '$project': { '_id': 0, 'ceilAndFloor': '$$ROOT' }}
+      - { '$project': { '_id': 0, 'c': '$ceilAndFloor' }}
+      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'n': { '$floor': '$c.v' }}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
       - {'': {'v': { "$numberInt": "7" }, 'n': { "$numberInt": "7" }}}
       - {'': {'v': { "$numberLong": "7" }, 'n': { "$numberLong": "7" }}}
@@ -1126,6 +1161,13 @@ tests:
     skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: log
+    translation:
+      - { '$project': { '_id': 0, 'log': '$$ROOT' }}
+      - { '$project': { '_id': 0, 'c': '$log' }}
+      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'base': '$c.base',  'n': { '$sqlLog': [ '$c.v', '$c.base' ] }}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
       - {'': {'v': { "$numberInt": "-100" }, 'base': { "$numberInt": "10" }, 'n': null }}
       - {'': {'v': { "$numberInt": "0" }, 'base': { "$numberLong": "10" }, 'n': null }}
@@ -1168,6 +1210,13 @@ tests:
     skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: mod
+    translation:
+      - { '$project': { '_id': 0, 'mod': '$$ROOT' }}
+      - { '$project': { '_id': 0, 'c': '$mod' }}
+      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'divisor': '$c.divisor',  'n': { '$mod': [ '$c.v', '$c.divisor' ] }}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
       - {'': {'v': { "$numberInt": "-80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberInt": "-3" }}}
       - {'': {'v': { "$numberInt": "0" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberLong": "0" }}}
@@ -1210,6 +1259,13 @@ tests:
     skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: pow
+    translation:
+      - { '$project': { '_id': 0, 'pow': '$$ROOT' }}
+      - { '$project': { '_id': 0, 'c': '$pow' }}
+      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'v2': '$c.exponent',  'n': { '$pow': [ '$c.v', '$c.exponent' ] }}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
       - {'': {'v': { "$numberInt": "-5" }, 'exponent': { "$numberInt": "2" }, 'n': { "$numberInt": "25" }}}
       - {'': {'v': { "$numberInt": "0" }, 'exponent': { "$numberLong": "2" }, 'n': { "$numberLong": "0" }}}
@@ -1252,6 +1308,13 @@ tests:
     skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: radians
+    translation:
+      - { '$project': { '_id': 0, 'radians': '$$ROOT' }}
+      - { '$project': { '_id': 0, 'c': '$radians' }}
+      - { '$project': { '_id': 0, '__bot': { 'degrees': '$c.degrees', 'n': { '$degreesToRadians': '$c.degrees' }}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
       - {'': {'degrees': { "$numberInt": "90" }, 'n': { "$numberDouble": "1.5707963267948966" }}}
       - {'': {'degrees': { "$numberLong": "-90" }, 'n': { "$numberDouble": "-1.5707963267948966" }}}
@@ -1269,6 +1332,13 @@ tests:
     skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: round
+    translation:
+      - { '$project': { '_id': 0, 'round': '$$ROOT' }}
+      - { '$project': { '_id': 0, 'c': '$round' }}
+      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'place': '$c.place',  'n': { '$sqlRound': [ '$c.v', '$c.place' ] }}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
       - {'': { 'v': { "$numberInt": "-1234" }, 'place': { "$numberInt": "-2" }, 'n': { "$numberInt": "-1200" }}}
       - {'': { 'v': { "$numberInt": "0" }, 'place': { "$numberLong": "-2" }, 'n': { "$numberInt": "0" }}}
@@ -1302,6 +1372,13 @@ tests:
     skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: trigonometry
+    translation:
+      - { '$project': { '_id': 0, 'trigonometry': '$$ROOT' }}
+      - { '$project': { '_id': 0, 'c': 'trigonometry' }}
+      - { '$project': { '_id': 0, '__bot': { 'radians': '$c.radians', 'n': { '$sqlSin': '$c.radians' }}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
       - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "0.8414709848078965" }}}
       - {'': {'radians': { "$numberLong": "-1" }, 'n': { "$numberDouble": "-0.8414709848078965" }}}
@@ -1319,6 +1396,13 @@ tests:
     skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: sqrt
+    translation:
+      - { '$project': { '_id': 0, 'sqrt': '$$ROOT' }}
+      - { '$project': { '_id': 0, 'c': '$sqrt' }}
+      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'n': { '$sqlSqrt': '$c.v' }}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
       - {'': {'v': { "$numberInt": "16" }, 'n': { "$numberDouble": "4" }}}
       - {'': {'v': { "$numberLong": "-16" }, 'n': null }}
@@ -1336,6 +1420,13 @@ tests:
     skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: trigonometry
+    translation:
+      - { '$project': { '_id': 0, 'trigonometry': '$$ROOT' }}
+      - { '$project': { '_id': 0, 'c': '$trigonometry' }}
+      - { '$project': { '_id': 0, '__bot': { 'radians': '$c.radians', 'n': { '$sqlTan': '$c.radians' }}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
       - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "1.5574077246549023" }}}
       - {'': {'radians': { "$numberLong": "-1" }, 'n': { "$numberDouble": "-1.5574077246549023" }}}
