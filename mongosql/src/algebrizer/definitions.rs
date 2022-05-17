@@ -371,141 +371,157 @@ impl<'a> Algebrizer<'a> {
 
     pub fn algebrize_datasource(&self, ast_node: ast::Datasource) -> Result<ir::Stage> {
         match ast_node {
-            ast::Datasource::Array(a) => {
-                let (ve, alias) = (a.array, a.alias);
-                let (ve, array_is_literal) = ast::visitors::are_literal(ve);
-                if !array_is_literal {
-                    return Err(Error::ArrayDatasourceMustBeLiteral);
-                }
-                let stage = ir::Stage::Array(ir::ArraySource {
-                    array: ve
-                        .into_iter()
-                        .map(|e| self.algebrize_expression(e))
-                        .collect::<Result<_>>()?,
-                    alias,
-                    cache: SchemaCache::new(),
-                });
-                stage.schema(&self.schema_inference_state())?;
-                Ok(stage)
-            }
-            ast::Datasource::Collection(c) => {
-                let src = ir::Stage::Collection(ir::Collection {
-                    db: c.database.unwrap_or_else(|| self.current_db.to_string()),
-                    collection: c.collection.clone(),
-                    cache: SchemaCache::new(),
-                });
-                let stage = match c.alias {
-                    Some(alias) => {
-                        let mut expr_map: BindingTuple<ir::Expression> = BindingTuple::new();
-                        expr_map.insert(
-                            (alias, self.scope_level).into(),
-                            ir::Expression::Reference((c.collection, self.scope_level).into()),
-                        );
-                        ir::Stage::Project(ir::Project {
-                            source: Box::new(src),
-                            expression: expr_map,
-                            cache: SchemaCache::new(),
-                        })
-                    }
-                    None => return Err(Error::CollectionMustHaveAlias),
-                };
-                stage.schema(&self.schema_inference_state())?;
-                Ok(stage)
-            }
-            ast::Datasource::Join(j) => {
-                let left_src = self.algebrize_datasource(*j.left)?;
-                let right_src = self.algebrize_datasource(*j.right)?;
-                let left_src_result_set = left_src.schema(&self.schema_inference_state())?;
-                let right_src_result_set = right_src.schema(&self.schema_inference_state())?;
-                let join_algebrizer = self
-                    .clone()
-                    .with_merged_mappings(left_src_result_set.schema_env)?
-                    .with_merged_mappings(right_src_result_set.schema_env)?;
-                let condition = j
-                    .condition
-                    .map(|e| join_algebrizer.algebrize_expression(e))
-                    .transpose()?;
-                condition
-                    .clone()
-                    .map(|e| e.schema(&join_algebrizer.schema_inference_state()));
-                let stage = match j.join_type {
-                    ast::JoinType::Left => {
-                        if condition.is_none() {
-                            return Err(Error::NoOuterJoinCondition);
-                        }
-                        ir::Stage::Join(ir::Join {
-                            join_type: ir::JoinType::Left,
-                            left: Box::new(left_src),
-                            right: Box::new(right_src),
-                            condition,
-                            cache: SchemaCache::new(),
-                        })
-                    }
-                    ast::JoinType::Right => {
-                        if condition.is_none() {
-                            return Err(Error::NoOuterJoinCondition);
-                        }
-                        ir::Stage::Join(ir::Join {
-                            join_type: ir::JoinType::Left,
-                            left: Box::new(right_src),
-                            right: Box::new(left_src),
-                            condition,
-                            cache: SchemaCache::new(),
-                        })
-                    }
-                    ast::JoinType::Cross | ast::JoinType::Inner => ir::Stage::Join(ir::Join {
-                        join_type: ir::JoinType::Inner,
-                        left: Box::new(left_src),
-                        right: Box::new(right_src),
-                        condition,
-                        cache: SchemaCache::new(),
-                    }),
-                };
-                Ok(stage)
-            }
-            ast::Datasource::Derived(d) => {
-                let derived_algebrizer = Algebrizer::new(
-                    self.current_db,
-                    self.catalog,
-                    self.scope_level + 1,
-                    self.schema_checking_mode,
-                );
-                let src = derived_algebrizer.algebrize_query(*d.query)?;
-                let src_resultset = src.schema(&derived_algebrizer.schema_inference_state())?;
-                let expression = map! {
-                    (d.alias, self.scope_level).into() =>
-                    ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
-                        function: ir::ScalarFunction::MergeObjects,
-                        args: src_resultset
-                            .schema_env
-                            .into_iter()
-                            .map(|(k, _)| ir::Expression::Reference(k.into()))
-                            .collect::<Vec<_>>(),
-                        cache: SchemaCache::new(),
-                    }),
-                };
-                let stage = ir::Stage::Project(ir::Project {
-                    source: Box::new(src),
-                    expression,
-                    cache: SchemaCache::new(),
-                });
-                stage
-                    .schema(&derived_algebrizer.schema_inference_state())
-                    .map_err(|e| match e {
-                        ir::schema::Error::CannotMergeObjects(s1, s2, sat) => {
-                            Error::DerivedDatasouceOverlappingKeys(s1, s2, sat)
-                        }
-                        _ => Error::SchemaChecking(e),
-                    })?;
-
-                Ok(ir::Stage::Derived(ir::Derived {
-                    source: Box::new(stage),
-                    cache: SchemaCache::new(),
-                }))
-            }
-            ast::Datasource::Flatten(_) => unimplemented!(),
-            ast::Datasource::Unwind(_) => unimplemented!(),
+            ast::Datasource::Array(a) => self.algebrize_array_datasource(a),
+            ast::Datasource::Collection(c) => self.algebrize_collection_datasource(c),
+            ast::Datasource::Join(j) => self.algebrize_join_datasource(j),
+            ast::Datasource::Derived(d) => self.algebrize_derived_datasource(d),
+            ast::Datasource::Flatten(f) => self.algebrize_flatten_datasource(f),
+            ast::Datasource::Unwind(u) => self.algebrize_unwind_datasource(u),
         }
+    }
+
+    fn algebrize_array_datasource(&self, a: ast::ArraySource) -> Result<ir::Stage> {
+        let (ve, alias) = (a.array, a.alias);
+        let (ve, array_is_literal) = ast::visitors::are_literal(ve);
+        if !array_is_literal {
+            return Err(Error::ArrayDatasourceMustBeLiteral);
+        }
+        let stage = ir::Stage::Array(ir::ArraySource {
+            array: ve
+                .into_iter()
+                .map(|e| self.algebrize_expression(e))
+                .collect::<Result<_>>()?,
+            alias,
+            cache: SchemaCache::new(),
+        });
+        stage.schema(&self.schema_inference_state())?;
+        Ok(stage)
+    }
+
+    fn algebrize_collection_datasource(&self, c: ast::CollectionSource) -> Result<ir::Stage> {
+        let src = ir::Stage::Collection(ir::Collection {
+            db: c.database.unwrap_or_else(|| self.current_db.to_string()),
+            collection: c.collection.clone(),
+            cache: SchemaCache::new(),
+        });
+        let stage = match c.alias {
+            Some(alias) => {
+                let mut expr_map: BindingTuple<ir::Expression> = BindingTuple::new();
+                expr_map.insert(
+                    (alias, self.scope_level).into(),
+                    ir::Expression::Reference((c.collection, self.scope_level).into()),
+                );
+                ir::Stage::Project(ir::Project {
+                    source: Box::new(src),
+                    expression: expr_map,
+                    cache: SchemaCache::new(),
+                })
+            }
+            None => return Err(Error::CollectionMustHaveAlias),
+        };
+        stage.schema(&self.schema_inference_state())?;
+        Ok(stage)
+    }
+
+    fn algebrize_join_datasource(&self, j: ast::JoinSource) -> Result<ir::Stage> {
+        let left_src = self.algebrize_datasource(*j.left)?;
+        let right_src = self.algebrize_datasource(*j.right)?;
+        let left_src_result_set = left_src.schema(&self.schema_inference_state())?;
+        let right_src_result_set = right_src.schema(&self.schema_inference_state())?;
+        let join_algebrizer = self
+            .clone()
+            .with_merged_mappings(left_src_result_set.schema_env)?
+            .with_merged_mappings(right_src_result_set.schema_env)?;
+        let condition = j
+            .condition
+            .map(|e| join_algebrizer.algebrize_expression(e))
+            .transpose()?;
+        condition
+            .clone()
+            .map(|e| e.schema(&join_algebrizer.schema_inference_state()));
+        let stage = match j.join_type {
+            ast::JoinType::Left => {
+                if condition.is_none() {
+                    return Err(Error::NoOuterJoinCondition);
+                }
+                ir::Stage::Join(ir::Join {
+                    join_type: ir::JoinType::Left,
+                    left: Box::new(left_src),
+                    right: Box::new(right_src),
+                    condition,
+                    cache: SchemaCache::new(),
+                })
+            }
+            ast::JoinType::Right => {
+                if condition.is_none() {
+                    return Err(Error::NoOuterJoinCondition);
+                }
+                ir::Stage::Join(ir::Join {
+                    join_type: ir::JoinType::Left,
+                    left: Box::new(right_src),
+                    right: Box::new(left_src),
+                    condition,
+                    cache: SchemaCache::new(),
+                })
+            }
+            ast::JoinType::Cross | ast::JoinType::Inner => ir::Stage::Join(ir::Join {
+                join_type: ir::JoinType::Inner,
+                left: Box::new(left_src),
+                right: Box::new(right_src),
+                condition,
+                cache: SchemaCache::new(),
+            }),
+        };
+        Ok(stage)
+    }
+
+    fn algebrize_derived_datasource(&self, d: ast::DerivedSource) -> Result<ir::Stage> {
+        let derived_algebrizer = Algebrizer::new(
+            self.current_db,
+            self.catalog,
+            self.scope_level + 1,
+            self.schema_checking_mode,
+        );
+        let src = derived_algebrizer.algebrize_query(*d.query)?;
+        let src_resultset = src.schema(&derived_algebrizer.schema_inference_state())?;
+        let expression = map! {
+            (d.alias, self.scope_level).into() =>
+            ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::MergeObjects,
+                args: src_resultset
+                    .schema_env
+                    .into_iter()
+                    .map(|(k, _)| ir::Expression::Reference(k.into()))
+                    .collect::<Vec<_>>(),
+                cache: SchemaCache::new(),
+            }),
+        };
+        let stage = ir::Stage::Project(ir::Project {
+            source: Box::new(src),
+            expression,
+            cache: SchemaCache::new(),
+        });
+        stage
+            .schema(&derived_algebrizer.schema_inference_state())
+            .map_err(|e| match e {
+                ir::schema::Error::CannotMergeObjects(s1, s2, sat) => {
+                    Error::DerivedDatasouceOverlappingKeys(s1, s2, sat)
+                }
+                _ => Error::SchemaChecking(e),
+            })?;
+
+        Ok(ir::Stage::Derived(ir::Derived {
+            source: Box::new(stage),
+            cache: SchemaCache::new(),
+        }))
+    }
+
+    fn algebrize_flatten_datasource(&self, _f: ast::FlattenSource) -> Result<ir::Stage> {
+        unimplemented!()
+    }
+
+    fn algebrize_unwind_datasource(&self, _u: ast::UnwindSource) -> Result<ir::Stage> {
+        unimplemented!()
     }
 
     pub fn algebrize_filter_clause(
