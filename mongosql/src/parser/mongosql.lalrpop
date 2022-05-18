@@ -49,23 +49,29 @@ SimpleDatasource: Datasource = {
     <ae: OptionallyAliasedExpr> =>? parse_simple_datasource(ae)
 }
 
+NonJoinDatasource: Datasource = {
+    <SimpleDatasource>,
+    <FlattenDatasource>,
+    <UnwindDatasource>
+}
+
 JoinDatasource: Datasource = {
-    <d:Datasource> COMMA <sd:SimpleDatasource> => {
+    <d:Datasource> COMMA <njd:NonJoinDatasource> => {
         Datasource::Join(
             JoinSource {
                 join_type: JoinType::Cross,
                 left: Box::new(d),
-                right: Box::new(sd),
+                right: Box::new(njd),
                 condition: None,
             }
         )
     },
-    <d:Datasource> <jt:JoinType> JOIN <sd:SimpleDatasource> <c:(ON <Expression>)?> => {
+    <d:Datasource> <jt:JoinType> JOIN <njd:NonJoinDatasource> <c:(ON <Expression>)?> => {
         Datasource::Join(
             JoinSource {
                 join_type: jt,
                 left: Box::new(d),
-                right: Box::new(sd),
+                right: Box::new(njd),
                 condition: c,
             }
         )

@@ -1962,6 +1962,27 @@ mod from {
     );
 
     parsable!(
+        flatten_rhs_of_join,
+        expected = true,
+        input = "SELECT * FROM foo JOIN FLATTEN(bar)"
+    );
+    parsable!(
+        flatten_lhs_of_join,
+        expected = true,
+        input = "SELECT * FROM FLATTEN(foo) JOIN bar"
+    );
+    parsable!(
+        unwind_rhs_of_join,
+        expected = true,
+        input = "SELECT * FROM foo JOIN UNWIND(bar)"
+    );
+    parsable!(
+        unwind_lhs_of_join,
+        expected = true,
+        input = "SELECT * FROM UNWIND(foo) JOIN bar"
+    );
+
+    parsable!(
         derived_with_alias,
         expected = true,
         input = "SELECT * FROM (SELECT * FROM foo) bar"
