@@ -41,7 +41,7 @@ catalog_schema:
       'docOrInt': {
         'bsonType': "object",
         'required': [ '_id', 'a' ],
-        'additionalProperties': true,
+        'additionalProperties': false,
         'properties': {
           '_id': { 'bsonType': "int" },
           'a': {
@@ -105,155 +105,132 @@ tests:
     translation:
       - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
       - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, 'foo': { 'a_b_c': '$foo.a.b.c' } } }
-    skip_reason: "SQL-571: Implement FLATTEN"
+      - { '$project': { '_id': 0, 'foo': { '_id': "$foo._id", 'a_b_c': '$foo.a.b.c' } } }
     result:
-      - { 'foo': { 'a_b_c': 1 } }
+      - { 'foo': { '_id': 0, 'a_b_c': 1 } }
 
   - description: datasource argument can optionally include an alias
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo as f)"
-    skip_reason: "SQL-571: Implement FLATTEN"
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
       - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
       - { '$project': { '_id': 0, 'f': '$foo' } }
-      - { '$project': { '_id': 0, 'f': { 'a_b_c': '$f.a.b.c' } } }
+      - { '$project': { '_id': 0, 'f': { '_id': "$f._id", 'a_b_c': '$f.a.b.c' } } }
     result:
-      - { 'f': { 'a_b_c': 1 } }
+      - { 'f': { '_id': 0, 'a_b_c': 1 } }
 
   - description: basic correctness test for user-specified separator
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH separator => ':') "
-    skip_reason: "SQL-571: Implement FLATTEN"
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
       - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
       - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, 'foo': { 'a:b:c': '$foo.a.b.c' } } }
+      - { '$project': { '_id': 0, 'foo': { '_id': "$foo._id", 'a:b:c': '$foo.a.b.c' } } }
     result:
-      - { 'foo': { 'a:b:c': 1 } }
+      - { 'foo': { '_id': 0, 'a:b:c': 1 } }
 
   - description: user-specified separator with length less than one is allowed
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH separator => '') "
-    skip_reason: "SQL-571: Implement FLATTEN"
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
       - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
       - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, 'foo': { 'abc': '$foo.a.b.c' } } }
+      - { '$project': { '_id': 0, 'foo': { '_id': "$foo._id", 'abc': '$foo.a.b.c' } } }
     result:
-      - { 'foo': { 'abc': 1 } }
+      - { 'foo': { '_id': 0, 'abc': 1 } }
 
   - description: user-specified separator with length greater than one is allowed
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH separator => '_DOT_') "
-    skip_reason: "SQL-571: Implement FLATTEN"
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
       - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
       - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, 'foo': { 'a_DOT_b_DOT_c': '$foo.a.b.c' } } }
+      - { '$project': { '_id': 0, 'foo': { '_id': "$foo._id", 'a_DOT_b_DOT_c': '$foo.a.b.c' } } }
     result:
-      - { 'foo': { 'a_DOT_b_DOT_c': 1 } }
+      - { 'foo': { '_id': 0, 'a_DOT_b_DOT_c': 1 } }
 
   - description: a user-specified depth greater than max nesting depth causes all documents to be flattened
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH depth => 5)"
-    skip_reason: "SQL-571: Implement FLATTEN"
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
       - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
       - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, 'foo': { 'a_b_c': '$foo.a.b.c' } } }
+      - { '$project': { '_id': 0, 'foo': { '_id': "$foo._id", 'a_b_c': '$foo.a.b.c' } } }
     result:
-      - { 'foo': { 'a_b_c': 1 } }
+      - { 'foo': { '_id': 0, 'a_b_c': 1 } }
 
   - description: a user-specified depth less than max nesting depth causes more deeply nested documents to remain unflattened
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH depth => 1)"
-    skip_reason: "SQL-571: Implement FLATTEN"
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
       - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
       - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, 'foo': { 'a_b': '$foo.a.b' } } }
+      - { '$project': { '_id': 0, 'foo': { '_id': "$foo._id", 'a_b': '$foo.a.b' } } }
     result:
-      - { 'foo': { 'a_b': { 'c': 1 } } }
+      - { 'foo': { '_id': 0, 'a_b': { 'c': 1 } } }
 
   - description: user-specified depth must be an integer literal
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH depth => 1.2)"
-    skip_reason: "SQL-571: Implement FLATTEN"
-    parse_error: "'depth' must be an integer literal"
+    parse_error: "Unrecognized token `1.2` found at 40:43\nExpected one of INT"
 
   - description: user-specified separator must be a string literal
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH separator => 1)"
-    skip_reason: "SQL-571: Implement FLATTEN"
-    parse_error: "'separator' must be a string literal"
+    parse_error: "Unrecognized token `1` found at 44:45\nExpected one of STRING"
 
   - description: error on unknown option keys
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH INVALID => a)"
-    skip_reason: "SQL-571: Implement FLATTEN"
-    parse_error: "unsupported FLATTEN option 'INVALID'"
+    parse_error: "Unrecognized token `INVALID` found at 31:38\nExpected one of DEPTH or SEPARATOR"
 
   - description: error on duplicate option keys
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH depth => 1, depth => 2)"
-    skip_reason: "SQL-571: Implement FLATTEN"
-    algebrize_error: "duplicate option key 'depth'"
+    algebrize_error: "found duplicate FLATTEN option Depth(2)"
 
   - description: do not flatten schemas that MAY be document
     current_db: mydb
     query: "SELECT * FROM FLATTEN(docOrInt)"
-    skip_reason: "SQL-571: Implement FLATTEN"
-    algebrize_error: "cannot flatten polymorphic object fields"
+    algebrize_error: 'cannot flatten field "a" since it has a polymorphic object schema'
 
-  - description: flatten is a no-op if there is no schema information
+  - description: error if schema's field paths cannot be exhaustively enumerated
     current_db: mydb
     query: "SELECT * FROM FLATTEN(noSchemaInfo)"
-    skip_reason: "SQL-571: Implement FLATTEN"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - { '$project': { '_id': 0, 'noSchemaInfo': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'noSchemaInfo': '$noSchemaInfo' } }
-      - { '$project': { '_id': 0, 'noSchemaInfo': '$noSchemaInfo' } }
-    result:
-      - { 'noSchemaInfo': { 'a': { 'b': 1 } } }
+    algebrize_error: "cannot exhaustively enumerate all field paths in schema Document(Document { keys: {}, required: {}, additional_properties: true })"
 
   - description: error if naming collision MUST occur
     current_db: mydb
     query: "SELECT * FROM FLATTEN(mustCollide)"
-    skip_reason: "SQL-571: Implement FLATTEN"
-    algebrize_error: "duplicate field name 'a_b'"
+    algebrize_error: 'found duplicate document key "a_b"'
 
-  - description: error if naming collision MAY occur (additionalProperties is set to true)
+  - description: error if naming collision MAY occur
     current_db: mydb
     query: "SELECT * FROM FLATTEN(mayCollide)"
-    skip_reason: "SQL-571: Implement FLATTEN"
-    algebrize_error: "field name 'a_b' MAY be duplicated"
+    algebrize_error: 'cannot exhaustively enumerate all field paths in schema Document(Document { keys: {"_id": Atomic(Integer), "a": Document(Document { keys: {"b": Atomic(Integer)}, required: {"b"}, additional_properties: false })}, required: {"_id", "a"}, additional_properties: true })'
 
   - description: FLATTENing a FLATTENed datasource is allowed
     current_db: mydb
     query: "SELECT * FROM FLATTEN(FLATTEN(foo))"
-    skip_reason: "SQL-571: Implement FLATTEN"
     translation_target_db: mydb
     translation_target_coll: foo
     translation:
       - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
       - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, 'foo': { 'a_b_c': '$foo.a.b_c' } } }
-      - { '$project': { '_id': 0, 'foo': { 'a_b_c': '$foo.a_b_c' } } }
+      - { '$project': { '_id': 0, 'foo': { '_id': "$foo._id", 'a_b_c': '$foo.a.b.c' } } }
+      - { '$project': { '_id': 0, 'foo': { '_id': "$foo._id", 'a_b_c': '$foo.a_b_c' } } }
     result:
-      - { 'foo': { 'a_b_c': 1 } }
+      - { 'foo': { '_id': 0, 'a_b_c': 1 } }
 

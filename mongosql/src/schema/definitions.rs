@@ -8,6 +8,7 @@ use crate::{
     set,
 };
 use enum_iterator::IntoEnumIterator;
+use itertools::Itertools;
 use lazy_static::lazy_static;
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -22,6 +23,8 @@ pub enum Error {
     InvalidBSONType(),
     #[error("invalid combination of fields")]
     InvalidCombinationOfFields(),
+    #[error("cannot exhaustively enumerate all field paths in schema {0:?}")]
+    CannotEnumerateAllFieldPaths(Schema),
 }
 
 #[derive(PartialEq, Debug, Clone, Default)]
@@ -776,6 +779,78 @@ impl Schema {
                     schema
                 }
             }
+        }
+    }
+
+    /// enumerate_field_paths exhaustively enumerates all field paths
+    /// of length <= `max_length` that could exist in a value matched
+    /// by the schema `self`, which can be any kind of Schema. If it
+    /// cannot exhaustively enumerate all field paths (e.g. `self` is the
+    /// `Any` Schema, or additional properties are allowed), it returns
+    /// an error.
+    ///
+    /// Example:
+    ///
+    /// If `self` describes documents with the shape {'a': {'b': {'c': 1}}},
+    /// enumerate_field_paths will return one of the following:
+    ///
+    /// - if max_length = Some(0), set{}
+    /// - if max_length = Some(1), set{['a']}
+    /// - if max_length = Some(2), set{['a', 'b']}
+    /// - if max_length = Some(d), where d >= 3, or None, set{['a', 'b', 'c']}
+    pub fn enumerate_field_paths(
+        &self,
+        max_length: Option<u32>,
+    ) -> Result<BTreeSet<Vec<String>>, Error> {
+        match self {
+            Schema::Document(d) => {
+                // Error if we do not have complete schema information
+                if d.additional_properties {
+                    return Err(Error::CannotEnumerateAllFieldPaths(self.clone()));
+                }
+                d.keys
+                    .clone()
+                    .into_iter()
+                    .fold(Ok(BTreeSet::new()), |acc, (key, schema)| match max_length {
+                        Some(0) => acc,
+                        _ => {
+                            let mut new_paths =
+                                schema.enumerate_field_paths(max_length.map(|l| l - 1))?;
+                            if new_paths.is_empty() {
+                                new_paths = set![vec![]];
+                            }
+                            let mut acc = acc?;
+                            acc.extend(
+                                new_paths
+                                    .into_iter()
+                                    .map(|path| {
+                                        vec![key.clone()]
+                                            .into_iter()
+                                            .chain(path.into_iter())
+                                            .collect_vec()
+                                    })
+                                    .collect::<BTreeSet<Vec<String>>>(),
+                            );
+                            Ok(acc)
+                        }
+                    })
+            }
+            AnyOf(a) => a.iter().fold(
+                Ok(BTreeSet::new()),
+                |acc: Result<BTreeSet<Vec<String>>, Error>, schema| {
+                    let mut new_paths = schema.enumerate_field_paths(max_length)?;
+                    // Propagate an empty vector for recursive cases
+                    if new_paths.is_empty() {
+                        new_paths = set![vec![]]
+                    }
+                    Ok(acc?
+                        .union(&new_paths)
+                        .cloned()
+                        .collect::<BTreeSet<Vec<String>>>())
+                },
+            ),
+            Schema::Any => Err(Error::CannotEnumerateAllFieldPaths(Schema::Any)),
+            Schema::Array(_) | Schema::Atomic(_) | Schema::Missing | Schema::Unsat => Ok(set![]),
         }
     }
 }

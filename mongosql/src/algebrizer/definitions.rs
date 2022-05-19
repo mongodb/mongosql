@@ -4,10 +4,10 @@ use crate::{
     ir::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
-        schema::{self, CachedSchema, SchemaCache, SchemaInferenceState},
+        schema::{CachedSchema, SchemaCache, SchemaInferenceState},
     },
     map,
-    schema::{Satisfaction, SchemaEnvironment},
+    schema::{self, Satisfaction, SchemaEnvironment},
     util::unique_linked_hash_map::UniqueLinkedHashMap,
     SchemaCheckingMode,
 };
@@ -65,7 +65,7 @@ pub enum Error {
     #[error("{0} cannot be algebrized")]
     CannotBeAlgebrized(&'static str),
     #[error(transparent)]
-    SchemaChecking(#[from] schema::Error),
+    SchemaChecking(#[from] ir::schema::Error),
     #[error("OUTER JOINs must specify a JOIN condition")]
     NoOuterJoinCondition,
     #[error("cannot create schema environment with duplicate key: {0:?}")]
@@ -76,6 +76,12 @@ pub enum Error {
     InvalidSubqueryDegree,
     #[error("found duplicate document key {0:?}")]
     DuplicateDocumentKey(String),
+    #[error("found duplicate FLATTEN option {0:?}")]
+    DuplicateFlattenOption(ast::FlattenOption),
+    #[error("cannot exhaustively enumerate all field paths in schema {0:?}")]
+    CannotEnumerateAllFieldPaths(crate::schema::Schema),
+    #[error("cannot flatten field {0:?} since it has a polymorphic object schema")]
+    PolymorphicObjectSchema(String),
 }
 
 impl TryFrom<ast::BinaryOp> for ir::ScalarFunction {
@@ -516,12 +522,103 @@ impl<'a> Algebrizer<'a> {
         }))
     }
 
-    fn algebrize_flatten_datasource(&self, _f: ast::FlattenSource) -> Result<ir::Stage> {
-        unimplemented!()
+    fn algebrize_flatten_datasource(&self, f: ast::FlattenSource) -> Result<ir::Stage> {
+        let source = self.algebrize_datasource(*f.datasource.clone())?;
+        let source_result_set = source.schema(&self.schema_inference_state())?;
+
+        // Extract user-specified separator and depth. Separator defaults to "_".
+        let (separator, depth) = f
+            .options
+            .iter()
+            .fold(Ok((None, None)), |acc, opt| match opt {
+                ast::FlattenOption::Separator(s) => match acc? {
+                    (Some(_), _) => Err(Error::DuplicateFlattenOption(opt.clone())),
+                    (None, depth) => Ok((Some(s.as_str()), depth)),
+                },
+                ast::FlattenOption::Depth(d) => match acc? {
+                    (_, Some(_)) => Err(Error::DuplicateFlattenOption(opt.clone())),
+                    (separator, None) => Ok((separator, Some(*d))),
+                },
+            })?;
+        let separator = separator.unwrap_or("_");
+
+        // Build the Project expression
+        let expression = source_result_set
+            .schema_env
+            .into_iter()
+            .map(|(key, schema)| {
+                let field_paths =
+                    schema
+                        .enumerate_field_paths(depth.map(|d| d + 1))
+                        .map_err(|e| match e {
+                            schema::Error::CannotEnumerateAllFieldPaths(s) => {
+                                Error::CannotEnumerateAllFieldPaths(s)
+                            }
+                            _ => unreachable!(),
+                        })?;
+                // Error if any field path is a prefix of another path
+                field_paths
+                    .iter()
+                    .flat_map(|p1| {
+                        field_paths.iter().map(|p2| {
+                            if p1.clone() == p2.clone() || p1.is_empty() || p2.is_empty() {
+                                Ok(())
+                            } else if p1.starts_with(p2.as_slice()) {
+                                Err(Error::PolymorphicObjectSchema(p2.join(separator)))
+                            } else if p2.starts_with(p1.as_slice()) {
+                                Err(Error::PolymorphicObjectSchema(p1.join(separator)))
+                            } else {
+                                Ok(())
+                            }
+                        })
+                    })
+                    .collect::<Result<_>>()?;
+                let mut project_expression = UniqueLinkedHashMap::new();
+                project_expression
+                    .insert_many(
+                        field_paths
+                            .into_iter()
+                            .map(|path| {
+                                (
+                                    path.join(separator),
+                                    self.algebrize_flattened_field_path(key.clone(), path),
+                                )
+                            })
+                            .into_iter(),
+                    )
+                    .map_err(|e| Error::DuplicateDocumentKey(e.get_key_name()))?;
+                Ok((key, ir::Expression::Document(project_expression.into())))
+            })
+            .collect::<Result<BindingTuple<ir::Expression>>>()?;
+
+        // Build the Project stage using the source and built expression
+        let stage = ir::Stage::Project(ir::Project {
+            source: Box::new(source),
+            expression,
+            cache: SchemaCache::new(),
+        });
+        stage.schema(&self.schema_inference_state())?;
+        Ok(stage)
     }
 
     fn algebrize_unwind_datasource(&self, _u: ast::UnwindSource) -> Result<ir::Stage> {
         unimplemented!()
+    }
+
+    pub fn algebrize_flattened_field_path(&self, key: Key, path: Vec<String>) -> ir::Expression {
+        match path.len() {
+            0 => ir::Expression::Reference(ir::ReferenceExpr {
+                key,
+                cache: SchemaCache::new(),
+            }),
+            _ => ir::Expression::FieldAccess(ir::FieldAccess {
+                expr: Box::new(
+                    self.algebrize_flattened_field_path(key, path.split_last().unwrap().1.to_vec()),
+                ),
+                field: path.last().unwrap().to_string(),
+                cache: SchemaCache::new(),
+            }),
+        }
     }
 
     pub fn algebrize_filter_clause(

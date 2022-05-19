@@ -2089,6 +2089,36 @@ mod from_clause {
         set, unchecked_unique_linked_hash_map,
     };
 
+    fn ir_array_source() -> ir::Stage {
+        ir::Stage::Array(ir::ArraySource {
+            array: vec![ir::Expression::Document(ir::DocumentExpr {
+                document: unchecked_unique_linked_hash_map! {"a".to_string() => ir::Expression::Document(ir::DocumentExpr {
+                    document: unchecked_unique_linked_hash_map!{
+                        "b".to_string() => ir::Expression::Literal(ir::LiteralExpr {
+                            value: ir::LiteralValue::Integer(5),
+                            cache: SchemaCache::new()
+                        })
+                    },
+                    cache: SchemaCache::new()
+                })},
+                cache: SchemaCache::new(),
+            })],
+            alias: "arr".to_string(),
+            cache: SchemaCache::new(),
+        })
+    }
+
+    fn ast_array_source() -> ast::Datasource {
+        ast::Datasource::Array(ast::ArraySource {
+            array: vec![ast::Expression::Document(multimap! {
+                        "a".into() => ast::Expression::Document(
+                            multimap!{"b".into() => ast::Expression::Literal(ast::Literal::Integer(5))},
+                        ),
+            })],
+            alias: "arr".to_string(),
+        })
+    }
+
     test_algebrize!(
         from_clause_must_exist,
         method = algebrize_from_clause,
@@ -2747,6 +2777,227 @@ mod from_clause {
                 offset: None,
             })),
             alias: "d".into(),
+        })),
+    );
+    test_algebrize!(
+        flatten_simple,
+        method = algebrize_from_clause,
+        expected = Ok(ir::Stage::Project(ir::Project {
+            source: Box::new(ir_array_source()),
+            expression: map! {
+                ("arr", 0u16).into() => ir::Expression::Document(ir::DocumentExpr {
+                document: unchecked_unique_linked_hash_map!{
+                    "a_b".to_string() => ir::Expression::FieldAccess(ir::FieldAccess {
+                        expr: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
+                            expr: Box::new(ir::Expression::Reference(ir::ReferenceExpr {
+                                key: ("arr", 0u16).into(),
+                                cache: SchemaCache::new()
+                            })),
+                            field: "a".to_string(), cache: SchemaCache::new()
+                        })),
+                        field: "b".to_string(), cache: SchemaCache::new()
+                    })},
+                cache: SchemaCache::new()
+            })},
+            cache: SchemaCache::new()
+        })),
+        input = Some(ast::Datasource::Flatten(ast::FlattenSource {
+            datasource: Box::new(ast_array_source()),
+            options: vec![]
+        })),
+    );
+    test_algebrize!(
+        flatten_array_source_multiple_docs,
+        method = algebrize_from_clause,
+        expected = Ok(ir::Stage::Project(ir::Project {
+            source: Box::new(ir::Stage::Array(ir::ArraySource {
+                array: vec![ir::Expression::Document(ir::DocumentExpr {
+                    document: unchecked_unique_linked_hash_map! {
+                        "a".to_string() => ir::Expression::Document(ir::DocumentExpr {
+                            document: unchecked_unique_linked_hash_map!{
+                                "b".to_string() => ir::Expression::Literal(ir::LiteralExpr {
+                                    value: ir::LiteralValue::Integer(5),
+                                    cache: SchemaCache::new()
+                                })
+                            },
+                            cache: SchemaCache::new()
+                        }),
+                        "x".to_string() => ir::Expression::Document(ir::DocumentExpr {
+                            document: unchecked_unique_linked_hash_map! {
+                                "y".to_string() => ir::Expression::Literal(ir::LiteralExpr {
+                                    value: ir::LiteralValue::Integer(8),
+                                    cache: SchemaCache::new()
+                                })
+                            },
+                            cache: SchemaCache::new()
+                        })
+                    },
+                    cache: SchemaCache::new()
+                })],
+                alias: "arr".to_string(),
+                cache: SchemaCache::new()
+            })),
+            expression: map! {
+                ("arr", 0u16).into() => ir::Expression::Document(ir::DocumentExpr {
+                    document: unchecked_unique_linked_hash_map! {
+                        "a_b".to_string() => ir::Expression::FieldAccess(ir::FieldAccess {
+                            expr: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
+                                expr: Box::new(ir::Expression::Reference(ir::ReferenceExpr {
+                                    key: ("arr", 0u16).into(),
+                                    cache: SchemaCache::new()
+                                })),
+                                field: "a".to_string(),
+                                cache: SchemaCache::new()
+                            })),
+                            field: "b".to_string(),
+                            cache: SchemaCache::new()
+                        }),
+                        "x_y".to_string() => ir::Expression::FieldAccess(ir::FieldAccess {
+                            expr: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
+                                expr: Box::new(ir::Expression::Reference(ir::ReferenceExpr {
+                                    key: ("arr", 0u16).into(),
+                                    cache: SchemaCache::new()
+                                })),
+                                field: "x".to_string(),
+                                cache: SchemaCache::new()
+                            })),
+                            field: "y".to_string(),
+                            cache: SchemaCache::new()
+                        })
+                    },
+                    cache: SchemaCache::new()
+                })
+            },
+            cache: SchemaCache::new()
+        })),
+        input = Some(ast::Datasource::Flatten(ast::FlattenSource {
+            datasource: Box::new(ast::Datasource::Array(ast::ArraySource {
+                array: vec![ast::Expression::Document(multimap! {
+                            "a".into() => ast::Expression::Document(
+                                multimap!{"b".into() => ast::Expression::Literal(ast::Literal::Integer(5))},
+                            ),
+                    "x".into() => ast::Expression::Document(
+                                multimap!{"y".into() => ast::Expression::Literal(ast::Literal::Integer(8))},
+                            ),
+                })],
+                alias: "arr".to_string()
+            })),
+            options: vec![]
+        })),
+    );
+    test_algebrize!(
+        flatten_duplicate_options,
+        method = algebrize_from_clause,
+        expected = Err(Error::DuplicateFlattenOption(ast::FlattenOption::Depth(2))),
+        input = Some(ast::Datasource::Flatten(ast::FlattenSource {
+            datasource: Box::new(ast_array_source()),
+            options: vec![ast::FlattenOption::Depth(1), ast::FlattenOption::Depth(2)]
+        })),
+    );
+    test_algebrize!(
+        flatten_polymorphic_non_document_schema_array_source,
+        method = algebrize_from_clause,
+        expected = Ok(ir::Stage::Project(ir::Project {
+            source: Box::new(ir::Stage::Array(ir::ArraySource {
+                array: vec![
+                    ir::Expression::Document(ir::DocumentExpr {
+                        document: unchecked_unique_linked_hash_map! {
+                        "a".to_string() => ir::Expression::Document(ir::DocumentExpr {
+                            document: unchecked_unique_linked_hash_map!{
+                                "b".to_string() => ir::Expression::Document(ir::DocumentExpr {
+                                    document: unchecked_unique_linked_hash_map!{
+                                        "c".to_string() => ir::Expression::Literal(ir::LiteralExpr {
+                                            value: ir::LiteralValue::Integer(5),
+                                            cache: SchemaCache::new()
+                                        })},
+                                    cache: SchemaCache::new()
+                                })},
+                            cache: SchemaCache::new()
+                        })},
+                        cache: SchemaCache::new()
+                    }),
+                    ir::Expression::Document(ir::DocumentExpr {
+                        document: unchecked_unique_linked_hash_map! {
+                        "a".to_string() => ir::Expression::Document(ir::DocumentExpr {
+                            document: unchecked_unique_linked_hash_map!{
+                                "b".to_string() => ir::Expression::Document(ir::DocumentExpr {
+                                    document: unchecked_unique_linked_hash_map!{
+                                        "c".to_string() => ir::Expression::Literal(ir::LiteralExpr {
+                                            value: ir::LiteralValue::String("hello".to_string()),
+                                            cache: SchemaCache::new()
+                                        })},
+                                    cache: SchemaCache::new()
+                                })},
+                            cache: SchemaCache::new()
+                        })},
+                        cache: SchemaCache::new()
+                    })
+                ],
+                alias: "arr".to_string(),
+                cache: SchemaCache::new()
+            })),
+            expression: map! {
+            ("arr", 0u16).into() => ir::Expression::Document(ir::DocumentExpr {
+                document: unchecked_unique_linked_hash_map!{
+                    "a_b_c".to_string() => ir::Expression::FieldAccess(ir::FieldAccess {
+                        expr: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
+                            expr: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
+                                expr: Box::new(ir::Expression::Reference(ir::ReferenceExpr {
+                                    key: ("arr", 0u16).into(),
+                                    cache: SchemaCache::new()
+                                })),
+                                field: "a".to_string(),
+                                cache: SchemaCache::new()
+                            })),
+                            field: "b".to_string(),
+                            cache: SchemaCache::new()
+                        })),
+                        field: "c".to_string(),
+                        cache: SchemaCache::new()
+                    })},
+                cache: SchemaCache::new()
+            })},
+            cache: SchemaCache::new()
+        })),
+        input = Some(ast::Datasource::Flatten(ast::FlattenSource {
+            datasource: Box::new(ast::Datasource::Array(ast::ArraySource {
+                array: vec![
+                    ast::Expression::Document(multimap! {
+                    "a".into() => ast::Expression::Document(
+                        multimap!{"b".into() => ast::Expression::Document(
+                        multimap!{"c".into() => ast::Expression::Literal(ast::Literal::Integer(5))},
+                    )},
+                    )}),
+                    ast::Expression::Document(multimap! {
+                    "a".into() => ast::Expression::Document(
+                        multimap!{"b".into() => ast::Expression::Document(
+                        multimap!{"c".into() => ast::Expression::Literal(ast::Literal::String("hello".to_string()))},
+                    )},
+                    )}),
+                ],
+                alias: "arr".to_string()
+            })),
+            options: vec![]
+        })),
+    );
+    test_algebrize!(
+        flatten_polymorphic_object_schema_array_source,
+        method = algebrize_from_clause,
+        expected = Err(Error::PolymorphicObjectSchema("a".to_string())),
+        input = Some(ast::Datasource::Flatten(ast::FlattenSource {
+            datasource: Box::new(ast::Datasource::Array(ast::ArraySource {
+                array: vec![
+                    ast::Expression::Document(multimap! {
+                    "a".into() => ast::Expression::Literal(ast::Literal::Integer(5))}),
+                    ast::Expression::Document(multimap! {
+                        "a".into() => ast::Expression::Document(
+                            multimap!{"b".into() => ast::Expression::Literal(ast::Literal::Integer(6))},
+                        )
+                    }),
+                ],
+                alias: "arr".to_string()
+            })),
+            options: vec![]
         })),
     );
 }
