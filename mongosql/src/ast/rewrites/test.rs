@@ -718,3 +718,49 @@ mod table_subquery {
         input = "SELECT * FROM table1 WHERE col1 NOT IN (SELECT col1 FROM table2)",
     );
 }
+
+mod group_by_select_alias {
+    use super::*;
+
+    test_rewrite!(
+        simple,
+        pass = GroupBySelectAliasRewritePass,
+        expected = Ok("SELECT b FROM foo GROUP BY a AS b"),
+        input = "SELECT a AS b FROM foo GROUP BY b",
+    );
+
+    test_rewrite!(
+        same_alias_as_field_name,
+        pass = GroupBySelectAliasRewritePass,
+        expected = Ok("SELECT b FROM foo GROUP BY b AS b"),
+        input = "SELECT b AS b FROM foo GROUP BY b",
+    );
+
+    test_rewrite!(
+        subquery,
+        pass = GroupBySelectAliasRewritePass,
+        expected = Ok("SELECT * FROM (SELECT b FROM foo GROUP BY a AS b) AS sub"),
+        input = "SELECT * FROM (SELECT a AS b FROM foo GROUP BY b) AS sub",
+    );
+
+    test_rewrite!(
+        do_not_rewrite_if_select_values,
+        pass = GroupBySelectAliasRewritePass,
+        expected = Ok("SELECT VALUE {'b': a} FROM foo GROUP BY b"),
+        input = "SELECT VALUE {'b': a} FROM foo GROUP BY b",
+    );
+
+    test_rewrite!(
+        do_not_rewrite_if_aggregation_exists,
+        pass = GroupBySelectAliasRewritePass,
+        expected = Ok("SELECT a AS b FROM foo GROUP BY b AGGREGATE SUM(b) AS sumb",),
+        input = "SELECT a AS b FROM foo GROUP BY b AGGREGATE SUM(b) AS sumb",
+    );
+
+    test_rewrite!(
+        tableau_generated_query,
+        pass = GroupBySelectAliasRewritePass,
+        expected = Ok("SELECT str2 FROM Calcs WHERE ((NOT (Calcs.str2 IN ('eight', 'eleven', 'fifteen', 'five'))) OR (Calcs.str2 IS NULL)) GROUP BY Calcs.str2 AS str2"),
+        input = "SELECT Calcs.str2 AS str2 FROM Calcs WHERE ((NOT (Calcs.str2 IN ('eight', 'eleven', 'fifteen', 'five'))) OR (Calcs.str2 IS NULL)) GROUP BY str2",
+    );
+}

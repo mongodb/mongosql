@@ -74,21 +74,17 @@ tests:
     result: "SELECT VALUE {'sumb': SUM(b), 'avg_salary': (SELECT VALUE {'_1': _agg1} FROM foo AS foo GROUP BY NULL AS _groupKey1 AGGREGATE AVG(a) AS _agg1)} FROM bar AS bar"
 
   - description: Rewrite GROUP BY alias to original column name
-    skip_reason: "SQL-820: Implement support for GROUP BY alias"
     query: "SELECT a AS b FROM foo GROUP BY b"
     result: "SELECT VALUE {'b': b} FROM foo AS foo GROUP BY a AS b"
 
   - description: Do not rewrite GROUP BY alias when using AGGREGATE form of GROUP BY clause
-    skip_reason: "SQL-820: Implement support for GROUP BY alias"
     query: "SELECT a AS b FROM foo AS foo GROUP BY b AGGREGATE SUM(b) AS sumb"
     result: "SELECT VALUE {'b': a} FROM foo AS foo GROUP BY b AGGREGATE SUM(b) AS sumb"
 
   - description: Do not rewrite aliased group keys
-    skip_reason: "SQL-820: Implement support for GROUP BY alias"
     query: "SELECT a AS b FROM foo AS foo GROUP BY b AS d"
     result: "SELECT VALUE {'b': a} FROM foo AS foo GROUP BY b AS d"
 
   - description: Do not rewrite GROUP BY aliases when there is a SELECT VALUE
-    skip_reason: "SQL-820: Implement support for GROUP BY alias"
     query: "SELECT VALUE {'b': a} FROM foo AS foo GROUP BY b"
     result: "SELECT VALUE {'b': a} FROM foo AS foo GROUP BY b"
