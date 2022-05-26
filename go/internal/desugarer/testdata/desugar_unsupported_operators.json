@@ -529,5 +529,203 @@
         }
       }
     ]
+  },
+  {
+    "name": "desugar $sqlLog",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlLog": [
+              "$number",
+              "$base"
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project":{
+          "_id":{
+            "$numberInt":"0"
+          },
+          "expr":{
+            "$cond":{
+              "if":{
+                "$or":[
+                  {
+                    "$eq":[
+                      "$number",
+                      {
+                        "$literal":{
+                          "$numberDouble":"NaN"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "$eq":[
+                      "$base",
+                      {
+                        "$literal":{
+                          "$numberDouble":"NaN"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "then":{
+                "$literal":{
+                  "$numberDouble":"NaN"
+                }
+              },
+              "else":{
+                "$cond":{
+                  "if":{
+                    "$or":[
+                      {
+                        "$or":[
+                          {
+                            "$lte":[
+                              "$number",
+                              {
+                                "$literal":{
+                                  "$numberInt":"0"
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            "$eq":[
+                              "$base",
+                              {
+                                "$literal":{
+                                  "$numberInt":"1"
+                                }
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "$lte":[
+                          "$base",
+                          {
+                            "$literal":{
+                              "$numberInt":"0"
+                            }
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  "then":{
+                    "$literal":null
+                  },
+                  "else":{
+                    "$log":[
+                      "$number",
+                      "$base"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $sqlRound",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlRound": [
+              "$number",
+              "$place"
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+         "$project":{
+            "_id":{
+               "$numberInt":"0"
+            },
+            "expr":{
+               "$let":{
+                  "vars":{
+                     "desugared_sqlRound_input0":"$number",
+                     "desugared_sqlRound_input1":"$place"
+                  },
+                  "in":{
+                     "$cond":{
+                        "if":{
+                           "$eq":[
+                              "$$desugared_sqlRound_input1",
+                              {
+                                 "$literal":{
+                                    "$numberDouble":"NaN"
+                                 }
+                              }
+                           ]
+                        },
+                        "then":{
+                           "$literal":{
+                              "$numberDouble":"NaN"
+                           }
+                        },
+                        "else":{
+                           "$cond":{
+                              "if":{
+                                 "$and":[
+                                    {
+                                       "$gte":[
+                                          "$$desugared_sqlRound_input1",
+                                          {
+                                             "$literal":{
+                                                "$numberInt":"-20"
+                                             }
+                                          }
+                                       ]
+                                    },
+                                    {
+                                       "$lte":[
+                                          "$$desugared_sqlRound_input1",
+                                          {
+                                             "$literal":{
+                                                "$numberInt":"100"
+                                             }
+                                          }
+                                       ]
+                                    }
+                                 ]
+                              },
+                              "then":{
+                                 "$round":[
+                                    "$$desugared_sqlRound_input0",
+                                    "$$desugared_sqlRound_input1"
+                                 ]
+                              },
+                              "else":{
+                                 "$literal":null
+                              }
+                           }
+                        }
+                     }
+                  }
+               }
+            }
+         }
+      }
+    ]
   }
 ]

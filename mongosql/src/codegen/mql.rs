@@ -159,6 +159,8 @@ impl ScalarFunction {
             CharLength => "$sqlStrLenCP",
             OctetLength => "$sqlStrLenBytes",
             BitLength => "$sqlStrLenBytes", // with $mul
+            Log => "$sqlLog",
+            Round => "$sqlRound",
 
             // String value scalar functions
             Substring => "$sqlSubstrCP",
@@ -894,7 +896,8 @@ impl MqlCodeGenerator {
                         })
                     }
                     Not | Concat | Add | Sub | Mul | Lt | Lte | Neq | Eq | Gt | Gte | Between
-                    | And | Or | NullIf | Coalesce | Slice | Substring | MergeObjects => {
+                    | And | Or | NullIf | Coalesce | Slice | Substring | MergeObjects | Log
+                    | Round => {
                         let args = Bson::Array(
                             sa.args
                                 .into_iter()

@@ -380,6 +380,8 @@ pub enum ScalarFunction {
     CharLength,
     OctetLength,
     BitLength,
+    Log,
+    Round,
 
     // String value scalar functions
     Substring,
@@ -425,6 +427,7 @@ impl ScalarFunction {
             ScalarFunction::Gt => "Gt",
             ScalarFunction::Gte => "Gte",
             ScalarFunction::Between => "Between",
+            ScalarFunction::Log => "Log",
             ScalarFunction::Lower => "Lower",
             ScalarFunction::Lt => "Lt",
             ScalarFunction::Lte => "Lte",
@@ -437,6 +440,7 @@ impl ScalarFunction {
             ScalarFunction::Or => "Or",
             ScalarFunction::Pos => "Pos",
             ScalarFunction::Position => "Position",
+            ScalarFunction::Round => "Round",
             ScalarFunction::Size => "Size",
             ScalarFunction::Slice => "Slice",
             ScalarFunction::Sub => "Sub",

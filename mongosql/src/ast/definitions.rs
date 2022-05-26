@@ -325,10 +325,12 @@ pub enum FunctionName {
     CharLength,
     Coalesce,
     CurrentTimestamp,
+    Log,
     Lower,
     NullIf,
     OctetLength,
     Position,
+    Round,
     Size,
     Slice,
     Substring,
@@ -356,6 +358,7 @@ impl TryFrom<&str> for FunctionName {
             "CURRENT_TIMESTAMP" => Ok(FunctionName::CurrentTimestamp),
             "FIRST" => Ok(FunctionName::First),
             "LAST" => Ok(FunctionName::Last),
+            "LOG" => Ok(FunctionName::Log),
             "LOWER" => Ok(FunctionName::Lower),
             "MAX" => Ok(FunctionName::Max),
             "MERGE_DOCUMENTS" => Ok(FunctionName::MergeDocuments),
@@ -363,6 +366,7 @@ impl TryFrom<&str> for FunctionName {
             "NULLIF" => Ok(FunctionName::NullIf),
             "OCTET_LENGTH" => Ok(FunctionName::OctetLength),
             "POSITION" => Ok(FunctionName::Position),
+            "ROUND" => Ok(FunctionName::Round),
             "SIZE" => Ok(FunctionName::Size),
             "SLICE" => Ok(FunctionName::Slice),
             "STDDEV_POP" => Ok(FunctionName::StddevPop),
@@ -390,6 +394,7 @@ impl FunctionName {
             FunctionName::CurrentTimestamp => "CURRENT_TIMESTAMP",
             FunctionName::First => "FIRST",
             FunctionName::Last => "LAST",
+            FunctionName::Log => "LOG",
             FunctionName::Lower => "LOWER",
             FunctionName::Max => "MAX",
             FunctionName::MergeDocuments => "MERGE_DOCUMENTS",
@@ -397,6 +402,7 @@ impl FunctionName {
             FunctionName::NullIf => "NULLIF",
             FunctionName::OctetLength => "OCTET_LENGTH",
             FunctionName::Position => "POSITION",
+            FunctionName::Round => "ROUND",
             FunctionName::Size => "SIZE",
             FunctionName::Slice => "SLICE",
             FunctionName::StddevPop => "STDDEV_POP",
@@ -427,10 +433,12 @@ impl FunctionName {
             | FunctionName::CharLength
             | FunctionName::Coalesce
             | FunctionName::CurrentTimestamp
+            | FunctionName::Log
             | FunctionName::Lower
             | FunctionName::NullIf
             | FunctionName::OctetLength
             | FunctionName::Position
+            | FunctionName::Round
             | FunctionName::Size
             | FunctionName::Slice
             | FunctionName::Substring

@@ -117,7 +117,7 @@ catalog_data:
       - { '_id': 3, 'v': { "$numberInt": "100" }, 'base': { "$numberDecimal": "0" }}
       - { '_id': 4, 'v': { "$numberInt": "100" }, 'base': null }
       - { '_id': 5, 'v': { "$numberInt": "100" }}
-      - { '_id': 6, 'v': { "$numberLong": "100" }, 'base': { "$numberInt": "10" }}
+      - { '_id': 6, 'v': { "$numberLong": "100" }, 'base': { "$numberInt": "1" }}
       - { '_id': 7, 'v': { "$numberLong": "100" }, 'base': { "$numberLong": "10" }}
       - { '_id': 8, 'v': { "$numberLong": "100" }, 'base': { "$numberDouble": "10" }}
       - { '_id': 9, 'v': { "$numberLong": "100" }, 'base': { "$numberDecimal": "10" }}
@@ -1157,8 +1157,7 @@ tests:
 
   - description: LOG correctness tests
     current_db: foo
-    query: "SELECT VALUE {'v': v, 'base': base, 'n': LOG(v, base)} FROM `log` AS c"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    query: "SELECT VALUE {'v': v, 'base': base, 'n': LOG(v, base)} FROM log AS c"
     translation_target_db: foo
     translation_target_coll: log
     translation:
@@ -1175,7 +1174,7 @@ tests:
       - {'': {'v': { "$numberInt": "100" }, 'base': { "$numberDecimal": "0" }, 'n': null }}
       - {'': {'v': { "$numberInt": "100" }, 'base': null, 'n': null }}
       - {'': {'v': { "$numberInt": "100" }, 'n': null }}
-      - {'': { 'v': { "$numberLong": "100" }, 'base': { "$numberInt": "10" }, 'n': { "$numberDouble": "2" }}}
+      - {'': { 'v': { "$numberLong": "100" }, 'base': { "$numberInt": "1" }, 'n': null }}
       - {'': { 'v': { "$numberLong": "100" }, 'base': { "$numberLong": "10" }, 'n': { "$numberDouble": "2" }}}
       - {'': { 'v': { "$numberLong": "100" }, 'base': { "$numberDouble": "10" }, 'n': { "$numberDouble": "2" }}}
       - {'': { 'v': { "$numberLong": "100" }, 'base': { "$numberDecimal": "10" }, 'n': { "$numberDecimal": "2" }}}
@@ -1193,12 +1192,12 @@ tests:
       - {'': { 'v': { "$numberDecimal": "100" }, 'base': { "$numberDecimal": "10" }, 'n': { "$numberDecimal": "2" }}}
       - {'': { 'v': { "$numberDecimal": "100" }, 'base': null, 'n': null }}
       - {'': { 'v': { "$numberDecimal": "100" }, 'n': null }}
-      - {'': { 'v': { "$numberDouble": "NaN" }, 'base': { "$numberDouble": "10" }, 'n': { "$numberDouble": "NaN" }}}
-      - {'': { 'v': { "$numberDouble": "100" }, 'base': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
-      - {'': { 'v': { "$numberDouble": "Infinity" }, 'base': { "$numberDouble": "10" }, 'n': { "$numberDouble": "Infinity" }}}
-      - {'': { 'v': { "$numberDouble": "100" }, 'base': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "0" }}}
-      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'base': { "$numberDouble": "10" }, 'n': null }}
-      - {'': { 'v': { "$numberDouble": "100" }, 'base': { "$numberDouble": "-Infinity" }, 'n': null }}
+      - {'': { 'v': { "$numberDouble": "NaN" }, 'base': { "$numberInt": "10" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberInt": "100" }, 'base': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberDouble": "Infinity" }, 'base': { "$numberInt": "10" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': { 'v': { "$numberInt": "100" }, 'base': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "0" }}}
+      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'base': { "$numberInt": "10" }, 'n': null }}
+      - {'': { 'v': { "$numberInt": "100" }, 'base': { "$numberDouble": "-Infinity" }, 'n': null }}
       - {'': { 'v': null, 'base': { "$numberInt": "10" }, 'n': null }}
       - {'': { 'v': null, 'base': null, 'n': null }}
       - {'': { 'v': null, 'n': null }}
@@ -1328,8 +1327,7 @@ tests:
 
   - description: ROUND correctness tests
     current_db: foo
-    query: "SELECT VALUE {'v': v, 'place': place, 'n': ROUND(v, place)} FROM `round` AS c"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    query: "SELECT VALUE {'v': v, 'place': place, 'n': ROUND(v, place)} FROM round AS c"
     translation_target_db: foo
     translation_target_coll: round
     translation:
@@ -1356,9 +1354,9 @@ tests:
       - {'': { 'v': { "$numberDecimal": "1234.5678" }, 'place': { "$numberLong": "2" }, 'n': { "$numberDecimal": "1234.57" }}}
       - {'': { 'v': { "$numberDecimal": "1234.5678" }, 'place': null, 'n': null }}
       - {'': { 'v': { "$numberDecimal": "1234.5678" }, 'n': null }}
-      - {'': { 'v': { "$numberDouble": "NaN" }, 'place': { "$numberLong": "2" }, 'n': { "$numberDouble": "NaN" }}}
-      - {'': { 'v': { "$numberDouble": "Infinity" }, 'place': { "$numberLong": "2" }, 'n': { "$numberDouble": "Infinity" }}}
-      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'place': { "$numberLong": "2" }, 'n': { "$numberDouble": "-Infinity" }}}
+      - {'': { 'v': { "$numberDouble": "NaN" }, 'place': { "$numberInt": "2" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberDouble": "Infinity" }, 'place': { "$numberInt": "2" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'place': { "$numberInt": "2" }, 'n': { "$numberDouble": "-Infinity" }}}
       - {'': { 'v': { "$numberInt": "1234" }, 'place': { "$numberInt": "-21" }, 'n': null }}
       - {'': { 'v': { "$numberInt": "1234" }, 'place': { "$numberInt": "101" }, 'n': null }}
       - {'': { 'v': null, 'place': { "$numberInt": "-2" }, 'n': null }}

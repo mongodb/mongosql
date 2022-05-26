@@ -2591,6 +2591,136 @@ mod schema {
         schema_checking_mode = SchemaCheckingMode::Relaxed,
     );
 
+    // Log tests
+    test_schema!(
+        log_requires_exactly_two_args,
+        expected = Err(ir_error::IncorrectArgumentCount {
+            name: "Log",
+            required: 2,
+            found: 3
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Log,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(2).into()),
+                Expression::Literal(LiteralValue::Integer(3).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        log_first_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Log",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Log,
+            args: vec![
+                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
+                Expression::Literal(LiteralValue::Integer(2).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        log_second_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Log",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Log,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(2).into()),
+                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    // Round tests
+    test_schema!(
+        round_requires_exactly_two_args,
+        expected = Err(ir_error::IncorrectArgumentCount {
+            name: "Round",
+            required: 2,
+            found: 3
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Round,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(2).into()),
+                Expression::Literal(LiteralValue::Integer(3).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        round_first_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Round",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Round,
+            args: vec![
+                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
+                Expression::Literal(LiteralValue::Integer(2).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        round_second_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Round",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Round,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(2).into()),
+                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+
     // Arithmetic function errors.
     test_schema!(
         sub_requires_exactly_two_args,

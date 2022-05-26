@@ -1435,6 +1435,52 @@ mod expression {
             escape: Some(" ".into()),
         }),
     );
+
+    test_algebrize!(
+        log_bin_op,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Log,
+                args: vec![
+                    ir::Expression::Literal(ir::LiteralValue::Integer(100).into()),
+                    ir::Expression::Literal(ir::LiteralValue::Integer(10).into()),
+                ],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Log,
+            args: ast::FunctionArguments::Args(vec![
+                ast::Expression::Literal(ast::Literal::Integer(100)),
+                ast::Expression::Literal(ast::Literal::Integer(10)),
+            ]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }),
+    );
+
+    test_algebrize!(
+        round_bin_op,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Round,
+                args: vec![
+                    ir::Expression::Literal(ir::LiteralValue::Integer(10).into()),
+                    ir::Expression::Literal(ir::LiteralValue::Integer(10).into()),
+                ],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Round,
+            args: ast::FunctionArguments::Args(vec![
+                ast::Expression::Literal(ast::Literal::Integer(10)),
+                ast::Expression::Literal(ast::Literal::Integer(10)),
+            ]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }),
+    );
 }
 
 mod aggregation {

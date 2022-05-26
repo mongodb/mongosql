@@ -1273,10 +1273,23 @@ impl ScalarFunction {
             // Arithmetic operators with variadic arguments.
             Add | Mul => self.get_arithmetic_schema(state, arg_schemas),
             // Arithmetic operators with fixed (two) arguments.
-            Sub | Div => {
+            Sub | Div | Round => {
                 self.ensure_arg_count(arg_schemas.len(), 2)?;
                 self.get_arithmetic_schema(state, arg_schemas)
             }
+
+            Log => {
+                self.ensure_arg_count(arg_schemas.len(), 2)?;
+                self.get_arithmetic_schema(
+                    state,
+                    &[
+                        arg_schemas[0].clone(),
+                        arg_schemas[1].clone(),
+                        Schema::Atomic(Atomic::Double),
+                    ],
+                )
+            }
+
             // Comparison operators.
             Lt | Lte | Neq | Eq | Gt | Gte => self.get_comparison_schema(state, arg_schemas),
             Between => {

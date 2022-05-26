@@ -118,10 +118,12 @@ impl TryFrom<ast::FunctionName> for ir::ScalarFunction {
             ast::FunctionName::CharLength => ir::ScalarFunction::CharLength,
             ast::FunctionName::Coalesce => ir::ScalarFunction::Coalesce,
             ast::FunctionName::CurrentTimestamp => ir::ScalarFunction::CurrentTimestamp,
+            ast::FunctionName::Log => ir::ScalarFunction::Log,
             ast::FunctionName::Lower => ir::ScalarFunction::Lower,
             ast::FunctionName::NullIf => ir::ScalarFunction::NullIf,
             ast::FunctionName::OctetLength => ir::ScalarFunction::OctetLength,
             ast::FunctionName::Position => ir::ScalarFunction::Position,
+            ast::FunctionName::Round => ir::ScalarFunction::Round,
             ast::FunctionName::Size => ir::ScalarFunction::Size,
             ast::FunctionName::Slice => ir::ScalarFunction::Slice,
             ast::FunctionName::Substring => ir::ScalarFunction::Substring,
@@ -167,10 +169,12 @@ impl TryFrom<ast::FunctionName> for ir::AggregationFunction {
             | ast::FunctionName::CharLength
             | ast::FunctionName::Coalesce
             | ast::FunctionName::CurrentTimestamp
+            | ast::FunctionName::Log
             | ast::FunctionName::Lower
             | ast::FunctionName::NullIf
             | ast::FunctionName::OctetLength
             | ast::FunctionName::Position
+            | ast::FunctionName::Round
             | ast::FunctionName::Size
             | ast::FunctionName::Slice
             | ast::FunctionName::Substring

@@ -967,6 +967,17 @@ expression_printer_test!(
 );
 
 expression_printer_test!(
+    function_log,
+    expected = "LOG(100, 10)",
+    input = "LOG(100, 10)"
+);
+expression_printer_test!(
+    function_round,
+    expected = "ROUND(100, 1)",
+    input = "ROUND(100, 1)"
+);
+
+expression_printer_test!(
     access_int,
     expected = "[1, 2, 3][1]",
     input = "[1, 2, 3] [1]"

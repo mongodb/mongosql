@@ -12,6 +12,8 @@ var functionDesugarers = map[string]functionDesugarer{
 	"$sqlBetween": desugarSQLBetween,
 	"$sqlConvert": desugarSQLConvert,
 	"$sqlDivide":  desugarSQLDivide,
+	"$sqlLog":     desugarSQLLog,
+	"$sqlRound":   desugarSQLRound,
 	"$sqlSlice":   desugarSQLSlice,
 	"$coalesce":   desugarCoalesce,
 	"$like":       desugarLike,
@@ -112,6 +114,68 @@ func desugarSQLDivide(f *ast.Function) ast.Expr {
 		onError,
 		ast.NewBinary(ast.Divide, dividend, divisor),
 	)
+}
+
+func desugarSQLLog(f *ast.Function) ast.Expr {
+	args := f.Arg.(*ast.Array)
+
+	firstArgNan := ast.NewBinary(ast.Equals, args.Elements[0], nanLiteral)
+	secondArgNan := ast.NewBinary(ast.Equals, args.Elements[1], nanLiteral)
+
+	firstArgNegative := ast.NewBinary(ast.LessThanOrEquals, args.Elements[0], zeroLiteral)
+	secondArgOne := ast.NewBinary(ast.Equals, args.Elements[1], oneLiteral)
+	secondArgNegative := ast.NewBinary(ast.LessThanOrEquals, args.Elements[1], zeroLiteral)
+
+	nanCheckCondition := wrapInOp("$or", firstArgNan, secondArgNan)
+	invalidArgCondition := wrapInOp("$or", firstArgNegative, secondArgOne, secondArgNegative)
+
+	invalidArgConditional := ast.NewConditional(
+		invalidArgCondition,
+		nullLiteral,
+		ast.NewBinary(ast.Log, args.Elements[0], args.Elements[1]),
+	)
+
+	return ast.NewConditional(nanCheckCondition, nanLiteral, invalidArgConditional)
+}
+
+func desugarSQLRound(f *ast.Function) ast.Expr {
+	args := f.Arg.(*ast.Array)
+
+	inputNumberVarName := "desugared_sqlRound_input0"
+	inputNumberVarRef := ast.NewVariableRef(inputNumberVarName)
+
+	inputPlaceVarName := "desugared_sqlRound_input1"
+	inputPlaceVarRef := ast.NewVariableRef(inputPlaceVarName)
+
+	argIsNan := ast.NewBinary(ast.Equals, inputPlaceVarRef, nanLiteral)
+
+	withinRange := wrapInOp("$and",
+		ast.NewBinary(ast.GreaterThanOrEquals,
+			inputPlaceVarRef,
+			negTwentyLiteral,
+		),
+		ast.NewBinary(ast.LessThanOrEquals,
+			inputPlaceVarRef,
+			oneHundredLiteral,
+		),
+	)
+
+	argCheckConditional := ast.NewConditional(
+		withinRange,
+		wrapInOp("$round", inputNumberVarRef, inputPlaceVarRef),
+		nullLiteral,
+	)
+
+	return ast.NewLet(
+		[]*ast.LetVariable{
+			ast.NewLetVariable(inputNumberVarName, args.Elements[0]),
+			ast.NewLetVariable(inputPlaceVarName, args.Elements[1]),
+		},
+		ast.NewConditional(
+			argIsNan,
+			nanLiteral,
+			argCheckConditional,
+		))
 }
 
 func desugarSQLSlice(f *ast.Function) ast.Expr {

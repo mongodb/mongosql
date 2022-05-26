@@ -2184,6 +2184,46 @@ mod function {
             mr
         },
     );
+    test_codegen_expr!(
+        log_expr,
+        expected = Ok(bson!({"$sqlLog": [
+            "$f1", "$f2"
+        ]})),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: Log,
+            args: vec![
+                Expression::Reference(("f1", 0u16).into()),
+                Expression::Reference(("f2", 0u16).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f1", 0u16), "f1");
+            mr.insert(("f2", 0u16), "f2");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        round_expr,
+        expected = Ok(bson!({"$sqlRound": [
+            "$f1", "$f2"
+        ]})),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: Round,
+            args: vec![
+                Expression::Reference(("f1", 0u16).into()),
+                Expression::Reference(("f2", 0u16).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f1", 0u16), "f1");
+            mr.insert(("f2", 0u16), "f2");
+            mr
+        },
+    );
 }
 
 mod group_by {
