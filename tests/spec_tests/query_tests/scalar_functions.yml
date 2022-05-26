@@ -280,16 +280,18 @@ catalog_data:
       - {'_id': 5, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '0' }}
       - {'_id': 6, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '7' }}
       - {'_id': 7, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '-7' }}
-      - {'_id': 8, 'str': 'a/\bee/\c/\d', 'delim': '/\', 'tokenNum': { '$numberInt': '2' }}
-      - {'_id': 9, 'str': null, 'delim': '-', 'tokenNum': { '$numberInt': '0' }}
-      - {'_id': 10, 'str': 'a-bee-c-d', 'delim': null, 'tokenNum': { '$numberInt': '0' }}
-      - {'_id': 11, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': null}
-      - {'_id': 12, 'delim': '-', 'tokenNum': { '$numberInt': '0' } }
-      - {'_id': 13, 'str': 'a-bee-c-d', 'tokenNum': { '$numberInt': '0' } }
-      - {'_id': 14, 'str': 'a-bee-c-d', 'delim': '-' }
-      - {'_id': 15, 'str': 'λ-bee-寿-d', 'delim': '-', 'tokenNum': { '$numberInt': '2' }}
-      - {'_id': 16, 'str': 'λ€bee€寿€d', 'delim': '€', 'tokenNum': { '$numberInt': '2' }}
-      - {'_id': 17}
+      - {'_id': 8, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '4' } }
+      - {'_id': 9, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '-4' } }
+      - {'_id': 10, 'str': 'a/\bee/\c/\d', 'delim': '/\', 'tokenNum': { '$numberInt': '2' }}
+      - {'_id': 11, 'str': null, 'delim': '-', 'tokenNum': { '$numberInt': '0' }}
+      - {'_id': 12, 'str': 'a-bee-c-d', 'delim': null, 'tokenNum': { '$numberInt': '0' }}
+      - {'_id': 13, 'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': null}
+      - {'_id': 14, 'delim': '-', 'tokenNum': { '$numberInt': '0' } }
+      - {'_id': 15, 'str': 'a-bee-c-d', 'tokenNum': { '$numberInt': '0' } }
+      - {'_id': 16, 'str': 'a-bee-c-d', 'delim': '-' }
+      - {'_id': 17, 'str': 'λ-bee-寿-d', 'delim': '-', 'tokenNum': { '$numberInt': '2' }}
+      - {'_id': 18, 'str': 'λ€bee€寿€d', 'delim': '€', 'tokenNum': { '$numberInt': '2' }}
+      - {'_id': 19}
 
 
 catalog_schema:
@@ -1438,8 +1440,16 @@ tests:
 
   - description: SPLIT correctness tests
     current_db: foo
-    query: "SELECT VALUE {'str': str, 'delim': delim, 'tokenNum': tokenNum, 'v': SPLIT(str, delim, tokenNum)} FROM `split` AS c"
-    skip_reason: "SQL-816: Implement required Tableau string functions in MongoSQL"
+    query: "SELECT VALUE {'str': str, 'delim': delim, 'tokenNum': tokenNum, 'v': SPLIT(str, delim, tokenNum)} FROM split AS c"
+    translation_target_db: foo
+    translation_target_coll: split
+    translation:
+      - { $project: { _id: 0, split: "$$ROOT" } }
+      - { $project: { _id: 0, c: "$split" } }
+      - { $project: { _id: 0, __bot: { str: "$c.str", delim: "$c.delim", tokenNum: "$c.tokenNum", v: { $sqlSplit: [ "$c.str", "$c.delim", "$c.tokenNum" ] }}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+        {'$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
     result:
       - {'': {'str': '', 'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': ''}}
       - {'': {'str': 'abcd', 'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': 'abcd'}}
@@ -1449,6 +1459,8 @@ tests:
       - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': 'a'}}
       - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': {'$numberInt': '7'}, 'v': ''}}
       - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': {'$numberInt': '-7'}, 'v': ''}}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '4' }, 'v': '' }}
+      - {'': {'str': 'a-bee-c-d', 'delim': '-', 'tokenNum': { '$numberInt': '-4' }, 'v': 'a' }}
       - {'': {'str': 'a/\bee/\c/\d', 'delim': '/\', 'tokenNum': {'$numberInt': '2'}, 'v': 'c'}}
       - {'': {'str': null, 'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': null}}
       - {'': {'str': 'a-bee-c-d', 'delim': null, 'tokenNum': {'$numberInt': '0'}, 'v': null}}

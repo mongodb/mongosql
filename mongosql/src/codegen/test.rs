@@ -2195,7 +2195,7 @@ mod function {
                 Expression::Reference(("f1", 0u16).into()),
                 Expression::Reference(("f2", 0u16).into())
             ],
-            cache: SchemaCache::new(),
+            cache: SchemaCache::new()
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -2221,6 +2221,26 @@ mod function {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f1", 0u16), "f1");
             mr.insert(("f2", 0u16), "f2");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        split_expr,
+        expected = Ok(bson::bson! ({"$sqlSplit": [
+            "$f", {"$literal": "a"}, {"$literal": 1}
+        ]})),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: Split,
+            args: vec![
+                Expression::Reference(("f", 0u16).into()),
+                Expression::Literal(LiteralValue::String("a".to_string()).into()),
+                Expression::Literal(LiteralValue::Integer(1).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
             mr
         },
     );

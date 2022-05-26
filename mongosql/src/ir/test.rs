@@ -3768,6 +3768,90 @@ mod schema {
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
 
+    // Split function.
+    test_schema!(
+        split_requires_three_args,
+        expected = Err(ir_error::IncorrectArgumentCount {
+            name: "Split",
+            required: 3,
+            found: 1,
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Split,
+            args: vec![Expression::Literal(
+                LiteralValue::String("a-b-c".to_string()).into()
+            )],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        split_requires_string_or_nullish_for_first_arg,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Split",
+            required: STRING_OR_NULLISH.clone(),
+            found: Schema::Atomic(Atomic::Integer),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Split,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(5).into()),
+                Expression::Literal(LiteralValue::String("-".to_string()).into()),
+                Expression::Literal(LiteralValue::Integer(1).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        split_requires_string_or_nullish_for_second_arg,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Split",
+            required: STRING_OR_NULLISH.clone(),
+            found: Schema::Atomic(Atomic::Integer),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Split,
+            args: vec![
+                Expression::Literal(LiteralValue::String("a-b-c".to_string()).into()),
+                Expression::Literal(LiteralValue::Integer(5).into()),
+                Expression::Literal(LiteralValue::Integer(1).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        split_requires_integer_or_nullish_for_third_arg,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Split",
+            required: INTEGER_OR_NULLISH.clone(),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Split,
+            args: vec![
+                Expression::Literal(LiteralValue::String("a-b-c".to_string()).into()),
+                Expression::Literal(LiteralValue::String("-".to_string()).into()),
+                Expression::Literal(LiteralValue::String("1".to_string()).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        split_returns_null_if_empty_delimiter,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::String),
+            Schema::Atomic(Atomic::Null)
+        ])),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Split,
+            args: vec![
+                Expression::Literal(LiteralValue::String("a-b-c".to_string()).into()),
+                Expression::Literal(LiteralValue::String("".to_string()).into()),
+                Expression::Literal(LiteralValue::Integer(1).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+
     // Size function.
     test_schema!(
         size_requires_one_arg,

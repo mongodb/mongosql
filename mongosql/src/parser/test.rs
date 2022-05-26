@@ -1720,6 +1720,11 @@ mod scalar_function {
         expected_error = "unknown function myFunc",
         input = "select myFunc(x)"
     );
+    parsable!(
+        split,
+        expected = true,
+        input = "select sPliT(str,'delim', 3)"
+    );
 
     validate_ast!(
         position_ast,

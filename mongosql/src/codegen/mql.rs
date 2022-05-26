@@ -179,6 +179,7 @@ impl ScalarFunction {
             Hour => "$hour",
             Minute => "$minute",
             Second => "$second",
+            Split => "$sqlSplit",
 
             // MergeObject
             MergeObjects => "$mergeObjects",
@@ -897,7 +898,7 @@ impl MqlCodeGenerator {
                     }
                     Not | Concat | Add | Sub | Mul | Lt | Lte | Neq | Eq | Gt | Gte | Between
                     | And | Or | NullIf | Coalesce | Slice | Substring | MergeObjects | Log
-                    | Round => {
+                    | Round | Split => {
                         let args = Bson::Array(
                             sa.args
                                 .into_iter()

@@ -965,6 +965,11 @@ expression_printer_test!(
     expected = "TRIM(TRAILING 'asdf' FROM hello)",
     input = "TRIM(TRAILING 'asdf' FROM hello)"
 );
+expression_printer_test!(
+    function_split,
+    expected = "SPLIT(str, 'delim', 3)",
+    input = "SPLIT(str, 'delim', 3)"
+);
 
 expression_printer_test!(
     function_log,

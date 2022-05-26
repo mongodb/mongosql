@@ -333,6 +333,7 @@ pub enum FunctionName {
     Round,
     Size,
     Slice,
+    Split,
     Substring,
     Upper,
 }
@@ -369,6 +370,7 @@ impl TryFrom<&str> for FunctionName {
             "ROUND" => Ok(FunctionName::Round),
             "SIZE" => Ok(FunctionName::Size),
             "SLICE" => Ok(FunctionName::Slice),
+            "SPLIT" => Ok(FunctionName::Split),
             "STDDEV_POP" => Ok(FunctionName::StddevPop),
             "STDDEV_SAMP" => Ok(FunctionName::StddevSamp),
             "SUBSTRING" => Ok(FunctionName::Substring),
@@ -405,6 +407,7 @@ impl FunctionName {
             FunctionName::Round => "ROUND",
             FunctionName::Size => "SIZE",
             FunctionName::Slice => "SLICE",
+            FunctionName::Split => "SPLIT",
             FunctionName::StddevPop => "STDDEV_POP",
             FunctionName::StddevSamp => "STDDEV_SAMP",
             FunctionName::Substring => "SUBSTRING",
@@ -441,6 +444,7 @@ impl FunctionName {
             | FunctionName::Round
             | FunctionName::Size
             | FunctionName::Slice
+            | FunctionName::Split
             | FunctionName::Substring
             | FunctionName::Upper => false,
         }

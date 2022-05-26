@@ -390,6 +390,7 @@ pub enum ScalarFunction {
     BTrim,
     LTrim,
     RTrim,
+    Split,
 
     // Datetime value scalar function
     CurrentTimestamp,
@@ -443,6 +444,7 @@ impl ScalarFunction {
             ScalarFunction::Round => "Round",
             ScalarFunction::Size => "Size",
             ScalarFunction::Slice => "Slice",
+            ScalarFunction::Split => "Split",
             ScalarFunction::Sub => "Sub",
             ScalarFunction::Substring => "Substring",
             ScalarFunction::LTrim => "LTrim",

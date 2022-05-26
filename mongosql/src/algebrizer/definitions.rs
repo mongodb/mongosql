@@ -126,6 +126,7 @@ impl TryFrom<ast::FunctionName> for ir::ScalarFunction {
             ast::FunctionName::Round => ir::ScalarFunction::Round,
             ast::FunctionName::Size => ir::ScalarFunction::Size,
             ast::FunctionName::Slice => ir::ScalarFunction::Slice,
+            ast::FunctionName::Split => ir::ScalarFunction::Split,
             ast::FunctionName::Substring => ir::ScalarFunction::Substring,
             ast::FunctionName::Upper => ir::ScalarFunction::Upper,
 
@@ -177,6 +178,7 @@ impl TryFrom<ast::FunctionName> for ir::AggregationFunction {
             | ast::FunctionName::Round
             | ast::FunctionName::Size
             | ast::FunctionName::Slice
+            | ast::FunctionName::Split
             | ast::FunctionName::Substring
             | ast::FunctionName::Upper => {
                 return Err(Error::ScalarInPlaceOfAggregation(f.pretty_print().unwrap()))

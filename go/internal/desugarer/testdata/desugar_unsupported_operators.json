@@ -656,75 +656,189 @@
     ],
     "expected": [
       {
-         "$project":{
-            "_id":{
-               "$numberInt":"0"
-            },
-            "expr":{
-               "$let":{
-                  "vars":{
-                     "desugared_sqlRound_input0":"$number",
-                     "desugared_sqlRound_input1":"$place"
+        "$project":{
+          "_id":{
+            "$numberInt":"0"
+          },
+          "expr":{
+            "$let":{
+              "vars":{
+                "desugared_sqlRound_input0":"$number",
+                "desugared_sqlRound_input1":"$place"
+              },
+              "in":{
+                "$cond":{
+                  "if":{
+                    "$eq":[
+                      "$$desugared_sqlRound_input1",
+                      {
+                        "$literal":{
+                          "$numberDouble":"NaN"
+                        }
+                      }
+                    ]
                   },
-                  "in":{
-                     "$cond":{
-                        "if":{
-                           "$eq":[
+                  "then":{
+                    "$literal":{
+                      "$numberDouble":"NaN"
+                    }
+                  },
+                  "else":{
+                    "$cond":{
+                      "if":{
+                        "$and":[
+                          {
+                            "$gte":[
                               "$$desugared_sqlRound_input1",
                               {
-                                 "$literal":{
-                                    "$numberDouble":"NaN"
-                                 }
+                                "$literal":{
+                                  "$numberInt":"-20"
+                                }
                               }
-                           ]
-                        },
-                        "then":{
-                           "$literal":{
-                              "$numberDouble":"NaN"
-                           }
-                        },
-                        "else":{
-                           "$cond":{
-                              "if":{
-                                 "$and":[
-                                    {
-                                       "$gte":[
-                                          "$$desugared_sqlRound_input1",
-                                          {
-                                             "$literal":{
-                                                "$numberInt":"-20"
-                                             }
-                                          }
-                                       ]
-                                    },
-                                    {
-                                       "$lte":[
-                                          "$$desugared_sqlRound_input1",
-                                          {
-                                             "$literal":{
-                                                "$numberInt":"100"
-                                             }
-                                          }
-                                       ]
-                                    }
-                                 ]
-                              },
-                              "then":{
-                                 "$round":[
-                                    "$$desugared_sqlRound_input0",
-                                    "$$desugared_sqlRound_input1"
-                                 ]
-                              },
-                              "else":{
-                                 "$literal":null
+                            ]
+                          },
+                          {
+                            "$lte":[
+                              "$$desugared_sqlRound_input1",
+                              {
+                                "$literal":{
+                                  "$numberInt":"100"
+                                }
                               }
-                           }
-                        }
-                     }
+                            ]
+                          }
+                        ]
+                      },
+                      "then":{
+                        "$round":[
+                          "$$desugared_sqlRound_input0",
+                          "$$desugared_sqlRound_input1"
+                        ]
+                      },
+                      "else":{
+                        "$literal":null
+                      }
+                    }
                   }
-               }
+                }
+              }
             }
-         }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar sqlSplit",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlSplit": [
+              "$a",
+              "$b",
+              "$c"
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$let": {
+              "vars": {
+                "desugared_sqlSplit_input0": "$a",
+                "desugared_sqlSplit_input1": "$b",
+                "desugared_sqlSplit_input2": "$c"
+              },
+              "in": {
+                "$cond": {
+                  "if": {
+                    "$eq": [
+                      "$$desugared_sqlSplit_input1",
+                      ""
+                    ]
+                  },
+                  "then": {"$literal": null},
+                  "else": {
+                    "$let": {
+                      "vars": {
+                        "desugared_sqlSplit_split_expr": {
+                          "$split": [
+                            "$$desugared_sqlSplit_input0",
+                            "$$desugared_sqlSplit_input1"
+                          ]
+                        }
+                      },
+                      "in": {
+                        "$cond": {
+                          "if": {
+                            "$lte": [
+                              "$$desugared_sqlSplit_split_expr",
+                              {"$literal": null}
+                            ]
+                          },
+                          "then": {"$literal": null},
+                          "else": {
+                            "$let": {
+                              "vars": {
+                                "desugared_sqlSplit_slice_expr": {
+                                  "$slice": [
+                                    "$$desugared_sqlSplit_split_expr",
+                                    {
+                                      "$cond": {
+                                        "if": {
+                                          "$gt": [
+                                            {
+                                              "$abs": ["$$desugared_sqlSplit_input2"]
+                                            },
+                                            {
+                                              "$size": "$$desugared_sqlSplit_split_expr"
+                                            }
+                                          ]
+                                        },
+                                        "then": {
+                                          "$abs": ["$$desugared_sqlSplit_input2"]
+                                        },
+                                        "else": "$$desugared_sqlSplit_input2"
+                                      }
+                                    },
+                                    1
+                                  ]
+                                }
+                              },
+                              "in": {
+                                "$arrayElemAt": [
+                                  {
+                                    "$cond": {
+                                      "if": {
+                                        "$eq": [
+                                          "$$desugared_sqlSplit_slice_expr",
+                                          []
+                                        ]
+                                      },
+                                      "then": [""],
+                                      "else": "$$desugared_sqlSplit_slice_expr"
+                                    }
+                                  },
+                                  0
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
       }
     ]
   }

@@ -15,6 +15,7 @@ var functionDesugarers = map[string]functionDesugarer{
 	"$sqlLog":     desugarSQLLog,
 	"$sqlRound":   desugarSQLRound,
 	"$sqlSlice":   desugarSQLSlice,
+	"$sqlSplit":   desugarSQLSplit,
 	"$coalesce":   desugarCoalesce,
 	"$like":       desugarLike,
 	"$nullIf":     desugarNullIf,
@@ -266,6 +267,68 @@ func desugarLike(f *ast.Function) ast.Expr {
 		ast.NewDocumentElement("regex", stringLiteral(regex)),
 		ast.NewDocumentElement("options", stringLiteral("is")),
 	))
+}
+
+// desugarSQLSplit desugars {"$sqlSplit": [<expr1>, <expr2>, <expr3>]} into
+// existing MQL operators. Note that $sqlSplit returns null if <expr1>, <expr2>,
+// or <expr3> is null or missing, or if <expr2> is an empty string.
+func desugarSQLSplit(f *ast.Function) ast.Expr {
+	args := f.Arg.(*ast.Array)
+
+	inputStrVarName := "desugared_sqlSplit_input0"
+	inputStrVarRef := ast.NewVariableRef(inputStrVarName)
+
+	inputDelimVarName := "desugared_sqlSplit_input1"
+	inputDelimVarRef := ast.NewVariableRef(inputDelimVarName)
+
+	inputTokenNumVarName := "desugared_sqlSplit_input2"
+	inputTokenNumVarRef := ast.NewVariableRef(inputTokenNumVarName)
+
+	splitExprVarName := "desugared_sqlSplit_split_expr"
+	splitExprVarRef := ast.NewVariableRef(splitExprVarName)
+
+	sliceExprVarName := "desugared_sqlSplit_slice_expr"
+	sliceExprVarRef := ast.NewVariableRef(sliceExprVarName)
+
+	var splitExpr ast.Expr = wrapInOp("$split", inputStrVarRef, inputDelimVarRef)
+
+	// If a token number's absolute value is greater than the length of the split
+	// array, set the token number to that absolute value. This is done to
+	// circumvent MongoDB's default behavior of setting the starting position of
+	// $slice to the beginning of the array even when the absolute value of the
+	// given position is larger than the array itself.
+	var absTokenNumExpr ast.Expr = ast.NewUnary(ast.Abs, inputTokenNumVarRef)
+	var sizeExpr ast.Expr = ast.NewFunction("$size", splitExprVarRef)
+	var tokenNumCondExpr ast.Expr = ast.NewConditional(ast.NewBinary(ast.GreaterThan, absTokenNumExpr, sizeExpr), absTokenNumExpr, inputTokenNumVarRef)
+	var sliceExpr ast.Expr = wrapInOp("$slice", splitExprVarRef, tokenNumCondExpr, oneLiteral)
+
+	// If $slice returns an empty vector, populate it with the empty string.
+	// This is done to circumvent MongoDB's default behavior of $arrayElemAt[
+	// [], 0] returning MISSING instead of the empty string.
+	var sliceCondExpr ast.Expr = ast.NewConditional(ast.NewBinary(ast.Equals, sliceExprVarRef, ast.NewArray()), ast.NewArray(stringLiteral("")), sliceExprVarRef)
+	var arrayElemAtExpr ast.Expr = wrapInOp("$arrayElemAt", sliceCondExpr, zeroLiteral)
+
+	return ast.NewLet(
+		[]*ast.LetVariable{
+			ast.NewLetVariable(inputStrVarName, args.Elements[0]),
+			ast.NewLetVariable(inputDelimVarName, args.Elements[1]),
+			ast.NewLetVariable(inputTokenNumVarName, args.Elements[2]),
+		},
+		ast.NewConditional(
+			ast.NewBinary(ast.Equals, inputDelimVarRef, stringLiteral("")),
+			nullLiteral,
+			ast.NewLet(
+				[]*ast.LetVariable{
+					ast.NewLetVariable(splitExprVarName, splitExpr),
+				},
+				ast.NewConditional(
+					wrapInNullCheck(splitExprVarRef),
+					nullLiteral,
+					ast.NewLet([]*ast.LetVariable{ast.NewLetVariable(sliceExprVarName, sliceExpr)}, arrayElemAtExpr),
+				),
+			),
+		),
+	)
 }
 
 // convertSQLPattern converts a SQL-style LIKE pattern string into an MQL-style
