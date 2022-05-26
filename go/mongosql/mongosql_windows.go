@@ -12,12 +12,14 @@ import (
 var versionProc *syscall.LazyProc
 var deleteStringProc *syscall.LazyProc
 var translateProc *syscall.LazyProc
+var getNamespacesProc *syscall.LazyProc
 
 func init() {
 	dll := syscall.NewLazyDLL("mongosql.dll")
 	versionProc = dll.NewProc("version")
 	deleteStringProc = dll.NewProc("delete_string")
 	translateProc = dll.NewProc("translate")
+	getNamespacesProc = dll.NewProc("get_namespaces")
 }
 
 // uintptrToString converts a uintptr return value from
@@ -88,4 +90,20 @@ func callTranslate(args TranslationArgs) (string, error) {
 	deleteStringProc.Call(ret1)
 
 	return translationBase64, nil
+}
+
+// callGetNamespaces is a thin wrapper around the translate FFI call. It
+// passes the provided arguments to the c translation library,
+// and returns the string returned by the c library (a base64-encoded
+// bson document representing the result of the get_namespaces call).
+func callGetNamespaces(currentDB, sql string) string {
+	dbArg, sqlArg := stringToUnsafePointer(currentDB), stringToUnsafePointer(sql)
+
+	ret1, _, _ := getNamespacesProc.Call(uintptr(dbArg), uintptr(sqlArg))
+	resultBase64 := uintptrToString(ret1)
+
+	// delete the returned uintptr
+	deleteStringProc.Call(ret1)
+
+	return resultBase64
 }

@@ -411,3 +411,34 @@ func TestSpecResultSets(t *testing.T) {
 		})
 	}
 }
+
+func TestSpecGetNamespaces(t *testing.T) {
+	cwd, err := os.Getwd()
+	assert.NoError(t, err)
+
+	queryTestsPath := cwd + "/" + queryTestsDir
+	queryTests, err := ioutil.ReadDir(queryTestsPath)
+	if err != nil {
+		t.Fatalf("directory does not exist: '%s'", queryTestsPath)
+	}
+
+	for _, testFile := range queryTests {
+		t.Run(testFile.Name(), func(t *testing.T) {
+			yaml, err := readYamlFile(queryTestsPath + "/" + testFile.Name())
+			assert.NoError(t, err)
+
+			for _, testCase := range yaml.Tests {
+				if testCase.AlgebrizeError != "" || testCase.ParseError != "" {
+					continue
+				}
+				t.Run(testCase.Description, func(t *testing.T) {
+					if testCase.SkipReason != "" {
+						t.Skip(testCase.SkipReason)
+					}
+					_, err := GetNamespaces(testCase.CurrentDb, testCase.Query)
+					assert.NoError(t, err, "GetNamespaces failed for valid query %s", testCase.Query)
+				})
+			}
+		})
+	}
+}

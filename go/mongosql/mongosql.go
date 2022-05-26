@@ -51,10 +51,6 @@ type Translation struct {
 	// ResultSetSchema is a JSON Schema document that describes
 	// the documents returned by this Translation
 	ResultSetSchema bsoncore.Document
-
-	// namespaces is the list of namespaces referenced by the
-	// SQL query from which this Translation is built
-	namespaces []Namespace
 }
 
 // TranslationError is an error type that includes additional
@@ -148,7 +144,6 @@ func Translate(args TranslationArgs) (Translation, error) {
 		TargetCollection: translationResult.Collection,
 		Pipeline:         pipelineBytes,
 		ResultSetSchema:  translationResult.ResultSetSchema,
-		namespaces:       translationResult.Namespaces,
 	}, nil
 }
 
@@ -164,15 +159,32 @@ type Namespace struct {
 // sqlStatement. Unqualified collections in the statement are assumed
 // to be in the provided database.
 func GetNamespaces(dbName, sqlStatement string) ([]Namespace, error) {
-	translation, err := Translate(TranslationArgs{
-		DB:                  dbName,
-		SQL:                 sqlStatement,
-		CatalogSchema:       nil,
-		relaxSchemaChecking: true,
-	})
+	base64Result := callGetNamespaces(dbName, sqlStatement)
+
+	result := struct {
+		Namespaces      []Namespace `bson:"namespaces"`
+		Error           string      `bson:"error"`
+		ErrorIsInternal bool        `bson:"error_is_internal"`
+	}{}
+
+	resultBytes, err := base64.StdEncoding.DecodeString(base64Result)
 	if err != nil {
+		return nil, NewInternalError(fmt.Errorf("failed to decode base64 translation result: %w", err))
+	}
+
+	err = bson.Unmarshal(resultBytes, &result)
+	if err != nil {
+		return nil, NewInternalError(fmt.Errorf("failed to unmarshal translation result BSON into struct: %w", err))
+	}
+
+	if result.Error != "" {
+		if result.ErrorIsInternal {
+			err = NewInternalError(errors.New(result.Error))
+		} else {
+			err = NewExternalError(errors.New(result.Error))
+		}
 		return nil, err
 	}
 
-	return translation.namespaces, nil
+	return result.Namespaces, nil
 }

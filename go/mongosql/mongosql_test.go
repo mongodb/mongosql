@@ -446,16 +446,16 @@ func TestGetNamespaces(t *testing.T) {
 			expectedError: false,
 			expectedNamespaces: []mongosql.Namespace{
 				{
-					Database:   "test",
-					Collection: "foo",
+					Database:   "db2",
+					Collection: "baz",
 				},
 				{
 					Database:   "test",
 					Collection: "bar",
 				},
 				{
-					Database:   "db2",
-					Collection: "baz",
+					Database:   "test",
+					Collection: "foo",
 				},
 				{
 					Database:   "test",
@@ -483,11 +483,11 @@ func TestGetNamespaces(t *testing.T) {
 			expectedNamespaces: []mongosql.Namespace{
 				{
 					Database:   "test",
-					Collection: "foo",
+					Collection: "bar",
 				},
 				{
 					Database:   "test",
-					Collection: "bar",
+					Collection: "foo",
 				},
 			},
 		},
@@ -499,11 +499,11 @@ func TestGetNamespaces(t *testing.T) {
 			expectedNamespaces: []mongosql.Namespace{
 				{
 					Database:   "test",
-					Collection: "foo",
+					Collection: "bar",
 				},
 				{
 					Database:   "test",
-					Collection: "bar",
+					Collection: "foo",
 				},
 			},
 		},
@@ -527,11 +527,20 @@ func TestGetNamespaces(t *testing.T) {
 			expectedNamespaces: nil,
 		},
 		{
-			name:               "semantically invalid query errors",
-			db:                 "test",
-			sql:                "SELECT x FROM foo JOIN bar", // x is ambiguous
-			expectedError:      true,
-			expectedNamespaces: nil,
+			name:          "semantically invalid query does not error",
+			db:            "test",
+			sql:           "SELECT x FROM foo JOIN bar", // x is ambiguous
+			expectedError: false,
+			expectedNamespaces: []mongosql.Namespace{
+				{
+					Database:   "test",
+					Collection: "bar",
+				},
+				{
+					Database:   "test",
+					Collection: "foo",
+				},
+			},
 		},
 	}
 

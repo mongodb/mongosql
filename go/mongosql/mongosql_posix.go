@@ -55,3 +55,20 @@ func callTranslate(args TranslationArgs) (string, error) {
 
 	return translationBase64, nil
 }
+
+// callGetNamespaces is a thin wrapper around the translate FFI call. It
+// passes the provided arguments to the c translation library,
+// and returns the string returned by the c library (a base64-encoded
+// bson document representing the result of the get_namespaces call).
+func callGetNamespaces(currentDB, sql string) string {
+	cSQL := C.CString(sql)
+	cDB := C.CString(currentDB)
+
+	cResultBase64 := C.get_namespaces(cDB, cSQL)
+	resultBase64 := C.GoString(cResultBase64)
+
+	C.free(unsafe.Pointer(cSQL))
+	C.free(unsafe.Pointer(cDB))
+
+	return resultBase64
+}

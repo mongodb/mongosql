@@ -1,6 +1,9 @@
-use mongosql::{catalog::*, json_schema, schema, SchemaCheckingMode};
+use mongosql::{
+    catalog::{self, Catalog},
+    json_schema, schema, SchemaCheckingMode,
+};
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     ffi::{CStr, CString, NulError},
     os::raw,
     panic,
@@ -16,7 +19,7 @@ pub extern "C" fn version() -> *mut raw::c_char {
     to_raw_c_string(version::VERSION).expect("semver string contained NUL byte")
 }
 
-/// Returns an extjson-encoded version of
+/// Returns a base64-encoded bson representation of
 /// [Translation](/mongosql/struct.Translation.html) for the provided
 /// SQL query, database, catalog schema, and schema checking mode.
 #[no_mangle]
@@ -28,9 +31,8 @@ pub extern "C" fn translate(
 ) -> *const raw::c_char {
     let previous_hook = panic::take_hook();
     panic::set_hook(Box::new(|_| {}));
-    let result = panic::catch_unwind(|| {
-        translate_sql_bson_base64(current_db, sql, catalog, relax_schema_checking)
-    });
+    let result =
+        panic::catch_unwind(|| translate_helper(current_db, sql, catalog, relax_schema_checking));
     panic::set_hook(previous_hook);
 
     let payload = match result {
@@ -53,7 +55,7 @@ pub extern "C" fn translate(
 
 /// A helper function that encapsulates all the fallible parts of
 /// translation whose errors can be returned in the FFI payload.
-fn translate_sql_bson_base64(
+fn translate_helper(
     current_db: *const libc::c_char,
     sql: *const libc::c_char,
     catalog: *const libc::c_char,
@@ -106,7 +108,7 @@ pub fn build_catalog(base_64_doc: &str) -> Result<Catalog, String> {
                     )
                 })?;
                 Ok((
-                    Namespace {
+                    catalog::Namespace {
                         db: db.clone(),
                         collection,
                     },
@@ -126,7 +128,6 @@ fn translation_success_payload(t: mongosql::Translation) -> String {
         "target_collection": t.target_collection.unwrap_or_else(|| "".to_string()),
         "pipeline": t.pipeline,
         "result_set_schema": &bson::to_bson(&t.result_set_schema).expect("failed to convert result_set_schema to bson"),
-        "namespaces": &bson::to_bson(&t.namespaces).expect("failed to convert namespaces to bson"),
     };
 
     base64::encode(bson::to_vec(&translation).expect("serializing bson to bytes failed"))
@@ -155,6 +156,81 @@ fn translation_failure_payload(error: String, error_visibility: ErrorVisibility)
 
     let mut buf = Vec::new();
     translation
+        .to_writer(&mut buf)
+        .expect("serializing bson to bytes failed");
+
+    base64::encode(buf)
+}
+
+/// Returns a base64-encoded bson representation of
+/// the namespaces referenced by the the provided
+/// SQL query, when executed in the provided database.
+#[no_mangle]
+pub extern "C" fn get_namespaces(
+    current_db: *const libc::c_char,
+    sql: *const libc::c_char,
+) -> *const raw::c_char {
+    let previous_hook = panic::take_hook();
+    panic::set_hook(Box::new(|_| {}));
+    let result = panic::catch_unwind(|| get_namespaces_helper(current_db, sql));
+    panic::set_hook(previous_hook);
+
+    let payload = match result {
+        Ok(result) => match result {
+            Ok(namespaces) => get_namespaces_success_payload(namespaces),
+            Err(msg) => get_namespaces_failure_payload(msg, ErrorVisibility::External),
+        },
+        Err(err) => {
+            let msg = if let Some(msg) = err.downcast_ref::<&'static str>() {
+                format!("caught panic during get_namespaces: {}", msg)
+            } else {
+                format!("caught panic during get_namespaces: {:?}", err)
+            };
+            get_namespaces_failure_payload(msg, ErrorVisibility::Internal)
+        }
+    };
+
+    to_raw_c_string(&payload).expect("failed to convert base64 string to extern string")
+}
+
+/// A helper function that encapsulates all the fallible parts of
+/// get_namespaces whose errors can be returned in the FFI payload.
+fn get_namespaces_helper(
+    current_db: *const libc::c_char,
+    sql: *const libc::c_char,
+) -> Result<BTreeSet<mongosql::Namespace>, String> {
+    let current_db =
+        from_extern_string(current_db).map_err(|_| "current_db not valid UTF-8".to_string())?;
+    let sql =
+        from_extern_string(sql).map_err(|_| "sql query string not valid UTF-8".to_string())?;
+
+    mongosql::get_namespaces(&current_db, &sql).map_err(|e| format!("{}", e))
+}
+
+/// Returns a base64-encoded BSON document representing the payload
+/// returned for a successful get_namespaces call.
+fn get_namespaces_success_payload(namespaces: BTreeSet<mongosql::Namespace>) -> String {
+    let result = bson::doc! {
+        "namespaces": &bson::to_bson(&namespaces).expect("failed to convert namespaces to bson"),
+    };
+
+    base64::encode(bson::to_vec(&result).expect("serializing bson to bytes failed"))
+}
+
+/// Returns a base64-encoded BSON document representing the payload
+/// returned for an unsuccessful get_namespaces call.
+fn get_namespaces_failure_payload(error: String, error_visibility: ErrorVisibility) -> String {
+    let internal = match error_visibility {
+        ErrorVisibility::Internal => true,
+        ErrorVisibility::External => false,
+    };
+    let result = bson::doc! {
+        "error": error,
+        "error_is_internal": internal,
+    };
+
+    let mut buf = Vec::new();
+    result
         .to_writer(&mut buf)
         .expect("serializing bson to bytes failed");
 

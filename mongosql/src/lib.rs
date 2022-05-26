@@ -19,6 +19,8 @@ use crate::{
     result::Result,
     schema::{Schema, SchemaEnvironment},
 };
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeSet;
 
 /// Contains all the information needed to execute the MQL translation of a SQL query.
 #[derive(Debug)]
@@ -27,7 +29,6 @@ pub struct Translation {
     pub target_collection: Option<String>,
     pub pipeline: bson::Bson,
     pub result_set_schema: json_schema::Schema,
-    pub namespaces: Vec<ir::namespace::Namespace>,
 }
 
 /// Returns the MQL translation for the provided SQL query in the
@@ -52,8 +53,6 @@ pub fn translate_sql(
 
     // constant fold stages
     let plan = ir::constant_folding::fold_constants(plan, schema_checking_mode);
-
-    let namespaces = ir::namespace::get_namespaces(plan.clone());
 
     // get the schema_env for the plan
     let schema_env = plan
@@ -87,8 +86,26 @@ pub fn translate_sql(
         target_collection,
         pipeline,
         result_set_schema,
-        namespaces,
     })
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug, PartialOrd, Ord)]
+pub struct Namespace {
+    pub database: String,
+    pub collection: String,
+}
+
+pub fn get_namespaces(current_db: &str, sql: &str) -> Result<BTreeSet<Namespace>> {
+    let p = Parser::new();
+    let ast = p.parse_query(sql)?;
+    let namespaces = ast::visitors::get_collection_sources(ast)
+        .into_iter()
+        .map(|cs| Namespace {
+            database: cs.database.unwrap_or_else(|| current_db.to_string()),
+            collection: cs.collection,
+        })
+        .collect();
+    Ok(namespaces)
 }
 
 // mql_schema_env_to_json_schema converts a SchemaEnvironment to a json_schema::Schema with an
@@ -113,4 +130,82 @@ fn mql_schema_env_to_json_schema(
         additional_properties: false,
     })))
     .map_err(result::Error::JsonSchemaConversion)
+}
+
+#[cfg(test)]
+mod test_get_namespaces {
+    macro_rules! test_get_namespaces {
+        ($func_name:ident, $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? db = $current_db:expr, query = $sql:expr,) => {
+            #[test]
+            fn $func_name() {
+                #[allow(unused_imports)]
+                use crate::{get_namespaces, set, Namespace};
+                let current_db = $current_db;
+                let sql = $sql;
+                let actual = get_namespaces(current_db, sql);
+                $(assert!(matches!(actual, $expected_pat));)?
+                $(assert_eq!(actual, $expected);)?
+            }
+        };
+    }
+
+    test_get_namespaces!(
+        no_collections,
+        expected = Ok(set![]),
+        db = "mydb",
+        query = "select * from [] as arr",
+    );
+
+    test_get_namespaces!(
+        implicit,
+        expected = Ok(set![Namespace {
+            database: "mydb".into(),
+            collection: "foo".into()
+        }]),
+        db = "mydb",
+        query = "select * from foo",
+    );
+
+    test_get_namespaces!(
+        explicit,
+        expected = Ok(set![Namespace {
+            database: "bar".into(),
+            collection: "baz".into()
+        }]),
+        db = "mydb",
+        query = "select * from bar.baz",
+    );
+
+    test_get_namespaces!(
+        duplicates,
+        expected = Ok(set![Namespace {
+            database: "mydb".into(),
+            collection: "foo".into()
+        }]),
+        db = "mydb",
+        query = "select * from foo a join foo b",
+    );
+
+    test_get_namespaces!(
+        semantically_invalid,
+        expected = Ok(set![
+            Namespace {
+                database: "mydb".into(),
+                collection: "foo".into()
+            },
+            Namespace {
+                database: "mydb".into(),
+                collection: "bar".into()
+            }
+        ]),
+        db = "mydb",
+        query = "select a from foo join bar",
+    );
+
+    test_get_namespaces!(
+        syntactically_invalid,
+        expected_pat = Err(_),
+        db = "mydb",
+        query = "not a valid query",
+    );
 }
