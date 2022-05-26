@@ -495,7 +495,42 @@ impl MqlCodeGenerator {
                 scope_level: self.scope_level + 1,
             }
             .codegen_stage(*s.source),
-            Unwind(_) => unimplemented!(),
+            Unwind(u) => {
+                let source_translation = self.codegen_stage(*u.source)?;
+
+                let expression_generator = MqlCodeGenerator {
+                    mapping_registry: source_translation.mapping_registry.clone(),
+                    scope_level: self.scope_level,
+                };
+                let path_expr = expression_generator.codegen_expression(*u.path.clone())?;
+
+                let mut unwind_body = doc! {"path": path_expr};
+                let mut output_registry = source_translation.mapping_registry.clone();
+
+                // If there is an INDEX argument, include it in the stage and in the output
+                // mapping registry. Note that we do not need to change the output mapping
+                // registry for PATH since the same field name is used for PATH in both the
+                // output and the input.
+                if let Some(idx) = u.index {
+                    unwind_body.insert("includeArrayIndex", doc! {"$literal": idx.clone()});
+
+                    let path_datasource = match *u.path {
+                        ir::Expression::FieldAccess(fa) => fa
+                            .get_root_datasource()
+                            .map_err(|_| Error::InvalidUnwindPath)?,
+                        _ => unreachable!(),
+                    };
+                    output_registry.insert(path_datasource, idx);
+                }
+
+                if u.outer {
+                    unwind_body.insert("preserveNullAndEmptyArrays", doc! {"$literal": u.outer});
+                }
+
+                Ok(source_translation
+                    .with_mapping_registry(output_registry)
+                    .with_additional_stage(doc! {"$unwind": unwind_body}))
+            }
         }
     }
 

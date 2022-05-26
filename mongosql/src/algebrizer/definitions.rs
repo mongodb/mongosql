@@ -86,7 +86,7 @@ pub enum Error {
     DuplicateUnwindOption(ast::UnwindOption),
     #[error("UNWIND must specify a PATH option")]
     NoUnwindPath,
-    #[error("UNWIND PATH option must be an identifier or compound identifier")]
+    #[error("UNWIND PATH option must be an identifier")]
     InvalidUnwindPath,
 }
 

@@ -5,7 +5,7 @@ use crate::{
 
 impl FieldAccess {
     /// Get the datasource Key at the root of a FieldAccess
-    pub(super) fn get_root_datasource(self) -> Result<binding_tuple::Key, Error> {
+    pub(crate) fn get_root_datasource(self) -> Result<binding_tuple::Key, Error> {
         match *self.expr {
             Expression::Reference(r) => Ok(r.key),
             Expression::FieldAccess(f) => f.get_root_datasource(),

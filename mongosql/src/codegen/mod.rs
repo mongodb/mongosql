@@ -30,6 +30,8 @@ pub enum Error {
     LimitOutOfI64Range(u64),
     #[error("OFFSET ({0}) cannot be converted to i64")]
     OffsetOutOfI64Range(u64),
+    #[error("UNWIND PATH option must be an identifier")]
+    InvalidUnwindPath,
 }
 
 pub fn generate_mql(plan: ir::Stage) -> Result<MqlTranslation> {

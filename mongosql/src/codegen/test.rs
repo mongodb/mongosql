@@ -3622,3 +3622,86 @@ mod subquery {
         },
     );
 }
+
+mod unwind {
+    use crate::{
+        codegen::Error,
+        ir::{schema::SchemaCache, *},
+        unchecked_unique_linked_hash_map,
+    };
+
+    fn make_unwind(path: Box<Expression>, index: Option<String>, outer: bool) -> Stage {
+        Stage::Unwind(Unwind {
+            source: Box::new(Stage::Collection(Collection {
+                db: "test".to_string(),
+                collection: "foo".to_string(),
+                cache: SchemaCache::new(),
+            })),
+            path,
+            index,
+            outer,
+            cache: SchemaCache::new(),
+        })
+    }
+
+    test_codegen_plan!(
+        simple,
+        expected = Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$unwind": {"path": "$foo.arr"}},
+            ],
+        }),
+        input = make_unwind(
+            Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                field: "arr".into(),
+                cache: SchemaCache::new(),
+            })),
+            None,
+            false,
+        ),
+    );
+
+    test_codegen_plan!(
+        all_opts,
+        expected = Ok({
+            database: Some("test".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![
+                bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
+                bson::doc!{"$unwind": {"path": "$foo.arr", "includeArrayIndex": {"$literal": "idx"}, "preserveNullAndEmptyArrays": {"$literal": true}}},
+            ],
+        }),
+        input = make_unwind(
+            Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                field: "arr".into(),
+                cache: SchemaCache::new(),
+            })),
+            Some("idx".into()),
+            true,
+        ),
+    );
+
+    test_codegen_plan!(
+        invalid,
+        expected = Err(Error::InvalidUnwindPath),
+        input = make_unwind(
+            Box::new(Expression::FieldAccess(FieldAccess {
+                expr: Box::new(Expression::Document(
+                    unchecked_unique_linked_hash_map! {
+                        "a".into() => Expression::Literal(LiteralValue::Integer(42).into())
+                    }
+                    .into()
+                )),
+                field: "a".into(),
+                cache: SchemaCache::new(),
+            })),
+            Some("idx".into()),
+            false,
+        ),
+    );
+}

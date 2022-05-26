@@ -63,7 +63,7 @@ pub enum Error {
     UnaliasedNonFieldAccessExpression(usize),
     #[error("UNWIND INDEX name '{0}' conflicts with existing field name")]
     UnwindIndexNameConflict(String),
-    #[error("UNWIND PATH option must be an identifier or compound identifier")]
+    #[error("UNWIND PATH option must be an identifier")]
     InvalidUnwindPath,
 }
 
