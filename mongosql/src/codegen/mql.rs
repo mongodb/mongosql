@@ -495,6 +495,7 @@ impl MqlCodeGenerator {
                 scope_level: self.scope_level + 1,
             }
             .codegen_stage(*s.source),
+            Unwind(_) => unimplemented!(),
         }
     }
 

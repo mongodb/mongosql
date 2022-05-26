@@ -81,6 +81,10 @@ impl SchemaEnvironment {
         self.0.get(k)
     }
 
+    pub fn insert(&mut self, k: Key, v: Schema) -> Option<Schema> {
+        self.0.insert(k, v)
+    }
+
     pub fn remove(&mut self, k: &Key) -> Option<Schema> {
         self.0.remove(k)
     }

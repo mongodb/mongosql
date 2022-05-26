@@ -337,3 +337,9 @@ tests:
     query: "SELECT * FROM UNWIND(index_conflict WITH PATH => arr, INDEX => i)"
     skip_reason: "SQL-571: implement UNWIND datasource"
     algebrize_error: "alias 'i' used two times"
+
+  - description: correlated field references are disallowed for PATH
+    current_db: test
+    query: "SELECT VALUE {'x': (SELECT arr FROM (UNWIND(bar WITH PATH => foo.arr) LIMIT 1)} FROM foo"
+    skip_reason: "SQL-571: implement UNWIND datasource"
+    algebrize_error: "field `foo.arr` cannot be resolved to any datasource"

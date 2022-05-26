@@ -20,6 +20,7 @@ pub enum Stage {
     Join(Join),
     Set(Set),
     Derived(Derived),
+    Unwind(Unwind),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -164,6 +165,15 @@ pub enum SetOperation {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Derived {
     pub source: Box<Stage>,
+    pub cache: SchemaCache<ResultSet>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Unwind {
+    pub source: Box<Stage>,
+    pub path: Box<Expression>,
+    pub index: Option<String>,
+    pub outer: bool,
     pub cache: SchemaCache<ResultSet>,
 }
 

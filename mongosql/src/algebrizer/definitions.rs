@@ -82,6 +82,12 @@ pub enum Error {
     CannotEnumerateAllFieldPaths(crate::schema::Schema),
     #[error("cannot flatten field {0:?} since it has a polymorphic object schema")]
     PolymorphicObjectSchema(String),
+    #[error("found duplicate UNWIND option {0:?}")]
+    DuplicateUnwindOption(ast::UnwindOption),
+    #[error("UNWIND must specify a PATH option")]
+    NoUnwindPath,
+    #[error("UNWIND PATH option must be an identifier or compound identifier")]
+    InvalidUnwindPath,
 }
 
 impl TryFrom<ast::BinaryOp> for ir::ScalarFunction {
@@ -607,8 +613,83 @@ impl<'a> Algebrizer<'a> {
         Ok(stage)
     }
 
-    fn algebrize_unwind_datasource(&self, _u: ast::UnwindSource) -> Result<ir::Stage> {
-        unimplemented!()
+    fn algebrize_unwind_datasource(&self, u: ast::UnwindSource) -> Result<ir::Stage> {
+        let src = self.algebrize_datasource(*u.datasource)?;
+
+        // Extract user-specified options. OUTER defaults to false.
+        let (path, index, outer) =
+            u.options
+                .iter()
+                .fold(Ok((None, None, None)), |acc, opt| match opt {
+                    ast::UnwindOption::Path(p) => match acc? {
+                        (Some(_), _, _) => Err(Error::DuplicateUnwindOption(opt.clone())),
+                        (None, i, o) => Ok((Some(p.clone()), i, o)),
+                    },
+                    ast::UnwindOption::Index(i) => match acc? {
+                        (_, Some(_), _) => Err(Error::DuplicateUnwindOption(opt.clone())),
+                        (p, None, o) => Ok((p, Some(i.clone()), o)),
+                    },
+                    ast::UnwindOption::Outer(o) => match acc? {
+                        (_, _, Some(_)) => Err(Error::DuplicateUnwindOption(opt.clone())),
+                        (p, i, None) => Ok((p, i, Some(*o))),
+                    },
+                })?;
+
+        let path_expression_algebrizer = Algebrizer::with_schema_env(
+            self.current_db,
+            src.schema(&self.schema_inference_state())?.schema_env,
+            self.catalog,
+            self.scope_level,
+            self.schema_checking_mode,
+        );
+
+        let path = match path {
+            None => return Err(Error::NoUnwindPath),
+            Some(e) => path_expression_algebrizer.algebrize_unwind_path(e)?,
+        };
+
+        let stage = ir::Stage::Unwind(ir::Unwind {
+            source: Box::new(src),
+            path: Box::new(path),
+            index,
+            outer: outer.unwrap_or(false),
+            cache: Default::default(),
+        });
+
+        stage.schema(&self.schema_inference_state())?;
+        Ok(stage)
+    }
+
+    /// Ensure an unwind PATH is exactly a compound identifier.
+    ///
+    /// A compound identifier is defined in the MongoSQL grammar as
+    ///
+    ///   <compound identifer> ::= <identifier> ("." <compound identifier>)?
+    ///
+    /// so this includes the case when it is just a simple, single-part
+    /// identifier. Here, this means the algebrized expression is a FieldAccess
+    /// expression which consists of only other FieldAccess expressions up the
+    /// chain of exprs until it hits a Reference expression.
+    fn algebrize_unwind_path(&self, path: ast::Expression) -> Result<ir::Expression> {
+        /// Auxiliary function that recursively walks up the FieldAccess
+        /// tree, ensuring each parent expression is a FieldAccess until
+        /// it hits a reference.
+        fn is_valid_path(e: ir::Expression) -> bool {
+            match e {
+                ir::Expression::Reference(_) => true,
+                ir::Expression::FieldAccess(f) => is_valid_path(*f.expr),
+                _ => false,
+            }
+        }
+
+        let path = self.algebrize_expression(path)?;
+        if is_valid_path(path.clone()) {
+            if let ir::Expression::FieldAccess(_) = path {
+                return Ok(path);
+            }
+        };
+
+        Err(Error::InvalidUnwindPath)
     }
 
     pub fn algebrize_flattened_field_path(&self, key: Key, path: Vec<String>) -> ir::Expression {

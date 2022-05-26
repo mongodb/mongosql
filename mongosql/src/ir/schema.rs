@@ -1,6 +1,10 @@
 use crate::{
     catalog::*,
-    ir::{binding_tuple, *},
+    ir::{
+        binding_tuple,
+        unwind_util::{lift_array_schemas, set_field_schema},
+        *,
+    },
     map,
     schema::{
         Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_ARRAY,
@@ -57,6 +61,10 @@ pub enum Error {
     UnaliasedFieldAccessWithNoReference(usize),
     #[error("group key at position {0} is an unaliased non-field access expression")]
     UnaliasedNonFieldAccessExpression(usize),
+    #[error("UNWIND INDEX name '{0}' conflicts with existing field name")]
+    UnwindIndexNameConflict(String),
+    #[error("UNWIND PATH option must be an identifier or compound identifier")]
+    InvalidUnwindPath,
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -243,6 +251,7 @@ impl CachedSchema for Stage {
             Stage::Join(s) => &s.cache,
             Stage::Set(s) => &s.cache,
             Stage::Derived(s) => &s.cache,
+            Stage::Unwind(s) => &s.cache,
         }
     }
 
@@ -615,6 +624,157 @@ impl CachedSchema for Stage {
                 catalog: state.catalog,
                 schema_checking_mode: state.schema_checking_mode,
             }),
+            Stage::Unwind(u) => {
+                let source_result_set = u.source.schema(state)?;
+                let mut state = SchemaInferenceState::new(
+                    state.scope_level,
+                    source_result_set.schema_env.clone(),
+                    state.catalog,
+                    state.schema_checking_mode,
+                );
+
+                let path_as_field_access = match *u.path.clone() {
+                    Expression::FieldAccess(fa) => fa,
+                    _ => unreachable!(), // algebrization ensures the path is an Expression::FieldAccess
+                };
+
+                let path_datasource = path_as_field_access.clone().get_root_datasource()?;
+                let path_schema = u.path.clone().schema(&state)?;
+                let is_path_not_array = path_schema.satisfies(&ANY_ARRAY) == Satisfaction::Not;
+
+                // If the Unwind specifies an INDEX name, ensure it does not
+                // conflict with an existing field in the schema. If it does
+                // not conflict, then include the INDEX field in the result
+                // schema.
+                if let Some(index) = &u.index {
+                    let sat = state.env.get(&path_datasource).map_or(
+                        Err(Error::DatasourceNotFoundInSchemaEnv(
+                            path_datasource.clone(),
+                        )),
+                        |k| Ok(k.contains_field(index.as_str())),
+                    )?;
+
+                    if matches!(
+                        (sat, state.schema_checking_mode),
+                        (Satisfaction::Must, _) | (Satisfaction::May, SchemaCheckingMode::Strict)
+                    ) {
+                        return Err(Error::UnwindIndexNameConflict(index.clone()));
+                    }
+
+                    let path_is_exactly_nullish_array =
+                        path_schema.satisfies(&ANY_ARRAY_OR_NULLISH);
+
+                    // The schema of INDEX depends on two factors: the schema of the PATH argument
+                    // and the value of OUTER.
+                    //
+                    // If the schema of the PATH argument indicates it is never an array, the INDEX
+                    // schema is exactly NULL. This is because there will never be a value of PATH
+                    // that is an array, so there will never be data to populate the INDEX field.
+                    //
+                    // After that, we know the PATH schema MAY or MUST be an array. If it MUST be
+                    // an array (or null or missing) and if OUTER is set to false, the INDEX schema
+                    // is exactly INTEGER. This is because the value of PATH will always be a
+                    // non-empty array, so there will always be data to populate the INDEX field.
+                    //
+                    // In all other cases, the INDEX schema is either NULL or INTEGER. This is
+                    // because the values of PATH may be non-arrays (including null or missing) or
+                    // may be empty arrays. For any such values, there is no corresponding INDEX
+                    // data.
+                    let index_result_schema = if is_path_not_array {
+                        Schema::Atomic(Atomic::Null)
+                    } else if path_is_exactly_nullish_array == Satisfaction::Must && !u.outer {
+                        Schema::Atomic(Atomic::Integer)
+                    } else {
+                        Schema::AnyOf(set![
+                            Schema::Atomic(Atomic::Integer),
+                            Schema::Atomic(Atomic::Null)
+                        ])
+                    };
+
+                    match state.env.get(&path_datasource) {
+                        None => return Err(Error::DatasourceNotFoundInSchemaEnv(path_datasource)),
+                        Some(path_datasource_schema) => {
+                            let updated_path_datasource_schema = set_field_schema(
+                                path_datasource_schema.clone(),
+                                &mut vec![index.clone()],
+                                index_result_schema,
+                                true, // the index field is always required
+                            );
+                            state
+                                .env
+                                .insert(path_datasource.clone(), updated_path_datasource_schema);
+                        }
+                    }
+                };
+
+                // The result schema of PATH depends on two factors: the schema of the PATH argument
+                // and the value of OUTER.
+                //
+                // If the schema of the PATH argument indicates it is never an array, and if OUTER
+                // is true, then the result PATH schema is the same as the input PATH schema. This
+                // is because the UNWIND operation will not alter any input documents since
+                // non-arrays are not altered and null and missing values are retained.
+                //
+                // If the input PATH schema MAY or MUST be an array, and if OUTER is true, then the
+                // result PATH schema consists of any inner-array schemas or other non-array schemas
+                // from the input PATH schema, and may be missing. For example, consider the schema
+                // AnyOf(Array(Int), Array(String), Null) as the input PATH schema. The result PATH
+                // schema would be AnyOf(Int, String, Null, Missing).
+                //
+                // In all other cases, the result PATH schema consists of any inner-array schemas or
+                // other non-array schemas from the input PATH schema, and is not nullish. Here, the
+                // "inner-array" and "other non-array" schemas are the same as the ones described
+                // above. The reason the result is not nullish is because OUTER is false, so empty
+                // arrays, NULL, and MISSING values are ignored.
+                let (path_result_schema, path_required) = if is_path_not_array && u.outer {
+                    (
+                        path_schema.clone(),
+                        path_schema.satisfies(&Schema::Missing) == Satisfaction::Not,
+                    )
+                } else {
+                    let temp_path_schema = lift_array_schemas(path_schema, u.outer);
+                    (
+                        // We call simplify since the lift() and add_missing() functions
+                        // may create schemas with duplicate information in an AnyOf, or
+                        // an AnyOf with just one member.
+                        Schema::simplify(
+                            &(if !is_path_not_array && u.outer {
+                                match temp_path_schema {
+                                    Schema::AnyOf(mut ao) => {
+                                        ao.insert(Schema::Missing);
+                                        Schema::AnyOf(ao)
+                                    }
+                                    _ => Schema::AnyOf(set![temp_path_schema, Schema::Missing]),
+                                }
+                            } else {
+                                temp_path_schema
+                            }),
+                        ),
+                        !u.outer,
+                    )
+                };
+
+                match state.env.get(&(path_datasource.clone())) {
+                    None => return Err(Error::DatasourceNotFoundInSchemaEnv(path_datasource)),
+                    Some(path_datasource_schema) => {
+                        let updated_path_datasource_schema = set_field_schema(
+                            path_datasource_schema.clone(),
+                            &mut path_as_field_access.get_field_path()?,
+                            path_result_schema,
+                            path_required,
+                        );
+                        state
+                            .env
+                            .insert(path_datasource, updated_path_datasource_schema);
+                    }
+                }
+
+                Ok(ResultSet {
+                    schema_env: state.env,
+                    min_size: source_result_set.min_size,
+                    max_size: source_result_set.max_size,
+                })
+            }
         }
     }
 }

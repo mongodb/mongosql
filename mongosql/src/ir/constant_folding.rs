@@ -1107,6 +1107,7 @@ impl Visitor for ConstantFoldExprVisitor {
             Stage::Set(_) => st,
             Stage::Sort(_) => st,
             Stage::Derived(_) => st,
+            Stage::Unwind(_) => st,
         }
     }
 }

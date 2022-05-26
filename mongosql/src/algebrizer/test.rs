@@ -6,7 +6,7 @@ use crate::{
 use lazy_static::lazy_static;
 
 macro_rules! test_algebrize {
-    ($func_name:ident, method = $method:ident, $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
+    ($func_name:ident, method = $method:ident, $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
         #[test]
         fn $func_name() {
             use crate::{
@@ -14,7 +14,10 @@ macro_rules! test_algebrize {
                 catalog::Catalog,
                 SchemaCheckingMode,
             };
-            let catalog = Catalog::default();
+
+            #[allow(unused_mut, unused_assignments)]
+            let mut catalog = Catalog::default();
+            $(catalog = $catalog;)?
 
             #[allow(unused_mut, unused_assignments)]
             let mut schema_checking_mode = SchemaCheckingMode::Strict;
@@ -3046,6 +3049,193 @@ mod from_clause {
             options: vec![]
         })),
     );
+    mod unwind {
+        use super::*;
+        use crate::catalog::{Catalog, Namespace};
+
+        /// Most tests use the same collection source and need to specify the
+        /// collection schema for the test to work. This helper allows easy
+        /// definition of that collection schema.
+        fn make_catalog(s: Schema) -> Catalog {
+            Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "foo".into()} => s,
+            })
+        }
+
+        test_algebrize!(
+            simple,
+            method = algebrize_from_clause,
+            expected = Ok(ir::Stage::Unwind(ir::Unwind {
+                source: Box::new(ir_source_foo()),
+                path: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
+                    expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
+                    field: "arr".into(),
+                    cache: SchemaCache::new(),
+                })),
+                index: None,
+                outer: false,
+                cache: SchemaCache::new()
+            })),
+            input = Some(ast::Datasource::Unwind(ast::UnwindSource {
+                datasource: Box::new(AST_SOURCE_FOO.clone()),
+                options: vec![ast::UnwindOption::Path(ast::Expression::Identifier(
+                    "arr".into()
+                ))]
+            })),
+            catalog = make_catalog(Schema::Document(Document {
+                keys: map! {
+                    "arr".into() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+                },
+                required: set! {"arr".into()},
+                additional_properties: false,
+            })),
+        );
+        test_algebrize!(
+            all_opts,
+            method = algebrize_from_clause,
+            expected = Ok(ir::Stage::Unwind(ir::Unwind {
+                source: Box::new(ir_source_foo()),
+                path: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
+                    expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
+                    field: "arr".into(),
+                    cache: SchemaCache::new(),
+                })),
+                index: Some("i".into()),
+                outer: true,
+                cache: SchemaCache::new()
+            })),
+            input = Some(ast::Datasource::Unwind(ast::UnwindSource {
+                datasource: Box::new(AST_SOURCE_FOO.clone()),
+                options: vec![
+                    ast::UnwindOption::Path(ast::Expression::Identifier("arr".into())),
+                    ast::UnwindOption::Index("i".into()),
+                    ast::UnwindOption::Outer(true),
+                ]
+            })),
+            catalog = make_catalog(Schema::Document(Document {
+                keys: map! {
+                    "arr".into() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+                },
+                required: set! {"arr".into()},
+                additional_properties: false,
+            })),
+        );
+        test_algebrize!(
+            compound_path,
+            method = algebrize_from_clause,
+            expected = Ok(ir::Stage::Unwind(ir::Unwind {
+                source: Box::new(ir_source_foo()),
+                path: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
+                    expr: Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
+                        expr: Box::new(ir::Expression::Reference(("foo", 0u16).into())),
+                        field: "doc".into(),
+                        cache: SchemaCache::new(),
+                    })),
+                    field: "arr".into(),
+                    cache: SchemaCache::new(),
+                })),
+                index: None,
+                outer: false,
+                cache: SchemaCache::new()
+            })),
+            input = Some(ast::Datasource::Unwind(ast::UnwindSource {
+                datasource: Box::new(AST_SOURCE_FOO.clone()),
+                options: vec![ast::UnwindOption::Path(ast::Expression::Subpath(
+                    ast::SubpathExpr {
+                        expr: Box::new(ast::Expression::Identifier("doc".into())),
+                        subpath: "arr".into()
+                    }
+                ))]
+            })),
+            catalog = make_catalog(Schema::Document(Document {
+                keys: map! {
+                    "doc".into() => Schema::Document(Document {
+                        keys: map! {
+                            "arr".into() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+                        },
+                        required: set!{"arr".into()},
+                        additional_properties: false,
+                    }),
+                },
+                required: set! {"doc".into()},
+                additional_properties: false,
+            })),
+        );
+        test_algebrize!(
+            duplicate_opts,
+            method = algebrize_from_clause,
+            expected = Err(Error::DuplicateUnwindOption(ast::UnwindOption::Path(
+                ast::Expression::Identifier("dup".into())
+            ))),
+            input = Some(ast::Datasource::Unwind(ast::UnwindSource {
+                datasource: Box::new(AST_SOURCE_FOO.clone()),
+                options: vec![
+                    ast::UnwindOption::Path(ast::Expression::Identifier("arr".into())),
+                    ast::UnwindOption::Path(ast::Expression::Identifier("dup".into())),
+                ]
+            })),
+        );
+        test_algebrize!(
+            missing_path,
+            method = algebrize_from_clause,
+            expected = Err(Error::NoUnwindPath),
+            input = Some(ast::Datasource::Unwind(ast::UnwindSource {
+                datasource: Box::new(AST_SOURCE_FOO.clone()),
+                options: vec![]
+            })),
+        );
+        test_algebrize!(
+            invalid_path,
+            method = algebrize_from_clause,
+            expected = Err(Error::InvalidUnwindPath),
+            input = Some(ast::Datasource::Unwind(ast::UnwindSource {
+                datasource: Box::new(AST_SOURCE_FOO.clone()),
+                options: vec![ast::UnwindOption::Path(ast::Expression::Subpath(
+                    ast::SubpathExpr {
+                        expr: Box::new(ast::Expression::Document(vec![ast::DocumentPair {
+                            key: "arr".into(),
+                            value: ast::Expression::Array(vec![
+                                ast::Expression::Literal(ast::Literal::Integer(1)),
+                                ast::Expression::Literal(ast::Literal::Integer(2)),
+                                ast::Expression::Literal(ast::Literal::Integer(3))
+                            ])
+                        }])),
+                        subpath: "arr".into()
+                    }
+                )),]
+            })),
+        );
+        test_algebrize!(
+            correlated_path_disallowed,
+            method = algebrize_from_clause,
+            expected = Err(Error::FieldNotFound("bar".into())),
+            input = Some(ast::Datasource::Unwind(ast::UnwindSource {
+                datasource: Box::new(AST_SOURCE_FOO.clone()),
+                options: vec![ast::UnwindOption::Path(ast::Expression::Subpath(
+                    ast::SubpathExpr {
+                        expr: Box::new(ast::Expression::Identifier("bar".into())),
+                        subpath: "arr".into()
+                    }
+                )),]
+            })),
+            env = map! {
+                ("bar", 0u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "arr".into() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+                    },
+                    required: set!{ "arr".into() },
+                    additional_properties: false,
+                }),
+            },
+            catalog = make_catalog(Schema::Document(Document {
+                keys: map! {
+                    "arr".into() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
+                },
+                required: set! {"arr".into()},
+                additional_properties: false,
+            })),
+        );
+    }
 }
 
 mod limit_or_offset_clause {
