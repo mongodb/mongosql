@@ -512,19 +512,27 @@ impl MqlCodeGenerator {
                 // registry for PATH since the same field name is used for PATH in both the
                 // output and the input.
                 if let Some(idx) = u.index {
-                    unwind_body.insert("includeArrayIndex", doc! {"$literal": idx.clone()});
-
                     let path_datasource = match *u.path {
                         ir::Expression::FieldAccess(fa) => fa
                             .get_root_datasource()
                             .map_err(|_| Error::InvalidUnwindPath)?,
                         _ => unreachable!(),
                     };
+
+                    // Note that the path_datasource will never be Bottom, so the second
+                    // argument to get_datasource_name does not matter.
+                    let qualified_idx_name = format!(
+                        "{}.{}",
+                        MqlCodeGenerator::get_datasource_name(&path_datasource.datasource, "__bot"),
+                        idx
+                    );
+
+                    unwind_body.insert("includeArrayIndex", qualified_idx_name);
                     output_registry.insert(path_datasource, idx);
                 }
 
                 if u.outer {
-                    unwind_body.insert("preserveNullAndEmptyArrays", doc! {"$literal": u.outer});
+                    unwind_body.insert("preserveNullAndEmptyArrays", u.outer);
                 }
 
                 Ok(source_translation

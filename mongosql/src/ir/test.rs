@@ -6359,7 +6359,7 @@ mod schema {
                             ("foo", 0u16).into() => Schema::Document(Document {
                                 keys: map! {
                                     "arr".into() => Schema::Atomic(Atomic::String),
-                                    "idx".into() => Schema::Atomic(Atomic::Integer),
+                                    "idx".into() => Schema::Atomic(Atomic::Long),
                                 },
                                 required: set! { "arr".into(), "idx".into() },
                                 additional_properties: false,
@@ -6390,7 +6390,7 @@ mod schema {
                                         Schema::Atomic(Atomic::Integer),
                                     ]),
                                     "idx".into() => Schema::AnyOf(set![
-                                        Schema::Atomic(Atomic::Integer),
+                                        Schema::Atomic(Atomic::Long),
                                         Schema::Atomic(Atomic::Null)
                                     ]),
                                 },
@@ -6422,7 +6422,7 @@ mod schema {
                             ("foo", 0u16).into() => Schema::Document(Document {
                                 keys: map! {
                                     "arr".into() => Schema::Atomic(Atomic::String),
-                                    "idx".into() => Schema::Atomic(Atomic::Integer),
+                                    "idx".into() => Schema::Atomic(Atomic::Long),
                                 },
                                 required: set! { "arr".into(), "idx".into() },
                                 additional_properties: false,
@@ -6486,7 +6486,7 @@ mod schema {
                                         Schema::Missing,
                                     ]),
                                     "idx".into() => Schema::AnyOf(set! [
-                                        Schema::Atomic(Atomic::Integer),
+                                        Schema::Atomic(Atomic::Long),
                                         Schema::Atomic(Atomic::Null),
                                     ]),
                                 },
@@ -6520,7 +6520,7 @@ mod schema {
                                         Schema::Missing,
                                     ]),
                                     "idx".into() => Schema::AnyOf(set![
-                                        Schema::Atomic(Atomic::Integer),
+                                        Schema::Atomic(Atomic::Long),
                                         Schema::Atomic(Atomic::Null)
                                     ]),
                                 },
@@ -6557,7 +6557,7 @@ mod schema {
                                         Schema::Missing,
                                     ]),
                                     "idx".into() => Schema::AnyOf(set! [
-                                        Schema::Atomic(Atomic::Integer),
+                                        Schema::Atomic(Atomic::Long),
                                         Schema::Atomic(Atomic::Null),
                                     ]),
                                 },
@@ -6628,7 +6628,7 @@ mod schema {
                                     required: set! { "b".into() },
                                     additional_properties: false,
                                 }),
-                                "idx".into() => Schema::Atomic(Atomic::Integer),
+                                "idx".into() => Schema::Atomic(Atomic::Long),
                             },
                             required: set! { "a".into(), "idx".into() },
                             additional_properties: false,
@@ -6688,7 +6688,7 @@ mod schema {
                         ("foo", 0u16).into() => Schema::Document(Document {
                             keys: map! {
                                 "arr".into() => Schema::Atomic(Atomic::String),
-                                "idx".into() => Schema::Atomic(Atomic::Integer),
+                                "idx".into() => Schema::Atomic(Atomic::Long),
                             },
                             required: set! { "arr".into(), "idx".into() },
                             additional_properties: false,
@@ -6771,7 +6771,7 @@ mod schema {
                         ("foo", 0u16).into() => Schema::Document(Document {
                             keys: map! {
                                 "arr".into() => Schema::Atomic(Atomic::String),
-                                "idx".into() => Schema::Atomic(Atomic::Integer),
+                                "idx".into() => Schema::Atomic(Atomic::Long),
                             },
                             required: set! { "arr".into(), "idx".into() },
                             additional_properties: false,

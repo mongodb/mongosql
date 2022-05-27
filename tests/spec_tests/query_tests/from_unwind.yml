@@ -101,7 +101,6 @@ tests:
   - description: basic correctness test
     current_db: test
     query: "SELECT * FROM UNWIND(foo WITH PATH => arr)"
-    skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: foo
     translation:
@@ -119,7 +118,6 @@ tests:
   - description: basic correctness test for explicitly aliased datasource
     current_db: test
     query: "SELECT * FROM UNWIND(foo AS f WITH PATH => arr)"
-    skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: foo
     translation:
@@ -137,59 +135,55 @@ tests:
   - description: basic correctness test for index option
     current_db: test
     query: "SELECT * FROM UNWIND(foo WITH PATH => arr, INDEX => i)"
-    skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: foo
     translation:
       - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
       - {'$project': {'_id': 0, 'foo': '$foo'}}
-      - {'$unwind': {'path': '$foo.arr', 'includeArrayIndex': "f.i"}}
+      - {'$unwind': {'path': '$foo.arr', 'includeArrayIndex': 'foo.i'}}
     result:
-      - {'foo': {'_id': 0, 'arr': 1, 'i': 0}}
-      - {'foo': {'_id': 0, 'arr': 2, 'i': 1}}
-      - {'foo': {'_id': 0, 'arr': 3, 'i': 2}}
-      - {'foo': {'_id': 1, 'arr': 4, 'i': 0}}
-      - {'foo': {'_id': 1, 'arr': 5, 'i': 1}}
-      - {'foo': {'_id': 1, 'arr': 6, 'i': 2}}
+      - {'foo': {'_id': 0, 'arr': 1, 'i': {"$numberLong": "0"}}}
+      - {'foo': {'_id': 0, 'arr': 2, 'i': {"$numberLong": "1"}}}
+      - {'foo': {'_id': 0, 'arr': 3, 'i': {"$numberLong": "2"}}}
+      - {'foo': {'_id': 1, 'arr': 4, 'i': {"$numberLong": "0"}}}
+      - {'foo': {'_id': 1, 'arr': 5, 'i': {"$numberLong": "1"}}}
+      - {'foo': {'_id': 1, 'arr': 6, 'i': {"$numberLong": "2"}}}
 
   - description: there are no type constraints on the field referenced by PATH, and non-array fields are not unwound
     current_db: test
     query: "SELECT * FROM UNWIND(non_arrays WITH PATH => arr, INDEX => i)"
-    skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: non_arrays
     translation:
       - {'$project': {'_id': 0, 'non_arrays': '$$ROOT'}}
       - {'$project': {'_id': 0, 'non_arrays': '$non_arrays'}}
-      - {'$unwind': {'path': '$non_arrays.arr', 'includeArrayIndex': "non_arrays.i"}}
+      - {'$unwind': {'path': '$non_arrays.arr', 'includeArrayIndex': 'non_arrays.i'}}
     result:
-      - {'non_arrays': {'_id': 0, 'arr': 1, 'comment': "array", 'i': 0}}
-      - {'non_arrays': {'_id': 0, 'arr': 2, 'comment': "array", 'i': 1}}
+      - {'non_arrays': {'_id': 0, 'arr': 1, 'comment': "array", 'i': {"$numberLong": "0"}}}
+      - {'non_arrays': {'_id': 0, 'arr': 2, 'comment': "array", 'i': {"$numberLong": "1"}}}
       - {'non_arrays': {'_id': 1, 'arr': "not array", 'comment': "string", 'i': null}}
       - {'non_arrays': {'_id': 2, 'arr': {'a': [3, 4]}, 'comment': "object", 'i': null}}
 
   - description: unwinding a nested array puts the unwound value at the same nested path
     current_db: test
     query: "SELECT * FROM UNWIND(nested WITH PATH => a.b.c, INDEX => i)"
-    skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: nested
     translation:
       - {'$project': {'_id': 0, 'nested': '$$ROOT'}}
       - {'$project': {'_id': 0, 'nested': '$nested'}}
-      - {'$unwind': {'path': '$nested.a.b.c', 'includeArrayIndex': "nested.i"}}
+      - {'$unwind': {'path': '$nested.a.b.c', 'includeArrayIndex': 'nested.i'}}
     result:
-      - {'nested': {'_id': 0, 'a': {'b': {'c': 1, 'x': 30}, 'y': 20}, 'z': 10, 'i': 0}}
-      - {'nested': {'_id': 0, 'a': {'b': {'c': 2, 'x': 30}, 'y': 20}, 'z': 10, 'i': 1}}
-      - {'nested': {'_id': 0, 'a': {'b': {'c': 3, 'x': 30}, 'y': 20}, 'z': 10, 'i': 2}}
-      - {'nested': {'_id': 1, 'a': {'b': {'c': 4, 'x': 300}, 'y': 200}, 'z': 100, 'i': 0}}
-      - {'nested': {'_id': 1, 'a': {'b': {'c': 5, 'x': 300}, 'y': 200}, 'z': 100, 'i': 1}}
-      - {'nested': {'_id': 1, 'a': {'b': {'c': 6, 'x': 300}, 'y': 200}, 'z': 100, 'i': 2}}
+      - {'nested': {'_id': 0, 'a': {'b': {'c': 1, 'x': 30}, 'y': 20}, 'z': 10, 'i': {"$numberLong": "0"}}}
+      - {'nested': {'_id': 0, 'a': {'b': {'c': 2, 'x': 30}, 'y': 20}, 'z': 10, 'i': {"$numberLong": "1"}}}
+      - {'nested': {'_id': 0, 'a': {'b': {'c': 3, 'x': 30}, 'y': 20}, 'z': 10, 'i': {"$numberLong": "2"}}}
+      - {'nested': {'_id': 1, 'a': {'b': {'c': 4, 'x': 300}, 'y': 200}, 'z': 100, 'i': {"$numberLong": "0"}}}
+      - {'nested': {'_id': 1, 'a': {'b': {'c': 5, 'x': 300}, 'y': 200}, 'z': 100, 'i': {"$numberLong": "1"}}}
+      - {'nested': {'_id': 1, 'a': {'b': {'c': 6, 'x': 300}, 'y': 200}, 'z': 100, 'i': {"$numberLong": "2"}}}
 
   - description: unwind datasources can be unwound
     current_db: test
-    query: "SELECT * FROM UNWIND(UNWIND(two_d WITH PATH => arr), PATH => arr)"
-    skip_reason: "SQL-571: implement UNWIND datasource"
+    query: "SELECT * FROM UNWIND(UNWIND(two_d WITH PATH => arr) WITH PATH => arr)"
     translation_target_db: test
     translation_target_coll: two_d
     translation:
@@ -198,19 +192,18 @@ tests:
       - {'$unwind': {'path': '$two_d.arr'}}
       - {'$unwind': {'path': '$two_d.arr'}}
     result:
-      - {'foo': {'_id': 0, 'arr': 1}}
-      - {'foo': {'_id': 0, 'arr': 2}}
-      - {'foo': {'_id': 0, 'arr': 3}}
-      - {'foo': {'_id': 0, 'arr': 4}}
-      - {'foo': {'_id': 1, 'arr': 10}}
-      - {'foo': {'_id': 1, 'arr': 20}}
-      - {'foo': {'_id': 1, 'arr': 30}}
-      - {'foo': {'_id': 1, 'arr': 40}}
+      - {'two_d': {'_id': 0, 'arr': 1}}
+      - {'two_d': {'_id': 0, 'arr': 2}}
+      - {'two_d': {'_id': 0, 'arr': 3}}
+      - {'two_d': {'_id': 0, 'arr': 4}}
+      - {'two_d': {'_id': 1, 'arr': 10}}
+      - {'two_d': {'_id': 1, 'arr': 20}}
+      - {'two_d': {'_id': 1, 'arr': 30}}
+      - {'two_d': {'_id': 1, 'arr': 40}}
 
   - description: join datasources can be unwound, unwound field is nested under correct namespace (left)
     current_db: test
     query: "SELECT * FROM UNWIND(foo JOIN bar WITH PATH => foo.arr)"
-    skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: foo
     translation:
@@ -242,7 +235,6 @@ tests:
   - description: join datasources can be unwound, unwound field is nested under correct namespace (right)
     current_db: test
     query: "SELECT * FROM UNWIND(foo JOIN bar WITH PATH => bar.arr)"
-    skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: foo
     translation:
@@ -274,72 +266,63 @@ tests:
   - description: documents containing empty array, null, or missing values are omitted if OUTER => false (default)
     current_db: test
     query: "SELECT * FROM UNWIND(empty_null_and_missing AS c WITH PATH => arr, INDEX => i)"
-    skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: empty_null_and_missing
     translation:
       - {'$project': {'_id': 0, 'empty_null_and_missing': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$empty_null_and_missing'}}
-      - {'$unwind': {'path': '$c.arr', 'includeArrayIndex': "c.i"}}
+      - {'$unwind': {'path': '$c.arr', 'includeArrayIndex': 'c.i'}}
     result:
-      - {'c': {'_id': 1, 'arr': 1, 'comment': "non-empty", 'i': 0}}
-      - {'c': {'_id': 1, 'arr': 2, 'comment': "non-empty", 'i': 1}}
+      - {'c': {'_id': 1, 'arr': 1, 'comment': "non-empty", 'i': {"$numberLong": "0"}}}
+      - {'c': {'_id': 1, 'arr': 2, 'comment': "non-empty", 'i': {"$numberLong": "1"}}}
 
   - description: documents containing empty array, null, or missing values are retained if OUTER => true
     current_db: test
     query: "SELECT * FROM UNWIND(empty_null_and_missing AS c WITH PATH => arr, INDEX => i, OUTER => true)"
-    skip_reason: "SQL-571: implement UNWIND datasource"
     translation_target_db: test
     translation_target_coll: empty_null_and_missing
     translation:
       - {'$project': {'_id': 0, 'empty_null_and_missing': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$empty_null_and_missing'}}
-      - {'$unwind': {'path': '$c.arr', 'includeArrayIndex': "c.i", 'preserveNullAndEmptyArrays': true}}
+      - {'$unwind': {'path': '$c.arr', 'includeArrayIndex': 'c.i', 'preserveNullAndEmptyArrays': true}}
     result:
       - {'c': {'_id': 0, 'comment': "empty", 'i': null}}
-      - {'c': {'_id': 1, 'arr': 1, 'comment': "non-empty", 'i': 0}}
-      - {'c': {'_id': 1, 'arr': 2, 'comment': "non-empty", 'i': 1}}
+      - {'c': {'_id': 1, 'arr': 1, 'comment': "non-empty", 'i': {"$numberLong": "0"}}}
+      - {'c': {'_id': 1, 'arr': 2, 'comment': "non-empty", 'i': {"$numberLong": "1"}}}
       - {'c': {'_id': 2, 'arr': null, 'comment': "null", 'i': null}}
       - {'c': {'_id': 3, 'comment': "missing", 'i': null}}
 
   - description: PATH option is required
     current_db: test
     query: "SELECT * FROM UNWIND(foo)"
-    skip_reason: "SQL-571: implement UNWIND datasource"
-    algebrize_error: "PATH argument required for UNWIND"
+    algebrize_error: "UNWIND must specify a PATH option"
 
   - description: PATH must be an identifier
     current_db: test
     query: "SELECT * FROM UNWIND(foo WITH PATH => [arr])"
-    skip_reason: "SQL-571: implement UNWIND datasource"
-    parse_error: "expected identifier"
+    parse_error: "UNWIND PATH option must be an identifier"
 
   - description: INDEX must be simple identifier
     current_db: test
     query: "SELECT * FROM UNWIND(foo WITH PATH => arr, INDEX => invalid.index.identifier)"
-    skip_reason: "SQL-571: implement UNWIND datasource"
-    parse_error: "expected simple identifier"
+    parse_error: "Unrecognized token `.` found at 59:60\nExpected one of COMMA or RIGHT_PAREN"
 
   - description: duplicate option keys are disallowed
     current_db: test
     query: "SELECT * FROM UNWIND(foo WITH PATH => arr, PATH => invalid)"
-    skip_reason: "SQL-571: implement UNWIND datasource"
-    algebrize_error: "can only specify each UNWIND option at most once"
+    algebrize_error: "found duplicate UNWIND option Path(Identifier(\"invalid\"))"
 
   - description: unknown option keys are disallowed
     current_db: test
     query: "SELECT * FROM UNWIND(foo WITH PATH => arr, INVALID => invalid)"
-    skip_reason: "SQL-571: implement UNWIND datasource"
-    algebrize_error: "unknown UNWIND option 'INVALID'"
+    parse_error: "Unrecognized token `INVALID` found at 43:50\nExpected one of INDEX, OUTER or PATH"
 
   - description: error unless we can definitely prove there is no name conflict for INDEX alias
     current_db: test
     query: "SELECT * FROM UNWIND(index_conflict WITH PATH => arr, INDEX => i)"
-    skip_reason: "SQL-571: implement UNWIND datasource"
-    algebrize_error: "alias 'i' used two times"
+    algebrize_error: "UNWIND INDEX name 'i' conflicts with existing field name"
 
   - description: correlated field references are disallowed for PATH
     current_db: test
-    query: "SELECT VALUE {'x': (SELECT arr FROM (UNWIND(bar WITH PATH => foo.arr) LIMIT 1)} FROM foo"
-    skip_reason: "SQL-571: implement UNWIND datasource"
-    algebrize_error: "field `foo.arr` cannot be resolved to any datasource"
+    query: "SELECT VALUE {'x': (SELECT `inner`.arr FROM UNWIND([{'arr': 1}] AS `inner` WITH PATH => `outer`.arr) LIMIT 1)} FROM [{'arr': [4, 5, 6]}] AS `outer`"
+    algebrize_error: "field `outer` cannot be resolved to any datasource"

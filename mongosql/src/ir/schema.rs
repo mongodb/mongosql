@@ -673,20 +673,19 @@ impl CachedSchema for Stage {
                     //
                     // After that, we know the PATH schema MAY or MUST be an array. If it MUST be
                     // an array (or null or missing) and if OUTER is set to false, the INDEX schema
-                    // is exactly INTEGER. This is because the value of PATH will always be a
-                    // non-empty array, so there will always be data to populate the INDEX field.
+                    // is exactly LONG. This is because the value of PATH will always be a non-empty
+                    // array, so there will always be data to populate the INDEX field.
                     //
-                    // In all other cases, the INDEX schema is either NULL or INTEGER. This is
-                    // because the values of PATH may be non-arrays (including null or missing) or
-                    // may be empty arrays. For any such values, there is no corresponding INDEX
-                    // data.
+                    // In all other cases, the INDEX schema is either NULL or LONG. This is because
+                    // the values of PATH may be non-arrays (including null or missing) or may be
+                    // empty arrays. For any such values, there is no corresponding INDEX data.
                     let index_result_schema = if is_path_not_array {
                         Schema::Atomic(Atomic::Null)
                     } else if path_is_exactly_nullish_array == Satisfaction::Must && !u.outer {
-                        Schema::Atomic(Atomic::Integer)
+                        Schema::Atomic(Atomic::Long)
                     } else {
                         Schema::AnyOf(set![
-                            Schema::Atomic(Atomic::Integer),
+                            Schema::Atomic(Atomic::Long),
                             Schema::Atomic(Atomic::Null)
                         ])
                     };

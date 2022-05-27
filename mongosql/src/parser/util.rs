@@ -63,7 +63,7 @@ pub fn parse_unwind_path(e: Expression) -> Result<UnwindOption, LalrpopError<'st
         Expression::Identifier(_) => Ok(UnwindOption::Path(e)),
         Expression::Subpath(_) => Ok(UnwindOption::Path(e)),
         _ => Err(LalrpopError::from(
-            "UNWIND PATH must be an identifier or compound identifier".to_string(),
+            "UNWIND PATH option must be an identifier".to_string(),
         )),
     }
 }

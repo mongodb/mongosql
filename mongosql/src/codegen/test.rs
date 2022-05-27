@@ -3672,7 +3672,7 @@ mod unwind {
             collection: Some("foo".to_string()),
             pipeline: vec![
                 bson::doc!{"$project": {"_id": 0, "foo": "$$ROOT"}},
-                bson::doc!{"$unwind": {"path": "$foo.arr", "includeArrayIndex": {"$literal": "idx"}, "preserveNullAndEmptyArrays": {"$literal": true}}},
+                bson::doc!{"$unwind": {"path": "$foo.arr", "includeArrayIndex": "foo.idx", "preserveNullAndEmptyArrays": true}},
             ],
         }),
         input = make_unwind(
