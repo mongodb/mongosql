@@ -816,6 +816,7 @@ impl AggregationFunction {
         arg_schema: Schema,
     ) -> Result<Schema, Error> {
         use crate::ir::AggregationFunction::*;
+        use Satisfaction::*;
         Ok(match self {
             AddToArray => Schema::Array(Box::new(arg_schema)),
             Avg | StddevPop | StddevSamp => {
@@ -827,15 +828,22 @@ impl AggregationFunction {
                 // we cannot use get_arithmetic_schema for Avg, StddevPop, StddevSamp
                 // because they never return Long or Integer results, even for Long
                 // or Integer inputs.
-                let get_numeric_schema =
-                    || match arg_schema.satisfies(&Schema::Atomic(Atomic::Decimal)) {
-                        Satisfaction::Not => Schema::Atomic(Atomic::Double),
-                        Satisfaction::Must => Schema::Atomic(Atomic::Decimal),
-                        Satisfaction::May => Schema::AnyOf(set![
-                            Schema::Atomic(Atomic::Double),
-                            Schema::Atomic(Atomic::Decimal),
-                        ]),
-                    };
+                let get_numeric_schema = || match (
+                    arg_schema.satisfies(&Schema::Atomic(Atomic::Decimal)),
+                    arg_schema.satisfies(&Schema::AnyOf(set![
+                        Schema::Atomic(Atomic::Integer),
+                        Schema::Atomic(Atomic::Double),
+                        Schema::Atomic(Atomic::Long),
+                    ])),
+                ) {
+                    (Must, _) => Schema::Atomic(Atomic::Decimal),
+                    (May, Not) => Schema::Atomic(Atomic::Decimal),
+                    (May, May) => Schema::AnyOf(set![
+                        Schema::Atomic(Atomic::Double),
+                        Schema::Atomic(Atomic::Decimal),
+                    ]),
+                    _ => Schema::Atomic(Atomic::Double),
+                };
                 match arg_schema.satisfies(&NULLISH) {
                     Satisfaction::Not => get_numeric_schema(),
                     Satisfaction::Must => Schema::Atomic(Atomic::Null),

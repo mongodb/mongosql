@@ -1915,6 +1915,70 @@ mod schema {
         ])},
     );
     test_schema!(
+        avg_of_decimal_and_missing_is_decimal_and_null,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Null),
+        ])),
+        input = AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Avg,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Missing,
+        ])},
+    );
+    test_schema!(
+        avg_of_long_and_null_is_double_and_null,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Double),
+            Schema::Atomic(Atomic::Null),
+        ])),
+        input = AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Avg,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null),
+        ])},
+    );
+    test_schema!(
+        avg_of_decimal_long_and_null_is_decimal_double_and_null,
+        expected = Ok(Schema::AnyOf(set![
+            Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Double)
+            ],),
+            Schema::Atomic(Atomic::Null),
+        ])),
+        input = AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Avg,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Decimal),
+            Schema::Atomic(Atomic::Long),
+            Schema::Atomic(Atomic::Null),
+        ])},
+    );
+    test_schema!(
+        avg_of_integer_is_double,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = AggregationExpr::Function(AggregationFunctionApplication {
+            function: AggregationFunction::Avg,
+            arg: Box::new(Expression::Reference(("bar", 0u16).into())),
+            distinct: false,
+        }),
+        schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
+            Schema::Atomic(Atomic::Integer),
+        ])},
+    );
+    test_schema!(
         avg_of_decimal_is_decimal,
         expected = Ok(Schema::Atomic(Atomic::Decimal)),
         input = AggregationExpr::Function(AggregationFunctionApplication {
