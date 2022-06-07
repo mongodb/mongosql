@@ -1445,6 +1445,15 @@ impl ScalarFunction {
                 self.get_arithmetic_schema(state, arg_schemas)
             }
 
+            Cos | Radians | Sin | Sqrt | Tan => {
+                self.ensure_arg_count(arg_schemas.len(), 1)?;
+                self.get_arithmetic_schema(
+                    state,
+                    // default the schema to Double in case the actual arg schema is INT or LONG
+                    &[arg_schemas[0].clone(), Schema::Atomic(Atomic::Double)],
+                )
+            }
+
             Log => {
                 self.ensure_arg_count(arg_schemas.len(), 2)?;
                 self.get_arithmetic_schema(
@@ -1452,6 +1461,7 @@ impl ScalarFunction {
                     &[
                         arg_schemas[0].clone(),
                         arg_schemas[1].clone(),
+                        // default the schema to Double in case the actual arg schema is INT or LONG
                         Schema::Atomic(Atomic::Double),
                     ],
                 )

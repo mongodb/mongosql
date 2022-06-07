@@ -803,7 +803,7 @@ mod expression {
     );
 
     test_algebrize!(
-        neg_un_op,
+        neg_unary_op,
         method = algebrize_expression,
         expected = Ok(ir::Expression::ScalarFunction(
             ir::ScalarFunctionApplication {
@@ -834,7 +834,7 @@ mod expression {
     );
 
     test_algebrize!(
-        pos_un_op,
+        pos_unary_op,
         method = algebrize_expression,
         expected = Ok(ir::Expression::ScalarFunction(
             ir::ScalarFunctionApplication {
@@ -1481,6 +1481,103 @@ mod expression {
                 ast::Expression::Literal(ast::Literal::Integer(10)),
                 ast::Expression::Literal(ast::Literal::Integer(10)),
             ]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }),
+    );
+
+    test_algebrize!(
+        cos_unary_op,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Cos,
+                args: vec![ir::Expression::Literal(
+                    ir::LiteralValue::Integer(10).into()
+                ),],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Cos,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(10)
+            ),]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }),
+    );
+    test_algebrize!(
+        sin_unary_op,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Sin,
+                args: vec![ir::Expression::Literal(
+                    ir::LiteralValue::Integer(10).into()
+                ),],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Sin,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(10)
+            ),]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }),
+    );
+    test_algebrize!(
+        tan_unary_op,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Tan,
+                args: vec![ir::Expression::Literal(
+                    ir::LiteralValue::Integer(10).into()
+                ),],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Tan,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(10)
+            ),]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }),
+    );
+    test_algebrize!(
+        radians_unary_op,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Radians,
+                args: vec![ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Radians,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(1)
+            ),]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }),
+    );
+    test_algebrize!(
+        sqrt_unary_op,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Sqrt,
+                args: vec![ir::Expression::Literal(ir::LiteralValue::Integer(4).into()),],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Sqrt,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(4)
+            ),]),
             set_quantifier: Some(ast::SetQuantifier::All),
         }),
     );

@@ -38,6 +38,16 @@ var (
 		Data: bsoncore.AppendInt32(nil, 100),
 	})
 
+	posInfLiteral = ast.NewConstant(bsoncore.Value{
+		Type: bsontype.Double,
+		Data: bsoncore.AppendDouble(nil, math.Inf(1)),
+	})
+
+	negInfLiteral = ast.NewConstant(bsoncore.Value{
+		Type: bsontype.Double,
+		Data: bsoncore.AppendDouble(nil, math.Inf(-1)),
+	})
+
 	trueLiteral = ast.NewConstant(bsoncore.Value{
 		Type: bsontype.Boolean,
 		Data: bsoncore.AppendBoolean(nil, true),

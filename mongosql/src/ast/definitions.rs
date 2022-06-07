@@ -324,6 +324,7 @@ pub enum FunctionName {
     BitLength,
     CharLength,
     Coalesce,
+    Cos,
     CurrentTimestamp,
     Log,
     Lower,
@@ -331,10 +332,14 @@ pub enum FunctionName {
     OctetLength,
     Position,
     Round,
+    Radians,
+    Sin,
     Size,
     Slice,
     Split,
+    Sqrt,
     Substring,
+    Tan,
     Upper,
 }
 
@@ -356,6 +361,7 @@ impl TryFrom<&str> for FunctionName {
             "CHARACTER_LENGTH" => Ok(FunctionName::CharLength),
             "COALESCE" => Ok(FunctionName::Coalesce),
             "COUNT" => Ok(FunctionName::Count),
+            "COS" => Ok(FunctionName::Cos),
             "CURRENT_TIMESTAMP" => Ok(FunctionName::CurrentTimestamp),
             "FIRST" => Ok(FunctionName::First),
             "LAST" => Ok(FunctionName::Last),
@@ -367,14 +373,18 @@ impl TryFrom<&str> for FunctionName {
             "NULLIF" => Ok(FunctionName::NullIf),
             "OCTET_LENGTH" => Ok(FunctionName::OctetLength),
             "POSITION" => Ok(FunctionName::Position),
+            "RADIANS" => Ok(FunctionName::Radians),
             "ROUND" => Ok(FunctionName::Round),
+            "SIN" => Ok(FunctionName::Sin),
             "SIZE" => Ok(FunctionName::Size),
             "SLICE" => Ok(FunctionName::Slice),
             "SPLIT" => Ok(FunctionName::Split),
+            "SQRT" => Ok(FunctionName::Sqrt),
             "STDDEV_POP" => Ok(FunctionName::StddevPop),
             "STDDEV_SAMP" => Ok(FunctionName::StddevSamp),
             "SUBSTRING" => Ok(FunctionName::Substring),
             "SUM" => Ok(FunctionName::Sum),
+            "TAN" => Ok(FunctionName::Tan),
             "UPPER" => Ok(FunctionName::Upper),
             _ => Err(format!("unknown function {}", name)),
         }
@@ -392,6 +402,7 @@ impl FunctionName {
             FunctionName::Avg => "AVG",
             FunctionName::CharLength => "CHAR_LENGTH",
             FunctionName::Coalesce => "COALESCE",
+            FunctionName::Cos => "COS",
             FunctionName::Count => "COUNT",
             FunctionName::CurrentTimestamp => "CURRENT_TIMESTAMP",
             FunctionName::First => "FIRST",
@@ -404,14 +415,18 @@ impl FunctionName {
             FunctionName::NullIf => "NULLIF",
             FunctionName::OctetLength => "OCTET_LENGTH",
             FunctionName::Position => "POSITION",
+            FunctionName::Radians => "RADIANS",
             FunctionName::Round => "ROUND",
             FunctionName::Size => "SIZE",
+            FunctionName::Sin => "SIN",
             FunctionName::Slice => "SLICE",
             FunctionName::Split => "SPLIT",
+            FunctionName::Sqrt => "SQRT",
             FunctionName::StddevPop => "STDDEV_POP",
             FunctionName::StddevSamp => "STDDEV_SAMP",
             FunctionName::Substring => "SUBSTRING",
             FunctionName::Sum => "SUM",
+            FunctionName::Tan => "TAN",
             FunctionName::Upper => "UPPER",
         }
     }
@@ -435,17 +450,22 @@ impl FunctionName {
             FunctionName::BitLength
             | FunctionName::CharLength
             | FunctionName::Coalesce
+            | FunctionName::Cos
             | FunctionName::CurrentTimestamp
             | FunctionName::Log
             | FunctionName::Lower
             | FunctionName::NullIf
             | FunctionName::OctetLength
             | FunctionName::Position
+            | FunctionName::Radians
             | FunctionName::Round
+            | FunctionName::Sin
             | FunctionName::Size
             | FunctionName::Slice
             | FunctionName::Split
+            | FunctionName::Sqrt
             | FunctionName::Substring
+            | FunctionName::Tan
             | FunctionName::Upper => false,
         }
     }

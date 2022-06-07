@@ -2244,6 +2244,86 @@ mod function {
             mr
         },
     );
+    test_codegen_expr!(
+        cos_expr,
+        expected = Ok(bson!({"$sqlCos": [
+            "$f"
+        ]})),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: Cos,
+            args: vec![Expression::Reference(("f", 0u16).into())],
+            cache: SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        sin_expr,
+        expected = Ok(bson!({"$sqlSin": [
+            "$f"
+        ]})),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: Sin,
+            args: vec![Expression::Reference(("f", 0u16).into())],
+            cache: SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        tan_expr,
+        expected = Ok(bson!({"$sqlTan": [
+            "$f"
+        ]})),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: Tan,
+            args: vec![Expression::Reference(("f", 0u16).into())],
+            cache: SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        radians_expr,
+        expected = Ok(bson!({"$degreesToRadians":
+            "$f"
+        })),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: Radians,
+            args: vec![Expression::Reference(("f", 0u16).into())],
+            cache: SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        sqrt_expr,
+        expected = Ok(bson!({"$sqlSqrt": [
+            "$f"
+        ]})),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: Sqrt,
+            args: vec![Expression::Reference(("f", 0u16).into())],
+            cache: SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
 }
 
 mod group_by {
@@ -2259,6 +2339,7 @@ mod group_by {
             cache: SchemaCache::new(),
         }))
     }
+
     fn key_foo_a() -> Vec<OptionallyAliasedExpr> {
         vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
             alias: "foo_a".to_string(),

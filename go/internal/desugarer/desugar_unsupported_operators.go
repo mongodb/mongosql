@@ -11,11 +11,15 @@ type functionDesugarer func(*ast.Function) ast.Expr
 var functionDesugarers = map[string]functionDesugarer{
 	"$sqlBetween": desugarSQLBetween,
 	"$sqlConvert": desugarSQLConvert,
+	"$sqlCos":     desugarSQLCos,
 	"$sqlDivide":  desugarSQLDivide,
 	"$sqlLog":     desugarSQLLog,
 	"$sqlRound":   desugarSQLRound,
 	"$sqlSlice":   desugarSQLSlice,
 	"$sqlSplit":   desugarSQLSplit,
+	"$sqlSin":     desugarSQLSin,
+	"$sqlSqrt":    desugarSQLSqrt,
+	"$sqlTan":     desugarSQLTan,
 	"$coalesce":   desugarCoalesce,
 	"$like":       desugarLike,
 	"$nullIf":     desugarNullIf,
@@ -215,6 +219,55 @@ func desugarCoalesce(f *ast.Function) ast.Expr {
 		ast.NewDocumentElement("branches", ast.NewArray(branches...)),
 		ast.NewDocumentElement("default", nullLiteral),
 	))
+}
+
+func desugarSQLCos(f *ast.Function) ast.Expr {
+	return desugarSQLTrig(f, "$cos")
+}
+
+func desugarSQLSin(f *ast.Function) ast.Expr {
+	return desugarSQLTrig(f, "$sin")
+}
+
+func desugarSQLTan(f *ast.Function) ast.Expr {
+	return desugarSQLTrig(f, "$tan")
+}
+
+func desugarSQLTrig(f *ast.Function, name string) ast.Expr {
+	args := f.Arg.(*ast.Array)
+
+	return ast.NewConditional(
+		wrapInInfinityCheck(args.Elements[0]),
+		nullLiteral,
+		ast.NewFunction(name, args.Elements[0]),
+	)
+}
+
+func wrapInInfinityCheck(arg ast.Expr) *ast.Function {
+	posInfCheck := ast.NewBinary(ast.Equals, arg, posInfLiteral)
+	negInfCheck := ast.NewBinary(ast.Equals, arg, negInfLiteral)
+	return wrapInOp("$or", posInfCheck, negInfCheck)
+}
+
+func desugarSQLSqrt(f *ast.Function) ast.Expr {
+	args := f.Arg.(*ast.Array)
+
+	inputNumberVarName := "desugared_sqlSqrt_input"
+	inputNumberVarRef := ast.NewVariableRef(inputNumberVarName)
+
+	argIsNan := ast.NewBinary(ast.Equals, inputNumberVarRef, nanLiteral)
+	argNegativeCheck := ast.NewBinary(ast.LessThan, inputNumberVarRef, zeroLiteral)
+	argNegativeCheckConditional := ast.NewConditional(argNegativeCheck, nullLiteral, ast.NewFunction("$sqrt", inputNumberVarRef))
+
+	return ast.NewLet(
+		[]*ast.LetVariable{
+			ast.NewLetVariable(inputNumberVarName, args.Elements[0]),
+		},
+		ast.NewConditional(
+			argIsNan,
+			nanLiteral,
+			argNegativeCheckConditional,
+		))
 }
 
 // desugarNullIf desugars { $nullIf: [<expr1>, <expr2>] } into existing MQL

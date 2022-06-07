@@ -123,17 +123,22 @@ impl TryFrom<ast::FunctionName> for ir::ScalarFunction {
             ast::FunctionName::BitLength => ir::ScalarFunction::BitLength,
             ast::FunctionName::CharLength => ir::ScalarFunction::CharLength,
             ast::FunctionName::Coalesce => ir::ScalarFunction::Coalesce,
+            ast::FunctionName::Cos => ir::ScalarFunction::Cos,
             ast::FunctionName::CurrentTimestamp => ir::ScalarFunction::CurrentTimestamp,
             ast::FunctionName::Log => ir::ScalarFunction::Log,
             ast::FunctionName::Lower => ir::ScalarFunction::Lower,
             ast::FunctionName::NullIf => ir::ScalarFunction::NullIf,
             ast::FunctionName::OctetLength => ir::ScalarFunction::OctetLength,
             ast::FunctionName::Position => ir::ScalarFunction::Position,
+            ast::FunctionName::Radians => ir::ScalarFunction::Radians,
             ast::FunctionName::Round => ir::ScalarFunction::Round,
+            ast::FunctionName::Sin => ir::ScalarFunction::Sin,
             ast::FunctionName::Size => ir::ScalarFunction::Size,
             ast::FunctionName::Slice => ir::ScalarFunction::Slice,
             ast::FunctionName::Split => ir::ScalarFunction::Split,
+            ast::FunctionName::Sqrt => ir::ScalarFunction::Sqrt,
             ast::FunctionName::Substring => ir::ScalarFunction::Substring,
+            ast::FunctionName::Tan => ir::ScalarFunction::Tan,
             ast::FunctionName::Upper => ir::ScalarFunction::Upper,
 
             ast::FunctionName::AddToArray
@@ -175,6 +180,7 @@ impl TryFrom<ast::FunctionName> for ir::AggregationFunction {
             ast::FunctionName::BitLength
             | ast::FunctionName::CharLength
             | ast::FunctionName::Coalesce
+            | ast::FunctionName::Cos
             | ast::FunctionName::CurrentTimestamp
             | ast::FunctionName::Log
             | ast::FunctionName::Lower
@@ -182,10 +188,14 @@ impl TryFrom<ast::FunctionName> for ir::AggregationFunction {
             | ast::FunctionName::OctetLength
             | ast::FunctionName::Position
             | ast::FunctionName::Round
+            | ast::FunctionName::Radians
+            | ast::FunctionName::Sin
             | ast::FunctionName::Size
             | ast::FunctionName::Slice
             | ast::FunctionName::Split
+            | ast::FunctionName::Sqrt
             | ast::FunctionName::Substring
+            | ast::FunctionName::Tan
             | ast::FunctionName::Upper => {
                 return Err(Error::ScalarInPlaceOfAggregation(f.pretty_print().unwrap()))
             }

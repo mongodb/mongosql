@@ -970,7 +970,6 @@ expression_printer_test!(
     expected = "SPLIT(str, 'delim', 3)",
     input = "SPLIT(str, 'delim', 3)"
 );
-
 expression_printer_test!(
     function_log,
     expected = "LOG(100, 10)",
@@ -981,6 +980,15 @@ expression_printer_test!(
     expected = "ROUND(100, 1)",
     input = "ROUND(100, 1)"
 );
+expression_printer_test!(function_cos, expected = "COS(1)", input = "COS(1)");
+expression_printer_test!(function_sin, expected = "SIN(1)", input = "SIN(1)");
+expression_printer_test!(function_tan, expected = "TAN(1)", input = "TAN(1)");
+expression_printer_test!(
+    function_radians,
+    expected = "RADIANS(1)",
+    input = "RADIANS(1)"
+);
+expression_printer_test!(function_sqrt, expected = "SQRT(1)", input = "SQRT(1)");
 
 expression_printer_test!(
     access_int,

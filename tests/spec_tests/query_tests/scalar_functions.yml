@@ -1088,20 +1088,19 @@ tests:
   - description: COS correctness tests
     current_db: foo
     query: "SELECT VALUE {'radians': radians, 'n': COS(radians)} FROM trigonometry AS c"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: trigonometry
     translation:
       - { '$project': { '_id': 0, 'trigonometry': '$$ROOT' }}
       - { '$project': { '_id': 0, 'c': '$trigonometry' }}
-      - { '$project': { '_id': 0, '__bot': { 'radians': '$c.radians', 'n': { '$sqlCos': '$c.radians' }}}}
+      - { '$project': { '_id': 0, '__bot': { 'radians': '$c.radians', 'n': { '$sqlCos': [ '$c.radians' ] }}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
     result:
       - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "0.5403023058681398" }}}
-      - {'': {'radians': { "$numberLong": "1" }, 'n': { "$numberDouble": "0.5403023058681398" }}}
-      - {'': {'radians': { "$numberDouble": "0.7854" }, 'n': { "$numberDouble": "0.7071054825112363" }}}
+      - {'': {'radians': { "$numberLong": "-1" }, 'n': { "$numberDouble": "0.5403023058681398" }}}
+      - {'': {'radians': { "$numberDouble": "0" }, 'n': { "$numberDouble": "1" }}}
       - {'': {'radians': { "$numberDecimal": "0.7854" }, 'n': { "$numberDecimal": "0.7071054825112363062434428987321810" }}}
       - {'': {'radians': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
       - {'': {'radians': { "$numberDouble": "Infinity" }, 'n': null }}
@@ -1305,8 +1304,7 @@ tests:
 
   - description: RADIANS correctness tests
     current_db: foo
-    query: "SELECT VALUE {'degrees': degrees, 'n': RADIANS(degrees)} FROM `radians` AS c"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    query: "SELECT VALUE {'degrees': degrees, 'n': RADIANS(degrees)} FROM radians AS c"
     translation_target_db: foo
     translation_target_coll: radians
     translation:
@@ -1369,13 +1367,12 @@ tests:
   - description: SIN correctness tests
     current_db: foo
     query: "SELECT VALUE {'radians': radians, 'n': SIN(radians)} FROM trigonometry AS c"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: trigonometry
     translation:
       - { '$project': { '_id': 0, 'trigonometry': '$$ROOT' }}
-      - { '$project': { '_id': 0, 'c': 'trigonometry' }}
-      - { '$project': { '_id': 0, '__bot': { 'radians': '$c.radians', 'n': { '$sqlSin': '$c.radians' }}}}
+      - { '$project': { '_id': 0, 'c': '$trigonometry' }}
+      - { '$project': { '_id': 0, '__bot': { 'radians': '$c.radians', 'n': { '$sqlSin': [ '$c.radians' ] }}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -1392,14 +1389,13 @@ tests:
 
   - description: SQRT correctness tests
     current_db: foo
-    query: "SELECT VALUE {'v': v, 'n': SQRT(v1, v2)} FROM `sqrt` AS c"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    query: "SELECT VALUE {'v': v, 'n': SQRT(v)} FROM sqrt AS c"
     translation_target_db: foo
     translation_target_coll: sqrt
     translation:
       - { '$project': { '_id': 0, 'sqrt': '$$ROOT' }}
       - { '$project': { '_id': 0, 'c': '$sqrt' }}
-      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'n': { '$sqlSqrt': '$c.v' }}}}
+      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'n': { '$sqlSqrt': [ '$c.v' ] }}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -1417,13 +1413,12 @@ tests:
   - description: TAN correctness tests
     current_db: foo
     query: "SELECT VALUE {'radians': radians, 'n': TAN(radians)} FROM trigonometry AS c"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: trigonometry
     translation:
       - { '$project': { '_id': 0, 'trigonometry': '$$ROOT' }}
       - { '$project': { '_id': 0, 'c': '$trigonometry' }}
-      - { '$project': { '_id': 0, '__bot': { 'radians': '$c.radians', 'n': { '$sqlTan': '$c.radians' }}}}
+      - { '$project': { '_id': 0, '__bot': { 'radians': '$c.radians', 'n': { '$sqlTan': [ '$c.radians' ] }}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}

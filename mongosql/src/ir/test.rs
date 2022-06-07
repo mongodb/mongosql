@@ -2785,6 +2785,233 @@ mod schema {
         }),
     );
 
+    // Cos tests
+    test_schema!(
+        cos_requires_exactly_one_arg,
+        expected = Err(ir_error::IncorrectArgumentCount {
+            name: "Cos",
+            required: 1,
+            found: 2
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Cos,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(2).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        cos_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Cos",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Cos,
+            args: vec![Expression::Literal(
+                LiteralValue::String("abc".to_string()).into()
+            )],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        cos_returns_double_schema_for_integer_arg,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Cos,
+            args: vec![Expression::Literal(LiteralValue::Integer(2).into())],
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    // Sin tests
+    test_schema!(
+        sin_requires_exactly_one_arg,
+        expected = Err(ir_error::IncorrectArgumentCount {
+            name: "Sin",
+            required: 1,
+            found: 2
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Sin,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(2).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        sin_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Sin",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Sin,
+            args: vec![Expression::Literal(
+                LiteralValue::String("abc".to_string()).into()
+            )],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        sin_returns_double_schema_for_double_arg,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Sin,
+            args: vec![Expression::Literal(LiteralValue::Double(2.8).into())],
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    // Tan tests
+    test_schema!(
+        tan_requires_exactly_one_arg,
+        expected = Err(ir_error::IncorrectArgumentCount {
+            name: "Tan",
+            required: 1,
+            found: 2
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Tan,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(2).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        tan_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Tan",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Tan,
+            args: vec![Expression::Literal(
+                LiteralValue::String("abc".to_string()).into()
+            )],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        tan_returns_double_schema_for_long_arg,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Sin,
+            args: vec![Expression::Literal(LiteralValue::Long(2).into())],
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    // Radians tests
+    test_schema!(
+        radians_requires_exactly_one_arg,
+        expected = Err(ir_error::IncorrectArgumentCount {
+            name: "Radians",
+            required: 1,
+            found: 2
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Radians,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(2).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        radians_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Radians",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Radians,
+            args: vec![Expression::Literal(
+                LiteralValue::String("abc".to_string()).into()
+            )],
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    // Sqrt tests
+    test_schema!(
+        sqrt_requires_exactly_one_arg,
+        expected = Err(ir_error::IncorrectArgumentCount {
+            name: "Sqrt",
+            required: 1,
+            found: 2
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Sqrt,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(2).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        sqrt_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Sqrt",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Sqrt,
+            args: vec![Expression::Literal(
+                LiteralValue::String("abc".to_string()).into()
+            )],
+            cache: SchemaCache::new(),
+        }),
+    );
+
     // Arithmetic function errors.
     test_schema!(
         sub_requires_exactly_two_args,

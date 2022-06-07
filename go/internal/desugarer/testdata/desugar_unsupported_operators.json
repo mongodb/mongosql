@@ -547,63 +547,63 @@
     ],
     "expected": [
       {
-        "$project":{
-          "_id":{
-            "$numberInt":"0"
+        "$project": {
+          "_id": {
+            "$numberInt": "0"
           },
-          "expr":{
-            "$cond":{
-              "if":{
-                "$or":[
+          "expr": {
+            "$cond": {
+              "if": {
+                "$or": [
                   {
-                    "$eq":[
+                    "$eq": [
                       "$number",
                       {
-                        "$literal":{
-                          "$numberDouble":"NaN"
+                        "$literal": {
+                          "$numberDouble": "NaN"
                         }
                       }
                     ]
                   },
                   {
-                    "$eq":[
+                    "$eq": [
                       "$base",
                       {
-                        "$literal":{
-                          "$numberDouble":"NaN"
+                        "$literal": {
+                          "$numberDouble": "NaN"
                         }
                       }
                     ]
                   }
                 ]
               },
-              "then":{
-                "$literal":{
-                  "$numberDouble":"NaN"
+              "then": {
+                "$literal": {
+                  "$numberDouble": "NaN"
                 }
               },
-              "else":{
-                "$cond":{
-                  "if":{
-                    "$or":[
+              "else": {
+                "$cond": {
+                  "if": {
+                    "$or": [
                       {
-                        "$or":[
+                        "$or": [
                           {
-                            "$lte":[
+                            "$lte": [
                               "$number",
                               {
-                                "$literal":{
-                                  "$numberInt":"0"
+                                "$literal": {
+                                  "$numberInt": "0"
                                 }
                               }
                             ]
                           },
                           {
-                            "$eq":[
+                            "$eq": [
                               "$base",
                               {
-                                "$literal":{
-                                  "$numberInt":"1"
+                                "$literal": {
+                                  "$numberInt": "1"
                                 }
                               }
                             ]
@@ -611,22 +611,22 @@
                         ]
                       },
                       {
-                        "$lte":[
+                        "$lte": [
                           "$base",
                           {
-                            "$literal":{
-                              "$numberInt":"0"
+                            "$literal": {
+                              "$numberInt": "0"
                             }
                           }
                         ]
                       }
                     ]
                   },
-                  "then":{
-                    "$literal":null
+                  "then": {
+                    "$literal": null
                   },
-                  "else":{
-                    "$log":[
+                  "else": {
+                    "$log": [
                       "$number",
                       "$base"
                     ]
@@ -656,67 +656,67 @@
     ],
     "expected": [
       {
-        "$project":{
-          "_id":{
-            "$numberInt":"0"
+        "$project": {
+          "_id": {
+            "$numberInt": "0"
           },
-          "expr":{
-            "$let":{
-              "vars":{
-                "desugared_sqlRound_input0":"$number",
-                "desugared_sqlRound_input1":"$place"
+          "expr": {
+            "$let": {
+              "vars": {
+                "desugared_sqlRound_input0": "$number",
+                "desugared_sqlRound_input1": "$place"
               },
-              "in":{
-                "$cond":{
-                  "if":{
-                    "$eq":[
+              "in": {
+                "$cond": {
+                  "if": {
+                    "$eq": [
                       "$$desugared_sqlRound_input1",
                       {
-                        "$literal":{
-                          "$numberDouble":"NaN"
+                        "$literal": {
+                          "$numberDouble": "NaN"
                         }
                       }
                     ]
                   },
-                  "then":{
-                    "$literal":{
-                      "$numberDouble":"NaN"
+                  "then": {
+                    "$literal": {
+                      "$numberDouble": "NaN"
                     }
                   },
-                  "else":{
-                    "$cond":{
-                      "if":{
-                        "$and":[
+                  "else": {
+                    "$cond": {
+                      "if": {
+                        "$and": [
                           {
-                            "$gte":[
+                            "$gte": [
                               "$$desugared_sqlRound_input1",
                               {
-                                "$literal":{
-                                  "$numberInt":"-20"
+                                "$literal": {
+                                  "$numberInt": "-20"
                                 }
                               }
                             ]
                           },
                           {
-                            "$lte":[
+                            "$lte": [
                               "$$desugared_sqlRound_input1",
                               {
-                                "$literal":{
-                                  "$numberInt":"100"
+                                "$literal": {
+                                  "$numberInt": "100"
                                 }
                               }
                             ]
                           }
                         ]
                       },
-                      "then":{
-                        "$round":[
+                      "then": {
+                        "$round": [
                           "$$desugared_sqlRound_input0",
                           "$$desugared_sqlRound_input1"
                         ]
                       },
-                      "else":{
-                        "$literal":null
+                      "else": {
+                        "$literal": null
                       }
                     }
                   }
@@ -763,7 +763,9 @@
                       ""
                     ]
                   },
-                  "then": {"$literal": null},
+                  "then": {
+                    "$literal": null
+                  },
                   "else": {
                     "$let": {
                       "vars": {
@@ -779,10 +781,14 @@
                           "if": {
                             "$lte": [
                               "$$desugared_sqlSplit_split_expr",
-                              {"$literal": null}
+                              {
+                                "$literal": null
+                              }
                             ]
                           },
-                          "then": {"$literal": null},
+                          "then": {
+                            "$literal": null
+                          },
                           "else": {
                             "$let": {
                               "vars": {
@@ -794,7 +800,9 @@
                                         "if": {
                                           "$gt": [
                                             {
-                                              "$abs": ["$$desugared_sqlSplit_input2"]
+                                              "$abs": [
+                                                "$$desugared_sqlSplit_input2"
+                                              ]
                                             },
                                             {
                                               "$size": "$$desugared_sqlSplit_split_expr"
@@ -802,7 +810,9 @@
                                           ]
                                         },
                                         "then": {
-                                          "$abs": ["$$desugared_sqlSplit_input2"]
+                                          "$abs": [
+                                            "$$desugared_sqlSplit_input2"
+                                          ]
                                         },
                                         "else": "$$desugared_sqlSplit_input2"
                                       }
@@ -821,7 +831,9 @@
                                           []
                                         ]
                                       },
-                                      "then": [""],
+                                      "then": [
+                                        ""
+                                      ],
                                       "else": "$$desugared_sqlSplit_slice_expr"
                                     }
                                   },
@@ -831,6 +843,250 @@
                             }
                           }
                         }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $sqlCos",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlCos": [
+              "$v"
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": {
+            "$numberInt": "0"
+          },
+          "expr": {
+            "$cond": {
+              "if": {
+                "$or": [
+                  {
+                    "$eq": [
+                      "$v",
+                      {
+                        "$literal": {
+                          "$numberDouble": "Infinity"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "$eq": [
+                      "$v",
+                      {
+                        "$literal": {
+                          "$numberDouble": "-Infinity"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "then": {
+                "$literal": null
+              },
+              "else": {
+                "$cos": "$v"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $sqlSin",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlSin": [
+              "$v"
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": {
+            "$numberInt": "0"
+          },
+          "expr": {
+            "$cond": {
+              "if": {
+                "$or": [
+                  {
+                    "$eq": [
+                      "$v",
+                      {
+                        "$literal": {
+                          "$numberDouble": "Infinity"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "$eq": [
+                      "$v",
+                      {
+                        "$literal": {
+                          "$numberDouble": "-Infinity"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "then": {
+                "$literal": null
+              },
+              "else": {
+                "$sin": "$v"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $sqlTan",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlTan": [
+              "$v"
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": {
+            "$numberInt": "0"
+          },
+          "expr": {
+            "$cond": {
+              "if": {
+                "$or": [
+                  {
+                    "$eq": [
+                      "$v",
+                      {
+                        "$literal": {
+                          "$numberDouble": "Infinity"
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "$eq": [
+                      "$v",
+                      {
+                        "$literal": {
+                          "$numberDouble": "-Infinity"
+                        }
+                      }
+                    ]
+                  }
+                ]
+              },
+              "then": {
+                "$literal": null
+              },
+              "else": {
+                "$tan": "$v"
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $sqlSqrt",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlSqrt": [
+              "$v"
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": {
+            "$numberInt": "0"
+          },
+          "expr": {
+            "$let": {
+              "vars": {
+                "desugared_sqlSqrt_input": "$v"
+              },
+              "in": {
+                "$cond": {
+                  "if": {
+                    "$eq": [
+                      "$$desugared_sqlSqrt_input",
+                      {
+                        "$literal": {
+                          "$numberDouble": "NaN"
+                        }
+                      }
+                    ]
+                  },
+                  "then": {
+                    "$literal": {
+                      "$numberDouble": "NaN"
+                    }
+                  },
+                  "else": {
+                    "$cond": {
+                      "if": {
+                        "$lt": [
+                          "$$desugared_sqlSqrt_input",
+                          {
+                            "$literal": {
+                              "$numberInt": "0"
+                            }
+                          }
+                        ]
+                      },
+                      "then": {
+                        "$literal": null
+                      },
+                      "else": {
+                        "$sqrt": "$$desugared_sqlSqrt_input"
                       }
                     }
                   }
