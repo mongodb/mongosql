@@ -7,7 +7,9 @@ use std::{
     ffi::{CStr, CString, NulError},
     os::raw,
     panic,
+    panic::UnwindSafe,
     string::FromUtf8Error,
+    sync::mpsc,
 };
 
 mod version;
@@ -29,28 +31,11 @@ pub extern "C" fn translate(
     catalog: *const libc::c_char,
     relax_schema_checking: libc::c_int,
 ) -> *const raw::c_char {
-    let previous_hook = panic::take_hook();
-    panic::set_hook(Box::new(|_| {}));
-    let result =
-        panic::catch_unwind(|| translate_helper(current_db, sql, catalog, relax_schema_checking));
-    panic::set_hook(previous_hook);
-
-    let payload = match result {
-        Ok(result) => match result {
-            Ok(translation) => translation_success_payload(translation),
-            Err(msg) => translation_failure_payload(msg, ErrorVisibility::External),
-        },
-        Err(err) => {
-            let msg = if let Some(msg) = err.downcast_ref::<&'static str>() {
-                format!("caught panic during translation: {}", msg)
-            } else {
-                format!("caught panic during translation: {:?}", err)
-            };
-            translation_failure_payload(msg, ErrorVisibility::Internal)
-        }
-    };
-
-    to_raw_c_string(&payload).expect("failed to convert base64 string to extern string")
+    panic_safe_exec(
+        || translate_helper(current_db, sql, catalog, relax_schema_checking),
+        Box::new(translation_success_payload),
+        Box::new(translation_failure_payload),
+    )
 }
 
 /// A helper function that encapsulates all the fallible parts of
@@ -170,27 +155,11 @@ pub extern "C" fn get_namespaces(
     current_db: *const libc::c_char,
     sql: *const libc::c_char,
 ) -> *const raw::c_char {
-    let previous_hook = panic::take_hook();
-    panic::set_hook(Box::new(|_| {}));
-    let result = panic::catch_unwind(|| get_namespaces_helper(current_db, sql));
-    panic::set_hook(previous_hook);
-
-    let payload = match result {
-        Ok(result) => match result {
-            Ok(namespaces) => get_namespaces_success_payload(namespaces),
-            Err(msg) => get_namespaces_failure_payload(msg, ErrorVisibility::External),
-        },
-        Err(err) => {
-            let msg = if let Some(msg) = err.downcast_ref::<&'static str>() {
-                format!("caught panic during get_namespaces: {}", msg)
-            } else {
-                format!("caught panic during get_namespaces: {:?}", err)
-            };
-            get_namespaces_failure_payload(msg, ErrorVisibility::Internal)
-        }
-    };
-
-    to_raw_c_string(&payload).expect("failed to convert base64 string to extern string")
+    panic_safe_exec(
+        || get_namespaces_helper(current_db, sql),
+        Box::new(get_namespaces_success_payload),
+        Box::new(get_namespaces_failure_payload),
+    )
 }
 
 /// A helper function that encapsulates all the fallible parts of
@@ -235,6 +204,46 @@ fn get_namespaces_failure_payload(error: String, error_visibility: ErrorVisibili
         .expect("serializing bson to bytes failed");
 
     base64::encode(buf)
+}
+
+/// Executes function `f` such that any panics do not crash the runtime. The
+/// function `f` returns a `Result<T, String>`, and the caller specifies how
+/// to handle a success (a `T`) and how to handle a failure (a `String`). If
+/// `f` panics during execution, the panic is caught, turned into a String,
+/// and argued to the `handle_failure` function with the Internal visibility.
+///
+/// This function also converts the resulting payload from either success or
+/// failure into a base64-encoded string.
+fn panic_safe_exec<F: FnOnce() -> Result<T, String> + UnwindSafe, T>(
+    f: F,
+    handle_success: Box<dyn FnOnce(T) -> String>,
+    handle_failure: Box<dyn FnOnce(String, ErrorVisibility) -> String>,
+) -> *const raw::c_char {
+    let previous_hook = panic::take_hook();
+    let (s, r) = mpsc::sync_channel(1);
+    panic::set_hook(Box::new(move |i| {
+        if let Some(location) = i.location() {
+            let info = format!("in file '{}' at line {}", location.file(), location.line());
+            let _ = s.send(info);
+        }
+    }));
+    let result = panic::catch_unwind(f);
+    panic::set_hook(previous_hook);
+
+    let payload = match result {
+        Ok(Ok(success)) => handle_success(success),
+        Ok(Err(msg)) => handle_failure(msg, ErrorVisibility::External),
+        Err(err) => {
+            let msg = if let Some(msg) = err.downcast_ref::<&'static str>() {
+                format!("caught panic during translation: {}\n{:?}", msg, r.recv())
+            } else {
+                format!("caught panic during translation: {:?}\n{:?}", err, r.recv())
+            };
+            handle_failure(msg, ErrorVisibility::Internal)
+        }
+    };
+
+    to_raw_c_string(&payload).expect("failed to convert base64 string to extern string")
 }
 
 /// # Safety
