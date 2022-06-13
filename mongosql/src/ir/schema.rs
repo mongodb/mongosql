@@ -1433,7 +1433,7 @@ impl ScalarFunction {
                 Schema::Atomic(Atomic::String),
             ),
             // Unary arithmetic operators.
-            Pos | Neg => {
+            Pos | Neg | Abs | Ceil | Floor => {
                 self.ensure_arg_count(arg_schemas.len(), 1)?;
                 self.get_arithmetic_schema(state, arg_schemas)
             }
@@ -1445,7 +1445,7 @@ impl ScalarFunction {
                 self.get_arithmetic_schema(state, arg_schemas)
             }
 
-            Cos | Radians | Sin | Sqrt | Tan => {
+            Cos | Degrees | Radians | Sin | Sqrt | Tan => {
                 self.ensure_arg_count(arg_schemas.len(), 1)?;
                 self.get_arithmetic_schema(
                     state,
@@ -1454,7 +1454,7 @@ impl ScalarFunction {
                 )
             }
 
-            Log => {
+            Log | Mod | Pow => {
                 self.ensure_arg_count(arg_schemas.len(), 2)?;
                 self.get_arithmetic_schema(
                     state,

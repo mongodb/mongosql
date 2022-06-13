@@ -2184,6 +2184,63 @@ mod function {
             mr
         },
     );
+
+    test_codegen_expr!(
+        abs_expr,
+        expected = Ok(bson!({"$abs": "$f" })),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: Abs,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new()
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        ceil_expr,
+        expected = Ok(bson!({"$ceil": "$f" })),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: Ceil,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new()
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        degrees_expr,
+        expected = Ok(bson!({"$radiansToDegrees": "$f" })),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: Degrees,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new()
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        floor_expr,
+        expected = Ok(bson!({"$floor": "$f" })),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: Floor,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new()
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
     test_codegen_expr!(
         log_expr,
         expected = Ok(bson!({"$sqlLog": [
@@ -2191,6 +2248,46 @@ mod function {
         ]})),
         input = ScalarFunction(ScalarFunctionApplication {
             function: Log,
+            args: vec![
+                Expression::Reference(("f1", 0u16).into()),
+                Expression::Reference(("f2", 0u16).into())
+            ],
+            cache: SchemaCache::new()
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f1", 0u16), "f1");
+            mr.insert(("f2", 0u16), "f2");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        mod_expr,
+        expected = Ok(bson!({"$sqlMod": [
+            "$f1", "$f2"
+        ]})),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: Mod,
+            args: vec![
+                Expression::Reference(("f1", 0u16).into()),
+                Expression::Reference(("f2", 0u16).into())
+            ],
+            cache: SchemaCache::new()
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f1", 0u16), "f1");
+            mr.insert(("f2", 0u16), "f2");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        pow_expr,
+        expected = Ok(bson!({"$pow": [
+            "$f1", "$f2"
+        ]})),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: Pow,
             args: vec![
                 Expression::Reference(("f1", 0u16).into()),
                 Expression::Reference(("f2", 0u16).into())

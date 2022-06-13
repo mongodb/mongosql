@@ -159,8 +159,14 @@ impl ScalarFunction {
             CharLength => "$sqlStrLenCP",
             OctetLength => "$sqlStrLenBytes",
             BitLength => "$sqlStrLenBytes", // with $mul
+            Abs => "$abs",
+            Ceil => "$ceil",
             Cos => "$sqlCos",
+            Degrees => "$radiansToDegrees",
+            Floor => "$floor",
             Log => "$sqlLog",
+            Mod => "$sqlMod",
+            Pow => "$pow",
             Radians => "$degreesToRadians",
             Round => "$sqlRound",
             Sin => "$sqlSin",
@@ -920,7 +926,7 @@ impl MqlCodeGenerator {
                     }
                     CurrentTimestamp => Bson::String("$$NOW".to_string()),
                     CharLength | OctetLength | Size | Upper | Lower | Year | Month | Day | Hour
-                    | Minute | Second | Radians => {
+                    | Minute | Second | Abs | Ceil | Degrees | Floor | Radians => {
                         bson::bson!({ sa.function.mql_op().unwrap(): self.codegen_expression(sa.args[0].clone())?})
                     }
                     BitLength => bson::bson!({
@@ -946,8 +952,8 @@ impl MqlCodeGenerator {
                         })
                     }
                     Add | And | Between | Coalesce | Concat | Cos | Eq | Gt | Gte | Log | Lt
-                    | Lte | MergeObjects | Mul | Neq | Not | NullIf | Or | Round | Sin | Slice
-                    | Split | Sqrt | Sub | Substring | Tan => {
+                    | Lte | MergeObjects | Mul | Mod | Neq | Not | NullIf | Or | Pow | Round
+                    | Sin | Slice | Split | Sqrt | Sub | Substring | Tan => {
                         let args = Bson::Array(
                             sa.args
                                 .into_iter()

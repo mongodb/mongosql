@@ -120,16 +120,22 @@ impl TryFrom<ast::FunctionName> for ir::ScalarFunction {
 
     fn try_from(f: crate::ast::FunctionName) -> Result<Self> {
         Ok(match f {
+            ast::FunctionName::Abs => ir::ScalarFunction::Abs,
             ast::FunctionName::BitLength => ir::ScalarFunction::BitLength,
+            ast::FunctionName::Ceil => ir::ScalarFunction::Ceil,
             ast::FunctionName::CharLength => ir::ScalarFunction::CharLength,
             ast::FunctionName::Coalesce => ir::ScalarFunction::Coalesce,
             ast::FunctionName::Cos => ir::ScalarFunction::Cos,
             ast::FunctionName::CurrentTimestamp => ir::ScalarFunction::CurrentTimestamp,
+            ast::FunctionName::Degrees => ir::ScalarFunction::Degrees,
+            ast::FunctionName::Floor => ir::ScalarFunction::Floor,
             ast::FunctionName::Log => ir::ScalarFunction::Log,
             ast::FunctionName::Lower => ir::ScalarFunction::Lower,
+            ast::FunctionName::Mod => ir::ScalarFunction::Mod,
             ast::FunctionName::NullIf => ir::ScalarFunction::NullIf,
             ast::FunctionName::OctetLength => ir::ScalarFunction::OctetLength,
             ast::FunctionName::Position => ir::ScalarFunction::Position,
+            ast::FunctionName::Pow => ir::ScalarFunction::Pow,
             ast::FunctionName::Radians => ir::ScalarFunction::Radians,
             ast::FunctionName::Round => ir::ScalarFunction::Round,
             ast::FunctionName::Sin => ir::ScalarFunction::Sin,
@@ -177,16 +183,22 @@ impl TryFrom<ast::FunctionName> for ir::AggregationFunction {
             ast::FunctionName::StddevSamp => ir::AggregationFunction::StddevSamp,
             ast::FunctionName::Sum => ir::AggregationFunction::Sum,
 
-            ast::FunctionName::BitLength
+            ast::FunctionName::Abs
+            | ast::FunctionName::BitLength
+            | ast::FunctionName::Ceil
             | ast::FunctionName::CharLength
             | ast::FunctionName::Coalesce
             | ast::FunctionName::Cos
             | ast::FunctionName::CurrentTimestamp
+            | ast::FunctionName::Degrees
+            | ast::FunctionName::Floor
             | ast::FunctionName::Log
             | ast::FunctionName::Lower
+            | ast::FunctionName::Mod
             | ast::FunctionName::NullIf
             | ast::FunctionName::OctetLength
             | ast::FunctionName::Position
+            | ast::FunctionName::Pow
             | ast::FunctionName::Round
             | ast::FunctionName::Radians
             | ast::FunctionName::Sin

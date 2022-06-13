@@ -2655,6 +2655,184 @@ mod schema {
         schema_checking_mode = SchemaCheckingMode::Relaxed,
     );
 
+    // Abs tests
+    test_schema!(
+        abs_requires_exactly_one_arg,
+        expected = Err(ir_error::IncorrectArgumentCount {
+            name: "Abs",
+            required: 1,
+            found: 2
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Abs,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(2).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        abs_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Abs",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Abs,
+            args: vec![Expression::Literal(
+                LiteralValue::String("abc".to_string()).into()
+            )],
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    // Ceil tests
+    test_schema!(
+        ceil_requires_exactly_one_arg,
+        expected = Err(ir_error::IncorrectArgumentCount {
+            name: "Ceil",
+            required: 1,
+            found: 2
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Ceil,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(2).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        ceil_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Ceil",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Ceil,
+            args: vec![Expression::Literal(
+                LiteralValue::String("abc".to_string()).into()
+            )],
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    // Degrees tests
+    test_schema!(
+        degrees_requires_exactly_one_arg,
+        expected = Err(ir_error::IncorrectArgumentCount {
+            name: "Degrees",
+            required: 1,
+            found: 2
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Degrees,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(2).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        degrees_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Degrees",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Degrees,
+            args: vec![Expression::Literal(
+                LiteralValue::String("abc".to_string()).into()
+            )],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        degrees_returns_double_schema_for_integer_arg,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Degrees,
+            args: vec![Expression::Literal(LiteralValue::Integer(2).into())],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        degrees_returns_double_schema_for_long_arg,
+        expected = Ok(Schema::Atomic(Atomic::Double)),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Degrees,
+            args: vec![Expression::Literal(LiteralValue::Long(2).into())],
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    // Floor tests
+    test_schema!(
+        floor_requires_exactly_one_arg,
+        expected = Err(ir_error::IncorrectArgumentCount {
+            name: "Floor",
+            required: 1,
+            found: 2
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Floor,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(2).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        floor_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Floor",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Floor,
+            args: vec![Expression::Literal(
+                LiteralValue::String("abc".to_string()).into()
+            )],
+            cache: SchemaCache::new(),
+        }),
+    );
+
     // Log tests
     test_schema!(
         log_requires_exactly_two_args,
@@ -2712,6 +2890,136 @@ mod schema {
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Log,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(2).into()),
+                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    // Mod tests
+    test_schema!(
+        mod_requires_exactly_two_args,
+        expected = Err(ir_error::IncorrectArgumentCount {
+            name: "Mod",
+            required: 2,
+            found: 3
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Mod,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(2).into()),
+                Expression::Literal(LiteralValue::Integer(3).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        mod_first_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Mod",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Mod,
+            args: vec![
+                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
+                Expression::Literal(LiteralValue::Integer(2).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        mod_second_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Mod",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Mod,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(2).into()),
+                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    // Pow tests
+    test_schema!(
+        pow_requires_exactly_two_args,
+        expected = Err(ir_error::IncorrectArgumentCount {
+            name: "Pow",
+            required: 2,
+            found: 3
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Pow,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(2).into()),
+                Expression::Literal(LiteralValue::Integer(3).into())
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        pow_first_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Pow",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Pow,
+            args: vec![
+                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
+                Expression::Literal(LiteralValue::Integer(2).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        pow_second_arg_must_be_number_or_nullish,
+        expected = Err(ir_error::SchemaChecking {
+            name: "Pow",
+            required: Schema::AnyOf(set![
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Long),
+                Schema::Atomic(Atomic::Double),
+                Schema::Atomic(Atomic::Decimal),
+                Schema::Atomic(Atomic::Null),
+                Schema::Missing
+            ]),
+            found: Schema::Atomic(Atomic::String),
+        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Pow,
             args: vec![
                 Expression::Literal(LiteralValue::Integer(2).into()),
                 Expression::Literal(LiteralValue::String("abc".to_string()).into()),

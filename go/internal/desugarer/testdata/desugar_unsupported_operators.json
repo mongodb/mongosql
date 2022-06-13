@@ -729,7 +729,7 @@
     ]
   },
   {
-    "name": "desugar sqlSplit",
+    "name": "desugar $sqlSplit",
     "input": [
       {
         "$project": {
@@ -1089,6 +1089,62 @@
                         "$sqrt": "$$desugared_sqlSqrt_input"
                       }
                     }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    ]
+  },
+  {
+    "name": "desugar $sqlMod",
+    "input": [
+      {
+        "$project": {
+          "_id": 0,
+          "expr": {
+            "$sqlMod": [
+              "$number",
+              "$divisor"
+            ]
+          }
+        }
+      }
+    ],
+    "expected": [
+      {
+        "$project": {
+          "_id": {
+            "$numberInt": "0"
+          },
+          "expr": {
+            "$let": {
+              "vars": {
+                "desugared_sqlMod_input0": "$number",
+                "desugared_sqlMod_input1": "$divisor"
+              },
+              "in": {
+                "$cond": {
+                  "if": {
+                    "$eq": [
+                      "$$desugared_sqlMod_input1",
+                      {
+                        "$literal": {
+                          "$numberInt": "0"
+                        }
+                      }
+                    ]
+                  },
+                  "then": {
+                    "$literal": null
+                  },
+                  "else": {
+                    "$mod": [
+                      "$$desugared_sqlMod_input0",
+                      "$$desugared_sqlMod_input1"
+                    ]
                   }
                 }
               }

@@ -1039,8 +1039,7 @@ tests:
 
   - description: ABS correctness tests
     current_db: foo
-    query: "SELECT VALUE {'v': v, 'n': ABS(v)} FROM `abs` AS c"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    query: "SELECT VALUE {'v': v, 'n': ABS(v)} FROM abs AS c"
     translation_target_db: foo
     translation_target_coll: abs
     translation:
@@ -1064,7 +1063,6 @@ tests:
   - description: CEIL correctness tests
     current_db: foo
     query: "SELECT VALUE {'v': v, 'n': CEIL(v)} FROM ceilAndFloor AS c"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: ceilAndFloor
     translation:
@@ -1111,7 +1109,6 @@ tests:
   - description: DEGREES correctness tests
     current_db: foo
     query: "SELECT VALUE {'radians': radians, 'n': DEGREES(radians)} FROM trigonometry AS c"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: trigonometry
     translation:
@@ -1123,8 +1120,8 @@ tests:
         }}}}
     result:
       - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "57.29577951308232" }}}
-      - {'': {'radians': { "$numberLong": "1" }, 'n': { "$numberDouble": "57.29577951308232" }}}
-      - {'': {'radians': { "$numberDouble": "0.7854" }, 'n': { "$numberDouble": "45.00010522957486" }}}
+      - {'': {'radians': { "$numberLong": "-1" }, 'n': { "$numberDouble": "-57.29577951308232" }}}
+      - {'': {'radians': { "$numberDouble": "0" }, 'n': { "$numberDouble": "0" }}}
       - {'': {'radians': { "$numberDecimal": "0.7854" }, 'n': { "$numberDecimal": "45.00010522957485481663727079099820" }}}
       - {'': {'radians': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
       - {'': {'radians': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
@@ -1135,7 +1132,6 @@ tests:
   - description: FLOOR correctness tests
     current_db: foo
     query: "SELECT VALUE {'v': v, 'n': FLOOR(v)} FROM ceilAndFloor AS c"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     translation_target_db: foo
     translation_target_coll: ceilAndFloor
     translation:
@@ -1206,14 +1202,13 @@ tests:
 
   - description: MOD correctness tests
     current_db: foo
-    query: "SELECT VALUE {'v': v, 'divisor': divisor, 'n': MOD(v, divisor)} FROM `mod` AS c"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    query: "SELECT VALUE {'v': v, 'divisor': divisor, 'n': MOD(v, divisor)} FROM mod AS c"
     translation_target_db: foo
     translation_target_coll: mod
     translation:
       - { '$project': { '_id': 0, 'mod': '$$ROOT' }}
       - { '$project': { '_id': 0, 'c': '$mod' }}
-      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'divisor': '$c.divisor',  'n': { '$mod': [ '$c.v', '$c.divisor' ] }}}}
+      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'divisor': '$c.divisor',  'n': { '$sqlMod': [ '$c.v', '$c.divisor' ] }}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -1238,16 +1233,16 @@ tests:
       - {'': { 'v': { "$numberDouble": "80" }, 'n': null }}
       - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDecimal": "3" }}}
       - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberDecimal": "3" }}}
-      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDecimal": "3.0000000000000" }}}
+      - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDecimal": "3.00000000000000" }}}
       - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': { "$numberDecimal": "7" }, 'n': { "$numberDecimal": "3" }}}
       - {'': { 'v': { "$numberDecimal": "80" }, 'divisor': null, 'n': null }}
       - {'': { 'v': { "$numberDecimal": "80" }, 'n': null }}
-      - {'': { 'v': { "$numberDouble": "NaN" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDouble": "NaN" }}}
-      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
-      - {'': { 'v': { "$numberDouble": "Infinity" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDouble": "NaN" }}}
-      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "80" }}}
-      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'divisor': { "$numberDouble": "7" }, 'n': { "$numberDouble": "NaN" } }}
-      - {'': { 'v': { "$numberDouble": "80" }, 'divisor': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "80" }}}
+      - {'': { 'v': { "$numberDouble": "NaN" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberDouble": "Infinity" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "80" }}}
+      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberInt": "80" }, 'divisor': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "80" }}}
       - {'': { 'v': null, 'divisor': { "$numberInt": "7" }, 'n': null }}
       - {'': { 'v': null, 'divisor': null, 'n': null }}
       - {'': { 'v': null, 'n': null }}
@@ -1255,14 +1250,13 @@ tests:
 
   - description: POW correctness tests
     current_db: foo
-    query: "SELECT VALUE {'v': v, 'exponent': exponent, 'n': POW(v, exponent)} FROM `pow` AS c"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    query: "SELECT VALUE {'v': v, 'exponent': exponent, 'n': POW(v, exponent)} FROM pow AS c"
     translation_target_db: foo
     translation_target_coll: pow
     translation:
       - { '$project': { '_id': 0, 'pow': '$$ROOT' }}
       - { '$project': { '_id': 0, 'c': '$pow' }}
-      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'v2': '$c.exponent',  'n': { '$pow': [ '$c.v', '$c.exponent' ] }}}}
+      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'exponent': '$c.exponent',  'n': { '$pow': [ '$c.v', '$c.exponent' ] }}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -1291,12 +1285,12 @@ tests:
       - {'': { 'v': { "$numberDecimal": "5" }, 'exponent': { "$numberDecimal": "2" }, 'n': { "$numberDecimal": "25.00000000000000000000000000000000" }}}
       - {'': { 'v': { "$numberDecimal": "5" }, 'exponent': null, 'n': null }}
       - {'': { 'v': { "$numberDecimal": "5" }, 'n': null }}
-      - {'': { 'v': { "$numberDouble": "NaN" }, 'exponent': { "$numberDouble": "2" }, 'n': { "$numberDouble": "NaN" }}}
-      - {'': { 'v': { "$numberDouble": "5" }, 'exponent': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
-      - {'': { 'v': { "$numberDouble": "Infinity" }, 'exponent': { "$numberDouble": "2" }, 'n': { "$numberDouble": "Infinity" }}}
-      - {'': { 'v': { "$numberDouble": "5" }, 'exponent': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
-      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'exponent': { "$numberDouble": "2" }, 'n': { "$numberDouble": "Infinity" }}}
-      - {'': { 'v': { "$numberDouble": "5" }, 'exponent': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "0" }}}
+      - {'': { 'v': { "$numberDouble": "NaN" }, 'exponent': { "$numberInt": "2" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberInt": "5" }, 'exponent': { "$numberDouble": "NaN" }, 'n': { "$numberDouble": "NaN" }}}
+      - {'': { 'v': { "$numberDouble": "Infinity" }, 'exponent': { "$numberInt": "2" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': { 'v': { "$numberInt": "5" }, 'exponent': { "$numberDouble": "Infinity" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': { 'v': { "$numberDouble": "-Infinity" }, 'exponent': { "$numberInt": "2" }, 'n': { "$numberDouble": "Infinity" }}}
+      - {'': { 'v': { "$numberInt": "5" }, 'exponent': { "$numberDouble": "-Infinity" }, 'n': { "$numberDouble": "0" }}}
       - {'': { 'v': null, 'exponent': { "$numberInt": "2" }, 'n': null }}
       - {'': { 'v': null, 'exponent': null, 'n': null }}
       - {'': { 'v': null, 'n': null }}

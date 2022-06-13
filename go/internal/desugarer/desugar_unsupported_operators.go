@@ -14,6 +14,7 @@ var functionDesugarers = map[string]functionDesugarer{
 	"$sqlCos":     desugarSQLCos,
 	"$sqlDivide":  desugarSQLDivide,
 	"$sqlLog":     desugarSQLLog,
+	"$sqlMod":     desugarSQLMod,
 	"$sqlRound":   desugarSQLRound,
 	"$sqlSlice":   desugarSQLSlice,
 	"$sqlSplit":   desugarSQLSplit,
@@ -119,6 +120,27 @@ func desugarSQLDivide(f *ast.Function) ast.Expr {
 		onError,
 		ast.NewBinary(ast.Divide, dividend, divisor),
 	)
+}
+
+func desugarSQLMod(f *ast.Function) ast.Expr {
+	args := f.Arg.(*ast.Array)
+
+	inputNumberVarName := "desugared_sqlMod_input0"
+	inputNumberVarRef := ast.NewVariableRef(inputNumberVarName)
+
+	inputDivisorVarName := "desugared_sqlMod_input1"
+	inputDivisorVarRef := ast.NewVariableRef(inputDivisorVarName)
+
+	return ast.NewLet(
+		[]*ast.LetVariable{
+			ast.NewLetVariable(inputNumberVarName, args.Elements[0]),
+			ast.NewLetVariable(inputDivisorVarName, args.Elements[1]),
+		},
+		ast.NewConditional(
+			ast.NewBinary(ast.Equals, inputDivisorVarRef, zeroLiteral),
+			nullLiteral,
+			ast.NewBinary(ast.Mod, inputNumberVarRef, inputDivisorVarRef),
+		))
 }
 
 func desugarSQLLog(f *ast.Function) ast.Expr {

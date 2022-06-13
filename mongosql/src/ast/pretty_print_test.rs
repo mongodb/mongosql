@@ -970,11 +970,26 @@ expression_printer_test!(
     expected = "SPLIT(str, 'delim', 3)",
     input = "SPLIT(str, 'delim', 3)"
 );
+
+expression_printer_test!(function_abs, expected = "ABS(10)", input = "ABS(10)");
+expression_printer_test!(function_ceil, expected = "CEIL(1.5)", input = "CEIL(1.5)");
+expression_printer_test!(
+    function_degrees,
+    expected = "DEGREES(1)",
+    input = "DEGREES(1)"
+);
+expression_printer_test!(
+    function_floor,
+    expected = "FLOOR(1.5)",
+    input = "FLOOR(1.5)"
+);
 expression_printer_test!(
     function_log,
     expected = "LOG(100, 10)",
     input = "LOG(100, 10)"
 );
+expression_printer_test!(function_mod, expected = "MOD(80, 7)", input = "MOD(80, 7)");
+expression_printer_test!(function_pow, expected = "POW(5, 2)", input = "POW(5, 2)");
 expression_printer_test!(
     function_round,
     expected = "ROUND(100, 1)",

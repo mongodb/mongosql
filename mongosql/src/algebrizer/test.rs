@@ -1581,6 +1581,134 @@ mod expression {
             set_quantifier: Some(ast::SetQuantifier::All),
         }),
     );
+
+    test_algebrize!(
+        abs_unary_op,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Abs,
+                args: vec![ir::Expression::Literal(
+                    ir::LiteralValue::Integer(10).into()
+                ),],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Abs,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(10)
+            ),]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }),
+    );
+
+    test_algebrize!(
+        ceil_unary_op,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Ceil,
+                args: vec![ir::Expression::Literal(
+                    ir::LiteralValue::Double(1.5).into()
+                ),],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Ceil,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Double(1.5)
+            ),]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }),
+    );
+
+    test_algebrize!(
+        degrees_unary_op,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Degrees,
+                args: vec![ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Degrees,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Integer(1)
+            ),]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }),
+    );
+
+    test_algebrize!(
+        floor_unary_op,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Floor,
+                args: vec![ir::Expression::Literal(
+                    ir::LiteralValue::Double(1.5).into()
+                ),],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Floor,
+            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                ast::Literal::Double(1.5)
+            ),]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }),
+    );
+
+    test_algebrize!(
+        mod_bin_op,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Mod,
+                args: vec![
+                    ir::Expression::Literal(ir::LiteralValue::Integer(10).into()),
+                    ir::Expression::Literal(ir::LiteralValue::Integer(10).into()),
+                ],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Mod,
+            args: ast::FunctionArguments::Args(vec![
+                ast::Expression::Literal(ast::Literal::Integer(10)),
+                ast::Expression::Literal(ast::Literal::Integer(10)),
+            ]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }),
+    );
+
+    test_algebrize!(
+        pow_bin_op,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Pow,
+                args: vec![
+                    ir::Expression::Literal(ir::LiteralValue::Integer(10).into()),
+                    ir::Expression::Literal(ir::LiteralValue::Integer(10).into()),
+                ],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Pow,
+            args: ast::FunctionArguments::Args(vec![
+                ast::Expression::Literal(ast::Literal::Integer(10)),
+                ast::Expression::Literal(ast::Literal::Integer(10)),
+            ]),
+            set_quantifier: Some(ast::SetQuantifier::All),
+        }),
+    );
 }
 
 mod aggregation {

@@ -321,16 +321,22 @@ pub enum FunctionName {
     Sum,
 
     // Scalar functions.
+    Abs,
     BitLength,
+    Ceil,
     CharLength,
     Coalesce,
     Cos,
     CurrentTimestamp,
+    Degrees,
+    Floor,
     Log,
     Lower,
+    Mod,
     NullIf,
     OctetLength,
     Position,
+    Pow,
     Round,
     Radians,
     Sin,
@@ -353,26 +359,32 @@ impl TryFrom<&str> for FunctionName {
     fn try_from(name: &str) -> Result<Self, Self::Error> {
         match name.to_uppercase().as_str() {
             // Keep in sync with `FunctionName::as_str` below.
+            "ABS" => Ok(FunctionName::Abs),
             "ADD_TO_ARRAY" => Ok(FunctionName::AddToArray),
             "ADD_TO_SET" => Ok(FunctionName::AddToSet),
             "BIT_LENGTH" => Ok(FunctionName::BitLength),
             "AVG" => Ok(FunctionName::Avg),
+            "CEIL" => Ok(FunctionName::Ceil),
             "CHAR_LENGTH" => Ok(FunctionName::CharLength),
             "CHARACTER_LENGTH" => Ok(FunctionName::CharLength),
             "COALESCE" => Ok(FunctionName::Coalesce),
             "COUNT" => Ok(FunctionName::Count),
             "COS" => Ok(FunctionName::Cos),
             "CURRENT_TIMESTAMP" => Ok(FunctionName::CurrentTimestamp),
+            "DEGREES" => Ok(FunctionName::Degrees),
             "FIRST" => Ok(FunctionName::First),
+            "FLOOR" => Ok(FunctionName::Floor),
             "LAST" => Ok(FunctionName::Last),
             "LOG" => Ok(FunctionName::Log),
             "LOWER" => Ok(FunctionName::Lower),
             "MAX" => Ok(FunctionName::Max),
             "MERGE_DOCUMENTS" => Ok(FunctionName::MergeDocuments),
             "MIN" => Ok(FunctionName::Min),
+            "MOD" => Ok(FunctionName::Mod),
             "NULLIF" => Ok(FunctionName::NullIf),
             "OCTET_LENGTH" => Ok(FunctionName::OctetLength),
             "POSITION" => Ok(FunctionName::Position),
+            "POW" => Ok(FunctionName::Pow),
             "RADIANS" => Ok(FunctionName::Radians),
             "ROUND" => Ok(FunctionName::Round),
             "SIN" => Ok(FunctionName::Sin),
@@ -396,25 +408,31 @@ impl FunctionName {
     pub fn as_str(&self) -> &'static str {
         match self {
             // Keep in sync with `FunctionName::try_from` above.
+            FunctionName::Abs => "ABS",
             FunctionName::AddToArray => "ADD_TO_ARRAY",
             FunctionName::AddToSet => "ADD_TO_SET",
             FunctionName::BitLength => "BIT_LENGTH",
             FunctionName::Avg => "AVG",
+            FunctionName::Ceil => "CEIL",
             FunctionName::CharLength => "CHAR_LENGTH",
             FunctionName::Coalesce => "COALESCE",
             FunctionName::Cos => "COS",
             FunctionName::Count => "COUNT",
             FunctionName::CurrentTimestamp => "CURRENT_TIMESTAMP",
+            FunctionName::Degrees => "DEGREES",
             FunctionName::First => "FIRST",
+            FunctionName::Floor => "FLOOR",
             FunctionName::Last => "LAST",
             FunctionName::Log => "LOG",
             FunctionName::Lower => "LOWER",
             FunctionName::Max => "MAX",
             FunctionName::MergeDocuments => "MERGE_DOCUMENTS",
             FunctionName::Min => "MIN",
+            FunctionName::Mod => "MOD",
             FunctionName::NullIf => "NULLIF",
             FunctionName::OctetLength => "OCTET_LENGTH",
             FunctionName::Position => "POSITION",
+            FunctionName::Pow => "POW",
             FunctionName::Radians => "RADIANS",
             FunctionName::Round => "ROUND",
             FunctionName::Size => "SIZE",
@@ -447,16 +465,22 @@ impl FunctionName {
             | FunctionName::StddevSamp
             | FunctionName::Sum => true,
 
-            FunctionName::BitLength
+            FunctionName::Abs
+            | FunctionName::BitLength
+            | FunctionName::Ceil
             | FunctionName::CharLength
             | FunctionName::Coalesce
             | FunctionName::Cos
             | FunctionName::CurrentTimestamp
+            | FunctionName::Degrees
+            | FunctionName::Floor
             | FunctionName::Log
             | FunctionName::Lower
+            | FunctionName::Mod
             | FunctionName::NullIf
             | FunctionName::OctetLength
             | FunctionName::Position
+            | FunctionName::Pow
             | FunctionName::Radians
             | FunctionName::Round
             | FunctionName::Sin

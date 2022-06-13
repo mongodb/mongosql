@@ -157,13 +157,13 @@ func compareUnorderedSets(expected, actual []bson.D) error {
 	}
 	var expectedSlice, actualSlice [][]byte
 	for i := 0; i < len(expected); i++ {
-		expectedBytes, err := bson.Marshal(expected[i])
+		expectedBytes, err := bson.MarshalExtJSON(expected[i], true, false)
 		if err != nil {
 			return fmt.Errorf("failed to marshal document from expected result set")
 		}
 		expectedSlice = append(expectedSlice, expectedBytes)
 
-		actualBytes, err := bson.Marshal(actual[i])
+		actualBytes, err := bson.MarshalExtJSON(actual[i], true, false)
 		if err != nil {
 			return fmt.Errorf("failed to marshal document from actual result set")
 		}
