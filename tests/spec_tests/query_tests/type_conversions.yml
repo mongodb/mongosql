@@ -2534,12 +2534,10 @@ tests:
 
   - description: Cast to DATE is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS DATE)} FROM [{}] AS _dual"
-    skip_reason: 'SQL-684: DATE and TIME should parse, but fail to algebrize'
     should_compile: false
-    algebrize_error: "invalid CAST target type 'DATE'"
+    algebrize_error: "invalid CAST target type 'Date'"
 
   - description: Cast to TIME is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS TIME)} FROM [{}] AS _dual"
-    skip_reason: 'SQL-684: DATE and TIME should parse, but fail to algebrize'
     should_compile: false
-    algebrize_error: "invalid CAST target type 'TIME'"
+    algebrize_error: "invalid CAST target type 'Time'"

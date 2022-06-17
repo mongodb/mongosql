@@ -537,6 +537,7 @@ pub enum Type {
     Array,
     BinData,
     Boolean,
+    Date,
     Datetime,
     DbPointer,
     Decimal128,
@@ -553,6 +554,7 @@ pub enum Type {
     RegularExpression,
     String,
     Symbol,
+    Time,
     Timestamp,
     Undefined,
 }
@@ -617,6 +619,7 @@ impl From<crate::ast::Type> for Type {
             crate::ast::Type::Array => Array,
             crate::ast::Type::BinData => BinData,
             crate::ast::Type::Boolean => Boolean,
+            crate::ast::Type::Date => Date,
             crate::ast::Type::Datetime => Datetime,
             crate::ast::Type::DbPointer => DbPointer,
             crate::ast::Type::Decimal128 => Decimal128,
@@ -633,6 +636,7 @@ impl From<crate::ast::Type> for Type {
             crate::ast::Type::RegularExpression => RegularExpression,
             crate::ast::Type::String => String,
             crate::ast::Type::Symbol => Symbol,
+            crate::ast::Type::Time => Time,
             crate::ast::Type::Timestamp => Timestamp,
             crate::ast::Type::Undefined => Undefined,
         }

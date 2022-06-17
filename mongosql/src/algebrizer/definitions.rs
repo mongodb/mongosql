@@ -88,6 +88,8 @@ pub enum Error {
     NoUnwindPath,
     #[error("UNWIND PATH option must be an identifier")]
     InvalidUnwindPath,
+    #[error("invalid CAST target type '{0:?}'")]
+    InvalidCast(ast::Type),
 }
 
 impl TryFrom<ast::BinaryOp> for ir::ScalarFunction {
@@ -1231,25 +1233,29 @@ impl<'a> Algebrizer<'a> {
     }
 
     fn algebrize_cast(&self, c: ast::CastExpr) -> Result<ir::Expression> {
+        use crate::ast::Type::*;
         macro_rules! null_expr {
             () => {{
                 Box::new(ast::Expression::Literal(ast::Literal::Null))
             }};
         }
-        schema_check_return!(
-            self,
-            ir::Expression::Cast(ir::CastExpr {
-                expr: Box::new(self.algebrize_expression(*c.expr)?),
-                to: ir::Type::from(c.to),
-                on_null: Box::new(
-                    self.algebrize_expression(*(c.on_null.unwrap_or_else(|| null_expr!())))?
-                ),
-                on_error: Box::new(
-                    self.algebrize_expression(*(c.on_error.unwrap_or_else(|| null_expr!())))?
-                ),
-                cache: SchemaCache::new(),
-            }),
-        );
+        match c.to {
+            Date | Time => Err(Error::InvalidCast(c.to)),
+            _ => schema_check_return!(
+                self,
+                ir::Expression::Cast(ir::CastExpr {
+                    expr: Box::new(self.algebrize_expression(*c.expr)?),
+                    to: ir::Type::from(c.to),
+                    on_null: Box::new(
+                        self.algebrize_expression(*(c.on_null.unwrap_or_else(|| null_expr!())))?
+                    ),
+                    on_error: Box::new(
+                        self.algebrize_expression(*(c.on_error.unwrap_or_else(|| null_expr!())))?
+                    ),
+                    cache: SchemaCache::new(),
+                }),
+            ),
+        }
     }
 
     pub fn algebrize_subquery_expr(&self, ast_node: ast::Query) -> Result<ir::SubqueryExpr> {

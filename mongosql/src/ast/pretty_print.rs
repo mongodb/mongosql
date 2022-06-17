@@ -910,6 +910,7 @@ impl PrettyPrint for Type {
             Type::Array => "ARRAY",
             Type::BinData => "BINDATA",
             Type::Boolean => "BOOL",
+            Type::Date => "DATE",
             Type::Datetime => "BSON_DATE",
             Type::DbPointer => "DBPOINTER",
             Type::Decimal128 => "DECIMAL",
@@ -926,6 +927,7 @@ impl PrettyPrint for Type {
             Type::RegularExpression => "REGEX",
             Type::String => "STRING",
             Type::Symbol => "SYMBOL",
+            Type::Time => "TIME",
             Type::Timestamp => "BSON_TIMESTAMP",
             Type::Undefined => "UNDEFINED",
         }

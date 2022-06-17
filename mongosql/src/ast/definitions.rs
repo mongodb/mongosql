@@ -672,6 +672,7 @@ pub enum Type {
     Array,
     BinData,
     Boolean,
+    Date,
     Datetime,
     DbPointer,
     Decimal128,
@@ -688,6 +689,7 @@ pub enum Type {
     RegularExpression,
     String,
     Symbol,
+    Time,
     Timestamp,
     Undefined,
 }

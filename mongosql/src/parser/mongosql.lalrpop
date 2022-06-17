@@ -627,6 +627,8 @@ Type: Type = {
   LONG => Type::Int64,
   MINKEY => Type::MinKey,
   MAXKEY => Type::MaxKey,
+  DATE => Type::Date,
+  TIME => Type::Time,
 }
 
 Int32Type: Type = {
@@ -741,6 +743,7 @@ match {
   r"(?i)character varying" => CHARACTER_VARYING,
   r"(?i)cross" => CROSS,
   r"(?i)current_timestamp" => CURRENT_TIMESTAMP,
+  r"(?i)date" => DATE,
   r"(?i)day" => DAY,
   r"(?i)dbpointer" => DBPOINTER,
   r"(?i)dec" => DEC,
@@ -812,6 +815,7 @@ match {
   r"(?i)substring" => SUBSTRING,
   r"(?i)symbol" => SYMBOL,
   r"(?i)then" => THEN,
+  r"(?i)time" => TIME,
   r"(?i)timestamp" => TIMESTAMP,
   r"(?i)trailing" => TRAILING,
   r"(?i)trim" => TRIM,

@@ -216,6 +216,7 @@ impl Type {
             Array => "array",
             BinData => "binData",
             Boolean => "bool",
+            Date => "sqlDate",
             Datetime => "date",
             DbPointer => "dbPointer",
             Decimal128 => "decimal",
@@ -232,6 +233,7 @@ impl Type {
             RegularExpression => "regex",
             String => "string",
             Symbol => "symbol",
+            Time => "sqlTime",
             Timestamp => "timestamp",
             Undefined => "undefined",
         }
