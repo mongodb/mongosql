@@ -1239,9 +1239,14 @@ impl<'a> Algebrizer<'a> {
                 Box::new(ast::Expression::Literal(ast::Literal::Null))
             }};
         }
+
         match c.to {
-            Date | Time => Err(Error::InvalidCast(c.to)),
-            _ => schema_check_return!(
+            BinData | DbPointer | Javascript | JavascriptWithScope | MaxKey | MinKey
+            | RegularExpression | Symbol | Timestamp | Undefined | Date | Time => {
+                Err(Error::InvalidCast(c.to))
+            }
+            Array | Boolean | Datetime | Decimal128 | Document | Double | Int32 | Int64 | Null
+            | ObjectId | String => schema_check_return!(
                 self,
                 ir::Expression::Cast(ir::CastExpr {
                     expr: Box::new(self.algebrize_expression(*c.expr)?),

@@ -2474,63 +2474,53 @@ tests:
 
   - description: Cast to BINDATA is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS BINDATA)} FROM [{}] AS _dual"
-    skip_reason: 'SQL-685: error on invalid cast target types'
     should_compile: false
-    algebrize_error: "invalid CAST target type 'BINDATA'"
+    algebrize_error: "invalid CAST target type 'BinData'"
 
   - description: Cast to UNDEFINED is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS UNDEFINED)} FROM [{}] AS _dual"
-    skip_reason: 'SQL-685: error on invalid cast target types'
     should_compile: false
-    algebrize_error: "invalid CAST target type 'UNDEFINED'"
+    algebrize_error: "invalid CAST target type 'Undefined'"
 
   - description: Cast to REGEX is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS REGEX)} FROM [{}] AS _dual"
-    skip_reason: 'SQL-685: error on invalid cast target types'
     should_compile: false
-    algebrize_error: "invalid CAST target type 'REGEX'"
+    algebrize_error: "invalid CAST target type 'RegularExpression'"
 
   - description: Cast to DBPOINTER is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS DBPOINTER)} FROM [{}] AS _dual"
-    skip_reason: 'SQL-685: error on invalid cast target types'
     should_compile: false
-    algebrize_error: "invalid CAST target type 'DBPOINTER'"
+    algebrize_error: "invalid CAST target type 'DbPointer'"
 
   - description: Cast to JAVASCRIPT is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS JAVASCRIPT)} FROM [{}] AS _dual"
-    skip_reason: 'SQL-685: error on invalid cast target types'
     should_compile: false
-    algebrize_error: "invalid CAST target type 'JAVASCRIPT'"
+    algebrize_error: "invalid CAST target type 'Javascript'"
 
   - description: Cast to SYMBOL is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS SYMBOL)} FROM [{}] AS _dual"
-    skip_reason: 'SQL-685: error on invalid cast target types'
     should_compile: false
-    algebrize_error: "invalid CAST target type 'SYMBOL'"
+    algebrize_error: "invalid CAST target type 'Symbol'"
 
   - description: Cast to JAVASCRIPTWITHSCOPE is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS JAVASCRIPTWITHSCOPE)} FROM [{}] AS _dual"
-    skip_reason: 'SQL-685: error on invalid cast target types'
     should_compile: false
-    algebrize_error: "invalid CAST target type 'JAVASCRIPTWITHSCOPE'"
+    algebrize_error: "invalid CAST target type 'JavascriptWithScope'"
 
   - description: Cast to BSON_TIMESTAMP is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS BSON_TIMESTAMP)} FROM [{}] AS _dual"
-    skip_reason: 'SQL-685: error on invalid cast target types'
     should_compile: false
-    algebrize_error: "invalid CAST target type 'BSON_TIMESTAMP'"
+    algebrize_error: "invalid CAST target type 'Timestamp'"
 
   - description: Cast to MINKEY is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS MINKEY)} FROM [{}] AS _dual"
-    skip_reason: 'SQL-685: error on invalid cast target types'
     should_compile: false
-    algebrize_error: "invalid CAST target type 'MINKEY'"
+    algebrize_error: "invalid CAST target type 'MinKey'"
 
   - description: Cast to MAXKEY is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS MAXKEY)} FROM [{}] AS _dual"
-    skip_reason: 'SQL-685: error on invalid cast target types'
     should_compile: false
-    algebrize_error: "invalid CAST target type 'MAXKEY'"
+    algebrize_error: "invalid CAST target type 'MaxKey'"
 
   - description: Cast to DATE is invalid
     query: "SELECT VALUE {'_1': CAST('v' AS DATE)} FROM [{}] AS _dual"
