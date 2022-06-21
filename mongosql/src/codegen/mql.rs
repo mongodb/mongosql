@@ -278,12 +278,15 @@ impl MqlCodeGenerator {
     }
 
     /// generate_let_bindings binds each datasource in the correlated mapping registry
-    /// to a generated name of the form lower(<datasource name>)_<nesting depth>. It returns
-    /// the resulting $let document along with a new mapping registry that contains the
-    /// generated names. Naming conflicts are resolved by appending underscores until the
-    /// generated name is unique. We must lowercase the datasource name and append underscores
-    /// (as opposed to prepend) because aggregation variables are only allowed to start with
-    /// lowercase ASCII letters or non-ASCII characters.
+    /// to a generated name of the form normalize(<datasource name>)_<nesting depth>. It
+    /// returns the resulting $let document along with a new mapping registry that contains
+    /// the generated names. Naming conflicts are resolved by appending underscores until the
+    /// generated name is unique.
+    ///
+    /// MongoDB variables can contain the ascii characters [_a-zA-Z0-9] and any non-ascii
+    /// character; also, they are only allowed to start with lowercase ASCII letters or
+    /// non-ASCII characters. Normalization of a datasource name ensures the names only
+    /// contain valid characters and that the resulting name is all lowercase.
     fn generate_let_bindings(self) -> Result<(bson::Document, MqlMappingRegistry)> {
         let mut let_bindings: bson::Document = map![];
         let new_mapping_registry = MqlMappingRegistry(
@@ -295,8 +298,17 @@ impl MqlCodeGenerator {
                         "{}_{}",
                         MqlCodeGenerator::get_datasource_name(&key.datasource, "__bot"),
                         key.scope
-                    )
-                    .to_ascii_lowercase();
+                    );
+
+                    // Here, we replace any invalid characters with an underscore
+                    // and then lowercase the whole name. The [[:word:]] character
+                    // class matches word characters ([0-9A-Za-z_]).
+                    generated_name = regex::Regex::new(r"[[:ascii:]&&[:^word:]]")
+                        .unwrap()
+                        .replace_all(generated_name.as_str(), "_")
+                        .to_string()
+                        .to_ascii_lowercase();
+
                     while let_bindings.contains_key(&generated_name) {
                         generated_name.push('_');
                     }
