@@ -927,7 +927,7 @@ expression_printer_test!(
 
 expression_printer_test!(
     function_trim_basic,
-    expected = "TRIM(BOTH ' ' FROM hello)",
+    expected = "TRIM(BOTH FROM hello)",
     input = "TRIM(hello)"
 );
 expression_printer_test!(
@@ -937,17 +937,17 @@ expression_printer_test!(
 );
 expression_printer_test!(
     function_trim_explicit_both,
-    expected = "TRIM(BOTH ' ' FROM hello)",
+    expected = "TRIM(BOTH FROM hello)",
     input = "TRIM(BOTH FROM hello)"
 );
 expression_printer_test!(
     function_trim_leading,
-    expected = "TRIM(LEADING ' ' FROM hello)",
+    expected = "TRIM(LEADING FROM hello)",
     input = "TRIM(LEADING FROM hello)"
 );
 expression_printer_test!(
     function_trim_trailing,
-    expected = "TRIM(TRAILING ' ' FROM hello)",
+    expected = "TRIM(TRAILING FROM hello)",
     input = "TRIM(TRAILING FROM hello)"
 );
 expression_printer_test!(

@@ -315,17 +315,31 @@ Position: FunctionExpr = {
 }
 
 Substring: FunctionExpr = {
-  SUBSTRING LEFT_PAREN <e1:Expression> FROM <e2:Expression> <e3:(FOR <Expression>)?> RIGHT_PAREN =>
-    FunctionExpr {
-        function: FunctionName::Substring,
-        args: FunctionArguments::Args(vec![e1, e2, e3.unwrap_or(Expression::Literal(Literal::Integer(-1)))]),
-        set_quantifier: None,
-    },
+    SUBSTRING LEFT_PAREN <e1:Expression> FROM <e2:Expression> <e3:(FOR <Expression>)?> RIGHT_PAREN =>
+        match e3 {
+            Some(e3) => FunctionExpr {
+                function: FunctionName::Substring,
+                args: FunctionArguments::Args(vec![e1, e2, e3]),
+                set_quantifier: None,
+            },
+            None => FunctionExpr {
+                function:FunctionName::Substring,
+                args: FunctionArguments::Args(vec![e1,e2]),
+                set_quantifier: None,
+            },
+        },
   SUBSTRING LEFT_PAREN <e1:Expression> COMMA <e2:Expression> <e3:(COMMA <Expression>)?> RIGHT_PAREN =>
-    FunctionExpr {
-        function: FunctionName::Substring,
-        args: FunctionArguments::Args(vec![e1, e2, e3.unwrap_or(Expression::Literal(Literal::Integer(-1)))]),
-        set_quantifier: None,
+    match e3 {
+        Some(e3) => FunctionExpr {
+            function: FunctionName::Substring,
+            args: FunctionArguments::Args(vec![e1, e2, e3]),
+            set_quantifier: None,
+        },
+        None => FunctionExpr{
+            function: FunctionName::Substring,
+            args: FunctionArguments::Args(vec![e1, e2]),
+            set_quantifier: None,
+        },
     }
 }
 

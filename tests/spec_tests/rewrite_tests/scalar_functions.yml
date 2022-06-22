@@ -1,28 +1,35 @@
 tests:
   - description: Rewrite CHARACTER_LENGTH to CHAR_LENGTH
     query: "SELECT CHARACTER_LENGTH(s) FROM foo AS foo"
-    result: "SELECT VALUE {'_1': CHAR_LENGTH(s)} FROM foo AS foo"
+    result: "SELECT VALUE { '_1': CHAR_LENGTH(s) } FROM foo AS foo"
+    skip_reason: "SQL-543: Add rewrite pass for scalar functions"
 
   - description: Rewrite SUBSTRING(str FROM start) to include default length argument
     query: "SELECT SUBSTRING(str FROM start) FROM foo AS foo"
-    result: "SELECT VALUE {'_1': SUBSTRING(str FROM start FOR -1)} FROM foo AS foo"
+    result: "SELECT VALUE { '_1': SUBSTRING(str FROM start FOR -1) } FROM foo AS foo"
+    skip_reason: "SQL-543: Add rewrite pass for substring function"
 
   - description: Rewrite comma-separated SUBSTRING argument list to keyword-separated argument list
     query: "SELECT SUBSTRING(str, start), SUBSTRING(str, start, length) FROM foo AS foo"
-    result: "SELECT VALUE {'_1': SUBSTRING(str FROM start FOR -1), '_2': SUBSTRING(str FROM start FOR length)} FROM foo AS foo"
+    result: "SELECT VALUE { '_1': SUBSTRING(str FROM start FOR -1), '_2': SUBSTRING(str FROM start FOR length) } FROM foo AS foo"
+    skip_reason: "SQL-543: Add rewrite pass for substring function"
 
   - description: Rewrite TRIM(s) to include default arguments
     query: "SELECT TRIM(s) FROM foo"
-    result: "SELECT VALUE {'_1': TRIM(BOTH ' ' FROM s)} FROM foo AS foo"
+    result: "SELECT VALUE {'_1': TRIM(BOTH ' ' FROM s)} FROM foo AS foo AS foo"
+    skip_reason: "SQL-543: Add rewrite pass for trim function"
 
   - description: Rewrite TRIM(BOTH FROM s) to include default substring argument
     query: "SELECT TRIM(BOTH FROM s) FROM foo"
-    result: "SELECT VALUE {'_1': TRIM(BOTH ' ' FROM s)} FROM foo AS foo"
+    result: "SELECT VALUE {'_1': TRIM(BOTH ' ' FROM s)} FROM foo AS foo AS foo"
+    skip_reason: "SQL-543: Add rewrite pass for trim function"
 
   - description: Rewrite TRIM(substr FROM s) to include default specification argument
     query: "SELECT TRIM(substr FROM s) FROM foo"
-    result: "SELECT VALUE {'_1': TRIM(BOTH substr FROM s)} FROM foo AS foo"
+    result: "SELECT VALUE {'_1': TRIM(BOTH substr FROM s)} FROM foo AS foo AS foo"
+    skip_reason: "SQL-543: Add rewrite pass for trim function"
 
   - description: Rewrite CURRENT_TIMESTAMP to include default precision argument
     query: "SELECT CURRENT_TIMESTAMP"
     result: "SELECT VALUE {'_1': CURRENT_TIMESTAMP(6)} FROM [{}] AS _dual"
+    skip_reason: "SQL-543: Add rewrite pass for current_timestamp function"
