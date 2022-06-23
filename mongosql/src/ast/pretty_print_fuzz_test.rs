@@ -46,7 +46,23 @@ mod fuzz_test {
             let reparsed = SingleTupleRewritePass.apply(reparsed);
             match reparsed {
                 Err(_) => TestResult::discard(),
-                Ok(r) => TestResult::from_bool(q == r),
+                Ok(r) if q != r => {
+                    panic!(
+                        r#"Reparsed query AST does not equal original AST
+
+Original AST:
+{:?}
+
+Pretty-printed query:
+{:?}
+
+Reparsed AST:
+{:?}
+"#,
+                        q, p, r
+                    )
+                }
+                _ => TestResult::from_bool(true),
             }
         }
 
@@ -629,6 +645,7 @@ mod arbitrary {
             // FunctionExpr::arbitrary.
             let rng = &(0..(Self::VARIANT_COUNT - 3)).collect::<Vec<_>>();
             match g.choose(rng).unwrap() {
+                // Aggregation Functions
                 0 => Self::AddToArray,
                 1 => Self::AddToSet,
                 2 => Self::Avg,
@@ -641,15 +658,34 @@ mod arbitrary {
                 9 => Self::StddevPop,
                 10 => Self::StddevSamp,
                 11 => Self::Sum,
-                12 => Self::BitLength,
-                13 => Self::CharLength,
-                14 => Self::Coalesce,
-                15 => Self::Lower,
-                16 => Self::NullIf,
-                17 => Self::OctetLength,
-                18 => Self::Size,
-                19 => Self::Slice,
-                20 => Self::Upper,
+
+                // Scalar functions.
+                12 => Self::Abs,
+                13 => Self::BitLength,
+                14 => Self::Ceil,
+                15 => Self::CharLength,
+                16 => Self::Coalesce,
+                17 => Self::Cos,
+                // Self::CurrentTimestamp intentionally omitted
+                18 => Self::Degrees,
+                19 => Self::Floor,
+                20 => Self::Log,
+                21 => Self::Lower,
+                22 => Self::Mod,
+                23 => Self::NullIf,
+                24 => Self::OctetLength,
+                // Self::Position intentionally omitted
+                25 => Self::Pow,
+                26 => Self::Radians,
+                27 => Self::Round,
+                28 => Self::Sin,
+                29 => Self::Size,
+                30 => Self::Slice,
+                31 => Self::Split,
+                32 => Self::Sqrt,
+                // Self::Substring intentionally omitted
+                33 => Self::Tan,
+                34 => Self::Upper,
                 _ => panic!("missing FunctionName variant(s)"),
             }
         }
@@ -913,24 +949,26 @@ mod arbitrary {
                 0 => Self::Array,
                 1 => Self::BinData,
                 2 => Self::Boolean,
-                3 => Self::Datetime,
-                4 => Self::DbPointer,
-                5 => Self::Decimal128,
-                6 => Self::Document,
-                7 => Self::Double,
-                8 => Self::Int32,
-                9 => Self::Int64,
-                10 => Self::Javascript,
-                11 => Self::JavascriptWithScope,
-                12 => Self::MaxKey,
-                13 => Self::MinKey,
-                14 => Self::Null,
-                15 => Self::ObjectId,
-                16 => Self::RegularExpression,
-                17 => Self::String,
-                18 => Self::Symbol,
-                19 => Self::Timestamp,
-                20 => Self::Undefined,
+                3 => Self::Date,
+                4 => Self::Datetime,
+                5 => Self::DbPointer,
+                6 => Self::Decimal128,
+                7 => Self::Document,
+                8 => Self::Double,
+                9 => Self::Int32,
+                10 => Self::Int64,
+                11 => Self::Javascript,
+                12 => Self::JavascriptWithScope,
+                13 => Self::MaxKey,
+                14 => Self::MinKey,
+                15 => Self::Null,
+                16 => Self::ObjectId,
+                17 => Self::RegularExpression,
+                18 => Self::String,
+                19 => Self::Symbol,
+                20 => Self::Time,
+                21 => Self::Timestamp,
+                22 => Self::Undefined,
                 _ => panic!("missing Type variant(s)"),
             }
         }

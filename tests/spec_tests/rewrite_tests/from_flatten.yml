@@ -1,0 +1,4 @@
+tests:
+  - description: remove SEPARATOR => '_' if provided
+    query: "SELECT * FROM FLATTEN(foo AS foo WITH SEPARATOR => '_')"
+    result: "SELECT * FROM FLATTEN(foo AS foo)"

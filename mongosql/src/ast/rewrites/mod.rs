@@ -18,6 +18,8 @@ mod table_subquery;
 use table_subquery::TableSubqueryRewritePass;
 mod group_by_select_alias;
 use group_by_select_alias::GroupBySelectAliasRewritePass;
+mod optional_parameters;
+use optional_parameters::OptionalParameterRewritePass;
 
 #[cfg(test)]
 mod test;
@@ -62,6 +64,7 @@ pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
         &SelectRewritePass,
         &ImplicitFromRewritePass,
         &TableSubqueryRewritePass,
+        &OptionalParameterRewritePass,
     ];
 
     let mut rewritten = query;

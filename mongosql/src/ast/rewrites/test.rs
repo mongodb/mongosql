@@ -764,3 +764,103 @@ mod group_by_select_alias {
         input = "SELECT Calcs.str2 AS str2 FROM Calcs WHERE ((NOT (Calcs.str2 IN ('eight', 'eleven', 'fifteen', 'five'))) OR (Calcs.str2 IS NULL)) GROUP BY str2",
     );
 }
+
+mod optional_parameters {
+    use super::*;
+
+    mod flatten {
+        use super::*;
+
+        test_rewrite!(
+            remove_explicit_underscore_separator,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT * FROM FLATTEN(foo)"),
+            input = "SELECT * FROM FLATTEN(foo WITH SEPARATOR => '_')",
+        );
+
+        test_rewrite!(
+            remove_explicit_underscore_separator_when_other_options_present,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT * FROM FLATTEN(foo WITH DEPTH => 5)"),
+            input = "SELECT * FROM FLATTEN(foo WITH SEPARATOR => '_', DEPTH => 5)",
+        );
+
+        test_rewrite!(
+            do_not_modify_duplicate_default_separator_opts,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT * FROM FLATTEN(foo WITH SEPARATOR => '_', SEPARATOR => '_')"),
+            input = "SELECT * FROM FLATTEN(foo WITH SEPARATOR => '_', SEPARATOR => '_')",
+        );
+
+        test_rewrite!(
+            do_not_modify_duplicate_non_default_separator_opts,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT * FROM FLATTEN(foo WITH SEPARATOR => '_', SEPARATOR => '-')"),
+            input = "SELECT * FROM FLATTEN(foo WITH SEPARATOR => '_', SEPARATOR => '-')",
+        );
+    }
+
+    mod unwind {
+        use super::*;
+
+        test_rewrite!(
+            remove_explicit_default_false,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT * FROM UNWIND(foo)"),
+            input = "SELECT * FROM UNWIND(foo WITH OUTER => false)",
+        );
+
+        test_rewrite!(
+            remove_explicit_default_false_when_other_options_present,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT * FROM UNWIND(foo WITH INDEX => idx)"),
+            input = "SELECT * FROM UNWIND(foo WITH OUTER => false, INDEX => idx)",
+        );
+
+        test_rewrite!(
+            do_not_modify_duplicate_default_outer_opts,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT * FROM UNWIND(foo WITH OUTER => false, OUTER => false)"),
+            input = "SELECT * FROM UNWIND(foo WITH OUTER => false, OUTER => false)",
+        );
+
+        test_rewrite!(
+            do_not_modify_duplicate_non_default_outer_opts,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT * FROM UNWIND(foo WITH OUTER => false, OUTER => true)"),
+            input = "SELECT * FROM UNWIND(foo WITH OUTER => false, OUTER => true)",
+        );
+    }
+
+    mod case {
+        use super::*;
+
+        test_rewrite!(
+            simple_case_make_else_null_explicit,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT CASE num WHEN 1 THEN true ELSE NULL END FROM foo"),
+            input = "SELECT CASE num WHEN 1 THEN true END FROM foo",
+        );
+
+        test_rewrite!(
+            simple_case_do_not_modify_existing_else,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT CASE num WHEN 1 THEN true ELSE false END FROM foo"),
+            input = "SELECT CASE num WHEN 1 THEN true ELSE false END FROM foo",
+        );
+
+        test_rewrite!(
+            searched_case_make_else_null_explicit,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT CASE WHEN true THEN true ELSE NULL END FROM foo"),
+            input = "SELECT CASE WHEN true THEN true END FROM foo",
+        );
+
+        test_rewrite!(
+            searched_case_do_not_modify_existing_else,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT CASE WHEN true THEN true ELSE false END FROM foo"),
+            input = "SELECT CASE WHEN true THEN true ELSE false END FROM foo",
+        );
+    }
+}

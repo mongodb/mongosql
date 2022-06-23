@@ -402,7 +402,6 @@ impl PrettyPrint for FlattenSource {
         let options = self
             .options
             .iter()
-            .filter(|option| !(matches!(option, FlattenOption::Separator(s) if s == "_")))
             .map(|option| option.pretty_print())
             .collect::<Result<Vec<_>>>()?;
         Ok(match options.len() {
@@ -430,7 +429,6 @@ impl PrettyPrint for UnwindSource {
         let options = self
             .options
             .iter()
-            .filter(|o| !matches!(o, UnwindOption::Outer(false)))
             .map(|o| o.pretty_print())
             .collect::<Result<Vec<_>>>()?;
 
@@ -974,7 +972,7 @@ impl PrettyPrint for CaseExpr {
                 .join(" "),
             self.else_branch
                 .as_ref()
-                .map_or(Ok(" ELSE NULL".to_string()), |x| Ok(format!(
+                .map_or(Ok("".to_string()), |x| Ok(format!(
                     " ELSE {}",
                     x.pretty_print()?
                 )))?,

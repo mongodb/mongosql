@@ -249,6 +249,16 @@ query_printer_test!(
     expected = "SELECT * FROM FLATTEN(foo WITH SEPARATOR => '''')",
     input = "SeLeCT * from FLATTEN(foo with separator => '''')"
 );
+query_printer_test!(
+    flatten_collection_duplicate_separator_should_be_preserved,
+    expected = "SELECT * FROM FLATTEN(foo WITH SEPARATOR => '_', SEPARATOR => '-')",
+    input = "SeLeCT * from FLATTEN(foo with separator => '_', separator => '-')"
+);
+query_printer_test!(
+    flatten_collection_explicit_default_separator_should_be_preserved,
+    expected = "SELECT * FROM FLATTEN(foo WITH SEPARATOR => '_')",
+    input = "SeLeCT * from FLATTEN(foo with separator => '_')"
+);
 
 query_printer_test!(
     unwind_collection,
@@ -287,14 +297,14 @@ query_printer_test!(
 );
 
 query_printer_test!(
-    unwind_collection_with_outer_false,
-    expected = "SELECT * FROM UNWIND(foo)",
+    unwind_collection_explicit_outer_false_should_be_preserved,
+    expected = "SELECT * FROM UNWIND(foo WITH OUTER => false)",
     input = "SELECT * FROM UNWIND(foo WITH outer => false)"
 );
 
 query_printer_test!(
     unwind_collection_with_multiple_options_preserves_order_and_duplicates,
-    expected = "SELECT * FROM UNWIND(foo WITH PATH => arr, OUTER => true, INDEX => i, PATH => a)",
+    expected = "SELECT * FROM UNWIND(foo WITH PATH => arr, OUTER => false, OUTER => true, INDEX => i, PATH => a)",
     input = "SELECT * FROM UNWIND(foo with path => arr, outer => false, outer => true, index => i, path => a)"
 );
 
@@ -822,12 +832,12 @@ expression_printer_test!(
 
 expression_printer_test!(
     case_basic,
-    expected = "CASE WHEN x + 3 = y THEN true WHEN x + 4 = y THEN false ELSE NULL END",
+    expected = "CASE WHEN x + 3 = y THEN true WHEN x + 4 = y THEN false END",
     input = "CASE WHEN x + 3 = y THEN true WHEN x + 4 = y THEN false END"
 );
 expression_printer_test!(
     case_basic_with_expr,
-    expected = "CASE foo * 3 WHEN x + 3 = y THEN true WHEN x + 4 = y THEN false ELSE NULL END",
+    expected = "CASE foo * 3 WHEN x + 3 = y THEN true WHEN x + 4 = y THEN false END",
     input = "CASE foo * 3 WHEN x + 3 = y THEN true WHEN x + 4 = y THEN false END"
 );
 expression_printer_test!(
