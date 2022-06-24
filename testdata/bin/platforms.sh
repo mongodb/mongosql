@@ -57,7 +57,7 @@ macos)
     ;;
 macos-arm64)
     ARCHIVE_FORMAT='zip'
-    PKG_CONFIG_PATH='/opt/homebrew/opt/openssl/lib/pkgconfig'
+    PKG_CONFIG_PATH='/opt/homebrew/opt/openssl@1.1/lib/pkgconfig'
     PUSH_ARCH='arm64-macos'
     PUSH_NAME='osx'
     MONGO_DISTRO='osx'

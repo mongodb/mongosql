@@ -1,6 +1,6 @@
 #!/bin/bash
 
-LATEST="5.2-stable"
+LATEST="6.0-stable"
 
 get_latest_for_distro() {
    distro=$1
@@ -57,6 +57,9 @@ set_mongodb_binaries ()
        if [ "$mongodb_version" = "5.0" ]; then
             version_for_curator="5.0-stable"
        fi
+       if [ "$mongodb_version" = "6.0" ]; then
+            version_for_curator="6.0-stable"
+       fi
        if [ "$mongodb_version" = "latest" ]; then
             get_latest_for_distro $distro
        fi
@@ -91,6 +94,38 @@ set_mongodb_binaries ()
 
        mv mongodb* $local_versioned_path
        chmod -R +x $local_versioned_path
+
+       # Use mongo shell executable from 5.3-stable for mongodb_version 6.*
+       if [[ $version_for_curator == 6.* ]]; then
+           version_for_curator_mongo_shell=5.3-stable
+           cache_mongo_shell=$cache/$version_for_curator_mongo_shell
+           echo "running curator for mongo shell with args:"
+           echo "  --target $distro"
+           echo "  --arch $arch"
+           echo "  --version $version_for_curator_mongo_shell"
+           echo "  --edition $edition"
+           echo "  --path $cache_mongo_shell"
+
+           $GOBIN/curator artifacts download \
+               --target $distro \
+               --arch $arch \
+               --version $version_for_curator_mongo_shell \
+               --edition $edition \
+               --path $cache_mongo_shell
+
+           cd $cache_mongo_shell
+           rm -f mongodb*.tgz
+           rm -f mongodb*.zip
+           mongo_shell_name=mongo
+           if [ "Windows_NT" = "$OS" ]; then
+                  mongo_shell_name=${mongo_shell_name}.exe
+           else
+                  mongo_shell_name=${mongo_shell_name}$
+           fi
+           mongo_shell_loc=$(find . | grep $mongo_shell_name)
+           chmod +x $mongo_shell_loc
+           mv -n $mongo_shell_loc $local_versioned_path/bin/
+       fi
    else
        echo "Using cached mongodb"
    fi

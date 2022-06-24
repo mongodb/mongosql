@@ -1622,13 +1622,15 @@ tasks:
 #   name: test-gssapi-admin-authenticator-plain-user
 #   tags: ["test", "config", "gssapi"]
 
-- <<: *run-make-target
-  name: test-mongo-uri-read-preference-primary
-  tags: ["test", "config"]
+# Disabled: see BI-2698
+#- <<: *run-make-target
+#  name: test-mongo-uri-read-preference-primary
+#  tags: ["test", "config"]
 
-- <<: *run-make-target
-  name: test-mongo-uri-read-preference-secondary
-  tags: ["test", "config"]
+# Disabled: see BI-2698
+#- <<: *run-make-target
+#  name: test-mongo-uri-read-preference-secondary
+#  tags: ["test", "config"]
 
 - <<: *run-make-target
   name: test-query-max-execution-time-failure
@@ -1863,6 +1865,10 @@ axes:
 - id: mongodb_version
   display_name: MongoDB Version
   values:
+  - id: 6.0
+    display_name: 6.0
+    variables:
+      _mongodb_version: 6.0
   - id: 5.2
     display_name: 5.2
     variables:
