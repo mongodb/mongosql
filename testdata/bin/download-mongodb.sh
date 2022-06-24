@@ -57,6 +57,9 @@ set_mongodb_binaries ()
        if [ "$mongodb_version" = "5.0" ]; then
             version_for_curator="5.0-stable"
        fi
+       if [ "$mongodb_version" = "5.3" ]; then
+            version_for_curator="5.3-stable"
+       fi
        if [ "$mongodb_version" = "6.0" ]; then
             version_for_curator="6.0-stable"
        fi
