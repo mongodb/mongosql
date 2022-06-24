@@ -292,7 +292,11 @@ catalog_data:
       - {'_id': 17, 'str': 'λ-bee-寿-d', 'delim': '-', 'tokenNum': { '$numberInt': '2' }}
       - {'_id': 18, 'str': 'λ€bee€寿€d', 'delim': '€', 'tokenNum': { '$numberInt': '2' }}
       - {'_id': 19}
-
+    dates:
+      - {'_id': 0, 'date1': "2022-06-02T03:55:13" , 'date2': "2024-08-10T05:58:19", 'interval': { '$numberInt': '3' } }
+      - {'_id': 1, 'date1': "2022-06-02T03:55:13", 'date2': "2019-03-01T02:35:08", 'interval': { '$numberInt': '-3' } }
+    extract:
+      - {'_id': 0, 'date1': "2022-06-02T03:55:13", 'date2': "2024-08-10T05:58:19" }
 
 catalog_schema:
   {
@@ -762,90 +766,6 @@ tests:
       - {'': {'s': '寿司', 'len': 48, 'comment': 'Each character is encoded using three bytes.'}}
       - {'': {'s': null, 'len': null}}
       - {'': {'len': null}}
-
-  - description: EXTRACT YEAR correctness test
-    current_db: foo
-    query: "SELECT VALUE {'year': EXTRACT(YEAR FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
-    skip_reason: 'SQL-620: type assertions are treated as complex exprs'
-    translation_target_db: foo
-    translation:
-      - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
-      - {'$project': {'_id': 0, '__bot': {'year': {'$year': '$arr.d'}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
-    result:
-      - {'': {'year': {'$numberInt': '2020'}}}
-
-  - description: EXTRACT MONTH correctness test
-    current_db: foo
-    query: "SELECT VALUE {'month': EXTRACT(MONTH FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
-    skip_reason: 'SQL-620: type assertions are treated as complex exprs'
-    translation_target_db: foo
-    translation:
-      - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
-      - {'$project': {'_id': 0, '__bot': {'month': {'$month': '$arr.d'}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
-    result:
-      - {'': {'month': {'$numberInt': '1'}}}
-
-  - description: EXTRACT DAY correctness test
-    current_db: foo
-    query: "SELECT VALUE {'day': EXTRACT(DAY FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
-    skip_reason: 'SQL-620: type assertions are treated as complex exprs'
-    translation_target_db: foo
-    translation:
-      - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
-      - {'$project': {'_id': 0, '__bot': {'day': {'$dayOfMonth': '$arr.d'}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
-    result:
-      - {'': {'day': {'$numberInt': '8'}}}
-
-  - description: EXTRACT HOUR correctness test
-    current_db: foo
-    query: "SELECT VALUE {'hour': EXTRACT(HOUR FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
-    skip_reason: 'SQL-620: type assertions are treated as complex exprs'
-    translation_target_db: foo
-    translation:
-      - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
-      - {'$project': {'_id': 0, '__bot': {'hour': {'$hour': '$arr.d'}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
-    result:
-      - {'': {'hour': {'$numberInt': '12'}}}
-
-  - description: EXTRACT MINUTE correctness test
-    current_db: foo
-    query: "SELECT VALUE {'minute': EXTRACT(MINUTE FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
-    skip_reason: 'SQL-620: type assertions are treated as complex exprs'
-    translation_target_db: foo
-    translation:
-      - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
-      - {'$project': {'_id': 0, '__bot': {'minute': {'$minute': '$arr.d'}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
-    result:
-      - {'': {'minute': {'$numberInt': '25'}}}
-
-  - description: EXTRACT SECOND correctness test
-    current_db: foo
-    query: "SELECT VALUE {'second': EXTRACT(SECOND FROM d)} FROM [{'d': '2020-01-08T12:25:45Z'::TIMESTAMP}] AS arr"
-    skip_reason: 'SQL-620: type assertions are treated as complex exprs'
-    translation_target_db: foo
-    translation:
-      - {'$documents': {'arr': [{'d': {'$convert': {'input': '2020-01-08T12:25:45Z', 'to': 'date', 'onNull': null, 'onError': null}}}]}}
-      - {'$project': {'_id': 0, '__bot': {'second': {'$second': '$arr.d'}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
-    result:
-      - {'': {'second': {'$numberInt': '45'}}}
 
   - description: EXTRACT FROM NULL and MISSING correctness test
     current_db: foo
@@ -1460,3 +1380,104 @@ tests:
       - {'': {'str': 'λ-bee-寿-d', 'delim': '-', 'tokenNum': {'$numberInt': '2'}, 'v': '寿'}}
       - {'': {'str': 'λ€bee€寿€d', 'delim': '€', 'tokenNum': {'$numberInt': '2'}, 'v': '寿'}}
       - {'': {'v': null}}
+
+  - description: YEAR correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'interval': interval, 'dateadd': DATEADD(YEAR, interval, date1::TIMESTAMP), 'datepart': EXTRACT(YEAR, date1::TIMESTAMP), 'datediff': DATEDIFF(YEAR, date1::TIMESTAMP, date2::TIMESTAMP), 'datetrunc': DATETRUNC(YEAR, date1::TIMESTAMP)} FROM dates AS d"
+    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    result:
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': '2025-06-02T03:55:13' }, 'datepart': { '$numberInt': '2022' }, 'datediff': { '$numberLong': '-2' }, 'datetrunc': { '$date': '2022-01-01T00:00:00' } } }
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'interval': { '$numberInt': '-3' }, 'dateadd': { '$date': '2019-06-02T03:55:13' }, 'datepart': { '$numberInt': '2022' }, 'datediff': { '$numberLong': '3' }, 'datetrunc': { '$date': '2022-01-01T00:00:00' } } }
+
+  - description: MONTH correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'interval': interval, 'dateadd': DATEADD(MONTH, interval, date1::TIMESTAMP), 'datepart': EXTRACT(MONTH, date1::TIMESTAMP), 'datediff': DATEDIFF(MONTH, date1::TIMESTAMP, date2::TIMESTAMP), 'datetrunc': DATETRUNC(MONTH, date1::TIMESTAMP)} FROM dates AS d"
+    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    result:
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': '2022-09-02T03:55:13' }, 'datepart': { '$numberInt': '6' }, 'datediff': { '$numberLong': '26' }, 'datetrunc': { '$date': '2022-06-01T00:00:00' } } }
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'interval': { '$numberInt': '-3' }, 'dateadd': { '$date': '2022-03-02T03:55:13' }, 'datepart': { '$numberInt': '6' }, 'datediff': { '$numberLong': '-39' }, 'datetrunc': { '$date': '2022-06-01T00:00:00' } } }
+
+  - description: DAY correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'interval': interval, 'dateadd': DATEADD(DAY, interval, date1::TIMESTAMP), 'datepart': EXTRACT(DAY, date1::TIMESTAMP), 'datediff': DATEDIFF(DAY, date1::TIMESTAMP, date2::TIMESTAMP), 'datetrunc': DATETRUNC(DAY, date1::TIMESTAMP)} FROM dates AS d"
+    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    result:
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': '2022-06-05T03:55:13' }, 'datepart': { '$numberInt': '2' }, 'datediff': { '$numberLong': '800' }, 'datetrunc': { '$date': '2022-06-02T00:00:00' } } }
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'interval': { '$numberInt': '-3' }, 'dateadd': { '$date': '2022-05-30T03:55:13' }, 'datepart': { '$numberInt': '2' }, 'datediff': { '$numberLong': '-1189' }, 'datetrunc': { '$date': '2022-06-02T00:00:00' } } }
+
+  - description: HOUR correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'interval': interval, 'dateadd': DATEADD(HOUR, interval, date1::TIMESTAMP), 'datepart': EXTRACT(HOUR, date1::TIMESTAMP), 'datediff': DATEDIFF(HOUR, date1::TIMESTAMP, date2::TIMESTAMP), 'datetrunc': DATETRUNC(HOUR, date1::TIMESTAMP)} FROM dates AS d"
+    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    result:
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': '2022-06-02T06:55:13' }, 'datepart': { '$numberInt': '3' }, 'datediff': { '$numberLong': '19200' }, 'datetrunc': { '$date': '2022-06-02T00:00:00' } } }
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'interval': { '$numberInt': '-3' }, 'dateadd': { '$date': '2022-06-02T00:55:13' }, 'datepart': { '$numberInt': '3' }, 'datediff': { '$numberLong': '-28536' }, 'datetrunc': { '$date': '2022-06-02T00:00:00' } } }
+
+  - description: MINUTE correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'interval': interval, 'dateadd': DATEADD(MINUTE, interval, date1::TIMESTAMP), 'datepart': EXTRACT(MINUTE, date1::TIMESTAMP), 'datediff': DATEDIFF(MINUTE, date1::TIMESTAMP, date2::TIMESTAMP), 'datetrunc': DATETRUNC(MINUTE, date1::TIMESTAMP)} FROM dates AS d"
+    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    result:
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': '2022-06-02T03:58:13' }, 'datepart': { '$numberInt': '55' }, 'datediff': { '$numberLong': '1152000' }, 'datetrunc': { '$date': '2022-06-02T03:00:00' } } }
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'interval': { '$numberInt': '-3' }, 'dateadd': { '$date': '2022-06-02T03:52:13' }, 'datepart': { '$numberInt': '55' }, 'datediff': { '$numberLong': '-1712160' }, 'datetrunc': { '$date': '2022-06-02T03:00:00' } } }
+
+  - description: SECOND correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'interval': interval, 'dateadd': DATEADD(SECOND, interval, date1::TIMESTAMP), 'datepart': EXTRACT(SECOND, date1::TIMESTAMP), 'datediff': DATEDIFF(SECOND, date1::TIMESTAMP, date2::TIMESTAMP), 'datetrunc': DATETRUNC(SECOND, date1::TIMESTAMP)} FROM dates AS d"
+    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    result:
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': '2022-04-02T03:55:16' }, 'datepart': { '$numberInt': '13' }, 'datediff': { '$numberLong': '69120000' }, 'datetrunc': { '$date': '2022-06-02T03:55:00' } } }
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'interval': { '$numberInt': '-3' }, 'dateadd': { '$date': '2022-01-02T03:55:10' }, 'datepart': { '$numberInt': '13' }, 'datediff': { '$numberLong': '-102729600' }, 'datetrunc': { '$date': '2022-06-02T03:55:00' } } }
+
+  - description: QUARTER correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'interval': interval, 'dateadd': DATEADD(QUARTER, interval, date1::TIMESTAMP), 'datediff': DATEDIFF(QUARTER, date1::TIMESTAMP, date2::TIMESTAMP), 'datetrunc': DATETRUNC(QUARTER, date1::TIMESTAMP)} FROM dates AS d"
+    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    result:
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': '2023-03-02T03:55:13' }, 'datediff': { '$numberLong': '9' }, 'datetrunc': { '$date': '2022-04-01T00:00:00' } } }
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'interval': { '$numberInt': '-3' }, 'dateadd': { '$date': '2021-09-02T03:55:13' }, 'datediff': { '$numberLong': '-13' }, 'datetrunc': { '$date': '2022-04-01T00:00:00' } } }
+
+  - description: WEEK correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'interval': interval, 'dateadd': DATEADD(WEEK, interval, date1::TIMESTAMP), 'datediff': DATEDIFF(WEEK, date1::TIMESTAMP, date2::TIMESTAMP), 'datetrunc': DATETRUNC(WEEK, date1::TIMESTAMP)} FROM dates AS d"
+    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    result:
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': '2022-06-23T03:55:13' }, 'datediff': { '$numberLong': '114' }, 'datetrunc': { '$date': '2022-01-01T00:00:00' } } }
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'interval': { '$numberInt': '-3' }, 'dateadd': { '$date': '2022-05-12T03:55:13' }, 'datediff': { '$numberLong': '-170' }, 'datetrunc': { '$date': '2022-01-01T00:00:00' } } }
+
+  - description: DAY_OF_YEAR correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'datepart': EXTRACT(DAY_OF_YEAR, date1::TIMESTAMP)} FROM extract AS e"
+    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    result:
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'datepart': { '$numberInt': '153' } } }
+
+  - description: ISO_WEEK correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'datepart': EXTRACT(ISO_WEEK, date1::TIMESTAMP)} FROM extract AS e"
+    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    result:
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'datepart': { '$numberInt': '22' } } }
+
+  - description: ISO_WEEKDAY correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'datepart': EXTRACT(ISO_WEEKDAY, date1::TIMESTAMP)} FROM extract AS e"
+    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    result:
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'datepart': { '$numberInt': '4' } } }
+
+  - description: DATEDIFF startOfWeek correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'sunday': DATEDIFF(WEEK, date1::TIMESTAMP, date2::TIMESTAMP, 'sunday'), 'friday': DATEDIFF(WEEK, date1::TIMESTAMP, date2::TIMESTAMP, 'friday')} FROM dates AS d"
+    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    result:
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'sunday': { '$numberLong': '114' }, 'friday': { '$numberLong': '115' } } }
+      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'sunday': { '$numberLong': '-170' }, 'friday': { '$numberLong': '-169' } } }
+
+  - description: DATETRUNC startOfWeek correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'date': date2::TIMESTAMP, 'sunday': DATETRUNC(WEEK, date1::TIMESTAMP, 'sunday'), 'friday': DATETRUNC(WEEK, date1::TIMESTAMP, 'friday')} FROM dates AS d"
+    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    result:
+      - { '': { 'date1': { '$date': '2024-08-10T05:58:19' }, 'sunday': { '$date': '2024-08-04T00:00:00' }, 'friday': { '$date': '2024-08-09T00:00:00' } } }
+      - { '': { 'date1': { '$date': '2019-03-01T02:35:08' }, 'sunday': { '$date': '2019-02-24T00:00:00' }, 'friday': { '$date': '2019-03-01T00:00:00' } } }
