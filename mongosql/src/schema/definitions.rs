@@ -810,6 +810,29 @@ impl Schema {
         &self,
         max_length: Option<u32>,
     ) -> Result<BTreeSet<Vec<String>>, Error> {
+        // Call auxiliary function with parameter `inside_document` set to false because
+        // function is not yet in the context of a document.
+        self.enumerate_field_paths_aux(max_length, false)
+    }
+
+    /// enumerate_field_paths_aux is the auxiliary function called by
+    /// enumerate_field_paths to exhaustively enumerate all field paths
+    /// of length <= `max_length` that could exist in a value matched
+    /// by the schema `self`. If `inside_document` is true, `self` is a
+    /// a schema within a Schema::Document.
+    ///
+    /// Examples:
+    ///
+    /// If `self` is a schema AnyOf([Int, Double]) and `inside_document` is false, then
+    /// enumerate_field_paths_aux returns the empty set `set![].
+    ///
+    /// If `self` is a schema AnyOf([Int, Double]) and `inside_document` is true, then
+    /// enumerate_field_paths_aux returns the set containing an empty vector `set![vec![]]``.
+    fn enumerate_field_paths_aux(
+        &self,
+        max_length: Option<u32>,
+        inside_document: bool,
+    ) -> Result<BTreeSet<Vec<String>>, Error> {
         match self {
             Schema::Document(d) => {
                 // Error if we do not have complete schema information
@@ -822,8 +845,8 @@ impl Schema {
                     .fold(Ok(BTreeSet::new()), |acc, (key, schema)| match max_length {
                         Some(0) => acc,
                         _ => {
-                            let mut new_paths =
-                                schema.enumerate_field_paths(max_length.map(|l| l - 1))?;
+                            let mut new_paths = schema
+                                .enumerate_field_paths_aux(max_length.map(|l| l - 1), true)?;
                             if new_paths.is_empty() {
                                 new_paths = set![vec![]];
                             }
@@ -846,9 +869,11 @@ impl Schema {
             AnyOf(a) => a.iter().fold(
                 Ok(BTreeSet::new()),
                 |acc: Result<BTreeSet<Vec<String>>, Error>, schema| {
-                    let mut new_paths = schema.enumerate_field_paths(max_length)?;
-                    // Propagate an empty vector for recursive cases
-                    if new_paths.is_empty() {
+                    let mut new_paths =
+                        schema.enumerate_field_paths_aux(max_length, inside_document)?;
+                    // If we are in the context of a document, propagate an empty vector to
+                    // recursively build document field paths
+                    if new_paths.is_empty() && inside_document {
                         new_paths = set![vec![]]
                     }
                     Ok(acc?
