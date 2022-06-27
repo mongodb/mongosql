@@ -347,7 +347,6 @@ tests:
   - description: unary ops bind tighter than mul/div
     current_db: db
     query: "SELECT VALUE {'a': a, 'b': b, 'v': - a * b, 'alt': - (a * b)} FROM [{'a': -1, 'b': 1}] AS arr"
-    skip_reason: "SQL-859: Support literal expressions in array datasources"
     translation_target_db: db
     translation:
       - {'$documents': [{'a': {'$literal': -1}, 'b': {'$literal': 1}}]}
