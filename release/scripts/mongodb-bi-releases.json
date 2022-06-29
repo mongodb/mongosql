@@ -22,7 +22,7 @@
             "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~AMAZON2"
          },
          "edition": "enterprise",
-         "target": "amzn64"
+         "target": "amazon2"
       },
       {
          "arch": "aarch64",
@@ -30,7 +30,7 @@
             "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~AMAZON2-ARM64"
          },
          "edition": "enterprise",
-         "target": "amzn64"
+         "target": "amazon2"
       },
       {
          "arch": "x86_64",

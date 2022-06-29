@@ -331,7 +331,16 @@ class BIReleaser(object):
         new_release_version = re.sub("S3_BUCKET", S3_BUCKET, new_release_version)
         new_release_version = re.sub("RELEASE_VERSION", self.__release_version, new_release_version)
 
-        for url, entry in self.__urls.items():
+        # By sorting in descending order before iterating, we ensure we process
+        # the longer-length build variant names before processing the ones that
+        # are prefixes of such names. For example,
+        #   "...RELEASE_PLATFORMS__OS~AMAZON2"
+        # is a prefix of
+        #   "...RELEASE_PLATFORMS__OS~AMAZON2-ARM64".
+        #
+        # By sorting in descending order, this code will process the latter first,
+        # avoiding the problem of incorrectly substituting data in the file.
+        for url, entry in sorted(self.__urls.items(), reverse=True):
             new_release_version = re.sub(url.upper(), os.path.basename(entry), new_release_version)
 
         # download MAIN_DOWNLOADS_JSON file
@@ -576,7 +585,16 @@ class BIReleaser(object):
         contents = re.sub("RELEASE_VERSION", self.__release_version, contents)
         contents = re.sub("DATE", str(datetime.date.today()), contents)
 
-        for url, entry in self.__urls.items():
+        # By sorting in descending order before iterating, we ensure we process
+        # the longer-length build variant names before processing the ones that
+        # are prefixes of such names. For example,
+        #   "...RELEASE_PLATFORMS__OS~AMAZON2"
+        # is a prefix of
+        #   "...RELEASE_PLATFORMS__OS~AMAZON2-ARM64".
+        #
+        # By sorting in descending order, this code will process the latter first,
+        # avoiding the problem of incorrectly substituting data in the file.
+        for url, entry in sorted(self.__urls.items(), reverse=True):
             contents = re.sub(url.upper(), os.path.basename(entry), contents)
 
         new_releases_json = os.path.join(self.__temp_dir, RELEASES_JSON)
