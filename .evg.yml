@@ -1751,14 +1751,6 @@ axes:
     - rhel80
     batchtime: 10080 # 1 week
 
-  - id: rhel-71-ppc64le
-    display_name: RHEL 7.1 PPC64LE
-    variables:
-      _variant: rhel71-ppc
-    run_on:
-    - rhel71-power8
-    batchtime: 10080 # 1 week
-
   - id: rhel-81-ppc64le
     display_name: RHEL 8.1 PPC64LE
     variables:
@@ -1837,22 +1829,6 @@ axes:
     - ubuntu1804-container
     variables:
       _variant: ubuntu1804-container
-
-  - id: ubuntu1604-ppc64le
-    display_name: Ubuntu 16.04 PPC64LE
-    run_on:
-    - ubuntu1604-power8
-    batchtime: 10080 # 1 week
-    variables:
-      _variant: ubuntu1604-ppc
-
-  - id: ubuntu1804-ppc64le
-    display_name: Ubuntu 18.04 PPC64LE
-    run_on:
-    - ubuntu1804-power8
-    batchtime: 10080 # 1 week
-    variables:
-      _variant: ubuntu1804-ppc
 
   - id: ubi-8
     display_name: UBI 8

@@ -73,10 +73,6 @@ rhel70)
     PUSH_ARCH='x86_64-rhel70'
     PUSH_NAME='linux'
     ;;
-rhel71-ppc)
-    PUSH_ARCH='ppc64le-rhel71'
-    PUSH_NAME='linux'
-    ;;
 rhel80)
     PUSH_ARCH='x86_64-rhel80'
     PUSH_NAME='linux'
@@ -108,11 +104,6 @@ ubuntu1604)
     PUSH_NAME='linux'
     BUILD_FIPS='false'
     ;;
-ubuntu1604-ppc)
-    PUSH_ARCH='ppc64le-ubuntu1604'
-    PUSH_NAME='linux'
-    BUILD_FIPS='false'
-    ;;
 ubuntu1804)
     PUSH_ARCH='x86_64-ubuntu1804'
     PUSH_NAME='linux'
@@ -126,11 +117,6 @@ ubuntu1804-arm64)
     ;;
 ubuntu1804-container)
     PUSH_ARCH='container-ubuntu1804'
-    PUSH_NAME='linux'
-    BUILD_FIPS='false'
-    ;;
-ubuntu1804-ppc)
-    PUSH_ARCH='ppc64le-ubuntu1804'
     PUSH_NAME='linux'
     BUILD_FIPS='false'
     ;;

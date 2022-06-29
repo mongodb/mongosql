@@ -42,10 +42,6 @@
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~RHEL70"
     },
     {
-      "name": "RedHat / CentOS 7.1 ppc64le (IBM POWER)",
-      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~RHEL-71-PPC64LE"
-    },
-    {
       "name": "RedHat / CentOS 8.0+ x64",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~RHEL80"
     },
@@ -74,20 +70,12 @@
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~UBUNTU1604-64"
     },
     {
-      "name": "Ubuntu 16.04 PPC64LE (IBM POWER)",
-      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~UBUNTU1604-PPC64LE"
-    },
-    {
       "name": "Ubuntu 18.04 x64",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~UBUNTU1804-64"
     },
     {
       "name": "Ubuntu 18.04 ARM",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~UBUNTU1804-ARM64"
-    },
-    {
-      "name": "Ubuntu 18.04 PPC64LE (IBM POWER)",
-      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~UBUNTU1804-PPC64LE"
     },
     {
       "name": "Ubuntu 20.04 x64",
