@@ -532,9 +532,7 @@ impl ConstantFoldExprVisitor {
                 }
                 ScalarFunction::OctetLength => {
                     if let LiteralValue::String(val) = lit.value {
-                        Expression::Literal(
-                            LiteralValue::Integer(val.bytes().count() as i32).into(),
-                        )
+                        Expression::Literal(LiteralValue::Integer(val.bytes().len() as i32).into())
                     } else {
                         sf_expr
                     }
@@ -542,7 +540,7 @@ impl ConstantFoldExprVisitor {
                 ScalarFunction::BitLength => {
                     if let LiteralValue::String(val) = lit.value {
                         Expression::Literal(
-                            LiteralValue::Integer(val.bytes().count() as i32 * 8).into(),
+                            LiteralValue::Integer(val.bytes().len() as i32 * 8).into(),
                         )
                     } else {
                         sf_expr

@@ -15,6 +15,7 @@ impl Pass for OptionalParameterRewritePass {
         let query = query.walk(&mut FlattenOptionVisitor);
         let query = query.walk(&mut UnwindOptionVisitor);
         let query = query.walk(&mut CaseElseVisitor);
+        let query = query.walk(&mut FunctionVisitor);
         Ok(query)
     }
 }
@@ -86,6 +87,48 @@ impl Visitor for CaseElseVisitor {
         ast::CaseExpr {
             else_branch,
             ..node
+        }
+    }
+}
+
+/// This visitor rewrites explicit default values for functions when not specified.
+/// For SUBSTRING, a default third argument of -1 is added when only two arguments are present.
+/// For CURRENT_TIMESTAMP, the default precision value of 6 is set when no argument is present.
+struct FunctionVisitor;
+impl Visitor for FunctionVisitor {
+    fn visit_function_expr(&mut self, node: ast::FunctionExpr) -> ast::FunctionExpr {
+        match node.function {
+            ast::FunctionName::Substring => match node.args {
+                ast::FunctionArguments::Star => unreachable!(),
+                ast::FunctionArguments::Args(mut ve) => {
+                    let arguments = match ve.len() {
+                        2 => {
+                            ve.push(ast::Expression::Literal(ast::Literal::Integer(-1)));
+                            ve
+                        }
+                        _ => ve,
+                    };
+                    ast::FunctionExpr {
+                        args: ast::FunctionArguments::Args(arguments),
+                        ..node
+                    }
+                }
+            },
+            ast::FunctionName::CurrentTimestamp => match node.args {
+                ast::FunctionArguments::Star => unreachable!(),
+                ast::FunctionArguments::Args(ve) => {
+                    let precision = if ve.is_empty() {
+                        vec![ast::Expression::Literal(ast::Literal::Integer(6))]
+                    } else {
+                        ve
+                    };
+                    ast::FunctionExpr {
+                        args: ast::FunctionArguments::Args(precision),
+                        ..node
+                    }
+                }
+            },
+            _ => node,
         }
     }
 }

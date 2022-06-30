@@ -5,7 +5,7 @@ macro_rules! multimap {
 	($($key:expr => $val:expr),* $(,)?) => {
 		std::iter::Iterator::collect([
 			$({
-				crate::ast::DocumentPair {
+				$crate::ast::DocumentPair {
                                     key: $key,
                                     value: $val,
                                 }

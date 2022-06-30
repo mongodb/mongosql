@@ -796,10 +796,11 @@ impl PrettyPrint for SubpathExpr {
 impl PrettyPrint for FunctionExpr {
     fn pretty_print(&self) -> Result<String> {
         if self.function == FunctionName::CurrentTimestamp && self.args.is_empty() {
-            return Ok("current_timestamp".to_string());
+            return Ok("CURRENT_TIMESTAMP".to_string());
         }
         match self.function {
             FunctionName::Position => pretty_print_position(&self.args),
+            FunctionName::Substring => pretty_print_substring(&self.args),
             _ => match self.set_quantifier {
                 Some(SetQuantifier::Distinct) => Ok(format!(
                     "{}(DISTINCT {})",
@@ -838,6 +839,29 @@ fn pretty_print_position(args: &FunctionArguments) -> Result<String> {
                 "POSITION({} IN {})",
                 formatted_left, formatted_right
             ))
+        }
+    }
+}
+
+fn pretty_print_substring(args: &FunctionArguments) -> Result<String> {
+    match args {
+        FunctionArguments::Star => unreachable!(),
+        FunctionArguments::Args(ve) => {
+            let formatted_args = ve
+                .iter()
+                .map(|e| e.pretty_print())
+                .collect::<Result<Vec<_>>>()?;
+            match ve.len() {
+                2 => Ok(format!(
+                    "SUBSTRING({} FROM {})",
+                    formatted_args[0], formatted_args[1]
+                )),
+                3 => Ok(format!(
+                    "SUBSTRING({} FROM {} FOR {})",
+                    formatted_args[0], formatted_args[1], formatted_args[2]
+                )),
+                _ => unreachable!(),
+            }
         }
     }
 }
@@ -1067,7 +1091,7 @@ impl PrettyPrint for TrimExpr {
         };
         match *self.trim_chars {
             Expression::Literal(Literal::String(ref s)) if s.as_str() == " " => Ok(format!(
-                "TRIM({} FROM {})",
+                "TRIM({} ' ' FROM {})",
                 trim_spec,
                 self.arg.pretty_print()?
             )),
