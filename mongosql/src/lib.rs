@@ -1,3 +1,4 @@
+mod agg_ir;
 mod algebrizer;
 mod ast;
 pub mod catalog;
