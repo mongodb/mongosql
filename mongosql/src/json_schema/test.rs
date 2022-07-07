@@ -40,7 +40,7 @@ validate_json_schema!(
 validate_json_schema!(
     schema_with_single_bson_type,
     expected_schema = &Schema {
-        bson_type: Some(BsonType::Single("int".to_string())),
+        bson_type: Some(BsonType::Single(BsonTypeName::Int)),
         ..Default::default()
     },
     input = r#"{"bsonType":"int"}"#,
@@ -49,8 +49,8 @@ validate_json_schema!(
     schema_with_multiple_bson_types,
     expected_schema = &Schema {
         bson_type: Some(BsonType::Multiple(vec![
-            "int".to_string(),
-            "null".to_string()
+            BsonTypeName::Int,
+            BsonTypeName::Null
         ])),
         ..Default::default()
     },
@@ -61,7 +61,7 @@ validate_json_schema!(
     expected_schema = &Schema {
         properties: Some(hashmap! {
             "a".to_string() => Schema {
-                bson_type: Some(BsonType::Single("int".to_string())),
+                bson_type: Some(BsonType::Single(BsonTypeName::Int)),
                 ..Schema::default()
             }
         }),
@@ -89,7 +89,7 @@ validate_json_schema!(
     schema_with_items,
     expected_schema = &Schema {
         items: Some(Items::Single(Box::new(Schema {
-            bson_type: Some(BsonType::Single("int".to_string())),
+            bson_type: Some(BsonType::Single(BsonTypeName::Int)),
             ..Default::default()
         }))),
         ..Default::default()
@@ -101,11 +101,11 @@ validate_json_schema!(
     expected_schema = &Schema {
         any_of: Some(vec![
             Schema {
-                bson_type: Some(BsonType::Single("int".to_string())),
+                bson_type: Some(BsonType::Single(BsonTypeName::Int)),
                 ..Default::default()
             },
             Schema {
-                bson_type: Some(BsonType::Single("null".to_string())),
+                bson_type: Some(BsonType::Single(BsonTypeName::Null)),
                 ..Default::default()
             }
         ]),
@@ -118,11 +118,11 @@ validate_json_schema!(
     expected_schema = &Schema {
         one_of: Some(vec![
             Schema {
-                bson_type: Some(BsonType::Single("int".to_string())),
+                bson_type: Some(BsonType::Single(BsonTypeName::Int)),
                 ..Default::default()
             },
             Schema {
-                bson_type: Some(BsonType::Single("null".to_string())),
+                bson_type: Some(BsonType::Single(BsonTypeName::Null)),
                 ..Default::default()
             }
         ]),
@@ -133,7 +133,7 @@ validate_json_schema!(
 validate_json_schema!(
     schema_with_extra_fields_ignored,
     expected_schema = &Schema {
-        bson_type: Some(BsonType::Single("int".to_string())),
+        bson_type: Some(BsonType::Single(BsonTypeName::Int)),
         ..Default::default()
     },
     expected_json = r#"{"bsonType":"int"}"#,
@@ -143,25 +143,25 @@ validate_json_schema!(
     schema_with_all_fields_non_default,
     expected_schema = &Schema {
         bson_type: Some(BsonType::Multiple(vec![
-            "object".to_string(),
-            "array".to_string()
+            BsonTypeName::Object,
+            BsonTypeName::Array
         ])),
         properties: Some(hashmap! { "a".to_string() => Schema {
-            bson_type: Some(BsonType::Single("int".to_string())),
+            bson_type: Some(BsonType::Single(BsonTypeName::Int)),
             ..Default::default()
         } }),
         required: Some(vec!["a".to_string()]),
         additional_properties: Some(true),
         items: Some(Items::Single(Box::new(Schema {
-            bson_type: Some(BsonType::Single("int".to_string())),
+            bson_type: Some(BsonType::Single(BsonTypeName::Int)),
             ..Default::default()
         }))),
         any_of: Some(vec![Schema {
-            bson_type: Some(BsonType::Single("int".to_string())),
+            bson_type: Some(BsonType::Single(BsonTypeName::Int)),
             ..Default::default()
         }]),
         one_of: Some(vec![Schema {
-            bson_type: Some(BsonType::Single("int".to_string())),
+            bson_type: Some(BsonType::Single(BsonTypeName::Int)),
             ..Default::default()
         }]),
     },
@@ -170,7 +170,7 @@ validate_json_schema!(
 validate_json_schema!(
     schema_with_items_as_array,
     expected_schema = &Schema {
-        bson_type: Some(BsonType::Single("array".to_string())),
+        bson_type: Some(BsonType::Single(BsonTypeName::Array)),
         items: Some(Items::Multiple(vec![Schema::default()])),
         ..Default::default()
     },

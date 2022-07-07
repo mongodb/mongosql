@@ -13,7 +13,6 @@ use lazy_static::lazy_static;
 use std::{
     collections::{BTreeMap, BTreeSet},
     iter::once,
-    str::FromStr,
 };
 use thiserror::Error;
 
@@ -25,6 +24,8 @@ pub enum Error {
     InvalidCombinationOfFields(),
     #[error("cannot exhaustively enumerate all field paths in schema {0:?}")]
     CannotEnumerateAllFieldPaths(Schema),
+    #[error("cannot convert bson type {0:?} to atomic")]
+    CannotConvertBsonTypeToAtomic(json_schema::BsonTypeName),
 }
 
 #[derive(PartialEq, Debug, Clone, Default)]
@@ -180,30 +181,33 @@ pub enum Atomic {
     SqlTime,
 }
 
-impl FromStr for Atomic {
-    type Err = Error;
+impl TryFrom<json_schema::BsonTypeName> for Atomic {
+    type Error = Error;
 
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s {
-            "string" => Ok(Atomic::String),
-            "int" => Ok(Atomic::Integer),
-            "double" => Ok(Atomic::Double),
-            "long" => Ok(Atomic::Long),
-            "decimal" => Ok(Atomic::Decimal),
-            "binData" => Ok(Atomic::BinData),
-            "objectId" => Ok(Atomic::ObjectId),
-            "bool" => Ok(Atomic::Boolean),
-            "date" => Ok(Atomic::Date),
-            "null" => Ok(Atomic::Null),
-            "regex" => Ok(Atomic::Regex),
-            "dbPointer" => Ok(Atomic::DbPointer),
-            "javascript" => Ok(Atomic::Javascript),
-            "symbol" => Ok(Atomic::Symbol),
-            "javascriptWithScope" => Ok(Atomic::JavascriptWithScope),
-            "timestamp" => Ok(Atomic::Timestamp),
-            "minKey" => Ok(Atomic::MinKey),
-            "maxKey" => Ok(Atomic::MaxKey),
-            _ => Err(Error::InvalidBSONType()),
+    fn try_from(t: json_schema::BsonTypeName) -> Result<Self, Self::Error> {
+        use json_schema::BsonTypeName;
+        match t {
+            BsonTypeName::String => Ok(Atomic::String),
+            BsonTypeName::Int => Ok(Atomic::Integer),
+            BsonTypeName::Double => Ok(Atomic::Double),
+            BsonTypeName::Long => Ok(Atomic::Long),
+            BsonTypeName::Decimal => Ok(Atomic::Decimal),
+            BsonTypeName::BinData => Ok(Atomic::BinData),
+            BsonTypeName::ObjectId => Ok(Atomic::ObjectId),
+            BsonTypeName::Bool => Ok(Atomic::Boolean),
+            BsonTypeName::Date => Ok(Atomic::Date),
+            BsonTypeName::Null => Ok(Atomic::Null),
+            BsonTypeName::Regex => Ok(Atomic::Regex),
+            BsonTypeName::DbPointer => Ok(Atomic::DbPointer),
+            BsonTypeName::Javascript => Ok(Atomic::Javascript),
+            BsonTypeName::Symbol => Ok(Atomic::Symbol),
+            BsonTypeName::JavascriptWithScope => Ok(Atomic::JavascriptWithScope),
+            BsonTypeName::Timestamp => Ok(Atomic::Timestamp),
+            BsonTypeName::MinKey => Ok(Atomic::MinKey),
+            BsonTypeName::MaxKey => Ok(Atomic::MaxKey),
+            BsonTypeName::Object | BsonTypeName::Array => {
+                Err(Error::CannotConvertBsonTypeToAtomic(t))
+            }
         }
     }
 }
@@ -256,7 +260,9 @@ impl TryFrom<Document> for json_schema::Schema {
 
     fn try_from(v: Document) -> Result<Self, Self::Error> {
         Ok(json_schema::Schema {
-            bson_type: Some(json_schema::BsonType::Single("object".to_string())),
+            bson_type: Some(json_schema::BsonType::Single(
+                json_schema::BsonTypeName::Object,
+            )),
             properties: Some(
                 v.keys
                     .into_iter()
@@ -289,32 +295,30 @@ impl From<Atomic> for json_schema::Schema {
     }
 }
 
-impl From<Atomic> for String {
+impl From<Atomic> for json_schema::BsonTypeName {
     fn from(v: Atomic) -> Self {
         use self::Atomic::*;
         match v {
-            Decimal => "decimal",
-            Double => "double",
-            Integer => "int",
-            Long => "long",
-            String => "string",
-            BinData => "binData",
-            ObjectId => "objectId",
-            Boolean => "bool",
-            Date => "date",
-            Null => "null",
-            Regex => "regex",
-            DbPointer => "dbPointer",
-            Javascript => "javascript",
-            Symbol => "symbol",
-            JavascriptWithScope => "javascriptWithScope",
-            Timestamp => "timestamp",
-            MinKey => "minKey",
-            MaxKey => "maxKey",
-            SqlDate => "sqlDate",
-            SqlTime => "sqlTime",
+            Decimal => json_schema::BsonTypeName::Decimal,
+            Double => json_schema::BsonTypeName::Double,
+            Integer => json_schema::BsonTypeName::Int,
+            Long => json_schema::BsonTypeName::Long,
+            String => json_schema::BsonTypeName::String,
+            BinData => json_schema::BsonTypeName::BinData,
+            ObjectId => json_schema::BsonTypeName::ObjectId,
+            Boolean => json_schema::BsonTypeName::Bool,
+            Date => json_schema::BsonTypeName::Date,
+            Null => json_schema::BsonTypeName::Null,
+            Regex => json_schema::BsonTypeName::Regex,
+            DbPointer => json_schema::BsonTypeName::DbPointer,
+            Javascript => json_schema::BsonTypeName::Javascript,
+            Symbol => json_schema::BsonTypeName::Symbol,
+            JavascriptWithScope => json_schema::BsonTypeName::JavascriptWithScope,
+            Timestamp => json_schema::BsonTypeName::Timestamp,
+            MinKey => json_schema::BsonTypeName::MinKey,
+            MaxKey => json_schema::BsonTypeName::MaxKey,
+            SqlDate | SqlTime => unreachable!(),
         }
-        .to_string()
     }
 }
 
@@ -357,7 +361,9 @@ impl TryFrom<Schema> for json_schema::Schema {
                 one_of: None,
             },
             Schema::Array(a) => json_schema::Schema {
-                bson_type: Some(json_schema::BsonType::Single("array".to_string())),
+                bson_type: Some(json_schema::BsonType::Single(
+                    json_schema::BsonTypeName::Array,
+                )),
                 properties: None,
                 required: None,
                 additional_properties: None,
@@ -948,68 +954,103 @@ impl TryFrom<json_schema::Schema> for Schema {
     fn try_from(v: json_schema::Schema) -> Result<Self, Self::Error> {
         // Explicitly match the valid combinations of JSON schema fields
         match v {
+            // The empty JSON schema is equivalent to `Any`. This would
+            // technically be handled correctly by the following branch, but
+            // this special case makes for a cleaner conversion (`Any` instead
+            // of an `AnyOf` representing all possible values of each type).
             json_schema::Schema {
-                bson_type: Some(bson_type),
+                bson_type: None,
+                properties: None,
+                required: None,
+                additional_properties: None,
+                items: None,
+                any_of: None,
+                one_of: None,
+            } => Ok(Schema::Any),
+
+            // This branch handles all other JSON schema validators that don't
+            // use `one_of` or `any_of`.
+            json_schema::Schema {
+                bson_type,
                 properties,
                 required,
                 additional_properties,
                 items,
                 any_of: None,
                 one_of: None,
-            } => match bson_type {
-                json_schema::BsonType::Single(s) => match s.as_str() {
-                    "array" => Ok(Schema::Array(Box::new(match items {
-                        // The single-schema variant of the `items`
-                        // field constrains all elements of the array.
-                        Some(json_schema::Items::Single(i)) => Schema::try_from(*i)?,
-                        // The multiple-schema variant of the `items`
-                        // field only asserts the schemas for the
-                        // array items at specified indexes, and
-                        // imposes no constraint on items at larger
-                        // indexes. As such, the only schema that can
-                        // describe all elements of the array is
-                        // `Any`.
-                        Some(json_schema::Items::Multiple(_)) => Schema::Any,
-                        // No `items` field means no constraints on
-                        // array elements.
-                        None => Schema::Any,
-                    }))),
-                    "object" => Ok(Schema::Document(Document::try_from(json_schema::Schema {
-                        properties,
-                        required,
-                        additional_properties,
-                        ..Default::default()
-                    })?)),
-                    _ => Ok(Schema::Atomic(Atomic::from_str(s.as_str())?)),
-                },
-                json_schema::BsonType::Multiple(m) => {
-                    // For each value in `bson_type`, construct a json_schema::Schema that only
-                    // contains the single type and any relevant fields and recursively call
-                    // Schema::try_from on it. Wrap the resulting vector in a Schema::AnyOf
-                    Ok(AnyOf(
-                        m.into_iter()
-                            .map(|bson_type| match bson_type.as_str() {
-                                "array" => Schema::try_from(json_schema::Schema {
-                                    bson_type: Some(json_schema::BsonType::Single(bson_type)),
-                                    items: items.clone(),
-                                    ..Default::default()
-                                }),
-                                "object" => Schema::try_from(json_schema::Schema {
-                                    bson_type: Some(json_schema::BsonType::Single(bson_type)),
-                                    properties: properties.clone(),
-                                    required: required.clone(),
-                                    additional_properties,
-                                    ..Default::default()
-                                }),
-                                _ => Schema::try_from(json_schema::Schema {
-                                    bson_type: Some(json_schema::BsonType::Single(bson_type)),
-                                    ..Default::default()
-                                }),
-                            })
-                            .collect::<Result<BTreeSet<Schema>, _>>()?,
-                    ))
+            } => {
+                let bson_type = bson_type.unwrap_or_else(|| {
+                    json_schema::BsonType::Multiple(
+                        json_schema::BsonTypeName::into_enum_iter().collect(),
+                    )
+                });
+                match bson_type {
+                    json_schema::BsonType::Single(json_schema::BsonTypeName::Array) => {
+                        Ok(Schema::Array(Box::new(match items {
+                            // The single-schema variant of the `items`
+                            // field constrains all elements of the array.
+                            Some(json_schema::Items::Single(i)) => Schema::try_from(*i)?,
+                            // The multiple-schema variant of the `items`
+                            // field only asserts the schemas for the
+                            // array items at specified indexes, and
+                            // imposes no constraint on items at larger
+                            // indexes. As such, the only schema that can
+                            // describe all elements of the array is
+                            // `Any`.
+                            Some(json_schema::Items::Multiple(_)) => Schema::Any,
+                            // No `items` field means no constraints on
+                            // array elements.
+                            None => Schema::Any,
+                        })))
+                    }
+                    json_schema::BsonType::Single(json_schema::BsonTypeName::Object) => {
+                        Ok(Schema::Document(Document::try_from(json_schema::Schema {
+                            properties,
+                            required,
+                            additional_properties,
+                            ..Default::default()
+                        })?))
+                    }
+                    json_schema::BsonType::Single(typ) => {
+                        Ok(Schema::Atomic(Atomic::try_from(typ)?))
+                    }
+                    json_schema::BsonType::Multiple(m) => {
+                        // For each value in `bson_type`, construct a json_schema::Schema that only
+                        // contains the single type and any relevant fields and recursively call
+                        // Schema::try_from on it. Wrap the resulting vector in a Schema::AnyOf
+                        Ok(AnyOf(
+                            m.into_iter()
+                                .map(|bson_type| match bson_type {
+                                    json_schema::BsonTypeName::Array => {
+                                        Schema::try_from(json_schema::Schema {
+                                            bson_type: Some(json_schema::BsonType::Single(
+                                                bson_type,
+                                            )),
+                                            items: items.clone(),
+                                            ..Default::default()
+                                        })
+                                    }
+                                    json_schema::BsonTypeName::Object => {
+                                        Schema::try_from(json_schema::Schema {
+                                            bson_type: Some(json_schema::BsonType::Single(
+                                                bson_type,
+                                            )),
+                                            properties: properties.clone(),
+                                            required: required.clone(),
+                                            additional_properties,
+                                            ..Default::default()
+                                        })
+                                    }
+                                    _ => Schema::try_from(json_schema::Schema {
+                                        bson_type: Some(json_schema::BsonType::Single(bson_type)),
+                                        ..Default::default()
+                                    }),
+                                })
+                                .collect::<Result<BTreeSet<Schema>, _>>()?,
+                        ))
+                    }
                 }
-            },
+            }
             json_schema::Schema {
                 bson_type: None,
                 properties: None,

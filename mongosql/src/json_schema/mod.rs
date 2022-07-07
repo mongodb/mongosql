@@ -1,6 +1,7 @@
 #[cfg(test)]
 mod test;
 
+use enum_iterator::IntoEnumIterator;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
@@ -26,8 +27,33 @@ pub struct Schema {
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
 #[serde(untagged)]
 pub enum BsonType {
-    Single(String),
-    Multiple(Vec<String>),
+    Single(BsonTypeName),
+    Multiple(Vec<BsonTypeName>),
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Debug, IntoEnumIterator, Copy, Clone)]
+#[serde(rename_all = "camelCase")]
+pub enum BsonTypeName {
+    Object,
+    Array,
+    Null,
+    String,
+    Int,
+    Double,
+    Long,
+    Decimal,
+    BinData,
+    ObjectId,
+    Bool,
+    Date,
+    Regex,
+    DbPointer,
+    Javascript,
+    Symbol,
+    JavascriptWithScope,
+    Timestamp,
+    MinKey,
+    MaxKey,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
