@@ -20,15 +20,17 @@ struct GroupBySelectAliasVisitor;
 
 impl Visitor for GroupBySelectAliasVisitor {
     fn visit_query(&mut self, query: ast::Query) -> ast::Query {
+        let query = query.walk(self);
+
         // Gather information about select expression aliases and identifier
         // group keys.
         let mut alias_matcher = MatchingAliasFinder::default();
-        let query = query.walk(&mut alias_matcher);
+        let query = alias_matcher.visit_query(query);
 
         // Rewrite group keys and select expressions as needed given the
         // information gathered above.
         let mut rewriter = alias_matcher.rewriter();
-        query.walk(&mut rewriter)
+        rewriter.visit_query(query)
     }
 }
 
@@ -62,10 +64,10 @@ impl Visitor for MatchingAliasFinder {
             // Don't walk into subqueries
             return subquery;
         }
-        let q = subquery.walk(self);
         self.skip_subqueries = true;
-        q
+        subquery.walk(self)
     }
+
     fn visit_select_expression(
         &mut self,
         select_expr: ast::SelectExpression,
@@ -106,10 +108,10 @@ impl Visitor for Rewriter {
             // Don't walk into subqueries
             return subquery;
         }
-        let q = subquery.walk(self);
         self.skip_subqueries = true;
-        q
+        subquery.walk(self)
     }
+
     fn visit_select_expression(
         &mut self,
         select_expr: ast::SelectExpression,

@@ -744,6 +744,20 @@ mod group_by_select_alias {
     );
 
     test_rewrite!(
+        do_not_rewrite_group_by_alias_in_subquery,
+        pass = GroupBySelectAliasRewritePass,
+        expected = Ok("SELECT * FROM (SELECT b AS a FROM mytbl) AS sub GROUP BY a"),
+        input = "SELECT * FROM (SELECT b AS a FROM mytbl) AS sub GROUP BY a",
+    );
+
+    test_rewrite!(
+        rewrite_to_alias_in_same_level_query_not_subquery,
+        pass = GroupBySelectAliasRewritePass,
+        expected = Ok("SELECT a FROM (SELECT b AS a FROM mytbl) AS sub GROUP BY sub.a AS a"),
+        input = "SELECT sub.a AS a FROM (SELECT b AS a FROM mytbl) AS sub GROUP BY a",
+    );
+
+    test_rewrite!(
         do_not_rewrite_if_select_values,
         pass = GroupBySelectAliasRewritePass,
         expected = Ok("SELECT VALUE {'b': a} FROM foo GROUP BY b"),
