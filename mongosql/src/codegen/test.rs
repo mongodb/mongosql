@@ -1463,7 +1463,10 @@ mod union {
 mod function {
     use crate::{
         codegen::Error,
-        ir::{definitions::*, schema::SchemaCache, Expression::*, LiteralValue, ScalarFunction::*},
+        ir::{
+            definitions::*, schema::SchemaCache, DateFunction, Expression::*, LiteralValue,
+            ScalarFunction::*,
+        },
     };
     use bson::bson;
 
@@ -2185,6 +2188,133 @@ mod function {
             mr.insert(("f", 0u16), "f");
             mr
         },
+    );
+    test_codegen_expr!(
+        extract_week_expr,
+        expected = Ok(bson!({"$week": "$f"})),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: Week,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        extract_day_of_year_expr,
+        expected = Ok(bson!({"$dayOfYear": "$f"})),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: DayOfYear,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        extract_iso_week_expr,
+        expected = Ok(bson!({"$isoWeek": "$f"})),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: IsoWeek,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        extract_weekday_expr,
+        expected = Ok(bson!({"$isoDayOfWeek": "$f"})),
+        input = ScalarFunction(ScalarFunctionApplication {
+            function: IsoWeekday,
+            args: vec![Expression::Reference(("f", 0u16).into()),],
+            cache: SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_codegen_expr!(
+        dateadd,
+        expected = Ok(
+            bson!({"$dateAdd": {"startDate": "$$NOW", "unit": {"$literal": "year"}, "amount": {"$literal": 5}}})
+        ),
+        input = DateFunction(DateFunctionApplication {
+            function: DateFunction::Add,
+            date_part: DatePart::Year,
+            args: vec![
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::Integer(5),
+                    cache: SchemaCache::new()
+                }),
+                ScalarFunction(ScalarFunctionApplication {
+                    function: CurrentTimestamp,
+                    args: vec![],
+                    cache: SchemaCache::new(),
+                }),
+            ],
+            cache: SchemaCache::new()
+        }),
+    );
+    test_codegen_expr!(
+        datediff,
+        expected = Ok(
+            bson!({"$dateDiff": {"startDate": "$$NOW", "endDate": "$$NOW", "unit": {"$literal": "year"}, "startOfWeek": {"$literal": "sunday"}}})
+        ),
+        input = DateFunction(DateFunctionApplication {
+            function: DateFunction::Diff,
+            date_part: DatePart::Year,
+            args: vec![
+                ScalarFunction(ScalarFunctionApplication {
+                    function: CurrentTimestamp,
+                    args: vec![],
+                    cache: SchemaCache::new(),
+                }),
+                ScalarFunction(ScalarFunctionApplication {
+                    function: CurrentTimestamp,
+                    args: vec![],
+                    cache: SchemaCache::new(),
+                }),
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::String("sunday".to_string()),
+                    cache: SchemaCache::new()
+                }),
+            ],
+            cache: SchemaCache::new()
+        }),
+    );
+    test_codegen_expr!(
+        datetrunc,
+        expected = Ok(
+            bson!({"$dateTrunc": {"date": "$$NOW", "unit": {"$literal": "year"}, "startOfWeek": {"$literal": "sunday"}}})
+        ),
+        input = DateFunction(DateFunctionApplication {
+            function: DateFunction::Trunc,
+            date_part: DatePart::Year,
+            args: vec![
+                ScalarFunction(ScalarFunctionApplication {
+                    function: CurrentTimestamp,
+                    args: vec![],
+                    cache: SchemaCache::new(),
+                }),
+                Expression::Literal(LiteralExpr {
+                    value: LiteralValue::String("sunday".to_string()),
+                    cache: SchemaCache::new()
+                }),
+            ],
+            cache: SchemaCache::new()
+        }),
     );
     test_codegen_expr!(
         computedfieldaccess_expr,

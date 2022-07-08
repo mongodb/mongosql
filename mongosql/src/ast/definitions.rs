@@ -206,6 +206,7 @@ pub enum Expression {
     Case(CaseExpr),
     Function(FunctionExpr),
     Trim(TrimExpr),
+    DateFunction(DateFunctionExpr),
     Extract(ExtractExpr),
     Cast(CastExpr),
     Array(Vec<Expression>),
@@ -291,9 +292,38 @@ pub struct FunctionExpr {
     pub set_quantifier: Option<SetQuantifier>,
 }
 
+#[derive(PartialEq, Debug, Clone, VariantCount)]
+pub enum DateFunctionName {
+    Add,
+    Diff,
+    Trunc,
+}
+
+#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
+pub enum DatePart {
+    Year,
+    Quarter,
+    Month,
+    Week,
+    Day,
+    Hour,
+    Minute,
+    Second,
+    DayOfYear,
+    IsoWeek,
+    IsoWeekday,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct DateFunctionExpr {
+    pub function: DateFunctionName,
+    pub date_part: DatePart,
+    pub args: Vec<Expression>,
+}
+
 #[derive(PartialEq, Debug, Clone)]
 pub struct ExtractExpr {
-    pub extract_spec: ExtractSpec,
+    pub extract_spec: DatePart,
     pub arg: Box<Expression>,
 }
 
@@ -508,16 +538,6 @@ impl FunctionArguments {
             FunctionArguments::Args(a) => a.is_empty(),
         }
     }
-}
-
-#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
-pub enum ExtractSpec {
-    Year,
-    Month,
-    Day,
-    Hour,
-    Minute,
-    Second,
 }
 
 #[derive(PartialEq, Debug, Clone, Copy, VariantCount)]

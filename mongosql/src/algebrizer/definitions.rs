@@ -90,6 +90,10 @@ pub enum Error {
     InvalidUnwindPath,
     #[error("invalid CAST target type '{0:?}'")]
     InvalidCast(ast::Type),
+    #[error("'{0:?}' is not a supported date part for EXTRACT")]
+    InvalidExtractDatePart(ast::DatePart),
+    #[error("'{0:?}' is not a supported date part for DATEADD, DATEDIFF, and DATETRUNC")]
+    InvalidDateFunctionDatePart(ast::DatePart),
 }
 
 impl TryFrom<ast::BinaryOp> for ir::ScalarFunction {
@@ -954,6 +958,7 @@ impl<'a> Algebrizer<'a> {
             ast::Expression::Function(f) => self.algebrize_function(f),
             ast::Expression::Between(b) => self.algebrize_between(b),
             ast::Expression::Trim(t) => self.algebrize_trim(t),
+            ast::Expression::DateFunction(d) => self.algebrize_date_function(d),
             ast::Expression::Extract(e) => self.algebrize_extract(e),
             ast::Expression::Access(a) => self.algebrize_access(a),
             ast::Expression::Case(c) => self.algebrize_case(c),
@@ -1138,15 +1143,20 @@ impl<'a> Algebrizer<'a> {
     }
 
     fn algebrize_extract(&self, e: ast::ExtractExpr) -> Result<ir::Expression> {
-        use crate::ast::ExtractSpec::*;
+        use crate::ast::DatePart::*;
         let function = match e.extract_spec {
-            Year => ir::ScalarFunction::Year,
-            Month => ir::ScalarFunction::Month,
-            Day => ir::ScalarFunction::Day,
-            Hour => ir::ScalarFunction::Hour,
-            Minute => ir::ScalarFunction::Minute,
-            Second => ir::ScalarFunction::Second,
-        };
+            Year => Ok(ir::ScalarFunction::Year),
+            Month => Ok(ir::ScalarFunction::Month),
+            Day => Ok(ir::ScalarFunction::Day),
+            Hour => Ok(ir::ScalarFunction::Hour),
+            Minute => Ok(ir::ScalarFunction::Minute),
+            Second => Ok(ir::ScalarFunction::Second),
+            Week => Ok(ir::ScalarFunction::Week),
+            DayOfYear => Ok(ir::ScalarFunction::DayOfYear),
+            IsoWeek => Ok(ir::ScalarFunction::IsoWeek),
+            IsoWeekday => Ok(ir::ScalarFunction::IsoWeekday),
+            Quarter => Err(Error::InvalidExtractDatePart(e.extract_spec)),
+        }?;
         schema_check_return!(
             self,
             ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
@@ -1154,6 +1164,42 @@ impl<'a> Algebrizer<'a> {
                 args: vec![self.algebrize_expression(*e.arg)?],
                 cache: SchemaCache::new(),
             }),
+        )
+    }
+
+    fn algebrize_date_function(&self, d: ast::DateFunctionExpr) -> Result<ir::Expression> {
+        use crate::ast::{DateFunctionName::*, DatePart::*};
+        let function = match d.function {
+            Add => ir::DateFunction::Add,
+            Diff => ir::DateFunction::Diff,
+            Trunc => ir::DateFunction::Trunc,
+        };
+        let date_part = match d.date_part {
+            Year => Ok(ir::DatePart::Year),
+            Month => Ok(ir::DatePart::Month),
+            Day => Ok(ir::DatePart::Day),
+            Hour => Ok(ir::DatePart::Hour),
+            Minute => Ok(ir::DatePart::Minute),
+            Second => Ok(ir::DatePart::Second),
+            Week => Ok(ir::DatePart::Week),
+            Quarter => Ok(ir::DatePart::Quarter),
+            IsoWeek | IsoWeekday | DayOfYear => {
+                Err(Error::InvalidDateFunctionDatePart(d.date_part))
+            }
+        }?;
+
+        schema_check_return!(
+            self,
+            ir::Expression::DateFunction(ir::DateFunctionApplication {
+                function,
+                date_part,
+                args: d
+                    .args
+                    .into_iter()
+                    .map(|e| self.algebrize_expression(e))
+                    .collect::<Result<_>>()?,
+                cache: SchemaCache::new(),
+            })
         )
     }
 

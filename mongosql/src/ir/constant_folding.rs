@@ -1048,6 +1048,7 @@ impl Visitor for ConstantFoldExprVisitor {
             Expression::Like(_) => e,
             Expression::Literal(_) => e,
             Expression::Reference(_) => e,
+            Expression::DateFunction(_) => e,
             Expression::ScalarFunction(f) => match f.function {
                 ScalarFunction::Add | ScalarFunction::Mul => {
                     self.fold_associative_arithmetic_function(f)

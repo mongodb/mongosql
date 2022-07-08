@@ -3,11 +3,11 @@ use crate::{
     ir::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
-        AggregationExpr, ScalarFunction, Stage, Type, TypeOrMissing,
+        AggregationExpr, DateFunction, DatePart, ScalarFunction, Stage, Type, TypeOrMissing,
     },
     map,
 };
-use bson::Bson;
+use bson::{bson, Bson};
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(PartialEq, Debug, Clone)]
@@ -190,10 +190,26 @@ impl ScalarFunction {
             Hour => "$hour",
             Minute => "$minute",
             Second => "$second",
+            Week => "$week",
+            DayOfYear => "$dayOfYear",
+            IsoWeek => "$isoWeek",
+            IsoWeekday => "$isoDayOfWeek",
+
             Split => "$sqlSplit",
 
             // MergeObject
             MergeObjects => "$mergeObjects",
+        })
+    }
+}
+
+impl DateFunction {
+    pub fn mql_op(self) -> Option<&'static str> {
+        use ir::DateFunction::*;
+        Some(match self {
+            Add => "$dateAdd",
+            Diff => "$dateDiff",
+            Trunc => "$dateTrunc",
         })
     }
 }
@@ -237,6 +253,22 @@ impl Type {
             Timestamp => "timestamp",
             Undefined => "undefined",
         }
+    }
+}
+
+impl DatePart {
+    pub fn mql_unit(self) -> bson::Bson {
+        use ir::DatePart::*;
+        bson! {{"$literal": match self {
+            Year => "year",
+            Month => "month",
+            Day => "day",
+            Hour => "hour",
+            Minute => "minute",
+            Second => "second",
+            Week => "week",
+            Quarter => "quarter",
+        }}}
     }
 }
 
@@ -922,6 +954,33 @@ impl MqlCodeGenerator {
                 }))
             }
             TypeAssertion(ta) => self.codegen_expression(*ta.expr),
+            DateFunction(da) => {
+                use crate::ir::DateFunction::*;
+                Ok(match da.function {
+                    Add => {
+                        bson::bson!({ da.function.mql_op().unwrap() : {
+                            "startDate": self.codegen_expression(da.args[1].clone())?,
+                            "unit": da.date_part.mql_unit(),
+                            "amount": self.codegen_expression(da.args[0].clone())?,
+                        }})
+                    }
+                    Diff => {
+                        bson::bson!({ da.function.mql_op().unwrap() : {
+                            "startDate": self.codegen_expression(da.args[0].clone())?,
+                            "endDate": self.codegen_expression(da.args[1].clone())?,
+                            "unit": da.date_part.mql_unit(),
+                            "startOfWeek": self.codegen_expression(da.args[2].clone())?,
+                        }})
+                    }
+                    Trunc => {
+                        bson::bson!({ da.function.mql_op().unwrap() : {
+                            "date": self.codegen_expression(da.args[0].clone())?,
+                            "unit": da.date_part.mql_unit(),
+                            "startOfWeek": self.codegen_expression(da.args[1].clone())?,
+                        }})
+                    }
+                })
+            }
             ScalarFunction(sa) => {
                 use crate::ir::ScalarFunction::*;
                 Ok(match sa.function {
@@ -940,7 +999,8 @@ impl MqlCodeGenerator {
                     }
                     CurrentTimestamp => Bson::String("$$NOW".to_string()),
                     CharLength | OctetLength | Size | Upper | Lower | Year | Month | Day | Hour
-                    | Minute | Second | Abs | Ceil | Degrees | Floor | Radians => {
+                    | Minute | Second | Week | IsoWeek | IsoWeekday | DayOfYear | Abs | Ceil
+                    | Degrees | Floor | Radians => {
                         bson::bson!({ sa.function.mql_op().unwrap(): self.codegen_expression(sa.args[0].clone())?})
                     }
                     BitLength => bson::bson!({

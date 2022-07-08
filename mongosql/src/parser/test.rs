@@ -1633,6 +1633,26 @@ mod scalar_function {
         input = "select extract(second from a)"
     );
     parsable!(
+        extract_week,
+        expected = true,
+        input = "select extract(week from a)"
+    );
+    parsable!(
+        extract_iso_week,
+        expected = true,
+        input = "select extract(iso_week from a)"
+    );
+    parsable!(
+        extract_iso_weekday,
+        expected = true,
+        input = "select extract(iso_weekday from a)"
+    );
+    parsable!(
+        extract_day_of_year,
+        expected = true,
+        input = "select extract(day_of_year from a)"
+    );
+    parsable!(
         slice_arr,
         expected = true,
         input = "select slice([42, 43, 44])"
@@ -1751,10 +1771,77 @@ mod scalar_function {
         extract_ast,
         method = parse_expression,
         expected = Expression::Extract(ExtractExpr {
-            extract_spec: ExtractSpec::Year,
+            extract_spec: DatePart::Year,
             arg: Box::new(Expression::Identifier("a".to_string()))
         }),
         input = "extract(year from a)",
+    );
+    validate_ast!(
+        dateadd_ast,
+        method = parse_expression,
+        expected = Expression::DateFunction(DateFunctionExpr {
+            function: DateFunctionName::Add,
+            date_part: DatePart::Year,
+            args: vec![
+                Expression::Literal(Literal::Integer(5)),
+                Expression::Identifier("a".to_string())
+            ]
+        }),
+        input = "dateadd(year, 5, a)",
+    );
+    validate_ast!(
+        datediff_ast,
+        method = parse_expression,
+        expected = Expression::DateFunction(DateFunctionExpr {
+            function: DateFunctionName::Diff,
+            date_part: DatePart::Year,
+            args: vec![
+                Expression::Identifier("a".to_string()),
+                Expression::Identifier("b".to_string()),
+                Expression::Literal(Literal::String("sunday".to_string())),
+            ],
+        }),
+        input = "datediff(year, a, b)",
+    );
+    validate_ast!(
+        datediff_start_of_week_ast,
+        method = parse_expression,
+        expected = Expression::DateFunction(DateFunctionExpr {
+            function: DateFunctionName::Diff,
+            date_part: DatePart::Year,
+            args: vec![
+                Expression::Identifier("a".to_string()),
+                Expression::Identifier("b".to_string()),
+                Expression::Identifier("wednesday".to_string())
+            ],
+        }),
+        input = "datediff(year, a, b, wednesday)",
+    );
+    validate_ast!(
+        datetrunc_ast,
+        method = parse_expression,
+        expected = Expression::DateFunction(DateFunctionExpr {
+            function: DateFunctionName::Trunc,
+            date_part: DatePart::Year,
+            args: vec![
+                Expression::Identifier("a".to_string()),
+                Expression::Literal(Literal::String("sunday".to_string())),
+            ]
+        }),
+        input = "datetrunc(year, a)",
+    );
+    validate_ast!(
+        datetrunc_start_of_week_ast,
+        method = parse_expression,
+        expected = Expression::DateFunction(DateFunctionExpr {
+            function: DateFunctionName::Trunc,
+            date_part: DatePart::Year,
+            args: vec![
+                Expression::Identifier("a".to_string()),
+                Expression::Identifier("wednesday".to_string())
+            ],
+        }),
+        input = "datetrunc(year, a, wednesday)",
     );
     validate_ast!(
         trim_default_spec,

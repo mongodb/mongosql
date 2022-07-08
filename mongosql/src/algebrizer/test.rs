@@ -999,7 +999,32 @@ mod expression {
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::ExtractSpec::Year,
+            extract_spec: ast::DatePart::Year,
+            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::CurrentTimestamp,
+                args: ast::FunctionArguments::Args(vec![]),
+                set_quantifier: Some(ast::SetQuantifier::All)
+            })),
+        }),
+    );
+    test_algebrize!(
+        extract_month,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::Month,
+                args: vec![ir::Expression::ScalarFunction(
+                    ir::ScalarFunctionApplication {
+                        function: ir::ScalarFunction::CurrentTimestamp,
+                        args: vec![],
+                        cache: SchemaCache::new(),
+                    }
+                ),],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Extract(ast::ExtractExpr {
+            extract_spec: ast::DatePart::Month,
             arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
                 function: ast::FunctionName::CurrentTimestamp,
                 args: ast::FunctionArguments::Args(vec![]),
@@ -1024,7 +1049,7 @@ mod expression {
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::ExtractSpec::Day,
+            extract_spec: ast::DatePart::Day,
             arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
                 function: ast::FunctionName::CurrentTimestamp,
                 args: ast::FunctionArguments::Args(vec![]),
@@ -1049,7 +1074,7 @@ mod expression {
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::ExtractSpec::Hour,
+            extract_spec: ast::DatePart::Hour,
             arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
                 function: ast::FunctionName::CurrentTimestamp,
                 args: ast::FunctionArguments::Args(vec![]),
@@ -1074,7 +1099,7 @@ mod expression {
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::ExtractSpec::Minute,
+            extract_spec: ast::DatePart::Minute,
             arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
                 function: ast::FunctionName::CurrentTimestamp,
                 args: ast::FunctionArguments::Args(vec![]),
@@ -1099,7 +1124,82 @@ mod expression {
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::ExtractSpec::Second,
+            extract_spec: ast::DatePart::Second,
+            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::CurrentTimestamp,
+                args: ast::FunctionArguments::Args(vec![]),
+                set_quantifier: Some(ast::SetQuantifier::All)
+            })),
+        }),
+    );
+    test_algebrize!(
+        extract_day_of_year,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::DayOfYear,
+                args: vec![ir::Expression::ScalarFunction(
+                    ir::ScalarFunctionApplication {
+                        function: ir::ScalarFunction::CurrentTimestamp,
+                        args: vec![],
+                        cache: SchemaCache::new(),
+                    }
+                ),],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Extract(ast::ExtractExpr {
+            extract_spec: ast::DatePart::DayOfYear,
+            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::CurrentTimestamp,
+                args: ast::FunctionArguments::Args(vec![]),
+                set_quantifier: Some(ast::SetQuantifier::All)
+            })),
+        }),
+    );
+    test_algebrize!(
+        extract_iso_week,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::IsoWeek,
+                args: vec![ir::Expression::ScalarFunction(
+                    ir::ScalarFunctionApplication {
+                        function: ir::ScalarFunction::CurrentTimestamp,
+                        args: vec![],
+                        cache: SchemaCache::new(),
+                    }
+                ),],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Extract(ast::ExtractExpr {
+            extract_spec: ast::DatePart::IsoWeek,
+            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::CurrentTimestamp,
+                args: ast::FunctionArguments::Args(vec![]),
+                set_quantifier: Some(ast::SetQuantifier::All)
+            })),
+        }),
+    );
+    test_algebrize!(
+        extract_iso_weekday,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::ScalarFunction(
+            ir::ScalarFunctionApplication {
+                function: ir::ScalarFunction::IsoWeekday,
+                args: vec![ir::Expression::ScalarFunction(
+                    ir::ScalarFunctionApplication {
+                        function: ir::ScalarFunction::CurrentTimestamp,
+                        args: vec![],
+                        cache: SchemaCache::new(),
+                    }
+                ),],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Extract(ast::ExtractExpr {
+            extract_spec: ast::DatePart::IsoWeekday,
             arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
                 function: ast::FunctionName::CurrentTimestamp,
                 args: ast::FunctionArguments::Args(vec![]),
@@ -1116,8 +1216,144 @@ mod expression {
             found: Schema::Atomic(Atomic::Integer),
         })),
         input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::ExtractSpec::Second,
+            extract_spec: ast::DatePart::Second,
             arg: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+        }),
+    );
+    test_algebrize!(
+        unsupported_extract_date_part,
+        method = algebrize_expression,
+        expected = Err(Error::InvalidExtractDatePart(ast::DatePart::Quarter)),
+        input = ast::Expression::Extract(ast::ExtractExpr {
+            extract_spec: ast::DatePart::Quarter,
+            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::CurrentTimestamp,
+                args: ast::FunctionArguments::Args(vec![]),
+                set_quantifier: Some(ast::SetQuantifier::All)
+            })),
+        }),
+    );
+    test_algebrize!(
+        dateadd,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::DateFunction(ir::DateFunctionApplication {
+            function: ir::DateFunction::Add,
+            date_part: ir::DatePart::Quarter,
+            args: vec![
+                ir::Expression::Literal(ir::LiteralExpr {
+                    value: ir::LiteralValue::Integer(5),
+                    cache: SchemaCache::new()
+                }),
+                ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                    function: ir::ScalarFunction::CurrentTimestamp,
+                    args: vec![],
+                    cache: SchemaCache::new(),
+                }),
+            ],
+            cache: SchemaCache::new(),
+        })),
+        input = ast::Expression::DateFunction(ast::DateFunctionExpr {
+            function: ast::DateFunctionName::Add,
+            date_part: ast::DatePart::Quarter,
+            args: vec![
+                ast::Expression::Literal(ast::Literal::Integer(5)),
+                ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::CurrentTimestamp,
+                    args: ast::FunctionArguments::Args(vec![]),
+                    set_quantifier: Some(ast::SetQuantifier::All)
+                })
+            ],
+        }),
+    );
+    test_algebrize!(
+        datediff,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::DateFunction(ir::DateFunctionApplication {
+            function: ir::DateFunction::Diff,
+            date_part: ir::DatePart::Week,
+            args: vec![
+                ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                    function: ir::ScalarFunction::CurrentTimestamp,
+                    args: vec![],
+                    cache: SchemaCache::new(),
+                }),
+                ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                    function: ir::ScalarFunction::CurrentTimestamp,
+                    args: vec![],
+                    cache: SchemaCache::new(),
+                }),
+                ir::Expression::Literal(ir::LiteralExpr {
+                    value: ir::LiteralValue::String("sunday".to_string()),
+                    cache: SchemaCache::new()
+                })
+            ],
+            cache: SchemaCache::new(),
+        })),
+        input = ast::Expression::DateFunction(ast::DateFunctionExpr {
+            function: ast::DateFunctionName::Diff,
+            date_part: ast::DatePart::Week,
+            args: vec![
+                ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::CurrentTimestamp,
+                    args: ast::FunctionArguments::Args(vec![]),
+                    set_quantifier: Some(ast::SetQuantifier::All)
+                }),
+                ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::CurrentTimestamp,
+                    args: ast::FunctionArguments::Args(vec![]),
+                    set_quantifier: Some(ast::SetQuantifier::All)
+                }),
+                ast::Expression::Literal(ast::Literal::String("sunday".to_string()))
+            ],
+        }),
+    );
+    test_algebrize!(
+        datetrunc,
+        method = algebrize_expression,
+        expected = Ok(ir::Expression::DateFunction(ir::DateFunctionApplication {
+            function: ir::DateFunction::Trunc,
+            date_part: ir::DatePart::Year,
+            args: vec![
+                ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+                    function: ir::ScalarFunction::CurrentTimestamp,
+                    args: vec![],
+                    cache: SchemaCache::new(),
+                }),
+                ir::Expression::Literal(ir::LiteralExpr {
+                    value: ir::LiteralValue::String("sunday".to_string()),
+                    cache: SchemaCache::new()
+                })
+            ],
+            cache: SchemaCache::new(),
+        })),
+        input = ast::Expression::DateFunction(ast::DateFunctionExpr {
+            function: ast::DateFunctionName::Trunc,
+            date_part: ast::DatePart::Year,
+            args: vec![
+                ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::CurrentTimestamp,
+                    args: ast::FunctionArguments::Args(vec![]),
+                    set_quantifier: Some(ast::SetQuantifier::All)
+                }),
+                ast::Expression::Literal(ast::Literal::String("sunday".to_string()))
+            ],
+        }),
+    );
+    test_algebrize!(
+        unsupported_date_function_date_part,
+        method = algebrize_expression,
+        expected = Err(Error::InvalidDateFunctionDatePart(ast::DatePart::IsoWeek)),
+        input = ast::Expression::DateFunction(ast::DateFunctionExpr {
+            function: ast::DateFunctionName::Trunc,
+            date_part: ast::DatePart::IsoWeek,
+            args: vec![
+                ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::CurrentTimestamp,
+                    args: ast::FunctionArguments::Args(vec![]),
+                    set_quantifier: Some(ast::SetQuantifier::All)
+                }),
+                ast::Expression::Literal(ast::Literal::String("sunday".to_string()))
+            ],
         }),
     );
 

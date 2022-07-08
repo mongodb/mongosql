@@ -183,6 +183,7 @@ pub enum Expression {
     Reference(ReferenceExpr),
     Array(ArrayExpr),
     Document(DocumentExpr),
+    DateFunction(DateFunctionApplication),
     ScalarFunction(ScalarFunctionApplication),
     Cast(CastExpr),
     SearchedCase(SearchedCaseExpr),
@@ -421,6 +422,10 @@ pub enum ScalarFunction {
     Hour,
     Minute,
     Second,
+    Week,
+    DayOfYear,
+    IsoWeek,
+    IsoWeekday,
 
     // MergeObjects merges an array of objects
     MergeObjects,
@@ -445,6 +450,10 @@ impl ScalarFunction {
             ScalarFunction::Hour => "Hour",
             ScalarFunction::Minute => "Minute",
             ScalarFunction::Second => "Second",
+            ScalarFunction::Week => "Week",
+            ScalarFunction::IsoWeek => "IsoWeek",
+            ScalarFunction::IsoWeekday => "IsoWeekday",
+            ScalarFunction::DayOfYear => "DayOfYear",
             ScalarFunction::Abs => "Abs",
             ScalarFunction::Ceil => "Ceil",
             ScalarFunction::Degrees => "Degrees",
@@ -484,6 +493,44 @@ impl ScalarFunction {
             ScalarFunction::BTrim => "BTrim",
             ScalarFunction::Upper => "Upper",
             ScalarFunction::MergeObjects => "MergeObjects",
+        }
+    }
+}
+
+#[derive(PartialEq, Debug, Clone, Copy)]
+pub enum DatePart {
+    Year,
+    Quarter,
+    Month,
+    Week,
+    Day,
+    Hour,
+    Minute,
+    Second,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum DateFunction {
+    Add,
+    Diff,
+    Trunc,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct DateFunctionApplication {
+    pub function: DateFunction,
+    pub date_part: DatePart,
+    pub args: Vec<Expression>,
+    pub cache: SchemaCache<Schema>,
+}
+
+impl DateFunction {
+    /// Returns a string of the function enum.
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            DateFunction::Add => "DateAdd",
+            DateFunction::Diff => "DateDiff",
+            DateFunction::Trunc => "DateTrunc",
         }
     }
 }

@@ -18,8 +18,8 @@ use thiserror::Error;
 
 #[derive(Debug, Error, PartialEq)]
 pub enum Error {
-    #[error("is not a valid BSON type")]
-    InvalidBSONType(),
+    #[error("{0:?} is not a valid BSON type")]
+    InvalidBSONType(String),
     #[error("invalid combination of fields")]
     InvalidCombinationOfFields(),
     #[error("cannot exhaustively enumerate all field paths in schema {0:?}")]
@@ -345,7 +345,7 @@ impl TryFrom<Schema> for json_schema::Schema {
                 any_of: Some(vec![]),
                 one_of: None,
             },
-            Schema::Missing => return Err(Error::InvalidBSONType()),
+            Schema::Missing => return Err(Error::InvalidBSONType("missing".to_string())),
             Schema::Atomic(a) => a.into(),
             Schema::AnyOf(ao) => json_schema::Schema {
                 bson_type: None,
@@ -432,6 +432,12 @@ lazy_static! {
         Schema::Atomic(Atomic::Long),
         Schema::Atomic(Atomic::Double),
         Schema::Atomic(Atomic::Decimal),
+        Schema::Atomic(Atomic::Null),
+        Schema::Missing,
+    ]);
+    pub static ref INTEGER_LONG_OR_NULLISH: Schema = Schema::AnyOf(set![
+        Schema::Atomic(Atomic::Integer),
+        Schema::Atomic(Atomic::Long),
         Schema::Atomic(Atomic::Null),
         Schema::Missing,
     ]);

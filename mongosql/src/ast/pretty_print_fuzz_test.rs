@@ -449,28 +449,29 @@ mod arbitrary {
                 4 => Self::Function(FunctionExpr::arbitrary(nested_g)),
                 5 => Self::Trim(TrimExpr::arbitrary(nested_g)),
                 6 => Self::Extract(ExtractExpr::arbitrary(nested_g)),
-                7 => Self::Cast(CastExpr::arbitrary(nested_g)),
-                8 => Self::Array(
+                7 => Self::DateFunction(DateFunctionExpr::arbitrary(nested_g)),
+                8 => Self::Cast(CastExpr::arbitrary(nested_g)),
+                9 => Self::Array(
                     (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
                         .map(|_| Self::arbitrary(nested_g))
                         .collect(),
                 ),
-                9 => Self::Subquery(Box::new(Query::arbitrary(nested_g))),
-                10 => Self::Exists(Box::new(Query::arbitrary(nested_g))),
-                11 => Self::SubqueryComparison(SubqueryComparisonExpr::arbitrary(nested_g)),
-                12 => Self::Document(
+                10 => Self::Subquery(Box::new(Query::arbitrary(nested_g))),
+                11 => Self::Exists(Box::new(Query::arbitrary(nested_g))),
+                12 => Self::SubqueryComparison(SubqueryComparisonExpr::arbitrary(nested_g)),
+                13 => Self::Document(
                     (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
                         .map(|_| DocumentPair::arbitrary(nested_g))
                         .collect(),
                 ),
-                13 => Self::Access(AccessExpr::arbitrary(nested_g)),
-                14 => Self::Subpath(SubpathExpr::arbitrary(nested_g)),
-                15 => Self::Identifier(arbitrary_identifier(g)),
-                16 => Self::Is(IsExpr::arbitrary(nested_g)),
-                17 => Self::Like(LikeExpr::arbitrary(nested_g)),
-                18 => Self::Literal(Literal::arbitrary(nested_g)),
-                19 => Self::Tuple((1..4).map(|_| Self::arbitrary(nested_g)).collect()),
-                20 => Self::TypeAssertion(TypeAssertionExpr::arbitrary(nested_g)),
+                14 => Self::Access(AccessExpr::arbitrary(nested_g)),
+                15 => Self::Subpath(SubpathExpr::arbitrary(nested_g)),
+                16 => Self::Identifier(arbitrary_identifier(g)),
+                17 => Self::Is(IsExpr::arbitrary(nested_g)),
+                18 => Self::Like(LikeExpr::arbitrary(nested_g)),
+                19 => Self::Literal(Literal::arbitrary(nested_g)),
+                20 => Self::Tuple((1..4).map(|_| Self::arbitrary(nested_g)).collect()),
+                21 => Self::TypeAssertion(TypeAssertionExpr::arbitrary(nested_g)),
                 _ => panic!("missing Expression variant(s)"),
             }
         }
@@ -621,8 +622,47 @@ mod arbitrary {
     impl Arbitrary for ExtractExpr {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
-                extract_spec: ExtractSpec::arbitrary(g),
+                extract_spec: DatePart::arbitrary(g),
                 arg: Box::new(Expression::arbitrary(g)),
+            }
+        }
+    }
+    impl Arbitrary for DateFunctionName {
+        fn arbitrary(g: &mut Gen) -> Self {
+            // Intentionally omitting Diff because it cannot be built
+            // as arbitrarily as the other functions, as noted in
+            // DateFunctionExpr::arbitrary.
+            let rng = &(0..(Self::VARIANT_COUNT - 1)).collect::<Vec<_>>();
+            match g.choose(rng).unwrap() {
+                0 => Self::Add,
+                1 => Self::Trunc,
+                _ => panic!("missing DateFunctionName variant(s)"),
+            }
+        }
+    }
+
+    impl Arbitrary for DateFunctionExpr {
+        fn arbitrary(g: &mut Gen) -> Self {
+            // DateDiff needs to be special-cased since it requires more arguments
+            // than the other two date functions.
+            let rng = &(0..DateFunctionName::VARIANT_COUNT).collect::<Vec<_>>();
+            match g.choose(rng).unwrap() {
+                // DateDiff can syntactically accept exactly 3 non-date part arguments.
+                0 => Self {
+                    function: DateFunctionName::Diff,
+                    date_part: DatePart::arbitrary(g),
+                    args: vec![
+                        Expression::arbitrary(g),
+                        Expression::arbitrary(g),
+                        Expression::arbitrary(g),
+                    ],
+                },
+                // DateAdd and DateTrunc can syntactically accept 1 or 2 non-date part arguments.
+                _ => Self {
+                    function: DateFunctionName::arbitrary(g),
+                    date_part: DatePart::arbitrary(g),
+                    args: vec![Expression::arbitrary(g), Expression::arbitrary(g)],
+                },
             }
         }
     }
@@ -706,9 +746,11 @@ mod arbitrary {
         }
     }
 
-    impl Arbitrary for ExtractSpec {
+    impl Arbitrary for DatePart {
         fn arbitrary(g: &mut Gen) -> Self {
-            let rng = &(0..Self::VARIANT_COUNT).collect::<Vec<_>>();
+            let rng = &(0..Self::VARIANT_COUNT - 4).collect::<Vec<_>>();
+            // Intentionally omitting Quarter, DayOfYear, IsoWeek, and IsoWeekday so
+            // both Extract and DateFunction can utilize this method.
             match g.choose(rng).unwrap() {
                 0 => Self::Year,
                 1 => Self::Month,
@@ -716,7 +758,8 @@ mod arbitrary {
                 3 => Self::Hour,
                 4 => Self::Minute,
                 5 => Self::Second,
-                _ => panic!("missing ExtractSpec variant(s)"),
+                6 => Self::Week,
+                _ => panic!("missing DatePart variant(s)"),
             }
         }
     }

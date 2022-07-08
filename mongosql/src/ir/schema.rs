@@ -9,7 +9,8 @@ use crate::{
     schema::{
         Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_ARRAY,
         ANY_ARRAY_OR_NULLISH, ANY_DOCUMENT, BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, EMPTY_DOCUMENT,
-        INTEGER_OR_NULLISH, NULLISH, NUMERIC, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
+        INTEGER_LONG_OR_NULLISH, INTEGER_OR_NULLISH, NULLISH, NUMERIC, NUMERIC_OR_NULLISH,
+        STRING_OR_NULLISH,
     },
     set,
     util::unique_linked_hash_map::UniqueLinkedHashMap,
@@ -1035,6 +1036,7 @@ impl CachedSchema for Expression {
             Expression::Reference(r) => &r.cache,
             Expression::Array(a) => &a.cache,
             Expression::Document(d) => &d.cache, // TODO: investigate how to add a cache on the hashmap
+            Expression::DateFunction(d) => &d.cache,
             Expression::ScalarFunction(s) => &s.cache,
             Expression::Cast(s) => &s.cache,
             Expression::SearchedCase(s) => &s.cache,
@@ -1084,6 +1086,7 @@ impl CachedSchema for Expression {
                 }
                 Ok(Expression::get_field_schema(&accessee_schema, field))
             }
+            Expression::DateFunction(d) => d.schema(state),
             Expression::ScalarFunction(f) => f.schema(state),
             Expression::Cast(c) => c.schema(state),
             Expression::SearchedCase(sc) => sc.schema(state),
@@ -1143,6 +1146,17 @@ impl LiteralValue {
             Long(_) => Schema::Atomic(Atomic::Long),
             Double(_) => Schema::Atomic(Atomic::Double),
         })
+    }
+}
+
+impl DateFunctionApplication {
+    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        let args = self
+            .args
+            .iter()
+            .map(|x| x.schema(state))
+            .collect::<Result<Vec<_>, _>>()?;
+        self.function.schema(state, &args)
     }
 }
 
@@ -1417,6 +1431,55 @@ impl SQLFunction for AggregationFunction {
     }
 }
 
+impl SQLFunction for DateFunction {
+    fn as_str(&self) -> &'static str {
+        self.as_str()
+    }
+}
+
+impl DateFunction {
+    pub fn schema(
+        &self,
+        state: &SchemaInferenceState,
+        arg_schemas: &[Schema],
+    ) -> Result<Schema, Error> {
+        use DateFunction::*;
+        match self {
+            Add => {
+                self.ensure_arg_count(arg_schemas.len(), 2)?;
+                self.propagate_fixed_null_arguments(
+                    state,
+                    arg_schemas,
+                    &[INTEGER_LONG_OR_NULLISH.clone(), DATE_OR_NULLISH.clone()],
+                    Schema::Atomic(Atomic::Date),
+                )
+            }
+            Diff => {
+                self.ensure_arg_count(arg_schemas.len(), 3)?;
+                self.propagate_fixed_null_arguments(
+                    state,
+                    arg_schemas,
+                    &[
+                        DATE_OR_NULLISH.clone(),
+                        DATE_OR_NULLISH.clone(),
+                        STRING_OR_NULLISH.clone(),
+                    ],
+                    Schema::Atomic(Atomic::Integer),
+                )
+            }
+            Trunc => {
+                self.ensure_arg_count(arg_schemas.len(), 2)?;
+                self.propagate_fixed_null_arguments(
+                    state,
+                    arg_schemas,
+                    &[DATE_OR_NULLISH.clone(), STRING_OR_NULLISH.clone()],
+                    Schema::Atomic(Atomic::Date),
+                )
+            }
+        }
+    }
+}
+
 impl ScalarFunction {
     pub fn schema(
         &self,
@@ -1538,7 +1601,8 @@ impl ScalarFunction {
                 &[STRING_OR_NULLISH.clone()],
                 Schema::Atomic(Atomic::Integer),
             ),
-            Year | Month | Day | Hour | Minute | Second => self.propagate_fixed_null_arguments(
+            Year | Month | Day | Hour | Minute | Second | Week | IsoWeek | IsoWeekday
+            | DayOfYear => self.propagate_fixed_null_arguments(
                 state,
                 arg_schemas,
                 &[DATE_OR_NULLISH.clone()],

@@ -292,11 +292,16 @@ catalog_data:
       - {'_id': 17, 'str': 'λ-bee-寿-d', 'delim': '-', 'tokenNum': { '$numberInt': '2' }}
       - {'_id': 18, 'str': 'λ€bee€寿€d', 'delim': '€', 'tokenNum': { '$numberInt': '2' }}
       - {'_id': 19}
+    # The date function tests use timestamps as opposed to date strings. The date
+    # string to timestamp conversions are provided below for better readability.
+    # { $toLong: new Date('2022-06-02T03:55:13Z') } => 1654142113000
+    # { $toLong: new Date('2024-08-10T05:58:19Z') } => 1723269499000
+    # { $toLong: new Date('2019-03-01T02:35:08Z') } => 1551407708000
     dates:
-      - {'_id': 0, 'date1': "2022-06-02T03:55:13" , 'date2': "2024-08-10T05:58:19", 'interval': { '$numberInt': '3' } }
-      - {'_id': 1, 'date1': "2022-06-02T03:55:13", 'date2': "2019-03-01T02:35:08", 'interval': { '$numberInt': '-3' } }
-    extract:
-      - {'_id': 0, 'date1': "2022-06-02T03:55:13", 'date2': "2024-08-10T05:58:19" }
+      - { '_id': 0, 'date1': { '$date': { '$numberLong': '1654142113000' } }, 'date2': { '$date': { '$numberLong': '1723269499000' } }, 'interval': { '$numberInt': '3' } }
+      - { '_id': 1, 'date1': { '$date': { '$numberLong': '1654142113000' } }, 'date2': { '$date': { '$numberLong': '1551407708000' } }, 'interval': { '$numberLong': '-3' } }
+    datepart:
+      - { '_id': 0, 'date1': { '$date': { '$numberLong': '1654142113000' } } }
 
 catalog_schema:
   {
@@ -597,6 +602,41 @@ catalog_schema:
             ]
           }
         }
+      },
+      "dates": {
+        "bsonType": "object",
+        "required": [ '_id', 'interval', 'date1', 'date2' ],
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "date1": {
+            "bsonType": "date"
+          },
+          "date2": {
+            "bsonType": "date"
+          },
+          "interval": {
+            "anyOf": [
+              { "bsonType": "int" },
+              { "bsonType": "long" }
+            ]
+          }
+        },
+        "additionalProperties": false,
+      },
+      "datepart": {
+        "bsonType": "object",
+        "required": [ '_id', 'date1' ],
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+          "date1": {
+            "bsonType": "date"
+          },
+        },
+        "additionalProperties": false,
       }
     }
   }
@@ -1359,7 +1399,7 @@ tests:
       - { $project: { _id: 0, c: "$split" } }
       - { $project: { _id: 0, __bot: { str: "$c.str", delim: "$c.delim", tokenNum: "$c.tokenNum", v: { $sqlSplit: [ "$c.str", "$c.delim", "$c.tokenNum" ] }}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-        {'$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+          {'$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
     result:
       - {'': {'str': '', 'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': ''}}
@@ -1385,101 +1425,204 @@ tests:
 
   - description: YEAR correctness tests
     current_db: foo
-    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'interval': interval, 'dateadd': DATEADD(YEAR, interval, date1::TIMESTAMP), 'datepart': EXTRACT(YEAR, date1::TIMESTAMP), 'datediff': DATEDIFF(YEAR, date1::TIMESTAMP, date2::TIMESTAMP), 'datetrunc': DATETRUNC(YEAR, date1::TIMESTAMP)} FROM dates AS d"
-    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    translation_target_db: foo
+    translation_target_coll: dates
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(YEAR, interval, date1), 'datepart': EXTRACT(YEAR FROM date1), 'datediff': DATEDIFF(YEAR, date1, date2), 'datetrunc': DATETRUNC(YEAR, date1)} FROM dates AS d"
+    translation:
+      - { $project: { _id: 0, dates: "$$ROOT" } }
+      - { $project: { _id: 0, d: "$dates" } }
+      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'year'}, 'amount': '$d.interval' } }, datepart: { '$year': '$d.date1' }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'year'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'year'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        } } } }
     result:
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': '2025-06-02T03:55:13' }, 'datepart': { '$numberInt': '2022' }, 'datediff': { '$numberLong': '-2' }, 'datetrunc': { '$date': '2022-01-01T00:00:00' } } }
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'interval': { '$numberInt': '-3' }, 'dateadd': { '$date': '2019-06-02T03:55:13' }, 'datepart': { '$numberInt': '2022' }, 'datediff': { '$numberLong': '3' }, 'datetrunc': { '$date': '2022-01-01T00:00:00' } } }
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { "$date": { '$numberLong': '1748836513000' } }, 'datepart': { '$numberInt': '2022' }, 'datediff': { '$numberLong': '2' }, 'datetrunc': { "$date": { '$numberLong': '1640995200000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { "$date": { '$numberLong': '1559447713000' } }, 'datepart': { '$numberInt': '2022' }, 'datediff': { '$numberLong': '-3' }, 'datetrunc': { "$date": { '$numberLong': '1640995200000' } } } }
 
   - description: MONTH correctness tests
     current_db: foo
-    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'interval': interval, 'dateadd': DATEADD(MONTH, interval, date1::TIMESTAMP), 'datepart': EXTRACT(MONTH, date1::TIMESTAMP), 'datediff': DATEDIFF(MONTH, date1::TIMESTAMP, date2::TIMESTAMP), 'datetrunc': DATETRUNC(MONTH, date1::TIMESTAMP)} FROM dates AS d"
-    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    translation_target_db: foo
+    translation_target_coll: dates
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(MONTH, interval, date1), 'datepart': EXTRACT(MONTH FROM date1), 'datediff': DATEDIFF(MONTH, date1, date2), 'datetrunc': DATETRUNC(MONTH, date1)} FROM dates AS d"
+    translation:
+      - { $project: { _id: 0, dates: "$$ROOT" } }
+      - { $project: { _id: 0, d: "$dates" } }
+      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'month'}, 'amount': '$d.interval' } }, datepart: { '$month': '$d.date1' }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'month'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'month'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        } } } }
     result:
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': '2022-09-02T03:55:13' }, 'datepart': { '$numberInt': '6' }, 'datediff': { '$numberLong': '26' }, 'datetrunc': { '$date': '2022-06-01T00:00:00' } } }
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'interval': { '$numberInt': '-3' }, 'dateadd': { '$date': '2022-03-02T03:55:13' }, 'datepart': { '$numberInt': '6' }, 'datediff': { '$numberLong': '-39' }, 'datetrunc': { '$date': '2022-06-01T00:00:00' } } }
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1662090913000' } }, 'datepart': { '$numberInt': '6' }, 'datediff': { '$numberLong': '26' }, 'datetrunc': { '$date': { '$numberLong': '1654041600000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1646193313000' } }, 'datepart': { '$numberInt': '6' }, 'datediff': { '$numberLong': '-39' }, 'datetrunc': { '$date': { '$numberLong': '1654041600000' } } } }
 
   - description: DAY correctness tests
     current_db: foo
-    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'interval': interval, 'dateadd': DATEADD(DAY, interval, date1::TIMESTAMP), 'datepart': EXTRACT(DAY, date1::TIMESTAMP), 'datediff': DATEDIFF(DAY, date1::TIMESTAMP, date2::TIMESTAMP), 'datetrunc': DATETRUNC(DAY, date1::TIMESTAMP)} FROM dates AS d"
-    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    translation_target_db: foo
+    translation_target_coll: dates
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(DAY, interval, date1), 'datepart': EXTRACT(DAY FROM date1), 'datediff': DATEDIFF(DAY, date1, date2), 'datetrunc': DATETRUNC(DAY, date1)} FROM dates AS d"
+    translation:
+      - { $project: { _id: 0, dates: "$$ROOT" } }
+      - { $project: { _id: 0, d: "$dates" } }
+      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'day'}, 'amount': '$d.interval' } }, datepart: { '$dayOfMonth': '$d.date1' }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'day'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'day'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        } } } }
     result:
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': '2022-06-05T03:55:13' }, 'datepart': { '$numberInt': '2' }, 'datediff': { '$numberLong': '800' }, 'datetrunc': { '$date': '2022-06-02T00:00:00' } } }
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'interval': { '$numberInt': '-3' }, 'dateadd': { '$date': '2022-05-30T03:55:13' }, 'datepart': { '$numberInt': '2' }, 'datediff': { '$numberLong': '-1189' }, 'datetrunc': { '$date': '2022-06-02T00:00:00' } } }
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1654401313000' } }, 'datepart': { '$numberInt': '2' }, 'datediff': { '$numberLong': '800' }, 'datetrunc': { '$date': { '$numberLong': '1654128000000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1653882913000' } }, 'datepart': { '$numberInt': '2' }, 'datediff': { '$numberLong': '-1189' }, 'datetrunc': { '$date': { '$numberLong': '1654128000000' } } } }
 
   - description: HOUR correctness tests
     current_db: foo
-    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'interval': interval, 'dateadd': DATEADD(HOUR, interval, date1::TIMESTAMP), 'datepart': EXTRACT(HOUR, date1::TIMESTAMP), 'datediff': DATEDIFF(HOUR, date1::TIMESTAMP, date2::TIMESTAMP), 'datetrunc': DATETRUNC(HOUR, date1::TIMESTAMP)} FROM dates AS d"
-    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    translation_target_db: foo
+    translation_target_coll: dates
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(HOUR, interval, date1), 'datepart': EXTRACT(HOUR FROM date1), 'datediff': DATEDIFF(HOUR, date1, date2), 'datetrunc': DATETRUNC(HOUR, date1)} FROM dates AS d"
+    translation:
+      - { $project: { _id: 0, dates: "$$ROOT" } }
+      - { $project: { _id: 0, d: "$dates" } }
+      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'hour'}, 'amount': '$d.interval' } }, datepart: { '$hour': '$d.date1' }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'hour'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'hour'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        } } } }
     result:
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': '2022-06-02T06:55:13' }, 'datepart': { '$numberInt': '3' }, 'datediff': { '$numberLong': '19200' }, 'datetrunc': { '$date': '2022-06-02T00:00:00' } } }
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'interval': { '$numberInt': '-3' }, 'dateadd': { '$date': '2022-06-02T00:55:13' }, 'datepart': { '$numberInt': '3' }, 'datediff': { '$numberLong': '-28536' }, 'datetrunc': { '$date': '2022-06-02T00:00:00' } } }
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1654152913000' } }, 'datepart': { '$numberInt': '3' }, 'datediff': { '$numberLong': '19202' }, 'datetrunc': { '$date': { '$numberLong': '1654138800000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1654131313000' } }, 'datepart': { '$numberInt': '3' }, 'datediff': { '$numberLong': '-28537' }, 'datetrunc': { '$date': { '$numberLong': '1654138800000' } } } }
 
   - description: MINUTE correctness tests
     current_db: foo
-    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'interval': interval, 'dateadd': DATEADD(MINUTE, interval, date1::TIMESTAMP), 'datepart': EXTRACT(MINUTE, date1::TIMESTAMP), 'datediff': DATEDIFF(MINUTE, date1::TIMESTAMP, date2::TIMESTAMP), 'datetrunc': DATETRUNC(MINUTE, date1::TIMESTAMP)} FROM dates AS d"
-    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    translation_target_db: foo
+    translation_target_coll: dates
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(MINUTE, interval, date1), 'datepart': EXTRACT(MINUTE FROM date1), 'datediff': DATEDIFF(MINUTE, date1, date2), 'datetrunc': DATETRUNC(MINUTE, date1)} FROM dates AS d"
+    translation:
+      - { $project: { _id: 0, dates: "$$ROOT" } }
+      - { $project: { _id: 0, d: "$dates" } }
+      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'minute'}, 'amount': '$d.interval' } }, datepart: { '$minute': '$d.date1' }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'minute'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'minute'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        } } } }
     result:
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': '2022-06-02T03:58:13' }, 'datepart': { '$numberInt': '55' }, 'datediff': { '$numberLong': '1152000' }, 'datetrunc': { '$date': '2022-06-02T03:00:00' } } }
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'interval': { '$numberInt': '-3' }, 'dateadd': { '$date': '2022-06-02T03:52:13' }, 'datepart': { '$numberInt': '55' }, 'datediff': { '$numberLong': '-1712160' }, 'datetrunc': { '$date': '2022-06-02T03:00:00' } } }
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1654142293000' } }, 'datepart': { '$numberInt': '55' }, 'datediff': { '$numberLong': '1152123' }, 'datetrunc': { '$date': { '$numberLong': '1654142100000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1654141933000' } }, 'datepart': { '$numberInt': '55' }, 'datediff': { '$numberLong': '-1712240' }, 'datetrunc': { '$date': { '$numberLong': '1654142100000' } } } }
 
   - description: SECOND correctness tests
     current_db: foo
-    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'interval': interval, 'dateadd': DATEADD(SECOND, interval, date1::TIMESTAMP), 'datepart': EXTRACT(SECOND, date1::TIMESTAMP), 'datediff': DATEDIFF(SECOND, date1::TIMESTAMP, date2::TIMESTAMP), 'datetrunc': DATETRUNC(SECOND, date1::TIMESTAMP)} FROM dates AS d"
-    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    translation_target_db: foo
+    translation_target_coll: dates
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(SECOND, interval, date1), 'datepart': EXTRACT(SECOND FROM date1), 'datediff': DATEDIFF(SECOND, date1, date2), 'datetrunc': DATETRUNC(SECOND, date1)} FROM dates AS d"
+    translation:
+      - { $project: { _id: 0, dates: "$$ROOT" } }
+      - { $project: { _id: 0, d: "$dates" } }
+      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'second'}, 'amount': '$d.interval' } }, datepart: { '$second': '$d.date1' }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'second'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'second'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        } } } }
     result:
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': '2022-04-02T03:55:16' }, 'datepart': { '$numberInt': '13' }, 'datediff': { '$numberLong': '69120000' }, 'datetrunc': { '$date': '2022-06-02T03:55:00' } } }
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'interval': { '$numberInt': '-3' }, 'dateadd': { '$date': '2022-01-02T03:55:10' }, 'datepart': { '$numberInt': '13' }, 'datediff': { '$numberLong': '-102729600' }, 'datetrunc': { '$date': '2022-06-02T03:55:00' } } }
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1654142116000' } }, 'datepart': { '$numberInt': '13' }, 'datediff': { '$numberLong': '69127386' }, 'datetrunc': { '$date': { '$numberLong': '1654142113000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1654142110000' } }, 'datepart': { '$numberInt': '13' }, 'datediff': { '$numberLong': '-102734405' }, 'datetrunc': { '$date': { '$numberLong': '1654142113000' } } } }
 
   - description: QUARTER correctness tests
     current_db: foo
-    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'interval': interval, 'dateadd': DATEADD(QUARTER, interval, date1::TIMESTAMP), 'datediff': DATEDIFF(QUARTER, date1::TIMESTAMP, date2::TIMESTAMP), 'datetrunc': DATETRUNC(QUARTER, date1::TIMESTAMP)} FROM dates AS d"
-    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    translation_target_db: foo
+    translation_target_coll: dates
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(QUARTER, interval, date1), 'datediff': DATEDIFF(QUARTER, date1, date2), 'datetrunc': DATETRUNC(QUARTER, date1)} FROM dates AS d"
+    translation:
+      - { $project: { _id: 0, dates: "$$ROOT" } }
+      - { $project: { _id: 0, d: "$dates" } }
+      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'quarter'}, 'amount': '$d.interval' } }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'quarter'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'quarter'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        } } } }
     result:
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': '2023-03-02T03:55:13' }, 'datediff': { '$numberLong': '9' }, 'datetrunc': { '$date': '2022-04-01T00:00:00' } } }
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'interval': { '$numberInt': '-3' }, 'dateadd': { '$date': '2021-09-02T03:55:13' }, 'datediff': { '$numberLong': '-13' }, 'datetrunc': { '$date': '2022-04-01T00:00:00' } } }
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1677729313000' } }, 'datediff': { '$numberLong': '9' }, 'datetrunc': { '$date': { '$numberLong': '1648771200000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1630554913000' } }, 'datediff': { '$numberLong': '-13' }, 'datetrunc': { '$date': { '$numberLong': '1648771200000' } } } }
 
   - description: WEEK correctness tests
     current_db: foo
-    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'interval': interval, 'dateadd': DATEADD(WEEK, interval, date1::TIMESTAMP), 'datediff': DATEDIFF(WEEK, date1::TIMESTAMP, date2::TIMESTAMP), 'datetrunc': DATETRUNC(WEEK, date1::TIMESTAMP)} FROM dates AS d"
-    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    translation_target_db: foo
+    translation_target_coll: dates
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(WEEK, interval, date1), 'datepart': EXTRACT(WEEK FROM date1), 'datediff': DATEDIFF(WEEK, date1, date2), 'datetrunc': DATETRUNC(WEEK, date1)} FROM dates AS d"
+    translation:
+      - { $project: { _id: 0, dates: "$$ROOT" } }
+      - { $project: { _id: 0, d: "$dates" } }
+      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'week'}, 'amount': '$d.interval' } }, datepart: { '$week': '$d.date1' }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'week'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'week'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        } } } }
     result:
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': '2022-06-23T03:55:13' }, 'datediff': { '$numberLong': '114' }, 'datetrunc': { '$date': '2022-01-01T00:00:00' } } }
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'interval': { '$numberInt': '-3' }, 'dateadd': { '$date': '2022-05-12T03:55:13' }, 'datediff': { '$numberLong': '-170' }, 'datetrunc': { '$date': '2022-01-01T00:00:00' } } }
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1655956513000' } }, 'datepart': { '$numberInt': '22' }, 'datediff': { '$numberLong': '114' }, 'datetrunc': { '$date': { '$numberLong': '1653782400000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1652327713000' } }, 'datepart': { '$numberInt': '22' }, 'datediff': { '$numberLong': '-170' }, 'datetrunc': { '$date': { '$numberLong': '1653782400000' } } } }
 
   - description: DAY_OF_YEAR correctness tests
     current_db: foo
-    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'datepart': EXTRACT(DAY_OF_YEAR, date1::TIMESTAMP)} FROM extract AS e"
-    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    translation_target_db: foo
+    translation_target_coll: datepart
+    query: "SELECT VALUE {'datepart': EXTRACT(DAY_OF_YEAR FROM date1)} FROM datepart AS d"
+    translation:
+      - { $project: { _id: 0, datepart: "$$ROOT" } }
+      - { $project: { _id: 0, d: "$datepart" } }
+      - { $project: { _id: 0, __bot: { datepart: { '$dayOfYear': '$d.date1' } } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        } } } }
     result:
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'datepart': { '$numberInt': '153' } } }
+      - { '': { 'datepart': { '$numberInt': '153' } } }
 
   - description: ISO_WEEK correctness tests
     current_db: foo
-    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'datepart': EXTRACT(ISO_WEEK, date1::TIMESTAMP)} FROM extract AS e"
-    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    translation_target_db: foo
+    translation_target_coll: datepart
+    query: "SELECT VALUE {'datepart': EXTRACT(ISO_WEEK FROM date1)} FROM datepart AS d"
+    translation:
+      - { $project: { _id: 0, datepart: "$$ROOT" } }
+      - { $project: { _id: 0, d: "$datepart" } }
+      - { $project: { _id: 0, __bot: { datepart: { '$isoWeek': '$d.date1' } } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        } } } }
     result:
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'datepart': { '$numberInt': '22' } } }
+      - { '': { 'datepart': { '$numberInt': '22' } } }
 
   - description: ISO_WEEKDAY correctness tests
     current_db: foo
-    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'datepart': EXTRACT(ISO_WEEKDAY, date1::TIMESTAMP)} FROM extract AS e"
-    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    translation_target_db: foo
+    translation_target_coll: datepart
+    query: "SELECT VALUE {'datepart': EXTRACT(ISO_WEEKDAY FROM date1)} FROM datepart AS d"
+    translation:
+      - { $project: { _id: 0, datepart: "$$ROOT" } }
+      - { $project: { _id: 0, d: "$datepart" } }
+      - { $project: { _id: 0, __bot: { datepart: { '$isoDayOfWeek': '$d.date1' } } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        } } } }
     result:
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'datepart': { '$numberInt': '4' } } }
+      - { '': { 'datepart': { '$numberInt': '4' } } }
 
   - description: DATEDIFF startOfWeek correctness tests
     current_db: foo
-    query: "SELECT VALUE {'date1': date1::TIMESTAMP, 'date2': date2::TIMESTAMP, 'sunday': DATEDIFF(WEEK, date1::TIMESTAMP, date2::TIMESTAMP, 'sunday'), 'friday': DATEDIFF(WEEK, date1::TIMESTAMP, date2::TIMESTAMP, 'friday')} FROM dates AS d"
-    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    translation_target_db: foo
+    translation_target_coll: dates
+    query: "SELECT VALUE {'sunday': DATEDIFF(WEEK, date1, date2, 'sunday'), 'friday': DATEDIFF(WEEK, date1, date2, 'friday')} FROM dates AS d"
+    translation:
+      - { $project: { _id: 0, dates: "$$ROOT" } }
+      - { $project: { _id: 0, d: "$dates" } }
+      - { $project: { _id: 0, __bot: { sunday: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'week'}, 'startOfWeek': { '$literal': 'sunday' } } }, friday: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'week'}, 'startOfWeek': { '$literal': 'friday' } } } } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        } } } }
     result:
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2024-08-10T05:58:19' }, 'sunday': { '$numberLong': '114' }, 'friday': { '$numberLong': '115' } } }
-      - { '': { 'date1': { '$date': '2022-06-02T03:55:13' }, 'date2': { '$date': '2019-03-01T02:35:08' }, 'sunday': { '$numberLong': '-170' }, 'friday': { '$numberLong': '-169' } } }
+      - { '': { 'sunday': { '$numberLong': '114' }, 'friday': { '$numberLong': '115' } } }
+      - { '': { 'sunday': { '$numberLong': '-170' }, 'friday': { '$numberLong': '-169' } } }
 
   - description: DATETRUNC startOfWeek correctness tests
     current_db: foo
-    query: "SELECT VALUE {'date': date2::TIMESTAMP, 'sunday': DATETRUNC(WEEK, date1::TIMESTAMP, 'sunday'), 'friday': DATETRUNC(WEEK, date1::TIMESTAMP, 'friday')} FROM dates AS d"
-    skip_reason: "SQL-819: Implement required Tableau date functions in MongoSQL"
+    translation_target_db: foo
+    translation_target_coll: datepart
+    query: "SELECT VALUE {'sunday': DATETRUNC(WEEK, date1, 'sunday'), 'friday': DATETRUNC(WEEK, date1, 'friday')} FROM datepart AS d"
+    translation:
+      - { $project: { _id: 0, datepart: "$$ROOT" } }
+      - { $project: { _id: 0, d: "$datepart" } }
+      - { $project: { _id: 0, __bot: { sunday: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'week'}, 'startOfWeek': { '$literal': 'sunday' } } }, friday: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'week'}, 'startOfWeek': { '$literal': 'friday' } } } } } }
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        } } } }
     result:
-      - { '': { 'date1': { '$date': '2024-08-10T05:58:19' }, 'sunday': { '$date': '2024-08-04T00:00:00' }, 'friday': { '$date': '2024-08-09T00:00:00' } } }
-      - { '': { 'date1': { '$date': '2019-03-01T02:35:08' }, 'sunday': { '$date': '2019-02-24T00:00:00' }, 'friday': { '$date': '2019-03-01T00:00:00' } } }
+      - { '': { 'sunday': { '$date': { '$numberLong': '1653782400000' } }, 'friday': { '$date': { '$numberLong': '1653609600000' } } } }

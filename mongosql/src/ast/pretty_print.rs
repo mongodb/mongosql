@@ -29,7 +29,11 @@ lazy_static! {
         r"(?i)character\s+varying$",
         r"(?i)cross$",
         r"(?i)current_timestamp$",
+        r"(?i)dateadd$",
+        r"(?i)datediff$",
+        r"(?i)datetrunc$",
         r"(?i)day$",
+        r"(?i)day_of_year$",
         r"(?i)dbpointer$",
         r"(?i)dec$",
         r"(?i)decimal$",
@@ -60,6 +64,8 @@ lazy_static! {
         r"(?i)int$",
         r"(?i)integer$",
         r"(?i)is$",
+        r"(?i)iso_week$",
+        r"(?i)iso_weekday$",
         r"(?i)javascript$",
         r"(?i)javascriptwithscope$",
         r"(?i)join$",
@@ -89,6 +95,7 @@ lazy_static! {
         r"(?i)path$",
         r"(?i)position$",
         r"(?i)precision$",
+        r"(?i)quarter$",
         r"(?i)real$",
         r"(?i)regex$",
         r"(?i)right$",
@@ -111,6 +118,7 @@ lazy_static! {
         r"(?i)value$",
         r"(?i)values$",
         r"(?i)varchar$",
+        r"(?i)week$",
         r"(?i)when$",
         r"(?i)where$",
         r"(?i)with$",
@@ -644,7 +652,8 @@ impl Expression {
             // formatting for all the following is handled specially and will never conditionally
             // wrap arguments in parentheses
             Array(_) | Case(_) | Cast(_) | Document(_) | Exists(_) | Function(_) | Trim(_)
-            | Extract(_) | Identifier(_) | Literal(_) | Subquery(_) | Tuple(_) => Bottom,
+            | DateFunction(_) | Extract(_) | Identifier(_) | Literal(_) | Subquery(_)
+            | Tuple(_) => Bottom,
         }
     }
 }
@@ -674,6 +683,7 @@ impl PrettyPrint for Expression {
             Unary(u) => u.pretty_print(),
             Binary(b) => b.pretty_print(),
             Extract(e) => e.pretty_print(),
+            DateFunction(d) => d.pretty_print(),
             Trim(t) => t.pretty_print(),
             Function(fun) => fun.pretty_print(),
             Access(a) => a.pretty_print(),
@@ -939,15 +949,20 @@ impl PrettyPrint for Type {
     }
 }
 
-impl PrettyPrint for ExtractSpec {
+impl PrettyPrint for DatePart {
     fn pretty_print(&self) -> Result<String> {
         Ok(match self {
-            ExtractSpec::Year => "YEAR",
-            ExtractSpec::Month => "MONTH",
-            ExtractSpec::Day => "DAY",
-            ExtractSpec::Hour => "HOUR",
-            ExtractSpec::Minute => "MINUTE",
-            ExtractSpec::Second => "SECOND",
+            DatePart::Year => "YEAR",
+            DatePart::Month => "MONTH",
+            DatePart::Day => "DAY",
+            DatePart::Hour => "HOUR",
+            DatePart::Minute => "MINUTE",
+            DatePart::Second => "SECOND",
+            DatePart::Quarter => "QUARTER",
+            DatePart::Week => "WEEK",
+            DatePart::IsoWeek => "ISO_WEEK",
+            DatePart::IsoWeekday => "ISO_WEEKDAY",
+            DatePart::DayOfYear => "DAY_OF_YEAR",
         }
         .to_string())
     }
@@ -1078,6 +1093,32 @@ impl PrettyPrint for ExtractExpr {
             "EXTRACT({} FROM {})",
             self.extract_spec.pretty_print()?,
             self.arg.pretty_print()?
+        ))
+    }
+}
+
+impl PrettyPrint for DateFunctionName {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(match self {
+            DateFunctionName::Add => "DATEADD",
+            DateFunctionName::Diff => "DATEDIFF",
+            DateFunctionName::Trunc => "DATETRUNC",
+        }
+        .to_string())
+    }
+}
+
+impl PrettyPrint for DateFunctionExpr {
+    fn pretty_print(&self) -> Result<String> {
+        Ok(format!(
+            "{}({}, {})",
+            self.function.pretty_print()?,
+            self.date_part.pretty_print()?,
+            self.args
+                .iter()
+                .map(|e| e.pretty_print())
+                .collect::<Result<Vec<_>>>()?
+                .join(", ")
         ))
     }
 }
