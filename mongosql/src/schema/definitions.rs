@@ -177,8 +177,6 @@ pub enum Atomic {
     Timestamp,
     MinKey,
     MaxKey,
-    SqlDate,
-    SqlTime,
 }
 
 impl TryFrom<json_schema::BsonTypeName> for Atomic {
@@ -317,7 +315,6 @@ impl From<Atomic> for json_schema::BsonTypeName {
             Timestamp => json_schema::BsonTypeName::Timestamp,
             MinKey => json_schema::BsonTypeName::MinKey,
             MaxKey => json_schema::BsonTypeName::MaxKey,
-            SqlDate | SqlTime => unreachable!(),
         }
     }
 }
@@ -907,7 +904,6 @@ impl From<Type> for Schema {
             Array => ANY_ARRAY.clone(),
             BinData => Schema::Atomic(Atomic::BinData),
             Boolean => Schema::Atomic(Atomic::Boolean),
-            Date => Schema::Atomic(Atomic::SqlDate),
             Datetime => Schema::Atomic(Atomic::Date),
             DbPointer => Schema::Atomic(Atomic::DbPointer),
             Decimal128 => Schema::Atomic(Atomic::Decimal),
@@ -924,7 +920,6 @@ impl From<Type> for Schema {
             RegularExpression => Schema::Atomic(Atomic::Regex),
             String => Schema::Atomic(Atomic::String),
             Symbol => Schema::Atomic(Atomic::Symbol),
-            Time => Schema::Atomic(Atomic::SqlTime),
             Timestamp => Schema::Atomic(Atomic::Timestamp),
             Undefined => Schema::Atomic(Atomic::Null),
         }
@@ -1121,8 +1116,7 @@ impl Atomic {
         match self {
             Decimal | Double | Integer | Long => true,
             String | BinData | ObjectId | Boolean | Date | Null | Regex | DbPointer
-            | Javascript | Symbol | JavascriptWithScope | Timestamp | MinKey | MaxKey | SqlDate
-            | SqlTime => false,
+            | Javascript | Symbol | JavascriptWithScope | Timestamp | MinKey | MaxKey => false,
         }
     }
 }

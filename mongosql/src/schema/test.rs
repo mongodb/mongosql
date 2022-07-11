@@ -2284,8 +2284,6 @@ mod subtract_nullish {
             Atomic(Timestamp),
             Atomic(MinKey),
             Atomic(MaxKey),
-            Atomic(SqlDate),
-            Atomic(SqlTime),
             Array(Box::new(Any)),
             Document(Document::any()),
             // no Missing

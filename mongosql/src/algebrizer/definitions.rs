@@ -94,6 +94,8 @@ pub enum Error {
     InvalidExtractDatePart(ast::DatePart),
     #[error("'{0:?}' is not a supported date part for DATEADD, DATEDIFF, and DATETRUNC")]
     InvalidDateFunctionDatePart(ast::DatePart),
+    #[error("unsupported type '{0:?}'")]
+    UnsupportedType(ast::TypeOrMissing),
 }
 
 impl TryFrom<ast::BinaryOp> for ir::ScalarFunction {
@@ -1089,7 +1091,11 @@ impl<'a> Algebrizer<'a> {
             self,
             ir::Expression::Is(ir::IsExpr {
                 expr: Box::new(self.algebrize_expression(*ast_node.expr)?),
-                target_type: ir::TypeOrMissing::from(ast_node.target_type),
+                target_type: ir::TypeOrMissing::try_from(ast_node.target_type).map_err(
+                    |e| match e {
+                        ir::Error::InvalidType(_) => Error::UnsupportedType(ast_node.target_type),
+                    }
+                )?,
                 cache: SchemaCache::new(),
             }),
         )
@@ -1228,7 +1234,10 @@ impl<'a> Algebrizer<'a> {
             self,
             ir::Expression::TypeAssertion(ir::TypeAssertionExpr {
                 expr: Box::new(self.algebrize_expression(*t.expr)?),
-                target_type: ir::Type::from(t.target_type),
+                target_type: ir::Type::try_from(t.target_type).map_err(|e| match e {
+                    ir::Error::InvalidType(_) =>
+                        Error::UnsupportedType(ast::TypeOrMissing::Type(t.target_type)),
+                })?,
                 cache: SchemaCache::new(),
             }),
         );
@@ -1296,7 +1305,10 @@ impl<'a> Algebrizer<'a> {
                 self,
                 ir::Expression::Cast(ir::CastExpr {
                     expr: Box::new(self.algebrize_expression(*c.expr)?),
-                    to: ir::Type::from(c.to),
+                    to: ir::Type::try_from(c.to).map_err(|e| match e {
+                        ir::Error::InvalidType(_) =>
+                            Error::UnsupportedType(ast::TypeOrMissing::Type(c.to)),
+                    })?,
                     on_null: Box::new(
                         self.algebrize_expression(*(c.on_null.unwrap_or_else(|| null_expr!())))?
                     ),

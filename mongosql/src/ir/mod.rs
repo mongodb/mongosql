@@ -9,3 +9,10 @@ mod unwind_util;
 pub use mongosql_datastructures::binding_tuple;
 #[cfg(test)]
 mod test;
+
+use thiserror::Error;
+#[derive(Debug, Error, PartialEq)]
+pub enum Error {
+    #[error("{0:?} is not a valid IR type")]
+    InvalidType(crate::ast::Type),
+}

@@ -63,7 +63,7 @@ tests:
     current_db: mydb
     query: "SELECT VALUE [a, b] FROM foo"
     should_compile: false
-    algebrize_error: "schema checking failed for project datasource: required Document(Document { keys: {}, required: {}, additional_properties: true }), found Array(AnyOf({AnyOf({Atomic(String), Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal), Atomic(BinData), Atomic(ObjectId), Atomic(Boolean), Atomic(Date), Atomic(Regex), Atomic(DbPointer), Atomic(Javascript), Atomic(Symbol), Atomic(JavascriptWithScope), Atomic(Timestamp), Atomic(MinKey), Atomic(MaxKey), Atomic(SqlDate), Atomic(SqlTime), Array(Any), Document(Document { keys: {}, required: {}, additional_properties: true })})}))"
+    algebrize_error: "schema checking failed for project datasource: required Document(Document { keys: {}, required: {}, additional_properties: true }), found Array(AnyOf({AnyOf({Atomic(String), Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal), Atomic(BinData), Atomic(ObjectId), Atomic(Boolean), Atomic(Date), Atomic(Regex), Atomic(DbPointer), Atomic(Javascript), Atomic(Symbol), Atomic(JavascriptWithScope), Atomic(Timestamp), Atomic(MinKey), Atomic(MaxKey), Array(Any), Document(Document { keys: {}, required: {}, additional_properties: true })})}))"
 
   - description: simple star correctness test
     current_db: mydb

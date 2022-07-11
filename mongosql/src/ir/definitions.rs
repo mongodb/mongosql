@@ -2,6 +2,7 @@ use crate::{
     ir::{
         binding_tuple::{BindingTuple, Key},
         schema::SchemaCache,
+        Error,
     },
     schema::{ResultSet, Schema},
     util::unique_linked_hash_map::UniqueLinkedHashMap,
@@ -584,7 +585,6 @@ pub enum Type {
     Array,
     BinData,
     Boolean,
-    Date,
     Datetime,
     DbPointer,
     Decimal128,
@@ -601,7 +601,6 @@ pub enum Type {
     RegularExpression,
     String,
     Symbol,
-    Time,
     Timestamp,
     Undefined,
 }
@@ -649,43 +648,45 @@ impl From<crate::ast::UnaryOp> for ScalarFunction {
     }
 }
 
-impl From<crate::ast::TypeOrMissing> for TypeOrMissing {
-    fn from(ty: crate::ast::TypeOrMissing) -> Self {
+impl TryFrom<crate::ast::TypeOrMissing> for TypeOrMissing {
+    type Error = Error;
+    fn try_from(ty: crate::ast::TypeOrMissing) -> Result<Self, Self::Error> {
         match ty {
-            crate::ast::TypeOrMissing::Missing => TypeOrMissing::Missing,
-            crate::ast::TypeOrMissing::Type(ty) => TypeOrMissing::Type(Type::from(ty)),
-            crate::ast::TypeOrMissing::Number => TypeOrMissing::Number,
+            crate::ast::TypeOrMissing::Missing => Ok(TypeOrMissing::Missing),
+            crate::ast::TypeOrMissing::Type(ty) => Ok(TypeOrMissing::Type(Type::try_from(ty)?)),
+            crate::ast::TypeOrMissing::Number => Ok(TypeOrMissing::Number),
         }
     }
 }
 
-impl From<crate::ast::Type> for Type {
-    fn from(ty: crate::ast::Type) -> Self {
+impl TryFrom<crate::ast::Type> for Type {
+    type Error = Error;
+    fn try_from(ty: crate::ast::Type) -> Result<Self, Self::Error> {
         use Type::*;
         match ty {
-            crate::ast::Type::Array => Array,
-            crate::ast::Type::BinData => BinData,
-            crate::ast::Type::Boolean => Boolean,
-            crate::ast::Type::Date => Date,
-            crate::ast::Type::Datetime => Datetime,
-            crate::ast::Type::DbPointer => DbPointer,
-            crate::ast::Type::Decimal128 => Decimal128,
-            crate::ast::Type::Document => Document,
-            crate::ast::Type::Double => Double,
-            crate::ast::Type::Int32 => Int32,
-            crate::ast::Type::Int64 => Int64,
-            crate::ast::Type::Javascript => Javascript,
-            crate::ast::Type::JavascriptWithScope => JavascriptWithScope,
-            crate::ast::Type::MaxKey => MaxKey,
-            crate::ast::Type::MinKey => MinKey,
-            crate::ast::Type::Null => Null,
-            crate::ast::Type::ObjectId => ObjectId,
-            crate::ast::Type::RegularExpression => RegularExpression,
-            crate::ast::Type::String => String,
-            crate::ast::Type::Symbol => Symbol,
-            crate::ast::Type::Time => Time,
-            crate::ast::Type::Timestamp => Timestamp,
-            crate::ast::Type::Undefined => Undefined,
+            crate::ast::Type::Array => Ok(Array),
+            crate::ast::Type::BinData => Ok(BinData),
+            crate::ast::Type::Boolean => Ok(Boolean),
+            crate::ast::Type::Date => Err(Error::InvalidType(ty)),
+            crate::ast::Type::Datetime => Ok(Datetime),
+            crate::ast::Type::DbPointer => Ok(DbPointer),
+            crate::ast::Type::Decimal128 => Ok(Decimal128),
+            crate::ast::Type::Document => Ok(Document),
+            crate::ast::Type::Double => Ok(Double),
+            crate::ast::Type::Int32 => Ok(Int32),
+            crate::ast::Type::Int64 => Ok(Int64),
+            crate::ast::Type::Javascript => Ok(Javascript),
+            crate::ast::Type::JavascriptWithScope => Ok(JavascriptWithScope),
+            crate::ast::Type::MaxKey => Ok(MaxKey),
+            crate::ast::Type::MinKey => Ok(MinKey),
+            crate::ast::Type::Null => Ok(Null),
+            crate::ast::Type::ObjectId => Ok(ObjectId),
+            crate::ast::Type::RegularExpression => Ok(RegularExpression),
+            crate::ast::Type::String => Ok(String),
+            crate::ast::Type::Symbol => Ok(Symbol),
+            crate::ast::Type::Time => Err(Error::InvalidType(ty)),
+            crate::ast::Type::Timestamp => Ok(Timestamp),
+            crate::ast::Type::Undefined => Ok(Undefined),
         }
     }
 }

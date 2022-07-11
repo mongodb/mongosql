@@ -664,7 +664,6 @@ tests:
       - {'': {'v': null}}
 
   - description: COALESCE(v1, v2) correctness tests
-    skip_reason: SQL-943
     current_db: foo
     query: "SELECT VALUE {'v1': v1, 'v2': v2, 'v': COALESCE(v1, v2)} FROM twoArgCoalesce AS c"
     translation_target_db: foo
@@ -682,7 +681,6 @@ tests:
       - {'': {'v2': 456, 'v': 456}}
 
   - description: COALESCE(v1, ..., vn) correctness tests
-    skip_reason: SQL-943
     current_db: foo
     query: "SELECT VALUE {'v1': v1, 'v2': v2, 'v3': v3, 'v4': v4, 'v5': v5, 'v': COALESCE(v1, v2, v3, v4, v5)} FROM multiArgCoalesce AS c"
     translation_target_db: foo
