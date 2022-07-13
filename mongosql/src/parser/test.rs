@@ -99,6 +99,11 @@ mod select {
         input = "SELECT `foo`"
     );
     parsable!(
+        delimited_ident_select,
+        expected = true,
+        input = "SELECT `SELECT`"
+    );
+    parsable!(
         delimited_quote_empty,
         expected = true,
         input = r#"SELECT """#
@@ -230,6 +235,26 @@ mod select {
             offset: None,
         }),
         input = "select `foo`",
+    );
+    validate_ast!(
+        delimited_ident_plus,
+        method = parse_query,
+        expected = Query::Select(SelectQuery {
+            select_clause: SelectClause {
+                set_quantifier: SetQuantifier::All,
+                body: SelectBody::Standard(vec![SelectExpression::Expression(
+                    OptionallyAliasedExpr::Unaliased(Expression::Identifier("1 + 2".to_string()),)
+                )])
+            },
+            from_clause: None,
+            where_clause: None,
+            group_by_clause: None,
+            having_clause: None,
+            order_by_clause: None,
+            limit: None,
+            offset: None,
+        }),
+        input = "SELECT `1 + 2`",
     );
     validate_ast!(
         delimited_escaped_backtick_ast,
