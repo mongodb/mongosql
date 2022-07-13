@@ -66,6 +66,9 @@ type Info struct {
 // CommandRunner is an interface for running any mongodb commands
 // required to get info for the Info type.
 type CommandRunner interface {
+	// GetShardedFromCollStats returns whether the collection is sharded or not
+	GetShardedFromCollStats(ctx context.Context, db string, collection string) (bool, error)
+
 	// ListCollections returns a cursor to iterate through the collections
 	// present on the db database with options opts.
 	ListCollections(ctx context.Context, db string, opts driver.CursorOptions) (Cursor, error)
@@ -243,10 +246,6 @@ func (dbInfo *DatabaseInfo) loadIndexes(ctx context.Context, lg log.Logger, cr C
 func (dbInfo *DatabaseInfo) loadShardingInfo(ctx context.Context, logger log.Logger, cr CommandRunner,
 	viewToUnderlyingCollection map[string]string) {
 
-	stats := struct {
-		Sharded bool `bson:"sharded"`
-	}{}
-
 	// caching sharding results to reduce multiple round trips for same
 	// collection.
 	isShardedCollection := make(map[string]bool)
@@ -270,11 +269,8 @@ func (dbInfo *DatabaseInfo) loadShardingInfo(ctx context.Context, logger log.Log
 		}
 
 		if isSharded, ok := isShardedCollection[collectionName]; !ok {
-			collStatsCommand := bsonutil.NewD(
-				bsonutil.NewDocElem("collStats", collectionName),
-			)
+			shardedResult, err := cr.GetShardedFromCollStats(ctx, dbInfo.CaseSensitiveName, collectionName)
 
-			err := cr.Run(ctx, dbInfo.CaseSensitiveName, collStatsCommand, &stats)
 			if err != nil {
 				logger.Warnf(
 					log.Admin,
@@ -282,8 +278,8 @@ func (dbInfo *DatabaseInfo) loadShardingInfo(ctx context.Context, logger log.Log
 					collectionName, err,
 				)
 			} else {
-				isShardedCollection[collectionName] = stats.Sharded
-				collectionInfo.IsSharded = stats.Sharded
+				isShardedCollection[collectionName] = shardedResult
+				collectionInfo.IsSharded = shardedResult
 			}
 		} else {
 			collectionInfo.IsSharded = isSharded

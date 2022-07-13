@@ -432,47 +432,55 @@ func (s *Session) listCurrentOpsForClients(ctx context.Context, clientAddresses 
 		clientAddressArray[i] = clientAddress
 	}
 
-	currentOpsCommand := bsonutil.NewD(
-		bsonutil.NewDocElem("currentOp", int32(1)),
-		bsonutil.NewDocElem("$and", bsonutil.NewArray(
-			bsonutil.NewD(
-				// The two conditions in the $or condition handle whether we are talking to a mongod or a
-				// mongos. A mongos reports its client addresses in a different format than a mongod.
-				bsonutil.NewDocElem("$or", bsonutil.NewArray(
-					bsonutil.NewD(
-						bsonutil.NewDocElem("client", bsonutil.NewD(bsonutil.NewDocElem("$in", clientAddressArray))),
-					),
-					bsonutil.NewD(
-						bsonutil.NewDocElem("command.$client.mongos.client", bsonutil.NewD(bsonutil.NewDocElem("$in", clientAddressArray))),
-					),
-				)),
-			),
-			// ignore the 'currentOp' command itself.
-			bsonutil.NewD(
-				bsonutil.NewDocElem("command.currentOp", bsonutil.NewD(
-					bsonutil.NewDocElem("$ne", 1),
-				)),
-			),
-		)),
-	)
-
+	allUsers := false
 	// If auth source is empty, this indicates we're running in unauthenticated mode. We should
-	// not use the $ownOps parameter in this case since operations don't have any associated
+	// report operations belonging to all users since operations don't have any associated
 	// MongoDB users.
-	if s.AuthSource != "" {
-		currentOpsCommand = append(currentOpsCommand, bsonutil.NewDocElem("$ownOps", true))
+	if s.AuthSource == "" {
+		allUsers = true
 	}
 
-	currentOpResponse := struct {
-		InProg []currentOp `bson:"inprog"`
-	}{}
+	currentOpPipeline := bsonutil.NewDArray(
+		bsonutil.NewD(
+			bsonutil.NewDocElem("$currentOp", bsonutil.NewD(bsonutil.NewDocElem("allUsers", allUsers)))),
+		bsonutil.NewD(
+			bsonutil.NewDocElem("$match",
+				bsonutil.NewD(
+					bsonutil.NewDocElem("$and", bsonutil.NewArray(
+						bsonutil.NewD(
+							// The two conditions in the $or condition handle whether we are talking to a mongod or a
+							// mongos. A mongos reports its client addresses in a different format than a mongod.
+							bsonutil.NewDocElem("$or", bsonutil.NewArray(
+								bsonutil.NewD(
+									bsonutil.NewDocElem("client", bsonutil.NewD(bsonutil.NewDocElem("$in", clientAddressArray))),
+								),
+								bsonutil.NewD(
+									bsonutil.NewDocElem("command.$client.mongos.client", bsonutil.NewD(bsonutil.NewDocElem("$in", clientAddressArray))),
+								),
+							)),
+						),
+						// ignore the 'currentOp' command itself.
+						bsonutil.NewD(
+							bsonutil.NewDocElem("command.currentOp", bsonutil.NewD(
+								bsonutil.NewDocElem("$ne", 1),
+							)),
+						),
+					))),
+			),
+		),
+	)
 
-	err := s.Run(ctx, "admin", currentOpsCommand, &currentOpResponse)
+	cursor, err := s.Aggregate(ctx, "admin", "", currentOpPipeline)
 	if err != nil {
 		return nil, fmt.Errorf("error running currentOp: %v", err)
 	}
-
-	return currentOpResponse.InProg, nil
+	var currentOps []currentOp
+	currentOpResponse := currentOp{}
+	for cursor.Next(ctx, &currentOpResponse) {
+		currentOps = append(currentOps, currentOpResponse)
+	}
+	cursor.Close(ctx)
+	return currentOps, nil
 }
 
 // killCursors kills a cursor on the server for the input collection
@@ -578,4 +586,29 @@ func (s *Session) DropDatabase(ctx context.Context, db string) error {
 // Run executes an arbitrary command against the given database.
 func (s *Session) Run(ctx context.Context, db string, cmd bson.D, result interface{}) error {
 	return mongoutil.ExecuteWithDeployment(ctx, db, s.Deployment, s.ReadPreference, cmd, result)
+}
+
+// GetShardedFromCollStats returns whether the collection is sharded or not
+func (s *Session) GetShardedFromCollStats(ctx context.Context, db, col string) (bool, error) {
+	var sharded *bool
+	pipeline := bsonutil.NewDArray(
+		bsonutil.NewD(
+			bsonutil.NewDocElem("$collStats", bsonutil.NewD())),
+	)
+	cursor, err := s.Aggregate(ctx, db, col, pipeline)
+	if err != nil {
+		return false, err
+	}
+	stats := struct {
+		Sharded bool `bson:"sharded"`
+	}{}
+	for cursor.Next(ctx, &stats) {
+		sharded = &stats.Sharded
+	}
+	cursor.Close(ctx)
+	if sharded == nil {
+		return false, fmt.Errorf("error running $collStats, no results returned")
+	}
+
+	return *sharded, nil
 }
