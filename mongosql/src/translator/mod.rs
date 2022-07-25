@@ -1,2 +1,2 @@
-mod definitions;
+pub mod definitions;
 pub use definitions::*;

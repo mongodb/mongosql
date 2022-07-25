@@ -1,4 +1,4 @@
-use crate::{algebrizer, ast, codegen, ir, parser, schema};
+use crate::{algebrizer, ast, codegen, ir, parser, schema, translator};
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -17,4 +17,6 @@ pub enum Error {
     JsonSchemaConversion(schema::Error),
     #[error("codegen error: {0}")]
     Codegen(#[from] codegen::Error),
+    #[error("translator error: {0}")]
+    Translator(#[from] translator::Error),
 }

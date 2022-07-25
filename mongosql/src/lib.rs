@@ -11,7 +11,9 @@ pub mod json_schema;
 mod parser;
 mod result;
 pub mod schema;
+mod translator;
 mod util;
+
 use crate::{
     algebrizer::Algebrizer,
     catalog::Catalog,
@@ -19,6 +21,7 @@ use crate::{
     parser::Parser,
     result::Result,
     schema::{Schema, SchemaEnvironment},
+    translator::MqlTranslator,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
@@ -60,8 +63,14 @@ pub fn translate_sql(
         .schema(&algebrizer.schema_inference_state())?
         .schema_env;
 
+    let translator = MqlTranslator::new();
+    let agg_plan = MqlTranslator::translate_to_agg(translator, plan.clone());
+
     // generate mql from the ir plan
-    let mql_translation = codegen::generate_mql(plan)?;
+    let mql_translation = match agg_plan {
+        Err(translator::Error::UnimplementedStruct) => codegen::generate_mql_from_ir(plan)?,
+        Ok(agg_plan) => codegen::generate_mql_from_agg_ir(agg_plan)?,
+    };
 
     // A non-empty database value is needed for mongoast
     let target_db = mql_translation

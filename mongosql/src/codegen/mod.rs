@@ -2,7 +2,7 @@ mod mql;
 use mql::MqlCodeGenerator;
 pub use mql::{MqlMappingRegistry, MqlTranslation};
 
-use crate::ir;
+use crate::{agg_ir, ir};
 use thiserror::Error;
 
 #[cfg(test)]
@@ -32,9 +32,15 @@ pub enum Error {
     OffsetOutOfI64Range(u64),
     #[error("UNWIND PATH option must be an identifier")]
     InvalidUnwindPath,
+    #[error("generate_mql_from_agg_ir is not implemented")]
+    UnimplementedGenerateFromAggIR,
 }
 
-pub fn generate_mql(plan: ir::Stage) -> Result<MqlTranslation> {
+pub fn generate_mql_from_agg_ir(_plan: agg_ir::Stage) -> Result<MqlTranslation> {
+    Err(Error::UnimplementedGenerateFromAggIR)
+}
+
+pub fn generate_mql_from_ir(plan: ir::Stage) -> Result<MqlTranslation> {
     let cg = MqlCodeGenerator {
         mapping_registry: MqlMappingRegistry::new(),
         scope_level: 0u16,

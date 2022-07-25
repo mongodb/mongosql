@@ -10,7 +10,7 @@ macro_rules! test_codegen_plan {
 	) => {
         #[test]
         fn $func_name() {
-            use crate::codegen::{generate_mql, MqlTranslation};
+            use crate::codegen::{generate_mql_from_ir, MqlTranslation};
 
             let input = $input;
             let expected_db = $expected_db;
@@ -22,7 +22,7 @@ macro_rules! test_codegen_plan {
                 collection: col,
                 mapping_registry: _,
                 pipeline: pipeline,
-            } = generate_mql(input).expect("codegen failed");
+            } = generate_mql_from_ir(input).expect("codegen failed");
 
             assert_eq!(expected_db, db);
             assert_eq!(expected_collection, col);
@@ -33,12 +33,12 @@ macro_rules! test_codegen_plan {
     ($func_name:ident, expected = Err($expected_err:expr), input = $input:expr,) => {
         #[test]
         fn $func_name() {
-            use crate::codegen::generate_mql;
+            use crate::codegen::generate_mql_from_ir;
 
             let input = $input;
             let expected = Err($expected_err);
 
-            assert_eq!(expected, generate_mql(input));
+            assert_eq!(expected, generate_mql_from_ir(input));
         }
     };
 }
