@@ -170,6 +170,24 @@ mod arbitrary {
                 _ => panic!("missing Query variant(s)"),
             }
         }
+
+        fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+            match self {
+                Self::Select(q) => Box::new(q.shrink().map(Self::Select)),
+                Self::Set(q) => {
+                    // Note that shrink returns an iterator of values that
+                    // are smaller than self. For a Set query, this includes
+                    // not only the SetQuery itself being shrunk, but also
+                    // just the left query and just the right query.
+                    let chain = q
+                        .shrink()
+                        .map(Self::Set)
+                        .chain(q.left.shrink().map(|l| *l))
+                        .chain(q.right.shrink().map(|r| *r));
+                    Box::new(chain)
+                }
+            }
+        }
     }
 
     impl Arbitrary for SelectQuery {
@@ -185,6 +203,57 @@ mod arbitrary {
                 offset: Option::arbitrary(g),
             }
         }
+
+        fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+            // TODO:
+            //   - shrink select_clause
+            //   - better shrinking overall
+            let mut s = vec![];
+
+            if self.from_clause.is_some() {
+                let mut q = self.clone();
+                q.from_clause = None;
+                s.push(q)
+            };
+
+            if self.where_clause.is_some() {
+                let mut q = self.clone();
+                q.where_clause = None;
+                s.push(q)
+            };
+
+            if self.group_by_clause.is_some() {
+                let mut q = self.clone();
+                q.group_by_clause = None;
+                s.push(q)
+            };
+
+            if self.having_clause.is_some() {
+                let mut q = self.clone();
+                q.having_clause = None;
+                s.push(q)
+            };
+
+            if self.order_by_clause.is_some() {
+                let mut q = self.clone();
+                q.order_by_clause = None;
+                s.push(q)
+            };
+
+            if self.limit.is_some() {
+                let mut q = self.clone();
+                q.limit = None;
+                s.push(q)
+            };
+
+            if self.offset.is_some() {
+                let mut q = self.clone();
+                q.offset = None;
+                s.push(q)
+            };
+
+            Box::new(s.into_iter())
+        }
     }
 
     impl Arbitrary for SetQuery {
@@ -196,6 +265,17 @@ mod arbitrary {
                 // because the parser always produces left-deep Set Queries.
                 right: Box::new(Query::Select(SelectQuery::arbitrary(g))),
             }
+        }
+
+        fn shrink(&self) -> Box<dyn Iterator<Item = Self>> {
+            let left = self.left.clone();
+            let right = self.right.clone();
+            let op = self.op;
+            Box::new((left, right).shrink().map(move |(l, r)| SetQuery {
+                left: l,
+                right: r,
+                op,
+            }))
         }
     }
 
