@@ -330,7 +330,6 @@ pub struct SQLSemanticOperator {
     pub args: Vec<Expression>,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub enum LiteralValue {
     Null,

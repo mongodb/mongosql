@@ -1,5 +1,4 @@
 use crate::{
-    codegen::{Error, Result},
     ir::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
@@ -9,6 +8,36 @@ use crate::{
 };
 use bson::{bson, Bson};
 use std::collections::{BTreeMap, BTreeSet};
+use thiserror::Error;
+
+#[cfg(test)]
+mod test;
+
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug, Error, PartialEq)]
+pub enum Error {
+    #[error("binding tuple key {0:?} not found in mapping registry")]
+    ReferenceNotFound(ir::binding_tuple::Key),
+    #[error("project fields may not be empty, contain dots, or start with dollars")]
+    InvalidProjectField,
+    #[error("document keys may not be empty, contain dots, or start with dollars")]
+    InvalidDocumentKey,
+    #[error("cannot generate MQL for {0:?} function")]
+    UnsupportedFunction(ir::ScalarFunction),
+    #[error("GROUP BY keys must be valid field references")]
+    InvalidGroupKey,
+    #[error("sort key must be a field reference")]
+    InvalidSortKey,
+    #[error("field paths can only be generated for Reference and FieldAccess exprs")]
+    NoFieldPathForExpr,
+    #[error("LIMIT ({0}) cannot be converted to i64")]
+    LimitOutOfI64Range(u64),
+    #[error("OFFSET ({0}) cannot be converted to i64")]
+    OffsetOutOfI64Range(u64),
+    #[error("UNWIND PATH option must be an identifier")]
+    InvalidUnwindPath,
+}
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct MqlMappingRegistry(BTreeMap<Key, String>);

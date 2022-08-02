@@ -47,7 +47,7 @@ macro_rules! test_codegen_expr {
     ($func_name:ident, expected = $expected:expr, input = $input:expr, $(mapping_registry = $mapping_registry:expr,)?) => {
         #[test]
         fn $func_name() {
-            use crate::codegen::mql::{MqlCodeGenerator, MqlMappingRegistry};
+            use crate::codegen::ir_to_mql::{MqlCodeGenerator, MqlMappingRegistry};
             let expected = $expected;
             let input = $input;
 
@@ -154,7 +154,7 @@ mod array_stage {
 
 mod project {
     use crate::{
-        codegen::Error,
+        codegen::ir_to_mql::Error,
         ir::{
             binding_tuple::{DatasourceName, Key},
             schema::SchemaCache,
@@ -428,7 +428,7 @@ mod filter {
 
 mod sort {
     use crate::{
-        codegen::Error,
+        codegen::ir_to_mql::Error,
         ir::{schema::SchemaCache, Expression::Reference, SortSpecification::*, *},
         unchecked_unique_linked_hash_map,
     };
@@ -591,7 +591,7 @@ mod sort {
 
 mod limit_offset {
     use crate::{
-        codegen::Error,
+        codegen::ir_to_mql::Error,
         ir::{schema::SchemaCache, *},
     };
 
@@ -702,7 +702,7 @@ mod literal {
 }
 
 mod reference {
-    use crate::{codegen::Error, ir::Expression::*};
+    use crate::{codegen::ir_to_mql::Error, ir::Expression::*};
     use bson::Bson;
 
     test_codegen_expr!(
@@ -752,7 +752,7 @@ mod array {
 
 mod document {
     use crate::{
-        codegen::Error,
+        codegen::ir_to_mql::Error,
         ir::{Expression::*, LiteralValue},
         unchecked_unique_linked_hash_map,
     };
@@ -1462,7 +1462,7 @@ mod union {
 
 mod function {
     use crate::{
-        codegen::Error,
+        codegen::ir_to_mql::Error,
         ir::{
             definitions::*, schema::SchemaCache, DateFunction, Expression::*, LiteralValue,
             ScalarFunction::*,
@@ -2574,7 +2574,7 @@ mod function {
 
 mod group_by {
     use crate::{
-        codegen::Error, ir::definitions::*, ir::schema::SchemaCache, map,
+        codegen::ir_to_mql::Error, ir::definitions::*, ir::schema::SchemaCache, map,
         unchecked_unique_linked_hash_map,
     };
 
@@ -3512,7 +3512,7 @@ mod group_by {
 
 mod subquery {
     use crate::{
-        codegen::Error,
+        codegen::ir_to_mql::Error,
         ir::{binding_tuple::DatasourceName::Bottom, schema::SchemaCache, SubqueryModifier::*, *},
         map, unchecked_unique_linked_hash_map,
     };
@@ -3964,7 +3964,7 @@ mod subquery {
 
 mod unwind {
     use crate::{
-        codegen::Error,
+        codegen::ir_to_mql::Error,
         ir::{schema::SchemaCache, *},
         unchecked_unique_linked_hash_map,
     };

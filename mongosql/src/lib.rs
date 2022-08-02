@@ -130,7 +130,9 @@ fn mql_schema_env_to_json_schema(
             let mql_name = mapping_registry.get(&k);
             match mql_name {
                 Some(mql_name) => Ok((mql_name.clone(), v)),
-                None => Err(result::Error::Codegen(codegen::Error::ReferenceNotFound(k))),
+                None => Err(result::Error::CodegenIR(
+                    codegen::ir_to_mql::Error::ReferenceNotFound(k),
+                )),
             }
         })
         .collect::<Result<_>>()?;

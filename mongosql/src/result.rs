@@ -15,8 +15,10 @@ pub enum Error {
     SchemaInference(#[from] ir::schema::Error),
     #[error("result set to json schema conversion error: {0}")]
     JsonSchemaConversion(schema::Error),
-    #[error("codegen error: {0}")]
-    Codegen(#[from] codegen::Error),
+    #[error("codegen ir error: {0}")]
+    CodegenIR(#[from] codegen::ir_to_mql::Error),
+    #[error("codegen agg_ir error: {0}")]
+    CodegenAggIR(#[from] codegen::agg_ir_to_mql::Error),
     #[error("translator error: {0}")]
     Translator(#[from] translator::Error),
 }
