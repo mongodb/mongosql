@@ -21,6 +21,14 @@ thiserror = "1"
 variant_count = "1.1.0"
 mongosql-datastructures = { path = "../mongosql-datastructures" }
 
+[target.'cfg(unix)'.dev-dependencies]
+criterion = "0.3"
+pprof = { version = "0.4", features = ["flamegraph", "criterion"] }
+
+[[bench]]
+name = "translate"
+harness = false
+
 [build-dependencies]
 lalrpop = "0.19.4"
 visitgen = { path = "../visitgen" }

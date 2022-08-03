@@ -2,8 +2,7 @@ use crate::{
     algebrizer::Algebrizer,
     ast::{rewrites::rewrite_query, Query},
     catalog::Catalog,
-    map,
-    parser::Parser,
+    map, parser,
     schema::{Atomic, Document, Schema},
     set, SchemaCheckingMode,
 };
@@ -184,7 +183,7 @@ pub fn run_rewrite_tests() -> Result<(), Error> {
             match test.skip_reason {
                 Some(_) => continue,
                 None => {
-                    let parse_res = Parser::new().parse_query(test.query.as_str());
+                    let parse_res = parser::parse_query(test.query.as_str());
                     let ast = parse_res.map_err(|e| Error::ParsingFailed(format!("{:?}", e)))?;
                     let rewrite_res = rewrite_query(ast);
                     match test.error {
@@ -300,7 +299,7 @@ pub fn run_type_constraint_tests() -> Result<(), Error> {
             match test.skip_reason {
                 Some(_) => continue,
                 None => {
-                    let parse_res = Parser::new().parse_query(test.query.as_str());
+                    let parse_res = parser::parse_query(test.query.as_str());
                     let ast = parse_res.map_err(|e| Error::ParsingFailed(format!("{:?}", e)))?;
                     let rewrite_res = rewrite_query(ast);
                     let ast = rewrite_res.map_err(|e| Error::RewritesFailed(format!("{:?}", e)))?;

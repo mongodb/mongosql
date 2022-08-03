@@ -4,16 +4,14 @@ macro_rules! test_rewrite {
     ($func_name:ident, pass = $pass:expr, expected = $expected:expr, input = $input:expr,) => {
         #[test]
         fn $func_name() {
-            use crate::{ast::rewrites::Pass, parser::Parser};
+            use crate::{ast::rewrites::Pass, parser};
 
             let pass = $pass;
             let input = $input;
             let expected: Result<&str> = $expected;
             let expected = expected.map(String::from);
 
-            let query = Parser::new()
-                .parse_query(input)
-                .expect("input query failed to parse");
+            let query = parser::parse_query(input).expect("input query failed to parse");
 
             let actual = pass.apply(query).map(|q| q.pretty_print().unwrap());
 

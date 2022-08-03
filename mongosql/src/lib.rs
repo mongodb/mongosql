@@ -18,7 +18,6 @@ use crate::{
     algebrizer::Algebrizer,
     catalog::Catalog,
     ir::schema::CachedSchema,
-    parser::Parser,
     result::Result,
     schema::{Schema, SchemaEnvironment},
     translator::MqlTranslator,
@@ -44,8 +43,7 @@ pub fn translate_sql(
     schema_checking_mode: SchemaCheckingMode,
 ) -> Result<Translation> {
     // parse the query and apply syntactic rewrites
-    let p = Parser::new();
-    let ast = p.parse_query(sql)?;
+    let ast = parser::parse_query(sql)?;
     let ast = ast::rewrites::rewrite_query(ast)?;
 
     // construct the algebrizer and use it to build an ir plan
@@ -106,8 +104,7 @@ pub struct Namespace {
 }
 
 pub fn get_namespaces(current_db: &str, sql: &str) -> Result<BTreeSet<Namespace>> {
-    let p = Parser::new();
-    let ast = p.parse_query(sql)?;
+    let ast = parser::parse_query(sql)?;
     let namespaces = ast::visitors::get_collection_sources(ast)
         .into_iter()
         .map(|cs| Namespace {

@@ -264,6 +264,26 @@ functions:
         permissions: public-read
         content_type: application/octet-stream
 
+  "run criterion benchmarks":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          cargo bench --bench translate
+
+  "run criterion profile":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          cargo bench --bench translate -- --profile-time 10
+
   "run go tests":
     - command: shell.exec
       type: test
@@ -358,6 +378,17 @@ functions:
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/test_target/release/mongosql.dll
         remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/mongosql.dll
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+
+  "upload criterion artifacts":
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/target/criterion/translate_simple/profile/flamegraph.svg
+        remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/criterion/flamegraph_translate_simple.svg
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
@@ -458,6 +489,13 @@ tasks:
     commands:
       - func: "perform release"
 
+  - name: criterion
+    commands:
+      - func: "install rust toolchain"
+      - func: "run criterion benchmarks"
+      - func: "run criterion profile"
+      - func: "upload criterion artifacts"
+
 buildvariants:
 
   - name: static-analysis
@@ -506,6 +544,12 @@ buildvariants:
       - name: test-rust
       - name: test-rust-fuzz
       - name: test-go
+
+  - name: benchmark
+    display_name: "Benchmark"
+    run_on: [ centos6-perf ]
+    tasks:
+      - name: criterion
 
   - name: release
     display_name: "Release"

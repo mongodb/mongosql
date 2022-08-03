@@ -1,5 +1,6 @@
 use crate::ast;
 use lalrpop_util::{lalrpop_mod, lexer::Token};
+use lazy_static::lazy_static;
 use thiserror::Error;
 
 lalrpop_mod!(
@@ -24,32 +25,18 @@ impl From<LalrpopError<'_>> for Error {
     }
 }
 
-pub struct Parser {
-    query_parser: grammar::QueryParser,
-    #[cfg(test)]
-    _expression_parser: grammar::ExpressionParser,
+lazy_static! {
+    static ref QUERY_PARSER: grammar::QueryParser = grammar::QueryParser::new();
+    static ref EXPRESSION_PARSER: grammar::ExpressionParser = grammar::ExpressionParser::new();
 }
 
-impl Parser {
-    pub fn new() -> Self {
-        let query_parser = grammar::QueryParser::new();
-        let _expression_parser = grammar::ExpressionParser::new();
+pub fn parse_query(input: &str) -> Result<ast::Query> {
+    let query = QUERY_PARSER.parse(input)?;
+    Ok(query)
+}
 
-        Self {
-            query_parser,
-            #[cfg(test)]
-            _expression_parser,
-        }
-    }
-
-    pub fn parse_query(&self, input: &str) -> Result<ast::Query> {
-        let query = self.query_parser.parse(input)?;
-        Ok(query)
-    }
-
-    #[cfg(test)]
-    pub fn parse_expression(&self, input: &str) -> Result<ast::Expression> {
-        let expr = self._expression_parser.parse(input)?;
-        Ok(expr)
-    }
+#[cfg(test)]
+pub fn parse_expression(input: &str) -> Result<ast::Expression> {
+    let expr = EXPRESSION_PARSER.parse(input)?;
+    Ok(expr)
 }

@@ -2,7 +2,8 @@ macro_rules! parsable {
     ($func_name:ident, expected = $expected:expr, $(expected_error = $expected_error:expr,)? input = $input:expr) => {
         #[test]
         fn $func_name() {
-            let res = Parser::new().parse_query($input);
+            use crate::parser::{parse_query, Error};
+            let res = parse_query($input);
             let expected = $expected;
             if expected {
                 res.expect("expected input to parse, but it failed");
@@ -21,15 +22,13 @@ macro_rules! validate_ast {
     ($func_name:ident, method = $method:ident, expected = $expected:expr, input = $input:expr,) => {
         #[test]
         fn $func_name() {
-            let p = Parser::new();
-            assert_eq!(p.$method($input).unwrap(), $expected)
+            assert_eq!(crate::parser::$method($input).unwrap(), $expected)
         }
     };
 }
 
 mod select {
     use crate::ast::*;
-    use crate::parser::{Error, Parser};
     parsable!(star, expected = true, input = "select *");
     parsable!(star_upper, expected = true, input = "SELECT *");
     parsable!(mixed_case, expected = true, input = "SeLeCt *");
@@ -344,7 +343,6 @@ mod select {
 
 mod query {
     use crate::ast::*;
-    use crate::parser::{Error, Parser};
     parsable!(
         select_union_simple,
         expected = true,
@@ -425,7 +423,6 @@ mod query {
 
 mod operator {
     use crate::ast::*;
-    use crate::parser::{Error, Parser};
     parsable!(unary_pos, expected = true, input = "select +a");
     parsable!(unary_neg, expected = true, input = "select -a");
     parsable!(unary_not, expected = true, input = "select NOT a");
@@ -692,7 +689,6 @@ mod operator {
 
 mod operator_precedence {
     use crate::ast::*;
-    use crate::parser::Parser;
 
     validate_ast!(
         comparison_binds_more_tightly_than_between,
@@ -959,7 +955,6 @@ mod operator_precedence {
 
 mod group_by {
     use crate::ast::*;
-    use crate::parser::{Error, Parser};
     parsable!(simple, expected = true, input = "select * group by a");
     parsable!(compound, expected = true, input = "select * group by a.b");
     parsable!(alias, expected = true, input = "select * group by a as b");
@@ -1052,7 +1047,6 @@ mod group_by {
 
 mod having {
     use crate::ast::*;
-    use crate::parser::{Error, Parser};
 
     parsable!(simple, expected = true, input = "select * having y");
     parsable!(
@@ -1101,7 +1095,6 @@ mod having {
 
 mod order_by {
     use crate::ast::*;
-    use crate::parser::{Error, Parser};
 
     parsable!(simple_ident, expected = true, input = "select * order by a");
     parsable!(
@@ -1159,7 +1152,6 @@ mod order_by {
 
 mod limit_offset {
     use crate::ast::*;
-    use crate::parser::{Error, Parser};
     parsable!(limit_simple, expected = true, input = "select * limit 42");
     parsable!(offset_simple, expected = true, input = "select * offset 42");
     parsable!(
@@ -1263,7 +1255,6 @@ mod limit_offset {
 
 mod fetch_first {
     use crate::ast::*;
-    use crate::parser::{Error, Parser};
     parsable!(
         simple,
         expected = true,
@@ -1391,7 +1382,6 @@ mod fetch_first {
 
 mod literals {
     use crate::ast::*;
-    use crate::parser::{Error, Parser};
     parsable!(null, expected = true, input = "select null");
     parsable!(null_mixed_case, expected = true, input = "select nULL");
     parsable!(unsigned_int, expected = true, input = "select 123");
@@ -1539,7 +1529,6 @@ mod literals {
 }
 
 mod array {
-    use crate::parser::{Error, Parser};
     parsable!(empty, expected = true, input = "select []");
     parsable!(homogeneous, expected = true, input = "select [1, 2, 3]");
     parsable!(
@@ -1551,7 +1540,6 @@ mod array {
 }
 
 mod parenthized_expression {
-    use crate::parser::{Error, Parser};
     parsable!(
         multiple_binary_ops,
         expected = true,
@@ -1568,7 +1556,6 @@ mod parenthized_expression {
 
 mod scalar_function {
     use crate::ast::*;
-    use crate::parser::{Error, Parser};
     parsable!(null_if, expected = true, input = "select nullif(a, b)");
     parsable!(
         coalesce,
@@ -1912,7 +1899,6 @@ mod scalar_function {
 
 mod from {
     use crate::ast::*;
-    use crate::parser::{Error, Parser};
     parsable!(no_qualifier, expected = true, input = "SELECT * FROM foo");
     parsable!(qualifier, expected = true, input = "SELECT * FROM bar.foo");
     parsable!(
@@ -2351,7 +2337,6 @@ mod from {
 
 mod where_test {
     use crate::ast::*;
-    use crate::parser::{Error, Parser};
     parsable!(
         single_condition,
         expected = true,
@@ -2400,7 +2385,6 @@ mod where_test {
 
 mod type_conversion {
     use crate::ast::*;
-    use crate::parser::{Error, Parser};
     parsable!(
         cast_to_double,
         expected = true,
@@ -2842,7 +2826,6 @@ mod type_conversion {
 
 mod subquery {
     use crate::ast::*;
-    use crate::parser::{Error, Parser};
     parsable!(
         simple_subquery,
         expected = true,
@@ -2971,11 +2954,7 @@ mod subquery {
 }
 
 mod document {
-    use crate::{
-        ast::*,
-        multimap,
-        parser::{Error, Parser},
-    };
+    use crate::{ast::*, multimap};
 
     parsable!(empty_doc_literal, expected = true, input = "select {}");
     parsable!(
@@ -3076,7 +3055,6 @@ mod document {
 
 mod comments {
     use crate::ast::*;
-    use crate::parser::{Error, Parser};
     parsable!(
         standard_parse,
         expected = true,
@@ -3255,10 +3233,7 @@ mod comments {
 }
 
 mod flatten {
-    use crate::{
-        ast::*,
-        parser::{Error, Parser},
-    };
+    use crate::ast::*;
     parsable!(
         standard_parse,
         expected = true,
@@ -3381,10 +3356,7 @@ mod flatten {
 }
 
 mod unwind {
-    use crate::{
-        ast::*,
-        parser::{Error, Parser},
-    };
+    use crate::ast::*;
     // Note it is syntactically valid to omit PATH even though that is semantically invalid
     parsable!(
         standard_parse,

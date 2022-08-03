@@ -7,7 +7,7 @@ mod fuzz_test {
             pretty_print::PrettyPrint,
             rewrites::{Pass, SingleTupleRewritePass},
         },
-        parser::Parser,
+        parser,
     };
     use quickcheck::*;
 
@@ -26,7 +26,7 @@ mod fuzz_test {
                 Ok(p) => p,
             };
 
-            let reparsed = Parser::new().parse_query(&p);
+            let reparsed = parser::parse_query(&p);
             let reparsed = match reparsed {
                 Ok(parsed) => parsed,
                 Err(ref e) => {
