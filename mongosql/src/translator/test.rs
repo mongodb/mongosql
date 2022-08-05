@@ -11,6 +11,20 @@ macro_rules! test_translate_expression {
     };
 }
 
+#[allow(unused_macros)]
+macro_rules! test_translate_stage {
+    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+        #[test]
+        fn $func_name() {
+            use crate::{agg_ir, ir, translator};
+            let translator = translator::MqlTranslator::new();
+            let expected = $expected;
+            let actual = translator.translate_stage($input);
+            assert_eq!(actual, expected);
+        }
+    };
+}
+
 mod literal_expression {
     use crate::{agg_ir, ir};
     test_translate_expression!(

@@ -18,8 +18,21 @@ impl MqlTranslator {
         Self {}
     }
 
-    pub fn translate_to_agg(self, _ir_stage: ir::Stage) -> Result<agg_ir::Stage> {
-        Err(Error::UnimplementedStruct)
+    pub fn translate_stage(&self, ir_stage: ir::Stage) -> Result<agg_ir::Stage> {
+        match ir_stage {
+            ir::Stage::Filter(_f) => Err(Error::UnimplementedStruct),
+            ir::Stage::Project(_p) => Err(Error::UnimplementedStruct),
+            ir::Stage::Group(_g) => Err(Error::UnimplementedStruct),
+            ir::Stage::Limit(_l) => Err(Error::UnimplementedStruct),
+            ir::Stage::Offset(_o) => Err(Error::UnimplementedStruct),
+            ir::Stage::Sort(_s) => Err(Error::UnimplementedStruct),
+            ir::Stage::Collection(_c) => Err(Error::UnimplementedStruct),
+            ir::Stage::Array(_arr) => Err(Error::UnimplementedStruct),
+            ir::Stage::Join(_j) => Err(Error::UnimplementedStruct),
+            ir::Stage::Set(_s) => Err(Error::UnimplementedStruct),
+            ir::Stage::Derived(_d) => Err(Error::UnimplementedStruct),
+            ir::Stage::Unwind(_u) => Err(Error::UnimplementedStruct),
+        }
     }
 
     #[allow(dead_code)]

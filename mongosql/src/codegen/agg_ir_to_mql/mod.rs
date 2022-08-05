@@ -55,4 +55,22 @@ impl MqlCodeGenerator {
             _ => Err(Error::UnimplementedAggIR),
         }
     }
+
+    pub fn codegen_agg_ir_stage(&self, stage: agg_ir::Stage) -> Result<MqlTranslation> {
+        match stage {
+            agg_ir::Stage::Project(_p) => Err(Error::UnimplementedAggIR),
+            agg_ir::Stage::Group(_g) => Err(Error::UnimplementedAggIR),
+            agg_ir::Stage::Limit(_l) => Err(Error::UnimplementedAggIR),
+            agg_ir::Stage::Sort(_s) => Err(Error::UnimplementedAggIR),
+            agg_ir::Stage::Collection(_c) => Err(Error::UnimplementedAggIR),
+            agg_ir::Stage::Join(_j) => Err(Error::UnimplementedAggIR),
+            agg_ir::Stage::Unwind(_u) => Err(Error::UnimplementedAggIR),
+            agg_ir::Stage::Lookup(_l) => Err(Error::UnimplementedAggIR),
+            agg_ir::Stage::ReplaceRoot(_r) => Err(Error::UnimplementedAggIR),
+            agg_ir::Stage::Match(_m) => Err(Error::UnimplementedAggIR),
+            agg_ir::Stage::UnionWith(_u) => Err(Error::UnimplementedAggIR),
+            agg_ir::Stage::Skip(_s) => Err(Error::UnimplementedAggIR),
+            agg_ir::Stage::Documents(_d) => Err(Error::UnimplementedAggIR),
+        }
+    }
 }

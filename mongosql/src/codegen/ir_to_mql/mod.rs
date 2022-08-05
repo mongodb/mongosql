@@ -1,4 +1,5 @@
 use crate::{
+    codegen::agg_ir_to_mql,
     ir::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
@@ -18,13 +19,13 @@ pub type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug, Error, PartialEq)]
 pub enum Error {
     #[error("binding tuple key {0:?} not found in mapping registry")]
-    ReferenceNotFound(ir::binding_tuple::Key),
+    ReferenceNotFound(Key),
     #[error("project fields may not be empty, contain dots, or start with dollars")]
     InvalidProjectField,
     #[error("document keys may not be empty, contain dots, or start with dollars")]
     InvalidDocumentKey,
     #[error("cannot generate MQL for {0:?} function")]
-    UnsupportedFunction(ir::ScalarFunction),
+    UnsupportedFunction(ScalarFunction),
     #[error("GROUP BY keys must be valid field references")]
     InvalidGroupKey,
     #[error("sort key must be a field reference")]
@@ -77,6 +78,17 @@ pub struct MqlTranslation {
     pub collection: Option<String>,
     pub mapping_registry: MqlMappingRegistry,
     pub pipeline: Vec<bson::Document>,
+}
+
+impl From<agg_ir_to_mql::MqlTranslation> for MqlTranslation {
+    fn from(agg_ir_mql_translation: agg_ir_to_mql::MqlTranslation) -> Self {
+        MqlTranslation {
+            database: agg_ir_mql_translation.database,
+            collection: agg_ir_mql_translation.collection,
+            mapping_registry: MqlMappingRegistry::default(),
+            pipeline: agg_ir_mql_translation.pipeline,
+        }
+    }
 }
 
 impl MqlTranslation {

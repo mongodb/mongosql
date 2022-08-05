@@ -12,6 +12,51 @@ macro_rules! test_codegen_agg_ir_expr {
     };
 }
 
+#[allow(unused_macros)]
+macro_rules! test_codegen_agg_ir_plan {
+    (
+		$func_name:ident,
+		expected = Ok({
+			database: $expected_db:expr,
+			collection: $expected_collection:expr,
+			pipeline: $expected_pipeline:expr,
+		}),
+		input = $input: expr,
+	) => {
+        #[test]
+        fn $func_name() {
+            use crate::codegen::{agg_ir_to_mql::MqlTranslation, generate_mql_from_agg_ir};
+
+            let input = $input;
+            let expected_db = $expected_db;
+            let expected_collection = $expected_collection;
+            let expected_pipeline = $expected_pipeline;
+
+            let MqlTranslation {
+                database: db,
+                collection: col,
+                pipeline: pipeline,
+            } = generate_mql_from_agg_ir(input).expect("codegen failed");
+
+            assert_eq!(expected_db, db);
+            assert_eq!(expected_collection, col);
+            assert_eq!(expected_pipeline, pipeline);
+        }
+    };
+
+    ($func_name:ident, expected = Err($expected_err:expr), input = $input:expr,) => {
+        #[test]
+        fn $func_name() {
+            use crate::codegen::generate_mql_from_agg_ir;
+
+            let input = $input;
+            let expected = Err($expected_err);
+
+            assert_eq!(expected, generate_mql_from_agg_ir(input));
+        }
+    };
+}
+
 mod agg_ir_literal {
     use crate::agg_ir::{Expression::*, LiteralValue::*};
     use bson::{bson, Bson};

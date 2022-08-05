@@ -10,7 +10,7 @@ macro_rules! test_codegen_plan {
 	) => {
         #[test]
         fn $func_name() {
-            use crate::codegen::{generate_mql_from_ir, MqlTranslation};
+            use crate::codegen::{generate_mql_from_ir, ir_to_mql::MqlTranslation};
 
             let input = $input;
             let expected_db = $expected_db;
