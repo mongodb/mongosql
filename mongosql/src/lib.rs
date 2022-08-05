@@ -67,6 +67,7 @@ pub fn translate_sql(
     // generate mql from the ir plan
     let mql_translation = match agg_plan {
         Err(translator::Error::UnimplementedStruct) => codegen::generate_mql_from_ir(plan)?,
+        Err(err) => return Err(result::Error::Translator(err)),
         Ok(agg_plan) => codegen::generate_mql_from_agg_ir(agg_plan)?,
     };
 

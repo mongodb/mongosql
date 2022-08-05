@@ -42,6 +42,16 @@ impl MqlCodeGenerator {
                     Double(d) => Bson::Double(d),
                 },
             })),
+            Document(document) => Ok(Bson::Document({
+                if document.is_empty() {
+                    bson::doc! {"$literal": {}}
+                } else {
+                    document
+                        .into_iter()
+                        .map(|(k, v)| Ok((k, self.codegen_agg_ir_expression(v)?)))
+                        .collect::<Result<bson::Document>>()?
+                }
+            })),
             _ => Err(Error::UnimplementedAggIR),
         }
     }

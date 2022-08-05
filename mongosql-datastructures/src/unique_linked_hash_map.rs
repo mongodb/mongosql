@@ -83,6 +83,19 @@ where
     }
 }
 
+impl<K, V> FromIterator<(K, V)> for UniqueLinkedHashMap<K, V>
+where
+    K: Hash + PartialEq + Eq + Display,
+{
+    fn from_iter<I: IntoIterator<Item = (K, V)>>(iter: I) -> Self {
+        let mut hm = UniqueLinkedHashMap::new();
+        for (k, v) in iter {
+            hm.0.insert(k, v);
+        }
+        hm
+    }
+}
+
 impl<K, V> From<UniqueLinkedHashMap<K, V>> for LinkedHashMap<K, V>
 where
     K: Hash + Eq + PartialEq + Display,

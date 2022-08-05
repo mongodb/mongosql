@@ -2,7 +2,7 @@ macro_rules! test_translate_expression {
     ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
         #[test]
         fn $func_name() {
-            use crate::{agg_ir, ir, translator};
+            use crate::translator;
             let translator = translator::MqlTranslator::new();
             let expected = $expected;
             let actual = translator.translate_expression($input);
@@ -12,6 +12,7 @@ macro_rules! test_translate_expression {
 }
 
 mod literal_expression {
+    use crate::{agg_ir, ir};
     test_translate_expression!(
         null,
         expected = Ok(agg_ir::Expression::Literal(agg_ir::LiteralValue::Null)),
@@ -49,5 +50,65 @@ mod literal_expression {
             3.0
         ))),
         input = ir::Expression::Literal(ir::LiteralValue::Double(3.0).into())
+    );
+}
+
+mod document_expression {
+    use crate::unchecked_unique_linked_hash_map;
+    use crate::{agg_ir, ir, translator::Error};
+    test_translate_expression!(
+        empty,
+        expected = Ok(agg_ir::Expression::Document(
+            unchecked_unique_linked_hash_map! {}
+        )),
+        input = ir::Expression::Document(unchecked_unique_linked_hash_map! {}.into())
+    );
+    test_translate_expression!(
+        non_empty,
+        expected = Ok(agg_ir::Expression::Document(
+            unchecked_unique_linked_hash_map! {"foo".to_string() => agg_ir::Expression::Literal(agg_ir::LiteralValue::Integer(1))}
+        )),
+        input = ir::Expression::Document(
+            unchecked_unique_linked_hash_map! {"foo".to_string() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),}
+        .into())
+    );
+    test_translate_expression!(
+        nested,
+        expected = Ok(agg_ir::Expression::Document(
+            unchecked_unique_linked_hash_map! {
+                "foo".to_string() => agg_ir::Expression::Literal(agg_ir::LiteralValue::Integer(1)),
+                "bar".to_string() => agg_ir::Expression::Document(unchecked_unique_linked_hash_map!{
+                    "baz".to_string() => agg_ir::Expression::Literal(agg_ir::LiteralValue::Integer(2))
+                }),
+            }
+        )),
+        input = ir::Expression::Document(
+            unchecked_unique_linked_hash_map! {
+                "foo".to_string() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
+                "bar".to_string() => ir::Expression::Document(unchecked_unique_linked_hash_map!{
+                    "baz".to_string() => ir::Expression::Literal(ir::LiteralValue::Integer(2).into())
+                }.into()),
+            }
+            .into()
+        )
+    );
+    test_translate_expression!(
+        dollar_prefixed_key_disallowed,
+        expected = Err(Error::InvalidDocumentKey("$foo".to_string())),
+        input = ir::Expression::Document(
+            unchecked_unique_linked_hash_map! {"$foo".to_string() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())}.into())
+    );
+    test_translate_expression!(
+        key_containing_dot_disallowed,
+        expected = Err(Error::InvalidDocumentKey("foo.bar".to_string())),
+        input = ir::Expression::Document(
+            unchecked_unique_linked_hash_map! {"foo.bar".to_string() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())}.into()
+        )
+    );
+    test_translate_expression!(
+        empty_key_disallowed,
+        expected = Err(Error::InvalidDocumentKey("".to_string())),
+        input = ir::Expression::Document(
+            unchecked_unique_linked_hash_map! {"".to_string() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())}.into())
     );
 }
