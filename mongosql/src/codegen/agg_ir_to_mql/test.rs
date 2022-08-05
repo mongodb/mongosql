@@ -127,3 +127,20 @@ mod agg_ir_document {
         })
     );
 }
+
+mod agg_ir_array {
+    use crate::agg_ir::{Expression::*, LiteralValue::*};
+    use bson::bson;
+
+    test_codegen_agg_ir_expr!(empty, expected = Ok(bson!([])), input = Array(vec![]));
+    test_codegen_agg_ir_expr!(
+        non_empty,
+        expected = Ok(bson!([{"$literal": "abc"}])),
+        input = Array(vec![Literal(String("abc".to_string()))])
+    );
+    test_codegen_agg_ir_expr!(
+        nested,
+        expected = Ok(bson!([{ "$literal": null }, [{ "$literal": null }]])),
+        input = Array(vec![Literal(Null), Array(vec![Literal(Null)])])
+    );
+}

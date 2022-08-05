@@ -126,3 +126,42 @@ mod document_expression {
             unchecked_unique_linked_hash_map! {"".to_string() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())}.into())
     );
 }
+
+mod array_expression {
+    use crate::{agg_ir, ir};
+    test_translate_expression!(
+        empty,
+        expected = Ok(agg_ir::Expression::Array(vec![])),
+        input = ir::Expression::Array(vec![].into())
+    );
+    test_translate_expression!(
+        non_empty,
+        expected = Ok(agg_ir::Expression::Array(vec![
+            agg_ir::Expression::Literal(agg_ir::LiteralValue::String("abc".to_string()))
+        ])),
+        input = ir::Expression::Array(
+            vec![ir::Expression::Literal(
+                ir::LiteralValue::String("abc".into()).into()
+            )]
+            .into()
+        )
+    );
+    test_translate_expression!(
+        nested,
+        expected = Ok(agg_ir::Expression::Array(vec![
+            agg_ir::Expression::Literal(agg_ir::LiteralValue::Null),
+            agg_ir::Expression::Array(vec![agg_ir::Expression::Literal(
+                agg_ir::LiteralValue::Null
+            )])
+        ])),
+        input = ir::Expression::Array(
+            vec![
+                ir::Expression::Literal(ir::LiteralValue::Null.into()),
+                ir::Expression::Array(
+                    vec![ir::Expression::Literal(ir::LiteralValue::Null.into())].into()
+                )
+            ]
+            .into()
+        )
+    );
+}

@@ -43,6 +43,7 @@ impl MqlTranslator {
         match ir_expression {
             ir::Expression::Literal(lit) => self.translate_literal(lit.value),
             ir::Expression::Document(doc) => self.translate_document(doc.document),
+            ir::Expression::Array(expr) => self.translate_array(expr.array),
             _ => Err(Error::UnimplementedStruct),
         }
     }
@@ -73,6 +74,15 @@ impl MqlTranslator {
                     }
                 })
                 .collect::<Result<UniqueLinkedHashMap<String, agg_ir::Expression>>>()?,
+        ))
+    }
+
+    fn translate_array(&self, array: Vec<ir::Expression>) -> Result<agg_ir::Expression> {
+        Ok(agg_ir::Expression::Array(
+            array
+                .into_iter()
+                .map(|x| self.translate_expression(x))
+                .collect::<Result<Vec<agg_ir::Expression>>>()?,
         ))
     }
 }
