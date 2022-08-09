@@ -1,3 +1,18 @@
+catalog_data:
+  test:
+    foo:
+      - {'_id': 0, 'a': 1}
+
+catalog_schema:
+  {
+    'test': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
 tests:
   - description: basic array datasource correctness test
     query: "SELECT * FROM [{'a': 1, 'b': 1}] AS arr"

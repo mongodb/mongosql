@@ -5,6 +5,16 @@ catalog_data:
       - { _id: {"$numberInt": "2"}, v1: {"$numberInt": "2"}}
       - { _id: {"$numberInt": "3"}, v1: null}
 
+catalog_schema:
+  {
+    'foo': {
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
 tests:
   - description: schema-less type assertion on ORDER BY clause
     current_db: "foo"

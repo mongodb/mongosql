@@ -76,6 +76,60 @@ catalog_data:
       - {'_id': 8, 'type': 'minKey', 'v': {'$minKey': 1}}
       - {'_id': 9, 'type': 'maxKey', 'v': {'$maxKey': 1}}
 
+catalog_schema:
+  {
+    'foo': {
+      'doubles': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'strings': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'documents': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'arrays': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'objectIDs': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'bools': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'dates': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'nullAndMissing': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'ints': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'longs': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'decimals': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'invalidSourceTypes': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+    }
+  }
+
 tests:
   - description: Cast DOUBLE to BOOL
     current_db: foo

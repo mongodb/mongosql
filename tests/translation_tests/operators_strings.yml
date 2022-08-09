@@ -3,6 +3,16 @@ catalog_data:
     bar:
       - {'_id': 0, 'a': 'a', 'b': 'b', 'c': 'c'}
 
+catalog_schema:
+  {
+    'foo': {
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
 tests:
   - description: concatenation with more than 2 operands
     current_db: foo

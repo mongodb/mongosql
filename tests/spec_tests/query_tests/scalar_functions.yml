@@ -328,6 +328,14 @@ catalog_schema:
           }
         }
       },
+      'twoArgCoalesce': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
+      'multiArgCoalesce': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
       "size": {
         "bsonType": "object",
         'required': [ '_id', 'a' ],

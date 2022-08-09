@@ -66,6 +66,8 @@ pub enum Error {
     UnwindIndexNameConflict(String),
     #[error("UNWIND PATH option must be an identifier")]
     InvalidUnwindPath,
+    #[error("unknown collection '{1}' in database '{0}'")]
+    CollectionNotFound(String, String),
 }
 
 #[derive(PartialEq, Clone, Debug)]
@@ -507,7 +509,12 @@ impl CachedSchema for Stage {
                     collection: c.collection.clone(),
                 }) {
                     Some(s) => s.clone(),
-                    None => ANY_DOCUMENT.clone(),
+                    None => {
+                        return Err(Error::CollectionNotFound(
+                            c.db.clone(),
+                            c.collection.clone(),
+                        ))
+                    }
                 };
                 Ok(ResultSet {
                     schema_env: map! {

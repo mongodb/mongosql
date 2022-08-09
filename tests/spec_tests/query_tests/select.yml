@@ -4,6 +4,16 @@ catalog_data:
       - {'_id': 0, 'a': 1, 'b': 1}
       - {'_id': 1, 'a': 2, 'b': 2}
 
+catalog_schema:
+  {
+    'mydb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
 tests:
   - description: key names in SELECT VALUE document must be unique
     current_db: mydb

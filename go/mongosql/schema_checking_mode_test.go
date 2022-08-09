@@ -5,13 +5,28 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
+	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 func TestRelaxedSchemaChecking(t *testing.T) {
+	schema := bson.D{
+		{"bsonType", "object"},
+		{"additionalProperties", true},
+	}
+
+	bytes, err := bson.Marshal(&schema)
+	if err != nil {
+		t.Fatalf("failed to marshal: %v", err)
+	}
+
+	catalogSchema := map[string]map[string]bsoncore.Document{
+		"test": {"grades": bsoncore.Document(bytes)},
+	}
+
 	translation, err := Translate(TranslationArgs{
 		DB:                  "test",
 		SQL:                 "select studentid from grades where score > 80",
-		CatalogSchema:       nil,
+		CatalogSchema:       catalogSchema,
 		relaxSchemaChecking: true,
 	})
 	if err != nil {

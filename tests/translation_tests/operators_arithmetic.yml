@@ -3,6 +3,16 @@ catalog_data:
     bar:
       - {'_id': 0, 'a': {'$numberInt': '1'}, 'b': {'$numberInt': '2'}, 'c': {'$numberInt': '3'}}
 
+catalog_schema:
+  {
+    'foo': {
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
 tests:
   - description: addition with more than 2 operands
     current_db: foo

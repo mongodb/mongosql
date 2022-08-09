@@ -7,6 +7,20 @@ catalog_data:
     bar:
       - {'_id': 0, 'b': 1, 'c': 1}
 
+catalog_schema:
+  {
+    'mydb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
 tests:
   - description: collections with different schema can be unioned
     current_db: mydb

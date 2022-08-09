@@ -87,6 +87,10 @@ catalog_schema:
             'bsonType': "string"
           }
         }
+      },
+      'baz': {
+        'bsonType': 'object',
+        'additionalProperties': true
       }
     }
   }

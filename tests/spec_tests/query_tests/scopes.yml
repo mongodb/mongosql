@@ -26,6 +26,22 @@ catalog_data:
 catalog_schema:
   {
     'foo': {
+      'coll': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
+      'nested': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
+      'baz': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
       'schema_coll': {
         'bsonType': "object",
         'required': [ 'bar', 'car' ],
@@ -49,6 +65,12 @@ catalog_schema:
           }
         }
       }
+    },
+    'foo2': {
+      'coll': {
+        'bsonType': 'object',
+        'additionalProperties': true
+      },
     }
   }
 
@@ -200,9 +222,8 @@ tests:
   - description: unqualified collection references do not resolve to collections in other databases
     current_db: 'foo2'
     query: "SELECT * FROM nested AS nested"
-    skip_reason: "SQL-519: error when unqualified collection ref is not in current db"
     should_compile: false
-    algebrize_error: "Unknown collection 'nested' in current database 'foo2'"
+    algebrize_error: "unknown collection 'nested' in database 'foo2'"
 
   - description: unqualified references are still ambiguous when there are multiple datasources with schema that have the same field names
     query: "SELECT VALUE {'a': bar} FROM foo.schema_coll AS coll JOIN foo.schema_coll AS coll2"
@@ -212,21 +233,18 @@ tests:
   - description: unqualified collection reference will error if collection not found in current database
     current_db: 'foo'
     query: "SELECT * FROM car AS car"
-    skip_reason: "SQL-519: error on invalid collection ref"
     should_compile: false
-    algebrize_error: "Unknown collection 'car' in current database 'foo'"
+    algebrize_error: "unknown collection 'car' in database 'foo'"
 
   - description: qualified collection reference in FROM clause will error if collection not found in specified database
     current_db: 'foo'
     query: "SELECT * FROM foo.car AS car"
-    skip_reason: "SQL-519: error on invalid collection ref"
-    algebrize_error: "Unknown collection 'car' in database 'foo'"
+    algebrize_error: "unknown collection 'car' in database 'foo'"
 
   - description: qualified collection reference in FROM clause will error if database not found
     current_db: 'foo3'
     query: "SELECT * FROM bar AS bar"
-    skip_reason: "SQL-519: error on invalid collection ref"
-    algebrize_error: "Unknown database 'foo3'"
+    algebrize_error: "unknown collection 'bar' in database 'foo3'"
 
   - description: nonexistent field references fail with a schema
     query: "SELECT VALUE {'bar': foo.coll.bar} FROM foo.schema_coll AS coll"

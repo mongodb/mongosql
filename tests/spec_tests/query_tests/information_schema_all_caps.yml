@@ -3,6 +3,16 @@ catalog_data:
     mytbl:
       - {'_id': 0, 'a': 1}
 
+catalog_schema:
+  {
+    'INFORMATION_SCHEMA': {
+      'mytbl': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
 tests:
   - description: a user db called all caps INFORMATION_SCHEMA should require no special handling
     query: "SELECT * FROM INFORMATION_SCHEMA.mytbl"

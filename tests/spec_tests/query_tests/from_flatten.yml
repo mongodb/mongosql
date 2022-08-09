@@ -93,6 +93,10 @@ catalog_schema:
           }
         }
       },
+      'noSchemaInfo': {
+        'bsonType': "object",
+        'additionalProperties': true
+      }
     },
   }
 

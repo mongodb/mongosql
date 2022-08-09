@@ -1,7 +1,9 @@
 use crate::{
     ast::{self, CollectionSource, Datasource},
+    catalog::{Catalog, Namespace},
     ir::{schema::SchemaCache, Collection, Expression, Project, Stage},
     map,
+    schema::ANY_DOCUMENT,
 };
 use lazy_static::lazy_static;
 
@@ -33,6 +35,7 @@ macro_rules! test_algebrize {
         }
     };
 }
+
 fn ir_source_foo() -> Stage {
     Stage::Project(Project {
         source: Box::new(Stage::Collection(Collection {
@@ -46,6 +49,7 @@ fn ir_source_foo() -> Stage {
         cache: SchemaCache::new(),
     })
 }
+
 fn ir_source_bar() -> Stage {
     Stage::Project(Project {
         source: Box::new(Stage::Collection(Collection {
@@ -59,6 +63,21 @@ fn ir_source_bar() -> Stage {
         cache: SchemaCache::new(),
     })
 }
+
+fn catalog(ns: Vec<(&str, &str)>) -> Catalog {
+    ns.into_iter()
+        .map(|(db, c)| {
+            (
+                Namespace {
+                    db: db.into(),
+                    collection: c.into(),
+                },
+                ANY_DOCUMENT.clone(),
+            )
+        })
+        .collect::<Catalog>()
+}
+
 lazy_static! {
     static ref AST_SOURCE_FOO: Datasource = Datasource::Collection(CollectionSource {
         database: Some("test".into()),
@@ -2444,6 +2463,7 @@ mod aggregation {
 }
 
 mod select_clause {
+    use super::catalog;
     use crate::{
         ast,
         ir::{self, binding_tuple::Key, schema::SchemaCache},
@@ -2488,6 +2508,7 @@ mod select_clause {
         },
         source = source(),
         env = map! {},
+        catalog = catalog(vec![("test", "baz")]),
     );
     test_algebrize!(
         select_duplicate_doc_key_a,
@@ -2504,6 +2525,7 @@ mod select_clause {
         },
         source = source(),
         env = map! {},
+        catalog = catalog(vec![("test", "baz")]),
     );
     test_algebrize!(
         select_bot_and_double_substar,
@@ -2530,6 +2552,7 @@ mod select_clause {
             ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
             ("bar", 1u16).into() => ANY_DOCUMENT.clone(),
         },
+        catalog = catalog(vec![("test", "baz")]),
     );
     test_algebrize!(
         select_value_expression_must_be_document,
@@ -2549,6 +2572,7 @@ mod select_clause {
         },
         source = source(),
         env = map! {},
+        catalog = catalog(vec![("test", "baz")]),
     );
     test_algebrize!(
         select_duplicate_substar,
@@ -2565,6 +2589,7 @@ mod select_clause {
         env = map! {
             ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
         },
+        catalog = catalog(vec![("test", "baz")]),
     );
     test_algebrize!(
         select_substar_body,
@@ -2586,11 +2611,12 @@ mod select_clause {
         env = map! {
             ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
         },
+        catalog = catalog(vec![("test", "baz")]),
     );
 }
 
 mod from_clause {
-    use super::{ir_source_bar, ir_source_foo, AST_SOURCE_BAR, AST_SOURCE_FOO};
+    use super::{catalog, ir_source_bar, ir_source_foo, AST_SOURCE_BAR, AST_SOURCE_FOO};
     use crate::{
         ast::{self, JoinSource},
         ir::{self, binding_tuple::Key, schema::SchemaCache, JoinType},
@@ -2665,6 +2691,7 @@ mod from_clause {
             collection: "foo".into(),
             alias: Some("bar".into()),
         })),
+        catalog = catalog(vec![("test", "foo")]),
     );
     test_algebrize!(
         qualified_collection,
@@ -2686,6 +2713,7 @@ mod from_clause {
             collection: "foo".into(),
             alias: Some("bar".into()),
         })),
+        catalog = catalog(vec![("test2", "foo")]),
     );
     test_algebrize!(
         empty_array,
@@ -2859,6 +2887,7 @@ mod from_clause {
             right: Box::new(AST_SOURCE_BAR.clone()),
             condition: Some(ast::Expression::Literal(ast::Literal::Boolean(true)))
         })),
+        catalog = catalog(vec![("test", "foo"), ("test", "bar")]),
     );
     test_algebrize!(
         right_join,
@@ -2878,6 +2907,7 @@ mod from_clause {
             right: Box::new(AST_SOURCE_BAR.clone()),
             condition: Some(ast::Expression::Literal(ast::Literal::Boolean(true)))
         })),
+        catalog = catalog(vec![("test", "foo"), ("test", "bar")]),
     );
     test_algebrize!(
         left_outer_join_without_condition,
@@ -2889,6 +2919,7 @@ mod from_clause {
             right: Box::new(AST_SOURCE_BAR.clone()),
             condition: None
         })),
+        catalog = catalog(vec![("test", "foo"), ("test", "bar")]),
     );
     test_algebrize!(
         right_outer_join_without_condition,
@@ -2900,6 +2931,7 @@ mod from_clause {
             right: Box::new(AST_SOURCE_BAR.clone()),
             condition: None
         })),
+        catalog = catalog(vec![("test", "foo"), ("test", "bar")]),
     );
     test_algebrize!(
         inner_join,
@@ -2917,6 +2949,7 @@ mod from_clause {
             right: Box::new(AST_SOURCE_BAR.clone()),
             condition: None
         })),
+        catalog = catalog(vec![("test", "foo"), ("test", "bar")]),
     );
     test_algebrize!(
         cross_join,
@@ -2934,6 +2967,7 @@ mod from_clause {
             right: Box::new(AST_SOURCE_BAR.clone()),
             condition: None
         })),
+        catalog = catalog(vec![("test", "foo"), ("test", "bar")]),
     );
     test_algebrize!(
         invalid_join_condition,
@@ -3635,6 +3669,7 @@ mod from_clause {
                     ast::UnwindOption::Path(ast::Expression::Identifier("dup".into())),
                 ]
             })),
+            catalog = make_catalog(ANY_DOCUMENT.clone()),
         );
         test_algebrize!(
             missing_path,
@@ -3644,6 +3679,7 @@ mod from_clause {
                 datasource: Box::new(AST_SOURCE_FOO.clone()),
                 options: vec![]
             })),
+            catalog = make_catalog(ANY_DOCUMENT.clone()),
         );
         test_algebrize!(
             invalid_path,
@@ -3665,6 +3701,7 @@ mod from_clause {
                     }
                 )),]
             })),
+            catalog = make_catalog(ANY_DOCUMENT.clone()),
         );
         test_algebrize!(
             correlated_path_disallowed,
@@ -3700,7 +3737,7 @@ mod from_clause {
 }
 
 mod limit_or_offset_clause {
-    use super::{ir_source_foo, AST_SOURCE_FOO};
+    use super::{catalog, ir_source_foo, AST_SOURCE_FOO};
     use crate::{ast, ir, ir::schema::SchemaCache};
 
     test_algebrize!(
@@ -3713,6 +3750,7 @@ mod limit_or_offset_clause {
         })),
         input = Some(42_u32),
         source = ir_source_foo(),
+        catalog = catalog(vec![("test", "foo")]),
     );
     test_algebrize!(
         limit_unset,
@@ -3731,6 +3769,7 @@ mod limit_or_offset_clause {
         })),
         input = Some(3_u32),
         source = ir_source_foo(),
+        catalog = catalog(vec![("test", "foo")]),
     );
     test_algebrize!(
         offset_unset,
@@ -3764,11 +3803,12 @@ mod limit_or_offset_clause {
             limit: Some(10_u32),
             offset: Some(3_u32)
         },
+        catalog = catalog(vec![("test", "foo")]),
     );
 }
 
 mod set_query {
-    use super::{ir_source_bar, ir_source_foo, AST_QUERY_BAR, AST_QUERY_FOO};
+    use super::{catalog, ir_source_bar, ir_source_foo, AST_QUERY_BAR, AST_QUERY_FOO};
     use crate::{ast, ir, ir::schema::SchemaCache};
 
     test_algebrize!(
@@ -3795,11 +3835,12 @@ mod set_query {
             op: ast::SetOperator::UnionAll,
             right: Box::new(AST_QUERY_BAR.clone()),
         },
+        catalog = catalog(vec![("test", "foo"), ("test", "bar")]),
     );
 }
 
 mod filter_clause {
-    use super::ir_source_foo;
+    use super::{catalog, ir_source_foo};
     use crate::{ast, ir, ir::schema::SchemaCache};
 
     fn true_ir() -> ir::Expression {
@@ -3817,6 +3858,7 @@ mod filter_clause {
         })),
         input = Some(TRUE_AST),
         source = ir_source_foo(),
+        catalog = catalog(vec![("test", "foo")]),
     );
     test_algebrize!(
         none,
@@ -3824,10 +3866,12 @@ mod filter_clause {
         expected = Ok(ir_source_foo()),
         input = None,
         source = ir_source_foo(),
+        catalog = catalog(vec![("test", "foo")]),
     );
 }
 
 mod order_by_clause {
+    use super::catalog;
     use crate::{
         ast, ir,
         ir::schema::SchemaCache,
@@ -3896,6 +3940,7 @@ mod order_by_clause {
                 additional_properties: false,
             }),
         },
+        catalog = catalog(vec![("test", "baz")]),
     );
 
     test_algebrize!(
@@ -4211,6 +4256,7 @@ mod group_by_clause {
 }
 
 mod subquery {
+    use super::catalog;
     use crate::{
         ast,
         ir::{binding_tuple::DatasourceName, schema::SchemaCache, *},
@@ -4911,10 +4957,12 @@ mod subquery {
             limit: Some(1),
             offset: None,
         }))),
+        catalog = catalog(vec![("test", "bar")]),
     );
 }
 
 mod schema_checking_mode {
+    use super::catalog;
     use crate::{
         ast,
         ir::{schema::SchemaCache, *},
@@ -4938,6 +4986,7 @@ mod schema_checking_mode {
             collection: "test".into(),
             cache: SchemaCache::new(),
         }),
+        catalog = catalog(vec![("", "test")]),
     );
 
     test_algebrize!(
@@ -4955,6 +5004,7 @@ mod schema_checking_mode {
             collection: "foo".into(),
             cache: SchemaCache::new(),
         }),
+        catalog = catalog(vec![("", "foo")]),
         schema_checking_mode = SchemaCheckingMode::Relaxed,
     );
 }

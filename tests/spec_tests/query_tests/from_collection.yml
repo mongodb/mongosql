@@ -6,6 +6,22 @@ catalog_data:
     foo:
       - {'_id': 0, 'b': 1}
 
+catalog_schema:
+  {
+    'mydb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    },
+    'otherdb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
 tests:
   - description: reference collection in current db by fully qualified name
     current_db: mydb

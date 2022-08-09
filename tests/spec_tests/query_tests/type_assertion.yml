@@ -12,6 +12,10 @@ catalog_data:
 catalog_schema:
   {
     "foo": {
+      "bar": {
+        "bsonType": "object",
+        "additionalProperties": true
+      },
       "bar_schema": {
         "bsonType": "object",
         "required": [ '_id', 'v1' ],

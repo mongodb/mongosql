@@ -95,6 +95,7 @@ mod schema {
         set, unchecked_unique_linked_hash_map,
     };
     use lazy_static::lazy_static;
+
     fn test_document_a() -> Expression {
         Expression::Document(
             unchecked_unique_linked_hash_map! {
@@ -4495,18 +4496,44 @@ mod schema {
 
     // Datasource tests.
     test_schema!(
-        collection_schema,
+        collection_schema_no_catalog,
+        expected = Err(ir_error::CollectionNotFound("test2".into(), "foo".into())),
+        input = Stage::Collection(Collection {
+            db: "test2".into(),
+            collection: "foo".into(),
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    test_schema!(
+        collection_schema_namespace_not_in_catalog,
+        expected = Err(ir_error::CollectionNotFound("foo".into(), "baz".into())),
+        input = Stage::Collection(Collection {
+            db: "foo".into(),
+            collection: "baz".into(),
+            cache: SchemaCache::new(),
+        }),
+        catalog = Catalog::new(map! {
+            Namespace {db: "foo".into(), collection: "bar".into()} => Schema::Atomic(Atomic::Integer)
+        }),
+    );
+
+    test_schema!(
+        collection_schema_namespace_in_catalog,
         expected = Ok(ResultSet {
             schema_env: map! {
-                ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
+                ("bar", 0u16).into() => Schema::Atomic(Atomic::Integer),
             },
             min_size: 0,
             max_size: None,
         }),
         input = Stage::Collection(Collection {
-            db: "test2".into(),
-            collection: "foo".into(),
+            db: "foo".into(),
+            collection: "bar".into(),
             cache: SchemaCache::new(),
+        }),
+        catalog = Catalog::new(map! {
+            Namespace {db: "foo".into(), collection: "bar".into()} => Schema::Atomic(Atomic::Integer)
         }),
     );
 
@@ -4664,50 +4691,17 @@ mod schema {
             },
             cache: SchemaCache::new(),
         }),
-    );
-
-    test_schema!(
-        namespace_in_catalog,
-        expected = Ok(ResultSet {
-            schema_env: map! {
-                ("bar", 0u16).into() => Schema::Atomic(Atomic::Integer),
-            },
-            min_size: 0,
-            max_size: None,
-        }),
-        input = Stage::Collection(Collection {
-            db: "foo".into(),
-            collection: "bar".into(),
-            cache: SchemaCache::new(),
-        }),
         catalog = Catalog::new(map! {
-            Namespace {db: "foo".into(), collection: "bar".into()} => Schema::Atomic(Atomic::Integer)
-        }),
-    );
-    test_schema!(
-        namespace_not_in_catalog,
-        expected = Ok(ResultSet {
-            schema_env: map! {
-                ("baz", 0u16).into() => crate::schema::ANY_DOCUMENT.clone()
-            },
-            min_size: 0,
-            max_size: None,
-        }),
-        input = Stage::Collection(Collection {
-            db: "foo".into(),
-            collection: "baz".into(),
-            cache: SchemaCache::new(),
-        }),
-        catalog = Catalog::new(map! {
-            Namespace {db: "foo".into(), collection: "bar".into()} => Schema::Atomic(Atomic::Integer)
+            Namespace {db: "test2".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
         }),
     );
 
     mod filter {
         use crate::{
+            catalog::Namespace,
             ir::{schema::CachedSchema, schema::Error as ir_error, schema::SchemaCache, *},
             map,
-            schema::{Atomic, ResultSet, Schema},
+            schema::{Atomic, ResultSet, Schema, ANY_DOCUMENT},
             set, unchecked_unique_linked_hash_map,
         };
 
@@ -4731,6 +4725,9 @@ mod schema {
                 condition: true_ir(),
                 cache: SchemaCache::new(),
             }),
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+            }),
         );
         test_schema!(
             null_condition_allowed,
@@ -4739,6 +4736,9 @@ mod schema {
                 source: Box::new(test_source()),
                 condition: Expression::Literal(LiteralValue::Null.into()),
                 cache: SchemaCache::new(),
+            }),
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
             }),
         );
         test_schema!(
@@ -4750,6 +4750,9 @@ mod schema {
                 cache: SchemaCache::new(),
             }),
             schema_env = map! {("m", 0u16).into() => Schema::Missing},
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+            }),
         );
         test_schema!(
             non_boolean_condition_disallowed,
@@ -4766,6 +4769,9 @@ mod schema {
                 source: Box::new(test_source()),
                 condition: Expression::Literal(LiteralValue::Integer(123).into()),
                 cache: SchemaCache::new(),
+            }),
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
             }),
         );
         test_schema!(
@@ -4787,6 +4793,9 @@ mod schema {
                     cache: SchemaCache::new(),
                 }),
                 cache: SchemaCache::new(),
+            }),
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
             }),
         );
         test_schema!(
@@ -4815,6 +4824,9 @@ mod schema {
                 source: Box::new(test_source()),
                 condition: Expression::Reference(("abc", 0u16).into()),
                 cache: SchemaCache::new(),
+            }),
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
             }),
         );
         test_schema!(
@@ -5132,6 +5144,9 @@ mod schema {
             })),
             cache: SchemaCache::new(),
         }),
+        catalog = Catalog::new(map! {
+            Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+        }),
     );
     test_schema!(
         limit_lt_num_docs,
@@ -5223,6 +5238,9 @@ mod schema {
             })),
             cache: SchemaCache::new(),
         }),
+        catalog = Catalog::new(map! {
+            Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+        }),
     );
     test_schema!(
         offset_lt_num_docs,
@@ -5309,6 +5327,9 @@ mod schema {
             }))
             .into()
         ),
+        catalog = Catalog::new(map! {
+            Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+        }),
     );
 
     test_schema!(
@@ -5340,6 +5361,9 @@ mod schema {
                 additional_properties: false,
             }),
         },
+        catalog = Catalog::new(map! {
+            Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+        }),
     );
 
     test_schema!(
@@ -5372,6 +5396,9 @@ mod schema {
             }))
             .into()
         ),
+        catalog = Catalog::new(map! {
+            Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
+        }),
     );
 
     // Subquery Expression
@@ -5399,6 +5426,9 @@ mod schema {
                 cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
+        }),
+        catalog = Catalog::new(map! {
+            Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
         }),
     );
 
@@ -5484,6 +5514,9 @@ mod schema {
                 additional_properties: false,
             }),
         },
+        catalog = Catalog::new(map! {
+            Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+        }),
     );
 
     // Analogous SQL query: "SELECT (SELECT * FROM [] AS foo)"
@@ -5537,6 +5570,9 @@ mod schema {
                 cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
+        }),
+        catalog = Catalog::new(map! {
+            Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
         }),
     );
 
@@ -6170,6 +6206,7 @@ mod schema {
 
     mod sort {
         use crate::{
+            catalog::Namespace,
             ir::{
                 schema::{CachedSchema, Error as ir_error, SchemaCache},
                 *,
@@ -6218,6 +6255,9 @@ mod schema {
                     additional_properties: false,
                 }),
             },
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+            }),
         );
         test_schema!(
             incomparable_schemas,
@@ -6258,6 +6298,9 @@ mod schema {
                     additional_properties: false,
                 }),
             },
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+            }),
         );
         test_schema!(
             mix_comparable_and_incomparable_schemas,
@@ -6293,11 +6336,15 @@ mod schema {
                     additional_properties: false,
                 }),
             },
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+            }),
         );
     }
 
     mod group_by {
         use crate::{
+            catalog::Namespace,
             ir::{
                 binding_tuple::Key,
                 schema::Error as ir_error,
@@ -6355,6 +6402,9 @@ mod schema {
                     additional_properties: false,
                 }),
             },
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+            }),
         );
         test_schema!(
             key_schemas_not_all_self_comparable,
@@ -6376,6 +6426,9 @@ mod schema {
                     additional_properties: false,
                 }),
             },
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+            }),
         );
         test_schema!(
             aliased_field_access_mapped_to_bottom_datasource,
@@ -6411,6 +6464,9 @@ mod schema {
                     additional_properties: false,
                 }),
             },
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+            }),
         );
         test_schema!(
             non_aliased_field_access_mapped_to_reference,
@@ -6446,6 +6502,9 @@ mod schema {
                     additional_properties: false,
                 }),
             },
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+            }),
         );
         test_schema!(
             all_literal_keys_results_in_max_size_1,
@@ -6471,6 +6530,9 @@ mod schema {
                 ],
                 aggregations: vec![],
                 cache: SchemaCache::new(),
+            }),
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
             }),
         );
         test_schema!(
@@ -6505,6 +6567,9 @@ mod schema {
                     additional_properties: false,
                 }),
             },
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
+            }),
         );
         test_schema!(
             aliased_key_and_multiple_agg_functions_all_correctly_unioned_under_bottom_datasource,
@@ -6557,6 +6622,9 @@ mod schema {
                     },
                 ],
                 cache: SchemaCache::new(),
+            }),
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
             }),
         );
     }

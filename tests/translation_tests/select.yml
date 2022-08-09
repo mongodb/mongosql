@@ -8,6 +8,24 @@ catalog_data:
     baz:
       - {'_id': 0, 'a': 100}
 
+catalog_schema:
+  {
+    'mydb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'baz': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
 tests:
   - description: select values substar expr for each FROM datasource
     current_db: mydb

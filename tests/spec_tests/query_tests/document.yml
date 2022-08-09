@@ -7,6 +7,16 @@ catalog_data:
       - {'_id': 4, 'a': null}
       - {'_id': 5}
 
+catalog_schema:
+  {
+    'foo': {
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
 tests:
   - description: SELECT empty document literal
     query: "SELECT VALUE {'_1': {}} FROM [{}] AS _dual"

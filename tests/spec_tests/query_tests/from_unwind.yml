@@ -37,6 +37,10 @@ catalog_schema:
           'arr': { 'bsonType': "array" }
         }
       },
+      'bar': {
+        'bsonType': "object",
+        'additionalProperties': true
+      },
       'nested': {
         'bsonType': "object",
         'required': ["_id", "a", "z"],
@@ -62,6 +66,10 @@ catalog_schema:
           },
           'z': { 'bsonType': "int" }
         }
+      },
+      'two_d': {
+        'bsonType': "object",
+        'additionalProperties': true
       },
       'non_arrays': {
         'bsonType': "object",
@@ -93,7 +101,11 @@ catalog_schema:
           },
           'comment': { 'bsonType': "string" }
         }
-      }
+      },
+      'index_conflict': {
+        'bsonType': "object",
+        'additionalProperties': true
+      },
     }
   }
 

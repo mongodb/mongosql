@@ -58,6 +58,10 @@ catalog_schema:
           'b': { 'bsonType': 'int' },
           'c': { 'bsonType': 'int' }
         }
+      },
+      'subpath_type_tier': {
+        'bsonType': 'object',
+        'additionalProperties': true
       }
     }
   }

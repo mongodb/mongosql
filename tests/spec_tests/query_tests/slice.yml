@@ -35,6 +35,20 @@ catalog_data:
       - {'_id': 21, 'arr': [1, 2, 3], 'len': {'$numberInt': '1'}, 'start': null, 'comment': 'start null'}
       - {'_id': 22, 'arr': [1, 2, 3], 'len': {'$numberInt': '1'}, 'comment': 'start missing'}
 
+catalog_schema:
+  {
+    'foo': {
+      'no_start': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'start': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
 tests:
   - description: SLICE without start argument correctness test
     current_db: foo

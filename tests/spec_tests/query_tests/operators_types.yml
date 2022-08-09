@@ -24,6 +24,16 @@ catalog_data:
       - {'_id': 20, 'type': 'minKey', 'v': {'$minKey': 1}}
       - {'_id': 21, 'type': 'maxKey', 'v': {'$maxKey': 1}}
 
+catalog_schema:
+  {
+    'foo': {
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
 tests:
   - description: Correctness test for IS DOUBLE
     current_db: foo

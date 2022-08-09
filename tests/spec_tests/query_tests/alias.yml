@@ -3,6 +3,16 @@ catalog_data:
     foo:
       - {'_id': 0, 'a': 1, 'b': 2}
 
+catalog_schema:
+  {
+    'db': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
 tests:
   - description: Cannot use duplicate implicit aliases for fields
     query: "SELECT a, a FROM [{'a': 1}] arr"
@@ -71,11 +81,13 @@ tests:
       - {'_id': {'a': 1}}
 
   - description: Cannot use duplicate implicit aliases for collections
+    current_db: db
     query: "SELECT * FROM foo, foo"
     should_compile: false
     algebrize_error: 'cannot create schema environment with duplicate key: Key { datasource: Named("foo"), scope: 0 }'
 
   - description: Cannot use duplicate explicit aliases for collections
+    current_db: db
     query: "SELECT * FROM foo AS alias, foo AS alias"
     should_compile: false
     algebrize_error: 'cannot create schema environment with duplicate key: Key { datasource: Named("alias"), scope: 0 }'

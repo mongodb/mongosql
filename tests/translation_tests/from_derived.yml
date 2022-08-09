@@ -6,6 +6,16 @@ catalog_data:
       - {'_id': 2, 'a': 3, 'b': 3}
       - {'_id': 3, 'a': 5, 'b': 4}
 
+catalog_schema:
+  {
+    'foo': {
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
 tests:
   - description: nested derived tables correctness test
     current_db: foo

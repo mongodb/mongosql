@@ -48,10 +48,19 @@ func TestVersion(t *testing.T) {
 }
 
 func TestTranslate(t *testing.T) {
+	schema, err := generateDefaultCollectionSchema()
+	if err != nil {
+		t.Fatalf("expected err to be nil, got '%s'", err)
+	}
+
+	catalogSchema := map[string]map[string]bsoncore.Document{
+		"bar": {"foo": schema},
+	}
+
 	translation, err := mongosql.Translate(mongosql.TranslationArgs{
 		DB:            "bar",
 		SQL:           "select * from foo",
-		CatalogSchema: nil,
+		CatalogSchema: catalogSchema,
 	})
 	if err != nil {
 		t.Fatalf("expected err to be nil, got '%s'", err)
@@ -240,16 +249,29 @@ func generateTestSchema() (bsoncore.Document, error) {
 	return bytes, nil
 }
 
+func generateDefaultCollectionSchema() (bsoncore.Document, error) {
+	schema := bson.D{
+		{"bsonType", "object"},
+		{"additionalProperties", true},
+	}
+
+	return bson.Marshal(&schema)
+}
+
 func TestCatalogSchemaMultipleCollections(t *testing.T) {
-	schema, err := generateTestSchema()
+	barBazSchema, err := generateTestSchema()
 	if err != nil {
-		if err != nil {
-			t.Fatalf("expected err to be nil, got '%s'", err)
-		}
+		t.Fatalf("expected err to be nil, got '%s'", err)
+	}
+
+	fooSchema, err := generateDefaultCollectionSchema()
+	if err != nil {
+		t.Fatalf("expected err to be nil, got '%s'", err)
 	}
 
 	catalogSchema := map[string]map[string]bsoncore.Document{
-		"foo": {"bar": schema, "baz": schema},
+		"foo": {"bar": barBazSchema, "baz": barBazSchema},
+		"bar": {"foo": fooSchema},
 	}
 
 	translation, err := mongosql.Translate(mongosql.TranslationArgs{
@@ -322,30 +344,28 @@ func TestCatalogSchemaMultipleNamespaces(t *testing.T) {
 func TestCatalogSchemaEmpty(t *testing.T) {
 	catalogSchema := map[string]map[string]bsoncore.Document{}
 
-	translation, err := mongosql.Translate(mongosql.TranslationArgs{
+	_, err := mongosql.Translate(mongosql.TranslationArgs{
 		DB:            "bar",
 		SQL:           "select * from foo",
 		CatalogSchema: catalogSchema,
 	})
-	if err != nil {
-		t.Fatalf("expected err to be nil, got '%s'", err)
+
+	if err == nil {
+		t.Fatalf("expected error to be non-nil, but it was nil")
 	}
 
-	expectedResultSetSchema := bson.D{
-		{"bsonType", "object"},
-		{"properties", bson.D{
-			{"foo", bson.D{
-				{"bsonType", "object"},
-				{"properties", bson.D{}},
-				{"required", bson.A{}},
-				{"additionalProperties", true},
-			}},
-		}},
-		{"required", bson.A{"foo"}},
-		{"additionalProperties", false},
+	tErr, ok := err.(mongosql.TranslationError)
+	if !ok {
+		t.Fatalf("expected error to be a TranslationError, but it wasn't")
 	}
 
-	checkResultSetSchema(t, expectedResultSetSchema, translation.ResultSetSchema)
+	if tErr.IsInternal() {
+		t.Fatalf("semantic translation errors should be external, but an internal error was found")
+	}
+
+	if !strings.Contains(err.Error(), "algebrize error: unknown collection 'foo' in database 'bar'") {
+		t.Fatalf("error message did not contain expected text: %q", err.Error())
+	}
 }
 
 // TestArrayStyleItems verifies that translation succeeds with a

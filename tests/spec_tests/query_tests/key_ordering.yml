@@ -7,6 +7,20 @@ catalog_data:
       - {'_id': 0, 'sub': {'a': 1, 'b': 1}}
       - {'_id': 1, 'sub': {'a': 2, 'b': 2}}
 
+catalog_schema:
+  {
+    'mydb': {
+      'foo': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      },
+      'bar': {
+        'bsonType': 'object',
+        'additionalProperties': true,
+      }
+    }
+  }
+
 tests:
   - description: document literal key ordering is not guaranteed to be preserved
     current_db: mydb
