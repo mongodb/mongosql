@@ -144,3 +144,14 @@ mod agg_ir_array {
         input = Array(vec![Literal(Null), Array(vec![Literal(Null)])])
     );
 }
+
+mod agg_ir_variable {
+    use crate::agg_ir::Expression::*;
+    use bson::{bson, Bson};
+
+    test_codegen_agg_ir_expr!(
+        simple,
+        expected = Ok(bson!(Bson::String("$$foo".to_string()))),
+        input = Variable("foo".to_string())
+    );
+}

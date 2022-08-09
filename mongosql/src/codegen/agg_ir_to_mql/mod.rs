@@ -58,6 +58,7 @@ impl MqlCodeGenerator {
                     .map(|e| self.codegen_agg_ir_expression(e))
                     .collect::<Result<Vec<Bson>>>()?,
             )),
+            Variable(var) => Ok(Bson::String(format!("$${}", var))),
             _ => Err(Error::UnimplementedAggIR),
         }
     }
