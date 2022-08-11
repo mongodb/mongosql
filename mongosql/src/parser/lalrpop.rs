@@ -11,7 +11,7 @@ lalrpop_mod!(
 
 type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
     #[error("{0}")]
     Lalrpop(String),

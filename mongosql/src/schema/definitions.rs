@@ -16,7 +16,7 @@ use std::{
 };
 use thiserror::Error;
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
     #[error("{0:?} is not a valid BSON type")]
     InvalidBSONType(String),
@@ -28,7 +28,7 @@ pub enum Error {
     CannotConvertBsonTypeToAtomic(json_schema::BsonTypeName),
 }
 
-#[derive(PartialEq, Debug, Clone, Default)]
+#[derive(PartialEq, Eq, Debug, Clone, Default)]
 pub struct SchemaEnvironment(BindingTuple<Schema>);
 
 impl SchemaEnvironment {
@@ -139,7 +139,7 @@ impl FromIterator<(Key, Schema)> for SchemaEnvironment {
     }
 }
 
-#[derive(PartialEq, Debug, Clone, Default)]
+#[derive(PartialEq, Eq, Debug, Clone, Default)]
 pub struct ResultSet {
     pub schema_env: SchemaEnvironment,
     pub min_size: u64,
@@ -615,7 +615,7 @@ impl Schema {
             (Atomic(self_a), Atomic(other_a)) => self_a.satisfies(other_a),
             (Atomic(_), _) => Not,
 
-            (Array(self_arr), Array(other_arr)) => self_arr.satisfies(&*other_arr),
+            (Array(self_arr), Array(other_arr)) => self_arr.satisfies(other_arr),
             (Array(_), _) => Not,
 
             (Document(self_d), Document(other_d)) => self_d.satisfies(other_d),

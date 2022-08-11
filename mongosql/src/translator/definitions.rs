@@ -1,9 +1,9 @@
-use crate::{agg_ir, ir, util::unique_linked_hash_map::UniqueLinkedHashMap};
+use crate::{agg_ir, ir, map, util::unique_linked_hash_map::UniqueLinkedHashMap};
 use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
     #[error("Struct is not implemented")]
     UnimplementedStruct,
@@ -27,12 +27,29 @@ impl MqlTranslator {
             ir::Stage::Offset(_o) => Err(Error::UnimplementedStruct),
             ir::Stage::Sort(_s) => Err(Error::UnimplementedStruct),
             ir::Stage::Collection(_c) => Err(Error::UnimplementedStruct),
-            ir::Stage::Array(_arr) => Err(Error::UnimplementedStruct),
+            ir::Stage::Array(arr) => self.translate_array_stage(arr),
             ir::Stage::Join(_j) => Err(Error::UnimplementedStruct),
             ir::Stage::Set(_s) => Err(Error::UnimplementedStruct),
             ir::Stage::Derived(_d) => Err(Error::UnimplementedStruct),
             ir::Stage::Unwind(_u) => Err(Error::UnimplementedStruct),
         }
+    }
+
+    fn translate_array_stage(&self, ir_arr: ir::ArraySource) -> Result<agg_ir::Stage> {
+        let doc_stage = agg_ir::Stage::Documents(agg_ir::Documents {
+            array: ir_arr
+                .array
+                .iter()
+                .map(|ir_expr| self.translate_expression(ir_expr.clone()))
+                .collect::<Result<Vec<agg_ir::Expression>>>()?,
+        });
+
+        Ok(agg_ir::Stage::Project(agg_ir::Project {
+            source: Box::new(doc_stage),
+            specifications: map! {
+                ir_arr.alias => agg_ir::Expression::Variable("ROOT".into()),
+            },
+        }))
     }
 
     #[allow(dead_code)]

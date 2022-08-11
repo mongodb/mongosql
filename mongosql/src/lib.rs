@@ -68,7 +68,15 @@ pub fn translate_sql(
     let mql_translation = match agg_plan {
         Err(translator::Error::UnimplementedStruct) => codegen::generate_mql_from_ir(plan)?,
         Err(err) => return Err(result::Error::Translator(err)),
-        Ok(agg_plan) => codegen::generate_mql_from_agg_ir(agg_plan)?.into(),
+        Ok(agg_plan) => {
+            let generated_mql = codegen::generate_mql_from_agg_ir(agg_plan);
+            match generated_mql {
+                Err(codegen::agg_ir_to_mql::Error::UnimplementedAggIR) => {
+                    codegen::generate_mql_from_ir(plan)?
+                }
+                Ok(generated_mql) => generated_mql.into(),
+            }
+        }
     };
 
     // A non-empty database value is needed for mongoast

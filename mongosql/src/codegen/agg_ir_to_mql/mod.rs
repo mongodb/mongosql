@@ -1,5 +1,5 @@
 use crate::agg_ir::{self};
-use bson::Bson;
+use bson::{doc, Bson};
 use thiserror::Error;
 
 #[cfg(test)]
@@ -7,7 +7,7 @@ mod test;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
     #[error("agg_ir method is not implemented")]
     UnimplementedAggIR,
@@ -77,7 +77,22 @@ impl MqlCodeGenerator {
             agg_ir::Stage::Match(_m) => Err(Error::UnimplementedAggIR),
             agg_ir::Stage::UnionWith(_u) => Err(Error::UnimplementedAggIR),
             agg_ir::Stage::Skip(_s) => Err(Error::UnimplementedAggIR),
-            agg_ir::Stage::Documents(_d) => Err(Error::UnimplementedAggIR),
+            agg_ir::Stage::Documents(d) => self.codegen_documents(d),
+        }
+    }
+
+    fn codegen_documents(&self, agg_ir_docs: agg_ir::Documents) -> Result<MqlTranslation> {
+        {
+            let docs = agg_ir_docs
+                .array
+                .into_iter()
+                .map(|e| self.codegen_agg_ir_expression(e))
+                .collect::<Result<Vec<Bson>>>()?;
+            Ok(MqlTranslation {
+                database: None,
+                collection: None,
+                pipeline: vec![doc! {"$documents": Bson::Array(docs)}],
+            })
         }
     }
 }

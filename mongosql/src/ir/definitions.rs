@@ -143,7 +143,7 @@ pub struct Join {
     pub cache: SchemaCache<ResultSet>,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum JoinType {
     Left,
     Inner,
@@ -157,7 +157,7 @@ pub struct Set {
     pub cache: SchemaCache<ResultSet>,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum SetOperation {
     UnionAll,
     Union,
@@ -312,7 +312,7 @@ pub struct FieldAccess {
     pub cache: SchemaCache<Schema>,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum AggregationFunction {
     AddToArray,
     Avg,
@@ -346,7 +346,7 @@ impl AggregationFunction {
     }
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum ScalarFunction {
     // String operators
     Concat,
@@ -498,7 +498,7 @@ impl ScalarFunction {
     }
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum DatePart {
     Year,
     Quarter,
@@ -510,7 +510,7 @@ pub enum DatePart {
     Second,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum DateFunction {
     Add,
     Diff,
@@ -573,14 +573,14 @@ pub struct TypeAssertionExpr {
     pub cache: SchemaCache<Schema>,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum TypeOrMissing {
     Missing,
     Number,
     Type(Type),
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Type {
     Array,
     BinData,
@@ -621,7 +621,7 @@ pub struct SubqueryComparison {
     pub cache: SchemaCache<Schema>,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum SubqueryComparisonOp {
     Lt,
     Lte,
@@ -631,7 +631,7 @@ pub enum SubqueryComparisonOp {
     Gte,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum SubqueryModifier {
     Any,
     All,

@@ -27,7 +27,7 @@ mod test;
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Errors that can occur during rewrite passes
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
     #[error("positional sort keys are not allowed with SELECT VALUE")]
     PositionalSortKeyWithSelectValue,

@@ -12,7 +12,6 @@ macro_rules! test_codegen_agg_ir_expr {
     };
 }
 
-#[allow(unused_macros)]
 macro_rules! test_codegen_agg_ir_plan {
     (
 		$func_name:ident,
@@ -153,5 +152,36 @@ mod agg_ir_variable {
         simple,
         expected = Ok(bson!(Bson::String("$$foo".to_string()))),
         input = Variable("foo".to_string())
+    );
+}
+
+mod agg_ir_documents_stage {
+    use crate::agg_ir::*;
+
+    test_codegen_agg_ir_plan!(
+        empty,
+        expected = Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                bson::doc!{"$documents": []},
+            ],
+        }),
+        input = Stage::Documents(Documents {
+            array: vec![],
+        }),
+    );
+    test_codegen_agg_ir_plan!(
+        non_empty,
+        expected = Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                bson::doc!{"$documents": [{"$literal": false}]},
+            ],
+        }),
+        input = Stage::Documents(Documents {
+            array: vec![Expression::Literal(LiteralValue::Boolean(false))],
+        }),
     );
 }

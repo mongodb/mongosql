@@ -21,7 +21,7 @@ where
     }
 }
 
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Eq, Default)]
 pub struct Catalog {
     schemas: BTreeMap<Namespace, Schema>,
 }

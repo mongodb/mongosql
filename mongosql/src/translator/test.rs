@@ -11,7 +11,6 @@ macro_rules! test_translate_expression {
     };
 }
 
-#[allow(unused_macros)]
 macro_rules! test_translate_stage {
     ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
         #[test]
@@ -163,5 +162,47 @@ mod array_expression {
             ]
             .into()
         )
+    );
+}
+
+mod documents_stage {
+    use crate::map;
+
+    test_translate_stage!(
+        non_empty,
+        expected = Ok(agg_ir::Stage::Project(agg_ir::Project {
+            source: Box::new(agg_ir::Stage::Documents(agg_ir::Documents {
+                array: vec![agg_ir::Expression::Literal(agg_ir::LiteralValue::Boolean(
+                    false
+                ))],
+            })),
+            specifications: map! {
+                "foo".into() => agg_ir::Expression::Variable("ROOT".into()),
+            },
+        })),
+        input = ir::Stage::Array(ir::ArraySource {
+            array: vec![ir::Expression::Literal(
+                ir::LiteralValue::Boolean(false).into()
+            )],
+            alias: "foo".into(),
+            cache: ir::schema::SchemaCache::new(),
+        })
+    );
+
+    test_translate_stage!(
+        empty,
+        expected = Ok(agg_ir::Stage::Project(agg_ir::Project {
+            source: Box::new(agg_ir::Stage::Documents(agg_ir::Documents {
+                array: vec![],
+            })),
+            specifications: map! {
+                "foo".into() => agg_ir::Expression::Variable("ROOT".into()),
+            },
+        })),
+        input = ir::Stage::Array(ir::ArraySource {
+            array: vec![],
+            alias: "foo".into(),
+            cache: ir::schema::SchemaCache::new(),
+        })
     );
 }

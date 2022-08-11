@@ -40,7 +40,7 @@ pub struct SetQuery {
     pub right: Box<Query>,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, VariantCount)]
 pub enum SetOperator {
     Union,
     UnionAll,
@@ -52,7 +52,7 @@ pub struct SelectClause {
     pub body: SelectBody,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, VariantCount)]
 pub enum SetQuantifier {
     All,
     Distinct,
@@ -77,7 +77,7 @@ pub enum SelectExpression {
     Expression(OptionallyAliasedExpr),
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct SubstarExpr {
     pub datasource: String,
 }
@@ -109,7 +109,7 @@ pub struct ArraySource {
     pub alias: String,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct CollectionSource {
     pub database: Option<String>,
     pub collection: String,
@@ -165,7 +165,7 @@ pub struct JoinSource {
     pub condition: Option<Expression>,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, VariantCount)]
 pub enum JoinType {
     Left,
     Right,
@@ -179,7 +179,7 @@ pub struct FlattenSource {
     pub options: Vec<FlattenOption>,
 }
 
-#[derive(PartialEq, Debug, Clone, VariantCount)]
+#[derive(PartialEq, Eq, Debug, Clone, VariantCount)]
 pub enum FlattenOption {
     Separator(String),
     Depth(u32),
@@ -271,7 +271,7 @@ pub struct WhenBranch {
     pub then: Box<Expression>,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, VariantCount)]
 pub enum SubqueryQuantifier {
     All,
     Any,
@@ -292,14 +292,14 @@ pub struct FunctionExpr {
     pub set_quantifier: Option<SetQuantifier>,
 }
 
-#[derive(PartialEq, Debug, Clone, VariantCount)]
+#[derive(PartialEq, Eq, Debug, Clone, VariantCount)]
 pub enum DateFunctionName {
     Add,
     Diff,
     Trunc,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, VariantCount)]
 pub enum DatePart {
     Year,
     Quarter,
@@ -334,7 +334,7 @@ pub struct TrimExpr {
     pub arg: Box<Expression>,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, VariantCount)]
 pub enum FunctionName {
     // Aggregation functions.
     AddToArray,
@@ -540,7 +540,7 @@ impl FunctionArguments {
     }
 }
 
-#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, VariantCount)]
 pub enum TrimSpec {
     Leading,
     Trailing,
@@ -559,7 +559,7 @@ pub struct SubpathExpr {
     pub subpath: String,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, VariantCount)]
 pub enum TypeOrMissing {
     Type(Type),
     Number,
@@ -585,14 +585,14 @@ pub struct TypeAssertionExpr {
     pub target_type: Type,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, VariantCount)]
 pub enum UnaryOp {
     Pos,
     Neg,
     Not,
 }
 
-#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, VariantCount)]
 pub enum BinaryOp {
     Add,
     And,
@@ -624,7 +624,7 @@ impl BinaryOp {
     }
 }
 
-#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, VariantCount)]
 pub enum ComparisonOp {
     Eq,
     Gt,
@@ -671,7 +671,7 @@ pub enum SortKey {
     Positional(u32),
 }
 
-#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, VariantCount)]
 pub enum SortDirection {
     Asc,
     Desc,
@@ -687,7 +687,7 @@ pub enum Literal {
     Double(f64),
 }
 
-#[derive(PartialEq, Debug, Clone, Copy, VariantCount)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy, VariantCount)]
 pub enum Type {
     Array,
     BinData,

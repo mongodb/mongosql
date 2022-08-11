@@ -22,7 +22,7 @@ use std::{
 };
 use thiserror::Error;
 
-#[derive(Debug, Error, PartialEq, Clone)]
+#[derive(Debug, Error, PartialEq, Eq, Clone)]
 pub enum Error {
     #[error("datasource {0:?} not found in schema environment")]
     DatasourceNotFoundInSchemaEnv(binding_tuple::Key),

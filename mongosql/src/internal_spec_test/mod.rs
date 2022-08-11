@@ -47,7 +47,7 @@ lazy_static! {
     };
 }
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
     #[error("rewrite test failed for test {test}: expected {expected:?}, actual {actual:?}")]
     RewriteTest {
@@ -79,12 +79,12 @@ pub enum Error {
     AlgebrizationDidNotFail,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RewriteYamlTest {
     pub tests: Vec<RewriteTest>,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct RewriteTest {
     pub description: String,
     pub query: String,
@@ -93,14 +93,14 @@ pub struct RewriteTest {
     pub skip_reason: Option<String>,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TypeConstraintYamlTest {
     pub tests: Vec<TypeConstraintTest>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub variables: Option<Variables>,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Variables {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bool: Option<Vec<String>>,
@@ -121,7 +121,7 @@ pub struct Variables {
     pub string: Option<Vec<String>>,
 }
 
-#[derive(Debug, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TypeConstraintTest {
     pub description: String,
     pub query: String,

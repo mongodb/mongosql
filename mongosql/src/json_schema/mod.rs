@@ -24,14 +24,14 @@ pub struct Schema {
     pub one_of: Option<Vec<Schema>>,
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Clone, Debug)]
 #[serde(untagged)]
 pub enum BsonType {
     Single(BsonTypeName),
     Multiple(Vec<BsonTypeName>),
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Debug, IntoEnumIterator, Copy, Clone)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug, IntoEnumIterator, Copy, Clone)]
 #[serde(rename_all = "camelCase")]
 pub enum BsonTypeName {
     Object,

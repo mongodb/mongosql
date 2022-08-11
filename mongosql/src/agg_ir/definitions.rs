@@ -19,7 +19,10 @@ pub enum Stage {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct Project {}
+pub struct Project {
+    pub source: Box<Stage>,
+    pub specifications: UniqueLinkedHashMap<String, Expression>,
+}
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Group {
@@ -43,7 +46,7 @@ pub struct AccumulatorExpr {
 }
 
 #[allow(dead_code)]
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum AggregationFunction {
     AddToArray,
     Avg,
@@ -71,13 +74,13 @@ pub struct Sort {
 }
 
 #[allow(dead_code)]
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum SortSpecification {
     Asc(String),
     Desc(String),
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct Collection {
     pub db: String,
     pub collection: String,
@@ -92,7 +95,7 @@ pub struct Join {
 }
 
 #[allow(dead_code)]
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum JoinType {
     Left,
     Inner,
@@ -120,7 +123,7 @@ pub struct LetVariable {
     pub expr: Box<Expression>,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct ReplaceRoot {}
 
 #[derive(PartialEq, Debug, Clone)]
@@ -144,7 +147,6 @@ pub struct Skip {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Documents {
     pub array: Vec<Expression>,
-    pub alias: String,
 }
 
 #[allow(dead_code)]
@@ -170,7 +172,7 @@ pub enum Expression {
 }
 
 #[allow(dead_code)]
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum MQLOperator {
     // String operators
     Concat,
@@ -250,7 +252,7 @@ pub enum MQLOperator {
 }
 
 #[allow(dead_code)]
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum SQLOperator {
     // Arithmetic operators
     Divide,
@@ -293,7 +295,7 @@ pub enum SQLOperator {
 }
 
 #[allow(dead_code)]
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum Type {
     Array,
     BinData,
@@ -403,7 +405,7 @@ pub struct Subquery {
 }
 
 #[allow(dead_code)]
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum SubqueryComparisonOp {
     Lt,
     Lte,
@@ -414,7 +416,7 @@ pub enum SubqueryComparisonOp {
 }
 
 #[allow(dead_code)]
-#[derive(PartialEq, Debug, Clone, Copy)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum SubqueryModifier {
     Any,
     All,
@@ -437,7 +439,7 @@ pub struct SubqueryExists {
 }
 
 #[allow(dead_code)]
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum TypeOrMissing {
     Missing,
     Number,

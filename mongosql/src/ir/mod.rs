@@ -11,7 +11,7 @@ pub use mongosql_datastructures::binding_tuple;
 mod test;
 
 use thiserror::Error;
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
     #[error("{0:?} is not a valid IR type")]
     InvalidType(crate::ast::Type),

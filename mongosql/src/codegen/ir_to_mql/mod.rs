@@ -16,7 +16,7 @@ mod test;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, Error, PartialEq)]
+#[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
     #[error("binding tuple key {0:?} not found in mapping registry")]
     ReferenceNotFound(Key),
@@ -40,7 +40,7 @@ pub enum Error {
     InvalidUnwindPath,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub struct MqlMappingRegistry(BTreeMap<Key, String>);
 
 impl MqlMappingRegistry {
@@ -133,7 +133,7 @@ impl MqlTranslation {
             scope: 0u16,
         };
         let mongo_bot_name = self.mapping_registry.remove(&key);
-        return match mongo_bot_name {
+        match mongo_bot_name {
             Some(name) => {
                 self.mapping_registry.insert(key, "");
                 self.with_additional_stage(doc! {"$replaceWith":
@@ -151,7 +151,7 @@ impl MqlTranslation {
                 })
             }
             None => self,
-        };
+        }
     }
 }
 
