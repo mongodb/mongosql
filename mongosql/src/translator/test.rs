@@ -196,12 +196,34 @@ mod documents_stage {
                 array: vec![],
             })),
             specifications: map! {
-                "foo".into() => agg_ir::Expression::Variable("ROOT".into()),
+                "foo".into() => translator::ROOT.clone(),
             },
         })),
         input = ir::Stage::Array(ir::ArraySource {
             array: vec![],
             alias: "foo".into(),
+            cache: ir::schema::SchemaCache::new(),
+        })
+    );
+}
+
+mod collection {
+    use crate::map;
+
+    test_translate_stage!(
+        collection,
+        expected = Ok(agg_ir::Stage::Project(agg_ir::Project {
+            source: Box::new(agg_ir::Stage::Collection(agg_ir::Collection {
+                db: "test_db".into(),
+                collection: "foo".into(),
+            })),
+            specifications: map! {
+                "foo".into() => translator::ROOT.clone(),
+            },
+        })),
+        input = ir::Stage::Collection(ir::Collection {
+            db: "test_db".into(),
+            collection: "foo".into(),
             cache: ir::schema::SchemaCache::new(),
         })
     );

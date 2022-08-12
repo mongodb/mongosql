@@ -69,7 +69,7 @@ impl MqlCodeGenerator {
             agg_ir::Stage::Group(_g) => Err(Error::UnimplementedAggIR),
             agg_ir::Stage::Limit(_l) => Err(Error::UnimplementedAggIR),
             agg_ir::Stage::Sort(_s) => Err(Error::UnimplementedAggIR),
-            agg_ir::Stage::Collection(_c) => Err(Error::UnimplementedAggIR),
+            agg_ir::Stage::Collection(c) => self.codegen_collection(c),
             agg_ir::Stage::Join(_j) => Err(Error::UnimplementedAggIR),
             agg_ir::Stage::Unwind(_u) => Err(Error::UnimplementedAggIR),
             agg_ir::Stage::Lookup(_l) => Err(Error::UnimplementedAggIR),
@@ -82,17 +82,23 @@ impl MqlCodeGenerator {
     }
 
     fn codegen_documents(&self, agg_ir_docs: agg_ir::Documents) -> Result<MqlTranslation> {
-        {
-            let docs = agg_ir_docs
-                .array
-                .into_iter()
-                .map(|e| self.codegen_agg_ir_expression(e))
-                .collect::<Result<Vec<Bson>>>()?;
-            Ok(MqlTranslation {
-                database: None,
-                collection: None,
-                pipeline: vec![doc! {"$documents": Bson::Array(docs)}],
-            })
-        }
+        let docs = agg_ir_docs
+            .array
+            .into_iter()
+            .map(|e| self.codegen_agg_ir_expression(e))
+            .collect::<Result<Vec<Bson>>>()?;
+        Ok(MqlTranslation {
+            database: None,
+            collection: None,
+            pipeline: vec![doc! {"$documents": Bson::Array(docs)}],
+        })
+    }
+
+    fn codegen_collection(&self, agg_ir_coll: agg_ir::Collection) -> Result<MqlTranslation> {
+        Ok(MqlTranslation {
+            database: Some(agg_ir_coll.db),
+            collection: Some(agg_ir_coll.collection),
+            pipeline: vec![],
+        })
     }
 }

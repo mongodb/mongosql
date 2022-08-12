@@ -1,7 +1,12 @@
 use crate::{agg_ir, ir, map, util::unique_linked_hash_map::UniqueLinkedHashMap};
+use lazy_static::lazy_static;
 use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
+
+lazy_static! {
+    pub static ref ROOT: agg_ir::Expression = agg_ir::Expression::Variable("ROOT".into());
+}
 
 #[derive(Debug, Error, PartialEq, Eq)]
 pub enum Error {
@@ -26,7 +31,7 @@ impl MqlTranslator {
             ir::Stage::Limit(_l) => Err(Error::UnimplementedStruct),
             ir::Stage::Offset(_o) => Err(Error::UnimplementedStruct),
             ir::Stage::Sort(_s) => Err(Error::UnimplementedStruct),
-            ir::Stage::Collection(_c) => Err(Error::UnimplementedStruct),
+            ir::Stage::Collection(c) => self.translate_collection(c),
             ir::Stage::Array(arr) => self.translate_array_stage(arr),
             ir::Stage::Join(_j) => Err(Error::UnimplementedStruct),
             ir::Stage::Set(_s) => Err(Error::UnimplementedStruct),
@@ -47,7 +52,21 @@ impl MqlTranslator {
         Ok(agg_ir::Stage::Project(agg_ir::Project {
             source: Box::new(doc_stage),
             specifications: map! {
-                ir_arr.alias => agg_ir::Expression::Variable("ROOT".into()),
+                ir_arr.alias => ROOT.clone(),
+            },
+        }))
+    }
+
+    fn translate_collection(&self, ir_collection: ir::Collection) -> Result<agg_ir::Stage> {
+        let coll_stage = agg_ir::Stage::Collection(agg_ir::Collection {
+            db: ir_collection.db,
+            collection: ir_collection.collection.clone(),
+        });
+
+        Ok(agg_ir::Stage::Project(agg_ir::Project {
+            source: Box::new(coll_stage),
+            specifications: map! {
+                ir_collection.collection => ROOT.clone(),
             },
         }))
     }

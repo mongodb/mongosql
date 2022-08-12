@@ -56,6 +56,23 @@ macro_rules! test_codegen_agg_ir_plan {
     };
 }
 
+mod agg_ir_collection {
+    use crate::agg_ir::*;
+
+    test_codegen_agg_ir_plan!(
+        simple,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: Vec::<bson::Document>::new(),
+        }),
+        input = Stage::Collection(Collection {
+            db: "mydb".to_string(),
+            collection: "col".to_string(),
+        }),
+    );
+}
+
 mod agg_ir_literal {
     use crate::agg_ir::{Expression::*, LiteralValue::*};
     use bson::{bson, Bson};
