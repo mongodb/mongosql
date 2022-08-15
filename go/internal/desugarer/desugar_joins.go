@@ -7,8 +7,6 @@ import (
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
-const uniqueAsName = "eca58228-b657-498a-b76e-f48a9161a404"
-
 // desugarJoins desugars any $join stages in the pipeline into a sequence
 // of equivalent, existing MQL stages.
 func desugarJoins(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
@@ -17,12 +15,13 @@ func desugarJoins(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 	// starts with capacity 4 times the length of the pipeline. (The "worst"
 	// case is the pipeline consists entirely of $join stages.)
 	newStages := make([]ast.Stage, 0, len(pipeline.Stages)*4)
+	nameGenerator := generateUniqueNameFunc(20)
 
 	for _, stage := range pipeline.Stages {
 		switch s := stage.(type) {
 		case *ast.Unknown:
 			if s.StageName() == "$join" {
-				newStages = append(newStages, desugarJoinStage(s)...)
+				newStages = append(newStages, desugarJoinStage(nameGenerator(), s)...)
 				continue
 			}
 		}
@@ -73,7 +72,7 @@ func desugarJoins(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 //
 // Also note that the database, collection, let, and condition fields are
 // all optional.
-func desugarJoinStage(stage *ast.Unknown) []ast.Stage {
+func desugarJoinStage(uniqueAsName string, stage *ast.Unknown) []ast.Stage {
 	stageDoc := stage.Value.Document().Lookup("$join").Document()
 
 	type joinStage struct {
