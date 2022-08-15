@@ -1,6 +1,6 @@
 pub(crate) mod agg_ir_to_mql;
 pub(crate) mod ir_to_mql;
-pub use ir_to_mql::MqlMappingRegistry;
+pub use crate::mapping_registry::MqlMappingRegistry;
 
 use crate::{agg_ir, ir};
 

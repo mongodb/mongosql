@@ -156,7 +156,7 @@ pub enum Expression {
     SQLSemanticOperator(SQLSemanticOperator),
     Literal(LiteralValue),
     GetField(GetField),
-    FieldRef(FieldRef),
+    FieldRef(FieldRefExpr),
     Switch(Switch),
     Let(Let),
     SqlConvert(SqlConvert),
@@ -349,8 +349,8 @@ pub struct GetField {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct FieldRef {
-    pub parent: Option<Box<FieldRef>>,
+pub struct FieldRefExpr {
+    pub parent: Option<Box<FieldRefExpr>>,
     pub name: String,
 }
 

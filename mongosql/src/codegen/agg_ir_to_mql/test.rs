@@ -172,6 +172,46 @@ mod agg_ir_variable {
     );
 }
 
+mod agg_ir_field_ref {
+    use crate::agg_ir::{Expression::FieldRef, FieldRefExpr};
+    use bson::{bson, Bson};
+
+    test_codegen_agg_ir_expr!(
+        no_parent,
+        expected = Ok(bson!(Bson::String("$foo".to_string()))),
+        input = FieldRef(FieldRefExpr {
+            parent: None,
+            name: "foo".to_string()
+        })
+    );
+    test_codegen_agg_ir_expr!(
+        parent,
+        expected = Ok(bson!(Bson::String("$bar.foo".to_string()))),
+        input = FieldRef(FieldRefExpr {
+            parent: Some(Box::new(FieldRefExpr {
+                parent: None,
+                name: "bar".to_string()
+            })),
+            name: "foo".to_string()
+        })
+    );
+
+    test_codegen_agg_ir_expr!(
+        grandparent,
+        expected = Ok(bson!(Bson::String("$baz.bar.foo".to_string()))),
+        input = FieldRef(FieldRefExpr {
+            parent: Some(Box::new(FieldRefExpr {
+                parent: Some(Box::new(FieldRefExpr {
+                    parent: None,
+                    name: "baz".to_string()
+                })),
+                name: "bar".to_string()
+            })),
+            name: "foo".to_string()
+        })
+    );
+}
+
 mod agg_ir_documents_stage {
     use crate::agg_ir::*;
 

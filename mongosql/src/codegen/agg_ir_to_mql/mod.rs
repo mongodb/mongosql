@@ -59,7 +59,15 @@ impl MqlCodeGenerator {
                     .collect::<Result<Vec<Bson>>>()?,
             )),
             Variable(var) => Ok(Bson::String(format!("$${}", var))),
+            FieldRef(fr) => Ok(Bson::String(self.codegen_field_ref(fr))),
             _ => Err(Error::UnimplementedAggIR),
+        }
+    }
+
+    fn codegen_field_ref(&self, field_ref: agg_ir::FieldRefExpr) -> String {
+        match field_ref.parent {
+            None => format!("${}", field_ref.name),
+            Some(parent) => format!("{}.{}", self.codegen_field_ref(*parent), field_ref.name),
         }
     }
 

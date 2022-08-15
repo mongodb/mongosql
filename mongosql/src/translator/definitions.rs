@@ -1,4 +1,8 @@
-use crate::{agg_ir, ir, map, util::unique_linked_hash_map::UniqueLinkedHashMap};
+use crate::{
+    agg_ir, ir, map,
+    mapping_registry::{Key, MqlMappingRegistry},
+    util::unique_linked_hash_map::UniqueLinkedHashMap,
+};
 use lazy_static::lazy_static;
 use thiserror::Error;
 
@@ -14,13 +18,19 @@ pub enum Error {
     UnimplementedStruct,
     #[error("invalid document key '{0}': document keys may not be empty, contain dots, or start with dollars")]
     InvalidDocumentKey(String),
+    #[error("binding tuple key {0:?} not found in mapping registry")]
+    ReferenceNotFound(Key),
 }
 
-pub struct MqlTranslator {}
+pub struct MqlTranslator {
+    pub mapping_registry: MqlMappingRegistry,
+}
 
 impl MqlTranslator {
     pub fn new() -> Self {
-        Self {}
+        Self {
+            mapping_registry: Default::default(),
+        }
     }
 
     pub fn translate_stage(&self, ir_stage: ir::Stage) -> Result<agg_ir::Stage> {
@@ -80,6 +90,7 @@ impl MqlTranslator {
             ir::Expression::Literal(lit) => self.translate_literal(lit.value),
             ir::Expression::Document(doc) => self.translate_document(doc.document),
             ir::Expression::Array(expr) => self.translate_array(expr.array),
+            ir::Expression::Reference(reference) => self.translate_reference(reference.key),
             _ => Err(Error::UnimplementedStruct),
         }
     }
@@ -120,5 +131,17 @@ impl MqlTranslator {
                 .map(|x| self.translate_expression(x))
                 .collect::<Result<Vec<agg_ir::Expression>>>()?,
         ))
+    }
+
+    fn translate_reference(&self, key: Key) -> Result<agg_ir::Expression> {
+        self.mapping_registry
+            .get(&key)
+            .ok_or(Error::ReferenceNotFound(key))
+            .map(|s| {
+                agg_ir::Expression::FieldRef(agg_ir::FieldRefExpr {
+                    parent: None,
+                    name: s.clone(),
+                })
+            })
     }
 }

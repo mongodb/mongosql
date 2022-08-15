@@ -6,6 +6,7 @@ use crate::{
         AggregationExpr, DateFunction, DatePart, ScalarFunction, Stage, Type, TypeOrMissing,
     },
     map,
+    mapping_registry::MqlMappingRegistry,
 };
 use bson::{bson, Bson};
 use std::collections::{BTreeMap, BTreeSet};
@@ -38,38 +39,6 @@ pub enum Error {
     OffsetOutOfI64Range(u64),
     #[error("UNWIND PATH option must be an identifier")]
     InvalidUnwindPath,
-}
-
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub struct MqlMappingRegistry(BTreeMap<Key, String>);
-
-impl MqlMappingRegistry {
-    pub fn new() -> Self {
-        MqlMappingRegistry(BTreeMap::new())
-    }
-
-    pub fn get(&self, k: &Key) -> Option<&String> {
-        self.0.get(k)
-    }
-
-    pub fn remove(&mut self, k: &Key) -> Option<String> {
-        self.0.remove(k)
-    }
-
-    pub fn insert<K: Into<Key>, V: Into<String>>(&mut self, k: K, v: V) -> Option<String> {
-        self.0.insert(k.into(), v.into())
-    }
-
-    pub fn merge(&mut self, other: MqlMappingRegistry) -> &mut Self {
-        self.0.extend(other.0.into_iter());
-        self
-    }
-}
-
-impl Default for MqlMappingRegistry {
-    fn default() -> Self {
-        Self::new()
-    }
 }
 
 #[derive(PartialEq, Debug)]
@@ -360,9 +329,10 @@ impl MqlCodeGenerator {
     /// contain valid characters and that the resulting name is all lowercase.
     fn generate_let_bindings(self) -> Result<(bson::Document, MqlMappingRegistry)> {
         let mut let_bindings: bson::Document = map![];
-        let new_mapping_registry = MqlMappingRegistry(
+        let new_mapping_registry = MqlMappingRegistry::with_registry(
             self.mapping_registry
-                .0
+                .get_registry()
+                .clone()
                 .into_iter()
                 .map(|(key, value)| {
                     let mut generated_name = format!(
@@ -464,7 +434,7 @@ impl MqlCodeGenerator {
             Collection(c) => Ok(MqlTranslation {
                 database: Some(c.db),
                 collection: Some(c.collection.clone()),
-                mapping_registry: MqlMappingRegistry(
+                mapping_registry: MqlMappingRegistry::with_registry(
                     map! {(&c.collection, self.scope_level).into() => c.collection.clone()},
                 ),
                 // It is not technically possible to have a collection named _id in a mongod
@@ -477,7 +447,7 @@ impl MqlCodeGenerator {
                 }],
             }),
             Array(arr) => {
-                let mapping_registry = MqlMappingRegistry(
+                let mapping_registry = MqlMappingRegistry::with_registry(
                     map! {(&arr.alias, self.scope_level).into() => arr.alias.clone()},
                 );
                 let docs = arr
@@ -548,7 +518,9 @@ impl MqlCodeGenerator {
                             join_generator.generate_let_bindings()?;
                         let expression_generator = self
                             .clone()
-                            .with_merged_mappings(MqlMappingRegistry(left_registry.0))
+                            .with_merged_mappings(MqlMappingRegistry::with_registry(
+                                left_registry.get_registry().clone(),
+                            ))
                             .with_merged_mappings(right.mapping_registry);
                         let cond = expression_generator.codegen_expression(expr)?;
                         let cond_doc = doc! {"$match" : {"$expr": cond}};
@@ -693,7 +665,6 @@ impl MqlCodeGenerator {
                         };
                         let datasource = source_translation
                             .mapping_registry
-                            .0
                             .get(key)
                             .ok_or_else(|| Error::ReferenceNotFound(key.clone()))?;
                         // _id will be 0 instead of a Document. We assume it is
@@ -896,7 +867,6 @@ impl MqlCodeGenerator {
             })),
             Reference(ir::ReferenceExpr { key, .. }) => self
                 .mapping_registry
-                .0
                 .get(&key)
                 .ok_or(Error::ReferenceNotFound(key))
                 .map(|s| Bson::String(format!("${}", s))),

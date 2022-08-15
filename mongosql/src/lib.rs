@@ -8,6 +8,7 @@ mod internal_spec_test;
 mod ir;
 pub use ir::schema::SchemaCheckingMode;
 pub mod json_schema;
+mod mapping_registry;
 mod parser;
 mod result;
 pub mod schema;
