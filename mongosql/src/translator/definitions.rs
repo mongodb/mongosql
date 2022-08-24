@@ -1,9 +1,12 @@
 use crate::{
-    agg_ir, ir, map,
+    agg_ir, ir,
     mapping_registry::{Key, MqlMappingRegistry},
-    util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
 use lazy_static::lazy_static;
+use mongosql_datastructures::{
+    unique_linked_hash_map,
+    unique_linked_hash_map::{DuplicateKeyError, UniqueLinkedHashMap, UniqueLinkedHashMapEntry},
+};
 use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
@@ -20,6 +23,8 @@ pub enum Error {
     InvalidDocumentKey(String),
     #[error("binding tuple key {0:?} not found in mapping registry")]
     ReferenceNotFound(Key),
+    #[error("duplicate key found: {0}")]
+    DuplicateKey(#[from] DuplicateKeyError),
 }
 
 pub struct MqlTranslator {
@@ -61,7 +66,7 @@ impl MqlTranslator {
 
         Ok(agg_ir::Stage::Project(agg_ir::Project {
             source: Box::new(doc_stage),
-            specifications: map! {
+            specifications: unique_linked_hash_map! {
                 ir_arr.alias => ROOT.clone(),
             },
         }))
@@ -75,7 +80,7 @@ impl MqlTranslator {
 
         Ok(agg_ir::Stage::Project(agg_ir::Project {
             source: Box::new(coll_stage),
-            specifications: map! {
+            specifications: unique_linked_hash_map! {
                 ir_collection.collection => ROOT.clone(),
             },
         }))
@@ -117,10 +122,18 @@ impl MqlTranslator {
                     if k.starts_with('$') || k.contains('.') || k.is_empty() {
                         Err(Error::InvalidDocumentKey(k))
                     } else {
-                        Ok((k, self.translate_expression(v)?))
+                        Ok(UniqueLinkedHashMapEntry::new(
+                            k,
+                            self.translate_expression(v)?,
+                        ))
                     }
                 })
-                .collect::<Result<UniqueLinkedHashMap<String, agg_ir::Expression>>>()?,
+                .collect::<Result<
+                    std::result::Result<
+                        UniqueLinkedHashMap<String, agg_ir::Expression>,
+                        DuplicateKeyError,
+                    >,
+                >>()??,
         ))
     }
 

@@ -83,16 +83,28 @@ where
     }
 }
 
-impl<K, V> FromIterator<(K, V)> for UniqueLinkedHashMap<K, V>
+pub struct UniqueLinkedHashMapEntry<K, V>(K, V);
+
+impl<K, V> UniqueLinkedHashMapEntry<K, V>
 where
     K: Hash + PartialEq + Eq + Display,
 {
-    fn from_iter<I: IntoIterator<Item = (K, V)>>(iter: I) -> Self {
+    pub fn new(k: K, v: V) -> Self {
+        UniqueLinkedHashMapEntry(k, v)
+    }
+}
+
+impl<K, V> FromIterator<UniqueLinkedHashMapEntry<K, V>>
+    for Result<UniqueLinkedHashMap<K, V>, DuplicateKeyError>
+where
+    K: Hash + PartialEq + Eq + Display,
+{
+    fn from_iter<I: IntoIterator<Item = UniqueLinkedHashMapEntry<K, V>>>(iter: I) -> Self {
         let mut hm = UniqueLinkedHashMap::new();
-        for (k, v) in iter {
-            hm.0.insert(k, v);
+        for entry in iter {
+            hm.insert(entry.0, entry.1)?;
         }
-        hm
+        Ok(hm)
     }
 }
 
@@ -121,4 +133,16 @@ where
     fn from(lhm: LinkedHashMap<K, V>) -> Self {
         Self(lhm)
     }
+}
+
+#[macro_export]
+macro_rules! unique_linked_hash_map {
+	($($key:expr => $val:expr),* $(,)?) => {{
+            #[allow(unused_mut)]
+            let mut out = mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap::new();
+            $(
+                out.insert($key, $val)?;
+            )*
+            out
+	}};
 }

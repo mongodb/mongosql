@@ -196,7 +196,7 @@ mod reference_expression {
 }
 
 mod documents_stage {
-    use crate::map;
+    use crate::unchecked_unique_linked_hash_map;
 
     test_translate_stage!(
         non_empty,
@@ -206,7 +206,7 @@ mod documents_stage {
                     false
                 ))],
             })),
-            specifications: map! {
+            specifications: unchecked_unique_linked_hash_map! {
                 "foo".into() => agg_ir::Expression::Variable("ROOT".into()),
             },
         })),
@@ -225,7 +225,7 @@ mod documents_stage {
             source: Box::new(agg_ir::Stage::Documents(agg_ir::Documents {
                 array: vec![],
             })),
-            specifications: map! {
+            specifications: unchecked_unique_linked_hash_map! {
                 "foo".into() => translator::ROOT.clone(),
             },
         })),
@@ -238,7 +238,7 @@ mod documents_stage {
 }
 
 mod collection {
-    use crate::map;
+    use crate::unchecked_unique_linked_hash_map;
 
     test_translate_stage!(
         collection,
@@ -247,7 +247,7 @@ mod collection {
                 db: "test_db".into(),
                 collection: "foo".into(),
             })),
-            specifications: map! {
+            specifications: unchecked_unique_linked_hash_map! {
                 "foo".into() => translator::ROOT.clone(),
             },
         })),
