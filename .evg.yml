@@ -1707,6 +1707,14 @@ axes:
       _variant: debian10
     batchtime: 10080 # 1 week
 
+  - id: debian11
+    display_name: Debian 11.0
+    run_on:
+      - debian11
+    variables:
+      _variant: debian11
+    batchtime: 10080 # 1 week
+
   - id: linux-64-amazon-ami
     display_name: Amazon Linux
     variables:
@@ -1845,10 +1853,6 @@ axes:
     display_name: 6.0
     variables:
       _mongodb_version: 6.0
-  - id: 5.3
-    display_name: 5.3
-    variables:
-      _mongodb_version: 5.3
   - id: 5.0
     display_name: 5.0
     variables:

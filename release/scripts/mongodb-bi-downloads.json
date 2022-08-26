@@ -26,6 +26,10 @@
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~DEBIAN10"
     },
     {
+      "name": "Debian 11.0 x64",
+      "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~DEBIAN11"
+    },
+    {
       "name": "macOS x64",
       "download_link": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~OSX"
     },

@@ -62,6 +62,15 @@
       {
          "arch": "x86_64",
          "archive": {
+            "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~DEBIAN11"
+         },
+         "edition": "enterprise",
+         "packages": [],
+         "target": "debian11"
+      },
+      {
+         "arch": "x86_64",
+         "archive": {
             "url": "https://S3_BUCKET.s3.amazonaws.com/S3_PATH/RELEASE_PLATFORMS__OS~OSX"
          },
          "edition": "enterprise",

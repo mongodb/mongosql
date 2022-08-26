@@ -55,9 +55,6 @@ set_mongodb_binaries ()
        if [ "$mongodb_version" = "5.0" ]; then
             version_for_curator="5.0-stable"
        fi
-       if [ "$mongodb_version" = "5.3" ]; then
-            version_for_curator="5.3-stable"
-       fi
        if [ "$mongodb_version" = "6.0" ]; then
             version_for_curator="6.0-stable"
        fi
@@ -96,9 +93,9 @@ set_mongodb_binaries ()
        mv mongodb* $local_versioned_path
        chmod -R +x $local_versioned_path
 
-       # Use mongo shell executable from 5.3-stable for mongodb_version 6.*
+       # Use mongo shell executable from 5.3.2 for mongodb_version 6.*
        if [[ $version_for_curator == 6.* ]]; then
-           version_for_curator_mongo_shell=5.3-stable
+           version_for_curator_mongo_shell=5.3.2
            cache_mongo_shell=$cache/$version_for_curator_mongo_shell
            echo "running curator for mongo shell with args:"
            echo "  --target $distro"
