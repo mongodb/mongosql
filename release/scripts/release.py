@@ -202,7 +202,7 @@ class BIReleaser(object):
 
             entry = json.loads(rpc.text)
             variant = entry["build_variant"]
-            if "osx" in variant:
+            if "osx" in variant or "macos" in variant:
                 extension = {".zip"}
             elif "windows" in variant:
                 extension = {".msi", ".zip"}
