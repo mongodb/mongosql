@@ -1,8 +1,6 @@
 package desugarer
 
 import (
-	"math/rand"
-
 	"github.com/10gen/mongoast/ast"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
@@ -50,20 +48,4 @@ func wrapInNullCheckedCond(truePart, falsePart ast.Expr, values ...ast.Expr) ast
 // wrapInOp returns a document which passes all arguments to the op.
 func wrapInOp(op string, args ...ast.Expr) *ast.Function {
 	return ast.NewFunction(op, ast.NewArray(args...))
-}
-
-// generateUniqueNameFunc returns a function that generates a unique string
-func generateUniqueNameFunc(length int) (f func() string) {
-	randSeed := int64(1)
-	f = func() string {
-		rand.Seed(randSeed)
-		randSeed++
-		alphaNumerics := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
-		uniqueName := make([]rune, length)
-		for i := range uniqueName {
-			uniqueName[i] = alphaNumerics[rand.Intn(len(alphaNumerics))]
-		}
-		return string(uniqueName)
-	}
-	return
 }
