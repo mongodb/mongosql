@@ -365,7 +365,7 @@ impl<'a> Algebrizer<'a> {
                         let bot = Key::bot(expression_algebrizer.scope_level);
                         datasources
                             .insert(bot.clone())
-                            .then(|| ())
+                            .then_some(())
                             .ok_or_else(|| Error::DuplicateKey(bot.clone()))?;
                         Ok((bot, e))
                     }
@@ -379,7 +379,7 @@ impl<'a> Algebrizer<'a> {
                         };
                         datasources
                             .insert(key.clone())
-                            .then(|| ())
+                            .then_some(())
                             .ok_or_else(|| Error::DuplicateKey(key.clone()))?;
                         let scope = expression_algebrizer
                             .schema_env
