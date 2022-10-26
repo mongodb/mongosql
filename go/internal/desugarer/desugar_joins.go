@@ -37,36 +37,36 @@ func desugarJoins(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 // desugarJoinStage desugars a $join stage into a sequence of 4 stages that
 // are semantically equivalent to $join. Specifically, the desugaring turns
 //
-//   { $join: {
-//       database: <db name>,
-//       collection: <coll name>,
-//       joinType: <join type>,
-//       let: <let doc>,
-//       pipeline: <pipeline>,
-//       condition: <condition> // note: this is a $match stage
-//   }}
+//	{ $join: {
+//	    database: <db name>,
+//	    collection: <coll name>,
+//	    joinType: <join type>,
+//	    let: <let doc>,
+//	    pipeline: <pipeline>,
+//	    condition: <condition> // note: this is a $match stage
+//	}}
 //
 // into:
 //
-//   { $lookup: {
-//       from: {
-//           db: <db name>,
-//           coll: <coll name>
-//       },
-//       let: <let doc>,
-//       pipeline: [<pipeline>..., <condition>]
-//       as: "<uuid>"
-//   }},
-//   { $unwind: {
-//       path: "$<uuid>",
-//       preserveNullAndEmptyArrays: <join type> == "left"
-//   }},
-//   { $replaceRoot: {
-//       newRoot: {
-//           $mergeObjects: ["$$ROOT", "$<uuid>"]
-//       }
-//   }},
-//   { $project: { _id: 0, <uuid>: 0 } }
+//	{ $lookup: {
+//	    from: {
+//	        db: <db name>,
+//	        coll: <coll name>
+//	    },
+//	    let: <let doc>,
+//	    pipeline: [<pipeline>..., <condition>]
+//	    as: "<uuid>"
+//	}},
+//	{ $unwind: {
+//	    path: "$<uuid>",
+//	    preserveNullAndEmptyArrays: <join type> == "left"
+//	}},
+//	{ $replaceRoot: {
+//	    newRoot: {
+//	        $mergeObjects: ["$$ROOT", "$<uuid>"]
+//	    }
+//	}},
+//	{ $project: { _id: 0, <uuid>: 0 } }
 //
 // Note that in the $unwind stage, preserveNullAndEmptyArrays is true when
 // the joinType is "left", and false when it is "inner".

@@ -88,36 +88,36 @@ func desugarSubqueryExprs(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 // replacement expression that accesses the data specified by the outputPath.
 // Specifically, the desugaring turns
 //
-//   { $subquery: {
-//       db: <db name>,
-//       collection: <collection name>,
-//       let: <let doc>,
-//       outputPath: [<component_1>, ...],
-//       pipeline: <pipeline>,
-//   }}
+//	{ $subquery: {
+//	    db: <db name>,
+//	    collection: <collection name>,
+//	    let: <let doc>,
+//	    outputPath: [<component_1>, ...],
+//	    pipeline: <pipeline>,
+//	}}
 //
 // into the $lookup stage:
 //
-//   { $lookup: {
-//       from: {
-//           db: <db name>,
-//           coll: <coll name>
-//       },
-//       let: <let doc>,
-//       pipeline: <pipeline>,
-//       as: "<asName>"
-//   }}
+//	{ $lookup: {
+//	    from: {
+//	        db: <db name>,
+//	        coll: <coll name>
+//	    },
+//	    let: <let doc>,
+//	    pipeline: <pipeline>,
+//	    as: "<asName>"
+//	}}
 //
 // and the replacement expression:
 //
-//   { $let: {
-//       vars: {
-//           docExpr: {
-//               $arrayElemAt: ["$<asName>", 0]
-//           }
-//       },
-//       in: "$$docExpr.<component_1>..."
-//   }}
+//	{ $let: {
+//	    vars: {
+//	        docExpr: {
+//	            $arrayElemAt: ["$<asName>", 0]
+//	        }
+//	    },
+//	    in: "$$docExpr.<component_1>..."
+//	}}
 //
 // The $lookup stage is placed before the stage that contains the $subquery
 // expression. The replacement expression replaces the $subquery expression
@@ -146,18 +146,17 @@ func desugarSubquery(f *ast.Function, asName string) (ast.Expr, *ast.LookupStage
 // and a replacement expression that checks if the output is non-empty.
 // Specifically, the desugaring turns
 //
-//   { $subqueryExists: {
-//       db: <db name>,
-//       collection: <collection name>,
-//       let: <let doc>,
-//       pipeline: <pipeline>,
-//   }}
+//	{ $subqueryExists: {
+//	    db: <db name>,
+//	    collection: <collection name>,
+//	    let: <let doc>,
+//	    pipeline: <pipeline>,
+//	}}
 //
 // into the same $lookup stage as for $subquery (above), and
 // the replacement expression:
 //
-//   { $gt: [{ $size: "$<asName>" }, 0] }
-//
+//	{ $gt: [{ $size: "$<asName>" }, 0] }
 func desugarSubqueryExists(f *ast.Function, asName string) (ast.Expr, *ast.LookupStage) {
 	subqueryArgs := parseSubqueryArgs(f.Arg, "")
 
@@ -176,32 +175,32 @@ func desugarSubqueryExists(f *ast.Function, asName string) (ast.Expr, *ast.Looku
 // subquery output.
 // Specifically, the desugaring turns
 //
-//   { $subqueryComparison: {
-//       op: <comp op>,
-//       modifier: <modifier>,
-//       argument: <arg>,
-//       subquery: <subquery>
-//   }}
+//	{ $subqueryComparison: {
+//	    op: <comp op>,
+//	    modifier: <modifier>,
+//	    argument: <arg>,
+//	    subquery: <subquery>
+//	}}
 //
 // into the same $lookup stage as for $subquery (above) using the <subquery>
 // parameter (which has the same fields as $subquery), and the replacement
 // expression:
 //
-//   { $reduce: {
-//       "input": "$<asName>",
-//       "initialValue": <initial value>,
-//       "in": {
-//           <combinator func>: [
-//               "$$value",
-//               {
-//                   "$<comp op>": [
-//                       <arg>,
-//                       "$$this.<component_1>..."
-//                   ]
-//               }
-//           ]
-//       }
-//   }}
+//	{ $reduce: {
+//	    "input": "$<asName>",
+//	    "initialValue": <initial value>,
+//	    "in": {
+//	        <combinator func>: [
+//	            "$$value",
+//	            {
+//	                "$<comp op>": [
+//	                    <arg>,
+//	                    "$$this.<component_1>..."
+//	                ]
+//	            }
+//	        ]
+//	    }
+//	}}
 //
 // When <modifier> is "any", <initial value> is false and <combinator func>
 // is "$sqlOr". When <modifier> is "all", <initial value> is true and

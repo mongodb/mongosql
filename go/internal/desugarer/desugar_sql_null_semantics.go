@@ -113,37 +113,37 @@ func desugarSqlOp(f *ast.Function, mqlOp string) ast.Expr {
 //
 // will be desugared into
 //
-//  "$let": {
-//    "vars": {
-//      "desugared_sqlAnd_input0": "$<expr1>",
-//      "desugared_sqlAnd_input1": "$<expr2>"
-//    },
-//    "in": {
-//      "$cond": {
-//        "if": {
-//          "$or": [
-//            // check if any of the vars is False
-//          ]
-//        },
-//        "then": {
-//          "$literal": false
-//        },
-//        "else": {
-//          "$cond": {
-//            "if": {
-//                // check if any of the vars is Null
-//            },
-//            "then": {
-//              "$literal": null
-//            },
-//            "else": {
-//              "$literal": true
-//            }
-//          }
-//        }
-//      }
-//    }
-//  }
+//	"$let": {
+//	  "vars": {
+//	    "desugared_sqlAnd_input0": "$<expr1>",
+//	    "desugared_sqlAnd_input1": "$<expr2>"
+//	  },
+//	  "in": {
+//	    "$cond": {
+//	      "if": {
+//	        "$or": [
+//	          // check if any of the vars is False
+//	        ]
+//	      },
+//	      "then": {
+//	        "$literal": false
+//	      },
+//	      "else": {
+//	        "$cond": {
+//	          "if": {
+//	              // check if any of the vars is Null
+//	          },
+//	          "then": {
+//	            "$literal": null
+//	          },
+//	          "else": {
+//	            "$literal": true
+//	          }
+//	        }
+//	      }
+//	    }
+//	  }
+//	}
 func desugarSqlAnd(f *ast.Function) ast.Expr {
 	args, ok := f.Arg.(*ast.Array)
 	if !ok {
@@ -201,35 +201,35 @@ func desugarSqlAnd(f *ast.Function) ast.Expr {
 //
 // will be desugared into
 //
-//  "$let": {
-//    "vars": {
-//      "desugared_sqlOr_input0": "$<expr1>",
-//      "desugared_sqlOr_input1": "$<expr2>"
-//    },
-//    "in": {
-//      "$cond": {
-//        "if": {
-//            // check if any of the vars is True
-//        },
-//        "then": {
-//          "$literal": true
-//        },
-//        "else": {
-//          "$cond": {
-//            "if": {
-//              // check if any of the vars is Null
-//            },
-//            "then": {
-//              "$literal": null
-//            },
-//            "else": {
-//              "$literal": false
-//            },
-//          }
-//        }
-//      }
-//    }
-//  }
+//	"$let": {
+//	  "vars": {
+//	    "desugared_sqlOr_input0": "$<expr1>",
+//	    "desugared_sqlOr_input1": "$<expr2>"
+//	  },
+//	  "in": {
+//	    "$cond": {
+//	      "if": {
+//	          // check if any of the vars is True
+//	      },
+//	      "then": {
+//	        "$literal": true
+//	      },
+//	      "else": {
+//	        "$cond": {
+//	          "if": {
+//	            // check if any of the vars is Null
+//	          },
+//	          "then": {
+//	            "$literal": null
+//	          },
+//	          "else": {
+//	            "$literal": false
+//	          },
+//	        }
+//	      }
+//	    }
+//	  }
+//	}
 func desugarSqlOr(f *ast.Function) ast.Expr {
 	args, ok := f.Arg.(*ast.Array)
 	if !ok {

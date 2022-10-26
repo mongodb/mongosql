@@ -547,7 +547,7 @@ buildvariants:
 
   - name: benchmark
     display_name: "Benchmark"
-    run_on: [ centos6-perf ]
+    run_on: [ centos7-perf ]
     tasks:
       - name: criterion
 
