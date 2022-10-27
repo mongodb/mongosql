@@ -11,6 +11,9 @@ catalog_data:
       - { "_id": 7, "a": { "$numberDecimal": "-1" } }
       - { "_id": 8, "a": null }
       - { "_id": 9 }
+      - { "_id": 10, "a": { "$numberDecimal": "NaN"} }
+      - { "_id": 11, "a": { "$numberDecimal": "Infinity"} }
+      - { "_id": 12, "a": { "$numberDecimal": "-Infinity"} }
     binary:
       - { "_id": 0, "a": { "$numberInt": "6" }, "b": { "$numberInt": "2" } }
       - { "_id": 1, "a": { "$numberInt": "6" }, "b": { "$numberLong": "2" } }
@@ -48,6 +51,28 @@ catalog_data:
       - { "_id": 33, "b": { "$numberDecimal": "2" } }
       - { "_id": 34, "b": null }
       - { "_id": 35 }
+      - { "_id": 36, "a": { "$numberDecimal": "NaN"}, "b": { "$numberDecimal": "NaN"} }
+      - { "_id": 38, "a": { "$numberDecimal": "NaN"}, "b": { "$numberDecimal": "Infinity"} }
+      - { "_id": 39, "a": { "$numberDecimal": "NaN"}, "b": { "$numberDecimal": "-Infinity"} }
+      - { "_id": 40, "a": { "$numberDecimal": "NaN" }, "b": { "$numberInt": "2" } }
+      - { "_id": 41, "a": { "$numberDecimal": "NaN" }, "b": { "$numberLong": "2" } }
+      - { "_id": 42, "a": { "$numberDecimal": "NaN" }, "b": { "$numberDouble": "2" } }
+      - { "_id": 43, "a": { "$numberDecimal": "NaN" }, "b": { "$numberDecimal": "2" } }
+      - { "_id": 44, "a": { "$numberDecimal": "Infinity"}, "b": { "$numberDecimal": "Infinity"} }
+      - { "_id": 45, "a": { "$numberDecimal": "Infinity"}, "b": { "$numberDecimal": "-Infinity"} }
+      - { "_id": 46, "a": { "$numberDecimal": "Infinity" }, "b": { "$numberInt": "2" } }
+      - { "_id": 47, "a": { "$numberDecimal": "Infinity" }, "b": { "$numberLong": "2" } }
+      - { "_id": 48, "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDouble": "2" } }
+      - { "_id": 49, "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDecimal": "2" } }
+      - { "_id": 50, "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "-Infinity" } }
+      - { "_id": 51, "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "Infinity" } }
+      - { "_id": 52, "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberInt": "2" } }
+      - { "_id": 53, "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberLong": "2" } }
+      - { "_id": 54, "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDouble": "2" } }
+      - { "_id": 55, "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "2" } }
+
+
+
     integer_division:
       - { "_id": 1, "a": { "$numberInt": "5" }, "b": { "$numberInt": "2" } }
       - { "_id": 2, "a": { "$numberInt": "5" }, "b": { "$numberLong": "2" } }
@@ -153,6 +178,9 @@ tests:
       - {'': {'a': {'$numberDecimal': '-1'}, '+a': {'$numberDecimal': '-1'}}}
       - {'': {'a': null, '+a': null}}
       - {'': {}}
+      - {'': {'a': {'$numberDecimal': 'NaN'}, '+a': {'$numberDecimal': 'NaN'}}}
+      - {'': {'a': {'$numberDecimal': 'Infinity'}, '+a': {'$numberDecimal': 'Infinity'}}}
+      - {'': {'a': {'$numberDecimal': '-Infinity'}, '+a': {'$numberDecimal': '-Infinity'}}}
 
   - description: Unary minus correctness tests
     current_db: foo
@@ -178,6 +206,9 @@ tests:
       - {'': {'a': {'$numberDecimal': '-1'}, '-a': {'$numberDecimal': '1'}}}
       - {'': {'a': null, '-a': null}}
       - {'': {'-a': null}}
+      - {'': {'a': {'$numberDecimal': 'NaN'}, '-a': {'$numberDecimal': 'NaN'}}}
+      - {'': {'a': {'$numberDecimal': 'Infinity'}, '-a': {'$numberDecimal': '-Infinity'}}}
+      - {'': {'a': {'$numberDecimal': '-Infinity'}, '-a': {'$numberDecimal': 'Infinity'}}}
 
   - description: Addition correctness tests
     current_db: foo
@@ -228,6 +259,25 @@ tests:
       - {'': {'b': {'$numberDecimal': '2'}, 'a+b': null}}
       - {'': {'b': null, 'a+b': null}}
       - {'': {'a+b': null}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': 'NaN'}, 'a+b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': 'Infinity'}, 'a+b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': '-Infinity'}, 'a+b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberInt': '2'}, 'a+b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberLong': '2'}, 'a+b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDouble': '2'}, 'a+b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': '2'}, 'a+b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': 'Infinity'}, 'a+b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': '-Infinity'}, 'a+b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberInt': '2'}, 'a+b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberLong': '2'}, 'a+b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDouble': '2'}, 'a+b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': '2'}, 'a+b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': '-Infinity'}, 'a+b': {'$numberDecimal': '-Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': 'Infinity'}, 'a+b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberInt': '2'}, 'a+b': {'$numberDecimal': '-Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberLong': '2'}, 'a+b': {'$numberDecimal': '-Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDouble': '2'}, 'a+b': {'$numberDecimal': '-Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': '2'}, 'a+b': {'$numberDecimal': '-Infinity'}}}
 
   - description: Subtraction correctness tests
     current_db: foo
@@ -278,6 +328,26 @@ tests:
       - {'': {'b': {'$numberDecimal': '2'}, 'a-b': null}}
       - {'': {'b': null, 'a-b': null}}
       - {'': {'a-b': null}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': 'NaN'}, 'a-b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': 'Infinity'}, 'a-b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': '-Infinity'}, 'a-b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberInt': '2'}, 'a-b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberLong': '2'}, 'a-b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDouble': '2'}, 'a-b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': '2'}, 'a-b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': 'Infinity'}, 'a-b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': '-Infinity'}, 'a-b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberInt': '2'}, 'a-b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberLong': '2'}, 'a-b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDouble': '2'}, 'a-b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': '2'}, 'a-b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': '-Infinity'}, 'a-b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': 'Infinity'}, 'a-b': {'$numberDecimal': '-Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberInt': '2'}, 'a-b': {'$numberDecimal': '-Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberLong': '2'}, 'a-b': {'$numberDecimal': '-Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDouble': '2'}, 'a-b': {'$numberDecimal': '-Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': '2'}, 'a-b': {'$numberDecimal': '-Infinity'}}}
+
 
   - description: Multiplication correctness tests
     current_db: foo
@@ -328,6 +398,25 @@ tests:
       - {'': {'b': {'$numberDecimal': '2'}, 'a*b': null}}
       - {'': {'b': null, 'a*b': null}}
       - {'': {'a*b': null}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': 'NaN'}, 'a*b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': 'Infinity'}, 'a*b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': '-Infinity'}, 'a*b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberInt': '2'}, 'a*b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberLong': '2'}, 'a*b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDouble': '2'}, 'a*b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': '2'}, 'a*b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': 'Infinity'}, 'a*b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': '-Infinity'}, 'a*b': {'$numberDecimal': '-Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberInt': '2'}, 'a*b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberLong': '2'}, 'a*b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDouble': '2'}, 'a*b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': '2'}, 'a*b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': '-Infinity'}, 'a*b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': 'Infinity'}, 'a*b': {'$numberDecimal': '-Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberInt': '2'}, 'a*b': {'$numberDecimal': '-Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberLong': '2'}, 'a*b': {'$numberDecimal': '-Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDouble': '2'}, 'a*b': {'$numberDecimal': '-Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': '2'}, 'a*b': {'$numberDecimal': '-Infinity'}}}
 
   - description: Division correctness tests
     current_db: foo
@@ -379,6 +468,25 @@ tests:
       - {'': {'b': {'$numberDecimal': '2'}, 'a/b': null}}
       - {'': {'b': null, 'a/b': null}}
       - {'': {'a/b': null}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': 'NaN'}, 'a/b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': 'Infinity'}, 'a/b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': '-Infinity'}, 'a/b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberLong': '2'}, 'a/b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDouble': '2'}, 'a/b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'NaN'}, 'b': {'$numberDecimal': '2'}, 'a/b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': 'Infinity'}, 'a/b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': '-Infinity'}, 'a/b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberLong': '2'}, 'a/b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDouble': '2'}, 'a/b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': 'Infinity'}, 'b': {'$numberDecimal': '2'}, 'a/b': {'$numberDecimal': 'Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': '-Infinity'}, 'a/b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': 'Infinity'}, 'a/b': {'$numberDecimal': 'NaN'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberDecimal': '-Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberLong': '2'}, 'a/b': {'$numberDecimal': '-Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDouble': '2'}, 'a/b': {'$numberDecimal': '-Infinity'}}}
+      - {'': { 'a': {'$numberDecimal': '-Infinity'}, 'b': {'$numberDecimal': '2'}, 'a/b': {'$numberDecimal': '-Infinity'}}}
 
   - description: Division by zero results in NULL
     current_db: foo
@@ -403,6 +511,9 @@ tests:
       - {'': {'a': {'$numberDecimal': '-1'}, 'n': null}}
       - {'': {'a': null, 'n': null}}
       - {'': {'n': null}}
+      - {'': {'a': {'$numberDecimal': 'NaN'}, 'n': null}}
+      - {'': {'a': {'$numberDecimal': 'Infinity'}, 'n': null}}
+      - {'': {'a': {'$numberDecimal': '-Infinity'}, 'n': null}}
 
   - description: Long and integer division with non-integer results are truncated
     current_db: foo

@@ -8,6 +8,10 @@ catalog_data:
       - { "_id": 4, "a": null, "b": { "$numberInt": "3" } }
       - { "_id": 5, "a": { "$numberDouble": "6.25" } }
       - { "_id": 6, "b": { "$numberLong": "3" } }
+      - { "_id": 7, "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDecimal": "-Infinity" } }
+      - { "_id": 8, "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "Infinity" } }
+    nan:
+      - { "_id": 0, "a": { "$numberDecimal": "NaN"}, "b": { "$numberDecimal": "NaN" } }
     strings:
       - { "_id": 0, "a": "abc", "b": "def" }
       - { "_id": 1, "a": "xyz", "b": "xyz" }
@@ -102,6 +106,22 @@ catalog_schema:
               { "bsonType": "decimal" },
               { "bsonType": !!str "null" }
             ]
+          }
+        }
+      },
+      "nan": {
+        "bsonType": "object",
+        'required': [ '_id', 'a', 'b' ],
+        'additionalProperties': false,
+        "properties": {
+          "_id": {
+            "bsonType": "int"
+          },
+           "a": {
+              "bsonType": "decimal" ,
+          },
+          "b": {
+               "bsonType": "decimal" ,
           }
         }
       },
@@ -304,6 +324,9 @@ tests:
       - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
       - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
       - {'': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDecimal": "-Infinity" }, "c": false } }
+      - {'': { "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "Infinity" }, "c": true } }
+
 
   - description: correctness test for lte for numeric types
     current_db: foo
@@ -325,6 +348,8 @@ tests:
       - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
       - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
       - {'': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDecimal": "-Infinity" }, "c": false } }
+      - {'': { "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "Infinity" }, "c": true } }
 
   - description: correctness test for neq for numeric types
     current_db: foo
@@ -346,6 +371,8 @@ tests:
       - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
       - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
       - {'': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDecimal": "-Infinity" }, "c": true } }
+      - {'': { "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "Infinity" }, "c": true } }
 
   - description: correctness test for eq for numeric types
     current_db: foo
@@ -367,6 +394,8 @@ tests:
       - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
       - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
       - {'': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDecimal": "-Infinity" }, "c": false } }
+      - {'': { "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "Infinity" }, "c": false } }
 
   - description: correctness test for gt for numeric types
     current_db: foo
@@ -388,6 +417,8 @@ tests:
       - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
       - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
       - {'': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDecimal": "-Infinity" }, "c": true } }
+      - {'': { "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "Infinity" }, "c": false } }
 
   - description: correctness test for gte for numeric types
     current_db: foo
@@ -409,6 +440,87 @@ tests:
       - {'': { "a": null, "b": { "$numberInt": "3" }, "c": null } }
       - {'': { "a": { "$numberDouble": "6.25" }, "c": null } }
       - {'': { "b": { "$numberLong": "3" }, "c": null } }
+      - {'': { "a": { "$numberDecimal": "Infinity" }, "b": { "$numberDecimal": "-Infinity" }, "c": true } }
+      - {'': { "a": { "$numberDecimal": "-Infinity" }, "b": { "$numberDecimal": "Infinity" }, "c": false } }
+
+  - description: correctness test for lt for NaN
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM nan AS nan"
+    translation_target_db: foo
+    translation_target_coll: nan
+    translation:
+      - {'$project': {'_id': 0, 'nan': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'nan': '$nan'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$nan.a', 'b': '$nan.b', 'c': {"$sqlLt": [ "$nan.a", "$nan.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
+    result:
+      - {'': { "a": { "$numberDecimal": "NaN" }, "b": { "$numberDecimal": "NaN" }, "c": false } }
+
+  # MongoDB differs from IEEE-754 specification and supports equality comparsion for NaN (NaN == NaN) to support indexes
+  - description: correctness test for lte for NaN
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM nan AS nan"
+    translation_target_db: foo
+    translation_target_coll: nan
+    translation:
+      - {'$project': {'_id': 0, 'nan': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'nan': '$nan'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$nan.a', 'b': '$nan.b', 'c': {"$sqlLte": [ "$nan.a", "$nan.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
+    result:
+      - {'': { "a": { "$numberDecimal": "NaN" }, "b": { "$numberDecimal": "NaN" }, "c": true } }
+
+  # MongoDB differs from IEEE-754 specification and supports equality comparison for NaN (NaN == NaN) to support indexes.
+  - description: correctness test for eq for NaN
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM nan AS nan"
+    translation_target_db: foo
+    translation_target_coll: nan
+    translation:
+      - {'$project': {'_id': 0, 'nan': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'nan': '$nan'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$nan.a', 'b': '$nan.b', 'c': {"$sqlEq": [ "$nan.a", "$nan.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
+    result:
+      - {'': { "a": { "$numberDecimal": "NaN" }, "b": { "$numberDecimal": "NaN" }, "c": true } }
+
+  - description: correctness test for gt for NaN
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM nan AS nan"
+    translation_target_db: foo
+    translation_target_coll: nan
+    translation:
+      - {'$project': {'_id': 0, 'nan': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'nan': '$nan'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$nan.a', 'b': '$nan.b', 'c': {"$sqlGt": [ "$nan.a", "$nan.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
+    result:
+      - {'': { "a": { "$numberDecimal": "NaN" }, "b": { "$numberDecimal": "NaN" }, "c": false } }
+
+  # MongoDB differs from IEEE-754 specification and supports equality comparison for NaN (NaN == NaN) to support indexes.
+  - description: correctness test for gte for NaN
+    current_db: foo
+    query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM nan AS nan"
+    translation_target_db: foo
+    translation_target_coll: nan
+    translation:
+      - {'$project': {'_id': 0, 'nan': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'nan': '$nan'}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$nan.a', 'b': '$nan.b', 'c': {"$sqlGte": [ "$nan.a", "$nan.b" ]}}}}
+      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
+           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
+        }}}}
+    result:
+      - {'': { "a": { "$numberDecimal": "NaN" }, "b": { "$numberDecimal": "NaN" }, "c": true } }
+
 
   - description: correctness test for lt for strings
     current_db: foo
