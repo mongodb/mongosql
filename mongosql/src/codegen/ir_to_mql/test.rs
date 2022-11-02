@@ -752,7 +752,6 @@ mod array {
 
 mod document {
     use crate::{
-        codegen::ir_to_mql::Error,
         ir::{Expression::*, LiteralValue},
         unchecked_unique_linked_hash_map,
     };
@@ -784,22 +783,22 @@ mod document {
         ),
     );
     test_codegen_expr!(
-        dollar_prefixed_key_disallowed,
-        expected = Err(Error::InvalidDocumentKey),
+        dollar_prefixed_key_allowed,
+        expected = Ok(bson!({"$getField": {"field": {"$literal": "$foo"}, "input": {"$literal":  1}}})),
         input = Document(
             unchecked_unique_linked_hash_map! {"$foo".to_string() => Literal(LiteralValue::Integer(1).into()),}
         .into()),
     );
     test_codegen_expr!(
-        key_containing_dot_disallowed,
-        expected = Err(Error::InvalidDocumentKey),
+        key_containing_dot_allowed,
+        expected = Ok(bson!({"$getField": {"field": {"$literal": "foo.bar"}, "input": {"$literal":  1}}})),
         input = Document(
             unchecked_unique_linked_hash_map! {"foo.bar".to_string() => Literal(LiteralValue::Integer(1).into()),}
         .into()),
     );
     test_codegen_expr!(
-        empty_key_disallowed,
-        expected = Err(Error::InvalidDocumentKey),
+        empty_key_allowed,
+        expected = Ok(bson!({"$getField": {"field": {"$literal": ""}, "input": {"$literal":  1}}})),
         input = Document(
             unchecked_unique_linked_hash_map! {"".to_string() => Literal(LiteralValue::Integer(1).into()),}
         .into()),
@@ -876,7 +875,7 @@ mod field_access {
     );
     test_codegen_expr!(
         dollar_prefixed_field,
-        expected = Ok(bson::bson!({"$getField": {"field": "$sub", "input": "$f"}})),
+        expected = Ok(bson::bson!({"$getField": {"field": {"$literal":"$sub"}, "input": "$f"}})),
         input = Expression::FieldAccess(FieldAccess {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             field: "$sub".to_string(),
@@ -904,7 +903,7 @@ mod field_access {
     );
     test_codegen_expr!(
         field_contains_dot,
-        expected = Ok(bson::bson!({"$getField": {"field": "s.ub", "input": "$f"}})),
+        expected = Ok(bson::bson!({"$getField": {"field": {"$literal": "s.ub"}, "input": "$f"}})),
         input = Expression::FieldAccess(FieldAccess {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             field: "s.ub".to_string(),
@@ -918,7 +917,7 @@ mod field_access {
     );
     test_codegen_expr!(
         empty_field_in_field_access,
-        expected = Ok(bson::bson!({"$getField": {"field": "", "input": "$f"}})),
+        expected = Ok(bson::bson!({"$getField": {"field": {"$literal": ""}, "input": "$f"}})),
         input = Expression::FieldAccess(FieldAccess {
             expr: Expression::Reference(("f", 0u16).into()).into(),
             field: "".to_string(),

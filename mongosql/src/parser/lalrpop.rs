@@ -31,8 +31,7 @@ lazy_static! {
 }
 
 pub fn parse_query(input: &str) -> Result<ast::Query> {
-    let query = QUERY_PARSER.parse(input)?;
-    Ok(query)
+    Ok(QUERY_PARSER.parse(input)?)
 }
 
 #[cfg(test)]

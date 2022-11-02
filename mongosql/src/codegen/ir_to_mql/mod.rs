@@ -877,22 +877,27 @@ impl MqlCodeGenerator {
                     .map(|e| self.codegen_expression(e))
                     .collect::<Result<Vec<Bson>>>()?,
             )),
-            Document(ir::DocumentExpr { document, .. }) => Ok(Bson::Document({
-                if document.is_empty() {
-                    bson::doc! {"$literal": {}}
-                } else {
-                    document
+            Document(ir::DocumentExpr { document, .. }) => {
+                Ok(Bson::Document({
+                    if document.is_empty() {
+                        bson::doc! {"$literal": {}}
+                    } else {
+                        document
                         .into_iter()
                         .map(|(k, v)| {
-                            if k.starts_with('$') || k.contains('.') || k.as_str() == "" {
-                                Err(Error::InvalidDocumentKey)
-                            } else {
-                                Ok((k, self.codegen_expression(v)?))
-                            }
+                            let expr = self.codegen_expression(v)?;
+                            Ok(
+                                if k.starts_with('$') || k.contains('.') || k.as_str() == "" {
+                                    ("$getField".to_string(), bson::bson!({"field": { "$literal":  k }, "input": expr}))
+                                } else {
+                                    (k, expr)
+                                }
+                            )
                         })
                         .collect::<Result<bson::Document>>()?
-                }
-            })),
+                    }
+                }))
+            }
             FieldAccess(fa) => {
                 let expr = self.codegen_expression(*fa.expr)?;
                 Ok(
@@ -900,7 +905,7 @@ impl MqlCodeGenerator {
                         || fa.field.starts_with('$')
                         || fa.field.as_str() == ""
                     {
-                        bson::bson!({"$getField": {"field": fa.field, "input": expr}})
+                        bson::bson!({"$getField": {"field": { "$literal": fa.field}, "input": expr}})
                     } else {
                         match expr {
                             Bson::String(e) => Bson::String(format!("{}.{}", e, fa.field)),
