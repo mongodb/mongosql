@@ -82,6 +82,42 @@ Replace `debug` with `release` in paths above to test release builds
 
 `go test -tags spectests`
 
+You will need a running `mongod` on the default port (27017) in order
+to run result tests.
+
+#### Specifying tests
+
+To target either the translation or result of a test, specify the appropriate test:
+
+* translations - `go test -v tags spectests -run TestSpecTranslations/<dir>/filename.yml/Test_name_snake_case`
+
+  `<dir>` is either "query" or "translation". "query" will target tests in
+  the `mongosql-rs/tests/spec_tests/query_tests/` directory, while "translation"
+  will target tests in the `mongosql-rs/tests/translation_tests/` directory.
+
+* results - `go test -v tags spectests -run TestSpecResultSets/filename.yml/Test_name_snake_case`
+
+For example, the following test is in `mongosql-rs/tests/spec_tests/query_tests/identifier.yml`:
+
+```yml
+  - description: Unaliased use of field reference expression with $ and .
+    query: "SELECT * FROM bar WHERE `$a.b` = 4"
+    current_db: foo
+    translation_target_db: foo
+    translation_target_coll: bar
+    translation:
+      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
+      - {'$project': {'_id': 0, 'bar': '$bar'}}
+      - {'$match': {'$expr': {'$sqlEq': [{'$getField': { 'field':
+        {'$literal': '$a.b'}, 'input': '$bar'}}, {'$literal': 4}]}}}
+    result:
+      - {'bar': {'_id': 4, '$a.b': 4}}
+```
+
+To test the *translation* only: `go test -v -tags spectests -run TestSpecTranslations/query/identifier.yml/Unaliased_use_of_field_reference_expression_with_$_and_.`
+
+To test the *result* only: `go test -v -tags spectests -run TestSpecResultSets/identifier.yml/Unaliased_use_of_field_reference_expression_with_$_and_.`
+
 ## Dependencies
 
 All are managed by Go modules for Go, and Cargo for Rust
