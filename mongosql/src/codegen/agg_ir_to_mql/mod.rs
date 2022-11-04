@@ -64,6 +64,7 @@ impl MqlCodeGenerator {
         }
     }
 
+    #[allow(clippy::only_used_in_recursion)] // false positive
     fn codegen_field_ref(&self, field_ref: agg_ir::FieldRefExpr) -> String {
         match field_ref.parent {
             None => format!("${}", field_ref.name),

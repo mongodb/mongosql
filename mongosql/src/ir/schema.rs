@@ -913,7 +913,7 @@ impl SubqueryExpr {
         // The subquery's result set MUST have a cardinality of 0 or 1. The returned schema
         // MUST include MISSING if the cardinality of the result set MAY be 0. We can exclude
         // MISSING from the returned schema if the cardinality of the result set MUST be 1.
-        if max_size == None || max_size.unwrap() > 1 {
+        if max_size.is_none() || max_size.unwrap() > 1 {
             return Err(Error::InvalidSubqueryCardinality);
         }
         match min_size {

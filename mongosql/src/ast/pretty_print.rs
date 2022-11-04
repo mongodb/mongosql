@@ -4,7 +4,7 @@ use regex::RegexSet;
 use thiserror::Error;
 
 lazy_static! {
-    pub static ref KEYWORDS: RegexSet = RegexSet::new(&[
+    pub static ref KEYWORDS: RegexSet = RegexSet::new([
         r"(?i)aggregate$",
         r"(?i)all$",
         r"(?i)and$",
@@ -786,7 +786,7 @@ impl PrettyPrint for CastExpr {
 
 impl PrettyPrint for AccessExpr {
     fn pretty_print(&self) -> Result<String> {
-        let formatted_expr = self.get_tier().strict_format_sub_expr(&*self.expr)?;
+        let formatted_expr = self.get_tier().strict_format_sub_expr(&self.expr)?;
         Ok(format!(
             "{}[{}]",
             formatted_expr,
@@ -798,7 +798,7 @@ impl PrettyPrint for AccessExpr {
 impl PrettyPrint for SubpathExpr {
     fn pretty_print(&self) -> Result<String> {
         let subpath = identifier_to_string(&self.subpath);
-        let formatted_expr = self.get_tier().strict_format_sub_expr(&*self.expr)?;
+        let formatted_expr = self.get_tier().strict_format_sub_expr(&self.expr)?;
         Ok(format!("{}.{}", formatted_expr, subpath))
     }
 }
@@ -983,9 +983,9 @@ impl PrettyPrint for BetweenExpr {
     fn pretty_print(&self) -> Result<String> {
         let between_tier = self.get_tier();
         let (formatted_expr, formatted_min, formatted_max) = (
-            between_tier.format_sub_expr(&*self.expr)?,
-            between_tier.format_sub_expr(&*self.min)?,
-            between_tier.format_sub_expr(&*self.max)?,
+            between_tier.format_sub_expr(&self.expr)?,
+            between_tier.format_sub_expr(&self.min)?,
+            between_tier.format_sub_expr(&self.max)?,
         );
         Ok(format!(
             "{} BETWEEN {} AND {}",
@@ -1071,7 +1071,7 @@ impl PrettyPrint for Literal {
 
 impl PrettyPrint for UnaryExpr {
     fn pretty_print(&self) -> Result<String> {
-        let formatted_expr = self.get_tier().strict_format_sub_expr(&*self.expr)?;
+        let formatted_expr = self.get_tier().strict_format_sub_expr(&self.expr)?;
         Ok(format!("{}{}", self.op.pretty_print()?, formatted_expr))
     }
 }
@@ -1153,8 +1153,8 @@ impl PrettyPrint for BinaryExpr {
         // Right associative operators would need to use strict_format_sub_expr on the right
         // argument.
         let (formatted_left, formatted_right) = (
-            tier.strict_format_sub_expr(&*self.left)?,
-            tier.format_sub_expr(&*self.right)?,
+            tier.strict_format_sub_expr(&self.left)?,
+            tier.format_sub_expr(&self.right)?,
         );
         Ok(format!(
             "{} {} {}",

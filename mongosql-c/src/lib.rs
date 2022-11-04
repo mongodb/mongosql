@@ -110,7 +110,7 @@ pub fn build_catalog(base_64_doc: &str) -> Result<Catalog, String> {
 fn translation_success_payload(t: mongosql::Translation) -> String {
     let translation = bson::doc! {
         "target_db": t.target_db,
-        "target_collection": t.target_collection.unwrap_or_else(|| "".to_string()),
+        "target_collection": t.target_collection.unwrap_or_default(),
         "pipeline": t.pipeline,
         "result_set_schema": &bson::to_bson(&t.result_set_schema).expect("failed to convert result_set_schema to bson"),
     };

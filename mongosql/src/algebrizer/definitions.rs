@@ -722,6 +722,7 @@ impl<'a> Algebrizer<'a> {
         Err(Error::InvalidUnwindPath)
     }
 
+    #[allow(clippy::only_used_in_recursion)] // false positive
     pub fn algebrize_flattened_field_path(&self, key: Key, path: Vec<String>) -> ir::Expression {
         match path.len() {
             0 => ir::Expression::Reference(ir::ReferenceExpr {

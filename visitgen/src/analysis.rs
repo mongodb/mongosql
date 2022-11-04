@@ -26,7 +26,7 @@ pub fn collect_types(file_name: &str) -> Vec<EnumOrStruct> {
     use std::fs;
     use std::io::Read;
 
-    let mut file = fs::File::open(&file_name).expect("failed to open file");
+    let mut file = fs::File::open(file_name).expect("failed to open file");
 
     let mut src = String::new();
     file.read_to_string(&mut src).expect("unable to read file");
