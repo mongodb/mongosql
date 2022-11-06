@@ -7,7 +7,7 @@ edition = "2021"
 [dependencies]
 bson = "2"
 itertools = "0.10.1"
-lalrpop-util = "0.19.4"
+lalrpop-util = { version = "0.19.4", features = ["lexer"] }
 lazy_static = "1"
 linked-hash-map = "0.5.4"
 quickcheck = "1"
