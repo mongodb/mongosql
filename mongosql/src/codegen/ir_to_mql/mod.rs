@@ -573,7 +573,7 @@ impl MqlCodeGenerator {
                 let path_expr = expression_generator.codegen_expression(*u.path.clone())?;
 
                 let mut unwind_body = doc! {"path": path_expr};
-                let mut output_registry = source_translation.mapping_registry.clone();
+                let output_registry = source_translation.mapping_registry.clone();
 
                 // If there is an INDEX argument, include it in the stage and in the output
                 // mapping registry. Note that we do not need to change the output mapping
@@ -594,9 +594,7 @@ impl MqlCodeGenerator {
                         MqlCodeGenerator::get_datasource_name(&path_datasource.datasource, "__bot"),
                         idx
                     );
-
                     unwind_body.insert("includeArrayIndex", qualified_idx_name);
-                    output_registry.insert(path_datasource, idx);
                 }
 
                 if u.outer {

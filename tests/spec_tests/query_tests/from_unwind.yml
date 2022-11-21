@@ -228,7 +228,7 @@ tests:
           {'$project': {'_id': 0, 'bar': '$$ROOT'}},
           {'$project': {'_id': 0, 'bar': '$bar'}},
         ],
-      }}
+        }}
       - {'$unwind': {'path': "$foo.arr"}}
     result:
       - {'foo': {'_id': 0, 'arr': 1}, 'bar': {'_id': 0, 'arr': [10, 20, 30]}}
@@ -259,7 +259,7 @@ tests:
           {'$project': {'_id': 0, 'bar': '$$ROOT'}},
           {'$project': {'_id': 0, 'bar': '$bar'}},
         ],
-      }}
+        }}
       - {'$unwind': {'path': "$bar.arr"}}
     result:
       - {'foo': {'_id': 0, 'arr': [1, 2, 3]}, 'bar': {'_id': 0, 'arr': 10}}
