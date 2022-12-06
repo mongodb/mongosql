@@ -279,7 +279,7 @@ tests:
         'arg': '$c.a',
         'subquery': {
           'collection': 'target',
-          'let': { 'bar_0': '$bar' },
+          'let': { 'vbar_0': '$bar' },
           'outputPath': [ '__bot', 'a' ],
           'pipeline': [
             { '$project': { '_id': 0, 'baz': '$$ROOT' } },
@@ -312,12 +312,12 @@ tests:
         'bar': { '$subquery': {
           'db': 'foo',
           'collection': 'schema_foo',
-          'let': { 'q_0': '$q' },
+          'let': { 'vq_0': '$q' },
           'outputPath': [ '__bot', 'bar' ],
           'pipeline': [
             { '$project': { '_id': 0, 'schema_foo': '$$ROOT' } },
             { '$project': { '_id': 0, 'q': '$schema_foo' } },
-            { '$project': { '_id': 0, '__bot': { 'bar': '$$q_0.bar' } } },
+            { '$project': { '_id': 0, '__bot': { 'bar': '$$vq_0.bar' } } },
             { '$limit': 1 }
           ]
         } }
@@ -342,12 +342,12 @@ tests:
         'bar': { '$subquery': {
           'db': 'foo',
           'collection': 'schema_foo',
-          'let': { 'q_0': '$q' },
+          'let': { 'vq_0': '$q' },
           'outputPath': [ '__bot', 'bar' ],
           'pipeline': [
             { '$project': { '_id': 0, 'schema_foo': '$$ROOT' } },
             { '$project': { '_id': 0, 'q': '$schema_foo' } },
-            { '$project': { '_id': 0, '__bot': { 'bar': '$$q_0.bar' } } },
+            { '$project': { '_id': 0, '__bot': { 'bar': '$$vq_0.bar' } } },
             { '$limit': 1 }
           ]
         } }
@@ -390,7 +390,7 @@ tests:
         'bar': { '$subquery': {
           'db': 'foo',
           'collection': 'baz',
-          'let': { 'q_0': '$q' },
+          'let': { 'vq_0': '$q' },
           'outputPath': [ '__bot', 'bar' ],
           'pipeline': [
             { '$project': { '_id': 0, 'baz': '$$ROOT' } },
@@ -417,7 +417,7 @@ tests:
         'bar': { '$subquery': {
           'db': 'foo',
           'collection': 'schema_coll',
-          'let': { 'q_0': '$q' },
+          'let': { 'vq_0': '$q' },
           'outputPath': [ '__bot', 'bar' ],
           'pipeline': [
             { '$project': { '_id': 0, 'schema_coll': '$$ROOT' } },
@@ -447,7 +447,7 @@ tests:
         'bar': { '$subquery': {
           'db': 'foo',
           'collection': 'schema_coll',
-          'let': { 'q_0': '$q' },
+          'let': { 'vq_0': '$q' },
           'outputPath': [ '__bot', 'bar' ],
           'pipeline': [
             { '$project': { '_id': 0, 'schema_coll': '$$ROOT' } },
@@ -477,7 +477,7 @@ tests:
         'bar': { '$subquery': {
           'db': 'foo',
           'collection': 'schema_coll',
-          'let': { 'q_0': '$q' },
+          'let': { 'vq_0': '$q' },
           'outputPath': [ '__bot', 'bar' ],
           'pipeline': [
             { '$project': { '_id': 0, 'schema_coll': '$$ROOT' } },

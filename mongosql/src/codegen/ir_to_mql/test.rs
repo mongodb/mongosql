@@ -1096,7 +1096,7 @@ mod join {
                 {"database": "mydb2",
                 "collection": "col2",
                 "joinType":"left",
-                "let": {"col_0": "$col"},
+                "let": {"vcol_0": "$col"},
                 "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}],
                 "condition": {"$match": {"$expr": {"$literal": true}}}
             }}],
@@ -1157,9 +1157,9 @@ mod join {
                 {"database": "mydb2",
                 "collection": "col2",
                 "joinType":"left",
-                "let": {"col_0": "$col"},
+                "let": {"vcol_0": "$col"},
                 "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}],
-                "condition": {"$match": {"$expr": "$$col_0"}}
+                "condition": {"$match": {"$expr": "$$vcol_0"}}
             }}],
         }),
         input = Stage::Join(Join {
@@ -1188,7 +1188,7 @@ mod join {
                 {"database": "mydb2",
                 "collection": "col2",
                 "joinType":"left",
-                "let": {"col_0": "$col"},
+                "let": {"vcol_0": "$col"},
                 "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}],
                 "condition": {"$match": {"$expr": "$col2"}}
             }}],
@@ -1227,7 +1227,7 @@ mod join {
                     "$join": {
                         "collection": "bar",
                         "joinType": "inner",
-                        "let": {"foo_0": "$Foo", "foo_0_": "$foo"},
+                        "let": {"vfoo_0": "$Foo", "vfoo_0_": "$foo"},
                         "pipeline": [{"$project": {"_id": 0, "bar": "$$ROOT"}}],
                         "condition": {"$match": {"$expr": {"$literal": true}}}
                     }
@@ -1278,7 +1278,7 @@ mod join {
                     "$join": {
                         "collection": "bar",
                         "joinType": "inner",
-                        "let": {"foo_coll_ß_0": "$Foo coll-ß", "foo_coll_ß_0_": "$foo_coll_ß"},
+                        "let": {"vfoo_coll_ß_0": "$Foo coll-ß", "vfoo_coll_ß_0_": "$foo_coll_ß"},
                         "pipeline": [{"$project": {"_id": 0, "bar": "$$ROOT"}}],
                         "condition": {"$match": {"$expr": {"$literal": true}}}
                     }
@@ -3540,10 +3540,10 @@ mod subquery {
             {"$subqueryExists": {
                 "db": "test",
                 "collection": "bar",
-                "let": {"foo_0": "$foo"},
+                "let": {"vfoo_0": "$foo"},
                 "pipeline": [
                     {"$project": {"_id": 0,"bar": "$$ROOT"}},
-                    {"$project": {"_id": 0,"__bot": {"a": "$$foo_0.a"}}}
+                    {"$project": {"_id": 0,"__bot": {"a": "$$vfoo_0.a"}}}
                 ]
             }}
         )),
@@ -3597,11 +3597,11 @@ mod subquery {
             {"$subquery": {
                 "db": "test",
                 "collection": "bar",
-                "let": {"foo_0": "$foo",},
+                "let": {"vfoo_0": "$foo",},
                 "outputPath": ["__bot", "a"],
                 "pipeline": [
                     {"$project": {"_id": 0,"bar": "$$ROOT"}},
-                    {"$project": {"_id": 0,"__bot": {"a": "$$foo_0.a"}}}
+                    {"$project": {"_id": 0,"__bot": {"a": "$$vfoo_0.a"}}}
                 ]
             }}
         )),
@@ -3731,11 +3731,11 @@ mod subquery {
             {"$subquery": {
                 "db": "test",
                 "collection": "bar",
-                "let": {"foo_0": "$Foo", "foo_0_": "$foo"},
+                "let": {"vfoo_0": "$Foo", "vfoo_0_": "$foo"},
                 "outputPath": ["__bot", "a"],
                 "pipeline": [
                     {"$project": {"_id": 0, "bar": "$$ROOT"}},
-                    {"$project": {"_id": 0, "__bot": {"a": {"$sqlEq": ["$$foo_0.a", "$$foo_0_.a"]}}}}
+                    {"$project": {"_id": 0, "__bot": {"a": {"$sqlEq": ["$$vfoo_0.a", "$$vfoo_0_.a"]}}}}
                 ]
             }}
         )),
@@ -3788,11 +3788,11 @@ mod subquery {
             {"$subquery": {
                 "db": "test",
                 "collection": "bar",
-                "let": {"foo_coll_ß_0": "$Foo coll-ß", "foo_coll_ß_0_": "$foo_coll_ß"},
+                "let": {"vfoo_coll_ß_0": "$Foo coll-ß", "vfoo_coll_ß_0_": "$foo_coll_ß"},
                 "outputPath": ["__bot", "a"],
                 "pipeline": [
                     {"$project": {"_id": 0, "bar": "$$ROOT"}},
-                    {"$project": {"_id": 0, "__bot": {"a": {"$sqlEq": ["$$foo_coll_ß_0.a", "$$foo_coll_ß_0_.a"]}}}}
+                    {"$project": {"_id": 0, "__bot": {"a": {"$sqlEq": ["$$vfoo_coll_ß_0.a", "$$vfoo_coll_ß_0_.a"]}}}}
                 ]
             }}
         )),
@@ -3881,11 +3881,11 @@ mod subquery {
                 "subquery": {
                     "db": "test",
                     "collection": "bar",
-                    "let": {"foo_0": "$foo","x_0": "$x",},
+                    "let": {"vfoo_0": "$foo","vx_0": "$x",},
                     "outputPath": ["__bot", "a"],
                     "pipeline": [
                         {"$project": {"_id": 0,"bar": "$$ROOT"}},
-                        {"$project": {"_id": 0,"__bot": {"a": "$$foo_0.a"}}}
+                        {"$project": {"_id": 0,"__bot": {"a": "$$vfoo_0.a"}}}
                     ]
                 }
             }}

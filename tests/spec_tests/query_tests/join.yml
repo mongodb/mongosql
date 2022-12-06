@@ -88,12 +88,12 @@ tests:
       - {'$join': {
         'collection': 'coll',
         'joinType': 'inner',
-        'let': {'bar_0': '$bar'},
+        'let': {'vbar_0': '$bar'},
         'pipeline': [
           {'$project': {'_id': 0, 'coll': '$$ROOT'}},
           {'$project': {'_id': 0, 'coll': '$coll'}},
         ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$bar_0.foo', '$coll.car']}}},
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$vbar_0.foo', '$coll.car']}}},
       }}
     result:
       - {'bar': {'_id': 1, 'foo': 42}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
@@ -109,12 +109,12 @@ tests:
       - {'$join': {
         'collection': 'bar',
         'joinType': 'left',
-        'let': {'bar2_0': '$bar2'},
+        'let': {'vbar2_0': '$bar2'},
         'pipeline': [
           {'$project': {'_id': 0, 'bar': '$$ROOT'}},
           {'$project': {'_id': 0, 'bar': '$bar'}},
         ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$bar2_0.foo', '$bar.foo']}}},
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$vbar2_0.foo', '$bar.foo']}}},
       }}
     result:
       - {'bar2': {'_id': 0, 'foo': 42, 'baz': 63}, 'bar': {'_id': 1, 'foo': 42}}
@@ -131,12 +131,12 @@ tests:
       - {'$join': {
         'collection': 'bar2',
         'joinType': 'left',
-        'let': {'bar_0': '$bar'},
+        'let': {'vbar_0': '$bar'},
         'pipeline': [
           {'$project': {'_id': 0, 'bar2': '$$ROOT'}},
           {'$project': {'_id': 0, 'bar2': '$bar2'}},
         ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$bar2.foo', '$$bar_0.foo']}}},
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$bar2.foo', '$$vbar_0.foo']}}},
       }}
     result:
         - {'bar': {'_id': 1, 'foo': 42}, 'bar2': {'_id': 0, 'foo': 42, 'baz': 63}}
@@ -165,12 +165,12 @@ tests:
       - {'$join': {
         'collection': 'bar2',
         'joinType': 'inner',
-        'let': {'bar_0': '$bar'},
+        'let': {'vbar_0': '$bar'},
         'pipeline': [
           {'$project': {'_id': 0, 'bar2': '$$ROOT'}},
           {'$project': {'_id': 0, 'bar2': '$bar2'}},
         ],
-        'condition': {'$match': {'$expr': {'$sqlGt': [{'$add': [{'$literal': 50}, '$$bar_0.foo']}, '$bar2.baz']}}}
+        'condition': {'$match': {'$expr': {'$sqlGt': [{'$add': [{'$literal': 50}, '$$vbar_0.foo']}, '$bar2.baz']}}}
       }}
     result:
       - {'bar': {'_id': 1, 'foo': 42}, 'bar2': {'_id': 0, 'foo': 42, 'baz': 63}}
@@ -193,12 +193,12 @@ tests:
       - {'$join': {
         'collection': 'coll',
         'joinType': 'inner',
-        'let': {'bar_0': '$bar'},
+        'let': {'vbar_0': '$bar'},
         'pipeline': [
           {'$project': {'_id': 0, 'coll': '$$ROOT'}},
           {'$project': {'_id': 0, 'coll': '$coll'}},
         ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$bar_0.foo', '$coll.car']}}},
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$vbar_0.foo', '$coll.car']}}},
       }}
     result:
         - {'bar': {'_id': 1, 'foo': 42}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
@@ -214,12 +214,12 @@ tests:
       - {'$join': {
         'collection': 'coll',
         'joinType': 'inner',
-        'let': {'bar_0': '$bar'},
+        'let': {'vbar_0': '$bar'},
         'pipeline': [
           {'$project': {'_id': 0, 'coll': '$$ROOT'}},
           {'$project': {'_id': 0, 'coll': '$coll'}},
         ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$bar_0.foo', '$coll.car']}}}
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$vbar_0.foo', '$coll.car']}}}
       }}
     result:
         - {'bar': {'_id': 1, 'foo': 42}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
@@ -249,12 +249,12 @@ tests:
       - {'$join': {
         'collection': 'bar',
         'joinType': 'left',
-        'let': {'a_0': '$a', 'b_0': '$b'},
+        'let': {'va_0': '$a', 'vb_0': '$b'},
         'pipeline': [
           {'$project': {'_id': 0, 'bar': '$$ROOT'}},
           {'$project': {'_id': 0, 'c': '$bar'}},
         ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$a_0.foo', '$c.foo']}}}
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$va_0.foo', '$c.foo']}}}
       }}
     result:
       - {'a': {'_id': 0, 'foo':  1}, 'b': {'_id': 0, 'foo':  1}, 'c': {'_id': 0, 'foo':  1}}

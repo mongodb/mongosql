@@ -107,7 +107,7 @@ tests:
       - {'$project': {'_id': 0, '__bot': {
                                            'name': '$emp.name',
                                            'avg_salary': {'$subquery': {
-                                             'let': {'emp_0': '$emp'},
+                                             'let': {'vemp_0': '$emp'},
                                                                          'outputPath': ['__bot', 'a'],
                                                                          'pipeline': [
                                                                                        {'$documents': [{'a': {'$literal': 4}}]},
@@ -138,12 +138,12 @@ tests:
                                            'department_name': {'$subquery': {
                                                                               'db': 'foo',
                                                                               'collection': 'department_w_schema',
-                                                                              'let': {'emp_0': '$emp'},
+                                                                              'let': {'vemp_0': '$emp'},
                                                                               'outputPath': ['__bot', 'name'],
                                                                               'pipeline': [
                                                                                             {'$project': {'_id': 0, 'department_w_schema': '$$ROOT'}},
                                                                                             {'$project': {'_id': 0, 'dep': '$department_w_schema'}},
-                                                                                            {'$match': {'$expr': {'$sqlEq': ['$dep._id', '$$emp_0.department_id']}}},
+                                                                                            {'$match': {'$expr': {'$sqlEq': ['$dep._id', '$$vemp_0.department_id']}}},
                                                                                             {'$project': {'_id': 0, '__bot': {'name': '$dep.name'}}},
                                                                                             {'$limit': 1}
                                                                               ]
@@ -181,7 +181,7 @@ tests:
       - {'$project': {'_id': 0, '__bot': {
                                            'name': '$dep.name',
                                            'sub': {'$subquery': {
-                                             'let': {'dep_0': '$dep'},
+                                             'let': {'vdep_0': '$dep'},
                                                                   'outputPath': ['__bot', 'a'],
                                                                   'pipeline': [
                                                                                 {'$documents': [{'a': {'$literal': 1}}]},
@@ -211,7 +211,7 @@ tests:
                                            'avg_salary': {'$subquery': {
                                                                          'db': 'foo',
                                                                          'collection': 'employees',
-                                                                         'let': {'emp_0': '$emp'},
+                                                                         'let': {'vemp_0': '$emp'},
                                                                          'outputPath': ['__bot', 'avg_salary'],
                                                                          'pipeline': [
                                                                                        {'$project': {'_id': 0, 'employees': '$$ROOT'}},
@@ -245,7 +245,7 @@ tests:
                                            'department_name': {'$subquery': {
                                                                               'db': 'foo',
                                                                               'collection': 'department_w_schema',
-                                                                              'let': {'emp1_0': '$emp1'},
+                                                                              'let': {'vemp1_0': '$emp1'},
                                                                               'outputPath': ['__bot', 'name'],
                                                                               'pipeline': [
                                                                                             {'$project': {'_id': 0, 'department_w_schema': '$$ROOT'}},
@@ -253,12 +253,12 @@ tests:
                                                                                             {'$match': {'$expr': {'$sqlEq': ['$dep._id', {'$subquery': {
                                                                                                                                                          'db': 'foo',
                                                                                                                                                          'collection': 'employees_w_schema',
-                                                                                                                                                         'let': {'dep_1': '$dep', 'emp1_0': '$$emp1_0'},
+                                                                                                                                                         'let': {'vdep_1': '$dep', 'vemp1_0': '$$vemp1_0'},
                                                                                                                                                          'outputPath': ['__bot', 'department_id'],
                                                                                                                                                          'pipeline': [
                                                                                                                                                                        {'$project': {'_id': 0, 'employees_w_schema': '$$ROOT'}},
                                                                                                                                                                        {'$project': {'_id': 0, 'emp2': '$employees_w_schema'}},
-                                                                                                                                                                       {'$match': {'$expr': {'$sqlEq': ['$emp2._id', '$$emp1_0._id']}}},
+                                                                                                                                                                       {'$match': {'$expr': {'$sqlEq': ['$emp2._id', '$$vemp1_0._id']}}},
                                                                                                                                                                        {'$project': {'_id': 0, '__bot': {'department_id': '$emp2.department_id'}}},
                                                                                                                                                                        {'$limit': 1}
                                                                                                                                                                      ]}}]}}},
@@ -292,7 +292,7 @@ tests:
       - { '$project': { '_id': 0, 'emp': '$employees' } }
       - { '$project': { '_id': 0, '__bot': {
         'sub': { '$subquery': {
-          'let': { 'emp_0': '$emp' },
+          'let': { 'vemp_0': '$emp' },
           'outputPath': [ 'arr', 'a' ],
           'pipeline': [
             {'$documents': [{'a': {'$literal': 4}}]},
@@ -319,7 +319,7 @@ tests:
       - { '$project': { '_id': 0, 'emp': '$employees' } }
       - { '$project': { '_id': 0, '__bot': {
         'sub': { '$subquery': {
-          'let': { 'emp_0': '$emp' },
+          'let': { 'vemp_0': '$emp' },
           'outputPath': [ 'arr', 'a' ],
           'pipeline': [
             {'$documents': [{'a': {'$literal': 4}}]},
@@ -349,7 +349,7 @@ tests:
         'bar': { '$subquery': {
           'db': 'foo',
           'collection': 'baz',
-          'let': { 'q_0': '$q' },
+          'let': { 'vq_0': '$q' },
           'outputPath': [ '__bot', 'bar' ],
           'pipeline': [
             { '$project': { '_id': 0, 'baz': '$$ROOT' } },

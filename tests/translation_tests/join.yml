@@ -41,12 +41,33 @@ tests:
       - {'$join': {
         'collection': 'bar',
         'joinType': 'inner',
-        'let': {'foo_0': '$Foo'},
+        'let': {'vfoo_0': '$Foo'},
         'pipeline': [
           {'$project': {'_id': 0, 'bar': '$$ROOT'}},
           {'$project': {'_id': 0, 'Bar': '$bar'}},
         ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$foo_0.a', '$Bar.b']}}},
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$vfoo_0.a', '$Bar.b']}}},
+      }}
+    result:
+      - {'Foo': {'_id': 0, 'a': 1}, 'Bar': {'_id': 0, 'b': 1}}
+
+  - description: translations ensure let variables do not start with underscore
+    current_db: db
+    query: "SELECT * FROM foo AS _foo INNER JOIN bar AS _bar ON _foo.a = _bar.b"
+    translation_target_db: db
+    translation_target_coll: foo
+    translation:
+      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
+      - {'$project': {'_id': 0, '_foo': '$foo'}}
+      - {'$join': {
+        'collection': 'bar',
+        'joinType': 'inner',
+        'let': {'v_foo_0': '$_foo'},
+        'pipeline': [
+          {'$project': {'_id': 0, 'bar': '$$ROOT'}},
+          {'$project': {'_id': 0, '_bar': '$bar'}},
+        ],
+        'condition': {'$match': {'$expr': {'$sqlEq': ['$$v_foo_0.a', '$_bar.b']}}},
       }}
     result:
       - {'Foo': {'_id': 0, 'a': 1}, 'Bar': {'_id': 0, 'b': 1}}

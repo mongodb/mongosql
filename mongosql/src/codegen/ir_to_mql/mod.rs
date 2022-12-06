@@ -336,7 +336,7 @@ impl MqlCodeGenerator {
                 .into_iter()
                 .map(|(key, value)| {
                     let mut generated_name = format!(
-                        "{}_{}",
+                        "v{}_{}",
                         MqlCodeGenerator::get_datasource_name(&key.datasource, "__bot"),
                         key.scope
                     );
@@ -349,7 +349,6 @@ impl MqlCodeGenerator {
                         .replace_all(generated_name.as_str(), "_")
                         .to_string()
                         .to_ascii_lowercase();
-
                     while let_bindings.contains_key(&generated_name) {
                         generated_name.push('_');
                     }

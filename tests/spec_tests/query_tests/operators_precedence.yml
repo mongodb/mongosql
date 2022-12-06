@@ -233,7 +233,7 @@ tests:
                                                                   'modifier': 'any',
                                                                   'arg': {'$sqlBetween': ['$arr.a', {'$literal': 0}, {'$literal': 2}]},
                                                                   'subquery': {
-                                                                    'let': {'arr_0': '$arr'},
+                                                                    'let': {'varr_0': '$arr'},
                                                                     'outputPath': ['__bot', '_1'],
                                                                     'pipeline': [
                                                                       {'$documents': [{'_1': {'$literal': true}}]},

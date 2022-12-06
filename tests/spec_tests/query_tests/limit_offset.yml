@@ -150,7 +150,7 @@ tests:
                                                        'subquery': {
                                                                      'db': 'foo',
                                                                      'collection': 'baz',
-                                                                     'let': {'bar_0': '$bar'},
+                                                                     'let': {'vbar_0': '$bar'},
                                                                      'outputPath': ['__bot', 'a'],
                                                                      'pipeline': [
                                                                                    {'$project': {'_id': 0, 'baz': '$$ROOT'}},

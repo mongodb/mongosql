@@ -14,6 +14,7 @@ import (
 	"testing"
 
 	"github.com/10gen/candiedyaml"
+	"github.com/10gen/mongosql-rs/go/internal/desugarer"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -280,6 +281,11 @@ func TestSpecTranslations(t *testing.T) {
 									if testCase.TranslationColl != translation.TargetCollection {
 										t.Fatalf("actual translation collection does not match expected translation collection:\n\texpected: %v\n\t  actual: %v",
 											testCase.TranslationColl, translation.TargetCollection)
+									}
+
+									_, err = desugarer.Desugar(translation.Pipeline, translation.TargetDB)
+									if err != nil {
+										t.Fatalf("unexpected error when desugaring pipeline: %v", err)
 									}
 
 									var actualPipeline []bson.D
