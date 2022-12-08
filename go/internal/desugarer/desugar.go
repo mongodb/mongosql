@@ -20,6 +20,7 @@ func Desugar(pipelineBytes []byte, db string) ([]byte, error) {
 		desugarJoins,
 		desugarAccumulators,
 		desugarSubqueryExprs,
+		desugarMatch,
 		desugarUnsupportedOperators,
 		desugarSQLNullSemantics,
 		getSimplifyLookups(db),

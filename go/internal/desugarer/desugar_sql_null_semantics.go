@@ -28,21 +28,30 @@ var nullSemanticFuncMapping = map[string]string{
 // $sqlSlice and $sqlBetween) into their corresponding aggregation operator
 // wrapped in operations that null-check the arguments.
 func desugarSQLNullSemantics(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
-	out, _ := ast.Visit(pipeline, func(v ast.Visitor, n ast.Node) ast.Node {
-		switch tn := n.(type) {
-		case *ast.Function:
-			if tn.Name == "$sqlAnd" {
-				n = desugarSqlAnd(tn)
-			} else if tn.Name == "$sqlOr" {
-				n = desugarSqlOr(tn)
-			} else if mqlOp, ok := nullSemanticFuncMapping[tn.Name]; ok {
-				n = desugarSqlOp(tn, mqlOp)
-			}
-		}
-		return n.Walk(v)
-	})
+	modifiedStages := make([]ast.Stage, 0, len(pipeline.Stages))
+	for _, stage := range pipeline.Stages {
 
-	return out.(*ast.Pipeline)
+		out, _ := ast.Visit(stage, func(v ast.Visitor, n ast.Node) ast.Node {
+			switch tn := n.(type) {
+			case *ast.Pipeline:
+				// do not walk sub-pipelines
+				return n
+			case *ast.Function:
+				if tn.Name == "$sqlAnd" {
+					n = desugarSqlAnd(tn)
+				} else if tn.Name == "$sqlOr" {
+					n = desugarSqlOr(tn)
+				} else if mqlOp, ok := nullSemanticFuncMapping[tn.Name]; ok {
+					n = desugarSqlOp(tn, mqlOp)
+				}
+			}
+			return n.Walk(v)
+		})
+
+		modifiedStages = append(modifiedStages, out.(ast.Stage))
+	}
+
+	return ast.NewPipeline(modifiedStages...)
 }
 
 func desugarSqlOp(f *ast.Function, mqlOp string) ast.Expr {

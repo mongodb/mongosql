@@ -7,7 +7,6 @@ import (
 	"github.com/10gen/mongoast/optimizer"
 	"github.com/10gen/mongoast/parser"
 	"github.com/google/go-cmp/cmp"
-
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
@@ -67,6 +66,11 @@ func TestDesugar(t *testing.T) {
 			name:      "desugarUnsupportedOperators",
 			file:      "desugar_unsupported_operators.json",
 			desugarer: desugarUnsupportedOperators,
+		},
+		{
+			name:      "desugarMatchNullSemantics",
+			file:      "desugar_sql_match_null_semantics.json",
+			desugarer: desugarMatch,
 		},
 		{
 			name:      "desugarNullSemantics",

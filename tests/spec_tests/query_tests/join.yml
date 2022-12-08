@@ -1,59 +1,60 @@
 catalog_data:
-  'mydb':
-    'bar':
-      - { '_id': 0, 'foo': 1 }
-      - { '_id': 1, 'foo': 42 }
-    'bar2':
-      - { '_id': 0, 'foo': 42, 'baz': 63 }
-      - { '_id': 1, 'foo': 43 }
-    'coll':
-      - { '_id': 0, 'bar': 53, 'car': 42 }
-  'db2':
-    'foo':
-      - { '_id': 0, 'x': 1 }
+  "mydb":
+    "bar":
+      - { "_id": 0, "foo": 1 }
+      - { "_id": 1, "foo": 42 }
+    "bar2":
+      - { "_id": 0, "foo": 42, "baz": 63 }
+      - { "_id": 1, "foo": 43 }
+    "coll":
+      - { "_id": 0, "bar": 53, "car": 42 }
+  "db2":
+    "foo":
+      - { "_id": 0, "x": 1 }
 
 catalog_schema:
   {
-    'mydb': {
-      'bar': {
-        'bsonType': "object",
-        'required': [ 'foo' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': { 'bsonType': "int" },
-          'foo': { 'bsonType': "int" },
-        }
+    "mydb":
+      {
+        "bar":
+          {
+            "bsonType": "object",
+            "required": ["foo"],
+            "additionalProperties": false,
+            "properties":
+              { "_id": { "bsonType": "int" }, "foo": { "bsonType": "int" } },
+          },
+        "bar2":
+          {
+            "bsonType": "object",
+            "required": ["foo"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "foo": { "bsonType": "int" },
+                "baz": { "bsonType": "int" },
+              },
+          },
+        "coll":
+          {
+            "bsonType": "object",
+            "required": ["bar", "car"],
+            "additionalProperties": false,
+            "properties":
+              { "bar": { "bsonType": "int" }, "car": { "bsonType": "int" } },
+          },
       },
-      'bar2': {
-        'bsonType': "object",
-        'required': [ 'foo' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': { 'bsonType': "int" },
-          'foo': { 'bsonType': "int" },
-          'baz': { 'bsonType': "int" },
-        }
+    "db2":
+      {
+        "foo":
+          {
+            "bsonType": "object",
+            "required": ["x"],
+            "additionalProperties": false,
+            "properties": { "x": { "bsonType": "int" } },
+          },
       },
-      'coll': {
-        'bsonType': "object",
-        'required': [ 'bar', 'car' ],
-        'additionalProperties': false,
-        'properties': {
-          'bar': { 'bsonType': "int" },
-          'car': { 'bsonType': "int" },
-        }
-      },
-    },
-    'db2': {
-      'foo': {
-        'bsonType': "object",
-        'required': [ 'x' ],
-        'additionalProperties': false,
-        'properties': {
-          'x': { 'bsonType': "int" },
-        }
-      },
-    },
   }
 
 tests:
@@ -63,19 +64,29 @@ tests:
     translation_target_db: mydb
     translation_target_coll: bar
     translation:
-        - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-        - {'$project': {'_id': 0, 'bar': '$bar'}}
-        - {'$join': {
-          'collection': 'coll',
-          'joinType': 'inner',
-          'pipeline': [
-            {'$project': {'_id': 0, 'coll': '$$ROOT'}},
-            {'$project': {'_id': 0, 'coll': '$coll'}},
-          ],
-        }}
+      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
+      - { "$project": { "_id": 0, "bar": "$bar" } }
+      - {
+          "$join":
+            {
+              "collection": "coll",
+              "joinType": "inner",
+              "pipeline":
+                [
+                  { "$project": { "_id": 0, "coll": "$$ROOT" } },
+                  { "$project": { "_id": 0, "coll": "$coll" } },
+                ],
+            },
+        }
     result:
-        - {'bar': {'_id': 0, 'foo': 1}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
-        - {'bar': {'_id': 1, 'foo': 42}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
+      - {
+          "bar": { "_id": 0, "foo": 1 },
+          "coll": { "_id": 0, "bar": 53, "car": 42 },
+        }
+      - {
+          "bar": { "_id": 1, "foo": 42 },
+          "coll": { "_id": 0, "bar": 53, "car": 42 },
+        }
 
   - description: inner join correctness test
     current_db: mydb
@@ -96,7 +107,10 @@ tests:
         'condition': {'$match': {'$expr': {'$sqlEq': ['$$vbar_0.foo', '$coll.car']}}},
       }}
     result:
-      - {'bar': {'_id': 1, 'foo': 42}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
+      - {
+          "bar": { "_id": 1, "foo": 42 },
+          "coll": { "_id": 0, "bar": 53, "car": 42 },
+        }
 
   - description: left join correctness test
     current_db: mydb
@@ -117,8 +131,11 @@ tests:
         'condition': {'$match': {'$expr': {'$sqlEq': ['$$vbar2_0.foo', '$bar.foo']}}},
       }}
     result:
-      - {'bar2': {'_id': 0, 'foo': 42, 'baz': 63}, 'bar': {'_id': 1, 'foo': 42}}
-      - {'bar2': {'_id': 1, 'foo': 43}}
+      - {
+          "bar2": { "_id": 0, "foo": 42, "baz": 63 },
+          "bar": { "_id": 1, "foo": 42 },
+        }
+      - { "bar2": { "_id": 1, "foo": 43 } }
 
   - description: right join correctness test
     current_db: mydb
@@ -139,8 +156,11 @@ tests:
         'condition': {'$match': {'$expr': {'$sqlEq': ['$bar2.foo', '$$vbar_0.foo']}}},
       }}
     result:
-        - {'bar': {'_id': 1, 'foo': 42}, 'bar2': {'_id': 0, 'foo': 42, 'baz': 63}}
-        - {'bar': {'_id': 0, 'foo': 1}}
+      - {
+          "bar": { "_id": 1, "foo": 42 },
+          "bar2": { "_id": 0, "foo": 42, "baz": 63 },
+        }
+      - { "bar": { "_id": 0, "foo": 1 } }
 
   - description: natural join is not supported
     current_db: mydb
@@ -173,7 +193,10 @@ tests:
         'condition': {'$match': {'$expr': {'$sqlGt': [{'$add': [{'$literal': 50}, '$$vbar_0.foo']}, '$bar2.baz']}}}
       }}
     result:
-      - {'bar': {'_id': 1, 'foo': 42}, 'bar2': {'_id': 0, 'foo': 42, 'baz': 63}}
+      - {
+          "bar": { "_id": 1, "foo": 42 },
+          "bar2": { "_id": 0, "foo": 42, "baz": 63 },
+        }
 
   - description: join predicates can only reference datasource names from their own join
     query: "SELECT * FROM [{'v': 1}] AS a INNER JOIN [{'v': 1}] AS b ON b.v = c.v INNER JOIN [{'v': 1}] AS c"
@@ -201,7 +224,10 @@ tests:
         'condition': {'$match': {'$expr': {'$sqlEq': ['$$vbar_0.foo', '$coll.car']}}},
       }}
     result:
-        - {'bar': {'_id': 1, 'foo': 42}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
+      - {
+          "bar": { "_id": 1, "foo": 42 },
+          "coll": { "_id": 0, "bar": 53, "car": 42 },
+        }
 
   - description: join predicates can reference columns by unambiguous unqualified names
     current_db: mydb
@@ -222,7 +248,10 @@ tests:
         'condition': {'$match': {'$expr': {'$sqlEq': ['$$vbar_0.foo', '$coll.car']}}}
       }}
     result:
-        - {'bar': {'_id': 1, 'foo': 42}, 'coll': {'_id': 0, 'bar': 53, 'car': 42}}
+      - {
+          "bar": { "_id": 1, "foo": 42 },
+          "coll": { "_id": 0, "bar": 53, "car": 42 },
+        }
 
   - description: a join datasource cannot be given an alias
     query: "SELECT * FROM (foo.bar CROSS JOIN foo.coll) AS x"
@@ -257,10 +286,26 @@ tests:
         'condition': {'$match': {'$expr': {'$sqlEq': ['$$va_0.foo', '$c.foo']}}}
       }}
     result:
-      - {'a': {'_id': 0, 'foo':  1}, 'b': {'_id': 0, 'foo':  1}, 'c': {'_id': 0, 'foo':  1}}
-      - {'a': {'_id': 0, 'foo':  1}, 'b': {'_id': 1, 'foo': 42}, 'c': {'_id': 0, 'foo':  1}}
-      - {'a': {'_id': 1, 'foo': 42}, 'b': {'_id': 0, 'foo':  1}, 'c': {'_id': 1, 'foo': 42}}
-      - {'a': {'_id': 1, 'foo': 42}, 'b': {'_id': 1, 'foo': 42}, 'c': {'_id': 1, 'foo': 42}}
+      - {
+          "a": { "_id": 0, "foo": 1 },
+          "b": { "_id": 0, "foo": 1 },
+          "c": { "_id": 0, "foo": 1 },
+        }
+      - {
+          "a": { "_id": 0, "foo": 1 },
+          "b": { "_id": 1, "foo": 42 },
+          "c": { "_id": 0, "foo": 1 },
+        }
+      - {
+          "a": { "_id": 1, "foo": 42 },
+          "b": { "_id": 0, "foo": 1 },
+          "c": { "_id": 1, "foo": 42 },
+        }
+      - {
+          "a": { "_id": 1, "foo": 42 },
+          "b": { "_id": 1, "foo": 42 },
+          "c": { "_id": 1, "foo": 42 },
+        }
 
   - description: all datasource names in FROM clause must be unique
     current_db: mydb
@@ -275,16 +320,23 @@ tests:
     translation_target_db: mydb
     translation_target_coll: coll
     translation:
-      - {'$project': {'_id': 0, 'coll': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'coll': '$coll'}}
-      - {'$join': {
-                    'database': 'db2',
-                    'collection': 'foo',
-                    'joinType': 'inner',
-                    'pipeline': [
-                      {'$project': {'_id': 0, 'foo': '$$ROOT'}},
-                      {'$project': {'_id': 0, 'foo': '$foo'}}
-                    ]
-      }}
+      - { "$project": { "_id": 0, "coll": "$$ROOT" } }
+      - { "$project": { "_id": 0, "coll": "$coll" } }
+      - {
+          "$join":
+            {
+              "database": "db2",
+              "collection": "foo",
+              "joinType": "inner",
+              "pipeline":
+                [
+                  { "$project": { "_id": 0, "foo": "$$ROOT" } },
+                  { "$project": { "_id": 0, "foo": "$foo" } },
+                ],
+            },
+        }
     result:
-      - {'coll': {'_id': 0, 'bar': 53, 'car': 42}, 'foo': {'_id': 0, 'x': 1}}
+      - {
+          "coll": { "_id": 0, "bar": 53, "car": 42 },
+          "foo": { "_id": 0, "x": 1 },
+        }

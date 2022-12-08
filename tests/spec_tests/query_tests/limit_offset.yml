@@ -1,43 +1,34 @@
 catalog_data:
   foo:
     bar:
-      - {'_id': 0, 'a': 1}
-      - {'_id': 1, 'a': 2}
-      - {'_id': 2, 'a': 3}
+      - { "_id": 0, "a": 1 }
+      - { "_id": 1, "a": 2 }
+      - { "_id": 2, "a": 3 }
     baz:
-      - {'_id': 0, 'a': 1}
-      - {'_id': 1, 'a': 2}
+      - { "_id": 0, "a": 1 }
+      - { "_id": 1, "a": 2 }
 
 catalog_schema:
   {
-    'foo': {
-      'bar': {
-        'bsonType': "object",
-        'required': [ '_id', 'a' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
+    "foo":
+      {
+        "bar":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties":
+              { "_id": { "bsonType": "int" }, "a": { "bsonType": "int" } },
           },
-          'a': {
-            'bsonType': "int"
+        "baz":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a"],
+            "additionalProperties": false,
+            "properties":
+              { "_id": { "bsonType": "int" }, "a": { "bsonType": "int" } },
           },
-        }
       },
-      'baz': {
-        'bsonType': "object",
-        'required': [ '_id', 'a' ],
-        'additionalProperties': false,
-        'properties': {
-          '_id': {
-            'bsonType': "int"
-          },
-          'a': {
-            'bsonType': "int"
-          },
-        }
-      }
-    }
   }
 
 tests:
@@ -47,12 +38,12 @@ tests:
     translation_target_db: foo
     translation_target_coll: bar
     translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$sort': {'bar.a': 1}}
-      - {'$limit': 1}
+      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
+      - { "$project": { "_id": 0, "bar": "$bar" } }
+      - { "$sort": { "bar.a": 1 } }
+      - { "$limit": 1 }
     result:
-      - {'bar': {'_id': 0, 'a': 1}}
+      - { "bar": { "_id": 0, "a": 1 } }
 
   - description: Simple select with offset clause
     current_db: foo
@@ -60,13 +51,13 @@ tests:
     translation_target_db: foo
     translation_target_coll: bar
     translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$sort': {'bar.a': 1}}
-      - {'$skip': 1}
+      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
+      - { "$project": { "_id": 0, "bar": "$bar" } }
+      - { "$sort": { "bar.a": 1 } }
+      - { "$skip": 1 }
     result:
-      - {'bar': {'_id': 1, 'a': 2}}
-      - {'bar': {'_id': 2, 'a': 3}}
+      - { "bar": { "_id": 1, "a": 2 } }
+      - { "bar": { "_id": 2, "a": 3 } }
 
   - description: Limit number must be positive
     current_db: foo
@@ -98,13 +89,13 @@ tests:
     translation_target_db: foo
     translation_target_coll: bar
     translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$sort': {'bar.a': 1}}
-      - {'$skip': 1}
-      - {'$limit': 1}
+      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
+      - { "$project": { "_id": 0, "bar": "$bar" } }
+      - { "$sort": { "bar.a": 1 } }
+      - { "$skip": 1 }
+      - { "$limit": 1 }
     result:
-      - {'bar': {'_id': 1, 'a': 2}}
+      - { "bar": { "_id": 1, "a": 2 } }
 
   - description: Limit in subquery
     current_db: foo
@@ -113,27 +104,41 @@ tests:
     translation_target_db: foo
     translation_target_coll: bar
     translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$match': {'$expr': {'$subqueryComparison': {
-                                                       'op': 'eq',
-                                                       'modifier': 'any',
-                                                       'arg': '$bar.a',
-                                                       'subquery': {
-                                                                     'collection': 'baz',
-                                                                     'let': {},
-                                                                     'outputPath': ['__bot', 'a'],
-                                                                     'pipeline': [
-                                                                                   {'$project': {'_id': 0, 'baz': '$$ROOT'}},
-                                                                                   {'$project': {'_id': 0, 'baz': '$baz'}},
-                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$baz.a'}}},
-                                                                                   {'$sort': {'__bot.a': 1}},
-                                                                                   {'$limit': 1}
-                                                                     ]
-                                                       }
-      }}}}
+      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
+      - { "$project": { "_id": 0, "bar": "$bar" } }
+      - {
+          "$match":
+            {
+              "$expr":
+                {
+                  "$subqueryComparison":
+                    {
+                      "op": "eq",
+                      "modifier": "any",
+                      "arg": "$bar.a",
+                      "subquery":
+                        {
+                          "collection": "baz",
+                          "let": {},
+                          "outputPath": ["__bot", "a"],
+                          "pipeline":
+                            [
+                              { "$project": { "_id": 0, "baz": "$$ROOT" } },
+                              { "$project": { "_id": 0, "baz": "$baz" } },
+                              {
+                                "$project":
+                                  { "_id": 0, "__bot": { "a": "$baz.a" } },
+                              },
+                              { "$sort": { "__bot.a": 1 } },
+                              { "$limit": 1 },
+                            ],
+                        },
+                    },
+                },
+            },
+        }
     result:
-      - {'bar': {'a': 1}}
+      - { "bar": { "a": 1 } }
 
   - description: Offset in subquery
     current_db: foo
@@ -162,7 +167,7 @@ tests:
                                                        }
       }}}}
     result:
-      - {'bar': {'_id': 1, 'a': 2}}
+      - { "bar": { "_id": 1, "a": 2 } }
 
   - description: Limit and offset in subquery
     current_db: foo
@@ -171,25 +176,39 @@ tests:
     translation_target_db: foo
     translation_target_coll: bar
     translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$match': {'$expr': {'$subqueryComparison': {
-                                                       'op': 'eq',
-                                                       'modifier': 'any',
-                                                       'arg': '$bar.a',
-                                                       'subquery': {
-                                                                     'collection': 'baz',
-                                                                     'let': {},
-                                                                     'outputPath': ['__bot', 'a'],
-                                                                     'pipeline': [
-                                                                                   {'$project': {'_id': 0, 'baz': '$$ROOT'}},
-                                                                                   {'$project': {'_id': 0, 'baz': '$baz'}},
-                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$baz.a'}}},
-                                                                                   {'$sort': {'__bot.a': 1}},
-                                                                                   {'$skip': 1},
-                                                                                   {'$limit': 1},
-                                                                     ]
-                                                       }
-      }}}}
+      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
+      - { "$project": { "_id": 0, "bar": "$bar" } }
+      - {
+          "$match":
+            {
+              "$expr":
+                {
+                  "$subqueryComparison":
+                    {
+                      "op": "eq",
+                      "modifier": "any",
+                      "arg": "$bar.a",
+                      "subquery":
+                        {
+                          "collection": "baz",
+                          "let": {},
+                          "outputPath": ["__bot", "a"],
+                          "pipeline":
+                            [
+                              { "$project": { "_id": 0, "baz": "$$ROOT" } },
+                              { "$project": { "_id": 0, "baz": "$baz" } },
+                              {
+                                "$project":
+                                  { "_id": 0, "__bot": { "a": "$baz.a" } },
+                              },
+                              { "$sort": { "__bot.a": 1 } },
+                              { "$skip": 1 },
+                              { "$limit": 1 },
+                            ],
+                        },
+                    },
+                },
+            },
+        }
     result:
-      - {'bar': {'a': 2}}
+      - { "bar": { "a": 2 } }

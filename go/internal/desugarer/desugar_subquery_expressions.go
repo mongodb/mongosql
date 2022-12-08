@@ -55,7 +55,7 @@ func desugarSubqueryExprs(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 		out, _ := ast.Visit(stage, func(v ast.Visitor, n ast.Node) ast.Node {
 			switch tn := n.(type) {
 			case *ast.Pipeline:
-				// Do not walk sub-pipelines.
+				// do not walk sub-pipelines
 				return n
 			case *ast.Function:
 				if desugarerFunc, ok := subqueryExprDesugarers[tn.Name]; ok {
