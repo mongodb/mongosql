@@ -101,7 +101,7 @@ mod arbitrary {
     ///
     /// These Strings can be used for aliases, identifiers, or literals.
     fn arbitrary_string_with_max_len(max_len: usize) -> String {
-        let g = &mut Gen::new(max_len as usize);
+        let g = &mut Gen::new(max_len);
         String::arbitrary(g).replace('\u{0}', "")
     }
 

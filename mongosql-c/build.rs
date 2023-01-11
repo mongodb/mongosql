@@ -7,5 +7,5 @@ fn main() {
 
     let out_dir = env::var_os("OUT_DIR").unwrap();
     let dest_path = Path::new(&out_dir).join("version.rs");
-    fs::write(&dest_path, version_decl).unwrap();
+    fs::write(dest_path, version_decl).unwrap();
 }

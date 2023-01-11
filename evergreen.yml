@@ -547,7 +547,7 @@ buildvariants:
 
   - name: benchmark
     display_name: "Benchmark"
-    run_on: [ centos7-perf ]
+    run_on: [ ubuntu2004-medium ]
     tasks:
       - name: criterion
 
