@@ -133,7 +133,7 @@ pub struct TypeConstraintTest {
 /// names.
 pub fn load_file_paths(dir: PathBuf) -> Result<Vec<String>, Error> {
     let mut paths: Vec<String> = vec![];
-    let entries = fs::read_dir(dir).map_err(|e| Error::InvalidDirectory(format!("{:?}", e)))?;
+    let entries = fs::read_dir(dir).map_err(|e| Error::InvalidDirectory(format!("{e:?}")))?;
     for entry in entries {
         match entry {
             Ok(de) => {
@@ -142,7 +142,7 @@ pub fn load_file_paths(dir: PathBuf) -> Result<Vec<String>, Error> {
                     paths.push(path.to_str().unwrap().to_string());
                 }
             }
-            Err(e) => return Err(Error::InvalidFilePath(format!("{:?}", e))),
+            Err(e) => return Err(Error::InvalidFilePath(format!("{e:?}"))),
         };
     }
     Ok(paths)
@@ -151,24 +151,24 @@ pub fn load_file_paths(dir: PathBuf) -> Result<Vec<String>, Error> {
 /// parse_rewrite_yaml deserializes the given YAML file into a RewriteYamlTest
 /// struct.
 pub fn parse_rewrite_yaml(path: &str) -> Result<RewriteYamlTest, Error> {
-    let mut f = fs::File::open(path).map_err(|e| Error::InvalidFile(format!("{:?}", e)))?;
+    let mut f = fs::File::open(path).map_err(|e| Error::InvalidFile(format!("{e:?}")))?;
     let mut contents = String::new();
     f.read_to_string(&mut contents)
-        .map_err(|e| Error::CannotReadFileToString(format!("{:?}", e)))?;
+        .map_err(|e| Error::CannotReadFileToString(format!("{e:?}")))?;
     let yaml: RewriteYamlTest = serde_yaml::from_str(&contents)
-        .map_err(|e| Error::CannotDeserializeYaml(format!("{:?}", e)))?;
+        .map_err(|e| Error::CannotDeserializeYaml(format!("{e:?}")))?;
     Ok(yaml)
 }
 
 /// parse_type_constraint_yaml deserializes the given YAML file into a
 /// TypeConstraintYamlTest struct.
 pub fn parse_type_constraint_yaml(path: &str) -> Result<TypeConstraintYamlTest, Error> {
-    let mut f = fs::File::open(path).map_err(|e| Error::InvalidFile(format!("{:?}", e)))?;
+    let mut f = fs::File::open(path).map_err(|e| Error::InvalidFile(format!("{e:?}")))?;
     let mut contents = String::new();
     f.read_to_string(&mut contents)
-        .map_err(|e| Error::CannotReadFileToString(format!("{:?}", e)))?;
+        .map_err(|e| Error::CannotReadFileToString(format!("{e:?}")))?;
     let yaml: TypeConstraintYamlTest = serde_yaml::from_str(&contents)
-        .map_err(|e| Error::CannotDeserializeYaml(format!("{:?}", e)))?;
+        .map_err(|e| Error::CannotDeserializeYaml(format!("{e:?}")))?;
     Ok(yaml)
 }
 
@@ -184,7 +184,7 @@ pub fn run_rewrite_tests() -> Result<(), Error> {
                 Some(_) => continue,
                 None => {
                     let parse_res = parser::parse_query(test.query.as_str());
-                    let ast = parse_res.map_err(|e| Error::ParsingFailed(format!("{:?}", e)))?;
+                    let ast = parse_res.map_err(|e| Error::ParsingFailed(format!("{e:?}")))?;
                     let rewrite_res = rewrite_query(ast);
                     match test.error {
                         Some(expected_err) => match rewrite_res {
@@ -256,7 +256,7 @@ fn validate_algebrization(types: Vec<String>, ast: Query, is_valid: bool) -> Res
     let algebrizer = Algebrizer::new(TEST_DB, &catalog, 0u16, SchemaCheckingMode::Strict);
     let plan = algebrizer
         .algebrize_query(ast)
-        .map_err(|e| Error::AlgebrizationFailed(format!("{:?}", e)));
+        .map_err(|e| Error::AlgebrizationFailed(format!("{e:?}")));
     match plan {
         Ok(_) => {
             if !is_valid {
@@ -300,9 +300,9 @@ pub fn run_type_constraint_tests() -> Result<(), Error> {
                 Some(_) => continue,
                 None => {
                     let parse_res = parser::parse_query(test.query.as_str());
-                    let ast = parse_res.map_err(|e| Error::ParsingFailed(format!("{:?}", e)))?;
+                    let ast = parse_res.map_err(|e| Error::ParsingFailed(format!("{e:?}")))?;
                     let rewrite_res = rewrite_query(ast);
-                    let ast = rewrite_res.map_err(|e| Error::RewritesFailed(format!("{:?}", e)))?;
+                    let ast = rewrite_res.map_err(|e| Error::RewritesFailed(format!("{e:?}")))?;
                     let mut all_valid_permutations: BTreeSet<Vec<String>> = BTreeSet::new();
                     let num_args = test.valid_types.get(0).unwrap().len();
                     // Ensure that algebrization succeeds for all valid type

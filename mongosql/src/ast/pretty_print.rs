@@ -218,10 +218,9 @@ impl PrettyPrint for SelectQuery {
             self.order_by_clause
                 .as_ref()
                 .map_or(Ok("".to_string()), |x| x.pretty_print())?,
-            self.limit
-                .map_or("".to_string(), |x| format!(" LIMIT {}", x)),
+            self.limit.map_or("".to_string(), |x| format!(" LIMIT {x}")),
             self.offset
-                .map_or("".to_string(), |x| format!(" OFFSET {}", x)),
+                .map_or("".to_string(), |x| format!(" OFFSET {x}")),
         ))
     }
 }
@@ -427,7 +426,7 @@ impl PrettyPrint for FlattenOption {
     fn pretty_print(&self) -> Result<String> {
         Ok(match self {
             FlattenOption::Separator(s) => format!("SEPARATOR => '{}'", escape_string_literal(s)),
-            FlattenOption::Depth(d) => format!("DEPTH => {}", d),
+            FlattenOption::Depth(d) => format!("DEPTH => {d}"),
         })
     }
 }
@@ -456,7 +455,7 @@ impl PrettyPrint for UnwindOption {
         Ok(match self {
             UnwindOption::Path(p) => format!("PATH => {}", p.pretty_print()?),
             UnwindOption::Index(i) => format!("INDEX => {}", identifier_to_string(i)),
-            UnwindOption::Outer(o) => format!("OUTER => {}", o),
+            UnwindOption::Outer(o) => format!("OUTER => {o}"),
         })
     }
 }
@@ -726,9 +725,9 @@ impl PrettyPrint for IsExpr {
     fn pretty_print(&self) -> Result<String> {
         let formatted_expr = self.get_tier().format_sub_expr(&self.expr)?;
         match self.target_type {
-            TypeOrMissing::Missing => Ok(format!("{} IS MISSING", formatted_expr)),
-            TypeOrMissing::Type(t) => Ok(format!("{} IS {}", formatted_expr, t.pretty_print()?)),
-            TypeOrMissing::Number => Ok(format!("{} IS NUMBER", formatted_expr)),
+            TypeOrMissing::Missing => Ok(format!("{formatted_expr} IS MISSING")),
+            TypeOrMissing::Type(t) => Ok(format!("{formatted_expr} IS {}", t.pretty_print()?)),
+            TypeOrMissing::Number => Ok(format!("{formatted_expr} IS NUMBER")),
         }
     }
 }
@@ -799,7 +798,7 @@ impl PrettyPrint for SubpathExpr {
     fn pretty_print(&self) -> Result<String> {
         let subpath = identifier_to_string(&self.subpath);
         let formatted_expr = self.get_tier().strict_format_sub_expr(&self.expr)?;
-        Ok(format!("{}.{}", formatted_expr, subpath))
+        Ok(format!("{formatted_expr}.{subpath}"))
     }
 }
 
@@ -845,10 +844,7 @@ fn pretty_print_position(args: &FunctionArguments) -> Result<String> {
                 tier.strict_format_sub_expr(&args[0])?,
                 tier.format_sub_expr(&args[1])?,
             );
-            Ok(format!(
-                "POSITION({} IN {})",
-                formatted_left, formatted_right
-            ))
+            Ok(format!("POSITION({formatted_left} IN {formatted_right})"))
         }
     }
 }
@@ -899,8 +895,7 @@ impl PrettyPrint for SubqueryComparisonExpr {
     fn pretty_print(&self) -> Result<String> {
         let formatted_expr = self.get_tier().format_sub_expr(&self.expr)?;
         Ok(format!(
-            "{} {} {}({})",
-            formatted_expr,
+            "{formatted_expr} {} {}({})",
             self.op.pretty_print()?,
             self.quantifier.pretty_print()?,
             self.subquery.pretty_print()?
@@ -988,8 +983,7 @@ impl PrettyPrint for BetweenExpr {
             between_tier.format_sub_expr(&self.max)?,
         );
         Ok(format!(
-            "{} BETWEEN {} AND {}",
-            formatted_expr, formatted_min, formatted_max
+            "{formatted_expr} BETWEEN {formatted_min} AND {formatted_max}"
         ))
     }
 }
@@ -1060,7 +1054,7 @@ impl PrettyPrint for Literal {
             Literal::Double(d) => {
                 let d = d.to_string();
                 Ok(if !d.contains('.') {
-                    format!("{}.0", d)
+                    format!("{d}.0")
                 } else {
                     d
                 })
@@ -1072,7 +1066,7 @@ impl PrettyPrint for Literal {
 impl PrettyPrint for UnaryExpr {
     fn pretty_print(&self) -> Result<String> {
         let formatted_expr = self.get_tier().strict_format_sub_expr(&self.expr)?;
-        Ok(format!("{}{}", self.op.pretty_print()?, formatted_expr))
+        Ok(format!("{}{formatted_expr}", self.op.pretty_print()?))
     }
 }
 
@@ -1157,10 +1151,8 @@ impl PrettyPrint for BinaryExpr {
             tier.format_sub_expr(&self.right)?,
         );
         Ok(format!(
-            "{} {} {}",
-            formatted_left,
-            self.op.pretty_print()?,
-            formatted_right
+            "{formatted_left} {} {formatted_right}",
+            self.op.pretty_print()?
         ))
     }
 }

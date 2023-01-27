@@ -40,7 +40,7 @@ where
         // necessary to check _after_ inserting, since we want
         // to return the key in the error, not the value.
         if self.0.contains_key(&k) {
-            return Err(DuplicateKeyError(format!("{}", k)));
+            return Err(DuplicateKeyError(format!("{k}")));
         }
         self.0.insert(k, v);
         Ok(())

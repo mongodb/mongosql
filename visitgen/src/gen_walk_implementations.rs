@@ -45,9 +45,8 @@ pub fn gen_walk_implementations(module_path: &[&str], types: &[EnumOrStruct]) {
     let self_module_path = module_path[..module_path.len() - 1].join("::");
     let mut out = format!(
         "pub mod walk {{
-     use crate::{}::*;
-     use crate::{}::visitor::Visitor;\n\n",
-        target_module_path, self_module_path,
+     use crate::{target_module_path}::*;
+     use crate::{self_module_path}::visitor::Visitor;\n\n"
     );
 
     let type_set = types.iter().map(|x| x.get_name()).collect::<HashSet<_>>();
@@ -63,13 +62,12 @@ fn gen_walk_impelementation(type_set: &HashSet<String>, t: &EnumOrStruct) -> Str
     let type_name = t.get_name();
     let mut out = format!(
         "
-    impl {} {{
+    impl {type_name} {{
         #[allow(dead_code, unused_parens, clippy::double_parens)]
         pub fn walk<V>(self, _visitor: &mut V) -> Self
         where
             V: Visitor
-        {{\n",
-        type_name
+        {{\n"
     );
 
     out.push_str(
@@ -213,7 +211,7 @@ fn gen_walk_visit_box(
         let box_type = get_generic_type(box_generic);
         format!(
             "Box::new({})",
-            gen_walk_visit_type(type_set, box_type, &(format!("(*{})", field_name))),
+            gen_walk_visit_type(type_set, box_type, &(format!("(*{field_name})"))),
         )
     } else {
         field_name.to_owned()
@@ -410,7 +408,7 @@ fn gen_unnamed_fields(type_set: &HashSet<String>, fields: &FieldsUnnamed) -> Str
     let mut out = String::new();
     for (i, f) in fields.unnamed.iter().enumerate() {
         out.push_str("                ");
-        let field_name = format!("self.{}", i);
+        let field_name = format!("self.{i}");
         out.push_str(gen_walk_visit_type(type_set, &f.ty, field_name.as_str()).as_str());
         out.push_str(",\n");
     }

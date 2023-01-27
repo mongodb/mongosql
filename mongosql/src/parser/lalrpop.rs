@@ -21,7 +21,7 @@ pub type LalrpopError<'t> = lalrpop_util::ParseError<usize, Token<'t>, String>;
 
 impl From<LalrpopError<'_>> for Error {
     fn from(e: LalrpopError<'_>) -> Self {
-        Error::Lalrpop(format!("{}", e))
+        Error::Lalrpop(format!("{e}"))
     }
 }
 

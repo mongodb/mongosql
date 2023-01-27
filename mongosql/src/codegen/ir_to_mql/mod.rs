@@ -112,7 +112,7 @@ impl MqlTranslation {
                             {"$setField":
                                 {"field": "",
                                  "input": "$$ROOT",
-                                 "value": format! ("${}", name)
+                                 "value": format! ("${name}")
                                 }
                             }
                         }
@@ -352,7 +352,7 @@ impl MqlCodeGenerator {
                     while let_bindings.contains_key(&generated_name) {
                         generated_name.push('_');
                     }
-                    let_bindings.insert(generated_name.clone(), format!("${}", value));
+                    let_bindings.insert(generated_name.clone(), format!("${value}"));
                     generated_name.insert(0, '$');
                     (key, generated_name)
                 })
@@ -643,13 +643,13 @@ impl MqlCodeGenerator {
                     ref expr,
                     ref alias,
                 }) => {
-                    bot_body.insert(alias, format!("$_id.{}", alias));
+                    bot_body.insert(alias, format!("$_id.{alias}"));
                     (expr.clone(), alias.to_string())
                 }
                 ir::OptionallyAliasedExpr::Unaliased(expr) => {
                     let alias = MqlCodeGenerator::get_unique_alias(
                         unique_aliases.clone(),
-                        format!("__unaliasedKey{}", counter),
+                        format!("__unaliasedKey{counter}"),
                     );
                     if let ir::Expression::FieldAccess(ref fa) = expr {
                         // We know that after the aliasing rewrite pass, any unaliased group key can
@@ -670,7 +670,7 @@ impl MqlCodeGenerator {
                             output_registry.insert(key.clone(), datasource);
                             project_body.insert(
                                 datasource,
-                                bson::bson! {{fa.field.clone(): format!("$_id.{}", alias)}},
+                                bson::bson! {{fa.field.clone(): format!("$_id.{alias}")}},
                             )
                         } else {
                             match project_body.get_mut(datasource) {
@@ -679,12 +679,12 @@ impl MqlCodeGenerator {
                                 Some(doc) => doc
                                     .as_document_mut()
                                     .unwrap()
-                                    .insert(fa.field.clone(), format!("$_id.{}", alias)),
+                                    .insert(fa.field.clone(), format!("$_id.{alias}")),
                                 None => {
                                     output_registry.insert(key.clone(), datasource);
                                     project_body.insert(
                                         datasource,
-                                        bson::bson! {{fa.field.clone(): format!("$_id.{}", alias)}},
+                                        bson::bson! {{fa.field.clone(): format!("$_id.{alias}")}},
                                     )
                                 }
                             }
@@ -748,7 +748,7 @@ impl MqlCodeGenerator {
                 }
                 a => a.to_string(),
             };
-            bot_body.insert(agg.alias, format!("${}", unique_agg_alias));
+            bot_body.insert(agg.alias, format!("${unique_agg_alias}"));
             group_body.insert(unique_agg_alias, agg_func_doc);
         }
         if !bot_body.is_empty() {
@@ -866,7 +866,7 @@ impl MqlCodeGenerator {
                 .mapping_registry
                 .get(&key)
                 .ok_or(Error::ReferenceNotFound(key))
-                .map(|s| Bson::String(format!("${}", s))),
+                .map(|s| Bson::String(format!("${s}"))),
             Array(exprs) => Ok(Bson::Array(
                 exprs
                     .array

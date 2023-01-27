@@ -428,7 +428,7 @@ impl TryFrom<&str> for FunctionName {
             "SUM" => Ok(FunctionName::Sum),
             "TAN" => Ok(FunctionName::Tan),
             "UPPER" => Ok(FunctionName::Upper),
-            _ => Err(format!("unknown function {}", name)),
+            _ => Err(format!("unknown function {name}")),
         }
     }
 }

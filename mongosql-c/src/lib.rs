@@ -53,7 +53,7 @@ fn translate_helper(
     let schema_checking_mode = match relax_schema_checking {
         1 => Ok(SchemaCheckingMode::Relaxed),
         0 => Ok(SchemaCheckingMode::Strict),
-        n => Err(format!("invalid value {} for relax_schema_checking", n)),
+        n => Err(format!("invalid value {n} for relax_schema_checking")),
     }?;
     let catalog_str = from_extern_string(catalog)
         .map_err(|_| "catalog schema string not valid UTF-8".to_string())?;
@@ -68,19 +68,16 @@ fn translate_helper(
     }
 
     mongosql::translate_sql(&current_db, &sql, &catalog, schema_checking_mode)
-        .map_err(|e| format!("{}", e))
+        .map_err(|e| format!("{e}"))
 }
 
 /// Converts the given base64-encoded bson document into a Catalog.
 pub fn build_catalog(base_64_doc: &str) -> Result<Catalog, String> {
-    let bson_doc_bytes = base64::decode(base_64_doc)
-        .map_err(|e| format!("failed to decode base64 string: {}", e))?;
+    let bson_doc_bytes =
+        base64::decode(base_64_doc).map_err(|e| format!("failed to decode base64 string: {e}"))?;
     let json_schemas: BTreeMap<String, BTreeMap<String, json_schema::Schema>> =
         bson::from_reader(&mut bson_doc_bytes.as_slice()).map_err(|e| {
-            format!(
-                "failed to convert BSON catalog to json_schema::Schema format: {}",
-                e
-            )
+            format!("failed to convert BSON catalog to json_schema::Schema format: {e}")
         })?;
     let catalog = json_schemas
         .into_iter()
@@ -88,8 +85,7 @@ pub fn build_catalog(base_64_doc: &str) -> Result<Catalog, String> {
             db_schema.into_iter().map(move |(collection, json_schema)| {
                 let mongosql_schema = schema::Schema::try_from(json_schema).map_err(|e| {
                     format!(
-                        "failed to add JSON schema for collection {}.{} to the catalog: {}",
-                        db, collection, e
+                        "failed to add JSON schema for collection {db}.{collection} to the catalog: {e}"
                     )
                 })?;
                 Ok((
@@ -173,7 +169,7 @@ fn get_namespaces_helper(
     let sql =
         from_extern_string(sql).map_err(|_| "sql query string not valid UTF-8".to_string())?;
 
-    mongosql::get_namespaces(&current_db, &sql).map_err(|e| format!("{}", e))
+    mongosql::get_namespaces(&current_db, &sql).map_err(|e| format!("{e}"))
 }
 
 /// Returns a base64-encoded BSON document representing the payload

@@ -33,7 +33,7 @@ mod fuzz_test {
                     // If we failed to parse, we want to show the Error, the pretty printed
                     // query, and the query AST so we can more easily see the issue.
                     // The panic will print the query AST.
-                    panic!("\nError:\n{:?}\n=========\n{}\n\n_________\n\n", e, p);
+                    panic!("\nError:\n{e:?}\n=========\n{p}\n\n_________\n\n");
                 }
             };
 
@@ -51,15 +51,14 @@ mod fuzz_test {
                         r#"Reparsed query AST does not equal original AST
 
 Original AST:
-{:?}
+{q:?}
 
 Pretty-printed query:
-{:?}
+{p:?}
 
 Reparsed AST:
-{:?}
-"#,
-                        q, p, r
+{r:?}
+"#
                     )
                 }
                 _ => TestResult::from_bool(true),

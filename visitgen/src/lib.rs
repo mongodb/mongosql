@@ -35,5 +35,5 @@ pub fn gen_visitor(file_path: &str) {
     util::create_out_directory(&dest_path);
     gen_visitor_trait::gen_visitor_trait(&module_path, &types);
     gen_walk_implementations::gen_walk_implementations(&module_path, &types);
-    println!("cargo:rerun-if-changed={}", file_path);
+    println!("cargo:rerun-if-changed={file_path}");
 }
