@@ -1656,7 +1656,11 @@ specification\> )\*
   - **\[Answer\]** Maybe. We\'ll have to discover during
     implementation
 
-## LIMIT and OFFSET Clauses
+## LIMIT, FETCH FIRST, and OFFSET Clauses
+
+FETCH FIRST is an alias for LIMIT. MongoSQL supports LIMIT and FETCH FIRST
+interchangeably. Throughout this document, all specifications for LIMIT apply
+to FETCH FIRST.
 
 ### Behavioral Description
 
@@ -1696,9 +1700,8 @@ OFFSET<sub>out</sub><sup>i</sup> = \[</br>
 
 ### Grammar
 
-\<limit clause\> ::= LIMIT [\<integer
-literal\>](#literals) (\",\" [\<integer
-literal\>](#literals) )?
+\<limit clause\> ::= LIMIT [\<integer literal\>](#literals) (\",\" [\<integer literal\>](#literals) )?</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| FETCH (FIRST | NEXT) [\<integer literal\>](#literals) ROW(S?) ONLY`
 
 \<offset clause\> ::= OFFSET [\<integer
 literal\>](#literals)
@@ -1715,20 +1718,6 @@ LIMIT i OFFSET j
 
 [Query Test](https://github.com/10gen/mongosql-rs/blob/e31c8dc2ccf88b0d648877e3d0312f92d969c228/tests/spec_tests/query_tests/limit_offset.yml)</br>
 [Rewrite Test](https://github.com/10gen/mongosql-rs/blob/e31c8dc2ccf88b0d648877e3d0312f92d969c228/tests/spec_tests/rewrite_tests/limit_offset.yml)
-
-### Rejected Alternatives/Competitive Analysis
-
-The LIMIT and OFFSET clauses are not part of SQL-92 standard, and
-different database providers have slightly different implementations.
-Since SQL-2008, the FETCH FIRST clause has become part of the SQL
-standard. However, it's not the most widely supported syntax so far.
-
-From this [table](<https://en.wikipedia.org/wiki/Select_(SQL)#FETCH_FIRST_clause>),
-you can see LIMIT/OFFSET is best supported among DB providers. In
-addition to the DB providers listed in that table, PartiQL and Presto
-also support LIMIT and OFFSET. Also because we are targeting SQL-92
-compatibility, SQL 2008 is not a requirement, so we choose to support
-LIMIT/OFFSET syntax over FETCH FIRST.
 
 ## Set Operations
 
