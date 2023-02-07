@@ -2581,6 +2581,93 @@ datetime value. The source argument must statically have type TIMESTAMP
 or NULL, and may be missing. If it is NULL or MISSING, the result is
 NULL.
 
+### Addititional Numeric Scalar Functions
+
+The following list of functions operate on numeric values and return numeric values.
+All arguments to these functions must statically have type `NULL` or a numeric type
+— `INT`, `LONG`, `DOUBLE`, or `DECIMAL` — and may evaluate to `MISSING`.  If an
+argument evaluates to `NULL` or `MISSING`, the result of the operation is `NULL`.
+If an argument resolves to `NaN`, the result is `NaN`. Some functions have
+additional special behaviors detailed below.
+
+The ABS ( `number` ) scalar function returns the absolute value of the given `number`.
+The result has the same type as its operand.  If the argument is `Infinity` or
+-`Infinity`, the result is `Infinity`.
+
+The CEIL ( `number` ) scalar function returns a number to the nearest whole number of equal
+or greater value.  The result has the same type as its operand. If the argument evaluates
+to negative or positive `Infinity`, the result is negative or positive `Infinity` respectively.
+
+The COS ( `number` ) scalar function returns the cosine of an angle. The argument is specified in
+radians. If the argument is of type `DECIMAL` the return type is `DECIMAL`. All other numeric argument types
+return `DOUBLE`. If the argument evaluates to negative or positive `Infinity`, the result of the operation
+is `NULL`.
+
+The DEGREES ( `number` ) scalar function converts a given `number` in radians to degrees.
+If the argument is of type `DECIMAL` the return type is `DECIMAL`. All other numeric argument types
+return `DOUBLE`. If the argument evaluates to negative or positive `Infinity`, the result
+is negative or positive `Infinity` respectively.
+
+The FLOOR ( `number` ) scalar function returns a number to the nearest whole number of equal
+or lesser value.  The result has the same type as its operand. If the argument evaluates to
+negative or positive `Infinity`, the result is negative or positive `Infinity` respectively.
+
+The LOG ( `number`, `base` ) scalar function returns the logarithm of a number for the given base.
+`Number` must be a non-negative number, `base` must be a positive number greater than 1.
+Arguments outside of the supported ranges will return NULL.  If the `number` or `base` is of
+type `DECIMAL` the return type is `DECIMAL`. All other numeric types return `DOUBLE`. If
+`number` evaluates to Infinity, the result is `Infinity`.  If base evaluates to Infinity,
+the result is 0.
+
+The MOD ( `number`, `divisor` ) scalar function divides number by divisor and returns the
+remainder.  The result has the same [type as its operands](#semantics-of-arithmetic-operators)
+except when it cannot be represented accurately in that type.  In these cases:
+
+- INT will be converted to a LONG if the result is representable as a LONG.
+- INT will be converted to a DOUBLE if the result is not representable as a LONG.
+- LONG will be converted to DOUBLE if the result is not representable as a LONG.
+- A DECIMAL divisor will have a result of type DECIMAL
+
+If `number` evaluates to negative or positive Infinity, the result is NaN.  If `divisor`
+evaluates to negative or positive `Infinity`, the result is `number`.  A `divisor` of 0 will result in NULL.
+
+The POW ( `number`, `exponent` ) scalar function returns the number raised to the specified
+exponent.  The result has the same [type as its operands](#semantics-of-arithmetic-operators)
+except when it cannot be represented accurately in that type.  In these cases:
+
+- INT will be converted to a LONG if the result is representable as a LONG.
+- INT will be converted to a DOUBLE if the result is not representable as a LONG.
+- LONG will be converted to DOUBLE if the result is not representable as a LONG.
+
+If either number or power arguments evaluate to Infinity, the result is Infinity.  If power evaluates to -Infinity, the result is 0.  If `number` is -Infinity and `power` is even, the result is Infinity otherwise if power is odd the result is -Infinity.
+
+The RADIANS ( `number` ) scalar function returns the given number converted from degrees to radians.
+If the argument is of type `DECIMAL` the return type is `DECIMAL`. All other numeric argument types
+return `DOUBLE`.
+If the argument evaluates to negative or positive `Infinity`, the result is negative or
+positive `Infinity` respectively.
+
+The ROUND ( `number`, `decimals` ) scalar function rounds `number` to a specified number of digits.
+The `decimals` argument specifies how many decimal points of precision to include in the final result.
+The `decimals` argument must be an integer between -20 and 100.  Arguments outside
+of the supported ranges will return NULL.  The result has the same type as the first operand.
+If the first argument resolves to negative or positive infinity, the result is negative or positive infinity respectively.
+
+The SIN( `expression` ) scalar function returns the sine of “expression”, where “expression” is an
+angle expressed in radians. The argument must statically have type `DOUBLE, INT, LONG`,
+`DECIMAL` or `NULL`, and may evaluate to MISSING. If the argument is `NULL` or `MISSING`,
+the result is `NULL`. If the argument evaluates to negative or positive `Infinity`, the result
+of the operation is `NULL`.
+
+The SQRT( `number` ) scalar function returns the square root of a positive number.
+If the argument is negative, the operation will return NULL.  If the argument evaluates to
+`Infinity`, the result is `Infinity`.
+
+The TAN( `number` ) scalar function returns the tangent of an angle, specified in radians.
+If the argument is of type `DECIMAL` the return type is `DECIMAL`. All other numeric argument types
+return `DOUBLE`. If the argument evaluates to negative or positive `Infinity`, the result of the operation is `NULL`.
+
+
 ##### String Value Scalar Functions
 
 String value scalar functions are those which return string values.
@@ -2664,7 +2751,6 @@ which we will quote here instead of attempting to rephrase:
 >_2) If specified, \<timestamp precision\> \... determines the
 precision of the \... timestamp value returned._ (Default value is 6
 if none is provided).
-
 >_3) If an SQL-statement generally contains more than one reference to
 one or more \<datetime value function\>s, then all such references are
 effectively evaluated simultaneously. The time of evaluation of the
@@ -2688,6 +2774,12 @@ See query tests, rewrite tests, and type constraint tests
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| \<current date function\> \| \<current time function\></br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| \<current timestamp function\></br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [\<regular identifier\>](#identifiers) \"(\" [\<expression\>](#expressions)\* \")\"
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| < abs function ></br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| < ceiling function > | < cos function > | < degrees function ></br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| < floor function > | < log function > | < mod function ></br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| < power function > | < radians function > | < round function ></br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| < sin function > | < sqrt function > | < tan function ></br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| < regular identifier> "(" \<[expression](#expressions)\>* ")"
 
 \<nullif function\> ::= NULLIF \"(\" [\<expression\>](#expressions) \",\" [\<expression\>](#expressions) \")\"
 
@@ -2721,11 +2813,36 @@ See query tests, rewrite tests, and type constraint tests
 
 \<current timestamp function\> ::= CURRENT_TIMESTAMP (\"(\" [\<expression\>](#expressions) \")\")?
 
+< abs function > ::= ABS "(" \<[expression](#expressions)\> ")"
+
+< ceiling function > ::= CEIL "(" \<[expression](#expressions)\> ")"
+
+< cos function > ::= COS "(" \<[expression](#expressions)\> ")"
+
+< degrees function > ::= DEGREES "(" \<[expression](#expressions)\> ")"
+
+< floor function > ::= FLOOR "(" \<[expression](#expressions)\> ")"
+
+< log function > ::= LOG "(" \<[expression](#expressions)\>, \<[expression](#expressions)\> ")"
+
+< mod function > ::= MOD "(" \<[expression](#expressions)\>, \<[expression](#expressions)\> ")"
+
+< power function > ::= POW "(" \<[expression](#expressions)\>, \<[expression](#expressions)\> ")"
+
+< radians function > ::= RADIANS "(" \<[expression](#expressions)\> ")"
+
+< round function > ::= ROUND "(" \<[expression](#expressions)\>, \<[expression](#expressions)\> ")"
+
+< sin function > ::= SIN "(" \<[expression](#expressions)\> ")"
+
+< sqrt function > ::= SQRT "(" \<[expression](#expressions)\> ")"
+
+< tan function > ::= TAN "(" \<[expression](#expressions)\> ")"
+
 > <sup id="7">7</sup> Note, the SQL-92 grammar actually specifies that TRIM(FROM
     \<string\>) is a syntactically valid invocation of the TRIM
     function, so we preserve that in MongoSQL grammar ([SQL-92
     6.7](https://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt)).
-
 
 #### Open Questions
 
