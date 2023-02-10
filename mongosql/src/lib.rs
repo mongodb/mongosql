@@ -1,12 +1,14 @@
-mod agg_ir;
+// air module (read as: the word "air", or "A - I - R"; stands for "Aggregation IR")
+mod air;
 mod algebrizer;
 mod ast;
 pub mod catalog;
 mod codegen;
 #[cfg(test)]
 mod internal_spec_test;
-mod ir;
-pub use ir::schema::SchemaCheckingMode;
+// mir module (read as: the word "mir", or "M - I -R"; stands for "MongoSQl abstract model IR")
+mod mir;
+pub use mir::schema::SchemaCheckingMode;
 pub mod json_schema;
 mod mapping_registry;
 mod parser;
@@ -18,7 +20,7 @@ mod util;
 use crate::{
     algebrizer::Algebrizer,
     catalog::Catalog,
-    ir::schema::CachedSchema,
+    mir::schema::CachedSchema,
     result::Result,
     schema::{Schema, SchemaEnvironment},
     translator::MqlTranslator,
@@ -47,15 +49,15 @@ pub fn translate_sql(
     let ast = parser::parse_query(sql)?;
     let ast = ast::rewrites::rewrite_query(ast)?;
 
-    // construct the algebrizer and use it to build an ir plan
+    // construct the algebrizer and use it to build an mir plan
     let algebrizer = Algebrizer::new(current_db, catalog, 0u16, schema_checking_mode);
     let plan = algebrizer.algebrize_query(ast)?;
 
     // flatten variadic function
-    let plan = ir::flatten::flatten_variadic_functions(plan);
+    let plan = mir::flatten::flatten_variadic_functions(plan);
 
     // constant fold stages
-    let plan = ir::constant_folding::fold_constants(plan, schema_checking_mode);
+    let plan = mir::constant_folding::fold_constants(plan, schema_checking_mode);
 
     // get the schema_env for the plan
     let schema_env = plan
@@ -65,15 +67,15 @@ pub fn translate_sql(
     let translator = MqlTranslator::new();
     let agg_plan = translator.translate_stage(plan.clone());
 
-    // generate mql from the ir plan
+    // generate mql from the mir plan
     let mql_translation = match agg_plan {
-        Err(translator::Error::UnimplementedStruct) => codegen::generate_mql_from_ir(plan)?,
+        Err(translator::Error::UnimplementedStruct) => codegen::generate_mql_from_mir(plan)?,
         Err(err) => return Err(result::Error::Translator(err)),
         Ok(agg_plan) => {
-            let generated_mql = codegen::generate_mql_from_agg_ir(agg_plan);
+            let generated_mql = codegen::generate_mql_from_air(agg_plan);
             match generated_mql {
-                Err(codegen::agg_ir_to_mql::Error::UnimplementedAggIR) => {
-                    codegen::generate_mql_from_ir(plan)?
+                Err(codegen::air_to_mql::Error::UnimplementedAIR) => {
+                    codegen::generate_mql_from_mir(plan)?
                 }
                 Ok(generated_mql) => generated_mql.into(),
             }
@@ -137,8 +139,8 @@ fn mql_schema_env_to_json_schema(
             let mql_name = mapping_registry.get(&k);
             match mql_name {
                 Some(mql_name) => Ok((mql_name.clone(), v)),
-                None => Err(result::Error::CodegenIR(
-                    codegen::ir_to_mql::Error::ReferenceNotFound(k),
+                None => Err(result::Error::CodegenMIR(
+                    codegen::mir_to_mql::Error::ReferenceNotFound(k),
                 )),
             }
         })

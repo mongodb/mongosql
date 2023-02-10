@@ -1,5 +1,5 @@
 use crate::{
-    ir::{
+    mir::{
         binding_tuple::{BindingTuple, Key},
         schema::SchemaCache,
         Error,

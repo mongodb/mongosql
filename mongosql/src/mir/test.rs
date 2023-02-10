@@ -2,7 +2,7 @@ macro_rules! test_schema {
     ($func_name:ident, $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? input = $input:expr, $(schema_env = $schema_env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
         #[test]
         fn $func_name() {
-            use crate::{ir::schema::SchemaInferenceState, schema::SchemaEnvironment, SchemaCheckingMode, catalog::Catalog};
+            use crate::{mir::schema::SchemaInferenceState, schema::SchemaEnvironment, SchemaCheckingMode, catalog::Catalog};
 
             let input = $input;
 
@@ -31,7 +31,7 @@ macro_rules! test_constant_fold {
     ($func_name:ident, expected = $expected:expr, input = $input:expr, $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
         #[test]
         fn $func_name() {
-            use crate::ir::{constant_folding::*, schema::SchemaCheckingMode};
+            use crate::mir::{constant_folding::*, schema::SchemaCheckingMode};
             let input = $input;
             let expected = $expected;
 
@@ -49,7 +49,7 @@ macro_rules! test_flatten_variadic_functions {
     ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
         #[test]
         fn $func_name() {
-            use crate::ir::flatten::*;
+            use crate::mir::flatten::*;
             let input = $input;
             let expected = $expected;
             let actual = flatten_variadic_functions(input);
@@ -62,7 +62,7 @@ macro_rules! test_retain {
     ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
         #[test]
         fn $func_name() {
-            use crate::ir::schema::retain;
+            use crate::mir::schema::retain;
             let expected = $expected;
             let actual = retain(&$input);
             assert_eq!(actual, expected);
@@ -74,7 +74,7 @@ macro_rules! test_max_numeric {
     ($func_name:ident, expected = $expected:expr, input1 = $input1:expr, input2 = $input2:expr) => {
         #[test]
         fn $func_name() {
-            use crate::ir::schema::max_numeric;
+            use crate::mir::schema::max_numeric;
             let expected = $expected;
             let actual = max_numeric(&$input1, &$input2);
             assert_eq!(actual, expected);
@@ -85,12 +85,12 @@ macro_rules! test_max_numeric {
 mod schema {
     use crate::{
         catalog::*,
-        ir::{
+        map,
+        mir::{
             binding_tuple::DatasourceName::Bottom,
-            schema::{CachedSchema, Error as ir_error, SchemaCache},
+            schema::{CachedSchema, Error as mir_error, SchemaCache},
             *,
         },
-        map,
         schema::*,
         set, unchecked_unique_linked_hash_map,
     };
@@ -179,7 +179,7 @@ mod schema {
     );
     test_schema!(
         reference_does_not_exist_in_schema_env,
-        expected = Err(ir_error::DatasourceNotFoundInSchemaEnv(("a", 0u16).into())),
+        expected = Err(mir_error::DatasourceNotFoundInSchemaEnv(("a", 0u16).into())),
         input = Expression::Reference(("a", 0u16).into()),
     );
     test_schema!(
@@ -394,7 +394,7 @@ mod schema {
     // FieldAccess
     test_schema!(
         field_access_accessee_cannot_be_document,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "FieldAccess",
             required: crate::schema::ANY_DOCUMENT.clone(),
             found: Schema::Atomic(Atomic::Long),
@@ -407,7 +407,7 @@ mod schema {
     );
     test_schema!(
         field_access_field_must_not_exist_not_in_document,
-        expected = Err(ir_error::AccessMissingField("foo".to_string())),
+        expected = Err(mir_error::AccessMissingField("foo".to_string())),
         input = Expression::FieldAccess(FieldAccess {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
             field: "foo".to_string(),
@@ -514,7 +514,7 @@ mod schema {
     // General function schema checking.
     test_schema!(
         arg_may_satisfy_schema_is_not_sufficient,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Pos",
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::AnyOf(set![
@@ -568,7 +568,7 @@ mod schema {
     );
     test_schema!(
         unary_pos_requires_one_arg,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Pos",
             required: 1,
             found: 0
@@ -581,7 +581,7 @@ mod schema {
     );
     test_schema!(
         unary_neg_requires_one_arg,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Neg",
             required: 1,
             found: 2
@@ -599,7 +599,7 @@ mod schema {
     // Substring function.
     test_schema!(
         substring_requires_string_for_first_arg,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Substring",
             required: STRING_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer),
@@ -616,7 +616,7 @@ mod schema {
     );
     test_schema!(
         substring_requires_integer_for_second_arg,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Substring",
             required: INTEGER_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
@@ -633,7 +633,7 @@ mod schema {
     );
     test_schema!(
         substring_requires_integer_for_third_arg,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Substring",
             required: INTEGER_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
@@ -707,7 +707,7 @@ mod schema {
     // Like function type correctness
     test_schema!(
         like_first_arg_not_string_or_nullish_is_error,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Like",
             required: STRING_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
@@ -722,7 +722,7 @@ mod schema {
     );
     test_schema!(
         like_second_arg_not_string_or_nullish_is_error,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Like",
             required: STRING_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
@@ -789,7 +789,7 @@ mod schema {
     // And tests.
     test_schema!(
         and_first_arg_is_not_bool_is_error,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "And",
             required: BOOLEAN_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
@@ -806,7 +806,7 @@ mod schema {
     );
     test_schema!(
         and_second_arg_is_not_bool_is_error,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "And",
             required: BOOLEAN_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
@@ -883,7 +883,7 @@ mod schema {
     // Or tests.
     test_schema!(
         or_first_arg_is_not_bool_is_error,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Or",
             required: BOOLEAN_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
@@ -900,7 +900,7 @@ mod schema {
     );
     test_schema!(
         or_second_arg_is_not_bool_is_error,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Or",
             required: BOOLEAN_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
@@ -977,7 +977,7 @@ mod schema {
     // Not tests.
     test_schema!(
         not_arg_is_not_bool_is_error,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Not",
             required: BOOLEAN_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
@@ -1603,7 +1603,7 @@ mod schema {
     //AggregationFunction schema checking.
     test_schema!(
         max_args_must_be_comparable,
-        expected = Err(ir_error::AggregationArgumentMustBeSelfComparable(
+        expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Max".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1616,7 +1616,7 @@ mod schema {
     );
     test_schema!(
         min_args_must_be_comparable,
-        expected = Err(ir_error::AggregationArgumentMustBeSelfComparable(
+        expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Min".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1630,7 +1630,7 @@ mod schema {
 
     test_schema!(
         distinct_sum_args_must_be_comparable,
-        expected = Err(ir_error::AggregationArgumentMustBeSelfComparable(
+        expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Sum DISTINCT".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1643,7 +1643,7 @@ mod schema {
     );
     test_schema!(
         distinct_count_args_must_be_comparable,
-        expected = Err(ir_error::AggregationArgumentMustBeSelfComparable(
+        expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Count DISTINCT".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1656,7 +1656,7 @@ mod schema {
     );
     test_schema!(
         distinct_first_args_must_be_comparable,
-        expected = Err(ir_error::AggregationArgumentMustBeSelfComparable(
+        expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "First DISTINCT".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1669,7 +1669,7 @@ mod schema {
     );
     test_schema!(
         distinct_last_args_must_be_comparable,
-        expected = Err(ir_error::AggregationArgumentMustBeSelfComparable(
+        expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Last DISTINCT".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1682,7 +1682,7 @@ mod schema {
     );
     test_schema!(
         distinct_stddevpop_args_must_be_comparable,
-        expected = Err(ir_error::AggregationArgumentMustBeSelfComparable(
+        expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "StddevPop DISTINCT".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1695,7 +1695,7 @@ mod schema {
     );
     test_schema!(
         distinct_stddevsamp_args_must_be_comparable,
-        expected = Err(ir_error::AggregationArgumentMustBeSelfComparable(
+        expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "StddevSamp DISTINCT".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1708,7 +1708,7 @@ mod schema {
     );
     test_schema!(
         distinct_max_args_must_be_comparable,
-        expected = Err(ir_error::AggregationArgumentMustBeSelfComparable(
+        expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Max DISTINCT".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1721,7 +1721,7 @@ mod schema {
     );
     test_schema!(
         distinct_min_args_must_be_comparable,
-        expected = Err(ir_error::AggregationArgumentMustBeSelfComparable(
+        expected = Err(mir_error::AggregationArgumentMustBeSelfComparable(
             "Min DISTINCT".into(),
             ANY_DOCUMENT.clone()
         )),
@@ -1760,7 +1760,7 @@ mod schema {
 
     test_schema!(
         arg_to_sum_must_be_numeric,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Sum",
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::AnyOf(set![
@@ -1829,7 +1829,7 @@ mod schema {
 
     test_schema!(
         arg_to_mergedocuments_must_be_document,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "MergeDocuments",
             required: ANY_DOCUMENT.clone(),
             found: Schema::AnyOf(set![
@@ -1868,7 +1868,7 @@ mod schema {
 
     test_schema!(
         arg_to_avg_must_be_numeric,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Avg",
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::AnyOf(set![
@@ -1994,7 +1994,7 @@ mod schema {
 
     test_schema!(
         arg_to_stddev_pop_must_be_numeric,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "StddevPop",
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::AnyOf(set![
@@ -2056,7 +2056,7 @@ mod schema {
 
     test_schema!(
         arg_to_stddev_samp_must_be_numeric,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "StddevSamp",
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::AnyOf(set![
@@ -2629,7 +2629,7 @@ mod schema {
 
     test_schema!(
         arithmetic_numeric_and_non_numeric_error,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Add",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -2659,7 +2659,7 @@ mod schema {
     // Abs tests
     test_schema!(
         abs_requires_exactly_one_arg,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Abs",
             required: 1,
             found: 2
@@ -2675,7 +2675,7 @@ mod schema {
     );
     test_schema!(
         abs_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Abs",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -2699,7 +2699,7 @@ mod schema {
     // Ceil tests
     test_schema!(
         ceil_requires_exactly_one_arg,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Ceil",
             required: 1,
             found: 2
@@ -2715,7 +2715,7 @@ mod schema {
     );
     test_schema!(
         ceil_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Ceil",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -2739,7 +2739,7 @@ mod schema {
     // Degrees tests
     test_schema!(
         degrees_requires_exactly_one_arg,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Degrees",
             required: 1,
             found: 2
@@ -2755,7 +2755,7 @@ mod schema {
     );
     test_schema!(
         degrees_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Degrees",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -2797,7 +2797,7 @@ mod schema {
     // Floor tests
     test_schema!(
         floor_requires_exactly_one_arg,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Floor",
             required: 1,
             found: 2
@@ -2813,7 +2813,7 @@ mod schema {
     );
     test_schema!(
         floor_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Floor",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -2837,7 +2837,7 @@ mod schema {
     // Log tests
     test_schema!(
         log_requires_exactly_two_args,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Log",
             required: 2,
             found: 3
@@ -2854,7 +2854,7 @@ mod schema {
     );
     test_schema!(
         log_first_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Log",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -2877,7 +2877,7 @@ mod schema {
     );
     test_schema!(
         log_second_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Log",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -2902,7 +2902,7 @@ mod schema {
     // Mod tests
     test_schema!(
         mod_requires_exactly_two_args,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Mod",
             required: 2,
             found: 3
@@ -2919,7 +2919,7 @@ mod schema {
     );
     test_schema!(
         mod_first_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Mod",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -2942,7 +2942,7 @@ mod schema {
     );
     test_schema!(
         mod_second_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Mod",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -2967,7 +2967,7 @@ mod schema {
     // Pow tests
     test_schema!(
         pow_requires_exactly_two_args,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Pow",
             required: 2,
             found: 3
@@ -2984,7 +2984,7 @@ mod schema {
     );
     test_schema!(
         pow_first_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Pow",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -3007,7 +3007,7 @@ mod schema {
     );
     test_schema!(
         pow_second_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Pow",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -3032,7 +3032,7 @@ mod schema {
     // Round tests
     test_schema!(
         round_requires_exactly_two_args,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Round",
             required: 2,
             found: 3
@@ -3049,7 +3049,7 @@ mod schema {
     );
     test_schema!(
         round_first_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Round",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -3072,7 +3072,7 @@ mod schema {
     );
     test_schema!(
         round_second_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Round",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -3097,7 +3097,7 @@ mod schema {
     // Cos tests
     test_schema!(
         cos_requires_exactly_one_arg,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Cos",
             required: 1,
             found: 2
@@ -3113,7 +3113,7 @@ mod schema {
     );
     test_schema!(
         cos_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Cos",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -3146,7 +3146,7 @@ mod schema {
     // Sin tests
     test_schema!(
         sin_requires_exactly_one_arg,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Sin",
             required: 1,
             found: 2
@@ -3162,7 +3162,7 @@ mod schema {
     );
     test_schema!(
         sin_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Sin",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -3195,7 +3195,7 @@ mod schema {
     // Tan tests
     test_schema!(
         tan_requires_exactly_one_arg,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Tan",
             required: 1,
             found: 2
@@ -3211,7 +3211,7 @@ mod schema {
     );
     test_schema!(
         tan_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Tan",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -3244,7 +3244,7 @@ mod schema {
     // Radians tests
     test_schema!(
         radians_requires_exactly_one_arg,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Radians",
             required: 1,
             found: 2
@@ -3260,7 +3260,7 @@ mod schema {
     );
     test_schema!(
         radians_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Radians",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -3284,7 +3284,7 @@ mod schema {
     // Sqrt tests
     test_schema!(
         sqrt_requires_exactly_one_arg,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Sqrt",
             required: 1,
             found: 2
@@ -3300,7 +3300,7 @@ mod schema {
     );
     test_schema!(
         sqrt_arg_must_be_number_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Sqrt",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -3324,7 +3324,7 @@ mod schema {
     // Arithmetic function errors.
     test_schema!(
         sub_requires_exactly_two_args,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Sub",
             required: 2,
             found: 1
@@ -3337,7 +3337,7 @@ mod schema {
     );
     test_schema!(
         div_requires_exactly_two_args,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Div",
             required: 2,
             found: 3
@@ -3354,7 +3354,7 @@ mod schema {
     );
     test_schema!(
         fixed_arg_arithmetic_first_arg_must_be_number,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Sub",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -3377,7 +3377,7 @@ mod schema {
     );
     test_schema!(
         fixed_arg_arithmetic_second_arg_must_be_number,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Div",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -3400,7 +3400,7 @@ mod schema {
     );
     test_schema!(
         variadic_arg_arithmetic_all_args_must_be_numbers,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Add",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -3428,7 +3428,7 @@ mod schema {
     // Comparison operators.
     test_schema!(
         comp_op_requires_exactly_two_args,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Lt",
             required: 2,
             found: 1
@@ -3441,7 +3441,7 @@ mod schema {
     );
     test_schema!(
         comp_op_requires_a_valid_comparison,
-        expected = Err(ir_error::InvalidComparison(
+        expected = Err(mir_error::InvalidComparison(
             "Lte",
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
@@ -3499,7 +3499,7 @@ mod schema {
     // Between function.
     test_schema!(
         between_requires_exactly_three_args,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Between",
             required: 3,
             found: 1
@@ -3512,7 +3512,7 @@ mod schema {
     );
     test_schema!(
         between_requires_a_valid_comparison_between_first_and_second_args,
-        expected = Err(ir_error::InvalidComparison(
+        expected = Err(mir_error::InvalidComparison(
             "Between",
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
@@ -3529,7 +3529,7 @@ mod schema {
     );
     test_schema!(
         between_requires_a_valid_comparison_between_first_and_third_args,
-        expected = Err(ir_error::InvalidComparison(
+        expected = Err(mir_error::InvalidComparison(
             "Between",
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
@@ -3605,7 +3605,7 @@ mod schema {
 
     test_schema!(
         merge_object_args_must_be_documents,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "MergeObjects",
             required: ANY_DOCUMENT.clone(),
             found: Schema::Atomic(Atomic::String),
@@ -3630,7 +3630,7 @@ mod schema {
     );
     test_schema!(
         merge_objects_not_ok_to_be_multiple_any_document,
-        expected = Err(ir_error::CannotMergeObjects(
+        expected = Err(mir_error::CannotMergeObjects(
             ANY_DOCUMENT.clone(),
             ANY_DOCUMENT.clone(),
             Satisfaction::May,
@@ -3647,7 +3647,7 @@ mod schema {
     );
     test_schema!(
         merge_object_args_must_have_disjoint_keys,
-        expected = Err(ir_error::CannotMergeObjects(
+        expected = Err(mir_error::CannotMergeObjects(
             Schema::Document(Document {
                 keys: map! {"a".into() => Schema::Atomic(Atomic::Integer) },
                 required: set! {"a".into()},
@@ -3824,7 +3824,7 @@ mod schema {
     // ComputedFieldAccess Function
     test_schema!(
         computed_field_access_requires_two_args,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "ComputedFieldAccess",
             required: 2,
             found: 3
@@ -3841,7 +3841,7 @@ mod schema {
     );
     test_schema!(
         computed_field_access_first_arg_must_not_be_document,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "ComputedFieldAccess",
             required: ANY_DOCUMENT.clone(),
             found: Schema::Atomic(Atomic::Long),
@@ -3857,7 +3857,7 @@ mod schema {
     );
     test_schema!(
         computed_field_access_first_arg_may_be_document,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "ComputedFieldAccess",
             required: ANY_DOCUMENT.clone(),
             found: Schema::AnyOf(set![ANY_DOCUMENT.clone(), Schema::Missing]),
@@ -3874,7 +3874,7 @@ mod schema {
     );
     test_schema!(
         computed_field_access_second_arg_must_not_be_string,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "ComputedFieldAccess",
             required: Schema::Atomic(Atomic::String),
             found: Schema::Atomic(Atomic::Long),
@@ -3891,7 +3891,7 @@ mod schema {
     );
     test_schema!(
         computed_field_access_second_arg_may_be_string,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "ComputedFieldAccess",
             required: Schema::Atomic(Atomic::String),
             found: Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing]),
@@ -3933,7 +3933,7 @@ mod schema {
     );
     test_schema!(
         current_timestamp_integer_arg_should_be_removed_in_algebrization,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "CurrentTimestamp",
             required: 0,
             found: 1
@@ -3948,7 +3948,7 @@ mod schema {
     // NullIf function.
     test_schema!(
         nullif_requires_two_args,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "NullIf",
             required: 2,
             found: 1,
@@ -3961,7 +3961,7 @@ mod schema {
     );
     test_schema!(
         nullif_cannot_compare_numeric_with_non_numeric,
-        expected = Err(ir_error::InvalidComparison(
+        expected = Err(mir_error::InvalidComparison(
             "NullIf",
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String)
@@ -3977,7 +3977,7 @@ mod schema {
     );
     test_schema!(
         nullif_types_must_be_identical_if_non_numeric,
-        expected = Err(ir_error::InvalidComparison(
+        expected = Err(mir_error::InvalidComparison(
             "NullIf",
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::String)
@@ -3993,7 +3993,7 @@ mod schema {
     );
     test_schema!(
         nullif_args_cannot_be_potentially_comparable,
-        expected = Err(ir_error::InvalidComparison(
+        expected = Err(mir_error::InvalidComparison(
             "NullIf",
             Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -4091,7 +4091,7 @@ mod schema {
     // Coalesce function.
     test_schema!(
         coalesce_requires_at_least_one_arg,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Coalesce",
             required: 1,
             found: 0,
@@ -4211,7 +4211,7 @@ mod schema {
     // Slice function.
     test_schema!(
         slice_requires_more_than_one_arg,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Slice",
             required: 2,
             found: 1,
@@ -4225,7 +4225,7 @@ mod schema {
     );
     test_schema!(
         slice_requires_fewer_than_four_arg,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Slice",
             required: 2,
             found: 4,
@@ -4244,7 +4244,7 @@ mod schema {
     );
     test_schema!(
         slice_with_two_args_requires_an_array_for_the_first_arg,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Slice",
             required: ANY_ARRAY.clone(),
             found: Schema::Atomic(Atomic::String),
@@ -4260,7 +4260,7 @@ mod schema {
     );
     test_schema!(
         slice_with_two_args_requires_an_integer_for_the_second_arg,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Slice",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -4281,7 +4281,7 @@ mod schema {
     );
     test_schema!(
         slice_with_three_args_requires_an_array_for_the_first_arg,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Slice",
             required: ANY_ARRAY.clone(),
             found: Schema::Atomic(Atomic::String),
@@ -4298,7 +4298,7 @@ mod schema {
     );
     test_schema!(
         slice_with_three_args_requires_an_integer_for_the_second_arg,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Slice",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -4320,7 +4320,7 @@ mod schema {
     );
     test_schema!(
         slice_with_three_args_requires_an_integer_for_the_third_arg,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Slice",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
@@ -4371,7 +4371,7 @@ mod schema {
     // Split function.
     test_schema!(
         split_requires_three_args,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Split",
             required: 3,
             found: 1,
@@ -4386,7 +4386,7 @@ mod schema {
     );
     test_schema!(
         split_requires_string_or_nullish_for_first_arg,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Split",
             required: STRING_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer),
@@ -4403,7 +4403,7 @@ mod schema {
     );
     test_schema!(
         split_requires_string_or_nullish_for_second_arg,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Split",
             required: STRING_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer),
@@ -4420,7 +4420,7 @@ mod schema {
     );
     test_schema!(
         split_requires_integer_or_nullish_for_third_arg,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Split",
             required: INTEGER_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
@@ -4455,7 +4455,7 @@ mod schema {
     // Size function.
     test_schema!(
         size_requires_one_arg,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Size",
             required: 1,
             found: 0,
@@ -4468,7 +4468,7 @@ mod schema {
     );
     test_schema!(
         size_requires_array_arg,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "Size",
             required: Schema::AnyOf(set![
                 ANY_ARRAY.clone(),
@@ -4497,7 +4497,7 @@ mod schema {
     // Datasource tests.
     test_schema!(
         collection_schema_no_catalog,
-        expected = Err(ir_error::CollectionNotFound("test2".into(), "foo".into())),
+        expected = Err(mir_error::CollectionNotFound("test2".into(), "foo".into())),
         input = Stage::Collection(Collection {
             db: "test2".into(),
             collection: "foo".into(),
@@ -4507,7 +4507,7 @@ mod schema {
 
     test_schema!(
         collection_schema_namespace_not_in_catalog,
-        expected = Err(ir_error::CollectionNotFound("foo".into(), "baz".into())),
+        expected = Err(mir_error::CollectionNotFound("foo".into(), "baz".into())),
         input = Stage::Collection(Collection {
             db: "foo".into(),
             collection: "baz".into(),
@@ -4578,7 +4578,7 @@ mod schema {
     );
     test_schema!(
         literal_array_items_datasource_schema,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "array datasource items",
             required: ANY_DOCUMENT.clone(),
             found: Schema::AnyOf(set![
@@ -4699,13 +4699,13 @@ mod schema {
     mod filter {
         use crate::{
             catalog::Namespace,
-            ir::{schema::CachedSchema, schema::Error as ir_error, schema::SchemaCache, *},
             map,
+            mir::{schema::CachedSchema, schema::Error as mir_error, schema::SchemaCache, *},
             schema::{Atomic, ResultSet, Schema, ANY_DOCUMENT},
             set, unchecked_unique_linked_hash_map,
         };
 
-        fn true_ir() -> Expression {
+        fn true_mir() -> Expression {
             Expression::Literal(LiteralValue::Boolean(true).into())
         }
 
@@ -4722,7 +4722,7 @@ mod schema {
             expected_pat = Ok(_),
             input = Stage::Filter(Filter {
                 source: Box::new(test_source()),
-                condition: true_ir(),
+                condition: true_mir(),
                 cache: SchemaCache::new(),
             }),
             catalog = Catalog::new(map! {
@@ -4756,7 +4756,7 @@ mod schema {
         );
         test_schema!(
             non_boolean_condition_disallowed,
-            expected = Err(ir_error::SchemaChecking {
+            expected = Err(mir_error::SchemaChecking {
                 name: "filter condition",
                 required: Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Boolean),
@@ -4776,7 +4776,7 @@ mod schema {
         );
         test_schema!(
             possible_non_boolean_condition_disallowed,
-            expected = Err(ir_error::SchemaChecking {
+            expected = Err(mir_error::SchemaChecking {
                 name: "filter condition",
                 required: Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Boolean),
@@ -4800,7 +4800,7 @@ mod schema {
         );
         test_schema!(
             source_fails_schema_check,
-            expected_pat = Err(ir_error::SchemaChecking {
+            expected_pat = Err(mir_error::SchemaChecking {
                 name: "array datasource items",
                 ..
             }),
@@ -4811,13 +4811,13 @@ mod schema {
                     cache: SchemaCache::new(),
                 })
                 .into(),
-                condition: true_ir(),
+                condition: true_mir(),
                 cache: SchemaCache::new(),
             }),
         );
         test_schema!(
             condition_fails_schema_check,
-            expected = Err(ir_error::DatasourceNotFoundInSchemaEnv(
+            expected = Err(mir_error::DatasourceNotFoundInSchemaEnv(
                 ("abc", 0u16).into()
             )),
             input = Stage::Filter(Filter {
@@ -4837,7 +4837,7 @@ mod schema {
                 ..
             }),
             input = Stage::Filter(Filter {
-                condition: true_ir(),
+                condition: true_mir(),
                 source: Stage::Array(ArraySource {
                     alias: "arr".into(),
                     array: vec![Expression::Document(unchecked_unique_linked_hash_map!{"a".into() => Expression::Literal(LiteralValue::Null.into()),}.into())],
@@ -5006,7 +5006,7 @@ mod schema {
     );
     test_schema!(
         assert_expr_to_impossible_type,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "::!",
             required: Schema::Atomic(Atomic::String),
             found: Schema::Atomic(Atomic::Integer),
@@ -5021,7 +5021,7 @@ mod schema {
     // Searched Case
     test_schema!(
         searched_case_when_branch_condition_must_be_boolean_or_nullish,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "SearchedCase",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Boolean),
@@ -5074,7 +5074,7 @@ mod schema {
     // Simple Case
     test_schema!(
         simple_case_when_branch_operand_must_be_comparable_with_case_operand,
-        expected = Err(ir_error::InvalidComparison(
+        expected = Err(mir_error::InvalidComparison(
             "SimpleCase",
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Integer),
@@ -5368,7 +5368,7 @@ mod schema {
 
     test_schema!(
         exists_invalid_expression,
-        expected = Err(ir_error::IncorrectArgumentCount {
+        expected = Err(mir_error::IncorrectArgumentCount {
             name: "Div",
             required: 2,
             found: 3
@@ -5405,7 +5405,7 @@ mod schema {
 
     test_schema!(
         subquery_output_expr_violates_type_constraints,
-        expected = Err(ir_error::AccessMissingField("_2".into())),
+        expected = Err(mir_error::AccessMissingField("_2".into())),
         input = Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
@@ -5477,7 +5477,7 @@ mod schema {
 
     test_schema!(
         subquery_output_expr_correlated_datasource,
-        expected = Err(ir_error::DatasourceNotFoundInSchemaEnv(
+        expected = Err(mir_error::DatasourceNotFoundInSchemaEnv(
             ("foo", 0u16).into()
         )),
         input = Expression::Subquery(SubqueryExpr {
@@ -5561,7 +5561,7 @@ mod schema {
     // Analogous SQL query: "SELECT (SELECT * FROM foo)"
     test_schema!(
         subquery_cardinality_may_be_1,
-        expected = Err(ir_error::InvalidSubqueryCardinality),
+        expected = Err(mir_error::InvalidSubqueryCardinality),
         input = Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::Reference(("foo", 1u16).into())),
             subquery: Box::new(Stage::Collection(Collection {
@@ -5579,7 +5579,7 @@ mod schema {
     // Analogous SQL query: "SELECT (SELECT * FROM [{'a': 5}, {'a': 6}] AS foo)"
     test_schema!(
         subquery_expression_cardinality_gt_one,
-        expected = Err(ir_error::InvalidSubqueryCardinality),
+        expected = Err(mir_error::InvalidSubqueryCardinality),
         input = Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference(("foo", 1u16).into())),
@@ -5675,7 +5675,7 @@ mod schema {
 
     test_schema!(
         incomparable_argument_and_output_expr,
-        expected = Err(ir_error::InvalidComparison(
+        expected = Err(mir_error::InvalidComparison(
             "subquery comparison",
             Schema::Atomic(Atomic::String),
             Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]),
@@ -6043,7 +6043,7 @@ mod schema {
     );
     test_schema!(
         join_duplicate_datasource_names,
-        expected = Err(ir_error::DuplicateKey(("foo", 0u16).into())),
+        expected = Err(mir_error::DuplicateKey(("foo", 0u16).into())),
         input = Stage::Join(Join {
             join_type: JoinType::Inner,
             left: Box::new(Stage::Array(ArraySource {
@@ -6062,7 +6062,7 @@ mod schema {
     );
     test_schema!(
         invalid_join_condition,
-        expected = Err(ir_error::SchemaChecking {
+        expected = Err(mir_error::SchemaChecking {
             name: "join condition",
             required: BOOLEAN_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer),
@@ -6207,11 +6207,11 @@ mod schema {
     mod sort {
         use crate::{
             catalog::Namespace,
-            ir::{
-                schema::{CachedSchema, Error as ir_error, SchemaCache},
+            map,
+            mir::{
+                schema::{CachedSchema, Error as mir_error, SchemaCache},
                 *,
             },
-            map,
             schema::*,
             set,
         };
@@ -6261,7 +6261,7 @@ mod schema {
         );
         test_schema!(
             incomparable_schemas,
-            expected = Err(ir_error::SortKeyNotSelfComparable(
+            expected = Err(mir_error::SortKeyNotSelfComparable(
                 1,
                 Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Integer),
@@ -6304,7 +6304,7 @@ mod schema {
         );
         test_schema!(
             mix_comparable_and_incomparable_schemas,
-            expected = Err(ir_error::SortKeyNotSelfComparable(
+            expected = Err(mir_error::SortKeyNotSelfComparable(
                 0,
                 Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Integer),
@@ -6345,13 +6345,13 @@ mod schema {
     mod group_by {
         use crate::{
             catalog::Namespace,
-            ir::{
+            map,
+            mir::{
                 binding_tuple::Key,
-                schema::Error as ir_error,
+                schema::Error as mir_error,
                 schema::{CachedSchema, SchemaCache},
                 *,
             },
-            map,
             schema::*,
             set,
         };
@@ -6408,7 +6408,7 @@ mod schema {
         );
         test_schema!(
             key_schemas_not_all_self_comparable,
-            expected = Err(ir_error::GroupKeyNotSelfComparable(
+            expected = Err(mir_error::GroupKeyNotSelfComparable(
                 1,
                 Schema::AnyOf(set![
                     Schema::Atomic(Atomic::Integer),
@@ -6632,11 +6632,11 @@ mod schema {
     mod unwind {
         use crate::{
             catalog::{Catalog, Namespace},
-            ir::{
+            map,
+            mir::{
                 schema::{CachedSchema, Error, SchemaCache},
                 Collection, Expression, FieldAccess, Join, JoinType, Stage, Unwind,
             },
-            map,
             schema::{Atomic, Document, ResultSet, Schema},
             set,
         };
@@ -7496,7 +7496,7 @@ mod schema {
 
 mod constant_folding {
     use crate::{
-        ir::{definitions::*, schema::SchemaCache},
+        mir::{definitions::*, schema::SchemaCache},
         unchecked_unique_linked_hash_map,
     };
 
@@ -10601,7 +10601,7 @@ mod constant_folding {
 }
 
 mod flatten_node {
-    use crate::ir::{schema::SchemaCache, *};
+    use crate::mir::{schema::SchemaCache, *};
     fn test_source() -> Stage {
         Stage::Collection(Collection {
             db: "test".into(),

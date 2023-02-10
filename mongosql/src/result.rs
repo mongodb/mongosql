@@ -1,4 +1,4 @@
-use crate::{algebrizer, ast, codegen, ir, parser, schema, translator};
+use crate::{algebrizer, ast, codegen, mir, parser, schema, translator};
 use thiserror::Error;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -12,13 +12,13 @@ pub enum Error {
     #[error("algebrize error: {0}")]
     Algebrize(#[from] algebrizer::Error),
     #[error("schema inference error: {0}")]
-    SchemaInference(#[from] ir::schema::Error),
+    SchemaInference(#[from] mir::schema::Error),
     #[error("result set to json schema conversion error: {0}")]
     JsonSchemaConversion(schema::Error),
-    #[error("codegen ir error: {0}")]
-    CodegenIR(#[from] codegen::ir_to_mql::Error),
-    #[error("codegen agg_ir error: {0}")]
-    CodegenAggIR(#[from] codegen::agg_ir_to_mql::Error),
+    #[error("codegen mir error: {0}")]
+    CodegenMIR(#[from] codegen::mir_to_mql::Error),
+    #[error("codegen air error: {0}")]
+    CodegenAIR(#[from] codegen::air_to_mql::Error),
     #[error("translator error: {0}")]
     Translator(#[from] translator::Error),
 }

@@ -1,18 +1,18 @@
-macro_rules! test_codegen_agg_ir_expr {
+macro_rules! test_codegen_air_expr {
     ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
         #[test]
         fn $func_name() {
-            use crate::codegen::agg_ir_to_mql::MqlCodeGenerator;
+            use crate::codegen::air_to_mql::MqlCodeGenerator;
             let expected = $expected;
             let input = $input;
 
             let gen = MqlCodeGenerator { scope_level: 0u16 };
-            assert_eq!(expected, gen.codegen_agg_ir_expression(input));
+            assert_eq!(expected, gen.codegen_air_expression(input));
         }
     };
 }
 
-macro_rules! test_codegen_agg_ir_plan {
+macro_rules! test_codegen_air_plan {
     (
 		$func_name:ident,
 		expected = Ok({
@@ -24,7 +24,7 @@ macro_rules! test_codegen_agg_ir_plan {
 	) => {
         #[test]
         fn $func_name() {
-            use crate::codegen::{agg_ir_to_mql::MqlTranslation, generate_mql_from_agg_ir};
+            use crate::codegen::{air_to_mql::MqlTranslation, generate_mql_from_air};
 
             let input = $input;
             let expected_db = $expected_db;
@@ -35,7 +35,7 @@ macro_rules! test_codegen_agg_ir_plan {
                 database: db,
                 collection: col,
                 pipeline: pipeline,
-            } = generate_mql_from_agg_ir(input).expect("codegen failed");
+            } = generate_mql_from_air(input).expect("codegen failed");
 
             assert_eq!(expected_db, db);
             assert_eq!(expected_collection, col);
@@ -46,20 +46,20 @@ macro_rules! test_codegen_agg_ir_plan {
     ($func_name:ident, expected = Err($expected_err:expr), input = $input:expr,) => {
         #[test]
         fn $func_name() {
-            use crate::codegen::generate_mql_from_agg_ir;
+            use crate::codegen::generate_mql_from_air;
 
             let input = $input;
             let expected = Err($expected_err);
 
-            assert_eq!(expected, generate_mql_from_agg_ir(input));
+            assert_eq!(expected, generate_mql_from_air(input));
         }
     };
 }
 
-mod agg_ir_collection {
-    use crate::agg_ir::*;
+mod air_collection {
+    use crate::air::*;
 
-    test_codegen_agg_ir_plan!(
+    test_codegen_air_plan!(
         simple,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -73,66 +73,66 @@ mod agg_ir_collection {
     );
 }
 
-mod agg_ir_literal {
-    use crate::agg_ir::{Expression::*, LiteralValue::*};
+mod air_literal {
+    use crate::air::{Expression::*, LiteralValue::*};
     use bson::{bson, Bson};
 
-    test_codegen_agg_ir_expr!(
+    test_codegen_air_expr!(
         null,
         expected = Ok(bson!({ "$literal": Bson::Null })),
         input = Literal(Null)
     );
 
-    test_codegen_agg_ir_expr!(
+    test_codegen_air_expr!(
         boolean,
         expected = Ok(bson!({ "$literal": Bson::Boolean(true)})),
         input = Literal(Boolean(true))
     );
 
-    test_codegen_agg_ir_expr!(
+    test_codegen_air_expr!(
         string,
         expected = Ok(bson!({ "$literal": Bson::String("foo".to_string())})),
         input = Literal(String("foo".to_string()))
     );
 
-    test_codegen_agg_ir_expr!(
+    test_codegen_air_expr!(
         int,
         expected = Ok(bson!({ "$literal": 1_i32})),
         input = Literal(Integer(1))
     );
 
-    test_codegen_agg_ir_expr!(
+    test_codegen_air_expr!(
         long,
         expected = Ok(bson!({ "$literal": 2_i64})),
         input = Literal(Long(2))
     );
 
-    test_codegen_agg_ir_expr!(
+    test_codegen_air_expr!(
         double,
         expected = Ok(bson!({ "$literal": 3.0})),
         input = Literal(Double(3.0))
     );
 }
 
-mod agg_ir_document {
+mod air_document {
     use crate::{
-        agg_ir::{Expression::*, LiteralValue::*},
+        air::{Expression::*, LiteralValue::*},
         unchecked_unique_linked_hash_map,
     };
     use bson::bson;
 
-    test_codegen_agg_ir_expr!(
+    test_codegen_air_expr!(
         empty,
         expected = Ok(bson!({"$literal": {}})),
         input = Document(unchecked_unique_linked_hash_map! {})
     );
-    test_codegen_agg_ir_expr!(
+    test_codegen_air_expr!(
         non_empty,
         expected = Ok(bson!({"foo": {"$literal": 1}})),
         input =
             Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(1))})
     );
-    test_codegen_agg_ir_expr!(
+    test_codegen_air_expr!(
         nested,
         expected = Ok(bson!({"foo": {"$literal": 1}, "bar": {"baz": {"$literal": 2}}})),
         input = Document(unchecked_unique_linked_hash_map! {
@@ -144,39 +144,39 @@ mod agg_ir_document {
     );
 }
 
-mod agg_ir_array {
-    use crate::agg_ir::{Expression::*, LiteralValue::*};
+mod air_array {
+    use crate::air::{Expression::*, LiteralValue::*};
     use bson::bson;
 
-    test_codegen_agg_ir_expr!(empty, expected = Ok(bson!([])), input = Array(vec![]));
-    test_codegen_agg_ir_expr!(
+    test_codegen_air_expr!(empty, expected = Ok(bson!([])), input = Array(vec![]));
+    test_codegen_air_expr!(
         non_empty,
         expected = Ok(bson!([{"$literal": "abc"}])),
         input = Array(vec![Literal(String("abc".to_string()))])
     );
-    test_codegen_agg_ir_expr!(
+    test_codegen_air_expr!(
         nested,
         expected = Ok(bson!([{ "$literal": null }, [{ "$literal": null }]])),
         input = Array(vec![Literal(Null), Array(vec![Literal(Null)])])
     );
 }
 
-mod agg_ir_variable {
-    use crate::agg_ir::Expression::*;
+mod air_variable {
+    use crate::air::Expression::*;
     use bson::{bson, Bson};
 
-    test_codegen_agg_ir_expr!(
+    test_codegen_air_expr!(
         simple,
         expected = Ok(bson!(Bson::String("$$foo".to_string()))),
         input = Variable("foo".to_string())
     );
 }
 
-mod agg_ir_field_ref {
-    use crate::agg_ir::{Expression::FieldRef, FieldRefExpr};
+mod air_field_ref {
+    use crate::air::{Expression::FieldRef, FieldRefExpr};
     use bson::{bson, Bson};
 
-    test_codegen_agg_ir_expr!(
+    test_codegen_air_expr!(
         no_parent,
         expected = Ok(bson!(Bson::String("$foo".to_string()))),
         input = FieldRef(FieldRefExpr {
@@ -184,7 +184,7 @@ mod agg_ir_field_ref {
             name: "foo".to_string()
         })
     );
-    test_codegen_agg_ir_expr!(
+    test_codegen_air_expr!(
         parent,
         expected = Ok(bson!(Bson::String("$bar.foo".to_string()))),
         input = FieldRef(FieldRefExpr {
@@ -196,7 +196,7 @@ mod agg_ir_field_ref {
         })
     );
 
-    test_codegen_agg_ir_expr!(
+    test_codegen_air_expr!(
         grandparent,
         expected = Ok(bson!(Bson::String("$baz.bar.foo".to_string()))),
         input = FieldRef(FieldRefExpr {
@@ -212,10 +212,10 @@ mod agg_ir_field_ref {
     );
 }
 
-mod agg_ir_documents_stage {
-    use crate::agg_ir::*;
+mod air_documents_stage {
+    use crate::air::*;
 
-    test_codegen_agg_ir_plan!(
+    test_codegen_air_plan!(
         empty,
         expected = Ok({
             database: None,
@@ -228,7 +228,7 @@ mod agg_ir_documents_stage {
             array: vec![],
         }),
     );
-    test_codegen_agg_ir_plan!(
+    test_codegen_air_plan!(
         non_empty,
         expected = Ok({
             database: None,

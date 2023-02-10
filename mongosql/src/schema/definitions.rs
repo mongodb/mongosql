@@ -1,9 +1,9 @@
 use crate::{
-    ir::{
+    json_schema, map,
+    mir::{
         binding_tuple::{self, BindingTuple, DatasourceName, DuplicateKeyError, Key},
         Type, TypeOrMissing,
     },
-    json_schema, map,
     schema::Schema::{AnyOf, Unsat},
     set,
 };

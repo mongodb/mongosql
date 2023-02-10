@@ -282,7 +282,7 @@ pub fn run_type_constraint_tests() -> Result<(), Error> {
     for path in paths {
         let yaml = parse_type_constraint_yaml(&path).unwrap();
         // Calculate P(num_types, n) for 1 <= n <= 3, where num_types is the number
-        // of types specified by the IR.
+        // of types specified by the MIR.
         let all_type_permutations = (1..MAX_NUM_ARGS + 1)
             .map(|num_args| {
                 (

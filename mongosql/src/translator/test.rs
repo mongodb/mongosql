@@ -22,7 +22,7 @@ macro_rules! test_translate_stage {
     ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
         #[test]
         fn $func_name() {
-            use crate::{agg_ir, ir, translator};
+            use crate::{air, mir, translator};
             let translator = translator::MqlTranslator::new();
             let expected = $expected;
             let actual = translator.translate_stage($input);
@@ -32,81 +32,75 @@ macro_rules! test_translate_stage {
 }
 
 mod literal_expression {
-    use crate::{agg_ir, ir};
+    use crate::{air, mir};
     test_translate_expression!(
         null,
-        expected = Ok(agg_ir::Expression::Literal(agg_ir::LiteralValue::Null)),
-        input = ir::Expression::Literal(ir::LiteralValue::Null.into()),
+        expected = Ok(air::Expression::Literal(air::LiteralValue::Null)),
+        input = mir::Expression::Literal(mir::LiteralValue::Null.into()),
     );
     test_translate_expression!(
         boolean,
-        expected = Ok(agg_ir::Expression::Literal(agg_ir::LiteralValue::Boolean(
-            true
-        ))),
-        input = ir::Expression::Literal(ir::LiteralValue::Boolean(true).into()),
+        expected = Ok(air::Expression::Literal(air::LiteralValue::Boolean(true))),
+        input = mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
     );
     test_translate_expression!(
         integer,
-        expected = Ok(agg_ir::Expression::Literal(agg_ir::LiteralValue::Integer(
-            1
-        ))),
-        input = ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
+        expected = Ok(air::Expression::Literal(air::LiteralValue::Integer(1))),
+        input = mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
     );
     test_translate_expression!(
         string,
-        expected = Ok(agg_ir::Expression::Literal(agg_ir::LiteralValue::String(
+        expected = Ok(air::Expression::Literal(air::LiteralValue::String(
             "foo".to_string()
         ))),
-        input = ir::Expression::Literal(ir::LiteralValue::String("foo".to_string()).into()),
+        input = mir::Expression::Literal(mir::LiteralValue::String("foo".to_string()).into()),
     );
     test_translate_expression!(
         long,
-        expected = Ok(agg_ir::Expression::Literal(agg_ir::LiteralValue::Long(2))),
-        input = ir::Expression::Literal(ir::LiteralValue::Long(2).into()),
+        expected = Ok(air::Expression::Literal(air::LiteralValue::Long(2))),
+        input = mir::Expression::Literal(mir::LiteralValue::Long(2).into()),
     );
     test_translate_expression!(
         double,
-        expected = Ok(agg_ir::Expression::Literal(agg_ir::LiteralValue::Double(
-            3.0
-        ))),
-        input = ir::Expression::Literal(ir::LiteralValue::Double(3.0).into()),
+        expected = Ok(air::Expression::Literal(air::LiteralValue::Double(3.0))),
+        input = mir::Expression::Literal(mir::LiteralValue::Double(3.0).into()),
     );
 }
 
 mod document_expression {
     use crate::unchecked_unique_linked_hash_map;
-    use crate::{agg_ir, ir, translator::Error};
+    use crate::{air, mir, translator::Error};
     test_translate_expression!(
         empty,
-        expected = Ok(agg_ir::Expression::Document(
+        expected = Ok(air::Expression::Document(
             unchecked_unique_linked_hash_map! {}
         )),
-        input = ir::Expression::Document(unchecked_unique_linked_hash_map! {}.into()),
+        input = mir::Expression::Document(unchecked_unique_linked_hash_map! {}.into()),
     );
     test_translate_expression!(
         non_empty,
-        expected = Ok(agg_ir::Expression::Document(
-            unchecked_unique_linked_hash_map! {"foo".to_string() => agg_ir::Expression::Literal(agg_ir::LiteralValue::Integer(1))}
+        expected = Ok(air::Expression::Document(
+            unchecked_unique_linked_hash_map! {"foo".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))}
         )),
-        input = ir::Expression::Document(
-            unchecked_unique_linked_hash_map! {"foo".to_string() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),}
+        input = mir::Expression::Document(
+            unchecked_unique_linked_hash_map! {"foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),}
         .into()),
     );
     test_translate_expression!(
         nested,
-        expected = Ok(agg_ir::Expression::Document(
+        expected = Ok(air::Expression::Document(
             unchecked_unique_linked_hash_map! {
-                "foo".to_string() => agg_ir::Expression::Literal(agg_ir::LiteralValue::Integer(1)),
-                "bar".to_string() => agg_ir::Expression::Document(unchecked_unique_linked_hash_map!{
-                    "baz".to_string() => agg_ir::Expression::Literal(agg_ir::LiteralValue::Integer(2))
+                "foo".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1)),
+                "bar".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map!{
+                    "baz".to_string() => air::Expression::Literal(air::LiteralValue::Integer(2))
                 }),
             }
         )),
-        input = ir::Expression::Document(
+        input = mir::Expression::Document(
             unchecked_unique_linked_hash_map! {
-                "foo".to_string() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into()),
-                "bar".to_string() => ir::Expression::Document(unchecked_unique_linked_hash_map!{
-                    "baz".to_string() => ir::Expression::Literal(ir::LiteralValue::Integer(2).into())
+                "foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                "bar".to_string() => mir::Expression::Document(unchecked_unique_linked_hash_map!{
+                    "baz".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(2).into())
                 }.into()),
             }
             .into()
@@ -115,56 +109,54 @@ mod document_expression {
     test_translate_expression!(
         dollar_prefixed_key_disallowed,
         expected = Err(Error::InvalidDocumentKey("$foo".to_string())),
-        input = ir::Expression::Document(
-            unchecked_unique_linked_hash_map! {"$foo".to_string() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())}.into()),
+        input = mir::Expression::Document(
+            unchecked_unique_linked_hash_map! {"$foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())}.into()),
     );
     test_translate_expression!(
         key_containing_dot_disallowed,
         expected = Err(Error::InvalidDocumentKey("foo.bar".to_string())),
-        input = ir::Expression::Document(
-            unchecked_unique_linked_hash_map! {"foo.bar".to_string() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())}.into(),
+        input = mir::Expression::Document(
+            unchecked_unique_linked_hash_map! {"foo.bar".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())}.into(),
         ),
     );
     test_translate_expression!(
         empty_key_disallowed,
         expected = Err(Error::InvalidDocumentKey("".to_string())),
-        input = ir::Expression::Document(
-            unchecked_unique_linked_hash_map! {"".to_string() => ir::Expression::Literal(ir::LiteralValue::Integer(1).into())}.into()),
+        input = mir::Expression::Document(
+            unchecked_unique_linked_hash_map! {"".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())}.into()),
     );
 }
 
 mod array_expression {
-    use crate::{agg_ir, ir};
+    use crate::{air, mir};
     test_translate_expression!(
         empty,
-        expected = Ok(agg_ir::Expression::Array(vec![])),
-        input = ir::Expression::Array(vec![].into()),
+        expected = Ok(air::Expression::Array(vec![])),
+        input = mir::Expression::Array(vec![].into()),
     );
     test_translate_expression!(
         non_empty,
-        expected = Ok(agg_ir::Expression::Array(vec![
-            agg_ir::Expression::Literal(agg_ir::LiteralValue::String("abc".to_string()))
-        ])),
-        input = ir::Expression::Array(
-            vec![ir::Expression::Literal(
-                ir::LiteralValue::String("abc".into()).into()
+        expected = Ok(air::Expression::Array(vec![air::Expression::Literal(
+            air::LiteralValue::String("abc".to_string())
+        )])),
+        input = mir::Expression::Array(
+            vec![mir::Expression::Literal(
+                mir::LiteralValue::String("abc".into()).into()
             )]
             .into()
         ),
     );
     test_translate_expression!(
         nested,
-        expected = Ok(agg_ir::Expression::Array(vec![
-            agg_ir::Expression::Literal(agg_ir::LiteralValue::Null),
-            agg_ir::Expression::Array(vec![agg_ir::Expression::Literal(
-                agg_ir::LiteralValue::Null
-            )])
+        expected = Ok(air::Expression::Array(vec![
+            air::Expression::Literal(air::LiteralValue::Null),
+            air::Expression::Array(vec![air::Expression::Literal(air::LiteralValue::Null)])
         ])),
-        input = ir::Expression::Array(
+        input = mir::Expression::Array(
             vec![
-                ir::Expression::Literal(ir::LiteralValue::Null.into()),
-                ir::Expression::Array(
-                    vec![ir::Expression::Literal(ir::LiteralValue::Null.into())].into()
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+                mir::Expression::Array(
+                    vec![mir::Expression::Literal(mir::LiteralValue::Null.into())].into()
                 )
             ]
             .into()
@@ -173,20 +165,20 @@ mod array_expression {
 }
 
 mod reference_expression {
-    use crate::{agg_ir, ir, translator::Error};
+    use crate::{air, mir, translator::Error};
     test_translate_expression!(
         not_found,
         expected = Err(Error::ReferenceNotFound(("f", 0u16).into())),
-        input = ir::Expression::Reference(("f", 0u16).into()),
+        input = mir::Expression::Reference(("f", 0u16).into()),
     );
 
     test_translate_expression!(
         found,
-        expected = Ok(agg_ir::Expression::FieldRef(agg_ir::FieldRefExpr {
+        expected = Ok(air::Expression::FieldRef(air::FieldRefExpr {
             parent: None,
             name: "f".to_string()
         })),
-        input = ir::Expression::Reference(("f", 0u16).into()),
+        input = mir::Expression::Reference(("f", 0u16).into()),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("f", 0u16), "f");
@@ -200,39 +192,35 @@ mod documents_stage {
 
     test_translate_stage!(
         non_empty,
-        expected = Ok(agg_ir::Stage::Project(agg_ir::Project {
-            source: Box::new(agg_ir::Stage::Documents(agg_ir::Documents {
-                array: vec![agg_ir::Expression::Literal(agg_ir::LiteralValue::Boolean(
-                    false
-                ))],
+        expected = Ok(air::Stage::Project(air::Project {
+            source: Box::new(air::Stage::Documents(air::Documents {
+                array: vec![air::Expression::Literal(air::LiteralValue::Boolean(false))],
             })),
             specifications: unchecked_unique_linked_hash_map! {
-                "foo".into() => agg_ir::Expression::Variable("ROOT".into()),
+                "foo".into() => air::Expression::Variable("ROOT".into()),
             },
         })),
-        input = ir::Stage::Array(ir::ArraySource {
-            array: vec![ir::Expression::Literal(
-                ir::LiteralValue::Boolean(false).into()
+        input = mir::Stage::Array(mir::ArraySource {
+            array: vec![mir::Expression::Literal(
+                mir::LiteralValue::Boolean(false).into()
             )],
             alias: "foo".into(),
-            cache: ir::schema::SchemaCache::new(),
+            cache: mir::schema::SchemaCache::new(),
         })
     );
 
     test_translate_stage!(
         empty,
-        expected = Ok(agg_ir::Stage::Project(agg_ir::Project {
-            source: Box::new(agg_ir::Stage::Documents(agg_ir::Documents {
-                array: vec![],
-            })),
+        expected = Ok(air::Stage::Project(air::Project {
+            source: Box::new(air::Stage::Documents(air::Documents { array: vec![] })),
             specifications: unchecked_unique_linked_hash_map! {
                 "foo".into() => translator::ROOT.clone(),
             },
         })),
-        input = ir::Stage::Array(ir::ArraySource {
+        input = mir::Stage::Array(mir::ArraySource {
             array: vec![],
             alias: "foo".into(),
-            cache: ir::schema::SchemaCache::new(),
+            cache: mir::schema::SchemaCache::new(),
         })
     );
 }
@@ -242,8 +230,8 @@ mod collection {
 
     test_translate_stage!(
         collection,
-        expected = Ok(agg_ir::Stage::Project(agg_ir::Project {
-            source: Box::new(agg_ir::Stage::Collection(agg_ir::Collection {
+        expected = Ok(air::Stage::Project(air::Project {
+            source: Box::new(air::Stage::Collection(air::Collection {
                 db: "test_db".into(),
                 collection: "foo".into(),
             })),
@@ -251,10 +239,10 @@ mod collection {
                 "foo".into() => translator::ROOT.clone(),
             },
         })),
-        input = ir::Stage::Collection(ir::Collection {
+        input = mir::Stage::Collection(mir::Collection {
             db: "test_db".into(),
             collection: "foo".into(),
-            cache: ir::schema::SchemaCache::new(),
+            cache: mir::schema::SchemaCache::new(),
         })
     );
 }

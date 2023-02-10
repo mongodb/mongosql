@@ -1,11 +1,11 @@
 use crate::{
     catalog::*,
-    ir::{
+    map,
+    mir::{
         binding_tuple,
         unwind_util::{lift_array_schemas, set_field_schema},
         *,
     },
-    map,
     schema::{
         Atomic, Document, ResultSet, Satisfaction, Schema, SchemaEnvironment, ANY_ARRAY,
         ANY_ARRAY_OR_NULLISH, ANY_DOCUMENT, BOOLEAN_OR_NULLISH, DATE_OR_NULLISH, EMPTY_DOCUMENT,
@@ -823,7 +823,7 @@ impl AggregationFunction {
         state: &SchemaInferenceState,
         arg_schema: Schema,
     ) -> Result<Schema, Error> {
-        use crate::ir::AggregationFunction::*;
+        use crate::mir::AggregationFunction::*;
         use Satisfaction::*;
         Ok(match self {
             AddToArray => Schema::Array(Box::new(arg_schema)),

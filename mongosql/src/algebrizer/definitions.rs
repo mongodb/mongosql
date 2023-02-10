@@ -1,12 +1,12 @@
 use crate::{
     ast::{self, pretty_print::PrettyPrint},
     catalog::Catalog,
-    ir::{
+    map,
+    mir::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
     },
-    map,
     schema::{self, Satisfaction, SchemaEnvironment},
     util::unique_linked_hash_map::UniqueLinkedHashMap,
     SchemaCheckingMode,
@@ -27,7 +27,7 @@ macro_rules! schema_check_return {
 #[derive(Debug, Error, PartialEq)]
 pub enum Error {
     #[error("ADD_TO_SET should be removed before try_from")]
-    AddToSetDoesNotExistInIr,
+    AddToSetDoesNotExistInMir,
     #[error("all SELECT queries must have a FROM clause")]
     NoFromClause,
     #[error("standard SELECT expressions can only contain *")]
@@ -65,7 +65,7 @@ pub enum Error {
     #[error("{0} cannot be algebrized")]
     CannotBeAlgebrized(&'static str),
     #[error(transparent)]
-    SchemaChecking(#[from] ir::schema::Error),
+    SchemaChecking(#[from] mir::schema::Error),
     #[error("OUTER JOINs must specify a JOIN condition")]
     NoOuterJoinCondition,
     #[error("cannot create schema environment with duplicate key: {0:?}")]
@@ -98,24 +98,24 @@ pub enum Error {
     UnsupportedType(ast::TypeOrMissing),
 }
 
-impl TryFrom<ast::BinaryOp> for ir::ScalarFunction {
+impl TryFrom<ast::BinaryOp> for mir::ScalarFunction {
     type Error = Error;
 
     fn try_from(op: crate::ast::BinaryOp) -> Result<Self> {
         Ok(match op {
-            ast::BinaryOp::Add => ir::ScalarFunction::Add,
-            ast::BinaryOp::And => ir::ScalarFunction::And,
-            ast::BinaryOp::Concat => ir::ScalarFunction::Concat,
-            ast::BinaryOp::Div => ir::ScalarFunction::Div,
-            ast::BinaryOp::Comparison(ast::ComparisonOp::Eq) => ir::ScalarFunction::Eq,
-            ast::BinaryOp::Comparison(ast::ComparisonOp::Gt) => ir::ScalarFunction::Gt,
-            ast::BinaryOp::Comparison(ast::ComparisonOp::Gte) => ir::ScalarFunction::Gte,
-            ast::BinaryOp::Comparison(ast::ComparisonOp::Lt) => ir::ScalarFunction::Lt,
-            ast::BinaryOp::Comparison(ast::ComparisonOp::Lte) => ir::ScalarFunction::Lte,
-            ast::BinaryOp::Comparison(ast::ComparisonOp::Neq) => ir::ScalarFunction::Neq,
-            ast::BinaryOp::Mul => ir::ScalarFunction::Mul,
-            ast::BinaryOp::Or => ir::ScalarFunction::Or,
-            ast::BinaryOp::Sub => ir::ScalarFunction::Sub,
+            ast::BinaryOp::Add => mir::ScalarFunction::Add,
+            ast::BinaryOp::And => mir::ScalarFunction::And,
+            ast::BinaryOp::Concat => mir::ScalarFunction::Concat,
+            ast::BinaryOp::Div => mir::ScalarFunction::Div,
+            ast::BinaryOp::Comparison(ast::ComparisonOp::Eq) => mir::ScalarFunction::Eq,
+            ast::BinaryOp::Comparison(ast::ComparisonOp::Gt) => mir::ScalarFunction::Gt,
+            ast::BinaryOp::Comparison(ast::ComparisonOp::Gte) => mir::ScalarFunction::Gte,
+            ast::BinaryOp::Comparison(ast::ComparisonOp::Lt) => mir::ScalarFunction::Lt,
+            ast::BinaryOp::Comparison(ast::ComparisonOp::Lte) => mir::ScalarFunction::Lte,
+            ast::BinaryOp::Comparison(ast::ComparisonOp::Neq) => mir::ScalarFunction::Neq,
+            ast::BinaryOp::Mul => mir::ScalarFunction::Mul,
+            ast::BinaryOp::Or => mir::ScalarFunction::Or,
+            ast::BinaryOp::Sub => mir::ScalarFunction::Sub,
             ast::BinaryOp::In | ast::BinaryOp::NotIn => {
                 return Err(Error::CannotBeAlgebrized(op.as_str()))
             }
@@ -123,37 +123,37 @@ impl TryFrom<ast::BinaryOp> for ir::ScalarFunction {
     }
 }
 
-impl TryFrom<ast::FunctionName> for ir::ScalarFunction {
+impl TryFrom<ast::FunctionName> for mir::ScalarFunction {
     type Error = Error;
 
     fn try_from(f: crate::ast::FunctionName) -> Result<Self> {
         Ok(match f {
-            ast::FunctionName::Abs => ir::ScalarFunction::Abs,
-            ast::FunctionName::BitLength => ir::ScalarFunction::BitLength,
-            ast::FunctionName::Ceil => ir::ScalarFunction::Ceil,
-            ast::FunctionName::CharLength => ir::ScalarFunction::CharLength,
-            ast::FunctionName::Coalesce => ir::ScalarFunction::Coalesce,
-            ast::FunctionName::Cos => ir::ScalarFunction::Cos,
-            ast::FunctionName::CurrentTimestamp => ir::ScalarFunction::CurrentTimestamp,
-            ast::FunctionName::Degrees => ir::ScalarFunction::Degrees,
-            ast::FunctionName::Floor => ir::ScalarFunction::Floor,
-            ast::FunctionName::Log => ir::ScalarFunction::Log,
-            ast::FunctionName::Lower => ir::ScalarFunction::Lower,
-            ast::FunctionName::Mod => ir::ScalarFunction::Mod,
-            ast::FunctionName::NullIf => ir::ScalarFunction::NullIf,
-            ast::FunctionName::OctetLength => ir::ScalarFunction::OctetLength,
-            ast::FunctionName::Position => ir::ScalarFunction::Position,
-            ast::FunctionName::Pow => ir::ScalarFunction::Pow,
-            ast::FunctionName::Radians => ir::ScalarFunction::Radians,
-            ast::FunctionName::Round => ir::ScalarFunction::Round,
-            ast::FunctionName::Sin => ir::ScalarFunction::Sin,
-            ast::FunctionName::Size => ir::ScalarFunction::Size,
-            ast::FunctionName::Slice => ir::ScalarFunction::Slice,
-            ast::FunctionName::Split => ir::ScalarFunction::Split,
-            ast::FunctionName::Sqrt => ir::ScalarFunction::Sqrt,
-            ast::FunctionName::Substring => ir::ScalarFunction::Substring,
-            ast::FunctionName::Tan => ir::ScalarFunction::Tan,
-            ast::FunctionName::Upper => ir::ScalarFunction::Upper,
+            ast::FunctionName::Abs => mir::ScalarFunction::Abs,
+            ast::FunctionName::BitLength => mir::ScalarFunction::BitLength,
+            ast::FunctionName::Ceil => mir::ScalarFunction::Ceil,
+            ast::FunctionName::CharLength => mir::ScalarFunction::CharLength,
+            ast::FunctionName::Coalesce => mir::ScalarFunction::Coalesce,
+            ast::FunctionName::Cos => mir::ScalarFunction::Cos,
+            ast::FunctionName::CurrentTimestamp => mir::ScalarFunction::CurrentTimestamp,
+            ast::FunctionName::Degrees => mir::ScalarFunction::Degrees,
+            ast::FunctionName::Floor => mir::ScalarFunction::Floor,
+            ast::FunctionName::Log => mir::ScalarFunction::Log,
+            ast::FunctionName::Lower => mir::ScalarFunction::Lower,
+            ast::FunctionName::Mod => mir::ScalarFunction::Mod,
+            ast::FunctionName::NullIf => mir::ScalarFunction::NullIf,
+            ast::FunctionName::OctetLength => mir::ScalarFunction::OctetLength,
+            ast::FunctionName::Position => mir::ScalarFunction::Position,
+            ast::FunctionName::Pow => mir::ScalarFunction::Pow,
+            ast::FunctionName::Radians => mir::ScalarFunction::Radians,
+            ast::FunctionName::Round => mir::ScalarFunction::Round,
+            ast::FunctionName::Sin => mir::ScalarFunction::Sin,
+            ast::FunctionName::Size => mir::ScalarFunction::Size,
+            ast::FunctionName::Slice => mir::ScalarFunction::Slice,
+            ast::FunctionName::Split => mir::ScalarFunction::Split,
+            ast::FunctionName::Sqrt => mir::ScalarFunction::Sqrt,
+            ast::FunctionName::Substring => mir::ScalarFunction::Substring,
+            ast::FunctionName::Tan => mir::ScalarFunction::Tan,
+            ast::FunctionName::Upper => mir::ScalarFunction::Upper,
 
             ast::FunctionName::AddToArray
             | ast::FunctionName::AddToSet
@@ -173,23 +173,23 @@ impl TryFrom<ast::FunctionName> for ir::ScalarFunction {
     }
 }
 
-impl TryFrom<ast::FunctionName> for ir::AggregationFunction {
+impl TryFrom<ast::FunctionName> for mir::AggregationFunction {
     type Error = Error;
 
     fn try_from(f: crate::ast::FunctionName) -> Result<Self> {
         Ok(match f {
-            ast::FunctionName::AddToArray => ir::AggregationFunction::AddToArray,
-            ast::FunctionName::AddToSet => return Err(Error::AddToSetDoesNotExistInIr),
-            ast::FunctionName::Avg => ir::AggregationFunction::Avg,
-            ast::FunctionName::Count => ir::AggregationFunction::Count,
-            ast::FunctionName::First => ir::AggregationFunction::First,
-            ast::FunctionName::Last => ir::AggregationFunction::Last,
-            ast::FunctionName::Max => ir::AggregationFunction::Max,
-            ast::FunctionName::MergeDocuments => ir::AggregationFunction::MergeDocuments,
-            ast::FunctionName::Min => ir::AggregationFunction::Min,
-            ast::FunctionName::StddevPop => ir::AggregationFunction::StddevPop,
-            ast::FunctionName::StddevSamp => ir::AggregationFunction::StddevSamp,
-            ast::FunctionName::Sum => ir::AggregationFunction::Sum,
+            ast::FunctionName::AddToArray => mir::AggregationFunction::AddToArray,
+            ast::FunctionName::AddToSet => return Err(Error::AddToSetDoesNotExistInMir),
+            ast::FunctionName::Avg => mir::AggregationFunction::Avg,
+            ast::FunctionName::Count => mir::AggregationFunction::Count,
+            ast::FunctionName::First => mir::AggregationFunction::First,
+            ast::FunctionName::Last => mir::AggregationFunction::Last,
+            ast::FunctionName::Max => mir::AggregationFunction::Max,
+            ast::FunctionName::MergeDocuments => mir::AggregationFunction::MergeDocuments,
+            ast::FunctionName::Min => mir::AggregationFunction::Min,
+            ast::FunctionName::StddevPop => mir::AggregationFunction::StddevPop,
+            ast::FunctionName::StddevSamp => mir::AggregationFunction::StddevSamp,
+            ast::FunctionName::Sum => mir::AggregationFunction::Sum,
 
             ast::FunctionName::Abs
             | ast::FunctionName::BitLength
@@ -223,15 +223,15 @@ impl TryFrom<ast::FunctionName> for ir::AggregationFunction {
     }
 }
 
-impl From<crate::ast::ComparisonOp> for ir::SubqueryComparisonOp {
+impl From<crate::ast::ComparisonOp> for mir::SubqueryComparisonOp {
     fn from(op: crate::ast::ComparisonOp) -> Self {
         match op {
-            ast::ComparisonOp::Eq => ir::SubqueryComparisonOp::Eq,
-            ast::ComparisonOp::Gt => ir::SubqueryComparisonOp::Gt,
-            ast::ComparisonOp::Gte => ir::SubqueryComparisonOp::Gte,
-            ast::ComparisonOp::Lt => ir::SubqueryComparisonOp::Lt,
-            ast::ComparisonOp::Lte => ir::SubqueryComparisonOp::Lte,
-            ast::ComparisonOp::Neq => ir::SubqueryComparisonOp::Neq,
+            ast::ComparisonOp::Eq => mir::SubqueryComparisonOp::Eq,
+            ast::ComparisonOp::Gt => mir::SubqueryComparisonOp::Gt,
+            ast::ComparisonOp::Gte => mir::SubqueryComparisonOp::Gte,
+            ast::ComparisonOp::Lt => mir::SubqueryComparisonOp::Lt,
+            ast::ComparisonOp::Lte => mir::SubqueryComparisonOp::Lte,
+            ast::ComparisonOp::Neq => mir::SubqueryComparisonOp::Neq,
         }
     }
 }
@@ -296,7 +296,7 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
-    pub fn algebrize_query(&self, ast_node: ast::Query) -> Result<ir::Stage> {
+    pub fn algebrize_query(&self, ast_node: ast::Query) -> Result<mir::Stage> {
         match ast_node {
             ast::Query::Select(q) => self.algebrize_select_query(q),
             ast::Query::Set(s) => self.algebrize_set_query(s),
@@ -310,7 +310,7 @@ impl<'a> Algebrizer<'a> {
         Ok(self)
     }
 
-    pub fn algebrize_select_query(&self, ast_node: ast::SelectQuery) -> Result<ir::Stage> {
+    pub fn algebrize_select_query(&self, ast_node: ast::SelectQuery) -> Result<mir::Stage> {
         let plan = self.algebrize_from_clause(ast_node.from_clause)?;
         let plan = self.algebrize_filter_clause(ast_node.where_clause, plan)?;
         let plan = self.algebrize_group_by_clause(ast_node.group_by_clause, plan)?;
@@ -322,13 +322,13 @@ impl<'a> Algebrizer<'a> {
         Ok(plan)
     }
 
-    pub fn algebrize_set_query(&self, ast_node: ast::SetQuery) -> Result<ir::Stage> {
+    pub fn algebrize_set_query(&self, ast_node: ast::SetQuery) -> Result<mir::Stage> {
         match ast_node.op {
             ast::SetOperator::Union => Err(Error::DistinctUnion),
             ast::SetOperator::UnionAll => schema_check_return!(
                 self,
-                ir::Stage::Set(ir::Set {
-                    operation: ir::SetOperation::UnionAll,
+                mir::Stage::Set(mir::Set {
+                    operation: mir::SetOperation::UnionAll,
                     left: Box::new(self.algebrize_query(*ast_node.left)?),
                     right: Box::new(self.algebrize_query(*ast_node.right)?),
                     cache: SchemaCache::new(),
@@ -340,8 +340,8 @@ impl<'a> Algebrizer<'a> {
     fn algebrize_select_values_body(
         &self,
         exprs: Vec<ast::SelectValuesExpression>,
-        source: ir::Stage,
-    ) -> Result<ir::Stage> {
+        source: mir::Stage,
+    ) -> Result<mir::Stage> {
         let expression_algebrizer = self.clone();
         // Algebrization for every node that has a source should get the schema for the source.
         // The SchemaEnvironment from the source is merged into the SchemaEnvironment from the
@@ -390,7 +390,7 @@ impl<'a> Algebrizer<'a> {
                             .ok_or_else(|| Error::NoSuchDatasource(datasource.clone()))?;
                         Ok((
                             key,
-                            ir::Expression::Reference(
+                            mir::Expression::Reference(
                                 Key {
                                     datasource: DatasourceName::Named(s.datasource),
                                     scope,
@@ -403,7 +403,7 @@ impl<'a> Algebrizer<'a> {
             })
             .collect::<Result<_>>()?;
         // Build the Project Stage using the source and built expression.
-        let stage = ir::Stage::Project(ir::Project {
+        let stage = mir::Stage::Project(mir::Project {
             source: Box::new(source),
             expression,
             cache: SchemaCache::new(),
@@ -412,12 +412,12 @@ impl<'a> Algebrizer<'a> {
         Ok(stage)
     }
 
-    pub fn algebrize_from_clause(&self, ast_node: Option<ast::Datasource>) -> Result<ir::Stage> {
+    pub fn algebrize_from_clause(&self, ast_node: Option<ast::Datasource>) -> Result<mir::Stage> {
         let ast_node = ast_node.ok_or(Error::NoFromClause)?;
         self.algebrize_datasource(ast_node)
     }
 
-    pub fn algebrize_datasource(&self, ast_node: ast::Datasource) -> Result<ir::Stage> {
+    pub fn algebrize_datasource(&self, ast_node: ast::Datasource) -> Result<mir::Stage> {
         match ast_node {
             ast::Datasource::Array(a) => self.algebrize_array_datasource(a),
             ast::Datasource::Collection(c) => self.algebrize_collection_datasource(c),
@@ -428,13 +428,13 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
-    fn algebrize_array_datasource(&self, a: ast::ArraySource) -> Result<ir::Stage> {
+    fn algebrize_array_datasource(&self, a: ast::ArraySource) -> Result<mir::Stage> {
         let (ve, alias) = (a.array, a.alias);
         let (ve, array_is_literal) = ast::visitors::are_literal(ve);
         if !array_is_literal {
             return Err(Error::ArrayDatasourceMustBeLiteral);
         }
-        let stage = ir::Stage::Array(ir::ArraySource {
+        let stage = mir::Stage::Array(mir::ArraySource {
             array: ve
                 .into_iter()
                 .map(|e| self.algebrize_expression(e))
@@ -446,20 +446,20 @@ impl<'a> Algebrizer<'a> {
         Ok(stage)
     }
 
-    fn algebrize_collection_datasource(&self, c: ast::CollectionSource) -> Result<ir::Stage> {
-        let src = ir::Stage::Collection(ir::Collection {
+    fn algebrize_collection_datasource(&self, c: ast::CollectionSource) -> Result<mir::Stage> {
+        let src = mir::Stage::Collection(mir::Collection {
             db: c.database.unwrap_or_else(|| self.current_db.to_string()),
             collection: c.collection.clone(),
             cache: SchemaCache::new(),
         });
         let stage = match c.alias {
             Some(alias) => {
-                let mut expr_map: BindingTuple<ir::Expression> = BindingTuple::new();
+                let mut expr_map: BindingTuple<mir::Expression> = BindingTuple::new();
                 expr_map.insert(
                     (alias, self.scope_level).into(),
-                    ir::Expression::Reference((c.collection, self.scope_level).into()),
+                    mir::Expression::Reference((c.collection, self.scope_level).into()),
                 );
-                ir::Stage::Project(ir::Project {
+                mir::Stage::Project(mir::Project {
                     source: Box::new(src),
                     expression: expr_map,
                     cache: SchemaCache::new(),
@@ -471,7 +471,7 @@ impl<'a> Algebrizer<'a> {
         Ok(stage)
     }
 
-    fn algebrize_join_datasource(&self, j: ast::JoinSource) -> Result<ir::Stage> {
+    fn algebrize_join_datasource(&self, j: ast::JoinSource) -> Result<mir::Stage> {
         let left_src = self.algebrize_datasource(*j.left)?;
         let right_src = self.algebrize_datasource(*j.right)?;
         let left_src_result_set = left_src.schema(&self.schema_inference_state())?;
@@ -492,8 +492,8 @@ impl<'a> Algebrizer<'a> {
                 if condition.is_none() {
                     return Err(Error::NoOuterJoinCondition);
                 }
-                ir::Stage::Join(ir::Join {
-                    join_type: ir::JoinType::Left,
+                mir::Stage::Join(mir::Join {
+                    join_type: mir::JoinType::Left,
                     left: Box::new(left_src),
                     right: Box::new(right_src),
                     condition,
@@ -504,16 +504,16 @@ impl<'a> Algebrizer<'a> {
                 if condition.is_none() {
                     return Err(Error::NoOuterJoinCondition);
                 }
-                ir::Stage::Join(ir::Join {
-                    join_type: ir::JoinType::Left,
+                mir::Stage::Join(mir::Join {
+                    join_type: mir::JoinType::Left,
                     left: Box::new(right_src),
                     right: Box::new(left_src),
                     condition,
                     cache: SchemaCache::new(),
                 })
             }
-            ast::JoinType::Cross | ast::JoinType::Inner => ir::Stage::Join(ir::Join {
-                join_type: ir::JoinType::Inner,
+            ast::JoinType::Cross | ast::JoinType::Inner => mir::Stage::Join(mir::Join {
+                join_type: mir::JoinType::Inner,
                 left: Box::new(left_src),
                 right: Box::new(right_src),
                 condition,
@@ -523,7 +523,7 @@ impl<'a> Algebrizer<'a> {
         Ok(stage)
     }
 
-    fn algebrize_derived_datasource(&self, d: ast::DerivedSource) -> Result<ir::Stage> {
+    fn algebrize_derived_datasource(&self, d: ast::DerivedSource) -> Result<mir::Stage> {
         let derived_algebrizer = Algebrizer::new(
             self.current_db,
             self.catalog,
@@ -534,17 +534,17 @@ impl<'a> Algebrizer<'a> {
         let src_resultset = src.schema(&derived_algebrizer.schema_inference_state())?;
         let expression = map! {
             (d.alias, self.scope_level).into() =>
-            ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
-                function: ir::ScalarFunction::MergeObjects,
+            mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::MergeObjects,
                 args: src_resultset
                     .schema_env
                     .into_iter()
-                    .map(|(k, _)| ir::Expression::Reference(k.into()))
+                    .map(|(k, _)| mir::Expression::Reference(k.into()))
                     .collect::<Vec<_>>(),
                 cache: SchemaCache::new(),
             }),
         };
-        let stage = ir::Stage::Project(ir::Project {
+        let stage = mir::Stage::Project(mir::Project {
             source: Box::new(src),
             expression,
             cache: SchemaCache::new(),
@@ -552,19 +552,19 @@ impl<'a> Algebrizer<'a> {
         stage
             .schema(&derived_algebrizer.schema_inference_state())
             .map_err(|e| match e {
-                ir::schema::Error::CannotMergeObjects(s1, s2, sat) => {
+                mir::schema::Error::CannotMergeObjects(s1, s2, sat) => {
                     Error::DerivedDatasouceOverlappingKeys(s1, s2, sat)
                 }
                 _ => Error::SchemaChecking(e),
             })?;
 
-        Ok(ir::Stage::Derived(ir::Derived {
+        Ok(mir::Stage::Derived(mir::Derived {
             source: Box::new(stage),
             cache: SchemaCache::new(),
         }))
     }
 
-    fn algebrize_flatten_datasource(&self, f: ast::FlattenSource) -> Result<ir::Stage> {
+    fn algebrize_flatten_datasource(&self, f: ast::FlattenSource) -> Result<mir::Stage> {
         let source = self.algebrize_datasource(*f.datasource.clone())?;
         let source_result_set = source.schema(&self.schema_inference_state())?;
 
@@ -629,12 +629,12 @@ impl<'a> Algebrizer<'a> {
                             .into_iter(),
                     )
                     .map_err(|e| Error::DuplicateDocumentKey(e.get_key_name()))?;
-                Ok((key, ir::Expression::Document(project_expression.into())))
+                Ok((key, mir::Expression::Document(project_expression.into())))
             })
-            .collect::<Result<BindingTuple<ir::Expression>>>()?;
+            .collect::<Result<BindingTuple<mir::Expression>>>()?;
 
         // Build the Project stage using the source and built expression
-        let stage = ir::Stage::Project(ir::Project {
+        let stage = mir::Stage::Project(mir::Project {
             source: Box::new(source),
             expression,
             cache: SchemaCache::new(),
@@ -643,7 +643,7 @@ impl<'a> Algebrizer<'a> {
         Ok(stage)
     }
 
-    fn algebrize_unwind_datasource(&self, u: ast::UnwindSource) -> Result<ir::Stage> {
+    fn algebrize_unwind_datasource(&self, u: ast::UnwindSource) -> Result<mir::Stage> {
         let src = self.algebrize_datasource(*u.datasource)?;
 
         // Extract user-specified options. OUTER defaults to false.
@@ -678,7 +678,7 @@ impl<'a> Algebrizer<'a> {
             Some(e) => path_expression_algebrizer.algebrize_unwind_path(e)?,
         };
 
-        let stage = ir::Stage::Unwind(ir::Unwind {
+        let stage = mir::Stage::Unwind(mir::Unwind {
             source: Box::new(src),
             path: Box::new(path),
             index,
@@ -700,21 +700,21 @@ impl<'a> Algebrizer<'a> {
     /// identifier. Here, this means the algebrized expression is a FieldAccess
     /// expression which consists of only other FieldAccess expressions up the
     /// chain of exprs until it hits a Reference expression.
-    fn algebrize_unwind_path(&self, path: ast::Expression) -> Result<ir::Expression> {
+    fn algebrize_unwind_path(&self, path: ast::Expression) -> Result<mir::Expression> {
         /// Auxiliary function that recursively walks up the FieldAccess
         /// tree, ensuring each parent expression is a FieldAccess until
         /// it hits a reference.
-        fn is_valid_path(e: ir::Expression) -> bool {
+        fn is_valid_path(e: mir::Expression) -> bool {
             match e {
-                ir::Expression::Reference(_) => true,
-                ir::Expression::FieldAccess(f) => is_valid_path(*f.expr),
+                mir::Expression::Reference(_) => true,
+                mir::Expression::FieldAccess(f) => is_valid_path(*f.expr),
                 _ => false,
             }
         }
 
         let path = self.algebrize_expression(path)?;
         if is_valid_path(path.clone()) {
-            if let ir::Expression::FieldAccess(_) = path {
+            if let mir::Expression::FieldAccess(_) = path {
                 return Ok(path);
             }
         };
@@ -723,13 +723,13 @@ impl<'a> Algebrizer<'a> {
     }
 
     #[allow(clippy::only_used_in_recursion)] // false positive
-    pub fn algebrize_flattened_field_path(&self, key: Key, path: Vec<String>) -> ir::Expression {
+    pub fn algebrize_flattened_field_path(&self, key: Key, path: Vec<String>) -> mir::Expression {
         match path.len() {
-            0 => ir::Expression::Reference(ir::ReferenceExpr {
+            0 => mir::Expression::Reference(mir::ReferenceExpr {
                 key,
                 cache: SchemaCache::new(),
             }),
-            _ => ir::Expression::FieldAccess(ir::FieldAccess {
+            _ => mir::Expression::FieldAccess(mir::FieldAccess {
                 expr: Box::new(
                     self.algebrize_flattened_field_path(key, path.split_last().unwrap().1.to_vec()),
                 ),
@@ -742,15 +742,15 @@ impl<'a> Algebrizer<'a> {
     pub fn algebrize_filter_clause(
         &self,
         ast_node: Option<ast::Expression>,
-        source: ir::Stage,
-    ) -> Result<ir::Stage> {
+        source: mir::Stage,
+    ) -> Result<mir::Stage> {
         let filtered = match ast_node {
             None => source,
             Some(expr) => {
                 let expression_algebrizer = self.clone().with_merged_mappings(
                     source.schema(&self.schema_inference_state())?.schema_env,
                 )?;
-                ir::Stage::Filter(ir::Filter {
+                mir::Stage::Filter(mir::Filter {
                     source: Box::new(source),
                     condition: expression_algebrizer.algebrize_expression(expr)?,
                     cache: SchemaCache::new(),
@@ -764,8 +764,8 @@ impl<'a> Algebrizer<'a> {
     pub fn algebrize_select_clause(
         &self,
         ast_node: ast::SelectClause,
-        source: ir::Stage,
-    ) -> Result<ir::Stage> {
+        source: mir::Stage,
+    ) -> Result<mir::Stage> {
         match ast_node.set_quantifier {
             ast::SetQuantifier::All => (),
             ast::SetQuantifier::Distinct => return Err(Error::DistinctSelect),
@@ -793,8 +793,8 @@ impl<'a> Algebrizer<'a> {
     pub fn algebrize_order_by_clause(
         &self,
         ast_node: Option<ast::OrderByClause>,
-        source: ir::Stage,
-    ) -> Result<ir::Stage> {
+        source: mir::Stage,
+    ) -> Result<mir::Stage> {
         let expression_algebrizer = self
             .clone()
             .with_merged_mappings(source.schema(&self.schema_inference_state())?.schema_env)?;
@@ -813,15 +813,15 @@ impl<'a> Algebrizer<'a> {
                         }?;
                         match s.direction {
                             ast::SortDirection::Asc => {
-                                Ok(ir::SortSpecification::Asc(Box::new(key)))
+                                Ok(mir::SortSpecification::Asc(Box::new(key)))
                             }
                             ast::SortDirection::Desc => {
-                                Ok(ir::SortSpecification::Desc(Box::new(key)))
+                                Ok(mir::SortSpecification::Desc(Box::new(key)))
                             }
                         }
                     })
-                    .collect::<Result<Vec<ir::SortSpecification>>>()?;
-                ir::Stage::Sort(ir::Sort {
+                    .collect::<Result<Vec<mir::SortSpecification>>>()?;
+                mir::Stage::Sort(mir::Sort {
                     source: Box::new(source),
                     specs: sort_specs,
                     cache: SchemaCache::new(),
@@ -835,8 +835,8 @@ impl<'a> Algebrizer<'a> {
     pub fn algebrize_group_by_clause(
         &self,
         ast_node: Option<ast::GroupByClause>,
-        source: ir::Stage,
-    ) -> Result<ir::Stage> {
+        source: mir::Stage,
+    ) -> Result<mir::Stage> {
         let grouped = match ast_node {
             None => source,
             Some(ast_expr) => {
@@ -853,14 +853,14 @@ impl<'a> Algebrizer<'a> {
                             group_clause_aliases
                                 .insert(ast_key.alias.clone(), ())
                                 .map_err(|e| Error::DuplicateDocumentKey(e.get_key_name()))?;
-                            Ok(ir::OptionallyAliasedExpr::Aliased(ir::AliasedExpr {
+                            Ok(mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
                                 alias: ast_key.alias,
                                 expr: expression_algebrizer.algebrize_expression(ast_key.expr)?,
                             }))
                         }
                         ast::OptionallyAliasedExpr::Unaliased(expr) => expression_algebrizer
                             .algebrize_expression(expr)
-                            .map(ir::OptionallyAliasedExpr::Unaliased),
+                            .map(mir::OptionallyAliasedExpr::Unaliased),
                     })
                     .collect::<Result<_>>()?;
 
@@ -872,7 +872,7 @@ impl<'a> Algebrizer<'a> {
                         group_clause_aliases
                             .insert(ast_agg.alias.clone(), ())
                             .map_err(|e| Error::DuplicateDocumentKey(e.get_key_name()))?;
-                        Ok(ir::AliasedAggregation {
+                        Ok(mir::AliasedAggregation {
                             agg_expr: match ast_agg.expr {
                                 ast::Expression::Function(f) => {
                                     expression_algebrizer.algebrize_aggregation(f)
@@ -884,7 +884,7 @@ impl<'a> Algebrizer<'a> {
                     })
                     .collect::<Result<_>>()?;
 
-                ir::Stage::Group(ir::Group {
+                mir::Stage::Group(mir::Group {
                     source: Box::new(source),
                     keys,
                     aggregations,
@@ -897,7 +897,7 @@ impl<'a> Algebrizer<'a> {
         Ok(grouped)
     }
 
-    pub fn algebrize_aggregation(&self, f: ast::FunctionExpr) -> Result<ir::AggregationExpr> {
+    pub fn algebrize_aggregation(&self, f: ast::FunctionExpr) -> Result<mir::AggregationExpr> {
         let (distinct, function) = if f.function == ast::FunctionName::AddToSet {
             (true, ast::FunctionName::AddToArray)
         } else {
@@ -906,16 +906,16 @@ impl<'a> Algebrizer<'a> {
                 f.function,
             )
         };
-        let ir_node = match f.args {
+        let mir_node = match f.args {
             ast::FunctionArguments::Star => {
                 if f.function == ast::FunctionName::Count {
-                    schema_check_return!(self, ir::AggregationExpr::CountStar(distinct),)
+                    schema_check_return!(self, mir::AggregationExpr::CountStar(distinct),)
                 }
                 return Err(Error::StarInNonCount);
             }
             ast::FunctionArguments::Args(ve) => {
-                ir::AggregationExpr::Function(ir::AggregationFunctionApplication {
-                    function: ir::AggregationFunction::try_from(function)?,
+                mir::AggregationExpr::Function(mir::AggregationFunctionApplication {
+                    function: mir::AggregationFunction::try_from(function)?,
                     arg: Box::new({
                         if ve.len() != 1 {
                             return Err(Error::AggregationFunctionMustHaveOneArgument);
@@ -927,21 +927,21 @@ impl<'a> Algebrizer<'a> {
             }
         };
 
-        schema_check_return!(self, ir_node,);
+        schema_check_return!(self, mir_node,);
     }
 
-    pub fn algebrize_expression(&self, ast_node: ast::Expression) -> Result<ir::Expression> {
+    pub fn algebrize_expression(&self, ast_node: ast::Expression) -> Result<mir::Expression> {
         match ast_node {
             ast::Expression::Literal(l) => {
-                Ok(ir::Expression::Literal(self.algebrize_literal(l).into()))
+                Ok(mir::Expression::Literal(self.algebrize_literal(l).into()))
             }
-            ast::Expression::Array(a) => Ok(ir::Expression::Array(
+            ast::Expression::Array(a) => Ok(mir::Expression::Array(
                 a.into_iter()
                     .map(|e| self.algebrize_expression(e))
-                    .collect::<Result<Vec<ir::Expression>>>()?
+                    .collect::<Result<Vec<mir::Expression>>>()?
                     .into(),
             )),
-            ast::Expression::Document(d) => Ok(ir::Expression::Document({
+            ast::Expression::Document(d) => Ok(mir::Expression::Document({
                 let algebrized = d
                     .into_iter()
                     .map(|kv| Ok((kv.key, self.algebrize_expression(kv.value)?)))
@@ -977,26 +977,26 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
-    pub fn algebrize_literal(&self, ast_node: ast::Literal) -> ir::LiteralValue {
+    pub fn algebrize_literal(&self, ast_node: ast::Literal) -> mir::LiteralValue {
         match ast_node {
-            ast::Literal::Null => ir::LiteralValue::Null,
-            ast::Literal::Boolean(b) => ir::LiteralValue::Boolean(b),
-            ast::Literal::String(s) => ir::LiteralValue::String(s),
-            ast::Literal::Integer(i) => ir::LiteralValue::Integer(i),
-            ast::Literal::Long(l) => ir::LiteralValue::Long(l),
-            ast::Literal::Double(d) => ir::LiteralValue::Double(d),
+            ast::Literal::Null => mir::LiteralValue::Null,
+            ast::Literal::Boolean(b) => mir::LiteralValue::Boolean(b),
+            ast::Literal::String(s) => mir::LiteralValue::String(s),
+            ast::Literal::Integer(i) => mir::LiteralValue::Integer(i),
+            ast::Literal::Long(l) => mir::LiteralValue::Long(l),
+            ast::Literal::Double(d) => mir::LiteralValue::Double(d),
         }
     }
 
     pub fn algebrize_limit_clause(
         &self,
         ast_node: Option<u32>,
-        source: ir::Stage,
-    ) -> Result<ir::Stage> {
+        source: mir::Stage,
+    ) -> Result<mir::Stage> {
         match ast_node {
             None => Ok(source),
             Some(x) => {
-                let stage = ir::Stage::Limit(ir::Limit {
+                let stage = mir::Stage::Limit(mir::Limit {
                     source: Box::new(source),
                     limit: u64::from(x),
                     cache: SchemaCache::new(),
@@ -1010,12 +1010,12 @@ impl<'a> Algebrizer<'a> {
     pub fn algebrize_offset_clause(
         &self,
         ast_node: Option<u32>,
-        source: ir::Stage,
-    ) -> Result<ir::Stage> {
+        source: mir::Stage,
+    ) -> Result<mir::Stage> {
         match ast_node {
             None => Ok(source),
             Some(x) => {
-                let stage = ir::Stage::Offset(ir::Offset {
+                let stage = mir::Stage::Offset(mir::Offset {
                     source: Box::new(source),
                     offset: u64::from(x),
                     cache: SchemaCache::new(),
@@ -1026,7 +1026,7 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
-    fn algebrize_function(&self, f: ast::FunctionExpr) -> Result<ir::Expression> {
+    fn algebrize_function(&self, f: ast::FunctionExpr) -> Result<mir::Expression> {
         if f.set_quantifier == Some(ast::SetQuantifier::Distinct) {
             return Err(Error::DistinctScalarFunction);
         }
@@ -1051,8 +1051,8 @@ impl<'a> Algebrizer<'a> {
 
         schema_check_return!(
             self,
-            ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
-                function: ir::ScalarFunction::try_from(f.function)?,
+            mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::try_from(f.function)?,
                 args: args
                     .into_iter()
                     .map(|e| self.algebrize_expression(e))
@@ -1062,22 +1062,22 @@ impl<'a> Algebrizer<'a> {
         )
     }
 
-    fn algebrize_unary_expr(&self, u: ast::UnaryExpr) -> Result<ir::Expression> {
+    fn algebrize_unary_expr(&self, u: ast::UnaryExpr) -> Result<mir::Expression> {
         schema_check_return!(
             self,
-            ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
-                function: ir::ScalarFunction::from(u.op),
+            mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::from(u.op),
                 args: vec![self.algebrize_expression(*u.expr)?],
                 cache: SchemaCache::new(),
             }),
         );
     }
 
-    fn algebrize_binary_expr(&self, b: ast::BinaryExpr) -> Result<ir::Expression> {
+    fn algebrize_binary_expr(&self, b: ast::BinaryExpr) -> Result<mir::Expression> {
         schema_check_return!(
             self,
-            ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
-                function: ir::ScalarFunction::try_from(b.op)?,
+            mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::try_from(b.op)?,
                 args: vec![
                     self.algebrize_expression(*b.left)?,
                     self.algebrize_expression(*b.right)?,
@@ -1087,14 +1087,14 @@ impl<'a> Algebrizer<'a> {
         );
     }
 
-    fn algebrize_is(&self, ast_node: ast::IsExpr) -> Result<ir::Expression> {
+    fn algebrize_is(&self, ast_node: ast::IsExpr) -> Result<mir::Expression> {
         schema_check_return!(
             self,
-            ir::Expression::Is(ir::IsExpr {
+            mir::Expression::Is(mir::IsExpr {
                 expr: Box::new(self.algebrize_expression(*ast_node.expr)?),
-                target_type: ir::TypeOrMissing::try_from(ast_node.target_type).map_err(
+                target_type: mir::TypeOrMissing::try_from(ast_node.target_type).map_err(
                     |e| match e {
-                        ir::Error::InvalidType(_) => Error::UnsupportedType(ast_node.target_type),
+                        mir::Error::InvalidType(_) => Error::UnsupportedType(ast_node.target_type),
                     }
                 )?,
                 cache: SchemaCache::new(),
@@ -1102,10 +1102,10 @@ impl<'a> Algebrizer<'a> {
         )
     }
 
-    fn algebrize_like(&self, ast_node: ast::LikeExpr) -> Result<ir::Expression> {
+    fn algebrize_like(&self, ast_node: ast::LikeExpr) -> Result<mir::Expression> {
         schema_check_return!(
             self,
-            ir::Expression::Like(ir::LikeExpr {
+            mir::Expression::Like(mir::LikeExpr {
                 expr: Box::new(self.algebrize_expression(*ast_node.expr)?),
                 pattern: Box::new(self.algebrize_expression(*ast_node.pattern)?),
                 escape: ast_node.escape,
@@ -1114,7 +1114,7 @@ impl<'a> Algebrizer<'a> {
         )
     }
 
-    fn algebrize_between(&self, b: ast::BetweenExpr) -> Result<ir::Expression> {
+    fn algebrize_between(&self, b: ast::BetweenExpr) -> Result<mir::Expression> {
         let (arg, min, max) = (
             self.algebrize_expression(*b.expr)?,
             self.algebrize_expression(*b.min)?,
@@ -1122,23 +1122,23 @@ impl<'a> Algebrizer<'a> {
         );
         schema_check_return!(
             self,
-            ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
-                function: ir::ScalarFunction::Between,
+            mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Between,
                 args: vec![arg, min, max,],
                 cache: SchemaCache::new(),
             })
         );
     }
 
-    fn algebrize_trim(&self, t: ast::TrimExpr) -> Result<ir::Expression> {
+    fn algebrize_trim(&self, t: ast::TrimExpr) -> Result<mir::Expression> {
         let function = match t.trim_spec {
-            ast::TrimSpec::Leading => ir::ScalarFunction::LTrim,
-            ast::TrimSpec::Trailing => ir::ScalarFunction::RTrim,
-            ast::TrimSpec::Both => ir::ScalarFunction::BTrim,
+            ast::TrimSpec::Leading => mir::ScalarFunction::LTrim,
+            ast::TrimSpec::Trailing => mir::ScalarFunction::RTrim,
+            ast::TrimSpec::Both => mir::ScalarFunction::BTrim,
         };
         schema_check_return!(
             self,
-            ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+            mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                 function,
                 args: vec![
                     self.algebrize_expression(*t.trim_chars)?,
@@ -1149,24 +1149,24 @@ impl<'a> Algebrizer<'a> {
         );
     }
 
-    fn algebrize_extract(&self, e: ast::ExtractExpr) -> Result<ir::Expression> {
+    fn algebrize_extract(&self, e: ast::ExtractExpr) -> Result<mir::Expression> {
         use crate::ast::DatePart::*;
         let function = match e.extract_spec {
-            Year => Ok(ir::ScalarFunction::Year),
-            Month => Ok(ir::ScalarFunction::Month),
-            Day => Ok(ir::ScalarFunction::Day),
-            Hour => Ok(ir::ScalarFunction::Hour),
-            Minute => Ok(ir::ScalarFunction::Minute),
-            Second => Ok(ir::ScalarFunction::Second),
-            Week => Ok(ir::ScalarFunction::Week),
-            DayOfYear => Ok(ir::ScalarFunction::DayOfYear),
-            IsoWeek => Ok(ir::ScalarFunction::IsoWeek),
-            IsoWeekday => Ok(ir::ScalarFunction::IsoWeekday),
+            Year => Ok(mir::ScalarFunction::Year),
+            Month => Ok(mir::ScalarFunction::Month),
+            Day => Ok(mir::ScalarFunction::Day),
+            Hour => Ok(mir::ScalarFunction::Hour),
+            Minute => Ok(mir::ScalarFunction::Minute),
+            Second => Ok(mir::ScalarFunction::Second),
+            Week => Ok(mir::ScalarFunction::Week),
+            DayOfYear => Ok(mir::ScalarFunction::DayOfYear),
+            IsoWeek => Ok(mir::ScalarFunction::IsoWeek),
+            IsoWeekday => Ok(mir::ScalarFunction::IsoWeekday),
             Quarter => Err(Error::InvalidExtractDatePart(e.extract_spec)),
         }?;
         schema_check_return!(
             self,
-            ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
+            mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                 function,
                 args: vec![self.algebrize_expression(*e.arg)?],
                 cache: SchemaCache::new(),
@@ -1174,22 +1174,22 @@ impl<'a> Algebrizer<'a> {
         )
     }
 
-    fn algebrize_date_function(&self, d: ast::DateFunctionExpr) -> Result<ir::Expression> {
+    fn algebrize_date_function(&self, d: ast::DateFunctionExpr) -> Result<mir::Expression> {
         use crate::ast::{DateFunctionName::*, DatePart::*};
         let function = match d.function {
-            Add => ir::DateFunction::Add,
-            Diff => ir::DateFunction::Diff,
-            Trunc => ir::DateFunction::Trunc,
+            Add => mir::DateFunction::Add,
+            Diff => mir::DateFunction::Diff,
+            Trunc => mir::DateFunction::Trunc,
         };
         let date_part = match d.date_part {
-            Year => Ok(ir::DatePart::Year),
-            Month => Ok(ir::DatePart::Month),
-            Day => Ok(ir::DatePart::Day),
-            Hour => Ok(ir::DatePart::Hour),
-            Minute => Ok(ir::DatePart::Minute),
-            Second => Ok(ir::DatePart::Second),
-            Week => Ok(ir::DatePart::Week),
-            Quarter => Ok(ir::DatePart::Quarter),
+            Year => Ok(mir::DatePart::Year),
+            Month => Ok(mir::DatePart::Month),
+            Day => Ok(mir::DatePart::Day),
+            Hour => Ok(mir::DatePart::Hour),
+            Minute => Ok(mir::DatePart::Minute),
+            Second => Ok(mir::DatePart::Second),
+            Week => Ok(mir::DatePart::Week),
+            Quarter => Ok(mir::DatePart::Quarter),
             IsoWeek | IsoWeekday | DayOfYear => {
                 Err(Error::InvalidDateFunctionDatePart(d.date_part))
             }
@@ -1197,7 +1197,7 @@ impl<'a> Algebrizer<'a> {
 
         schema_check_return!(
             self,
-            ir::Expression::DateFunction(ir::DateFunctionApplication {
+            mir::Expression::DateFunction(mir::DateFunctionApplication {
                 function,
                 date_part,
                 args: d
@@ -1210,19 +1210,19 @@ impl<'a> Algebrizer<'a> {
         )
     }
 
-    fn algebrize_access(&self, a: ast::AccessExpr) -> Result<ir::Expression> {
+    fn algebrize_access(&self, a: ast::AccessExpr) -> Result<mir::Expression> {
         let expr = self.algebrize_expression(*a.expr)?;
         schema_check_return!(
             self,
             match *a.subfield {
                 ast::Expression::Literal(ast::Literal::String(s)) =>
-                    ir::Expression::FieldAccess(ir::FieldAccess {
+                    mir::Expression::FieldAccess(mir::FieldAccess {
                         expr: Box::new(expr),
                         field: s,
                         cache: SchemaCache::new(),
                     }),
-                sf => ir::Expression::ScalarFunction(ir::ScalarFunctionApplication {
-                    function: ir::ScalarFunction::ComputedFieldAccess,
+                sf => mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::ComputedFieldAccess,
                     args: vec![expr, self.algebrize_expression(sf)?],
                     cache: SchemaCache::new(),
                 }),
@@ -1230,13 +1230,13 @@ impl<'a> Algebrizer<'a> {
         );
     }
 
-    fn algebrize_type_assertion(&self, t: ast::TypeAssertionExpr) -> Result<ir::Expression> {
+    fn algebrize_type_assertion(&self, t: ast::TypeAssertionExpr) -> Result<mir::Expression> {
         schema_check_return!(
             self,
-            ir::Expression::TypeAssertion(ir::TypeAssertionExpr {
+            mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
                 expr: Box::new(self.algebrize_expression(*t.expr)?),
-                target_type: ir::Type::try_from(t.target_type).map_err(|e| match e {
-                    ir::Error::InvalidType(_) =>
+                target_type: mir::Type::try_from(t.target_type).map_err(|e| match e {
+                    mir::Error::InvalidType(_) =>
                         Error::UnsupportedType(ast::TypeOrMissing::Type(t.target_type)),
                 })?,
                 cache: SchemaCache::new(),
@@ -1244,19 +1244,19 @@ impl<'a> Algebrizer<'a> {
         );
     }
 
-    fn algebrize_case(&self, c: ast::CaseExpr) -> Result<ir::Expression> {
+    fn algebrize_case(&self, c: ast::CaseExpr) -> Result<mir::Expression> {
         let else_branch = c
             .else_branch
             .map(|e| self.algebrize_expression(*e))
             .transpose()?
             .map(Box::new)
-            .unwrap_or_else(|| Box::new(ir::Expression::Literal(ir::LiteralValue::Null.into())));
+            .unwrap_or_else(|| Box::new(mir::Expression::Literal(mir::LiteralValue::Null.into())));
         let expr = c.expr.map(|e| self.algebrize_expression(*e)).transpose()?;
         let when_branch = c
             .when_branch
             .into_iter()
             .map(|wb| {
-                Ok(ir::WhenBranch {
+                Ok(mir::WhenBranch {
                     when: Box::new(self.algebrize_expression(*wb.when)?),
                     then: Box::new(self.algebrize_expression(*wb.then)?),
                 })
@@ -1267,7 +1267,7 @@ impl<'a> Algebrizer<'a> {
                 let expr = Box::new(expr);
                 schema_check_return!(
                     self,
-                    ir::Expression::SimpleCase(ir::SimpleCaseExpr {
+                    mir::Expression::SimpleCase(mir::SimpleCaseExpr {
                         expr,
                         when_branch,
                         else_branch,
@@ -1278,7 +1278,7 @@ impl<'a> Algebrizer<'a> {
             None => {
                 schema_check_return!(
                     self,
-                    ir::Expression::SearchedCase(ir::SearchedCaseExpr {
+                    mir::Expression::SearchedCase(mir::SearchedCaseExpr {
                         when_branch,
                         else_branch,
                         cache: SchemaCache::new(),
@@ -1288,7 +1288,7 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
-    fn algebrize_cast(&self, c: ast::CastExpr) -> Result<ir::Expression> {
+    fn algebrize_cast(&self, c: ast::CastExpr) -> Result<mir::Expression> {
         use crate::ast::Type::*;
         macro_rules! null_expr {
             () => {{
@@ -1304,10 +1304,10 @@ impl<'a> Algebrizer<'a> {
             Array | Boolean | Datetime | Decimal128 | Document | Double | Int32 | Int64 | Null
             | ObjectId | String => schema_check_return!(
                 self,
-                ir::Expression::Cast(ir::CastExpr {
+                mir::Expression::Cast(mir::CastExpr {
                     expr: Box::new(self.algebrize_expression(*c.expr)?),
-                    to: ir::Type::try_from(c.to).map_err(|e| match e {
-                        ir::Error::InvalidType(_) =>
+                    to: mir::Type::try_from(c.to).map_err(|e| match e {
+                        mir::Error::InvalidType(_) =>
                             Error::UnsupportedType(ast::TypeOrMissing::Type(c.to)),
                     })?,
                     on_null: Box::new(
@@ -1322,7 +1322,7 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
-    pub fn algebrize_subquery_expr(&self, ast_node: ast::Query) -> Result<ir::SubqueryExpr> {
+    pub fn algebrize_subquery_expr(&self, ast_node: ast::Query) -> Result<mir::SubqueryExpr> {
         let subquery_algebrizer = self.subquery_algebrizer();
         let subquery = Box::new(subquery_algebrizer.algebrize_query(ast_node)?);
         let result_set = subquery.schema(&subquery_algebrizer.schema_inference_state())?;
@@ -1331,14 +1331,14 @@ impl<'a> Algebrizer<'a> {
             1 => {
                 let (key, schema) = result_set.schema_env.into_iter().next().unwrap();
                 let output_expr = match &schema.get_single_field_name() {
-                    Some(field) => Ok(Box::new(ir::Expression::FieldAccess(ir::FieldAccess {
-                        expr: Box::new(ir::Expression::Reference(key.into())),
+                    Some(field) => Ok(Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: Box::new(mir::Expression::Reference(key.into())),
                         field: field.to_string(),
                         cache: SchemaCache::new(),
                     }))),
                     None => Err(Error::InvalidSubqueryDegree),
                 }?;
-                Ok(ir::SubqueryExpr {
+                Ok(mir::SubqueryExpr {
                     output_expr,
                     subquery,
                     cache: SchemaCache::new(),
@@ -1348,25 +1348,25 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
-    pub fn algebrize_subquery(&self, ast_node: ast::Query) -> Result<ir::Expression> {
+    pub fn algebrize_subquery(&self, ast_node: ast::Query) -> Result<mir::Expression> {
         schema_check_return!(
             self,
-            ir::Expression::Subquery(self.algebrize_subquery_expr(ast_node)?)
+            mir::Expression::Subquery(self.algebrize_subquery_expr(ast_node)?)
         )
     }
 
     pub fn algebrize_subquery_comparison(
         &self,
         s: ast::SubqueryComparisonExpr,
-    ) -> Result<ir::Expression> {
+    ) -> Result<mir::Expression> {
         let modifier = match s.quantifier {
-            ast::SubqueryQuantifier::All => ir::SubqueryModifier::All,
-            ast::SubqueryQuantifier::Any => ir::SubqueryModifier::Any,
+            ast::SubqueryQuantifier::All => mir::SubqueryModifier::All,
+            ast::SubqueryQuantifier::Any => mir::SubqueryModifier::Any,
         };
         schema_check_return!(
             self,
-            ir::Expression::SubqueryComparison(ir::SubqueryComparison {
-                operator: ir::SubqueryComparisonOp::from(s.op),
+            mir::Expression::SubqueryComparison(mir::SubqueryComparison {
+                operator: mir::SubqueryComparisonOp::from(s.op),
                 modifier,
                 argument: Box::new(self.algebrize_expression(*s.expr)?),
                 subquery_expr: self.algebrize_subquery_expr(*s.subquery)?,
@@ -1375,12 +1375,12 @@ impl<'a> Algebrizer<'a> {
         )
     }
 
-    pub fn algebrize_exists(&self, ast_node: ast::Query) -> Result<ir::Expression> {
+    pub fn algebrize_exists(&self, ast_node: ast::Query) -> Result<mir::Expression> {
         let exists = self.subquery_algebrizer().algebrize_query(ast_node)?;
-        schema_check_return!(self, ir::Expression::Exists(Box::new(exists).into()));
+        schema_check_return!(self, mir::Expression::Exists(Box::new(exists).into()));
     }
 
-    fn algebrize_subpath(&self, p: ast::SubpathExpr) -> Result<ir::Expression> {
+    fn algebrize_subpath(&self, p: ast::SubpathExpr) -> Result<mir::Expression> {
         if let ast::Expression::Identifier(s) = *p.expr {
             schema_check_return!(
                 self,
@@ -1389,7 +1389,7 @@ impl<'a> Algebrizer<'a> {
         }
         schema_check_return!(
             self,
-            ir::Expression::FieldAccess(ir::FieldAccess {
+            mir::Expression::FieldAccess(mir::FieldAccess {
                 expr: Box::new(self.algebrize_expression(*p.expr)?),
                 field: p.subpath,
                 cache: SchemaCache::new(),
@@ -1401,7 +1401,7 @@ impl<'a> Algebrizer<'a> {
         &self,
         q: String,
         field: String,
-    ) -> Result<ir::Expression> {
+    ) -> Result<mir::Expression> {
         // clone the field here so that we only have to clone once.
         // The borrow checker still isn't perfect.
         let cloned_field = field.clone();
@@ -1413,7 +1413,7 @@ impl<'a> Algebrizer<'a> {
             .nearest_scope_for_datasource(&possible_datasource, self.scope_level)
             .map_or_else(
                 move || {
-                    Ok(ir::Expression::FieldAccess(ir::FieldAccess {
+                    Ok(mir::Expression::FieldAccess(mir::FieldAccess {
                         expr: Box::new(self.algebrize_unqualified_identifier(q)?),
                         // combinators make this clone necessary, unfortunately
                         field: cloned_field,
@@ -1422,8 +1422,8 @@ impl<'a> Algebrizer<'a> {
                 },
                 move |scope|
                 // Since this is qualified, we return `q.field`
-                Ok(ir::Expression::FieldAccess(ir::FieldAccess {
-                    expr: Box::new(ir::Expression::Reference(Key {
+                Ok(mir::Expression::FieldAccess(mir::FieldAccess {
+                    expr: Box::new(mir::Expression::Reference(Key {
                     datasource: possible_datasource,
                     scope,
                 }.into())),
@@ -1433,7 +1433,7 @@ impl<'a> Algebrizer<'a> {
             )
     }
 
-    fn algebrize_unqualified_identifier(&self, i: String) -> Result<ir::Expression> {
+    fn algebrize_unqualified_identifier(&self, i: String) -> Result<mir::Expression> {
         // Attempt to find a datasource for this unqualified reference
         // at _any_ scope level.
         // If we find exactly one datasource that May or Must contain
@@ -1454,8 +1454,8 @@ impl<'a> Algebrizer<'a> {
         // If there is exactly one possible datasource that May or Must
         // contain our reference, we use it.
         if i_containing_datasources.len() == 1 {
-            return Ok(ir::Expression::FieldAccess(ir::FieldAccess {
-                expr: Box::new(ir::Expression::Reference(
+            return Ok(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::Reference(
                     i_containing_datasources.remove(0).0.clone().into(),
                 )),
                 field: i,
@@ -1472,7 +1472,7 @@ impl<'a> Algebrizer<'a> {
         &self,
         i: String,
         scope_level: u16,
-    ) -> Result<ir::Expression> {
+    ) -> Result<mir::Expression> {
         // When checking variables by scope, if a variable may exist, we treat that as ambiguous,
         // and only accept a single Must exist reference.
         let mut current_scope = scope_level;
@@ -1509,8 +1509,8 @@ impl<'a> Algebrizer<'a> {
                 return Err(Error::AmbiguousField(i));
             }
             if musts == 1 {
-                return Ok(ir::Expression::FieldAccess(ir::FieldAccess {
-                    expr: Box::new(ir::Expression::Reference(datasource.clone().into())),
+                return Ok(mir::Expression::FieldAccess(mir::FieldAccess {
+                    expr: Box::new(mir::Expression::Reference(datasource.clone().into())),
                     field: i,
                     cache: SchemaCache::new(),
                 }));

@@ -1,12 +1,12 @@
 use crate::{
-    codegen::agg_ir_to_mql,
-    ir::{
+    codegen::air_to_mql,
+    map,
+    mapping_registry::MqlMappingRegistry,
+    mir::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
         AggregationExpr, DateFunction, DatePart, ScalarFunction, Stage, Type, TypeOrMissing,
     },
-    map,
-    mapping_registry::MqlMappingRegistry,
 };
 use bson::{bson, Bson};
 use std::collections::{BTreeMap, BTreeSet};
@@ -49,13 +49,13 @@ pub struct MqlTranslation {
     pub pipeline: Vec<bson::Document>,
 }
 
-impl From<agg_ir_to_mql::MqlTranslation> for MqlTranslation {
-    fn from(agg_ir_mql_translation: agg_ir_to_mql::MqlTranslation) -> Self {
+impl From<air_to_mql::MqlTranslation> for MqlTranslation {
+    fn from(air_mql_translation: air_to_mql::MqlTranslation) -> Self {
         MqlTranslation {
-            database: agg_ir_mql_translation.database,
-            collection: agg_ir_mql_translation.collection,
+            database: air_mql_translation.database,
+            collection: air_mql_translation.collection,
             mapping_registry: MqlMappingRegistry::default(),
-            pipeline: agg_ir_mql_translation.pipeline,
+            pipeline: air_mql_translation.pipeline,
         }
     }
 }
@@ -75,15 +75,15 @@ impl MqlTranslation {
 
     /// generate_path_components takes an expression and returns a vector of
     /// its components by recursively tracing its path.
-    pub fn generate_path_components(&self, expr: ir::Expression) -> Result<Vec<String>> {
+    pub fn generate_path_components(&self, expr: mir::Expression) -> Result<Vec<String>> {
         match expr {
-            ir::Expression::Reference(ir::ReferenceExpr { key, .. }) => {
+            mir::Expression::Reference(mir::ReferenceExpr { key, .. }) => {
                 match self.mapping_registry.get(&key) {
                     Some(name) => Ok(vec![name.clone()]),
                     None => Err(Error::ReferenceNotFound(key)),
                 }
             }
-            ir::Expression::FieldAccess(fa) => {
+            mir::Expression::FieldAccess(fa) => {
                 let mut path = self.generate_path_components(*fa.expr)?;
                 path.push(fa.field.clone());
                 Ok(path)
@@ -132,7 +132,7 @@ pub struct MqlCodeGenerator {
 
 impl ScalarFunction {
     pub fn mql_op(self) -> Option<&'static str> {
-        use ir::ScalarFunction::*;
+        use mir::ScalarFunction::*;
         Some(match self {
             Concat => "$concat",
 
@@ -215,7 +215,7 @@ impl ScalarFunction {
 
 impl DateFunction {
     pub fn mql_op(self) -> Option<&'static str> {
-        use ir::DateFunction::*;
+        use mir::DateFunction::*;
         Some(match self {
             Add => "$dateAdd",
             Diff => "$dateDiff",
@@ -226,7 +226,7 @@ impl DateFunction {
 
 impl TypeOrMissing {
     pub fn mql_type(self) -> Option<&'static str> {
-        use ir::TypeOrMissing::*;
+        use mir::TypeOrMissing::*;
         Some(match self {
             Missing => "missing",
             Number => return None,
@@ -237,7 +237,7 @@ impl TypeOrMissing {
 
 impl Type {
     pub fn mql_type(self) -> &'static str {
-        use ir::Type::*;
+        use mir::Type::*;
         match self {
             Array => "array",
             BinData => "binData",
@@ -266,7 +266,7 @@ impl Type {
 
 impl DatePart {
     pub fn mql_unit(self) -> bson::Bson {
-        use ir::DatePart::*;
+        use mir::DatePart::*;
         bson! {{"$literal": match self {
             Year => "year",
             Month => "month",
@@ -293,7 +293,7 @@ impl MqlCodeGenerator {
         }
         ret
     }
-    fn get_unique_bot_name(project_names: &BindingTuple<ir::Expression>) -> String {
+    fn get_unique_bot_name(project_names: &BindingTuple<mir::Expression>) -> String {
         if project_names.is_empty() {
             return "__bot".to_string();
         }
@@ -366,9 +366,9 @@ impl MqlCodeGenerator {
     /// should include mappings for any datasources from outer scopes.
     /// Mappings for the current scope will be obtained by calling
     /// `codegen_stage` on source stages.
-    pub fn codegen_stage(&self, stage: ir::Stage) -> Result<MqlTranslation> {
+    pub fn codegen_stage(&self, stage: Stage) -> Result<MqlTranslation> {
         use bson::doc;
-        use ir::Stage::*;
+        use mir::Stage::*;
         match stage {
             Filter(f) => {
                 let source_translation = self.codegen_stage(*f.source)?;
@@ -498,8 +498,8 @@ impl MqlCodeGenerator {
                 };
                 let collection = right.collection;
                 let join_type = match join.join_type {
-                    ir::JoinType::Inner => "inner",
-                    ir::JoinType::Left => "left",
+                    mir::JoinType::Inner => "inner",
+                    mir::JoinType::Left => "left",
                 };
                 let mut output_registry = self.mapping_registry.clone();
                 output_registry
@@ -580,7 +580,7 @@ impl MqlCodeGenerator {
                 // output and the input.
                 if let Some(idx) = u.index {
                     let path_datasource = match *u.path {
-                        ir::Expression::FieldAccess(fa) => fa
+                        mir::Expression::FieldAccess(fa) => fa
                             .get_root_datasource()
                             .map_err(|_| Error::InvalidUnwindPath)?,
                         _ => unreachable!(),
@@ -612,9 +612,9 @@ impl MqlCodeGenerator {
         self
     }
 
-    fn codegen_group_by(&self, group: ir::Group) -> Result<MqlTranslation> {
+    fn codegen_group_by(&self, group: mir::Group) -> Result<MqlTranslation> {
         use bson::doc;
-        use ir::AggregationFunction::*;
+        use mir::AggregationFunction::*;
 
         let source_translation = self.codegen_stage(*group.source)?;
         let expression_generator = self
@@ -639,25 +639,25 @@ impl MqlCodeGenerator {
             // compound identifier, in which case it should be nested under its original
             // namespace and field name.
             let (expr, key_alias) = match key {
-                ir::OptionallyAliasedExpr::Aliased(ir::AliasedExpr {
+                mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
                     ref expr,
                     ref alias,
                 }) => {
                     bot_body.insert(alias, format!("$_id.{alias}"));
                     (expr.clone(), alias.to_string())
                 }
-                ir::OptionallyAliasedExpr::Unaliased(expr) => {
+                mir::OptionallyAliasedExpr::Unaliased(expr) => {
                     let alias = MqlCodeGenerator::get_unique_alias(
                         unique_aliases.clone(),
                         format!("__unaliasedKey{counter}"),
                     );
-                    if let ir::Expression::FieldAccess(ref fa) = expr {
+                    if let mir::Expression::FieldAccess(ref fa) = expr {
                         // We know that after the aliasing rewrite pass, any unaliased group key can
                         // only have one layer of field access. Nested field accesses would have been
                         // rewritten to aliased expressions, so at this point the left hand side expression
                         // of the FieldAccess inside an OptionallyAliasedExpression must be a Reference.
                         let key = match *fa.expr {
-                            ir::Expression::Reference(ir::ReferenceExpr { ref key, .. }) => key,
+                            mir::Expression::Reference(mir::ReferenceExpr { ref key, .. }) => key,
                             _ => return Err(Error::InvalidGroupKey),
                         };
                         let datasource = source_translation
@@ -763,9 +763,9 @@ impl MqlCodeGenerator {
             .with_mapping_registry(output_registry))
     }
 
-    fn codegen_sort(&self, sort: ir::Sort) -> Result<MqlTranslation> {
+    fn codegen_sort(&self, sort: mir::Sort) -> Result<MqlTranslation> {
         use bson::doc;
-        use ir::{
+        use mir::{
             Expression::{FieldAccess, Reference},
             SortSpecification::*,
         };
@@ -806,7 +806,7 @@ impl MqlCodeGenerator {
     pub fn codegen_subquery(
         &self,
         subquery: Stage,
-        output_expr: Option<ir::Expression>,
+        output_expr: Option<mir::Expression>,
     ) -> Result<Bson> {
         use serde::{Deserialize, Serialize};
         #[derive(Serialize, Deserialize)]
@@ -849,8 +849,8 @@ impl MqlCodeGenerator {
     /// Recursively generates a translation for this expression. When
     /// this function is called, `self.mapping_registry` should
     /// include mappings for all datasources in scope.
-    pub fn codegen_expression(&self, expr: ir::Expression) -> Result<bson::Bson> {
-        use ir::{Expression::*, LiteralValue::*};
+    pub fn codegen_expression(&self, expr: mir::Expression) -> Result<bson::Bson> {
+        use mir::{Expression::*, LiteralValue::*};
         match expr {
             Literal(lit) => Ok(bson::bson!({
                 "$literal": match lit.value {
@@ -862,7 +862,7 @@ impl MqlCodeGenerator {
                     Double(d) => Bson::Double(d),
                 },
             })),
-            Reference(ir::ReferenceExpr { key, .. }) => self
+            Reference(mir::ReferenceExpr { key, .. }) => self
                 .mapping_registry
                 .get(&key)
                 .ok_or(Error::ReferenceNotFound(key))
@@ -874,7 +874,7 @@ impl MqlCodeGenerator {
                     .map(|e| self.codegen_expression(e))
                     .collect::<Result<Vec<Bson>>>()?,
             )),
-            Document(ir::DocumentExpr { document, .. }) => {
+            Document(mir::DocumentExpr { document, .. }) => {
                 Ok(Bson::Document({
                     if document.is_empty() {
                         bson::doc! {"$literal": {}}
@@ -951,7 +951,7 @@ impl MqlCodeGenerator {
             }
             Cast(ce) => {
                 let convert_op = match ce.to {
-                    ir::Type::Document | ir::Type::Array => "$sqlConvert",
+                    mir::Type::Document | mir::Type::Array => "$sqlConvert",
                     _ => "$convert",
                 };
 
@@ -966,7 +966,7 @@ impl MqlCodeGenerator {
             }
             TypeAssertion(ta) => self.codegen_expression(*ta.expr),
             DateFunction(da) => {
-                use crate::ir::DateFunction::*;
+                use crate::mir::DateFunction::*;
                 Ok(match da.function {
                     Add => {
                         bson::bson!({ da.function.mql_op().unwrap() : {
@@ -993,7 +993,7 @@ impl MqlCodeGenerator {
                 })
             }
             ScalarFunction(sa) => {
-                use crate::ir::ScalarFunction::*;
+                use crate::mir::ScalarFunction::*;
                 Ok(match sa.function {
                     Pos => self.codegen_expression(sa.args[0].clone())?,
                     Neg => bson::bson!({
@@ -1073,7 +1073,7 @@ impl MqlCodeGenerator {
                 bson::bson!({ "$subquery":  self.codegen_subquery(*s.subquery, Some(*s.output_expr))? }),
             ),
             SubqueryComparison(s) => {
-                use ir::{SubqueryComparisonOp::*, SubqueryModifier::*};
+                use mir::{SubqueryComparisonOp::*, SubqueryModifier::*};
                 let modifier = match s.modifier {
                     Any => "any",
                     All => "all",
@@ -1093,7 +1093,7 @@ impl MqlCodeGenerator {
                     "subquery": self.codegen_subquery(*s.subquery_expr.subquery, Some(*s.subquery_expr.output_expr))?,
                 }}))
             }
-            Exists(ir::ExistsExpr { stage: e, .. }) => {
+            Exists(mir::ExistsExpr { stage: e, .. }) => {
                 Ok(bson::bson!({ "$subqueryExists":  self.codegen_subquery(*e, None)? }))
             }
             Is(expr) => Ok(match expr.target_type {

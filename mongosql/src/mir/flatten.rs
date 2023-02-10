@@ -1,4 +1,4 @@
-use crate::ir::{visitor::Visitor, Expression, ScalarFunction, ScalarFunctionApplication, Stage};
+use crate::mir::{visitor::Visitor, Expression, ScalarFunction, ScalarFunctionApplication, Stage};
 
 #[derive(Default)]
 struct ScalarFunctionApplicationVisitor;
@@ -11,7 +11,7 @@ struct ScalarFunctionApplicationVisitor;
 ///   /     \
 /// x         y
 ///
-/// Flattening applies to all associative operators in the ir, including
+/// Flattening applies to all associative operators in the mir, including
 /// addition, multiplication, logical disjunction, logical conjunction, and
 /// string concatenation.
 pub fn flatten_variadic_functions(st: Stage) -> Stage {

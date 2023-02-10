@@ -1,6 +1,6 @@
 use crate::{
     catalog::Catalog,
-    ir::{
+    mir::{
         definitions::*,
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
         visitor::Visitor,

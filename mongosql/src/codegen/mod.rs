@@ -1,21 +1,21 @@
-pub(crate) mod agg_ir_to_mql;
-pub(crate) mod ir_to_mql;
+pub(crate) mod air_to_mql;
+pub(crate) mod mir_to_mql;
 pub use crate::mapping_registry::MqlMappingRegistry;
 
-use crate::{agg_ir, ir};
+use crate::{air, mir};
 
-pub fn generate_mql_from_agg_ir(
-    plan: agg_ir::Stage,
-) -> Result<agg_ir_to_mql::MqlTranslation, agg_ir_to_mql::Error> {
-    let cg = agg_ir_to_mql::MqlCodeGenerator { scope_level: 0u16 };
+pub fn generate_mql_from_air(
+    plan: air::Stage,
+) -> Result<air_to_mql::MqlTranslation, air_to_mql::Error> {
+    let cg = air_to_mql::MqlCodeGenerator { scope_level: 0u16 };
 
-    cg.codegen_agg_ir_stage(plan)
+    cg.codegen_air_stage(plan)
 }
 
-pub fn generate_mql_from_ir(
-    plan: ir::Stage,
-) -> Result<ir_to_mql::MqlTranslation, ir_to_mql::Error> {
-    let cg = ir_to_mql::MqlCodeGenerator {
+pub fn generate_mql_from_mir(
+    plan: mir::Stage,
+) -> Result<mir_to_mql::MqlTranslation, mir_to_mql::Error> {
+    let cg = mir_to_mql::MqlCodeGenerator {
         mapping_registry: MqlMappingRegistry::new(),
         scope_level: 0u16,
     };

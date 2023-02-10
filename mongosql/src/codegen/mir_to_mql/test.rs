@@ -10,7 +10,7 @@ macro_rules! test_codegen_plan {
 	) => {
         #[test]
         fn $func_name() {
-            use crate::codegen::{generate_mql_from_ir, ir_to_mql::MqlTranslation};
+            use crate::codegen::{generate_mql_from_mir, mir_to_mql::MqlTranslation};
 
             let input = $input;
             let expected_db = $expected_db;
@@ -22,7 +22,7 @@ macro_rules! test_codegen_plan {
                 collection: col,
                 mapping_registry: _,
                 pipeline: pipeline,
-            } = generate_mql_from_ir(input).expect("codegen failed");
+            } = generate_mql_from_mir(input).expect("codegen failed");
 
             assert_eq!(expected_db, db);
             assert_eq!(expected_collection, col);
@@ -33,12 +33,12 @@ macro_rules! test_codegen_plan {
     ($func_name:ident, expected = Err($expected_err:expr), input = $input:expr,) => {
         #[test]
         fn $func_name() {
-            use crate::codegen::generate_mql_from_ir;
+            use crate::codegen::generate_mql_from_mir;
 
             let input = $input;
             let expected = Err($expected_err);
 
-            assert_eq!(expected, generate_mql_from_ir(input));
+            assert_eq!(expected, generate_mql_from_mir(input));
         }
     };
 }
@@ -47,7 +47,7 @@ macro_rules! test_codegen_expr {
     ($func_name:ident, expected = $expected:expr, input = $input:expr, $(mapping_registry = $mapping_registry:expr,)?) => {
         #[test]
         fn $func_name() {
-            use crate::codegen::ir_to_mql::{MqlCodeGenerator, MqlMappingRegistry};
+            use crate::codegen::mir_to_mql::{MqlCodeGenerator, MqlMappingRegistry};
             let expected = $expected;
             let input = $input;
 
@@ -65,7 +65,7 @@ macro_rules! test_codegen_expr {
 }
 
 mod collection {
-    use crate::ir::{schema::SchemaCache, *};
+    use crate::mir::{schema::SchemaCache, *};
 
     test_codegen_plan!(
         simple,
@@ -100,7 +100,7 @@ mod collection {
 }
 
 mod array_stage {
-    use crate::ir::{schema::SchemaCache, *};
+    use crate::mir::{schema::SchemaCache, *};
 
     test_codegen_plan!(
         empty,
@@ -154,13 +154,14 @@ mod array_stage {
 
 mod project {
     use crate::{
-        codegen::ir_to_mql::Error,
-        ir::{
+        codegen::mir_to_mql::Error,
+        map,
+        mir::{
             binding_tuple::{DatasourceName, Key},
             schema::SchemaCache,
             *,
         },
-        map, unchecked_unique_linked_hash_map,
+        unchecked_unique_linked_hash_map,
     };
 
     test_codegen_plan!(
@@ -401,7 +402,7 @@ mod project {
 }
 
 mod filter {
-    use crate::ir::{schema::SchemaCache, *};
+    use crate::mir::{schema::SchemaCache, *};
 
     test_codegen_plan!(
         simple,
@@ -428,8 +429,8 @@ mod filter {
 
 mod sort {
     use crate::{
-        codegen::ir_to_mql::Error,
-        ir::{schema::SchemaCache, Expression::Reference, SortSpecification::*, *},
+        codegen::mir_to_mql::Error,
+        mir::{schema::SchemaCache, Expression::Reference, SortSpecification::*, *},
         unchecked_unique_linked_hash_map,
     };
 
@@ -591,8 +592,8 @@ mod sort {
 
 mod limit_offset {
     use crate::{
-        codegen::ir_to_mql::Error,
-        ir::{schema::SchemaCache, *},
+        codegen::mir_to_mql::Error,
+        mir::{schema::SchemaCache, *},
     };
 
     test_codegen_plan!(
@@ -666,7 +667,7 @@ mod limit_offset {
 }
 
 mod literal {
-    use crate::ir::{Expression::*, LiteralValue::*};
+    use crate::mir::{Expression::*, LiteralValue::*};
     use bson::{bson, Bson};
 
     test_codegen_expr!(
@@ -702,7 +703,7 @@ mod literal {
 }
 
 mod reference {
-    use crate::{codegen::ir_to_mql::Error, ir::Expression::*};
+    use crate::{codegen::mir_to_mql::Error, mir::Expression::*};
     use bson::Bson;
 
     test_codegen_expr!(
@@ -724,7 +725,7 @@ mod reference {
 }
 
 mod array {
-    use crate::ir::{Expression::*, LiteralValue};
+    use crate::mir::{Expression::*, LiteralValue};
     use bson::bson;
 
     test_codegen_expr!(
@@ -752,7 +753,7 @@ mod array {
 
 mod document {
     use crate::{
-        ir::{Expression::*, LiteralValue},
+        mir::{Expression::*, LiteralValue},
         unchecked_unique_linked_hash_map,
     };
     use bson::bson;
@@ -807,7 +808,7 @@ mod document {
 
 mod field_access {
     use crate::{
-        ir::{schema::SchemaCache, *},
+        mir::{schema::SchemaCache, *},
         unchecked_unique_linked_hash_map,
     };
     use bson::Bson;
@@ -932,7 +933,7 @@ mod field_access {
 }
 
 mod searched_case_expression {
-    use crate::ir::{schema::SchemaCache, *};
+    use crate::mir::{schema::SchemaCache, *};
     test_codegen_expr!(
         one_case,
         expected = Ok(bson::bson!({"$switch":
@@ -990,7 +991,7 @@ mod searched_case_expression {
 }
 
 mod simple_case_expression {
-    use crate::ir::{schema::SchemaCache, *};
+    use crate::mir::{schema::SchemaCache, *};
     test_codegen_expr!(
         one_case,
         expected = Ok(
@@ -1060,7 +1061,7 @@ mod simple_case_expression {
 }
 
 mod join {
-    use crate::ir::{schema::SchemaCache, *};
+    use crate::mir::{schema::SchemaCache, *};
 
     test_codegen_plan!(
         join_simple,
@@ -1314,7 +1315,7 @@ mod join {
 }
 
 mod union {
-    use crate::ir::{schema::SchemaCache, *};
+    use crate::mir::{schema::SchemaCache, *};
 
     test_codegen_plan!(
         collection_union_all_collection,
@@ -1461,8 +1462,8 @@ mod union {
 
 mod function {
     use crate::{
-        codegen::ir_to_mql::Error,
-        ir::{
+        codegen::mir_to_mql::Error,
+        mir::{
             definitions::*, schema::SchemaCache, DateFunction, Expression::*, LiteralValue,
             ScalarFunction::*,
         },
@@ -2573,11 +2574,11 @@ mod function {
 
 mod group_by {
     use crate::{
-        codegen::ir_to_mql::Error, ir::definitions::*, ir::schema::SchemaCache, map,
+        codegen::mir_to_mql::Error, map, mir::definitions::*, mir::schema::SchemaCache,
         unchecked_unique_linked_hash_map,
     };
 
-    fn source_ir() -> Box<Stage> {
+    fn source_mir() -> Box<Stage> {
         Box::new(Stage::Collection(Collection {
             db: "test".into(),
             collection: "foo".into(),
@@ -2622,7 +2623,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "f".into(),
                 expr: Expression::Reference(("foo", 0u16).into()),
@@ -2657,7 +2658,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "_id".into(),
                 expr: Expression::Reference(("foo", 0u16).into()),
@@ -2678,7 +2679,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: vec![OptionallyAliasedExpr::Unaliased(
                 Expression::FieldAccess(
                     FieldAccess{
@@ -2705,7 +2706,7 @@ mod group_by {
         }),
         input = Stage::Group(Group {
             source:Box::new(Stage::Project(Project {
-                source: source_ir(),
+                source: source_mir(),
                 expression: map! {
                     ("_id", 0u16).into() =>
                         Expression::Reference(("foo", 0u16).into())
@@ -2751,7 +2752,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: key_foo_a(),
             aggregations: vec![],
             cache: SchemaCache::new(),
@@ -2769,7 +2770,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: vec![OptionallyAliasedExpr::Unaliased(
                 Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
@@ -2813,7 +2814,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "foo_a".to_string(),
                 expr: Expression::FieldAccess(FieldAccess {
@@ -2867,7 +2868,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: vec![
                 OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "__unaliasedKey2".to_string(),
@@ -2892,7 +2893,7 @@ mod group_by {
         invalid_group_key_field_access,
         expected = Err(Error::InvalidGroupKey),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: vec![OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(
                 FieldAccess {
                     expr: Box::new(Expression::Document(
@@ -2932,7 +2933,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
@@ -2975,7 +2976,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
@@ -3018,7 +3019,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
@@ -3061,7 +3062,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
@@ -3104,7 +3105,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
@@ -3147,7 +3148,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
@@ -3190,7 +3191,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
@@ -3233,7 +3234,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
@@ -3276,7 +3277,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
@@ -3319,7 +3320,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
@@ -3362,7 +3363,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
@@ -3405,7 +3406,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
@@ -3448,7 +3449,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: key_foo_a(),
             aggregations: vec![AliasedAggregation {
                 alias: "agg".into(),
@@ -3483,7 +3484,7 @@ mod group_by {
             ],
         }),
         input = Stage::Group(Group {
-            source: source_ir(),
+            source: source_mir(),
             keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "__id".to_string(),
                 expr: Expression::FieldAccess(FieldAccess {
@@ -3511,9 +3512,10 @@ mod group_by {
 
 mod subquery {
     use crate::{
-        codegen::ir_to_mql::Error,
-        ir::{binding_tuple::DatasourceName::Bottom, schema::SchemaCache, SubqueryModifier::*, *},
-        map, unchecked_unique_linked_hash_map,
+        codegen::mir_to_mql::Error,
+        map,
+        mir::{binding_tuple::DatasourceName::Bottom, schema::SchemaCache, SubqueryModifier::*, *},
+        unchecked_unique_linked_hash_map,
     };
     test_codegen_expr!(
         exists_uncorrelated,
@@ -3963,8 +3965,8 @@ mod subquery {
 
 mod unwind {
     use crate::{
-        codegen::ir_to_mql::Error,
-        ir::{schema::SchemaCache, *},
+        codegen::mir_to_mql::Error,
+        mir::{schema::SchemaCache, *},
         unchecked_unique_linked_hash_map,
     };
 

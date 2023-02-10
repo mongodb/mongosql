@@ -1,5 +1,5 @@
 use crate::{
-    ir::{binding_tuple, schema::Error, *},
+    mir::{binding_tuple, schema::Error, *},
     schema::{Document, Satisfaction, Schema, NULLISH},
 };
 

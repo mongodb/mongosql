@@ -1,6 +1,7 @@
 use crate::{
-    agg_ir, ir,
+    air,
     mapping_registry::{Key, MqlMappingRegistry},
+    mir,
 };
 use lazy_static::lazy_static;
 use mongosql_datastructures::{
@@ -12,7 +13,7 @@ use thiserror::Error;
 type Result<T> = std::result::Result<T, Error>;
 
 lazy_static! {
-    pub static ref ROOT: agg_ir::Expression = agg_ir::Expression::Variable("ROOT".into());
+    pub static ref ROOT: air::Expression = air::Expression::Variable("ROOT".into());
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -38,85 +39,82 @@ impl MqlTranslator {
         }
     }
 
-    pub fn translate_stage(&self, ir_stage: ir::Stage) -> Result<agg_ir::Stage> {
-        match ir_stage {
-            ir::Stage::Filter(_f) => Err(Error::UnimplementedStruct),
-            ir::Stage::Project(_p) => Err(Error::UnimplementedStruct),
-            ir::Stage::Group(_g) => Err(Error::UnimplementedStruct),
-            ir::Stage::Limit(_l) => Err(Error::UnimplementedStruct),
-            ir::Stage::Offset(_o) => Err(Error::UnimplementedStruct),
-            ir::Stage::Sort(_s) => Err(Error::UnimplementedStruct),
-            ir::Stage::Collection(c) => self.translate_collection(c),
-            ir::Stage::Array(arr) => self.translate_array_stage(arr),
-            ir::Stage::Join(_j) => Err(Error::UnimplementedStruct),
-            ir::Stage::Set(_s) => Err(Error::UnimplementedStruct),
-            ir::Stage::Derived(_d) => Err(Error::UnimplementedStruct),
-            ir::Stage::Unwind(_u) => Err(Error::UnimplementedStruct),
+    pub fn translate_stage(&self, mir_stage: mir::Stage) -> Result<air::Stage> {
+        match mir_stage {
+            mir::Stage::Filter(_f) => Err(Error::UnimplementedStruct),
+            mir::Stage::Project(_p) => Err(Error::UnimplementedStruct),
+            mir::Stage::Group(_g) => Err(Error::UnimplementedStruct),
+            mir::Stage::Limit(_l) => Err(Error::UnimplementedStruct),
+            mir::Stage::Offset(_o) => Err(Error::UnimplementedStruct),
+            mir::Stage::Sort(_s) => Err(Error::UnimplementedStruct),
+            mir::Stage::Collection(c) => self.translate_collection(c),
+            mir::Stage::Array(arr) => self.translate_array_stage(arr),
+            mir::Stage::Join(_j) => Err(Error::UnimplementedStruct),
+            mir::Stage::Set(_s) => Err(Error::UnimplementedStruct),
+            mir::Stage::Derived(_d) => Err(Error::UnimplementedStruct),
+            mir::Stage::Unwind(_u) => Err(Error::UnimplementedStruct),
         }
     }
 
-    fn translate_array_stage(&self, ir_arr: ir::ArraySource) -> Result<agg_ir::Stage> {
-        let doc_stage = agg_ir::Stage::Documents(agg_ir::Documents {
-            array: ir_arr
+    fn translate_array_stage(&self, mir_arr: mir::ArraySource) -> Result<air::Stage> {
+        let doc_stage = air::Stage::Documents(air::Documents {
+            array: mir_arr
                 .array
                 .iter()
-                .map(|ir_expr| self.translate_expression(ir_expr.clone()))
-                .collect::<Result<Vec<agg_ir::Expression>>>()?,
+                .map(|mir_expr| self.translate_expression(mir_expr.clone()))
+                .collect::<Result<Vec<air::Expression>>>()?,
         });
 
-        Ok(agg_ir::Stage::Project(agg_ir::Project {
+        Ok(air::Stage::Project(air::Project {
             source: Box::new(doc_stage),
             specifications: unique_linked_hash_map! {
-                ir_arr.alias => ROOT.clone(),
+                mir_arr.alias => ROOT.clone(),
             },
         }))
     }
 
-    fn translate_collection(&self, ir_collection: ir::Collection) -> Result<agg_ir::Stage> {
-        let coll_stage = agg_ir::Stage::Collection(agg_ir::Collection {
-            db: ir_collection.db,
-            collection: ir_collection.collection.clone(),
+    fn translate_collection(&self, mir_collection: mir::Collection) -> Result<air::Stage> {
+        let coll_stage = air::Stage::Collection(air::Collection {
+            db: mir_collection.db,
+            collection: mir_collection.collection.clone(),
         });
 
-        Ok(agg_ir::Stage::Project(agg_ir::Project {
+        Ok(air::Stage::Project(air::Project {
             source: Box::new(coll_stage),
             specifications: unique_linked_hash_map! {
-                ir_collection.collection => ROOT.clone(),
+                mir_collection.collection => ROOT.clone(),
             },
         }))
     }
 
     #[allow(dead_code)]
-    pub fn translate_expression(
-        &self,
-        ir_expression: ir::Expression,
-    ) -> Result<agg_ir::Expression> {
-        match ir_expression {
-            ir::Expression::Literal(lit) => self.translate_literal(lit.value),
-            ir::Expression::Document(doc) => self.translate_document(doc.document),
-            ir::Expression::Array(expr) => self.translate_array(expr.array),
-            ir::Expression::Reference(reference) => self.translate_reference(reference.key),
+    pub fn translate_expression(&self, mir_expression: mir::Expression) -> Result<air::Expression> {
+        match mir_expression {
+            mir::Expression::Literal(lit) => self.translate_literal(lit.value),
+            mir::Expression::Document(doc) => self.translate_document(doc.document),
+            mir::Expression::Array(expr) => self.translate_array(expr.array),
+            mir::Expression::Reference(reference) => self.translate_reference(reference.key),
             _ => Err(Error::UnimplementedStruct),
         }
     }
 
-    fn translate_literal(&self, lit: ir::LiteralValue) -> Result<agg_ir::Expression> {
-        Ok(agg_ir::Expression::Literal(match lit {
-            ir::LiteralValue::Null => agg_ir::LiteralValue::Null,
-            ir::LiteralValue::Boolean(b) => agg_ir::LiteralValue::Boolean(b),
-            ir::LiteralValue::String(s) => agg_ir::LiteralValue::String(s),
-            ir::LiteralValue::Integer(i) => agg_ir::LiteralValue::Integer(i),
-            ir::LiteralValue::Long(l) => agg_ir::LiteralValue::Long(l),
-            ir::LiteralValue::Double(d) => agg_ir::LiteralValue::Double(d),
+    fn translate_literal(&self, lit: mir::LiteralValue) -> Result<air::Expression> {
+        Ok(air::Expression::Literal(match lit {
+            mir::LiteralValue::Null => air::LiteralValue::Null,
+            mir::LiteralValue::Boolean(b) => air::LiteralValue::Boolean(b),
+            mir::LiteralValue::String(s) => air::LiteralValue::String(s),
+            mir::LiteralValue::Integer(i) => air::LiteralValue::Integer(i),
+            mir::LiteralValue::Long(l) => air::LiteralValue::Long(l),
+            mir::LiteralValue::Double(d) => air::LiteralValue::Double(d),
         }))
     }
 
     fn translate_document(
         &self,
-        ir_document: UniqueLinkedHashMap<String, ir::Expression>,
-    ) -> Result<agg_ir::Expression> {
-        Ok(agg_ir::Expression::Document(
-            ir_document
+        mir_document: UniqueLinkedHashMap<String, mir::Expression>,
+    ) -> Result<air::Expression> {
+        Ok(air::Expression::Document(
+            mir_document
                 .into_iter()
                 .map(|(k, v)| {
                     if k.starts_with('$') || k.contains('.') || k.is_empty() {
@@ -130,28 +128,28 @@ impl MqlTranslator {
                 })
                 .collect::<Result<
                     std::result::Result<
-                        UniqueLinkedHashMap<String, agg_ir::Expression>,
+                        UniqueLinkedHashMap<String, air::Expression>,
                         DuplicateKeyError,
                     >,
                 >>()??,
         ))
     }
 
-    fn translate_array(&self, array: Vec<ir::Expression>) -> Result<agg_ir::Expression> {
-        Ok(agg_ir::Expression::Array(
+    fn translate_array(&self, array: Vec<mir::Expression>) -> Result<air::Expression> {
+        Ok(air::Expression::Array(
             array
                 .into_iter()
                 .map(|x| self.translate_expression(x))
-                .collect::<Result<Vec<agg_ir::Expression>>>()?,
+                .collect::<Result<Vec<air::Expression>>>()?,
         ))
     }
 
-    fn translate_reference(&self, key: Key) -> Result<agg_ir::Expression> {
+    fn translate_reference(&self, key: Key) -> Result<air::Expression> {
         self.mapping_registry
             .get(&key)
             .ok_or(Error::ReferenceNotFound(key))
             .map(|s| {
-                agg_ir::Expression::FieldRef(agg_ir::FieldRefExpr {
+                air::Expression::FieldRef(air::FieldRefExpr {
                     parent: None,
                     name: s.clone(),
                 })
