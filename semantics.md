@@ -2690,7 +2690,7 @@ first operand be copied multiple times (one for each when clause).
 
 ## Scalar Functions
 
-#### Behavioral Description
+### Behavioral Description
 
 MongoSQL requires most scalar functions defined in the SQL-92 spec, with
 a few exceptions [highlighted
@@ -2707,7 +2707,7 @@ descriptions cover the basics of what the functions do as well as any
 static type constraints on their arguments (where relevant); see the
 [spec tests](#examples-11) for full behavior details.
 
-##### Conditional Scalar Functions
+#### Conditional Scalar Functions
 
 Conditional scalar functions are those which specify a conditional
 value. SQL-92 requires the NULLIF and COALESCE conditional functions.
@@ -2736,13 +2736,13 @@ and COALESCE(v1, v2, \..., vn) is equivalent to:
 
 CASE WHEN v1 IS NOT NULL THEN v1 ELSE COALESCE(v2, \..., vn) END
 
-##### Type Conversion Scalar Function
+#### Type Conversion Scalar Function
 
 The type conversion scalar function CAST converts an expression to a
 specified type. See the [Type Conversions](#type-conversions) section for details about
 the CAST scalar function.
 
-##### Array Scalar Functions
+#### Array Scalar Functions
 
 Array scalar functions are those which operate on arrays. MongoSQL
 specifies two such scalar functions, SLICE and SIZE. See the
@@ -2757,7 +2757,7 @@ Notably, the type constraints are more relaxed than \$size. The argument
 must statically have type ARRAY or NULL, and may be missing. If the
 argument is NULL or MISSING, the result is NULL.
 
-##### Numeric Value Scalar Functions
+#### Numeric Value Scalar Functions
 
 Numeric value scalar functions are those which return numeric values.
 SQL-92 requires the POSITION, CHAR_LENGTH, OCTET_LENGTH, BIT_LENGTH, and
@@ -2792,7 +2792,7 @@ datetime value. The source argument must statically have type TIMESTAMP
 or NULL, and may be missing. If it is NULL or MISSING, the result is
 NULL.
 
-### Addititional Numeric Scalar Functions
+#### Addititional Numeric Scalar Functions
 
 The following list of functions operate on numeric values and return numeric values.
 All arguments to these functions must statically have type `NULL` or a numeric type
@@ -2878,8 +2878,7 @@ The TAN( `number` ) scalar function returns the tangent of an angle, specified i
 If the argument is of type `DECIMAL` the return type is `DECIMAL`. All other numeric argument types
 return `DOUBLE`. If the argument evaluates to negative or positive `Infinity`, the result of the operation is `NULL`.
 
-
-##### String Value Scalar Functions
+#### String Value Scalar Functions
 
 String value scalar functions are those which return string values.
 SQL-92 requires the SUBSTRING, UPPER, LOWER, CONVERT, TRANSLATE, and
@@ -2944,7 +2943,47 @@ TRIM(spec FROM str)</br>
 will be rewritten as:</br>
 TRIM(spec \' \' FROM str)
 
-##### Datetime Value Scalar Functions
+#### Additional String Functions
+
+- CONTAINS(`string`, `substring`) => `bool`
+  - Returns `true` if the given `string` contains `substring`.
+- FIND(`string`, `substring`, \[`start`\]) => `int`
+  - Returns the index position of `substring` in `string`, or 0 if the
+  `substring` isn't found. If `start` is specified, characters before `start`
+  are ignored for matching evaulation. The first character in `string` is
+  position 1.
+- LEFT(`string`, `number`) => `string`
+  - Returns the left-most `number` of characters in `string`.
+- MID(`string`, `start`, \[`length`\]) => `string`
+  - Returns the string starting at the index position `start`. The first character
+  in the `string` is position 1. If the optional argument `length` is specified,
+  the returned string includes only that number of characters.
+- RIGHT(`string`, `number`) => `string`
+  - Returns the right-most `number` of characters in `string`.
+- SPACE(`number`) => `string`
+  - Returns a string that is composed of the specified number of repeated spaces.
+- SPLIT(`string`, `delimiter`, `token number`) => `string`
+  - Returns a substring from a `string`, using a `delimiter` character to divide the string into a sequence of tokens.
+
+  The string is interpreted as an alternating sequence of delimiters and tokens.
+  So for the string "abc-defgh-i-jkl", where the delimiter character is ‘-‘, the tokens
+  are abc, defgh, i, and jlk. Think of these as tokens 1 through 4. SPLIT returns the token
+  corresponding to the `token number`. When the token number is positive, tokens are counted
+  starting from the left end of the string; when the token number is negative, tokens are
+  counted starting from the right.
+
+  If `token number` is greater than the number of tokens, the result is an empty string.
+- STARTSWITH(`string`, `substring`) => `string`
+  - Returns `true` if `string` starts with `substring`. Leading whitespaces are ignored.
+- ENDSWITH(`string`, `substring`) => `string`
+  - Returns `true` if `string` end with `substring`. Trailing whitespaces are ignored.
+
+The `string` and `substring` arguments must statically have type STRING or NULL, and
+may evaluate to MISSING. `number` and `token number` must statically have type INT or NULL,
+and may evaluate to MISSING. If any argument is NULL or MISSING, or a `delimiter` evaluates
+to an empty string, the result is NULL.
+
+#### Datetime Value Scalar Functions
 
 Datetime value scalar functions are those which return datetime values.
 SQL-92 requires the CURRENT_DATE, CURRENT_TIME, and CURRENT_TIMESTAMP
@@ -2968,14 +3007,30 @@ effectively evaluated simultaneously. The time of evaluation of the
 \<datetime value function\> during the execution of the SQL-statement
 is implementation-dependent._
 
-#### Examples
+#### Additional Date Functions
+
+- DATEADD(`date_part`, `interval`, `date`) => `datetime`
+  - Returns the specified `date` with the specified number of `interval` added to the specified `date_part` of that `date`.
+- DATEDIFF(`date_part`, `date1`, `date2`, \[`start_of_week`\]) => `int`
+  - Returns the difference between `date1` and `date2` expressed in units of `date_part`.
+- DATEPART(`date_part`, `date`) => `int`
+  - Returns `date_part` of `date` as an `int`.
+- DATETRUNC(`date_part`, `date`, \[`start_of_week`]) => `datetime`
+  - Truncates the specified `date` to the accuracy specified by `date_part`, and returns a new `date`.
+
+The `date` argument must be a MongoSQL `datetime` value and `date_part`
+must be a valid token. The default `start_of_week` is _"sunday"_ (case insensitive),
+for DATEDIFF and DATETRUNC. If an argument evaluates to `NULL` or `MISSING`,
+the result of the operation is `NULL`.
+
+### Examples
 
 See query tests, rewrite tests, and type constraint tests
 [here](https://github.com/10gen/mongosql-rs/tree/master/tests/spec_tests).
 
 <div id="scalar-functions-grammar">
 
-#### Grammar
+### Grammar
 
 \<scalar function expression\> ::= \<nullif function\></br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| \<coalesce function\> \| \<size function\> \| \<position function\></br>
@@ -3024,6 +3079,24 @@ See query tests, rewrite tests, and type constraint tests
 
 \<current timestamp function\> ::= CURRENT_TIMESTAMP (\"(\" [\<expression\>](#expressions) \")\")?
 
+\<contains function\> ::= CONTAINS "(" \<[expression](#expressions)\> "," \<[expression](#expressions)\> ")"
+
+\<find function\> ::= FIND "(" \<[expression](#expressions)\> "," \<[expression](#expressions)\> "," \<[expression](#expressions)\>? ")"
+
+\<left function\> ::= LEFT "(" \<[expression](#expressions)\> "," \<[expression](#expressions)\> ")"
+
+\<right function\> ::= RIGHT "(" \<[expression](#expressions)\> "," \<[expression](#expressions)\> ")"
+
+\<mid function\> ::= MID "(" \<[expression](#expressions)\> "," \<[expression](#expressions)\> "," \<[expression](#expressions)\>? ")"
+
+\<split function\> ::= SPLIT "(" \<[expression](#expressions)\> "," \<[expression](#expressions)\> "," \<[expression](#expressions)\> ")"
+
+\<startswith function\> ::= STARTSWITH "(" \<[expression](#expressions)\> "," \<[expression](#expressions)\> ")"
+
+\<endswith function\> ::= ENDSWITH "(" \<[expression](#expressions)\> "," \<[expression](#expressions)\> ")"
+
+< space function > ::= SPACE "(" \<[expression](#expressions)\> ")"
+
 < abs function > ::= ABS "(" \<[expression](#expressions)\> ")"
 
 < ceiling function > ::= CEIL "(" \<[expression](#expressions)\> ")"
@@ -3050,12 +3123,24 @@ See query tests, rewrite tests, and type constraint tests
 
 < tan function > ::= TAN "(" \<[expression](#expressions)\> ")"
 
+\<date function> ::= \<dateadd\> | \<datediff\> | \<datetrunc\>
+
+\<standard date part> ::= YEAR | MONTH | DAY | HOUR | MINUTE | SECOND | WEEK
+
+\<date_part\> ::= \<standard date part\> | QUARTER
+
+\<dateadd\> ::= DATEADD "(" \<date_part\>"," \<[expression](#expressions)\> "," \<[expression](#expressions)\> ")"
+
+\<datediff\> ::= DATEDIFF "(" \<date_part\> "," \<[expression](#expressions)\> "," \<[expression](#expressions)\> ("," \<[expression](#expressions)\>)? ")"
+
+\<datetrunc\> ::= DATETRUNC "(" \<date_part\> "," \<[expression](#expressions)\> ("," \<[expression](#expressions)\>)? ")"
+
 > <sup id="7">7</sup> Note, the SQL-92 grammar actually specifies that TRIM(FROM
     \<string\>) is a syntactically valid invocation of the TRIM
     function, so we preserve that in MongoSQL grammar ([SQL-92
     6.7](https://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt)).
 
-#### Open Questions
+### Open Questions
 
 - Do we want to support the aggregation functions (AVG, MIN, MAX,
   COUNT, SUM) as scalar functions that operate on arrays?
@@ -3064,7 +3149,7 @@ See query tests, rewrite tests, and type constraint tests
     eventually, but does not seem necessary at this time since it
     is outside the scope of SQL-92.
 
-#### Rejected Alternatives/Competitive Analysis
+### Rejected Alternatives/Competitive Analysis
 
 This specification does not require that implementations rewrite NULLIF
 or COALESCE functions as CASE operations. This is left up to
@@ -3082,7 +3167,7 @@ or TIME types at this time.
 
 ## Subquery Expressions
 
-#### Behavioral Description
+### Behavioral Description
 
 A subquery is a SQL query within a query.
 
