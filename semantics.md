@@ -913,41 +913,32 @@ makes it a special case, because it does not take a binding-tuple stream
 as its input. Instead, it generates its output tuple stream from various
 datasources.
 
-MongoSQL has four kinds of datasources:
-[collection](#collection-datasources),
-[array](#array-datasources),
-[join](#join-datasources), and [derived
-table](#derived-table-datasources). Datasources provide
-various ways of creating streams of binding tuples. Simple datasources
-create streams of tuples with a single key, while compound datasources
-create streams of tuples with multiple keys.
+MongoSQL has four categories of datasources:
+
+- Simple datasources
+  - [Collection](#collection-datasource)
+  - [Array](#array-datasource)
+  - [Derived Table](#derived-table-datasource)
+- Compound (Join) datasources
+  - [Cross Join](#comma-cross-join-datasource)
+  - [Inner Join](#inner-join-datasource)
+  - [Left Outer Join](#left-outer-join-datasource)
+  - [Right Outer Join](#right-outer-join-datasource)
+- [Unwind datasources](#unwind-datasource)
+- [Flatten datasources](#flatten-datasource)
+
+Datasources provide various ways of creating streams of binding tuples.
+Simple datasources create streams of tuples with a single key, while
+compound datasources create streams of tuples with multiple keys.
 
 The top-level datasource in a FROM clause forms the clause's output
 stream.
 
-<div id="from-grammar" />
+### Datasources
 
-### Grammar
+#### Simple Datasources
 
-\<from clause\> ::= FROM \<datasource\>
-
-\<datasource\> ::= \<simple datasource\> \| \<compound datasource\>
-
-\<compound datasource\> ::= [\<join datasource\>](#join-datasources)
-
-\<simple datasource\> ::= [\<collection datasource\>](#collection-datasources)</br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| [\<array datasource\>](#array-datasources)</br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| [\<derived table datasource\>](#derived-table-datasources)
-
-\<array datasource\> ::= [\<array expression\>](#array-indexing-and-slicing-expressions) [\<alias\>](#aliases)
-
-\<derived table datasource\> ::= \"(\" [\<select query\>](#select-clause) \")\" [\<alias\>](#aliases)
-
-\<collection datasource\> ::= \<collection reference\> [\<alias\>](#aliases)?
-
-\<collection reference\> ::= [\<compound identifier\>](#identifiers)
-
-### Collection Datasources
+##### Collection Datasource
 
 A collection datasource is composed of a collection reference (qualified
 or unqualified) and an optional alias. Formally, the collection
@@ -974,7 +965,7 @@ SELECT \* FROM collection AS alias
 
 SELECT<sub>out</sub> = FROM<sub>out</sub> = \[⟨alias: d⟩ for d ∊ collection\]
 
-### Array Datasources
+##### Array Datasource
 
 An array datasource is composed of an array literal and an alias. The
 array's elements must statically evaluate to document values;
@@ -992,141 +983,7 @@ SELECT \* FROM \[{'a': 1}, {'a': 2}\] AS alias
 
 SELECT<sub>out</sub> = FROM<sub>out</sub> = \[⟨alias: {'a': 1}⟩, ⟨alias: {'a': 2}⟩\]
 
-### Join Datasources
-
-A join datasource is a compound datasource that combines two other
-datasources. The binding tuples created by the join contain the keys
-from the two combined datasources. This requires that the sets of
-datasource names created by each side of the join must be disjoint. If
-the same datasource name appears on both sides of a join, the query will
-fail to compile.
-
-The number and contents of the tuples output by a join datasource
-depends on the type of join and the join criteria. Behavior for each
-join type is described below. MongoSQL supports INNER JOIN, (CROSS)
-JOIN, LEFT OUTER JOIN, and RIGHT OUTER JOIN.
-
-#### Rewrites
-
-There are two types of JOIN that may be rewritten syntactically. We also
-rewrite to have aliases as specified in the [Collection Datasources](#collection-datasources) section.
-
-##### Comma Join
-
-\<datasource\>, \<datasource\>
-
-will be rewritten as:
-
-\<datasource\> CROSS JOIN \<datasource\>
-
-#### Semantics for CROSS JOIN
-
-CROSS JOIN performs a mathematical cross product of two datasources. For
-example, consider the output of the join datasource in the following
-query:
-
-SELECT \* FROM A AS a1 CROSS JOIN B AS b1
-
-SELECT<sub>out</sub> = FROM<sub>out</sub> = \[⟨a1: a, b1: b⟩ for (a, b) ∊ A ⨯ B\]
-
-#### Semantics for INNER JOIN
-
-Semantically, an INNER JOIN is equivalent to a CROSS JOIN filtered by a
-WHERE clause. For example:
-
-SELECT \* FROM X INNER JOIN Y ON \<condition\>
-
-is equivalent to
-
-SELECT \* FROM X CROSS JOIN Y WHERE \<condition\>
-
-The same predicate typing restrictions apply when using ON as when using
-WHERE. The only difference between an inner join's ON predicate and a
-WHERE clause is that the only values in scope for the ON predicate are
-those in the two datasources being joined.
-
-For example, consider the output of the join datasource in the following
-query. For the purpose of the formal definition, we consider the join
-criteria \<condition\> a function that takes a binding tuple and returns
-a boolean.
-
-SELECT \* FROM A as a1 INNER JOIN B as b1 ON \<condition\>
-
-SELECT<sub>out</sub> = FROM<sub>out</sub> = \[tup if \<condition\>(tup)</br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;where tup = ⟨a1: a, b1: b⟩</br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (a, b) ∊ A ⨯ B</br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\]
-
-MongoSQL does not support the USING Clause at the initial version(see
-[Future Work](#future-work)).
-
-#### Semantics for LEFT OUTER JOIN
-
-Like in standard SQL, left outer joins in MongoSQL guarantee that every
-tuple from the left side of the join appears at least once in the
-result. The main way in which MongoSQL differs from standard SQL is that
-we cannot necessarily enumerate all field names in a datasource. So, in
-the cases where SQL would return null values for all fields on the right
-side of a join, we instead set the value for all right-side datasource
-names to the empty document.
-
-SELECT \* FROM A AS a1 LEFT OUTER JOIN B AS b1 ON \<condition\>
-
-SELECT<sub>out</sub> = FROM<sub>out</sub> = \[\..., ⟨a1: {\...}, b1: {\...}⟩, ⟨a1: {\...}, b1: {}⟩, \...\]
-
-#### Semantics for RIGHT OUTER JOIN
-
-A right outer join is the inverse of a left outer join. Since MongoSQL
-does not provide any guarantees about field order, the following queries
-are semantically equivalent:
-
-SELECT \* FROM A AS a1 LEFT OUTER JOIN B AS b1 ON \<condition\>
-
-SELECT \* FROM B AS b1 RIGHT OUTER JOIN A AS a1 ON \<condition\>
-
-<div id="join-grammar" />
-
-#### Grammar
-
-\<join datasource\> ::= \<cross join\></br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| \<datasource\>(, \<datasource\>)+</br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| \<qualified join\></br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| \"(\" \<join datasource\> \")\"
-
-\<cross join\> ::= \<datasource\> CROSS? JOIN \<datasource\>
-
-\<qualified join\> ::= \<datasource\> \<join type\> JOIN \<datasource\> \<join spec\>?
-
-\<join spec\> ::= ON [\<expression\>](#expressions)
-
-\<join column list\> ::= [\<compound identifier\>](#identifiers) (\",\" [\<compound identifier\>](#identifiers))\*
-
-\<join type\> ::= INNER</br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| LEFT OUTER?</br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| RIGHT OUTER?
-
-#### Examples
-
-[Rewrite Tests](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/rewrite_tests/join.yml)
-
-[Query Tests](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/query_tests/join.yml)
-
-#### Rejected Alternatives/Competitive Analysis
-
-- Natural Join
-
-  - We have decided not to support natural join in MongoSQL
-  - One reason is that a natural join is not well defined for
-    structured data. For example, if tables foo and bar both have
-    a field baz of type document, should the equality condition of
-    the join be on baz, or on the shared subfields of baz? There
-    is no one-size-fits-all answer to this question.
-  - Despite the fact that NATURAL JOIN is part of SQL-92, we do not
-    anticipate that any BI tools would generate a query using this
-    feature. If this assumption ends up being incorrect, we can
-    always revisit NATURAL JOIN again in the future.
-
-### Derived Table Datasources
+##### Derived Table Datasource
 
 A derived table datasource is made up of a parenthesized MongoSQL query
 and an alias. Note, unlike a [subquery
@@ -1160,62 +1017,325 @@ FROM<sub>out</sub> = \[ ⟨_x_: \$mergeObjects(_v<sub>0</sub>, ...,v<sub>n</sub>
 where \$mergeObjects is the MQL function, which has semantics similar to
 _tupleConcat_, but applied to documents rather than binding tuples.
 
-#### Ambiguous Bindings
+#### Compound (Join) Datasources
 
-Unless we can prove statically that there are no duplicate top-level
-keys in the documents to be merged, we disallow the query with a static
-error. If the keys of documents in the subquery's output binding tuples
-cannot be statically enumerated at query planning time (in the case of a
-SELECT \*, for example), we assume that conflicts exist and raise a
-static error:
+A join datasource is a compound datasource that combines two other
+datasources. The binding tuples created by the join contain the keys
+from the two combined datasources. This requires that the sets of
+datasource names created by each side of the join must be disjoint. If
+the same datasource name appears on both sides of a join, the query will
+fail to compile.
 
-SELECT \* FROM (</br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SELECT \* FROM foo AS foo</br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CROSS JOIN bar AS bar</br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;) AS derived
+The number and contents of the tuples output by a join datasource
+depends on the type of join and the join criteria. Behavior for each
+join type is described below. MongoSQL supports INNER JOIN, (CROSS)
+JOIN, LEFT OUTER JOIN, and RIGHT OUTER JOIN.
 
-Will result in an error:
+##### Rewrites
 
-The keys of datasources \'foo\', \'bar\' are not enumerable, and may be
-ambiguous. Try replacing \'SELECT \*\' with direct references, or
-providing schemata for \'foo\', \'bar\'.
+There are two types of JOIN that may be rewritten syntactically. We also
+rewrite to have aliases as specified in the [Collection Datasource](#collection-datasource) section.
 
-#### Competitive Analysis And Rejected Alternatives
+##### Comma (CROSS) JOIN Datasource
 
-Different implementations of SQL handle ambiguous references in
-different ways:
+CROSS JOIN performs a mathematical cross product of two datasources. For
+example, consider the output of the join datasource in the following
+query:
 
-- MySQL reports duplicate key errors in the same cases we will, in so
-  far as all MySQL tables have schemata
+SELECT \* FROM A AS a1 CROSS JOIN B AS b1
 
-- Postgres allows duplicate keys to be displayed from a SELECT \* at
-  the top, that is SELECT \* FROM (SELECT \* FROM foo AS f, foo AS
-  f2) AS derived is allowed. However, there is no way to reference a
-  key from the derived table in the SELECT clause, only SELECT \*
-  works. Additionally, top level queries may reference a column
-  multiple times.
+SELECT<sub>out</sub> = FROM<sub>out</sub> = \[⟨a1: a, b1: b⟩ for (a, b) ∊ A ⨯ B\]
 
-- SQLite also allows duplicate keys as Postgres, but the SELECT \*
-  results slightly mangle the names of duplicate columns such that
-  no name is strictly duplicated; they are still not accessible.
+Comma join:
 
-- PartiQL allows duplicate field names in results, so does nothing
-  special to handle ambiguous fields in derived tables. If a field
-  is selected by name, the first field with that name from left to
-  right is chosen.
+\<datasource\>, \<datasource\>
 
-- Presto operates similar to Postgres, allowing duplicate keys to be
-  displayed from a SELECT \* at the top, that is SELECT \* FROM
-  (SELECT \* FROM foo AS f, foo AS f2) AS derived is allowed.
-  However, there is no way to reference a key from the derived table
-  in the SELECT clause, only SELECT \* works.
+will be rewritten as:
 
-While any of these approaches are feasible for MongoSQL, we choose to
-report ambiguity as an error as early as possible (at the point of the
-derived table query rather than at the uses of those derived values).
-This results in an easier implementation and better immediate feedback
-to users who may be writing queries that take hours or days.
-Additionally, duplicate keys in MongoDB are undefined behavior.
+\<datasource\> CROSS JOIN \<datasource\>
+
+##### INNER JOIN Datasource
+
+Semantically, an INNER JOIN is equivalent to a CROSS JOIN filtered by a
+WHERE clause. For example:
+
+SELECT \* FROM X INNER JOIN Y ON \<condition\>
+
+is equivalent to
+
+SELECT \* FROM X CROSS JOIN Y WHERE \<condition\>
+
+The same predicate typing restrictions apply when using ON as when using
+WHERE. The only difference between an inner join's ON predicate and a
+WHERE clause is that the only values in scope for the ON predicate are
+those in the two datasources being joined.
+
+For example, consider the output of the join datasource in the following
+query. For the purpose of the formal definition, we consider the join
+criteria \<condition\> a function that takes a binding tuple and returns
+a boolean.
+
+SELECT \* FROM A as a1 INNER JOIN B as b1 ON \<condition\>
+
+SELECT<sub>out</sub> = FROM<sub>out</sub> = \[tup if \<condition\>(tup)</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;where tup = ⟨a1: a, b1: b⟩</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (a, b) ∊ A ⨯ B</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\]
+
+MongoSQL does not support the USING Clause at the initial version(see
+[Future Work](#future-work)).
+
+##### LEFT OUTER JOIN Datasource
+
+Like in standard SQL, left outer joins in MongoSQL guarantee that every
+tuple from the left side of the join appears at least once in the
+result. The main way in which MongoSQL differs from standard SQL is that
+we cannot necessarily enumerate all field names in a datasource. So, in
+the cases where SQL would return null values for all fields on the right
+side of a join, we instead set the value for all right-side datasource
+names to the empty document.
+
+SELECT \* FROM A AS a1 LEFT OUTER JOIN B AS b1 ON \<condition\>
+
+SELECT<sub>out</sub> = FROM<sub>out</sub> = \[\..., ⟨a1: {\...}, b1: {\...}⟩, ⟨a1: {\...}, b1: {}⟩, \...\]
+
+##### RIGHT OUTER JOIN Datasource
+
+A right outer join is the inverse of a left outer join. Since MongoSQL
+does not provide any guarantees about field order, the following queries
+are semantically equivalent:
+
+SELECT \* FROM A AS a1 LEFT OUTER JOIN B AS b1 ON \<condition\>
+
+SELECT \* FROM B AS b1 RIGHT OUTER JOIN A AS a1 ON \<condition\>
+
+<div id="join-grammar" />
+
+##### Examples
+
+[Rewrite Tests](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/rewrite_tests/join.yml)\
+[Query Tests](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/query_tests/join.yml)
+
+#### Unwind Datasource
+
+The syntax for unwinding array fields is an `UNWIND` keyword that can be used in the `FROM` clause in conjunction with a datasource and options.
+
+UNWIND(\<datasource\> WITH PATH => \<path\>,</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INDEX => \<name\>,</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;OUTER => \<bool\>)
+
+where
+
+- `datasource` is the source of the array field
+- `PATH` is a field path that references the field in the datasource to unwind
+- `INDEX` is the name to assign the index column
+- `OUTER` indicates whether documents with null, missing, or empty array values are preserved
+
+##### Semantics
+
+The `UNWIND` datasource "unwinds" an array field into multiple rows–each one corresponding
+to a value from the array field. It is a datasource that operates on any valid
+MongoSQL [datasource](#datasources) (collection, array, join, another unwind, etc.). The `UNWIND` datasource specifies a datasource and a sequence of named arguments. The only required
+argument is a "`PATH`", which is a compound identifier that references an array field from the datasource. There are optional "`INDEX`" and "`OUTER`" arguments that behave similarly to their [$unwind counterparts](https://docs.mongodb.com/manual/reference/operator/aggregation/unwind/#document-operand-with-options), "`includeArrayIndex`" and "`preserveNullAndEmtpyArrays`", respectively. By default, if those arguments are not included, the output does not contain an index field and does not preserve documents for which the unwind field is null, missing, or an empty array.
+
+Note that `UNWIND` operates on arbitrary datasources, meaning it could operate on simple
+_or_ compound datasources. For the latter case, the `UNWIND` datasource outputs
+multiple namespaces. Therefore, the `UNWIND` datasource cannot be aliased; instead,
+it uses the alias(es) of the provided datasource. The field that is unwound is nested
+along its field path under the alias of its datasource. See the [Examples](#unwind-examples)
+for a more concrete view of this.
+
+Generally, an `UNWIND` datasource can be thought of as a two-step process. First, the inner datasource is evaluated to produce a stream of binding tuples. Then, each binding tuple is sent through the "unwinding" process to produce 0 or more binding tuples, depending on the value of the field specified in the `UNWIND`. In the abstract model, this is actually modeled in one step as follows:
+
+SELECT * FROM UNWIND(ds WITH PATH => array_path,</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;INDEX => i)
+
+SELECT<sub>out</sub> = FROM<sub>out</sub> = [⟨bk: {...d, array_path: val, i: idx}, ...bt⟩</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (idx, val) ∊ enumerate(d.array_path)</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;where (bk: d) is the binding in bt that</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;contains array_path</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for bt ∊ ds</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]
+
+For each binding tuple `bt` in datasource `ds`, determine the binding (`bk`, `d`) that
+contains the unwind path according to the MongoSQL [Scoping Rules](#scoping-rules)
+and then "`enumerate`" `d.array_path`. Here, `enumerate` means to range over the values
+in the array along with the index for that value. For each index-value pair (`idx`, `val`)
+in the array, output a binding tuple that binds "`bk`" to the document containing everything in `d`
+(denoted as `...d`) with "`array_path`" replaced by the unwind value `val` and an "`i`"
+field added with the index value `idx`, as well as all other bindings in `bt` (denoted as `...bt`).
+
+There are several important notes to point out here. The [Examples](#unwind-examples) highlight these points in finer detail.
+
+- If the value at the `PATH` for a certain document `d` is _not_ an array and is not `NULL` or missing, the abstract model `enumerate` function simply outputs the value at the path and the index value `NULL`.
+- If the value at the `PATH` for a certain document `d` is an empty array, `NULL`, or missing, `bt` is omitted from the output by default.
+  - If the optional argument `OUTER` is provided and set to `TRUE`, then `bt` is included in the output similar to how MongoDB [$unwind](https://docs.mongodb.com/manual/reference/operator/aggregation/unwind/#preservenullandemptyarrays) works.
+  - For brevity, the abstract model equations in this document omit the steps that exclude such values by default.
+  - Note that several competitors use `JOIN UNNEST` syntax to unwind array values from datasources.
+    - A `CROSS JOIN` (the default) omits documents when the unwind path references a null, empty, or missing array.
+    - A `LEFT JOIN` includes such documents.
+
+- If the datasource is a compound datasource that contains multiple datasources,
+`UNWIND` follows the MongoSQL [Scoping Rules](#scoping-rules) to determine which field
+from which datasource is being referenced. The unwound data is nested under the appropriate datasource in the output.
+
+  - To make this clear, here is how this looks according to the abstract model. For simplicity of notation in this example, we can assume `a` and `b` are both collection datasources:</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SELECT * FROM UNWIND(a JOIN b WITH PATH => a.array_path)</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SELECT<sub>out</sub> = FROM<sub>out<sup> </sup></sub>= [</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;⟨a: {...d<sub>a</sub>, array_path: val}, b: d<sub>b</sub>⟩</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (idx, val) in enumerate(d<sub>a</sub>.array_path)</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;for (d<sub>a</sub>, d<sub>b</sub>)`∊`a ⨯ b</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;]
+
+  - See the [Examples](#unwind-examples) for more details.
+
+- If the `INDEX` name MAY<sup>[2](#unwind-definitions)</sup> or MUST conflict with a field name in the datasource, then the `UNWIND` source is semantically invalid and an error is produced.
+
+- [MongoSQL uses 0-indexing](#array-indexing-and-slicing-expressions).
+
+<div id="unwind-examples" />
+
+##### Examples
+
+[Spec tests](https://github.com/10gen/mongosql-rs/pull/282)
+
+<div id="unwind-definitions" />
+
+##### Definitions
+
+There are three schema satisfaction levels:
+
+- `MUST` contain `f` => we have a schema that proves a datasource is guaranteed to have the top-level field `f`
+- `CANNOT` contain `f` => we have a schema that proves a datasource cannot contain the top-level field `f`
+- `MAY` contain `f` => we cannot prove or disprove the existence of a top-level field `f` in a datasource
+
+#### Flatten Datasource
+
+_FLATTEN(\<datasource\> WITH depth => n, separator => \<some_string\>)_, where
+
+- _depth => n_
+  - `n` is an nonnegative integer
+  - Optional and defaults to flattening all subdocuments
+- separator => \<some_string\>
+  - Use \<some_string\> as the delimiter when concatenating field names
+  - Optional and defaults to `'_'`
+
+<div id="flatten-grammar" />
+
+##### Semantics
+
+A `FLATTEN` datasource operates on any valid MongoSQL datasource (collection, array, join, another flatten, etc.),
+some of which are simple datasources, while others are compound. If `FLATTEN` is operating
+on a compound datasource, it will output multiple namespaces. Therefore, the `FLATTEN`
+datasource cannot be aliased; instead, it uses the alias(es) of the provided datasource.
+The flattened fields are nested under the alias of their datasource.
+
+Refer to the [spec tests](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/query_tests/from_flatten.yml) for a more concrete view of this.
+
+`FLATTEN` creates a stream of binding tuples with the same keys as the input tuples; one binding tuple is created per document in the datasource. For example, consider the following query
+
+SELECT * FROM FLATTEN(\<input datasource\> WITH DEPTH => n,</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SEPARATOR => s)
+
+its output is defined as:
+
+SELECT<sub>out</sub> = FROM<sub>out</sub> = [flatten_tuple(t, n, s) for t ∊ datasource]
+
+where _flatten_tuple(t, n, s)_ is defined as follows:
+
+for (datasource_name, root_value) in t:</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;emit_binding(datasource_name, flatten_doc(root_value, n, s))
+
+and _flatten_doc(d, n, s)_ is the following recursive algorithm that produces a document:
+
+```sh
+for (k, v) in d:
+    if v is not a document or n <= 0:
+        emit(k, v)
+    else:
+        for (sub_k, sub_v) in flatten_doc(v, n-1, s):
+            emit(k + s + sub_k, sub_v)
+```
+
+Note: `n` defaults to `∞` and `s` defaults to `'_'`.
+
+In other words, the flattening process will recursively flatten each top-level field until it reaches a non-document subfield or the user-specified document depth. Here, `emit_binding(name, doc)` means return a binding of `name` to `doc`. `emit(k, v)` means include the key-value pair `(k, v)` in the result document. If the user sets the value of depth to 0, `flatten_doc` will be a no-op.
+
+##### Schema Information
+
+Flattening will return an error if
+
+- the datasource contains polymorphic object fields
+- we cannot enumerate all of the keys for a field given its document schema
+- a naming collision `MAY` or `MUST`<sup>[1](#unwind-definitions)</sup> occur.
+
+  - For example, suppose we have the following data:</br>
+
+    ```sh
+    { 'foo': { 'a_b': 1, 'a': { 'b': 2 } } }
+    SELECT * FROM FLATTEN(foo)
+    ```
+
+     would produce `'a_b'` the original field, and `'a_b'` the flattened field.
+     Those names conflict so MongoSQL will return an error.
+
+##### Examples
+
+[Spec Tests](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/query_tests/from_flatten.yml)
+
+<div id="from-grammar" />
+
+### Grammar
+
+\<from clause\> ::= FROM \<datasource\>
+
+\<datasource\> ::= \<simple datasource\> \| \<compound datasource\> \| \<unwind datasource\> \| \<flatten datasource\>
+
+\<simple datasource\> ::= [\<collection datasource\>](#collection-datasource)</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| [\<array datasource\>](#array-datasource)</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| [\<derived table datasource\>](#derived-table-datasource)
+
+\<collection datasource\> ::= \<collection reference\> [\<alias\>](#aliases)?
+
+\<collection reference\> ::= [\<compound identifier\>](#identifiers)
+
+\<array datasource\> ::= [\<array expression\>](#array-indexing-and-slicing-expressions) [\<alias\>](#aliases)
+
+\<derived table datasource\> ::= \"(\" [\<select query\>](#select-clause) \")\" [\<alias\>](#aliases)
+
+\<compound datasource\> ::= \<join type\>
+
+\<join type\> ::= [INNER](#inner-join-datasource)</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| [CROSS](#comma-cross-join-datasource)?</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| [LEFT OUTER](#left-outer-join-datasource)?</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| [RIGHT OUTER](#right-outer-join-datasource)?
+
+\<cross join\> ::= \<datasource\> CROSS? JOIN \<datasource\>
+
+\<qualified join\> ::= \<datasource\> \<join type\> JOIN \<datasource\> \<join spec\>?
+
+\<join spec\> ::= ON [\<expression\>](#expressions)
+
+\<join column list\> ::= [\<compound identifier\>](#identifiers) (\",\" [\<compound identifier\>](#identifiers))\*
+
+\<unwind datasource\> ::= UNWIND "(" \<datasource\></br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(WITH \<unwind options\>)? ")"
+
+\<unwind options\> ::= \<unwind option\> ("," \<unwind option\>)*
+
+\<unwind option\> ::= \<path option\></br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| \<index option\></br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| \<outer option\>
+
+\<path option\> ::= PATH "=>" [\<compound identifier\>](#identifiers) (\",\" [\<compound identifier\>](#identifiers))\*</br>
+\<index option\> ::= INDEX "=>" \<identifier\></br>
+\<outer option\> ::= OUTER "=>" \<boolean literal\>
+
+\<flatten datasource\> ::= FLATTEN "(" \<datasource\> (WITH \<flatten option\> ("," \<flatten option\>)*)? ")"
+
+\<flatten option\> ::= SEPARATOR "=>" \<string literal\></br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| DEPTH "=>" \<integer literal\>
+
 
 ## WHERE Clause
 
@@ -1739,6 +1859,20 @@ LIMIT i OFFSET j
 [Query Test](https://github.com/10gen/mongosql-rs/blob/e31c8dc2ccf88b0d648877e3d0312f92d969c228/tests/spec_tests/query_tests/limit_offset.yml)</br>
 [Rewrite Test](https://github.com/10gen/mongosql-rs/blob/e31c8dc2ccf88b0d648877e3d0312f92d969c228/tests/spec_tests/rewrite_tests/limit_offset.yml)
 
+### Rejected Alternatives/Competitive Analysis
+
+The LIMIT and OFFSET clauses are not part of SQL-92 standard, and
+different database providers have slightly different implementations.
+Since SQL-2008, the FETCH FIRST clause has become part of the SQL
+standard. However, it's not the most widely supported syntax so far.
+
+From this [table](<https://en.wikipedia.org/wiki/Select_(SQL)#FETCH_FIRST_clause>),
+you can see LIMIT/OFFSET is best supported among DB providers. In
+addition to the DB providers listed in that table, PartiQL and Presto
+also support LIMIT and OFFSET. Also because we are targeting SQL-92
+compatibility, SQL 2008 is not a requirement, so we choose to support
+LIMIT/OFFSET syntax over FETCH FIRST.
+
 ## Set Operations
 
 ### Behavioral Description
@@ -1799,6 +1933,63 @@ operator\> [\<select query\>](#select-clause)
   - MQL does not support any set operations other than UNION, so
     adding support for INTERSECT and EXCEPT would require
     non-trivial additions to the underlying database engine
+
+#### Ambiguous Bindings
+
+Unless we can prove statically that there are no duplicate top-level
+keys in the documents to be merged, we disallow the query with a static
+error. If the keys of documents in the subquery's output binding tuples
+cannot be statically enumerated at query planning time (in the case of a
+SELECT \*, for example), we assume that conflicts exist and raise a
+static error:
+
+SELECT \* FROM (</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;SELECT \* FROM foo AS foo</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;CROSS JOIN bar AS bar</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;) AS derived
+
+Will result in an error:
+
+The keys of datasources \'foo\', \'bar\' are not enumerable, and may be
+ambiguous. Try replacing \'SELECT \*\' with direct references, or
+providing schemata for \'foo\', \'bar\'.
+
+#### Competitive Analysis And Rejected Alternatives
+
+Different implementations of SQL handle ambiguous references in
+different ways:
+
+- MySQL reports duplicate key errors in the same cases we will, in so
+  far as all MySQL tables have schemata
+
+- Postgres allows duplicate keys to be displayed from a SELECT \* at
+  the top, that is SELECT \* FROM (SELECT \* FROM foo AS f, foo AS
+  f2) AS derived is allowed. However, there is no way to reference a
+  key from the derived table in the SELECT clause, only SELECT \*
+  works. Additionally, top level queries may reference a column
+  multiple times.
+
+- SQLite also allows duplicate keys as Postgres, but the SELECT \*
+  results slightly mangle the names of duplicate columns such that
+  no name is strictly duplicated; they are still not accessible.
+
+- PartiQL allows duplicate field names in results, so does nothing
+  special to handle ambiguous fields in derived tables. If a field
+  is selected by name, the first field with that name from left to
+  right is chosen.
+
+- Presto operates similar to Postgres, allowing duplicate keys to be
+  displayed from a SELECT \* at the top, that is SELECT \* FROM
+  (SELECT \* FROM foo AS f, foo AS f2) AS derived is allowed.
+  However, there is no way to reference a key from the derived table
+  in the SELECT clause, only SELECT \* works.
+
+While any of these approaches are feasible for MongoSQL, we choose to
+report ambiguity as an error as early as possible (at the point of the
+derived table query rather than at the uses of those derived values).
+This results in an easier implementation and better immediate feedback
+to users who may be writing queries that take hours or days.
+Additionally, duplicate keys in MongoDB are undefined behavior.
 
 ## Expressions
 
@@ -3556,6 +3747,8 @@ with MQL:
     our particular serializer (to BSON) upconverts MISSING to
     NULL, but it makes sense to explicitly reference this here.
 
+
+<div id="scoping-rules" />
 
 ## Scoping Rules
 
