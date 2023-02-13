@@ -183,7 +183,7 @@ functions:
   "download c library":
     - command: s3.get
       params:
-        build_variants: ['macos', 'rhel76', 'ubuntu1804']
+        build_variants: ['macos', 'macos-arm64', 'rhel76', 'ubuntu1804']
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/libmongosql.a
@@ -212,6 +212,22 @@ functions:
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/macos/libmongosql.a
         remote_file: mongosql-rs/macos/${release_version}/libmongosql.a
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/macos-arm64/libmongosql.a
+        local_file: mongosql-rs/release/macos-arm64/libmongosql.a
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/macos-arm64/libmongosql.a
+        remote_file: mongosql-rs/macos-arm64/${release_version}/libmongosql.a
         bucket: translators-connectors-releases
         permissions: public-read
         content_type: application/octet-stream
@@ -343,7 +359,7 @@ functions:
   "upload c library":
     - command: s3.put
       params:
-        build_variants: ['macos', 'rhel76', 'ubuntu1804']
+        build_variants: ['macos', 'macos-arm64', 'rhel76', 'ubuntu1804']
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/target/release/libmongosql.a
@@ -363,7 +379,7 @@ functions:
         content_type: application/octet-stream
     - command: s3.put
       params:
-        build_variants: ['macos', 'rhel76', 'ubuntu1804']
+        build_variants: ['macos', 'macos-arm64', 'rhel76', 'ubuntu1804']
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/test_target/release/libmongosql.a
@@ -530,6 +546,15 @@ buildvariants:
   - name: macos
     display_name: "macOS 10.14"
     run_on: [ macos-1014 ]
+    tasks:
+      - name: compile
+      - name: test-rust
+      - name: test-rust-fuzz
+      - name: test-go
+
+  - name: macos-arm64
+    display_name: "macOS 11.0"
+    run_on: [ macos-1100-arm64 ]
     tasks:
       - name: compile
       - name: test-rust
