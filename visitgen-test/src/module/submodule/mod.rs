@@ -1,7 +1,5 @@
 pub mod ast;
-// defines pub mod visitor and pub mod walk
-include!(concat!(env!("OUT_DIR"), "/module/submodule/visitor.rs"));
-include!(concat!(env!("OUT_DIR"), "/module/submodule/walk.rs"));
+pub use ast::{visitor, walk};
 
 #[cfg(test)]
 mod test;

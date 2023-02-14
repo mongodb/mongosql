@@ -1319,6 +1319,8 @@ name = "visitgen"
 version = "0.1.0"
 dependencies = [
  "lazy_static",
+ "proc-macro2",
+ "quote",
  "syn",
 ]
 
@@ -1328,7 +1330,6 @@ version = "0.1.0"
 dependencies = [
  "linked-hash-map",
  "mongosql-datastructures",
- "thiserror",
  "visitgen",
 ]
 

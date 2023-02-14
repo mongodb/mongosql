@@ -8,6 +8,8 @@ use crate::{
     util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
 
+visitgen::generate_visitors! {
+
 #[derive(PartialEq, Debug, Clone)]
 pub enum Stage {
     Filter(Filter),
@@ -690,3 +692,5 @@ impl TryFrom<crate::ast::Type> for Type {
         }
     }
 }
+
+} // end of generate_visitors! block

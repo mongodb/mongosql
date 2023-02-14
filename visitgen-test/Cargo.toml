@@ -6,9 +6,5 @@ edition = "2021"
 
 [dependencies]
 linked-hash-map = "0.5.4"
-thiserror = "1"
 mongosql-datastructures = { path = "../mongosql-datastructures" }
-
-[build-dependencies]
 visitgen = { path = "../visitgen" }
-mongosql-datastructures = { path = "../mongosql-datastructures" }

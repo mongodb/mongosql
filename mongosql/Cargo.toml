@@ -19,6 +19,7 @@ serde_yaml = "0.8.21"
 enum-iterator = "0.7.0"
 thiserror = "1"
 variant_count = "1.1.0"
+visitgen = { path = "../visitgen" }
 mongosql-datastructures = { path = "../mongosql-datastructures" }
 
 [target.'cfg(unix)'.dev-dependencies]
@@ -31,6 +32,4 @@ harness = false
 
 [build-dependencies]
 lalrpop = "0.19.4"
-visitgen = { path = "../visitgen" }
-mongosql-datastructures = { path = "../mongosql-datastructures" }
 regex = "1.4.6"

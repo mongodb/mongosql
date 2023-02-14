@@ -1,6 +1,6 @@
 use syn::{
-    parse_file, punctuated::Punctuated, token::Comma, visit::Visit, File, GenericArgument,
-    ItemEnum, ItemStruct, PathArguments, Type,
+    punctuated::Punctuated, token::Comma, visit::Visit, File, GenericArgument, ItemEnum,
+    ItemStruct, PathArguments, Type,
 };
 
 /// EnumOrStruct represents either
@@ -20,20 +20,8 @@ impl EnumOrStruct {
     }
 }
 
-/// collect_types collects all the types in a given rust file. We currently
-/// do not support cross-file Visitor implementations.
-pub fn collect_types(file_name: &str) -> Vec<EnumOrStruct> {
-    use std::fs;
-    use std::io::Read;
-
-    let mut file = fs::File::open(file_name).expect("failed to open file");
-
-    let mut src = String::new();
-    file.read_to_string(&mut src).expect("unable to read file");
-
-    let syntax: File = parse_file(&src)
-        .unwrap_or_else(|e| panic!("unable to parse file: {file_name}, due to {e:?}"));
-
+/// collect_types collects all the types in a syn::File
+pub fn collect_types(file: &File) -> Vec<EnumOrStruct> {
     struct TypeVisitor {
         types: Vec<EnumOrStruct>,
     }
@@ -50,7 +38,7 @@ pub fn collect_types(file_name: &str) -> Vec<EnumOrStruct> {
     }
 
     let mut type_vis = TypeVisitor { types: Vec::new() };
-    type_vis.visit_file(&syntax);
+    type_vis.visit_file(file);
     type_vis.types
 }
 

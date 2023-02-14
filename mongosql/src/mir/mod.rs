@@ -1,5 +1,3 @@
-include!(concat!(env!("OUT_DIR"), "/mir/visitor.rs"));
-include!(concat!(env!("OUT_DIR"), "/mir/walk.rs"));
 pub mod definitions;
 pub use definitions::*;
 pub mod constant_folding;

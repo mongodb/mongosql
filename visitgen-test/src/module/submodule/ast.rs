@@ -5,6 +5,8 @@ use mongosql_datastructures::{
 use std::collections::{BTreeMap, HashMap};
 use std::fmt;
 
+visitgen::generate_visitors! {
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct Atom {
     pub name: String,
@@ -79,3 +81,5 @@ pub struct HashTree {
     pub branch_bt1: BindingTuple<String>,
     pub branch_bt2: BindingTuple<Box<Atom>>,
 }
+
+} // end of generate_visitors! block

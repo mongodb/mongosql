@@ -14,6 +14,8 @@ macro_rules! multimap {
 	};
 }
 
+visitgen::generate_visitors! {
+
 #[allow(clippy::large_enum_variant)]
 #[derive(PartialEq, Debug, Clone, VariantCount)]
 pub enum Query {
@@ -713,3 +715,5 @@ pub enum Type {
     Timestamp,
     Undefined,
 }
+
+} // end of generate_visitors! block
