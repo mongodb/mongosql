@@ -1,5 +1,57 @@
 # MongoSQL Syntax & Semantics
 
+- [MongoSQL Syntax & Semantics](#mongosql-syntax--semantics)
+  - [Overview](#overview)
+  - [Abstract Model](#abstract-model)
+  - [MongoSQL Grammar](#mongosql-grammar)
+  - [Type System](#type-system)
+    - [Data Types](#data-types)
+    - [Type Conversions](#type-conversions)
+    - [Schema/Type Constraints](#schematype-constraints)
+  - [Clauses](#clauses)
+    - [SELECT Clause](#select-clause)
+    - [FROM Clause](#from-clause)
+      - [Datasources](#datasources)
+    - [WHERE Clause](#where-clause)
+    - [GROUP BY Clause](#group-by-clause)
+    - [HAVING clause](#having-clause)
+    - [ORDER BY Clause](#order-by-clause)
+    - [LIMIT, FETCH FIRST, and OFFSET Clauses](#limit-fetch-first-and-offset-clauses)
+  - [Set Operations](#set-operations)
+  - [Expressions](#expressions)
+    - [Identifiers](#identifiers)
+    - [Literals](#literals)
+    - [Parenthesized Expressions](#parenthesized-expressions)
+    - [Operators](#operators)
+    - [Scalar Functions](#scalar-functions)
+      - [Numeric Value Scalar Functions](#numeric-value-scalar-functions)
+      - [Addititional Numeric Scalar Functions](#addititional-numeric-scalar-functions)
+      - [String Value Scalar Functions](#string-value-scalar-functions)
+      - [Datetime Value Scalar Functions](#datetime-value-scalar-functions)
+    - [Subquery Expressions](#subquery-expressions)
+    - [Document and Field-Access Expressions](#document-and-field-access-expressions)
+    - [Array, Indexing, and Slicing Expressions](#array-indexing-and-slicing-expressions)
+    - [Null & Missing](#null--missing)
+  - [Scoping Rules](#scoping-rules)
+  - [Miscellaneous](#miscellaneous)
+    - [Document Key Ordering Semantics](#document-key-ordering-semantics)
+    - [Not A Number (NaN) Equality](#not-a-number-nan-equality)
+    - [MongoSQL Exceptional Behavior](#mongosql-exceptional-behavior)
+    - [Comments](#comments)
+  - [Future Work](#future-work)
+    - [Date and Time Types](#date-and-time-types)
+    - [Exposing MQL Functionality](#exposing-mql-functionality)
+    - [Collations](#collations)
+    - [ORDER BY arbitrary expressions](#order-by-arbitrary-expressions)
+    - [Supporting Non-Document BSON Values In Query Results](#supporting-non-document-bson-values-in-query-results)
+    - [SELECT DISTINCT](#select-distinct)
+    - [UNION DISTINCT](#union-distinct)
+    - [USING CLAUSE](#using-clause)
+    - [Unify arrays and subqueries](#unify-arrays-and-subqueries)
+  - [Appendix](#appendix)
+    - [Formal Definitions](#formal-definitions)
+    - [Implementation Considerations for Translation to MQL](#implementation-considerations-for-translation-to-mql)
+
 ## Overview
 
 This document describes the syntax and semantics of MongoSQL, a SQL
@@ -308,12 +360,12 @@ and semantics of the given construct.
 
 \<select query\> ::= [\<set query\>](#set-operations)</br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| [\<select clause\>](#select-grammar) [\<from clause\>](#from-grammar)?</br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[\<where clause\>](#where-grammar)? [\<group by clause\>](#group-by-grammar)?</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[\<where clause\>](#where-grammar)? [\<group by clause\>](#group-by-clause)?</br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;[\<having clause\>](#having-clause)? [\<order by clause\>](#order-by-grammar)?</br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\<limit/offset clause\>?
 
-\<limit/offset clause\> ::= [\<limit clause\>](#limit-and-offset-clauses) [\<offset clause\>](#limit-and-offset-clauses)?</br>
-&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| [\<offset clause\>](#limit-and-offset-clauses) [\<limit clause\>](#limit-and-offset-clauses)?
+\<limit/offset clause\> ::= [\<limit clause\>](#limit-fetch-first-and-offset-clauses) [\<offset clause\>](#limit-fetch-first-and-offset-clauses)?</br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| [\<offset clause\>](#limit-fetch-first-and-offset-clauses) [\<limit clause\>](#limit-fetch-first-and-offset-clauses)?
 
 ## Type System
 
@@ -373,7 +425,7 @@ alias BSON_DATE. See the [Grammar](#type-alias-grammar) for all type
 names and aliases.
 
 Type aliases are rewritten to their core names in MongoSQL queries. See
-the [Examples](#type-name-alias-examples) for details.
+the [Examples](#type-alias-examples) for details.
 
 <div id="type-alias-grammar"/>
 
@@ -421,7 +473,7 @@ the [Examples](#type-name-alias-examples) for details.
 \<min key type\> ::= MINKEY</br>
 \<max key type\> ::= MAXKEY
 
-<div id="type-name-alias-examples"/>
+<div id="type-alias-examples"/>
 
 #### Examples
 
@@ -462,7 +514,7 @@ MISSING; if omitted, casting NULL or MISSING to anything results in
 NULL. The other additional argument is an expression to return if the
 conversion produces a runtime error; if omitted, MongoSQL will return
 NULL if it encounters a casting error. See the
-[Grammar](#) for details on how to provide these
+[Grammar](#type-conversion-grammar) for details on how to provide these
 extra arguments.
 
 The `::` operator is a shorthand alias for the two-argument form of the
@@ -533,12 +585,16 @@ Casting to DOCUMENT behaves as follows:
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(\",\" [\<expression\>](#expressions) ON ERROR)?</br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\")\"
 
+<div id="type-conversion-examples" />
+
 #### Examples
 
 See query spec tests
 [here](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/query_tests/type_conversions.yml)
 and rewrite spec tests
 [here](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/rewrite_tests/type_conversions.yml).
+
+<div id="type-conversion-rejected" />
 
 #### Rejected Alternatives/Competitive Analysis
 
@@ -563,7 +619,9 @@ support implicit type conversions:
 Popular SQL dialects MySQL and SQLite do seem to have implicit casting
 such that \<int\> + \<string\> works without an explicit cast.
 
-## Schema/Type Constraints
+### Schema/Type Constraints
+
+<div id="schematype-behavioral-description" />
 
 #### Behavioral Description
 
@@ -578,7 +636,7 @@ that "this expression is either a boolean or a document with subfields a
 and b", or "this expression is either an array of length 1 or a positive
 integer".
 
-##### Schema Inference
+#### Schema Inference
 
 MongoSQL gets schema information from a number of different places:
 
@@ -595,7 +653,7 @@ would be if schema data were available. For example, when no schema data
 is available for the collection foo, the field a in the query SELECT a
 FROM foo could be a value of any MongoSQL type, or could be missing.
 
-##### Type Checking
+#### Type Checking
 
 There are numerous situations where an expression's type needs to be
 verified at compile time. Every function and operator has constraints on
@@ -607,7 +665,7 @@ evaluated at compile time if sufficient type information is available.
 If a static type constraint is not satisfied, then the query will fail
 to compile.
 
-##### Type assertion
+#### Type assertion
 
 In order to match the type constraint mentioned above, users will need
 to add CAST on expressions to declare its type in the schema-less mode.
@@ -648,7 +706,7 @@ substr(foo::!STRING, 1, 2) will throw a runtime error if foo is not
 actually a STRING type because substr only accepts a STRING or NULL
 value.
 
-<div id="constraints-grammar" />
+<div id="schematype-grammar" />
 
 #### Grammar
 
@@ -661,6 +719,8 @@ expressions, but it is intentional that this document specifies neither
 syntax for accessing that information in a query nor a standard textual
 representation of a MongoSQL type.
 
+<div id="schematype-examples" />
+
 #### Examples
 
 Since there is no new syntax associated with this section, most of the
@@ -671,6 +731,8 @@ and expressions include:
 - Tests validating expression return types
 - Tests validating type constraints for arguments
 - Tests validating that a specific type inference can be made
+
+<div id="schematype-rejected" />
 
 #### Rejected Alternatives/Competitive Analysis
 
@@ -706,11 +768,13 @@ and expressions include:
       so via ODBC or JDBC, as opposed to by writing DESCRIBE or
       INFORMATION_SCHEMA queries
 
-# Clauses
+## Clauses
 
-## SELECT Clause
+### SELECT Clause
 
-### Behavioral Description
+<div id="select-behavior" />
+
+#### Behavioral Description
 
 The main form of the \<select clause\> is SELECT VALUES. Other formats
 of \<select clause\> are syntactic sugar that can be syntactically
@@ -827,6 +891,8 @@ will be rewritten as:
 
 SELECT x.y.a AS a, b AS b, ...
 
+<div id="rewriting-select-expr-expr"/>
+
 ##### Rewriting SELECT \<expression1\>, \<expression2\>, ...
 
 SELECT \<expression1\>, \<expression2\>, ...
@@ -839,6 +905,8 @@ Where \_1 and \_2 are names generated by the implementation
 corresponding to position in the resulting documents, starting at 1
 because SQL traditionally numbers the first column as 1.
 
+<div id="rewriting-select-expr-sub-expr-sub" />
+
 ##### Rewriting SELECT \<expression<sub>1</sub>\> AS x<sub>1</sub>, \<expression<sub>2</sub>\> as x<sub>2</sub>, ..., t.\*, ...
 
 SELECT \<expression<sub>1</sub>\> AS x<sub>1</sub>, \<expression2\> as x<sub>2</sub>, ..., t.\*,
@@ -849,7 +917,7 @@ will be rewritten as:
 SELECT VALUES {x<sub>1</sub>: \<expression<sub>1</sub>\>, x<sub>2</sub>: \<expression<sub>2</sub>\>}, ...,
 t.\*, ...
 
-##### Semantics of SELECT \*
+#### Semantics of SELECT \*
 
 SELECT \* will return all binding tuples from the input stream
 unmodified. Other expressions may not be present in the select list
@@ -857,7 +925,7 @@ alongside \*.
 
 <div id="select-grammar" />
 
-### Grammar
+#### Grammar
 
 \<select clause\> ::= SELECT \<set quantifier\>? \<value keyword\></br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\<select value list\></br>
@@ -883,13 +951,17 @@ alongside \*.
 
 \<substar expr\> ::= [\<identifier\>](#identifiers) \".\" \"\*\"
 
-### Examples
+<div id="select-examples" />
+
+#### Examples
 
 [Rewrite Examples](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/rewrite_tests/select.yml)
 
 [Query Examples](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/query_tests/select.yml)
 
-### Rejected Alternatives/Competitive Analysis
+<div id="select-rejected" />
+
+#### Rejected Alternatives/Competitive Analysis
 
 - We chose not to support a DUAL table, which deviates from existing
   BI Connector and SQL in ADL behavior.
@@ -904,9 +976,11 @@ alongside \*.
     tables and which just allow SELECT without a table to achieve
     the same effect.
 
-## FROM Clause
+### FROM Clause
 
-### Behavioral Description
+<div id="from-behavior" />
+
+#### Behavioral Description
 
 FROM is the first clause of every MongoSQL query to be evaluated. This
 makes it a special case, because it does not take a binding-tuple stream
@@ -934,11 +1008,11 @@ compound datasources create streams of tuples with multiple keys.
 The top-level datasource in a FROM clause forms the clause's output
 stream.
 
-### Datasources
+#### Datasources
 
-#### Simple Datasources
+##### Simple Datasources
 
-##### Collection Datasource
+###### Collection Datasource
 
 A collection datasource is composed of a collection reference (qualified
 or unqualified) and an optional alias. Formally, the collection
@@ -965,7 +1039,7 @@ SELECT \* FROM collection AS alias
 
 SELECT<sub>out</sub> = FROM<sub>out</sub> = \[⟨alias: d⟩ for d ∊ collection\]
 
-##### Array Datasource
+###### Array Datasource
 
 An array datasource is composed of an array literal and an alias. The
 array's elements must statically evaluate to document values;
@@ -983,7 +1057,7 @@ SELECT \* FROM \[{'a': 1}, {'a': 2}\] AS alias
 
 SELECT<sub>out</sub> = FROM<sub>out</sub> = \[⟨alias: {'a': 1}⟩, ⟨alias: {'a': 2}⟩\]
 
-##### Derived Table Datasource
+###### Derived Table Datasource
 
 A derived table datasource is made up of a parenthesized MongoSQL query
 and an alias. Note, unlike a [subquery
@@ -1017,7 +1091,7 @@ FROM<sub>out</sub> = \[ ⟨_x_: \$mergeObjects(_v<sub>0</sub>, ...,v<sub>n</sub>
 where \$mergeObjects is the MQL function, which has semantics similar to
 _tupleConcat_, but applied to documents rather than binding tuples.
 
-#### Compound (Join) Datasources
+##### Compound (Join) Datasources
 
 A join datasource is a compound datasource that combines two other
 datasources. The binding tuples created by the join contain the keys
@@ -1031,12 +1105,12 @@ depends on the type of join and the join criteria. Behavior for each
 join type is described below. MongoSQL supports INNER JOIN, (CROSS)
 JOIN, LEFT OUTER JOIN, and RIGHT OUTER JOIN.
 
-##### Rewrites
+###### Rewrites
 
 There are two types of JOIN that may be rewritten syntactically. We also
 rewrite to have aliases as specified in the [Collection Datasource](#collection-datasource) section.
 
-##### Comma (CROSS) JOIN Datasource
+###### Comma (CROSS) JOIN Datasource
 
 CROSS JOIN performs a mathematical cross product of two datasources. For
 example, consider the output of the join datasource in the following
@@ -1054,7 +1128,7 @@ will be rewritten as:
 
 \<datasource\> CROSS JOIN \<datasource\>
 
-##### INNER JOIN Datasource
+###### INNER JOIN Datasource
 
 Semantically, an INNER JOIN is equivalent to a CROSS JOIN filtered by a
 WHERE clause. For example:
@@ -1085,7 +1159,7 @@ SELECT<sub>out</sub> = FROM<sub>out</sub> = \[tup if \<condition\>(tup)</br>
 MongoSQL does not support the USING Clause at the initial version(see
 [Future Work](#future-work)).
 
-##### LEFT OUTER JOIN Datasource
+###### LEFT OUTER JOIN Datasource
 
 Like in standard SQL, left outer joins in MongoSQL guarantee that every
 tuple from the left side of the join appears at least once in the
@@ -1099,7 +1173,7 @@ SELECT \* FROM A AS a1 LEFT OUTER JOIN B AS b1 ON \<condition\>
 
 SELECT<sub>out</sub> = FROM<sub>out</sub> = \[\..., ⟨a1: {\...}, b1: {\...}⟩, ⟨a1: {\...}, b1: {}⟩, \...\]
 
-##### RIGHT OUTER JOIN Datasource
+###### RIGHT OUTER JOIN Datasource
 
 A right outer join is the inverse of a left outer join. Since MongoSQL
 does not provide any guarantees about field order, the following queries
@@ -1109,14 +1183,14 @@ SELECT \* FROM A AS a1 LEFT OUTER JOIN B AS b1 ON \<condition\>
 
 SELECT \* FROM B AS b1 RIGHT OUTER JOIN A AS a1 ON \<condition\>
 
-<div id="join-grammar" />
+<div id="join-examples" />
 
-##### Examples
+###### Examples
 
 [Rewrite Tests](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/rewrite_tests/join.yml)\
 [Query Tests](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/query_tests/join.yml)
 
-#### Unwind Datasource
+##### Unwind Datasource
 
 The syntax for unwinding array fields is an `UNWIND` keyword that can be used in the `FROM` clause in conjunction with a datasource and options.
 
@@ -1131,7 +1205,9 @@ where
 - `INDEX` is the name to assign the index column
 - `OUTER` indicates whether documents with null, missing, or empty array values are preserved
 
-##### Semantics
+<div id="unwind-semantics" />
+
+###### Semantics
 
 The `UNWIND` datasource "unwinds" an array field into multiple rows–each one corresponding
 to a value from the array field. It is a datasource that operates on any valid
@@ -1195,13 +1271,13 @@ from which datasource is being referenced. The unwound data is nested under the 
 
 <div id="unwind-examples" />
 
-##### Examples
+###### Examples
 
 [Spec tests](https://github.com/10gen/mongosql-rs/pull/282)
 
 <div id="unwind-definitions" />
 
-##### Definitions
+###### Definitions
 
 There are three schema satisfaction levels:
 
@@ -1209,7 +1285,7 @@ There are three schema satisfaction levels:
 - `CANNOT` contain `f` => we have a schema that proves a datasource cannot contain the top-level field `f`
 - `MAY` contain `f` => we cannot prove or disprove the existence of a top-level field `f` in a datasource
 
-#### Flatten Datasource
+##### Flatten Datasource
 
 _FLATTEN(\<datasource\> WITH depth => n, separator => \<some_string\>)_, where
 
@@ -1220,9 +1296,9 @@ _FLATTEN(\<datasource\> WITH depth => n, separator => \<some_string\>)_, where
   - Use \<some_string\> as the delimiter when concatenating field names
   - Optional and defaults to `'_'`
 
-<div id="flatten-grammar" />
+<div id="flatten-semantics" />
 
-##### Semantics
+###### Semantics
 
 A `FLATTEN` datasource operates on any valid MongoSQL datasource (collection, array, join, another flatten, etc.),
 some of which are simple datasources, while others are compound. If `FLATTEN` is operating
@@ -1261,7 +1337,7 @@ Note: `n` defaults to `∞` and `s` defaults to `'_'`.
 
 In other words, the flattening process will recursively flatten each top-level field until it reaches a non-document subfield or the user-specified document depth. Here, `emit_binding(name, doc)` means return a binding of `name` to `doc`. `emit(k, v)` means include the key-value pair `(k, v)` in the result document. If the user sets the value of depth to 0, `flatten_doc` will be a no-op.
 
-##### Schema Information
+###### Schema Information
 
 Flattening will return an error if
 
@@ -1279,13 +1355,15 @@ Flattening will return an error if
      would produce `'a_b'` the original field, and `'a_b'` the flattened field.
      Those names conflict so MongoSQL will return an error.
 
-##### Examples
+<div id="flatten-examples" />
+
+###### Examples
 
 [Spec Tests](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/query_tests/from_flatten.yml)
 
 <div id="from-grammar" />
 
-### Grammar
+#### Grammar
 
 \<from clause\> ::= FROM \<datasource\>
 
@@ -1336,8 +1414,9 @@ Flattening will return an error if
 \<flatten option\> ::= SEPARATOR "=>" \<string literal\></br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| DEPTH "=>" \<integer literal\>
 
-
 ## WHERE Clause
+
+<div id="where-behavior" />
 
 ### Behavioral Description
 
@@ -1367,9 +1446,13 @@ consistent with every major implementation of SQL.
 
 \<where clause\> ::= WHERE [\<expression\>](#expressions)
 
+<div id="where-examples" />
+
 ### Examples
 
 [Query Tests](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/query_tests/where.yml)
+
+<div id="where-rejected" />
 
 ### Rejected Alternatives/Competitive Analysis
 
@@ -1383,6 +1466,8 @@ queries fail during execution due to polymorphic data is something we
 wish to avoid because analytic queries can often take hours to run.
 
 ## GROUP BY Clause
+
+<div id="group-by-behavior" />
 
 ### Behavioral Description
 
@@ -1414,7 +1499,7 @@ one group, the type in the output group chosen is undefined behavior and
 implementation specific<sup>[2](#2)</sup>. The arguments to agg_function can be any
 expression.
 
-#### ALL and DISTINCT agg_functions
+### ALL and DISTINCT agg_functions
 
 ALL does nothing in agg_functions as that is the default behavior. It is
 removed during syntactic rewrite. Thus:
@@ -1432,7 +1517,7 @@ NULL, and MISSING is converted to NULL. Thus, arguments to DISTINCT
 agg_functions must be statically proved to be comparable to each other
 via equality.
 
-#### GROUP BY Clause Output
+### GROUP BY Clause Output
 
 The GROUP BY clause, like all clauses, outputs a stream of binding
 tuples. As described above, the output stream contains one tuple for
@@ -1456,7 +1541,7 @@ SELECT<sub>out</sub> = GROUP<sub>out</sub> = \[⟨⟘: {sum: \<value\>}, foo: {a
 
 > <sup id="2">2</sup> mongod 4.2 chooses the first type seen during grouping.
 
-#### Rewrite implicit GROUP BY to explicit GROUP BY NULL
+### Rewrite implicit GROUP BY to explicit GROUP BY NULL
 
 Using an aggregate function in the select clause creates an implicit
 GROUP BY where only one group is created. The explicit GROUP BY we
@@ -1470,7 +1555,7 @@ will be rewritten as:
 SELECT ..., ... agg_function(x) ... AS y, ... FROM \<from item\> GROUP
 BY NULL
 
-#### Rewrite SELECT clause aggregate functions into AGGREGATE clause
+### Rewrite SELECT clause aggregate functions into AGGREGATE clause
 
 SELECT ..., ... agg_function(e) ..., ... FROM \<from item\> GROUP BY ...
 AGGREGATE ...
@@ -1484,7 +1569,7 @@ Duplicated aggregate function expressions, e.g., SUM(x + 1) and
 SUM(x + 1) should only have one computation in the AGGREGATE section for
 efficiency reasons. The same alias can be used in each position.
 
-#### Rewrite HAVING clause aggregate functions into AGGREGATE clause
+### Rewrite HAVING clause aggregate functions into AGGREGATE clause
 
 GROUP BY ... HAVING ... agg_function(e) ...
 
@@ -1495,7 +1580,7 @@ GROUP BY ... AGGREGATE agg_function(e) AS \_aggn HAVING ... \_aggn ...
 As above, duplicated aggregation function expressions will be rewritten
 to occur only once in the AGGREGATE phrase of the clause.
 
-#### Rewrites for Generation of GROUP Aliases
+### Rewrites for Generation of GROUP Aliases
 
 When the expressions e<sub>1</sub> ... e<sub>n+m</sub> are non-reference expressions
 
@@ -1553,7 +1638,7 @@ will get rewritten to:
 
 SELECT x1, x2 … GROUP BY e1 AS x1, e2 AS x2, …
 
-#### Aggregation Functions
+### Aggregation Functions
 
 The following are the aggregation functions supported by MongoSQL. Each
 one is evaluated on all of the specified elements from each value in a
@@ -1648,7 +1733,7 @@ GROUP BY ... AGGREGATE ... agg_function(e) AS \_n ... HAVING ... \_n ...
 
 The alias \_n is derived numbering left to right as in Section [SELECT Clause](#select-clause).
 
-<div id="group-by-grammar" />
+<div id="having-grammar" />
 
 ### Grammar
 
@@ -1673,12 +1758,16 @@ function application\> AS?
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| FIRST \| LAST \| MAX \| MERGE_OBJECTS \| MIN \| PUSH \| STDDEV_POP</br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| STDDEV_SAMP \| SUM
 
+<div id="having-examples" />
+
 ### Examples
 
 [Query Test](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/query_tests/group_by.yml)</br>
 [Rewrite Test](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/rewrite_tests/group_by.yml)
 
 ## ORDER BY Clause
+
+<div id="order-by-behavior" />
 
 ### Behavioral Description
 
@@ -1802,6 +1891,8 @@ FETCH FIRST is an alias for LIMIT. MongoSQL supports LIMIT and FETCH FIRST
 interchangeably. Throughout this document, all specifications for LIMIT apply
 to FETCH FIRST.
 
+<div id="limit-behavior" />
+
 ### Behavioral Description
 
 LIMIT and OFFSET allow users to retrieve only part of the rows generated
@@ -1836,7 +1927,7 @@ OFFSET<sub>out</sub><sup>i</sup> = \[</br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;where \[x<sub>1</sub>, ..., x<sub>i</sub>, ..., x<sub>j</sub>\] = OFFSET<sub>IN</sub><sup>i</sup></br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\]
 
-</div id="limit-offset-grammar"/>
+<div id="limit-grammar"/>
 
 ### Grammar
 
@@ -1846,6 +1937,8 @@ OFFSET<sub>out</sub><sup>i</sup> = \[</br>
 \<offset clause\> ::= OFFSET [\<integer
 literal\>](#literals)
 
+<div id="limit-rewrites" />
+
 ### Rewrites
 
 LIMIT i, j
@@ -1854,10 +1947,14 @@ will be rewritten as
 
 LIMIT i OFFSET j
 
+<div id="limit-examples" />
+
 ### Examples
 
 [Query Test](https://github.com/10gen/mongosql-rs/blob/e31c8dc2ccf88b0d648877e3d0312f92d969c228/tests/spec_tests/query_tests/limit_offset.yml)</br>
 [Rewrite Test](https://github.com/10gen/mongosql-rs/blob/e31c8dc2ccf88b0d648877e3d0312f92d969c228/tests/spec_tests/rewrite_tests/limit_offset.yml)
+
+<div id="limit-rejected" />
 
 ### Rejected Alternatives/Competitive Analysis
 
@@ -1874,6 +1971,8 @@ compatibility, SQL 2008 is not a requirement, so we choose to support
 LIMIT/OFFSET syntax over FETCH FIRST.
 
 ## Set Operations
+
+<div id="set-behavior" />
 
 ### Behavioral Description
 
@@ -1893,7 +1992,7 @@ SELECT \* FROM X UNION ALL SELECT \* FROM Y
 
 UNION<sub>out</sub> = \[x for x ∊ X, y for y ∊ Y\]
 
-</div id="set-operations-grammar"/>
+<div id="set-grammar"/>
 
 ### Grammar
 
@@ -1916,6 +2015,8 @@ operator\> [\<select query\>](#select-clause)
 
   - The work for this unification is tracked in
     [SQL-118](https://jira.mongodb.org/browse/SQL-118)
+
+<div id="set-rejected" />
 
 ### Rejected Alternatives/Competitive Analysis
 
@@ -1954,7 +2055,9 @@ The keys of datasources \'foo\', \'bar\' are not enumerable, and may be
 ambiguous. Try replacing \'SELECT \*\' with direct references, or
 providing schemata for \'foo\', \'bar\'.
 
-#### Competitive Analysis And Rejected Alternatives
+<div id="ambiguous-rejected" />
+
+##### Competitive Analysis And Rejected Alternatives
 
 Different implementations of SQL handle ambiguous references in
 different ways:
@@ -2013,9 +2116,9 @@ Additionally, duplicate keys in MongoDB are undefined behavior.
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [\<identifier\>](#identifiers)</br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;| [\<parenthesized expression\>](#parenthesized-expressions)
 
-## Identifiers
+### Identifiers
 
-### Behavioral Description
+#### Behavioral Description
 
 Identifiers in MongoSQL refer to databases, tables, and columns. The
 SQL-92 spec says that by default identifiers should only contain simple
@@ -2094,7 +2197,7 @@ Some mitigating factors to consider:
 
 <div id="identifiers-grammar" />
 
-### Grammar
+#### Grammar
 
 \<compound identifier\> ::= [\<identifier\>](#identifiers) (\".\" [\<compound identifier\>](#identifiers))?
 
@@ -2106,7 +2209,7 @@ Some mitigating factors to consider:
 
 \<identifier character\> ::= \[\^\\x00\]
 
-### Examples
+#### Examples
 
 See Identifiers spec tests
 [here](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/query_tests/identifier.yml)
@@ -2116,7 +2219,7 @@ and
 See Aliases spec tests
 [here](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/query_tests/alias.yml).
 
-### Open Questions
+#### Open Questions
 
 - Should we require that identifiers are valid UTF-8?
 
@@ -2133,9 +2236,9 @@ See Aliases spec tests
     non-UTF-8 fields that, despite being invalid BSON, may still
     exist in a MongoDB collection.
 
-### Rejected Alternatives/Competitive Analysis
+#### Rejected Alternatives/Competitive Analysis
 
-#### Special characters in identifiers
+##### Special characters in identifiers
 
 The proposed solution is to use delimited identifiers when semantically
 significant characters, i.e. ".", are part of an identifier. An
@@ -2146,7 +2249,7 @@ is not required or even considered by the SQL-92 spec. Along with that,
 there is no equivalent mechanism in MongoDB, so introducing one in
 MongoSQL seems unnecessary and unreasonable.
 
-#### Case sensitivity
+##### Case sensitivity
 
 SQL-92 specifies how comparisons between identifiers should behave.
 Comparisons between regular identifiers and regular identifiers are
@@ -2173,9 +2276,9 @@ Given these deviations, in addition to MongoDB's native
 case-sensitivity, it is reasonable for MongoSQL to always consider all
 identifiers case-sensitive.
 
-## Literals
+### Literals
 
-### Behavioral Description
+#### Behavioral Description
 
 MongoSQL supports literals for booleans, null, numbers, and strings.
 Booleans, null, and strings are represented as expected, as seen in the
@@ -2202,7 +2305,7 @@ Conversions](#type-conversions) section for more details.
 
 <div id = "literals-grammar" />
 
-### Grammar
+#### Grammar
 
 \<literal\> ::= \<null literal\> \| \<boolean literal\></br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| \<string literal\> \| \<numeric literal\>
@@ -2226,13 +2329,12 @@ Conversions](#type-conversions) section for more details.
 > <sup id="5">5</sup>  Note: MongoDB treats all numbers with exponent components as doubles, so MongoSQL does the same, even if the number is an integer (i.e. 1.2e2).</br>
 > <sup id="6">6</sup>  Intentionally allowing multiple 0s after the “e”, as do many SQL dialects.
 
-
-### Examples
+#### Examples
 
 See spec tests
 [here](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/query_tests/literal.yml).
 
-### Open Questions
+#### Open Questions
 
 - Should we require that string literals are valid UTF-8?
 
@@ -2250,7 +2352,7 @@ See spec tests
     make it difficult for customers to write certain queries over
     data containing non-UTF-8 strings
 
-### Rejected Alternatives/Competitive Analysis
+#### Rejected Alternatives/Competitive Analysis
 
 Extended JSON was considered as an option for representing all
 BSON/MongoSQL types as literals, however this was ultimately rejected.
@@ -2266,7 +2368,7 @@ MongoSQL does not have a literal syntax for every data type. For
 example, regular expression literals of the form /pattern/options could
 be supported instead of or in addition to the REGEX() function.
 
-## Parenthesized Expressions
+### Parenthesized Expressions
 
 A parenthesized expression is an expression grouped by parentheses,
 similar to the majority of programming languages and other
@@ -2278,13 +2380,13 @@ value of 1 + 2 \* 3 is 7, while the value of (1 + 2) \* 3 is 9.
 
 <div id="parenthisized-grammar" />
 
-### Grammar
+#### Grammar
 
 \<parenthesized expression\> ::= \"(\" \<expression\> \")\"
 
-## Operators
+### Operators
 
-### Behavioral Description
+#### Behavioral Description
 
 MongoSQL provides several operators for the built-in data types.
 Specifically, it supports all operators defined in the SQL-92 spec with
@@ -2312,7 +2414,7 @@ operators, arithmetic operators, comparison operators, boolean
 operators, control-flow operators, and type operators. The following
 sections explain the behavior of each type of operator.
 
-##### Semantics of String Operators
+#### Semantics of String Operators
 
 String operators are those which operate on strings. The operands of
 string operators must statically have type NULL or STRING, and may
@@ -2354,7 +2456,7 @@ is rewritten as:
 
 NOT (e1 LIKE e2)
 
-##### Semantics of Arithmetic Operators
+#### Semantics of Arithmetic Operators
 
 Arithmetic operators are those which operate on numeric data types. The
 operands of arithmetic operations must statically have type NULL or a
@@ -2378,8 +2480,7 @@ section) is allowed. When both operand types are numeric, the result of
 a binary arithmetic operation has a type according to the following
 table:
 
-
-|**Type of Operand 1 ** | **Type of Operand 2** | **Result**
+|**Type of Operand 1** | **Type of Operand 2** | **Result**
 |-----------------------|-----------------------|------------
 |INT                    |INT                    |INT
 |INT or LONG            |LONG                   |LONG
@@ -2400,7 +2501,7 @@ behavior for such cases.
 
 <div id="comparison-operator-semantics"/>
 
-##### Semantics of Comparison Operators
+#### Semantics of Comparison Operators
 
 Comparison operators are those which compare values. The operands of
 comparison operations must statically have comparable types. In most
@@ -2443,7 +2544,7 @@ is rewritten as:
 
 NOT (e1 BETWEEN e2 AND e3)
 
-##### Semantics of Boolean Operators
+#### Semantics of Boolean Operators
 
 Boolean operators are those which operate on boolean data types. The
 operands of boolean operations must statically have type NULL or
@@ -2454,17 +2555,14 @@ boolean operators, described below.
 The semantics of the unary boolean operator NOT are described by the
 truth table below.
 
-
 |**a**| **NOT a**|
 |-|-|
 |TRUE| FALSE|
 |FALSE |TRUE|
 |NULL or MISSING |NULL|
 
-
 The semantics of the binary boolean operators OR and AND are described
 by the truth table below.
-
 
 |**a** |**b** |**a AND b** |**a OR b**|
 |-|-|-|-|
@@ -2480,7 +2578,7 @@ by the truth table below.
 
 ---
 
-##### Semantics of Control-Flow Operators
+#### Semantics of Control-Flow Operators
 
 MongoSQL supports the CASE operator for control-flow. In this context,
 \"control-flow\" refers to conditionally producing values based on
@@ -2544,7 +2642,7 @@ CASE WHEN e THEN r END</br>
 is rewritten as:</br>
 CASE WHEN e THEN r ELSE NULL END
 
-##### Semantics of Type Operators
+#### Semantics of Type Operators
 
 MongoSQL provides the binary IS operator to check the type of an
 expression. The left operand can be any expression and the right operand
@@ -2688,9 +2786,9 @@ expressions to searched CASE expressions. This is also left up to
 implementations since prescribing the rewrite would necessitate that the
 first operand be copied multiple times (one for each when clause).
 
-## Scalar Functions
+### Scalar Functions
 
-### Behavioral Description
+#### Behavioral Description
 
 MongoSQL requires most scalar functions defined in the SQL-92 spec, with
 a few exceptions [highlighted
@@ -2707,7 +2805,7 @@ descriptions cover the basics of what the functions do as well as any
 static type constraints on their arguments (where relevant); see the
 [spec tests](#examples-11) for full behavior details.
 
-#### Conditional Scalar Functions
+##### Conditional Scalar Functions
 
 Conditional scalar functions are those which specify a conditional
 value. SQL-92 requires the NULLIF and COALESCE conditional functions.
@@ -2736,13 +2834,13 @@ and COALESCE(v1, v2, \..., vn) is equivalent to:
 
 CASE WHEN v1 IS NOT NULL THEN v1 ELSE COALESCE(v2, \..., vn) END
 
-#### Type Conversion Scalar Function
+##### Type Conversion Scalar Function
 
 The type conversion scalar function CAST converts an expression to a
 specified type. See the [Type Conversions](#type-conversions) section for details about
 the CAST scalar function.
 
-#### Array Scalar Functions
+##### Array Scalar Functions
 
 Array scalar functions are those which operate on arrays. MongoSQL
 specifies two such scalar functions, SLICE and SIZE. See the
@@ -2757,7 +2855,7 @@ Notably, the type constraints are more relaxed than \$size. The argument
 must statically have type ARRAY or NULL, and may be missing. If the
 argument is NULL or MISSING, the result is NULL.
 
-#### Numeric Value Scalar Functions
+##### Numeric Value Scalar Functions
 
 Numeric value scalar functions are those which return numeric values.
 SQL-92 requires the POSITION, CHAR_LENGTH, OCTET_LENGTH, BIT_LENGTH, and
@@ -2792,7 +2890,7 @@ datetime value. The source argument must statically have type TIMESTAMP
 or NULL, and may be missing. If it is NULL or MISSING, the result is
 NULL.
 
-#### Addititional Numeric Scalar Functions
+##### Addititional Numeric Scalar Functions
 
 The following list of functions operate on numeric values and return numeric values.
 All arguments to these functions must statically have type `NULL` or a numeric type
@@ -2878,7 +2976,7 @@ The TAN( `number` ) scalar function returns the tangent of an angle, specified i
 If the argument is of type `DECIMAL` the return type is `DECIMAL`. All other numeric argument types
 return `DOUBLE`. If the argument evaluates to negative or positive `Infinity`, the result of the operation is `NULL`.
 
-#### String Value Scalar Functions
+##### String Value Scalar Functions
 
 String value scalar functions are those which return string values.
 SQL-92 requires the SUBSTRING, UPPER, LOWER, CONVERT, TRANSLATE, and
@@ -2943,7 +3041,7 @@ TRIM(spec FROM str)</br>
 will be rewritten as:</br>
 TRIM(spec \' \' FROM str)
 
-#### Additional String Functions
+##### Additional String Functions
 
 - CONTAINS(`string`, `substring`) => `bool`
   - Returns `true` if the given `string` contains `substring`.
@@ -2983,7 +3081,7 @@ may evaluate to MISSING. `number` and `token number` must statically have type I
 and may evaluate to MISSING. If any argument is NULL or MISSING, or a `delimiter` evaluates
 to an empty string, the result is NULL.
 
-#### Datetime Value Scalar Functions
+##### Datetime Value Scalar Functions
 
 Datetime value scalar functions are those which return datetime values.
 SQL-92 requires the CURRENT_DATE, CURRENT_TIME, and CURRENT_TIMESTAMP
@@ -3007,7 +3105,7 @@ effectively evaluated simultaneously. The time of evaluation of the
 \<datetime value function\> during the execution of the SQL-statement
 is implementation-dependent._
 
-#### Additional Date Functions
+##### Additional Date Functions
 
 - DATEADD(`date_part`, `interval`, `date`) => `datetime`
   - Returns the specified `date` with the specified number of `interval` added to the specified `date_part` of that `date`.
@@ -3023,14 +3121,14 @@ must be a valid token. The default `start_of_week` is _"sunday"_ (case insensiti
 for DATEDIFF and DATETRUNC. If an argument evaluates to `NULL` or `MISSING`,
 the result of the operation is `NULL`.
 
-### Examples
+#### Examples
 
 See query tests, rewrite tests, and type constraint tests
 [here](https://github.com/10gen/mongosql-rs/tree/master/tests/spec_tests).
 
 <div id="scalar-functions-grammar">
 
-### Grammar
+#### Grammar
 
 \<scalar function expression\> ::= \<nullif function\></br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\| \<coalesce function\> \| \<size function\> \| \<position function\></br>
@@ -3140,7 +3238,7 @@ See query tests, rewrite tests, and type constraint tests
     function, so we preserve that in MongoSQL grammar ([SQL-92
     6.7](https://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt)).
 
-### Open Questions
+#### Open Questions
 
 - Do we want to support the aggregation functions (AVG, MIN, MAX,
   COUNT, SUM) as scalar functions that operate on arrays?
@@ -3149,7 +3247,7 @@ See query tests, rewrite tests, and type constraint tests
     eventually, but does not seem necessary at this time since it
     is outside the scope of SQL-92.
 
-### Rejected Alternatives/Competitive Analysis
+#### Rejected Alternatives/Competitive Analysis
 
 This specification does not require that implementations rewrite NULLIF
 or COALESCE functions as CASE operations. This is left up to
@@ -3165,9 +3263,9 @@ We also rejected the SQL-92 specified datetime value functions
 CURRENT_DATE and CURRENT_TIME because MongoSQL does not support the DATE
 or TIME types at this time.
 
-## Subquery Expressions
+### Subquery Expressions
 
-### Behavioral Description
+#### Behavioral Description
 
 A subquery is a SQL query within a query.
 
@@ -3326,8 +3424,6 @@ undefined behavior cannot be accepted in MongoSQL design.
 
 #### Behavior and Grammar for IN, ANY, SOME, ALL, EXISTS
 
-##### Behavior Description
-
 An ANY predicate determines whether a target value matches any value in
 the subquery for a provided comparison operator. The result is
 equivalent to the logical disjunction of the comparisons between the
@@ -3429,7 +3525,7 @@ evaluate to NULL.
 > <sup id="8">8</sup> Subqueries using SELECT VALUE will parse, but will not pass
 semantic validation at this time.
 
-#### Rewrites
+##### Rewrites
 
 X IN \<subquery\></br>
 will be rewritten to</br>
@@ -3451,7 +3547,7 @@ X = SOME(Y)</br>
 will be rewritten to</br>
 X = ANY(Y)
 
-## Document and Field-Access Expressions
+### Document and Field-Access Expressions
 
 #### Behavioral Description
 
@@ -3519,7 +3615,7 @@ this syntax:
 
 - N1QL and SQL++ do not
 
-## Array, Indexing, and Slicing Expressions
+### Array, Indexing, and Slicing Expressions
 
 #### Behavioral Description
 
@@ -3549,7 +3645,7 @@ That is:
 
 - If the index is NULL or MISSING, it returns NULL.
 
-##### Slicing
+#### Slicing
 
 MongoSQL supports slicing arrays to access subsets of arrays via the
 SLICE(\<array\>, \<start\>, \<length\>) [scalar
@@ -3610,7 +3706,7 @@ Specifically:
 
 #### Rejected Alternatives/Competitive Analysis
 
-###### Indexing
+##### Indexing
 
 We chose to zero-index arrays in MongoSQL because that is what the BSON
 spec/MongoDB do. Competitors are split on this decision:
@@ -3623,7 +3719,7 @@ spec/MongoDB do. Competitors are split on this decision:
 
 - Rockset [one-indexes](https://docs.rockset.com/data-types/#array)
 
-###### Slicing
+##### Slicing
 
 We considered three options to support slicing:
 
@@ -3634,7 +3730,6 @@ We considered three options to support slicing:
     a. A slice operator that uses square brackets and a colon.</br> \<array\>\[\<start\>:\<end\>\]
 
     b. A slice operator that uses square brackets and an ellipsis.</br> \<array\>\[\<start\>\...\<end\>\]
-
 
 3. **Both**: The SLICE function _and_ the slice operator.
 
@@ -3658,7 +3753,7 @@ only supports it one way:
 
 - PartiQL does not support it
 
-###### Implicit Array Traversal
+##### Implicit Array Traversal
 
 MongoSQL does not support any implicit array traversal. Implicit array
 traversal refers to the application of an operation over an array
@@ -3687,9 +3782,9 @@ criteria. Regardless, such implicit traversal is not supported by
 MongoSQL. If users wish to achieve this behavior, they can use explicit
 syntax to operate over arrays.
 
-## Null & Missing
+### Null & Missing
 
-### Behavioral Description
+#### Behavioral Description
 
 MQL (as well as BSON itself) has a distinction between NULL and MISSING.
 In the case of NULL there is a field with the literal value NULL,
@@ -3710,44 +3805,44 @@ distinction for several reasons:
 The specific NULL/MISSING expression semantics will be consistent with
 SQL92, for SQL92 operators.
 
-##### String Operators
+#### String Operators
 
 For all string operators, a MISSING as any argument will be treated as
 NULL, and the entire result shall be NULL. See Section [Semantics of
 String Operators](#semantics-of-string-operators).
 
-##### Arithmetic Operators
+#### Arithmetic Operators
 
 MISSING as either argument will be treated as NULL, and the result shall
 be NULL. See Section [Semantics of Arithmetic
 Operators](#semantics-of-arithmetic-operators).
 
-##### Comparison Operators
+#### Comparison Operators
 
 For all SQL92 comparison operators, a MISSING as either argument will be
 treated as NULL, and the entire result shall be NULL.
 
-##### Boolean Operators
+#### Boolean Operators
 
 MISSING as either argument will be treated as NULL, and the truth tables
 from Section [Semantics of Boolean
 Operators](#semantics-of-boolean-operators) will be
 followed.
 
-##### Control Flow Operators
+#### Control Flow Operators
 
 There is no special handling for NULL or MISSING in conditions; cases
 with conditions that evaluate to NULL or MISSING are skipped. See
 section [Control Flow Operators](#control-flow-operators).
 
-##### GROUP BY keys and DISTINCT
+#### GROUP BY keys and DISTINCT
 
 For the purposes of GROUP BY keys, and the DISTINCT keyword, MISSING is
 converted to NULL, and NULL is considered distinct from all non NULL
 values. See [this SERVER bug](https://jira.mongodb.org/browse/SERVER-21992?focusedCommentId=1370113&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-1370113)
 for a case where MQL _does not_ follow these rules at the moment.
 
-##### Document Constructors
+#### Document Constructors
 
 Any expression that results in a missing value in a document, will
 remove the associated key from the document, for example:
@@ -3770,7 +3865,7 @@ Will result in:
 
 Because the \'a\' key is MISSING in the second document.
 
-##### Array Constructors
+#### Array Constructors
 
 In array constructors, MISSING is converted to NULL. Consider again the
 catalog from the [Document Constructors](#document-constructors) example, and the
@@ -3786,7 +3881,7 @@ Will result in:
 Because the MISSING \'a\' key in the second document is converted to
 NULL.
 
-##### MQL Scalar Functions
+#### MQL Scalar Functions
 
 Any MQL scalar functions exposed through MongoSQL will have the same
 NULL/MISSING semantics as the underlying scalar functions. By
@@ -3799,11 +3894,11 @@ NULL/MISSING are treated differently in aggregation expressions vs MQL
 find. A deep dive into this is available in
 [Implementation Considerations for Translation to MQL: NULL/MISSING in Aggregation vs Find](#nullmissing-in-aggregation-vs-find).
 
-### Examples
+#### Examples
 
 [Query Tests](https://github.com/10gen/mongosql-rs/blob/master/tests/spec_tests/query_tests/null_and_missing.yml)
 
-### Rejected Alternatives/Competitive Analysis
+#### Rejected Alternatives/Competitive Analysis
 
 We could upconvert MISSING into NULL, but it would result in larger data
 sent across the wire (potentially exponential) and slower queries.
@@ -3831,7 +3926,6 @@ with MQL:
   - In some sense this is actually consistent with PartiQL in that
     our particular serializer (to BSON) upconverts MISSING to
     NULL, but it makes sense to explicitly reference this here.
-
 
 <div id="scoping-rules" />
 
@@ -4035,9 +4129,9 @@ turned into qualified references by prefixing the current database.
 
 ## Miscellaneous
 
-## Document Key Ordering Semantics
+### Document Key Ordering Semantics
 
-### Behavioral Description
+#### Behavioral Description
 
 MongoSQL does not provide any guarantees about the ordering of keys in
 documents. This means that any document value may be returned from a
@@ -4055,7 +4149,7 @@ comparison operators (and some uses of clauses that implicitly perform
 comparisons, like ORDER BY, GROUP BY, and SELECT DISTINCT) are
 disallowed over document fields.
 
-### Rejected Alternatives/Competitive Analysis
+#### Rejected Alternatives/Competitive Analysis
 
 PostgreSQL does not allow comparison between JSON values. Comparison
 between JSONB values and JSONB equality is not affected by key order.
@@ -4073,7 +4167,7 @@ key-value pairs.
 Presto allows comparisons between JSON objects, and key order is not
 considered for equality.
 
-## Not A Number (NaN) Equality
+### Not A Number (NaN) Equality
 
 MongoDB differs from IEEE Std 754-2008, Section 5.11, Para. 2 and
 supports equality comparisons between NaN values (\<=, =, !=, \>=).
@@ -4114,7 +4208,7 @@ Will result in:
 This may be surprising to some users, but is required by MongoDB to
 support indexing.
 
-## MongoSQL Exceptional Behavior
+### MongoSQL Exceptional Behavior
 
 MongoSQL has two categories of exceptional behavior:
 
@@ -4127,7 +4221,7 @@ error that causes a termination of a query shall be considered a bug. It
 is common in the analytics world for queries to run for hours, or even
 days, so runtime errors are a particularly undesirable failure mode.
 
-### Static Errors
+#### Static Errors
 
 We attempt to detect as many exceptional situations as possible at
 compile time so that we can return a static error. Static errors
@@ -4141,7 +4235,7 @@ with their query. Some examples of static errors:
 - References known to be MISSING, statically
   - We view MISSING as something that is not intended behavior
 
-### Undefined Behavior
+#### Undefined Behavior
 
 Not every observable behavior of a MongoSQL implementation is guaranteed
 by this specification. Behaviors that are not guaranteed will be
@@ -4157,7 +4251,7 @@ addition translation in an expensive and unidiomatic conditional that
 detects when overflow will occur, we instead declare the integer
 overflow behavior to be UB.
 
-## Comments
+### Comments
 
 Comments are sequences of characters within queries that do not impact
 query execution. MongoSQL supports standard SQL comments and C-style
@@ -4198,7 +4292,7 @@ They may span multiple lines and can be nested:
      flag that would be opt-in, and would likely only be used
      by JDBC and ODBC drivers.
 
-## Date and Time Types
+### Date and Time Types
 
 BSON includes a Date type and a Timestamp type. The BSON Date type
 represents a datetime; i.e., it consists of a date part and a time part.
@@ -4222,7 +4316,7 @@ system deviates from the SQL standard. For example, we would consider
 adding semantic support for parameterized types like VARCHAR(3) if and
 only if it becomes necessary to do so in order to get BI Tools working.
 
-## Exposing MQL Functionality
+### Exposing MQL Functionality
 
 We may want to consider adding a way to access arbitrary MQL expressions
 via MongoSQL, so that users can leverage MQL expressions without the
@@ -4232,7 +4326,7 @@ work is tracked in the
 and previous design discussions on this topic can be found in this
 google doc's named version history.
 
-## Collations
+### Collations
 
 A number of clauses in standard SQL allow users to explicitly specify
 the collation that should be used for comparisons (ORDER BY and GROUP
@@ -4245,13 +4339,13 @@ example, how key order and duplicate keys are treated in document
 comparisons) and inter-type comparisons (for example, how a document and
 a boolean compare).
 
-## ORDER BY arbitrary expressions
+### ORDER BY arbitrary expressions
 
 For now, we only allow ORDER BY sort keys to be column names or integer
 literals. In the future, we may wish to expand this to arbitrary
 expressions.
 
-## Supporting Non-Document BSON Values In Query Results
+### Supporting Non-Document BSON Values In Query Results
 
 For now, only documents are returned as the values in binding tuples. We
 can relax this in the future to allow for something such as SELECT VALUE
@@ -4260,22 +4354,22 @@ names are modified in derived tables because that currently uses
 \$mergeObjects on the underlying values of the original binding tuples
 from the SELECT clause of the derived table query.
 
-## SELECT DISTINCT
+### SELECT DISTINCT
 
 Support for SELECT DISTINCT has been deferred pending a decision re:
 ordered vs. unordered document comparison support in MongoSQL & MQL
 
-## UNION DISTINCT
+### UNION DISTINCT
 
 Support for distinct UNION has been deferred pending a decision re:
 ordered vs. unordered document comparison support in MongoSQL & MQL
 
-## USING CLAUSE
+### USING CLAUSE
 
 Support for USING Clause in equality join conditions has been deferred
 until we can find a solution on resolving the namespaces.
 
-## Unify arrays and subqueries
+### Unify arrays and subqueries
 
 In the future, we should be able to support operations currently
 reserved for subqueries over arrays as well (and vice versa). This could
@@ -4286,11 +4380,11 @@ include some or all of the following:
 - Support a syntax for using a subquery's entire result set as an
   array value
 
-# Appendix
+## Appendix
 
-## Formal Definitions
+### Formal Definitions
 
-### tupleConcat
+#### tupleConcat
 
 _tupleConcat_ : _Ρ × Ρ → P_
 
@@ -4346,9 +4440,9 @@ And:
 _tupleConcat_(_arr<sub>0</sub>_, _arr<sub>1</sub>_) = \[_tupleConcat_(_x_,_y_) for _x_ ∊
 _arr<sub>0</sub>_, for _y_ ∊ _arr<sub>1</sub>_\]
 
-## Implementation Considerations for Translation to MQL
+### Implementation Considerations for Translation to MQL
 
-### MQL Runtime Errors
+#### MQL Runtime Errors
 
 We begin by looking at a non-exhaustive list of runtime errors thrown by
 MQL as determined from the MQL documentation, any translation to MQL
@@ -4467,7 +4561,7 @@ documentation:
 
 - \$tanh: throws an error for non-numeric input
 
-### NULL/MISSING in Aggregation vs Find
+#### NULL/MISSING in Aggregation vs Find
 
 For the purposes of the MQL find language, which is also the default
 language of the \$match aggregation stage, NULL and MISSING are treated
@@ -4512,4 +4606,3 @@ As mentioned in Section [GROUP BY keys and DISTINCT](#group-by-keys-and-distinct
 see [this SERVER bug](https://jira.mongodb.org/browse/SERVER-21992?focusedCommentId=1370113&page=com.atlassian.jira.plugin.system.issuetabpanels%3Acomment-tabpanel#comment-1370113)
 for a case where MQL _does not_ currently treat NULL and MISSING the
 same. Our translations will need to take this bug into account.
-
