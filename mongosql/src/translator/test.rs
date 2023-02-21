@@ -174,7 +174,7 @@ mod reference_expression {
 
     test_translate_expression!(
         found,
-        expected = Ok(air::Expression::FieldRef(air::FieldRefExpr {
+        expected = Ok(air::Expression::FieldRef(air::FieldRef {
             parent: None,
             name: "f".to_string()
         })),

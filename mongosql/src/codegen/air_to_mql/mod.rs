@@ -1,5 +1,5 @@
 use crate::air::{self};
-use bson::{doc, Bson};
+use bson::{bson, doc, Bson};
 use thiserror::Error;
 
 #[cfg(test)]
@@ -60,12 +60,21 @@ impl MqlCodeGenerator {
             )),
             Variable(var) => Ok(Bson::String(format!("$${var}"))),
             FieldRef(fr) => Ok(Bson::String(self.codegen_field_ref(fr))),
+            GetField(gf) => Ok({
+                let input = self.codegen_air_expression(*gf.input)?;
+                bson!({
+                    "$getField": {
+                        "field": gf.field,
+                        "input": input,
+                    }
+                })
+            }),
             _ => Err(Error::UnimplementedAIR),
         }
     }
 
     #[allow(clippy::only_used_in_recursion)] // false positive
-    fn codegen_field_ref(&self, field_ref: air::FieldRefExpr) -> String {
+    fn codegen_field_ref(&self, field_ref: air::FieldRef) -> String {
         match field_ref.parent {
             None => format!("${}", field_ref.name),
             Some(parent) => format!("{}.{}", self.codegen_field_ref(*parent), field_ref.name),

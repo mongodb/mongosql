@@ -149,7 +149,7 @@ impl MqlTranslator {
             .get(&key)
             .ok_or(Error::ReferenceNotFound(key))
             .map(|s| {
-                air::Expression::FieldRef(air::FieldRefExpr {
+                air::Expression::FieldRef(air::FieldRef {
                     parent: None,
                     name: s.clone(),
                 })

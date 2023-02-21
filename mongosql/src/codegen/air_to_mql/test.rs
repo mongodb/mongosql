@@ -173,13 +173,13 @@ mod air_variable {
 }
 
 mod air_field_ref {
-    use crate::air::{Expression::FieldRef, FieldRefExpr};
+    use crate::air::{self, Expression::FieldRef};
     use bson::{bson, Bson};
 
     test_codegen_air_expr!(
         no_parent,
         expected = Ok(bson!(Bson::String("$foo".to_string()))),
-        input = FieldRef(FieldRefExpr {
+        input = FieldRef(air::FieldRef {
             parent: None,
             name: "foo".to_string()
         })
@@ -187,8 +187,8 @@ mod air_field_ref {
     test_codegen_air_expr!(
         parent,
         expected = Ok(bson!(Bson::String("$bar.foo".to_string()))),
-        input = FieldRef(FieldRefExpr {
-            parent: Some(Box::new(FieldRefExpr {
+        input = FieldRef(air::FieldRef {
+            parent: Some(Box::new(air::FieldRef {
                 parent: None,
                 name: "bar".to_string()
             })),
@@ -199,15 +199,39 @@ mod air_field_ref {
     test_codegen_air_expr!(
         grandparent,
         expected = Ok(bson!(Bson::String("$baz.bar.foo".to_string()))),
-        input = FieldRef(FieldRefExpr {
-            parent: Some(Box::new(FieldRefExpr {
-                parent: Some(Box::new(FieldRefExpr {
+        input = FieldRef(air::FieldRef {
+            parent: Some(Box::new(air::FieldRef {
+                parent: Some(Box::new(air::FieldRef {
                     parent: None,
                     name: "baz".to_string()
                 })),
                 name: "bar".to_string()
             })),
             name: "foo".to_string()
+        })
+    );
+}
+
+mod get_field {
+    use crate::{
+        air::{
+            self,
+            Expression::{Document, GetField, Literal},
+            LiteralValue,
+        },
+        unchecked_unique_linked_hash_map,
+    };
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        basic,
+        expected = Ok(bson!({"$getField": {"field": "x", "input": {"x": {"$literal": 42}}}})),
+        input = GetField(air::GetField {
+            field: "x".to_string(),
+            input: Document(unchecked_unique_linked_hash_map! {
+                "x".to_string() => Literal(LiteralValue::Integer(42)),
+            })
+            .into(),
         })
     );
 }
