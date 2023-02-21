@@ -41,7 +41,7 @@ impl MqlTranslator {
 
     pub fn translate_stage(&self, mir_stage: mir::Stage) -> Result<air::Stage> {
         match mir_stage {
-            mir::Stage::Filter(_f) => Err(Error::UnimplementedStruct),
+            mir::Stage::Filter(f) => self.translate_filter(f),
             mir::Stage::Project(_p) => Err(Error::UnimplementedStruct),
             mir::Stage::Group(_g) => Err(Error::UnimplementedStruct),
             mir::Stage::Limit(_l) => Err(Error::UnimplementedStruct),
@@ -84,6 +84,16 @@ impl MqlTranslator {
             specifications: unique_linked_hash_map! {
                 mir_collection.collection => ROOT.clone(),
             },
+        }))
+    }
+
+    fn translate_filter(&self, mir_filter: mir::Filter) -> Result<air::Stage> {
+        let source_translation = self.translate_stage(*mir_filter.source)?;
+        let expr_translation = self.translate_expression(mir_filter.condition)?;
+
+        Ok(air::Stage::Match(air::Match {
+            source: Box::new(source_translation),
+            expr: Box::new(expr_translation),
         }))
     }
 

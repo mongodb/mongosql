@@ -13,7 +13,7 @@ macro_rules! test_translate_expression {
             };
             let expected = $expected;
             let actual = translator.translate_expression($input);
-            assert_eq!(actual, expected);
+            assert_eq!(expected, actual);
         }
     };
 }
@@ -26,7 +26,7 @@ macro_rules! test_translate_stage {
             let translator = translator::MqlTranslator::new();
             let expected = $expected;
             let actual = translator.translate_stage($input);
-            assert_eq!(actual, expected);
+            assert_eq!(expected, actual);
         }
     };
 }
@@ -220,6 +220,33 @@ mod documents_stage {
         input = mir::Stage::Array(mir::ArraySource {
             array: vec![],
             alias: "foo".into(),
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+}
+
+mod filter_stage {
+    use crate::unchecked_unique_linked_hash_map;
+
+    test_translate_stage!(
+        basic,
+        expected = Ok(air::Stage::Match(air::Match {
+            source: air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Documents(air::Documents { array: vec![] })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "foo".into() => air::Expression::Variable("ROOT".to_string()),
+                },
+            })
+            .into(),
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+        })),
+        input = mir::Stage::Filter(mir::Filter {
+            source: Box::new(mir::Stage::Array(mir::ArraySource {
+                array: vec![],
+                alias: "foo".into(),
+                cache: mir::schema::SchemaCache::new()
+            })),
+            condition: mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
             cache: mir::schema::SchemaCache::new(),
         })
     );
