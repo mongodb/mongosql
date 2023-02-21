@@ -123,8 +123,11 @@ pub struct LetVariable {
     pub expr: Box<Expression>,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
-pub struct ReplaceRoot {}
+#[derive(PartialEq, Debug, Clone)]
+pub struct ReplaceRoot {
+    pub source: Box<Stage>,
+    pub new_root: Box<Expression>,
+}
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Match {

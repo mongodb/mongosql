@@ -266,3 +266,66 @@ mod air_documents_stage {
         }),
     );
 }
+
+mod air_replace_root_stage {
+    use crate::{air::*, unchecked_unique_linked_hash_map};
+
+    test_codegen_air_plan!(
+        simple,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                bson::doc! {"$replaceRoot": {"newRoot": {"$literal": "$name"}}},
+            ],
+        }),
+        input = Stage::ReplaceRoot(ReplaceRoot {
+            source: Box::new(
+                Stage::Collection(Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                }),
+            ),
+            new_root: Box::new(Expression::Literal(LiteralValue::String("$name".to_string()))),
+        }),
+    );
+    test_codegen_air_plan!(
+        document,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                bson::doc! {
+                   "$replaceRoot": {
+                      "newRoot": {
+                         "$mergeDocuments": [
+                            {"$literal": "$name"},
+                            {"_id": {"$literal": "$_id"}}
+                         ]
+                      }
+                   }
+                },
+            ],
+        }),
+        input = Stage::ReplaceRoot(ReplaceRoot {
+            source: Box::new(
+                Stage::Collection(Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                }),
+            ),
+            new_root: Box::new(
+                Expression::Document(unchecked_unique_linked_hash_map! {
+                    "$mergeDocuments".to_string() => Expression::Array(vec![
+                        Expression::Literal(LiteralValue::String("$name".to_string())),
+                        Expression::Document(unchecked_unique_linked_hash_map! {
+                            "_id".to_string() => Expression::Literal(
+                                LiteralValue::String("$_id".to_string())
+                            )
+                        })
+                    ])
+                })
+            ),
+        }),
+    );
+}
