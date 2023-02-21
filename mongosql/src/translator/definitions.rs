@@ -5,9 +5,11 @@ use crate::{
 };
 use lazy_static::lazy_static;
 use mongosql_datastructures::{
+    binding_tuple::{BindingTuple, DatasourceName},
     unique_linked_hash_map,
     unique_linked_hash_map::{DuplicateKeyError, UniqueLinkedHashMap, UniqueLinkedHashMapEntry},
 };
+
 use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
@@ -26,23 +28,58 @@ pub enum Error {
     ReferenceNotFound(Key),
     #[error("duplicate key found: {0}")]
     DuplicateKey(#[from] DuplicateKeyError),
+    #[error("project fields may not be empty, contain dots, or start with dollars")]
+    InvalidProjectField,
 }
 
+#[derive(Clone)]
 pub struct MqlTranslator {
     pub mapping_registry: MqlMappingRegistry,
+    pub scope_level: u16,
 }
 
 impl MqlTranslator {
     pub fn new() -> Self {
         Self {
             mapping_registry: Default::default(),
+            scope_level: 0u16,
         }
     }
 
-    pub fn translate_stage(&self, mir_stage: mir::Stage) -> Result<air::Stage> {
+    /// Generate a unique bottom name given a predicate closure. Keeps pre-pending
+    /// `_` until the predicate returns false, indicating that that name is not in use.
+    fn generate_unique_bot_name<F>(name_exists: F) -> String
+    where
+        F: Fn(&String) -> bool,
+    {
+        let mut ret = "__bot".to_string();
+        while name_exists(&ret) {
+            ret.insert(0, '_');
+        }
+        ret
+    }
+
+    fn get_unique_bot_name(project_names: &BindingTuple<mir::Expression>) -> String {
+        if project_names.is_empty() {
+            return "__bot".to_string();
+        }
+        let current_scope = project_names.keys().next().unwrap().scope;
+        MqlTranslator::generate_unique_bot_name(|s| {
+            project_names.contains_key(&(s.clone(), current_scope).into())
+        })
+    }
+
+    fn get_datasource_name(datasource: &DatasourceName, unique_bot_name: &str) -> String {
+        match datasource {
+            DatasourceName::Bottom => unique_bot_name.to_string(),
+            DatasourceName::Named(s) => s.clone(),
+        }
+    }
+
+    pub fn translate_stage(&mut self, mir_stage: mir::Stage) -> Result<air::Stage> {
         match mir_stage {
             mir::Stage::Filter(f) => self.translate_filter(f),
-            mir::Stage::Project(_p) => Err(Error::UnimplementedStruct),
+            mir::Stage::Project(p) => self.translate_project(p),
             mir::Stage::Group(_g) => Err(Error::UnimplementedStruct),
             mir::Stage::Limit(_l) => Err(Error::UnimplementedStruct),
             mir::Stage::Offset(_o) => Err(Error::UnimplementedStruct),
@@ -73,12 +110,16 @@ impl MqlTranslator {
         }))
     }
 
-    fn translate_collection(&self, mir_collection: mir::Collection) -> Result<air::Stage> {
+    fn translate_collection(&mut self, mir_collection: mir::Collection) -> Result<air::Stage> {
         let coll_stage = air::Stage::Collection(air::Collection {
             db: mir_collection.db,
             collection: mir_collection.collection.clone(),
         });
 
+        self.mapping_registry.insert(
+            Key::named(&mir_collection.collection, self.scope_level),
+            mir_collection.collection.clone(),
+        );
         Ok(air::Stage::Project(air::Project {
             source: Box::new(coll_stage),
             specifications: unique_linked_hash_map! {
@@ -87,7 +128,32 @@ impl MqlTranslator {
         }))
     }
 
-    fn translate_filter(&self, mir_filter: mir::Filter) -> Result<air::Stage> {
+    fn translate_project(&mut self, mir_project: mir::Project) -> Result<air::Stage> {
+        let source_translation = self.translate_stage(*mir_project.source)?;
+
+        // We will add mappings to the mapping registry introduced by this Project Stage, which
+        // is all of the keys. Previous bindings are removed after the subexpressions are
+        // translated because Project kills all its inputs.
+        let unique_bot_name = Self::get_unique_bot_name(&mir_project.expression);
+        let mut project_body = UniqueLinkedHashMap::new();
+        let mut output_registry = MqlMappingRegistry::new();
+        for (k, e) in mir_project.expression.into_iter() {
+            let mapped_k = Self::get_datasource_name(&k.datasource, &unique_bot_name);
+            if mapped_k.starts_with('$') || mapped_k.contains('.') || mapped_k.as_str() == "" {
+                return Err(Error::InvalidProjectField);
+            }
+
+            project_body.insert(mapped_k.clone(), self.translate_expression(e)?)?;
+            output_registry.insert(k, mapped_k);
+        }
+        self.mapping_registry = output_registry;
+        Ok(air::Stage::Project(air::Project {
+            source: Box::new(source_translation),
+            specifications: project_body,
+        }))
+    }
+
+    fn translate_filter(&mut self, mir_filter: mir::Filter) -> Result<air::Stage> {
         let source_translation = self.translate_stage(*mir_filter.source)?;
         let expr_translation = self.translate_expression(mir_filter.condition)?;
 
@@ -97,7 +163,6 @@ impl MqlTranslator {
         }))
     }
 
-    #[allow(dead_code)]
     pub fn translate_expression(&self, mir_expression: mir::Expression) -> Result<air::Expression> {
         match mir_expression {
             mir::Expression::Literal(lit) => self.translate_literal(lit.value),

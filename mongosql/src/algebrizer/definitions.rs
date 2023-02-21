@@ -617,17 +617,12 @@ impl<'a> Algebrizer<'a> {
                     .collect::<Result<_>>()?;
                 let mut project_expression = UniqueLinkedHashMap::new();
                 project_expression
-                    .insert_many(
-                        field_paths
-                            .into_iter()
-                            .map(|path| {
-                                (
-                                    path.join(separator),
-                                    self.algebrize_flattened_field_path(key.clone(), path),
-                                )
-                            })
-                            .into_iter(),
-                    )
+                    .insert_many(field_paths.into_iter().map(|path| {
+                        (
+                            path.join(separator),
+                            self.algebrize_flattened_field_path(key.clone(), path),
+                        )
+                    }))
                     .map_err(|e| Error::DuplicateDocumentKey(e.get_key_name()))?;
                 Ok((key, mir::Expression::Document(project_expression.into())))
             })

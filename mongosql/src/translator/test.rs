@@ -10,6 +10,7 @@ macro_rules! test_translate_expression {
 
             let translator = translator::MqlTranslator{
                 mapping_registry,
+                scope_level: 0u16,
             };
             let expected = $expected;
             let actual = translator.translate_expression($input);
@@ -23,7 +24,7 @@ macro_rules! test_translate_stage {
         #[test]
         fn $func_name() {
             use crate::{air, mir, translator};
-            let translator = translator::MqlTranslator::new();
+            let mut translator = translator::MqlTranslator::new();
             let expected = $expected;
             let actual = translator.translate_stage($input);
             assert_eq!(expected, actual);
@@ -269,6 +270,86 @@ mod collection {
         input = mir::Stage::Collection(mir::Collection {
             db: "test_db".into(),
             collection: "foo".into(),
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+}
+
+mod projection_stage {
+    use crate::{map, unchecked_unique_linked_hash_map};
+    use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
+
+    test_translate_stage!(
+        project,
+        expected = Ok(air::Stage::Project(air::Project {
+            source: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test_db".to_string(),
+                    collection: "foo".to_string()
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "foo".to_string() =>  air::Expression::Variable("ROOT".to_string())
+                }
+            })),
+            specifications: unchecked_unique_linked_hash_map! {
+                "__bot".to_string() => air::Expression::FieldRef(
+                    air::FieldRef {
+                        parent: None,
+                        name: "foo".to_string()
+                    }),
+                "bar".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+            }
+        })),
+        input = mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::Collection(mir::Collection {
+                db: "test_db".into(),
+                collection: "foo".into(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            expression: BindingTuple(map! {
+                Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
+                Key::named("bar", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+            }),
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+
+    test_translate_stage!(
+        project_with_user_bot_conflict,
+        expected = Ok(air::Stage::Project(air::Project {
+            source: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test_db".to_string(),
+                    collection: "foo".to_string()
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "foo".to_string() =>  air::Expression::Variable("ROOT".to_string())
+                }
+            })),
+            specifications: unchecked_unique_linked_hash_map! {
+                "___bot".to_string() => air::Expression::FieldRef(
+                    air::FieldRef {
+                        parent: None,
+                        name: "foo".to_string()
+                    }),
+                // reordered because BindingTuple uses BTreeMap
+                "____bot".to_string() => air::Expression::Literal(air::LiteralValue::Integer(4)),
+                "__bot".to_string() => air::Expression::Literal(air::LiteralValue::Integer(2)),
+                "_bot".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1)),
+            }
+        })),
+        input = mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::Collection(mir::Collection {
+                db: "test_db".into(),
+                collection: "foo".into(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            expression: BindingTuple(map! {
+                Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
+                Key::named("__bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
+                Key::named("_bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                Key::named("____bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(4).into()),
+            }),
             cache: mir::schema::SchemaCache::new(),
         })
     );

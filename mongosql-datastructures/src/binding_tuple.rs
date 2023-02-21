@@ -21,6 +21,13 @@ impl Key {
             scope,
         }
     }
+
+    pub fn named(name: &str, scope: u16) -> Self {
+        Self {
+            datasource: DatasourceName::Named(name.to_string()),
+            scope,
+        }
+    }
 }
 
 impl<D, S> From<(D, S)> for Key

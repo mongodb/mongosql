@@ -328,7 +328,6 @@ pub fn run_type_constraint_tests() -> Result<(), Error> {
                         .get(&num_args)
                         .unwrap()
                         .difference(&all_valid_permutations)
-                        .into_iter()
                         .try_for_each(|types| {
                             validate_algebrization(types.clone(), ast.clone(), false)
                         })?;

@@ -64,7 +64,7 @@ pub fn translate_sql(
         .schema(&algebrizer.schema_inference_state())?
         .schema_env;
 
-    let translator = MqlTranslator::new();
+    let mut translator = MqlTranslator::new();
     let agg_plan = translator.translate_stage(plan.clone());
 
     // generate mql from the mir plan
