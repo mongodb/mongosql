@@ -1,4 +1,4 @@
-use crate::air::{self};
+use crate::air::{self, MQLOperator};
 use bson::{bson, doc, Bson};
 use thiserror::Error;
 
@@ -20,15 +20,88 @@ pub struct MqlTranslation {
     pub pipeline: Vec<bson::Document>,
 }
 
-impl MqlTranslation {}
-
-#[derive(Clone)]
-pub struct MqlCodeGenerator {
-    pub scope_level: u16,
-}
+#[derive(Clone, Debug)]
+pub struct MqlCodeGenerator {}
 
 impl MqlCodeGenerator {
-    #[allow(dead_code)]
+    fn to_mql_op(mqlo: MQLOperator) -> &'static str {
+        use MQLOperator::*;
+        match mqlo {
+            // String operators
+            Concat => "$concat",
+
+            // Arithmetic operators
+            Add => "$add",
+            Subtract => "$subtract",
+            Multiply => "$multiply",
+            Divide => "$divide",
+
+            // Comparison operators
+            Lt => "$lt",
+            Lte => "$lte",
+            Ne => "$ne",
+            Eq => "$eq",
+            Gt => "$gt",
+            Gte => "$gte",
+
+            // Boolean operators
+            Not => "$not",
+            And => "$and",
+            Or => "$or",
+
+            // Array scalar functions
+            Slice => "$slice",
+            Size => "$size",
+
+            // Numeric value scalar functions
+            IndexOfCP => "$indexOfCP",
+            IndexOfBytes => "$indexOfBytes",
+            StrLenCP => "$strLenCP",
+            StrLenBytes => "$strLenBytes",
+            Abs => "$abs",
+            Ceil => "$ceil",
+            Cos => "$cos",
+            DegreesToRadians => "$degreesToRadians",
+            Floor => "$floor",
+            Log => "$log",
+            Mod => "$mod",
+            Pow => "$pow",
+            RadiansToDegrees => "$radiansToDegrees",
+            Round => "$round",
+            Sin => "$sin",
+            Tan => "$tan",
+            Sqrt => "$sqrt",
+
+            // String value scalar functions
+            SubstrCP => "$substrCP",
+            SubstrBytes => "$substrBytes",
+            ToUpper => "$toUpper",
+            ToLower => "$toLower",
+            Trim => "$trim",
+            LTrim => "$ltrim",
+            RTrim => "$rtrim",
+            Split => "$split",
+
+            // Datetime value scalar function
+            Year => "$year",
+            Month => "$month",
+            DayOfMonth => "$dayOfMonth",
+            Hour => "$hour",
+            Minute => "$minute",
+            Second => "$second",
+            Week => "$week",
+            DayOfYear => "$dayOfYear",
+            IsoWeek => "$isoWeek",
+            IsoDayOfWeek => "$isoDayOfWeek",
+            DateAdd => "$dateAdd",
+            DateDiff => "$dateDiff",
+            DateTrunc => "$dateTrunc",
+
+            // MergeObjects merges an array of objects
+            MergeObjects => "$mergeObjects",
+        }
+    }
+
     pub fn codegen_air_expression(&self, expr: air::Expression) -> Result<bson::Bson> {
         use air::{Expression::*, LiteralValue::*};
         match expr {
@@ -60,6 +133,15 @@ impl MqlCodeGenerator {
             )),
             Variable(var) => Ok(Bson::String(format!("$${var}"))),
             FieldRef(fr) => Ok(Bson::String(self.codegen_field_ref(fr))),
+            MQLSemanticOperator(mqls) => {
+                let ops = mqls
+                    .args
+                    .into_iter()
+                    .map(|x| self.codegen_air_expression(x))
+                    .collect::<Result<Vec<_>>>()?;
+                let operator = Self::to_mql_op(mqls.op);
+                Ok(bson::bson!({ operator: Bson::Array(ops) }))
+            }
             GetField(gf) => Ok({
                 let input = self.codegen_air_expression(*gf.input)?;
                 bson!({

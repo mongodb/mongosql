@@ -193,16 +193,11 @@ pub enum MQLOperator {
     Eq,
     Gt,
     Gte,
-    Between,
 
     // Boolean operators
     Not,
     And,
     Or,
-
-    // Conditional scalar functions
-    NullIf,
-    Coalesce,
 
     // Array scalar functions
     Slice,
@@ -210,6 +205,7 @@ pub enum MQLOperator {
 
     // Numeric value scalar functions
     IndexOfCP,
+    IndexOfBytes,
     StrLenCP,
     StrLenBytes,
     Abs,
@@ -228,6 +224,7 @@ pub enum MQLOperator {
 
     // String value scalar functions
     SubstrCP,
+    SubstrBytes,
     ToUpper,
     ToLower,
     Trim,
@@ -268,6 +265,8 @@ pub enum SQLOperator {
     Gt,
     Gte,
     Between,
+    NullIf,
+    Coalesce,
 
     // Boolean operators
     Not,

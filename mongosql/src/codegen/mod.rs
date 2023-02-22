@@ -7,7 +7,7 @@ use crate::{air, mir};
 pub fn generate_mql_from_air(
     plan: air::Stage,
 ) -> Result<air_to_mql::MqlTranslation, air_to_mql::Error> {
-    let cg = air_to_mql::MqlCodeGenerator { scope_level: 0u16 };
+    let cg = air_to_mql::MqlCodeGenerator {};
 
     cg.codegen_air_stage(plan)
 }
