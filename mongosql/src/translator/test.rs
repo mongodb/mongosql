@@ -4,6 +4,8 @@ macro_rules! test_translate_expression {
         fn $func_name() {
             use crate::{translator, mapping_registry::MqlMappingRegistry};
 
+            // force the input
+            let input = $input;
             #[allow(unused_mut, unused_assignments)]
             let mut mapping_registry = MqlMappingRegistry::default();
             $(mapping_registry = $mapping_registry;)?
@@ -13,7 +15,7 @@ macro_rules! test_translate_expression {
                 scope_level: 0u16,
             };
             let expected = $expected;
-            let actual = translator.translate_expression($input);
+            let actual = translator.translate_expression(input);
             assert_eq!(expected, actual);
         }
     };
@@ -162,6 +164,1144 @@ mod array_expression {
             ]
             .into()
         ),
+    );
+}
+
+mod scalar_function_expression {
+    use crate::{air, mir, unchecked_unique_linked_hash_map};
+
+    test_translate_expression!(
+        concat,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Concat,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::String("hello".into())),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Concat,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        pos,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Pos,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Pos,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        neg,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Neg,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Neg,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        add,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Add,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Add,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        sub,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Subtract,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Sub,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        mul,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Multiply,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Mul,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        div,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Divide,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Div,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        lt,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Lt,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Lt,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        lte,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Lte,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Lte,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        eq,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Eq,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Eq,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        ne,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Ne,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Neq,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        gt,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Gt,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Gt,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        gte,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Gte,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Gte,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        between,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Between,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Null),
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Between,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        not,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Not,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Not,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        and,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::And,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Boolean(true)),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::And,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        or,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Or,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Boolean(true)),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Or,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        computed_field_access,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::ComputedFieldAccess,
+                args: vec![
+                    air::Expression::Document(
+                        unchecked_unique_linked_hash_map! {"foo".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))}
+                    ),
+                    air::Expression::Literal(air::LiteralValue::String("foo".into())),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::ComputedFieldAccess,
+            args: vec![
+                mir::Expression::Document(
+                    unchecked_unique_linked_hash_map! {"foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),}
+                .into()),
+                mir::Expression::Literal(mir::LiteralValue::String("foo".into()).into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        null_if,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::NullIf,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Boolean(true)),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::NullIf,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        coalesce,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Coalesce,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Boolean(true)),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Coalesce,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        slice,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Slice,
+                args: vec![
+                    air::Expression::Array(vec![air::Expression::Literal(
+                        air::LiteralValue::String("abc".to_string())
+                    )]),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Slice,
+            args: vec![
+                mir::Expression::Array(
+                    vec![mir::Expression::Literal(
+                        mir::LiteralValue::String("abc".into()).into()
+                    )]
+                    .into()
+                ),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        size,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Size,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null)],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Size,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into())],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        position,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::IndexOfCP,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::String("hello".into())),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Position,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        char_length,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::StrLenCP,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::CharLength,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        octet_length,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::StrLenBytes,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::OctetLength,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        bit_length,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::BitLength,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::BitLength,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        abs,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Abs,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Abs,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        ceil,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Ceil,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Ceil,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        floor,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Floor,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Floor,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        log,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Log,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Null),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Log,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        modulo,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Mod,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Null),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Mod,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        pow,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Pow,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Null),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Pow,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        radians,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::DegreesToRadians,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Radians,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        degrees,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::RadiansToDegrees,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Degrees,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        round,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Round,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Null),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Round,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        cos,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Cos,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Cos,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        sin,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Sin,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Sin,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        tan,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Tan,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Tan,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        sqrt,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Sqrt,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Sqrt,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        substring,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::SubstrCP,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::String("hello".into())),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Substring,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        upper,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::ToUpper,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Upper,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        lower,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::ToLower,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Lower,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        trim,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Trim,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Null),
+                    air::Expression::Literal(air::LiteralValue::String("h".into())),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::BTrim,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+                mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        ltrim,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::LTrim,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Null),
+                    air::Expression::Literal(air::LiteralValue::String("h".into())),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::LTrim,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+                mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        rtrim,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::RTrim,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Null),
+                    air::Expression::Literal(air::LiteralValue::String("h".into())),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::RTrim,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+                mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        split,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Split,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::String("hello".into())),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Split,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        current_time_stamp,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::CurrentTimestamp,
+                args: vec![],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::CurrentTimestamp,
+            args: vec![],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        year,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Year,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Year,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        month,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Month,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Month,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        day,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::DayOfMonth,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Day,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        hour,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Hour,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Hour,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        minute,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Minute,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Minute,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        second,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Second,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Second,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        week,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Week,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Week,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        day_of_year,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::DayOfYear,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::DayOfYear,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        iso_week,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::IsoWeek,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::IsoWeek,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        iso_week_day,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::IsoDayOfWeek,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::IsoWeekday,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        merge_objects,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::MergeObjects,
+                args: vec![
+                    air::Expression::Document(
+                        unchecked_unique_linked_hash_map! {"foo".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))}
+                    ),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::MergeObjects,
+            args: vec![
+                mir::Expression::Document(
+                    unchecked_unique_linked_hash_map! {"foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),}
+                .into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+}
+
+mod cast_expression {
+    use crate::{air, mir};
+
+    test_translate_expression!(
+        cast_expression_basic,
+        expected = Ok(air::Expression::Convert(air::Convert {
+            input: air::Expression::Literal(air::LiteralValue::String(
+                "2012-12-20T12:12:12Z".to_string()
+            ))
+            .into(),
+            to: air::Type::Datetime,
+            on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+            on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+        })),
+        input = mir::Expression::Cast(mir::CastExpr {
+            expr: mir::Expression::Literal(
+                mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
+            )
+            .into(),
+            to: mir::Type::Datetime,
+            on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+            on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        cast_expression_array,
+        expected = Ok(air::Expression::SqlConvert(air::SqlConvert {
+            input: air::Expression::Literal(air::LiteralValue::String(
+                "2012-12-20T12:12:12Z".to_string()
+            ))
+            .into(),
+            to: air::Type::Array,
+            on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+            on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+        })),
+        input = mir::Expression::Cast(mir::CastExpr {
+            expr: mir::Expression::Literal(
+                mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
+            )
+            .into(),
+            to: mir::Type::Array,
+            on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+            on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        cast_expression_doc,
+        expected = Ok(air::Expression::SqlConvert(air::SqlConvert {
+            input: air::Expression::Literal(air::LiteralValue::String(
+                "2012-12-20T12:12:12Z".to_string()
+            ))
+            .into(),
+            to: air::Type::Document,
+            on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+            on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+        })),
+        input = mir::Expression::Cast(mir::CastExpr {
+            expr: mir::Expression::Literal(
+                mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
+            )
+            .into(),
+            to: mir::Type::Document,
+            on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+            on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+            cache: mir::schema::SchemaCache::new(),
+        }),
     );
 }
 

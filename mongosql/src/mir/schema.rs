@@ -119,7 +119,7 @@ impl<T: Clone> Default for SchemaCache<T> {
 }
 
 pub trait CachedSchema {
-    type ReturnType: Clone;
+    type ReturnType: Clone + std::fmt::Debug;
 
     /// Get the stored RefCell from the underlying struct this trait is implemented on if it exists.
     /// Some types don't benefit from caching (literal and reference expressions specifically),
@@ -152,13 +152,14 @@ pub trait CachedSchema {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Default)]
 pub enum SchemaCheckingMode {
     // In strict mode, schema checking will fail unless all type
     // constraints are satisfied.
     Strict,
     // In relaxed mode, schema checking will pass unless a type constraint
     // is violated.
+    #[default]
     Relaxed,
 }
 
@@ -171,6 +172,15 @@ pub struct SchemaInferenceState<'a> {
 }
 
 impl<'a> SchemaInferenceState<'a> {
+    pub fn empty(catalog: &'a Catalog) -> Self {
+        Self::new(
+            0u16,
+            SchemaEnvironment::default(),
+            catalog,
+            SchemaCheckingMode::default(),
+        )
+    }
+
     pub fn new(
         scope_level: u16,
         env: SchemaEnvironment,

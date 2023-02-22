@@ -256,6 +256,8 @@ pub enum MQLOperator {
 pub enum SQLOperator {
     // Arithmetic operators
     Divide,
+    Pos,
+    Neg,
 
     // Comparison operators
     Lt,
@@ -265,6 +267,8 @@ pub enum SQLOperator {
     Gt,
     Gte,
     Between,
+
+    // Conditional scalar functions
     NullIf,
     Coalesce,
 
@@ -281,6 +285,7 @@ pub enum SQLOperator {
     IndexOfCP,
     StrLenCP,
     StrLenBytes,
+    BitLength,
     Cos,
     Log,
     Mod,
@@ -293,7 +298,14 @@ pub enum SQLOperator {
     SubstrCP,
     ToUpper,
     ToLower,
+    Trim,
+    LTrim,
+    RTrim,
     Split,
+
+    // Extended Operators
+    ComputedFieldAccess,
+    CurrentTimestamp,
 }
 
 #[allow(dead_code)]

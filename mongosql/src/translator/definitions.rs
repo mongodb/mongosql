@@ -1,8 +1,9 @@
 use crate::{
-    air,
+    air::{self, SQLOperator},
     mapping_registry::{Key, MqlMappingRegistry},
     mir,
 };
+
 use lazy_static::lazy_static;
 use mongosql_datastructures::{
     binding_tuple::{BindingTuple, DatasourceName},
@@ -30,6 +31,40 @@ pub enum Error {
     DuplicateKey(#[from] DuplicateKeyError),
     #[error("project fields may not be empty, contain dots, or start with dollars")]
     InvalidProjectField,
+}
+
+impl From<mir::Type> for air::Type {
+    fn from(t: mir::Type) -> Self {
+        match t {
+            mir::Type::Array => air::Type::Array,
+            mir::Type::BinData => air::Type::BinData,
+            mir::Type::Boolean => air::Type::Boolean,
+            mir::Type::Datetime => air::Type::Datetime,
+            mir::Type::DbPointer => air::Type::DbPointer,
+            mir::Type::Decimal128 => air::Type::Decimal128,
+            mir::Type::Document => air::Type::Document,
+            mir::Type::Double => air::Type::Double,
+            mir::Type::Int32 => air::Type::Int32,
+            mir::Type::Int64 => air::Type::Int64,
+            mir::Type::Javascript => air::Type::Javascript,
+            mir::Type::JavascriptWithScope => air::Type::JavascriptWithScope,
+            mir::Type::MaxKey => air::Type::MaxKey,
+            mir::Type::MinKey => air::Type::MinKey,
+            mir::Type::Null => air::Type::Null,
+            mir::Type::ObjectId => air::Type::ObjectId,
+            mir::Type::RegularExpression => air::Type::RegularExpression,
+            mir::Type::String => air::Type::String,
+            mir::Type::Symbol => air::Type::Symbol,
+            mir::Type::Timestamp => air::Type::Timestamp,
+            mir::Type::Undefined => air::Type::Undefined,
+        }
+    }
+}
+
+#[derive(Debug)]
+enum ScalarFunctionType {
+    Sql(air::SQLOperator),
+    Mql(air::MQLOperator),
 }
 
 #[derive(Clone)]
@@ -169,6 +204,10 @@ impl MqlTranslator {
             mir::Expression::Document(doc) => self.translate_document(doc.document),
             mir::Expression::Array(expr) => self.translate_array(expr.array),
             mir::Expression::Reference(reference) => self.translate_reference(reference.key),
+            mir::Expression::Cast(cast) => self.translate_cast(cast),
+            mir::Expression::ScalarFunction(scalar_func) => {
+                self.translate_scalar_function(scalar_func)
+            }
             _ => Err(Error::UnimplementedStruct),
         }
     }
@@ -229,5 +268,136 @@ impl MqlTranslator {
                     name: s.clone(),
                 })
             })
+    }
+
+    fn translate_cast(&self, cast: mir::CastExpr) -> Result<air::Expression> {
+        let input = self.translate_expression(*cast.expr)?.into();
+        let to = cast.to.into();
+        let on_null = self.translate_expression(*cast.on_null)?.into();
+        let on_error = self.translate_expression(*cast.on_error)?.into();
+        Ok(match to {
+            air::Type::Array | air::Type::Document => {
+                air::Expression::SqlConvert(air::SqlConvert {
+                    input,
+                    to,
+                    on_null,
+                    on_error,
+                })
+            }
+            _ => air::Expression::Convert(air::Convert {
+                input,
+                to,
+                on_null,
+                on_error,
+            }),
+        })
+    }
+
+    fn to_air_op(func: mir::ScalarFunction) -> ScalarFunctionType {
+        use mir::ScalarFunction::*;
+        match func {
+            // String operators
+            Concat => ScalarFunctionType::Mql(air::MQLOperator::Concat),
+
+            // Unary arithmetic operators
+            Pos => ScalarFunctionType::Sql(air::SQLOperator::Pos),
+            Neg => ScalarFunctionType::Sql(air::SQLOperator::Neg),
+
+            // Arithmetic operators
+            Add => ScalarFunctionType::Mql(air::MQLOperator::Add),
+            Sub => ScalarFunctionType::Mql(air::MQLOperator::Subtract),
+            Mul => ScalarFunctionType::Mql(air::MQLOperator::Multiply),
+            Div => ScalarFunctionType::Sql(air::SQLOperator::Divide),
+
+            // Comparison operators
+            Lt => ScalarFunctionType::Sql(air::SQLOperator::Lt),
+            Lte => ScalarFunctionType::Sql(air::SQLOperator::Lte),
+            Neq => ScalarFunctionType::Sql(air::SQLOperator::Ne),
+            Eq => ScalarFunctionType::Sql(air::SQLOperator::Eq),
+            Gt => ScalarFunctionType::Sql(air::SQLOperator::Gt),
+            Gte => ScalarFunctionType::Sql(air::SQLOperator::Gte),
+            Between => ScalarFunctionType::Sql(air::SQLOperator::Between),
+
+            // Boolean operators
+            Not => ScalarFunctionType::Sql(air::SQLOperator::Not),
+            And => ScalarFunctionType::Sql(air::SQLOperator::And),
+            Or => ScalarFunctionType::Sql(air::SQLOperator::Or),
+
+            // Computed Field Access operator
+            // when the field is not known until runtime.
+            ComputedFieldAccess => ScalarFunctionType::Sql(SQLOperator::ComputedFieldAccess),
+
+            // Conditional scalar functions
+            NullIf => ScalarFunctionType::Sql(air::SQLOperator::NullIf),
+            Coalesce => ScalarFunctionType::Sql(air::SQLOperator::Coalesce),
+
+            // Array scalar functions
+            Slice => ScalarFunctionType::Sql(air::SQLOperator::Slice),
+            Size => ScalarFunctionType::Sql(air::SQLOperator::Size),
+
+            // Numeric value scalar functions
+            Position => ScalarFunctionType::Sql(air::SQLOperator::IndexOfCP),
+            CharLength => ScalarFunctionType::Sql(air::SQLOperator::StrLenCP),
+            OctetLength => ScalarFunctionType::Sql(air::SQLOperator::StrLenBytes),
+            BitLength => ScalarFunctionType::Sql(air::SQLOperator::BitLength),
+            Abs => ScalarFunctionType::Mql(air::MQLOperator::Abs),
+            Ceil => ScalarFunctionType::Mql(air::MQLOperator::Ceil),
+            Cos => ScalarFunctionType::Mql(air::MQLOperator::Cos),
+            Degrees => ScalarFunctionType::Mql(air::MQLOperator::RadiansToDegrees),
+            Floor => ScalarFunctionType::Mql(air::MQLOperator::Floor),
+            Log => ScalarFunctionType::Sql(air::SQLOperator::Log),
+            Mod => ScalarFunctionType::Sql(air::SQLOperator::Mod),
+            Pow => ScalarFunctionType::Mql(air::MQLOperator::Pow),
+            Radians => ScalarFunctionType::Mql(air::MQLOperator::DegreesToRadians),
+            Round => ScalarFunctionType::Sql(air::SQLOperator::Round),
+            Sin => ScalarFunctionType::Mql(air::MQLOperator::Sin),
+            Sqrt => ScalarFunctionType::Mql(air::MQLOperator::Sqrt),
+            Tan => ScalarFunctionType::Mql(air::MQLOperator::Tan),
+
+            // String value scalar functions
+            Substring => ScalarFunctionType::Sql(air::SQLOperator::SubstrCP),
+            Upper => ScalarFunctionType::Sql(air::SQLOperator::ToUpper),
+            Lower => ScalarFunctionType::Sql(air::SQLOperator::ToLower),
+            BTrim => ScalarFunctionType::Sql(air::SQLOperator::Trim),
+            LTrim => ScalarFunctionType::Sql(air::SQLOperator::LTrim),
+            RTrim => ScalarFunctionType::Sql(air::SQLOperator::RTrim),
+            Split => ScalarFunctionType::Sql(air::SQLOperator::Split),
+
+            // Datetime value scalar function
+            CurrentTimestamp => ScalarFunctionType::Sql(air::SQLOperator::CurrentTimestamp),
+            Year => ScalarFunctionType::Mql(air::MQLOperator::Year),
+            Month => ScalarFunctionType::Mql(air::MQLOperator::Month),
+            Day => ScalarFunctionType::Mql(air::MQLOperator::DayOfMonth),
+            Hour => ScalarFunctionType::Mql(air::MQLOperator::Hour),
+            Minute => ScalarFunctionType::Mql(air::MQLOperator::Minute),
+            Second => ScalarFunctionType::Mql(air::MQLOperator::Second),
+            Week => ScalarFunctionType::Mql(air::MQLOperator::Week),
+            DayOfYear => ScalarFunctionType::Mql(air::MQLOperator::DayOfYear),
+            IsoWeek => ScalarFunctionType::Mql(air::MQLOperator::IsoWeek),
+            IsoWeekday => ScalarFunctionType::Mql(air::MQLOperator::IsoDayOfWeek),
+
+            // MergeObjects merges an array of objects
+            MergeObjects => ScalarFunctionType::Mql(air::MQLOperator::MergeObjects),
+        }
+    }
+
+    fn translate_scalar_function(
+        &self,
+        scalar_func: mir::ScalarFunctionApplication,
+    ) -> Result<air::Expression> {
+        let args = scalar_func
+            .args
+            .into_iter()
+            .map(|x| self.translate_expression(x))
+            .collect::<Result<_>>()?;
+        let op = Self::to_air_op(scalar_func.function);
+        match op {
+            ScalarFunctionType::Sql(op) => Ok(air::Expression::SQLSemanticOperator(
+                air::SQLSemanticOperator { op, args },
+            )),
+            ScalarFunctionType::Mql(op) => Ok(air::Expression::MQLSemanticOperator(
+                air::MQLSemanticOperator { op, args },
+            )),
+        }
     }
 }
