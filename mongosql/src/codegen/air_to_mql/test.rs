@@ -73,6 +73,57 @@ mod air_collection {
     );
 }
 
+mod air_project {
+    use crate::{air::*, unchecked_unique_linked_hash_map};
+    use bson::doc;
+
+    test_codegen_air_plan!(
+        simple,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![doc!{"$project": {"_id": 0, "foo": "$col", "bar": {"$literal": 19}}}],
+        }),
+        input = Stage::Project(Project {
+            source: Box::new(
+                Stage::Collection( Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                }),
+            ),
+            specifications: unchecked_unique_linked_hash_map! {
+                "foo".to_string() => Expression::FieldRef(
+                    FieldRef { parent: None,  name: "col".to_string() }
+                ),
+                "bar".to_string() => Expression::Literal(LiteralValue::Integer(19)),
+            },
+        }),
+    );
+
+    test_codegen_air_plan!(
+        project_of_id_overwritten,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![doc!{"$project": {"_id": "$col", "bar": {"$literal": 19}}}],
+        }),
+        input = Stage::Project(Project {
+            source: Box::new(
+                Stage::Collection( Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                }),
+            ),
+            specifications: unchecked_unique_linked_hash_map! {
+                "_id".to_string() => Expression::FieldRef(
+                    FieldRef { parent: None,  name: "col".to_string() }
+                ),
+                "bar".to_string() => Expression::Literal(LiteralValue::Integer(19)),
+            },
+        }),
+    );
+}
+
 mod air_literal {
     use crate::air::{Expression::*, LiteralValue::*};
     use bson::{bson, Bson};

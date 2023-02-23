@@ -165,7 +165,7 @@ impl MqlCodeGenerator {
 
     pub fn codegen_air_stage(&self, stage: air::Stage) -> Result<MqlTranslation> {
         match stage {
-            air::Stage::Project(_p) => Err(Error::UnimplementedAIR),
+            air::Stage::Project(p) => self.codegen_project(p),
             air::Stage::Group(_g) => Err(Error::UnimplementedAIR),
             air::Stage::Limit(_l) => Err(Error::UnimplementedAIR),
             air::Stage::Sort(_s) => Err(Error::UnimplementedAIR),
@@ -212,6 +212,30 @@ impl MqlCodeGenerator {
             database: Some(air_coll.db),
             collection: Some(air_coll.collection),
             pipeline: vec![],
+        })
+    }
+
+    fn codegen_project(&self, air_project: air::Project) -> Result<MqlTranslation> {
+        let source_translation = self.codegen_air_stage(*air_project.source)?;
+        let mut pipeline = source_translation.pipeline;
+        let mut project_doc = air_project
+            .specifications
+            .into_iter()
+            .map(|(k, v)| Ok((k, self.codegen_air_expression(v)?)))
+            .collect::<Result<bson::Document>>()?;
+        if !project_doc.contains_key("_id") {
+            // we create a temporary so that _id: 0 will always be the first element
+            // in the doc. This does add another linear factor to the code, but makes
+            // testing easier.
+            let mut tmp_project_doc = doc! {"_id": 0};
+            tmp_project_doc.extend(project_doc);
+            project_doc = tmp_project_doc;
+        }
+        pipeline.push(doc! {"$project": project_doc});
+        Ok(MqlTranslation {
+            database: source_translation.database,
+            collection: source_translation.collection,
+            pipeline,
         })
     }
 }

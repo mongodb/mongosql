@@ -34,6 +34,19 @@ macro_rules! test_translate_stage {
     };
 }
 
+macro_rules! test_translate_plan {
+    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+        #[test]
+        fn $func_name() {
+            use crate::{air, mir, translator};
+            let mut translator = translator::MqlTranslator::new();
+            let expected = $expected;
+            let actual = translator.translate_plan($input);
+            assert_eq!(expected, actual);
+        }
+    };
+}
+
 mod literal_expression {
     use crate::{air, mir};
     test_translate_expression!(
@@ -1478,6 +1491,57 @@ mod projection_stage {
                 "_bot".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1)),
             }
         })),
+        input = mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::Collection(mir::Collection {
+                db: "test_db".into(),
+                collection: "foo".into(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            expression: BindingTuple(map! {
+                Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
+                Key::named("__bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
+                Key::named("_bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                Key::named("____bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(4).into()),
+            }),
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+}
+
+mod translate_plan {
+    use crate::{map, unchecked_unique_linked_hash_map};
+    use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
+
+    test_translate_plan!(
+        project_with_user_bot_conflict,
+        expected = Ok(
+            air::Stage::ReplaceRoot(air::ReplaceRoot {
+                source: air::Stage::Project(air::Project {
+                    source: air::Stage::Project(air::Project {
+                        source: air::Stage::Collection(air::Collection {
+                            db: "test_db".to_string(),
+                            collection: "foo".to_string(),
+                        }).into(),
+                        specifications: unchecked_unique_linked_hash_map!{
+                            "foo".to_string() => air::Expression::Variable("ROOT".to_string())
+                        }
+                    }).into(),
+                    specifications: unchecked_unique_linked_hash_map!{
+                        "___bot".to_string() => air::Expression::FieldRef(air::FieldRef{ parent: None, name: "foo".to_string()}),
+                        "____bot".to_string() => air::Expression::Literal(air::LiteralValue::Integer(4)),
+                        "__bot".to_string() => air::Expression::Literal(air::LiteralValue::Integer(2)),
+                        "_bot".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1)),
+                    }
+                }).into(),
+                new_root: air::Expression::Unset(air::Unset {
+                    field: "___bot".to_string(),
+                    input: air::Expression::SetField(air::SetField {
+                        field: "".to_string(),
+                        input: air::Expression::Variable("ROOT".to_string()).into(),
+                        value: air::Expression::FieldRef(air::FieldRef { parent: None, name: "___bot".to_string() }).into(),
+                    }).into()
+                }).into()
+            })),
         input = mir::Stage::Project(mir::Project {
             source: Box::new(mir::Stage::Collection(mir::Collection {
                 db: "test_db".into(),

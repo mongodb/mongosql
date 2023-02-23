@@ -159,6 +159,8 @@ pub enum Expression {
     SQLSemanticOperator(SQLSemanticOperator),
     Literal(LiteralValue),
     GetField(GetField),
+    SetField(SetField),
+    Unset(Unset),
     FieldRef(FieldRef),
     Switch(Switch),
     Let(Let),
@@ -358,6 +360,19 @@ pub enum LiteralValue {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct GetField {
+    pub field: String,
+    pub input: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct SetField {
+    pub field: String,
+    pub input: Box<Expression>,
+    pub value: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Unset {
     pub field: String,
     pub input: Box<Expression>,
 }

@@ -65,8 +65,9 @@ pub fn translate_sql(
         .schema_env;
 
     let mut translator = MqlTranslator::new();
-    let agg_plan = translator.translate_stage(plan.clone());
+    let agg_plan = translator.translate_plan(plan.clone());
 
+    // TODO SQL-1284:
     // generate mql from the mir plan
     let mql_translation = match agg_plan {
         Err(translator::Error::UnimplementedStruct) => codegen::generate_mql_from_mir(plan)?,
@@ -77,7 +78,12 @@ pub fn translate_sql(
                 Err(codegen::air_to_mql::Error::UnimplementedAIR) => {
                     codegen::generate_mql_from_mir(plan)?
                 }
-                Ok(generated_mql) => generated_mql.into(),
+                Ok(generated_mql) => codegen::mir_to_mql::MqlTranslation {
+                    database: generated_mql.database,
+                    collection: generated_mql.collection,
+                    mapping_registry: translator.mapping_registry,
+                    pipeline: generated_mql.pipeline,
+                },
             }
         }
     };
@@ -98,6 +104,9 @@ pub fn translate_sql(
             .collect(),
     );
 
+    // TODO SQL-1284: When we finish mir_to_air and air codegen, just take the mapping registry from the
+    // translator (&translator.mapping_registry). We can't do that yet since we are still dealing
+    // with situations where we cannot go through air to mql.
     let result_set_schema =
         mql_schema_env_to_json_schema(schema_env, &mql_translation.mapping_registry)?;
 

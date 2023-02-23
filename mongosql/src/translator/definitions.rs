@@ -111,7 +111,44 @@ impl MqlTranslator {
         }
     }
 
-    pub fn translate_stage(&mut self, mir_stage: mir::Stage) -> Result<air::Stage> {
+    // translate_plan is the entry point, it mostly just calls translate_stage, but also
+    // sets up a project to replace __bot with the empty key: ''.
+    pub fn translate_plan(&mut self, mir_stage: mir::Stage) -> Result<air::Stage> {
+        let source = self.translate_stage(mir_stage)?;
+        self.get_replace_bot_stage(source)
+    }
+
+    /// replace_bot will be called at the end of translate_plan to add a stage
+    /// that replaces the unique bottom name with an empty string "" as the last stage.
+    fn get_replace_bot_stage(&mut self, source: air::Stage) -> Result<air::Stage> {
+        let key = Key {
+            datasource: DatasourceName::Bottom,
+            scope: 0u16,
+        };
+        let mongo_bot_name = self.mapping_registry.remove(&key);
+        Ok(match mongo_bot_name {
+            Some(name) => {
+                self.mapping_registry.insert(key, "");
+                air::Stage::ReplaceRoot(air::ReplaceRoot {
+                    source: Box::new(source),
+                    new_root: Box::new(air::Expression::Unset(air::Unset {
+                        field: name.clone(),
+                        input: Box::new(air::Expression::SetField(air::SetField {
+                            field: "".to_string(),
+                            input: Box::new(air::Expression::Variable("ROOT".to_string())),
+                            value: Box::new(air::Expression::FieldRef(air::FieldRef {
+                                parent: None,
+                                name,
+                            })),
+                        })),
+                    })),
+                })
+            }
+            None => source,
+        })
+    }
+
+    pub(crate) fn translate_stage(&mut self, mir_stage: mir::Stage) -> Result<air::Stage> {
         match mir_stage {
             mir::Stage::Filter(f) => self.translate_filter(f),
             mir::Stage::Project(p) => self.translate_project(p),
@@ -128,7 +165,7 @@ impl MqlTranslator {
         }
     }
 
-    fn translate_array_stage(&self, mir_arr: mir::ArraySource) -> Result<air::Stage> {
+    fn translate_array_stage(&mut self, mir_arr: mir::ArraySource) -> Result<air::Stage> {
         let doc_stage = air::Stage::Documents(air::Documents {
             array: mir_arr
                 .array
@@ -136,6 +173,11 @@ impl MqlTranslator {
                 .map(|mir_expr| self.translate_expression(mir_expr.clone()))
                 .collect::<Result<Vec<air::Expression>>>()?,
         });
+
+        self.mapping_registry.insert(
+            Key::named(&mir_arr.alias, self.scope_level),
+            mir_arr.alias.clone(),
+        );
 
         Ok(air::Stage::Project(air::Project {
             source: Box::new(doc_stage),

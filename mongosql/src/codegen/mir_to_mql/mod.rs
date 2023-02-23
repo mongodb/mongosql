@@ -1,5 +1,4 @@
 use crate::{
-    codegen::air_to_mql,
     map,
     mapping_registry::MqlMappingRegistry,
     mir::{
@@ -47,17 +46,6 @@ pub struct MqlTranslation {
     pub collection: Option<String>,
     pub mapping_registry: MqlMappingRegistry,
     pub pipeline: Vec<bson::Document>,
-}
-
-impl From<air_to_mql::MqlTranslation> for MqlTranslation {
-    fn from(air_mql_translation: air_to_mql::MqlTranslation) -> Self {
-        MqlTranslation {
-            database: air_mql_translation.database,
-            collection: air_mql_translation.collection,
-            mapping_registry: MqlMappingRegistry::default(),
-            pipeline: air_mql_translation.pipeline,
-        }
-    }
 }
 
 impl MqlTranslation {
