@@ -10,6 +10,7 @@ use mongosql_datastructures::{
     unique_linked_hash_map,
     unique_linked_hash_map::{DuplicateKeyError, UniqueLinkedHashMap, UniqueLinkedHashMapEntry},
 };
+use std::collections::BTreeSet;
 
 use thiserror::Error;
 
@@ -150,14 +151,14 @@ impl MqlTranslator {
 
     pub(crate) fn translate_stage(&mut self, mir_stage: mir::Stage) -> Result<air::Stage> {
         match mir_stage {
-            mir::Stage::Filter(f) => self.translate_filter(f),
+            mir::Stage::Array(arr) => self.translate_array_stage(arr),
+            mir::Stage::Collection(c) => self.translate_collection(c),
             mir::Stage::Project(p) => self.translate_project(p),
-            mir::Stage::Group(_g) => Err(Error::UnimplementedStruct),
+            mir::Stage::Filter(f) => self.translate_filter(f),
+            mir::Stage::Group(g) => self.translate_group(g),
             mir::Stage::Limit(_l) => Err(Error::UnimplementedStruct),
             mir::Stage::Offset(_o) => Err(Error::UnimplementedStruct),
             mir::Stage::Sort(_s) => Err(Error::UnimplementedStruct),
-            mir::Stage::Collection(c) => self.translate_collection(c),
-            mir::Stage::Array(arr) => self.translate_array_stage(arr),
             mir::Stage::Join(_j) => Err(Error::UnimplementedStruct),
             mir::Stage::Set(_s) => Err(Error::UnimplementedStruct),
             mir::Stage::Derived(_d) => Err(Error::UnimplementedStruct),
@@ -237,6 +238,111 @@ impl MqlTranslator {
         Ok(air::Stage::Match(air::Match {
             source: Box::new(source_translation),
             expr: Box::new(expr_translation),
+        }))
+    }
+
+    fn get_unique_alias(existing_aliases: &BTreeSet<String>, mut alias: String) -> String {
+        while existing_aliases.contains(&alias) {
+            alias.insert(0, '_')
+        }
+        alias
+    }
+
+    fn translate_agg_function(afa: mir::AggregationFunction) -> air::AggregationFunction {
+        match afa {
+            mir::AggregationFunction::AddToArray => air::AggregationFunction::AddToArray,
+            mir::AggregationFunction::Avg => air::AggregationFunction::Avg,
+            mir::AggregationFunction::Count => air::AggregationFunction::Count,
+            mir::AggregationFunction::First => air::AggregationFunction::First,
+            mir::AggregationFunction::Last => air::AggregationFunction::Last,
+            mir::AggregationFunction::Max => air::AggregationFunction::Max,
+            mir::AggregationFunction::MergeDocuments => air::AggregationFunction::MergeDocuments,
+            mir::AggregationFunction::Min => air::AggregationFunction::Min,
+            mir::AggregationFunction::StddevPop => air::AggregationFunction::StddevPop,
+            mir::AggregationFunction::StddevSamp => air::AggregationFunction::StddevSamp,
+            mir::AggregationFunction::Sum => air::AggregationFunction::Sum,
+        }
+    }
+
+    fn translate_group(&mut self, mir_group: mir::Group) -> Result<air::Stage> {
+        let source_translation = self.translate_stage(*mir_group.source)?;
+        let unique_aliases = mir_group
+            .keys
+            .iter()
+            .filter_map(|k| k.get_alias().map(String::from))
+            .collect::<BTreeSet<_>>();
+
+        // all the keys defined by this stage must flow out to the next stage. All the incoming
+        // keys are killed by the Group stage.
+        let mut out_registry = MqlMappingRegistry::new();
+
+        // map the group keys and translate the expressions.
+        let keys = mir_group
+            .keys
+            .into_iter()
+            .enumerate()
+            .map(|(i, k)| {
+                Ok(match k {
+                    mir::OptionallyAliasedExpr::Aliased(ae) => {
+                        let registry_key = Key::named(&ae.alias, self.scope_level);
+                        out_registry.insert(registry_key, ae.alias.clone());
+                        air::NameExprPair {
+                            name: ae.alias,
+                            expr: self.translate_expression(ae.expr)?,
+                        }
+                    }
+                    mir::OptionallyAliasedExpr::Unaliased(e) => {
+                        let position_counter = i + 1;
+                        let unique_name = Self::get_unique_alias(
+                            &unique_aliases,
+                            format!("__unaliasedKey{position_counter}"),
+                        );
+                        let registry_key = Key::named(&unique_name, self.scope_level);
+                        out_registry.insert(registry_key, unique_name.clone());
+                        air::NameExprPair {
+                            name: unique_name,
+                            expr: self.translate_expression(e)?,
+                        }
+                    }
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        let aggregations = mir_group
+            .aggregations
+            .into_iter()
+            .map(|a| {
+                let alias = a.alias;
+                let registry_key = Key::named(&alias, self.scope_level);
+                out_registry.insert(registry_key, alias.clone());
+                let (function, distinct, arg) = match a.agg_expr {
+                    mir::AggregationExpr::CountStar(b) => (
+                        air::AggregationFunction::Count,
+                        b,
+                        Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
+                    ),
+                    mir::AggregationExpr::Function(afa) => (
+                        Self::translate_agg_function(afa.function),
+                        afa.distinct,
+                        Box::new(self.translate_expression(*afa.arg)?),
+                    ),
+                };
+                Ok(air::AccumulatorExpr {
+                    alias,
+                    function,
+                    distinct,
+                    arg,
+                })
+            })
+            .collect::<Result<Vec<_>>>()?;
+
+        // set the new mapping registry for following stages.
+        self.mapping_registry = out_registry;
+        // map the group aggregations and translate the expressions.
+        Ok(air::Stage::Group(air::Group {
+            source: Box::new(source_translation),
+            keys,
+            aggregations,
         }))
     }
 
