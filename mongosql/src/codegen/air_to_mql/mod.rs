@@ -173,7 +173,7 @@ impl MqlCodeGenerator {
             air::Stage::Join(_j) => Err(Error::UnimplementedAIR),
             air::Stage::Unwind(_u) => Err(Error::UnimplementedAIR),
             air::Stage::Lookup(_l) => Err(Error::UnimplementedAIR),
-            air::Stage::ReplaceRoot(r) => self.codegen_replace_root(r),
+            air::Stage::ReplaceWith(r) => self.codegen_replace_with(r),
             air::Stage::Match(_m) => Err(Error::UnimplementedAIR),
             air::Stage::UnionWith(_u) => Err(Error::UnimplementedAIR),
             air::Stage::Skip(_s) => Err(Error::UnimplementedAIR),
@@ -181,12 +181,12 @@ impl MqlCodeGenerator {
         }
     }
 
-    fn codegen_replace_root(&self, air_replace_root: air::ReplaceRoot) -> Result<MqlTranslation> {
-        let source_translation = self.codegen_air_stage(*air_replace_root.source)?;
+    fn codegen_replace_with(&self, air_replace_with: air::ReplaceWith) -> Result<MqlTranslation> {
+        let source_translation = self.codegen_air_stage(*air_replace_with.source)?;
         let mut pipeline = source_translation.pipeline;
-        let expr = self.codegen_air_expression(*air_replace_root.new_root)?;
+        let expr = self.codegen_air_expression(*air_replace_with.new_root)?;
 
-        pipeline.push(doc! {"$replaceRoot": {"newRoot": expr}});
+        pipeline.push(doc! {"$replaceWith": expr});
         Ok(MqlTranslation {
             database: source_translation.database,
             collection: source_translation.collection,

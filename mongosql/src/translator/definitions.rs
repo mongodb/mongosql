@@ -130,7 +130,7 @@ impl MqlTranslator {
         Ok(match mongo_bot_name {
             Some(name) => {
                 self.mapping_registry.insert(key, "");
-                air::Stage::ReplaceRoot(air::ReplaceRoot {
+                air::Stage::ReplaceWith(air::ReplaceWith {
                     source: Box::new(source),
                     new_root: Box::new(air::Expression::Unset(air::Unset {
                         field: name.clone(),

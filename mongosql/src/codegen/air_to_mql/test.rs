@@ -863,7 +863,7 @@ mod air_documents_stage {
     );
 }
 
-mod air_replace_root_stage {
+mod air_replace_with_stage {
     use crate::{air::*, unchecked_unique_linked_hash_map};
 
     test_codegen_air_plan!(
@@ -872,10 +872,10 @@ mod air_replace_root_stage {
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
-                bson::doc! {"$replaceRoot": {"newRoot": {"$literal": "$name"}}},
+                bson::doc! {"$replaceWith": {"$literal": "$name"}},
             ],
         }),
-        input = Stage::ReplaceRoot(ReplaceRoot {
+        input = Stage::ReplaceWith(ReplaceWith {
             source: Box::new(
                 Stage::Collection(Collection {
                     db: "mydb".to_string(),
@@ -892,18 +892,16 @@ mod air_replace_root_stage {
             collection: Some("col".to_string()),
             pipeline: vec![
                 bson::doc! {
-                   "$replaceRoot": {
-                      "newRoot": {
-                         "$mergeDocuments": [
+                    "$replaceWith": {
+                        "$mergeDocuments": [
                             {"$literal": "$name"},
                             {"_id": {"$literal": "$_id"}}
-                         ]
-                      }
-                   }
+                        ]
+                    }
                 },
             ],
         }),
-        input = Stage::ReplaceRoot(ReplaceRoot {
+        input = Stage::ReplaceWith(ReplaceWith {
             source: Box::new(
                 Stage::Collection(Collection {
                     db: "mydb".to_string(),

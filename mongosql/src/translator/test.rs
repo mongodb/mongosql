@@ -1725,7 +1725,7 @@ mod translate_plan {
     test_translate_plan!(
         project_with_user_bot_conflict,
         expected = Ok(
-            air::Stage::ReplaceRoot(air::ReplaceRoot {
+            air::Stage::ReplaceWith(air::ReplaceWith {
                 source: air::Stage::Project(air::Project {
                     source: air::Stage::Project(air::Project {
                         source: air::Stage::Collection(air::Collection {

@@ -11,7 +11,7 @@ pub enum Stage {
     Join(Join),
     Unwind(Unwind),
     Lookup(Lookup),
-    ReplaceRoot(ReplaceRoot),
+    ReplaceWith(ReplaceWith),
     Match(Match),
     UnionWith(UnionWith),
     Skip(Skip),
@@ -124,7 +124,7 @@ pub struct LetVariable {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct ReplaceRoot {
+pub struct ReplaceWith {
     pub source: Box<Stage>,
     pub new_root: Box<Expression>,
 }
