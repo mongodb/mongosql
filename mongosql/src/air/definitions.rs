@@ -1,5 +1,7 @@
 use crate::util::unique_linked_hash_map::UniqueLinkedHashMap;
 
+visitgen::generate_visitors! {
+
 #[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
 pub enum Stage {
@@ -112,6 +114,8 @@ pub struct Unwind {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Lookup {
     pub source: Box<Stage>,
+    pub from_db: Option<String>,
+    pub from_coll: Option<String>,
     pub let_vars: Option<Vec<LetVariable>>,
     pub pipeline: Box<Stage>,
     pub as_var: String,
@@ -480,3 +484,5 @@ pub struct Is {
     pub expr: Box<Expression>,
     pub target_type: TypeOrMissing,
 }
+
+} // end of generate_visitors! block
