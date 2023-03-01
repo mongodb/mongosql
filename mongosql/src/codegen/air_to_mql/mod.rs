@@ -1,4 +1,4 @@
-use crate::air::{self, MQLOperator};
+use crate::air::{self, MQLOperator, SQLOperator};
 use bson::{bson, doc, Bson};
 use thiserror::Error;
 
@@ -11,6 +11,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[error("air method is not implemented")]
     UnimplementedAIR,
+    #[error("cannot generate MQL for {0:?} operator")]
+    UnsupportedOperator(SQLOperator),
 }
 
 #[derive(PartialEq, Debug)]
@@ -102,6 +104,63 @@ impl MqlCodeGenerator {
         }
     }
 
+    fn to_sql_op(sqlo: SQLOperator) -> Option<&'static str> {
+        use SQLOperator::*;
+        Some(match sqlo {
+            // Arithmetic operators
+            Divide => "$sqlDivide",
+            Pos => "$sqlPos",
+            Neg => "$sqlNeg",
+
+            // Comparison operators
+            Lt => "$sqlLt",
+            Lte => "$sqlLte",
+            Ne => "$sqlNe",
+            Eq => "$sqlEq",
+            Gt => "$sqlGt",
+            Gte => "$sqlGte",
+            Between => "$sqlBetween",
+
+            // Boolean operators
+            Not => "$sqlNot",
+            And => "$sqlAnd",
+            Or => "$sqlOr",
+
+            // Conditional scalar functions
+            NullIf => "$nullIf",
+            Coalesce => "$coalesce",
+
+            // Array scalar functions
+            Slice => "$sqlSlice",
+            Size => "$sqlSize",
+
+            // Numeric value scalar functions
+            IndexOfCP => "$sqlIndexOfCP",
+            StrLenCP => "$sqlStrLenCP",
+            StrLenBytes => "$sqlStrLenBytes",
+            BitLength => "$sqlBitLength",
+            Cos => "$sqlCos",
+            Log => "$sqlLog",
+            Mod => "$sqlMod",
+            Round => "$sqlRound",
+            Sin => "$sqlSin",
+            Sqrt => "$sqlSqrt",
+            Tan => "$sqlTan",
+
+            // String value scalar functions
+            SubstrCP => "$sqlSubstrCP",
+            ToUpper => "$sqlToUpper",
+            ToLower => "$sqlToLower",
+            Split => "$sqlSplit",
+            Trim => "$trim",
+            LTrim => "$ltrim",
+            RTrim => "$rtrim",
+
+            // ComputedFieldAccess, CurrentTimestamp
+            _ => return None,
+        })
+    }
+
     pub fn codegen_air_expression(&self, expr: air::Expression) -> Result<bson::Bson> {
         use air::{Expression::*, LiteralValue::*};
         match expr {
@@ -141,6 +200,76 @@ impl MqlCodeGenerator {
                     .collect::<Result<Vec<_>>>()?;
                 let operator = Self::to_mql_op(mqls.op);
                 Ok(bson::bson!({ operator: Bson::Array(ops) }))
+            }
+            SQLSemanticOperator(sqls) => {
+                Ok(match sqls.op {
+                    SQLOperator::Size
+                    | SQLOperator::StrLenCP
+                    | SQLOperator::StrLenBytes
+                    | SQLOperator::ToUpper
+                    | SQLOperator::ToLower => {
+                        bson::bson!({ Self::to_sql_op(sqls.op).unwrap(): self.codegen_air_expression(sqls.args[0].clone())?})
+                    }
+                    SQLOperator::And
+                    | SQLOperator::Between
+                    | SQLOperator::BitLength
+                    | SQLOperator::Coalesce
+                    | SQLOperator::Cos
+                    | SQLOperator::Eq
+                    | SQLOperator::Gt
+                    | SQLOperator::Gte
+                    | SQLOperator::Log
+                    | SQLOperator::Lt
+                    | SQLOperator::Lte
+                    | SQLOperator::Mod
+                    | SQLOperator::Ne
+                    | SQLOperator::Neg
+                    | SQLOperator::Not
+                    | SQLOperator::NullIf
+                    | SQLOperator::Or
+                    | SQLOperator::Pos
+                    | SQLOperator::Round
+                    | SQLOperator::Sin
+                    | SQLOperator::Slice
+                    | SQLOperator::Split
+                    | SQLOperator::Sqrt
+                    | SQLOperator::SubstrCP
+                    | SQLOperator::Tan => {
+                        let ops = sqls
+                            .args
+                            .into_iter()
+                            .map(|x| self.codegen_air_expression(x))
+                            .collect::<Result<Vec<_>>>()?;
+                        bson::bson!({ Self::to_sql_op(sqls.op).unwrap(): Bson::Array(ops) })
+                    }
+                    SQLOperator::ComputedFieldAccess => {
+                        // Adding this feature is tracked in SQL-673
+                        return Err(Error::UnsupportedOperator(SQLOperator::ComputedFieldAccess));
+                    }
+                    SQLOperator::CurrentTimestamp => Bson::String("$$NOW".to_string()),
+                    SQLOperator::Divide => Bson::Document(bson::doc! {
+                        Self::to_sql_op(sqls.op).unwrap(): {
+                            "dividend": self.codegen_air_expression(sqls.args[0].clone())?,
+                            "divisor": self.codegen_air_expression(sqls.args[1].clone())?,
+                            "onError": {"$literal": Bson::Null}
+                        }
+                    }),
+                    // operators that reverse argument order
+                    SQLOperator::IndexOfCP => {
+                        let args = Bson::Array(
+                            sqls.args
+                                .into_iter()
+                                .rev()
+                                .map(|e| self.codegen_air_expression(e))
+                                .collect::<Result<Vec<Bson>>>()?,
+                        );
+                        Bson::Document(bson::doc! { Self::to_sql_op(sqls.op).unwrap(): args})
+                    }
+                    SQLOperator::Trim | SQLOperator::LTrim | SQLOperator::RTrim => bson::bson!({
+                        Self::to_sql_op(sqls.op).unwrap(): {"input": self.codegen_air_expression(sqls.args[1].clone())?,
+                            "chars": self.codegen_air_expression(sqls.args[0].clone())?,
+                    }}),
+                })
             }
             GetField(gf) => Ok({
                 let input = self.codegen_air_expression(*gf.input)?;

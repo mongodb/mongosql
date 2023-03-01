@@ -158,12 +158,13 @@ tests:
   - description: Unary plus correctness tests
     current_db: foo
     query: "SELECT VALUE {'a': a, '+a': +a} FROM unary AS unary"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: unary
     translation:
       - {'$project': {'_id': 0, 'unary': '$$ROOT'}}
       - {'$project': {'_id': 0, 'unary': '$unary'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', '+a': '$unary.a'}}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', '+a': {'$sqlPos': ['$unary.a']}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -185,13 +186,13 @@ tests:
   - description: Unary minus correctness tests
     current_db: foo
     query: "SELECT VALUE {'a': a, '-a': -a} FROM unary AS unary"
-    skip_reason: "SQL-495: wrap literals in $literal document"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: unary
     translation:
       - {'$project': {'_id': 0, 'unary': '$$ROOT'}}
       - {'$project': {'_id': 0, 'unary': '$unary'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', '-a': {'$multiply': ['$unary.a', {'$literal': -1}]}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', '-a': {'$sqlNeg': ['$unary.a']}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}

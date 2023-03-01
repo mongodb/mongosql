@@ -78,6 +78,7 @@ pub fn translate_sql(
                 Err(codegen::air_to_mql::Error::UnimplementedAIR) => {
                     codegen::generate_mql_from_mir(plan)?
                 }
+                Err(err) => return Err(result::Error::CodegenAIR(err)),
                 Ok(generated_mql) => codegen::mir_to_mql::MqlTranslation {
                     database: generated_mql.database,
                     collection: generated_mql.collection,

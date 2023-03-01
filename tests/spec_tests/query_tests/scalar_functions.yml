@@ -796,12 +796,13 @@ tests:
   - description: BIT_LENGTH correctness tests
     current_db: foo
     query: "SELECT VALUE {'s': s, 'len': BIT_LENGTH(s), 'comment': comment} FROM length AS c"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: length
     translation:
       - {'$project': {'_id': 0, 'length': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$length'}}
-      - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$multiply': [{'$sqlStrLenBytes': '$c.s'}, {'$literal': 8}]}, 'comment': '$c.comment'}}}
+      - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$sqlBitLength': ['$c.s']}, 'comment': '$c.comment'}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}

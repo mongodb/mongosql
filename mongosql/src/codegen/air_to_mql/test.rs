@@ -710,6 +710,379 @@ mod air_mql_semantic_operator {
     );
 }
 
+mod air_sql_semantic_operator {
+    use crate::{
+        air::{Expression::*, LiteralValue::*, SQLOperator::*, SQLSemanticOperator},
+        codegen::air_to_mql::Error,
+    };
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        divide,
+        expected = Ok(
+            bson::bson! ({"$sqlDivide": {"dividend": {"$literal": 1}, "divisor": {"$literal": 2}, "onError": {"$literal": bson::Bson::Null}}})
+        ),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Divide,
+            args: vec![Literal(Integer(1)), Literal(Integer(2))],
+        })
+    );
+
+    test_codegen_air_expr!(
+        pos,
+        expected = Ok(bson::bson! ({ "$sqlPos": [{ "$literal": 2}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Pos,
+            args: vec![Literal(Integer(2))],
+        })
+    );
+
+    test_codegen_air_expr!(
+        neg,
+        expected = Ok(bson::bson! ({ "$sqlNeg": [{ "$literal": 1}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Neg,
+            args: vec![Literal(Integer(1))],
+        })
+    );
+
+    test_codegen_air_expr!(
+        lt,
+        expected = Ok(bson!({ "$sqlLt": [{ "$literal": 1}, { "$literal": 2}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Lt,
+            args: vec![Literal(Integer(1)), Literal(Integer(2))],
+        })
+    );
+
+    test_codegen_air_expr!(
+        lte,
+        expected = Ok(bson!({ "$sqlLte": [{ "$literal": 1}, { "$literal": 2}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Lte,
+            args: vec![Literal(Integer(1)), Literal(Integer(2))],
+        })
+    );
+
+    test_codegen_air_expr!(
+        ne,
+        expected = Ok(bson!({ "$sqlNe": [{ "$literal": 1}, { "$literal": 2}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Ne,
+            args: vec![Literal(Integer(1)), Literal(Integer(2))],
+        })
+    );
+
+    test_codegen_air_expr!(
+        eq,
+        expected = Ok(bson!({ "$sqlEq": [{ "$literal": 1}, { "$literal": 2}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Eq,
+            args: vec![Literal(Integer(1)), Literal(Integer(2))],
+        })
+    );
+
+    test_codegen_air_expr!(
+        gt,
+        expected = Ok(bson!({ "$sqlGt": [{ "$literal": 1}, { "$literal": 2}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Gt,
+            args: vec![Literal(Integer(1)), Literal(Integer(2))],
+        })
+    );
+    test_codegen_air_expr!(
+        gte,
+        expected = Ok(bson!({ "$sqlGte": [{ "$literal": 1}, { "$literal": 2}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Gte,
+            args: vec![Literal(Integer(1)), Literal(Integer(2))],
+        })
+    );
+
+    test_codegen_air_expr!(
+        between,
+        expected =
+            Ok(bson!({ "$sqlBetween": [[{"$literal": 1}, {"$literal": 2}, {"$literal": 3}]]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Between,
+            args: vec![Array(vec![
+                Literal(Integer(1)),
+                Literal(Integer(2)),
+                Literal(Integer(3))
+            ])],
+        })
+    );
+
+    test_codegen_air_expr!(
+        nullif_expr,
+        expected = Ok(bson!({ "$nullIf": [{ "$literal": true}, { "$literal": false}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: NullIf,
+            args: vec![Literal(Boolean(true)), Literal(Boolean(false))],
+        })
+    );
+
+    test_codegen_air_expr!(
+        coalesce_expr,
+        expected = Ok(bson!({ "$coalesce": [{ "$literal": 1}, { "$literal": 2}, {"$literal": 3}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Coalesce,
+            args: vec![
+                Literal(Integer(1)),
+                Literal(Integer(2)),
+                Literal(Integer(3))
+            ],
+        })
+    );
+
+    test_codegen_air_expr!(
+        not,
+        expected = Ok(bson!({ "$sqlNot": [{ "$literal": false}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Not,
+            args: vec![Literal(Boolean(false))],
+        })
+    );
+
+    test_codegen_air_expr!(
+        and,
+        expected = Ok(bson!({ "$sqlAnd": [{ "$literal": true}, { "$literal": false}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: And,
+            args: vec![Literal(Boolean(true)), Literal(Boolean(false))],
+        })
+    );
+    test_codegen_air_expr!(
+        or,
+        expected = Ok(bson!({ "$sqlOr": [{ "$literal": true}, { "$literal": false}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Or,
+            args: vec![Literal(Boolean(true)), Literal(Boolean(false))],
+        })
+    );
+    test_codegen_air_expr!(
+        slice,
+        expected = Ok(
+            bson!({ "$sqlSlice": [[{"$literal": 1}, {"$literal": 2}, {"$literal": 3}], {"$literal": 1}, { "$literal": 2}]})
+        ),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Slice,
+            args: vec![
+                Array(vec![
+                    Literal(Integer(1)),
+                    Literal(Integer(2)),
+                    Literal(Integer(3))
+                ]),
+                Literal(Integer(1)),
+                Literal(Integer(2))
+            ],
+        })
+    );
+    test_codegen_air_expr!(
+        size,
+        expected = Ok(bson!({ "$sqlSize": [{"$literal": 1}, {"$literal": 2}, {"$literal": 3}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Size,
+            args: vec![Array(vec![
+                Literal(Integer(1)),
+                Literal(Integer(2)),
+                Literal(Integer(3))
+            ])],
+        })
+    );
+    test_codegen_air_expr!(
+        index_of_cp,
+        expected = Ok(
+            bson!({ "$sqlIndexOfCP": [{ "$literal": 2}, { "$literal": 1}, { "$literal": "bar"}, { "$literal": "foo"}]})
+        ),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: IndexOfCP,
+            args: vec![
+                Literal(String("foo".to_string())),
+                Literal(String("bar".to_string())),
+                Literal(Integer(1)),
+                Literal(Integer(2)),
+            ],
+        })
+    );
+
+    test_codegen_air_expr!(
+        str_len_cp,
+        expected = Ok(bson!({ "$sqlStrLenCP": { "$literal": "foo"}})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: StrLenCP,
+            args: vec![Literal(String("foo".to_string())),],
+        })
+    );
+    test_codegen_air_expr!(
+        str_len_bytes,
+        expected = Ok(bson!({ "$sqlStrLenBytes": { "$literal": "foo"}})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: StrLenBytes,
+            args: vec![Literal(String("foo".to_string())),],
+        })
+    );
+
+    test_codegen_air_expr!(
+        bit_length,
+        expected = Ok(bson!({ "$sqlBitLength": [{ "$literal": "foo"}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: BitLength,
+            args: vec![Literal(String("foo".to_string())),],
+        })
+    );
+    test_codegen_air_expr!(
+        cos,
+        expected = Ok(bson!({ "$sqlCos": [{"$literal": 3.5}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Cos,
+            args: vec![Literal(Double(3.5)),],
+        })
+    );
+    test_codegen_air_expr!(
+        log,
+        expected = Ok(bson!({ "$sqlLog": [{"$literal": 3.5}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Log,
+            args: vec![Literal(Double(3.5)),],
+        })
+    );
+    test_codegen_air_expr!(
+        mod_op,
+        expected = Ok(bson!({ "$sqlMod": [{"$literal": 3.5}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Mod,
+            args: vec![Literal(Double(3.5)),],
+        })
+    );
+    test_codegen_air_expr!(
+        round,
+        expected = Ok(bson!({ "$sqlRound": [{"$literal": 3.5}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Round,
+            args: vec![Literal(Double(3.5)),],
+        })
+    );
+    test_codegen_air_expr!(
+        sin,
+        expected = Ok(bson!({ "$sqlSin": [{"$literal": 3.5}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Sin,
+            args: vec![Literal(Double(3.5)),],
+        })
+    );
+    test_codegen_air_expr!(
+        sqrt,
+        expected = Ok(bson!({ "$sqlSqrt": [{"$literal": 3.5}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Sqrt,
+            args: vec![Literal(Double(3.5)),],
+        })
+    );
+    test_codegen_air_expr!(
+        tan,
+        expected = Ok(bson!({ "$sqlTan": [{"$literal": 3.5}]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Tan,
+            args: vec![Literal(Double(3.5)),],
+        })
+    );
+    test_codegen_air_expr!(
+        substr_cp,
+        expected = Ok(
+            bson!({ "$sqlSubstrCP": [{ "$literal": "foo"}, { "$literal": 1 }, { "$literal": 2 }]})
+        ),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: SubstrCP,
+            args: vec![
+                Literal(String("foo".to_string())),
+                Literal(Integer(1)),
+                Literal(Integer(2))
+            ],
+        })
+    );
+    test_codegen_air_expr!(
+        to_upper,
+        expected = Ok(bson!({ "$sqlToUpper": { "$literal": "foo"}})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: ToUpper,
+            args: vec![Literal(String("foo".to_string())),],
+        })
+    );
+
+    test_codegen_air_expr!(
+        to_lower,
+        expected = Ok(bson!({ "$sqlToLower": { "$literal": "foo"}})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: ToLower,
+            args: vec![Literal(String("foo".to_string())),],
+        })
+    );
+    test_codegen_air_expr!(
+        trim,
+        expected =
+            Ok(bson!({ "$trim": { "input": {"$literal": "foo"}, "chars": {"$literal": "a"}}})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Trim,
+            args: vec![
+                Literal(String("a".to_string())),
+                Literal(String("foo".to_string())),
+            ],
+        })
+    );
+    test_codegen_air_expr!(
+        ltrim,
+        expected =
+            Ok(bson!({ "$ltrim": { "input": {"$literal": "foo"}, "chars": {"$literal": "a"}}})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: LTrim,
+            args: vec![
+                Literal(String("a".to_string())),
+                Literal(String("foo".to_string())),
+            ],
+        })
+    );
+    test_codegen_air_expr!(
+        rtrim,
+        expected =
+            Ok(bson!({ "$rtrim": { "input": {"$literal": "foo"}, "chars": {"$literal": "a"}}})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: RTrim,
+            args: vec![
+                Literal(String("a".to_string())),
+                Literal(String("foo".to_string())),
+            ],
+        })
+    );
+    test_codegen_air_expr!(
+        split,
+        expected = Ok(bson!({ "$sqlSplit": [{ "$literal": "foo" }, { "$literal": "o" }]})),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: Split,
+            args: vec![
+                Literal(String("foo".to_string())),
+                Literal(String("o".to_string()))
+            ],
+        })
+    );
+    test_codegen_air_expr!(
+        current_timestamp,
+        expected = Ok(bson!("$$NOW")),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: CurrentTimestamp,
+            args: vec![],
+        })
+    );
+    test_codegen_air_expr!(
+        computed_field_access,
+        expected = Err(Error::UnsupportedOperator(ComputedFieldAccess)),
+        input = SQLSemanticOperator(SQLSemanticOperator {
+            op: ComputedFieldAccess,
+            args: vec![]
+        })
+    );
+}
+
 mod air_document {
     use crate::{
         air::{Expression::*, LiteralValue::*},
