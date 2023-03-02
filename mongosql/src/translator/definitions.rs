@@ -353,6 +353,7 @@ impl MqlTranslator {
             mir::Expression::Array(expr) => self.translate_array(expr.array),
             mir::Expression::Reference(reference) => self.translate_reference(reference.key),
             mir::Expression::Cast(cast) => self.translate_cast(cast),
+            mir::Expression::TypeAssertion(ta) => self.translate_expression(*ta.expr),
             mir::Expression::ScalarFunction(scalar_func) => {
                 self.translate_scalar_function(scalar_func)
             }

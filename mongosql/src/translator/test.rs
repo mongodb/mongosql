@@ -1318,6 +1318,25 @@ mod cast_expression {
     );
 }
 
+mod type_assertion_expression {
+    use crate::{air, mir};
+
+    test_translate_expression!(
+        type_assertion_expression_basic,
+        expected = Ok(air::Expression::Literal(air::LiteralValue::String(
+            "2012-12-20T12:12:12Z".to_string()
+        ))),
+        input = mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
+            expr: mir::Expression::Literal(
+                mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
+            )
+            .into(),
+            target_type: mir::Type::Datetime,
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+}
+
 mod reference_expression {
     use crate::{air, mir, translator::Error};
     test_translate_expression!(
