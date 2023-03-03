@@ -124,6 +124,163 @@ mod air_project {
     );
 }
 
+mod air_group {
+    use crate::air::*;
+    use bson::doc;
+
+    test_codegen_air_plan!(
+        simple,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                doc!{"$group": {"_id": {"foo": "$foo", "bar": {"$add": ["$bar", {"$literal": 1}]}},
+                                "x": {"$min": "$x"},
+                                "y": {"$max": {"$mod": ["$x", {"$literal": 1}]}}
+                               }
+                }
+            ],
+        }),
+        input = Stage::Group(Group {
+            source: Box::new(
+                Stage::Collection( Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                })),
+            keys: vec![
+                NameExprPair {
+                    name: "foo".into(),
+                    expr: Expression::FieldRef(FieldRef {
+                        parent: None,
+                        name: "foo".into(),
+                    })
+                },
+                NameExprPair {
+                    name: "bar".into(),
+                    expr: Expression::MQLSemanticOperator( MQLSemanticOperator {
+                        op: MQLOperator::Add,
+                        args: vec![
+                            Expression::FieldRef(FieldRef {
+                                parent: None,
+                                name: "bar".into(),
+                            }),
+                            Expression::Literal(LiteralValue::Integer(1))
+                        ],
+                    })
+                },
+            ],
+            aggregations: vec![
+                AccumulatorExpr {
+                    alias: "x".into(),
+                    function: AggregationFunction::Min,
+                    distinct: false,
+                    arg: Expression::FieldRef(FieldRef {
+                        parent: None,
+                        name: "x".into(),
+                    }).into(),
+                },
+                AccumulatorExpr {
+                    alias: "y".into(),
+                    function: AggregationFunction::Max,
+                    distinct: false,
+                    arg: Expression::MQLSemanticOperator(MQLSemanticOperator {
+                        op: MQLOperator::Mod,
+                        args: vec![
+                            Expression::FieldRef(FieldRef {
+                                parent: None,
+                                name: "x".into(),
+                            }),
+                            Expression::Literal(LiteralValue::Integer(1i32))
+                        ],
+                    }).into(),
+                },
+            ],
+        }),
+    );
+
+    test_codegen_air_plan!(
+        distinct_ops_are_sql_ops,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                doc!{"$group": {"_id": {"foo": "$foo"},
+                                "x": {"$sqlMin": {"var": "$x", "distinct": true}},
+                               }
+                }
+            ],
+        }),
+        input = Stage::Group(Group {
+            source: Box::new(
+                Stage::Collection( Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                })),
+            keys: vec![
+                NameExprPair {
+                    name: "foo".into(),
+                    expr: Expression::FieldRef(FieldRef {
+                        parent: None,
+                        name: "foo".into(),
+                    })
+                },
+            ],
+            aggregations: vec![
+                AccumulatorExpr {
+                    alias: "x".into(),
+                    function: AggregationFunction::Min,
+                    distinct: true,
+                    arg: Expression::FieldRef(FieldRef {
+                        parent: None,
+                        name: "x".into(),
+                    }).into(),
+                },
+            ],
+        }),
+    );
+
+    test_codegen_air_plan!(
+        count_is_always_a_sql_op,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                doc!{"$group": {"_id": {"foo": "$foo"},
+                                "x": {"$sqlCount": {"var": "$x", "distinct": false}},
+                               }
+                }
+            ],
+        }),
+        input = Stage::Group(Group {
+            source: Box::new(
+                Stage::Collection( Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                })),
+            keys: vec![
+                NameExprPair {
+                    name: "foo".into(),
+                    expr: Expression::FieldRef(FieldRef {
+                        parent: None,
+                        name: "foo".into(),
+                    })
+                },
+            ],
+            aggregations: vec![
+                AccumulatorExpr {
+                    alias: "x".into(),
+                    function: AggregationFunction::Count,
+                    distinct: false,
+                    arg: Expression::FieldRef(FieldRef {
+                        parent: None,
+                        name: "x".into(),
+                    }).into(),
+                },
+            ],
+        }),
+    );
+}
+
 mod air_literal {
     use crate::air::{Expression::*, LiteralValue::*};
     use bson::{bson, Bson};

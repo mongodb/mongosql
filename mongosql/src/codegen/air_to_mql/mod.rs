@@ -1,4 +1,4 @@
-use crate::air::{self, MQLOperator, SQLOperator, SqlConvertTargetType};
+use crate::air::{self, AggregationFunction, MQLOperator, SQLOperator, SqlConvertTargetType};
 
 use bson::{bson, doc, Bson};
 use thiserror::Error;
@@ -27,6 +27,40 @@ pub struct MqlTranslation {
 pub struct MqlCodeGenerator {}
 
 impl MqlCodeGenerator {
+    fn agg_func_to_mql_op(mqla: AggregationFunction) -> &'static str {
+        use AggregationFunction::*;
+        match mqla {
+            AddToArray => "$push",
+            Avg => "$avg",
+            Count => unreachable!(),
+            First => "$first",
+            Last => "$last",
+            Max => "$max",
+            MergeDocuments => "$mergeObjects",
+            Min => "$min",
+            StddevPop => "$stdDevPop",
+            StddevSamp => "$stdDevSamp",
+            Sum => "$sum",
+        }
+    }
+
+    fn agg_func_to_sql_op(mqla: AggregationFunction) -> &'static str {
+        use AggregationFunction::*;
+        match mqla {
+            AddToArray => "$sqlPush",
+            Avg => "$sqlAvg",
+            Count => "$sqlCount",
+            First => "$sqlFirst",
+            Last => "$sqlLast",
+            Max => "$sqlMax",
+            MergeDocuments => "$sqlMergeObjects",
+            Min => "$sqlMin",
+            StddevPop => "$sqlStdDevPop",
+            StddevSamp => "$sqlStdDevSamp",
+            Sum => "$sqlSum",
+        }
+    }
+
     fn to_mql_op(mqlo: MQLOperator) -> &'static str {
         use MQLOperator::*;
         match mqlo {
@@ -320,7 +354,7 @@ impl MqlCodeGenerator {
     pub fn codegen_air_stage(&self, stage: air::Stage) -> Result<MqlTranslation> {
         match stage {
             air::Stage::Project(p) => self.codegen_project(p),
-            air::Stage::Group(_g) => Err(Error::UnimplementedAIR),
+            air::Stage::Group(g) => self.codegen_group(g),
             air::Stage::Limit(_l) => Err(Error::UnimplementedAIR),
             air::Stage::Sort(_s) => Err(Error::UnimplementedAIR),
             air::Stage::Collection(c) => self.codegen_collection(c),
@@ -386,6 +420,42 @@ impl MqlCodeGenerator {
             project_doc = tmp_project_doc;
         }
         pipeline.push(doc! {"$project": project_doc});
+        Ok(MqlTranslation {
+            database: source_translation.database,
+            collection: source_translation.collection,
+            pipeline,
+        })
+    }
+
+    fn codegen_group(&self, air_group: air::Group) -> Result<MqlTranslation> {
+        let source_translation = self.codegen_air_stage(*air_group.source)?;
+        let mut pipeline = source_translation.pipeline;
+        let id_doc = air_group
+            .keys
+            .into_iter()
+            .map(|air::NameExprPair { name: k, expr: v }| Ok((k, self.codegen_air_expression(v)?)))
+            .collect::<Result<bson::Document>>()?;
+        let mut group_doc = doc! {"_id": id_doc};
+        let aggs = air_group
+            .aggregations
+            .into_iter()
+            .map(
+                |air::AccumulatorExpr {
+                     alias,
+                     function,
+                     distinct,
+                     arg,
+                 }| {
+                    Ok(if distinct || function == AggregationFunction::Count {
+                        (alias, bson!({ Self::agg_func_to_sql_op(function): {"var": self.codegen_air_expression(*arg)?, "distinct": distinct }}))
+                    } else {
+                        (alias, bson!({ Self::agg_func_to_mql_op(function): self.codegen_air_expression(*arg)? }))
+                    })
+                },
+            )
+            .collect::<Result<bson::Document>>()?;
+        group_doc.extend(aggs);
+        pipeline.push(doc! {"$group": group_doc});
         Ok(MqlTranslation {
             database: source_translation.database,
             collection: source_translation.collection,

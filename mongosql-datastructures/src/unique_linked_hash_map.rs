@@ -50,6 +50,10 @@ where
         self.0.get(k)
     }
 
+    pub fn get_mut(&mut self, k: &K) -> Option<&mut V> {
+        self.0.get_mut(k)
+    }
+
     pub fn remove(&mut self, k: &K) -> Option<V> {
         self.0.remove(k)
     }

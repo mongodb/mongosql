@@ -33,6 +33,8 @@ pub enum Error {
     DuplicateKey(#[from] DuplicateKeyError),
     #[error("project fields may not be empty, contain dots, or start with dollars")]
     InvalidProjectField,
+    #[error("invalid group key, unaliased key must be field ref")]
+    InvalidGroupKey,
     #[error("invalid sqlConvert target type: {0:?}")]
     InvalidSqlConvertToType(air::Type),
 }
@@ -267,85 +269,198 @@ impl MqlTranslator {
         }
     }
 
-    fn translate_group(&mut self, mir_group: mir::Group) -> Result<air::Stage> {
-        let source_translation = self.translate_stage(*mir_group.source)?;
-        let unique_aliases = mir_group
-            .keys
+    fn get_datasource_and_field_for_unaliased_group_key<'a>(
+        &'a self,
+        e: &'a mir::Expression,
+    ) -> Result<(&'a String, &'a String)> {
+        let (key, field) = match e {
+            mir::Expression::FieldAccess(mir::FieldAccess {
+                ref expr,
+                ref field,
+                ..
+            }) => match **expr {
+                mir::Expression::Reference(mir::ReferenceExpr { ref key, .. }) => (key, field),
+                _ => return Err(Error::InvalidGroupKey),
+            },
+            _ => return Err(Error::InvalidGroupKey),
+        };
+        Ok((
+            self.mapping_registry
+                .get(key)
+                .ok_or_else(|| Error::ReferenceNotFound(key.clone()))?,
+            field,
+        ))
+    }
+
+    fn translate_group_keys(
+        &self,
+        keys: Vec<mir::OptionallyAliasedExpr>,
+        specifications: &mut UniqueLinkedHashMap<String, air::Expression>,
+        bot_body: &mut UniqueLinkedHashMap<String, air::Expression>,
+    ) -> Result<Vec<air::NameExprPair>> {
+        let unique_aliases = keys
             .iter()
             .filter_map(|k| k.get_alias().map(String::from))
             .collect::<BTreeSet<_>>();
 
-        // all the keys defined by this stage must flow out to the next stage. All the incoming
-        // keys are killed by the Group stage.
-        let mut out_registry = MqlMappingRegistry::new();
+        let mut translated_keys = Vec::new();
 
-        // map the group keys and translate the expressions.
-        let keys = mir_group
-            .keys
-            .into_iter()
-            .enumerate()
-            .map(|(i, k)| {
-                Ok(match k {
-                    mir::OptionallyAliasedExpr::Aliased(ae) => {
-                        let registry_key = Key::named(&ae.alias, self.scope_level);
-                        out_registry.insert(registry_key, ae.alias.clone());
-                        air::NameExprPair {
-                            name: ae.alias,
-                            expr: self.translate_expression(ae.expr)?,
-                        }
-                    }
-                    mir::OptionallyAliasedExpr::Unaliased(e) => {
-                        let position_counter = i + 1;
-                        let unique_name = Self::get_unique_alias(
-                            &unique_aliases,
-                            format!("__unaliasedKey{position_counter}"),
-                        );
-                        let registry_key = Key::named(&unique_name, self.scope_level);
-                        out_registry.insert(registry_key, unique_name.clone());
-                        air::NameExprPair {
-                            name: unique_name,
-                            expr: self.translate_expression(e)?,
-                        }
-                    }
-                })
+        let make_key_ref = |name| {
+            air::Expression::FieldRef(air::FieldRef {
+                parent: Some(Box::new(air::FieldRef {
+                    parent: None,
+                    name: "_id".to_string(),
+                })),
+                name,
             })
-            .collect::<Result<Vec<_>>>()?;
+        };
+        for (i, k) in keys.into_iter().enumerate() {
+            match k {
+                mir::OptionallyAliasedExpr::Aliased(ae) => {
+                    // an aliased key will be projected under Bot
+                    translated_keys.push(air::NameExprPair {
+                        name: ae.alias.clone(),
+                        expr: self.translate_expression(ae.expr)?,
+                    });
+                    bot_body.insert(ae.alias.clone(), make_key_ref(ae.alias))?;
+                }
+                // An unaliased key will be projected under its originating Datasource.
+                // After the Aliasing rewrite pass, an unaliased key can only exist when it is a
+                // FieldAccess, and the parent of the FieldAccess *must* be a Datasource.
+                mir::OptionallyAliasedExpr::Unaliased(e) => {
+                    let position_counter = i + 1;
+                    let unique_name = Self::get_unique_alias(
+                        &unique_aliases,
+                        format!("__unaliasedKey{position_counter}"),
+                    );
+                    let (datasource, field) =
+                        self.get_datasource_and_field_for_unaliased_group_key(&e)?;
+                    match specifications.get_mut(datasource) {
+                        // If we have already put something under this Datasource, we just update
+                        // the document.
+                        Some(air::Expression::Document(ref mut d)) => {
+                            d.insert(field.clone(), make_key_ref(unique_name.clone()))?
+                        }
+                        // We have nothing under this Datasource, so we need to create a new
+                        // Document with one key/value pair.
+                        None => specifications.insert(
+                            datasource.clone(),
+                            air::Expression::Document(unique_linked_hash_map! {field.clone() => make_key_ref(unique_name.clone())}),
+                        )?,
+                        // We only generate Project fields where the values are Documents because the keys of
+                        // the Project are Datasources. If the following case is hit, it is a bug in
+                        // the code.
+                        _ => unreachable!(),
+                    }
+                    translated_keys.push(air::NameExprPair {
+                        name: unique_name,
+                        expr: self.translate_expression(e)?,
+                    });
+                }
+            }
+        }
 
-        let aggregations = mir_group
-            .aggregations
-            .into_iter()
-            .map(|a| {
-                let alias = a.alias;
-                let registry_key = Key::named(&alias, self.scope_level);
-                out_registry.insert(registry_key, alias.clone());
-                let (function, distinct, arg) = match a.agg_expr {
-                    mir::AggregationExpr::CountStar(b) => (
-                        air::AggregationFunction::Count,
-                        b,
-                        Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
-                    ),
-                    mir::AggregationExpr::Function(afa) => (
-                        Self::translate_agg_function(afa.function),
-                        afa.distinct,
-                        Box::new(self.translate_expression(*afa.arg)?),
-                    ),
-                };
-                Ok(air::AccumulatorExpr {
-                    alias,
-                    function,
-                    distinct,
-                    arg,
-                })
-            })
-            .collect::<Result<Vec<_>>>()?;
+        Ok(translated_keys)
+    }
 
-        // set the new mapping registry for following stages.
-        self.mapping_registry = out_registry;
-        // map the group aggregations and translate the expressions.
-        Ok(air::Stage::Group(air::Group {
-            source: Box::new(source_translation),
-            keys,
-            aggregations,
+    fn translate_group_aggregations(
+        &self,
+        aggregations: Vec<mir::AliasedAggregation>,
+        bot_body: &mut UniqueLinkedHashMap<String, air::Expression>,
+    ) -> Result<Vec<air::AccumulatorExpr>> {
+        let mut unique_aliases = aggregations
+            .iter()
+            .map(|k| k.alias.clone())
+            .collect::<BTreeSet<_>>();
+        // the Group keys will be under _id in MQL, so we need to rename any alias that is _id.
+        unique_aliases.insert("_id".to_string());
+
+        let mut translated_aggregations = Vec::new();
+
+        for a in aggregations.into_iter() {
+            let alias = a.alias;
+            let unique_alias = if alias.as_str() == "_id" {
+                Self::get_unique_alias(&unique_aliases, "_id".to_string())
+            } else {
+                alias.clone()
+            };
+            let (function, distinct, arg) = match a.agg_expr {
+                mir::AggregationExpr::CountStar(b) => (
+                    air::AggregationFunction::Count,
+                    b,
+                    Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
+                ),
+                mir::AggregationExpr::Function(afa) => (
+                    Self::translate_agg_function(afa.function),
+                    afa.distinct,
+                    Box::new(self.translate_expression(*afa.arg)?),
+                ),
+            };
+            bot_body.insert(
+                alias.clone(),
+                air::Expression::FieldRef(air::FieldRef {
+                    parent: None,
+                    name: unique_alias.clone(),
+                }),
+            )?;
+            translated_aggregations.push(air::AccumulatorExpr {
+                alias: unique_alias,
+                function,
+                distinct,
+                arg,
+            });
+        }
+
+        Ok(translated_aggregations)
+    }
+
+    fn translate_group(&mut self, mir_group: mir::Group) -> Result<air::Stage> {
+        let source_translation = self.translate_stage(*mir_group.source)?;
+
+        // specifications are the top level projection fields. Every key will
+        // be a Datasource. Unaliased group keys will need to be inserted
+        // directly into the specifications with the proper Datasource name.
+        let mut specifications = UniqueLinkedHashMap::new();
+        // bot_body is a Document containing all the field mappings under the Bot Datasource.
+        // These will be all aliased group keys and all the aggregations.
+        let mut bot_body = UniqueLinkedHashMap::new();
+
+        // map the group key aliases and translate the expressions. Unliased keys will be Projected
+        // straight into the specifications
+        let keys = self.translate_group_keys(mir_group.keys, &mut specifications, &mut bot_body)?;
+
+        // map the group aggregation aliases and translate the expresisons.
+        let aggregations =
+            self.translate_group_aggregations(mir_group.aggregations, &mut bot_body)?;
+
+        // Fixup mapping_registry to contain only the output of the final Project Stage for this
+        // GROUP BY.
+        self.mapping_registry = MqlMappingRegistry::new();
+
+        for key in specifications.keys() {
+            self.mapping_registry
+                .insert(Key::named(key, self.scope_level), key.clone());
+        }
+        // bot_body will only be empty if all Group keys are references and there are not
+        // aggregation functions. If it is not empty, we need to add it to the output Project
+        // Stage under the unique bot name.
+        if !bot_body.is_empty() {
+            let unique_bot_name =
+                Self::generate_unique_bot_name(|s| specifications.contains_key(s));
+            specifications.insert(unique_bot_name.clone(), air::Expression::Document(bot_body))?;
+            self.mapping_registry
+                .insert(Key::bot(self.scope_level), unique_bot_name);
+        }
+
+        // Return the proper Stages, which is a Project with specifications set as above and the
+        // source being the generated Group Stage.
+        Ok(air::Stage::Project(air::Project {
+            source: Box::new(air::Stage::Group(air::Group {
+                source: Box::new(source_translation),
+                keys,
+                aggregations,
+            })),
+            specifications,
         }))
     }
 
