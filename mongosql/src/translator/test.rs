@@ -1360,6 +1360,172 @@ mod reference_expression {
     );
 }
 
+mod field_access_expression {
+    use crate::{air, mir, unchecked_unique_linked_hash_map};
+
+    test_translate_expression!(
+        from_reference,
+        expected = Ok(air::Expression::FieldRef(air::FieldRef {
+            name: "sub".to_string(),
+            parent: Some(Box::new(air::FieldRef {
+                name: "f".to_string(),
+                parent: None
+            }))
+        })),
+        input = mir::Expression::FieldAccess(mir::FieldAccess {
+            expr: mir::Expression::Reference(("f", 0u16).into()).into(),
+            field: "sub".to_string(),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_translate_expression!(
+        from_field_access,
+        expected = Ok(air::Expression::FieldRef(air::FieldRef {
+            name: "sub2".to_string(),
+            parent: Some(Box::new(air::FieldRef {
+                name: "sub1".to_string(),
+                parent: Some(Box::new(air::FieldRef {
+                    name: "f".to_string(),
+                    parent: None
+                }))
+            }))
+        })),
+        input = mir::Expression::FieldAccess(mir::FieldAccess {
+            field: "sub2".to_string(),
+            expr: mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: mir::Expression::Reference(("f", 0u16).into()).into(),
+                field: "sub1".to_string(),
+                cache: mir::schema::SchemaCache::new(),
+            })
+            .into(),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_translate_expression!(
+        from_non_reference_expr_with_nesting,
+        expected = Ok(air::Expression::GetField(air::GetField {
+            field: "sub".to_string(),
+            input: Box::new(air::Expression::Document(
+                unchecked_unique_linked_hash_map! {
+                    "a".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+                }
+            ))
+        })),
+        input = mir::Expression::FieldAccess(mir::FieldAccess {
+            expr: mir::Expression::Document(
+                unchecked_unique_linked_hash_map! {"a".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())}
+            .into())
+            .into(),
+            field: "sub".to_string(),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        from_non_reference_expr_without_nesting,
+        expected = Ok(air::Expression::GetField(air::GetField {
+            field: "sub".to_string(),
+            input: Box::new(air::Expression::Literal(air::LiteralValue::String(
+                "f".to_string()
+            )))
+        })),
+        input = mir::Expression::FieldAccess(mir::FieldAccess {
+            expr: mir::Expression::Literal(mir::LiteralValue::String("f".into()).into()).into(),
+            field: "sub".to_string(),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        dollar_prefixed_field,
+        expected = Ok(air::Expression::GetField(air::GetField {
+            field: "$sub".to_string(),
+            input: Box::new(air::Expression::FieldRef(air::FieldRef {
+                name: "f".to_string(),
+                parent: None,
+            })),
+        })),
+        input = mir::Expression::FieldAccess(mir::FieldAccess {
+            expr: mir::Expression::Reference(("f", 0u16).into()).into(),
+            field: "$sub".to_string(),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_translate_expression!(
+        field_contains_dollar,
+        expected = Ok(air::Expression::FieldRef(air::FieldRef {
+            name: "s$ub".to_string(),
+            parent: Some(Box::new(air::FieldRef {
+                name: "f".to_string(),
+                parent: None
+            }))
+        })),
+        input = mir::Expression::FieldAccess(mir::FieldAccess {
+            expr: mir::Expression::Reference(("f", 0u16).into()).into(),
+            field: "s$ub".to_string(),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_translate_expression!(
+        field_contains_dot,
+        expected = Ok(air::Expression::GetField(air::GetField {
+            field: "s.ub".to_string(),
+            input: Box::new(air::Expression::FieldRef(air::FieldRef {
+                parent: None,
+                name: "f".to_string()
+            }))
+        })),
+        input = mir::Expression::FieldAccess(mir::FieldAccess {
+            expr: mir::Expression::Reference(("f", 0u16).into()).into(),
+            field: "s.ub".to_string(),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+    test_translate_expression!(
+        empty_field_in_field_access,
+        expected = Ok(air::Expression::GetField(air::GetField {
+            field: "".to_string(),
+            input: Box::new(air::Expression::FieldRef(air::FieldRef {
+                parent: None,
+                name: "f".to_string()
+            }))
+        })),
+        input = mir::Expression::FieldAccess(mir::FieldAccess {
+            expr: mir::Expression::Reference(("f", 0u16).into()).into(),
+            field: "".to_string(),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("f", 0u16), "f");
+            mr
+        },
+    );
+}
+
 mod documents_stage {
     use crate::unchecked_unique_linked_hash_map;
 

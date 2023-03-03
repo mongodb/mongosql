@@ -360,6 +360,7 @@ impl MqlTranslator {
             mir::Expression::ScalarFunction(scalar_func) => {
                 self.translate_scalar_function(scalar_func)
             }
+            mir::Expression::FieldAccess(field_access) => self.translate_field_access(field_access),
             _ => Err(Error::UnimplementedStruct),
         }
     }
@@ -556,5 +557,22 @@ impl MqlTranslator {
                 air::MQLSemanticOperator { op, args },
             )),
         }
+    }
+
+    fn translate_field_access(&self, field_access: mir::FieldAccess) -> Result<air::Expression> {
+        let expr = self.translate_expression(*field_access.expr)?;
+        let field = field_access.field;
+        if let air::Expression::FieldRef(r) = expr.clone() {
+            if !(field.contains('.') || field.starts_with('$') || field.as_str() == "") {
+                return Ok(air::Expression::FieldRef(air::FieldRef {
+                    parent: Some(Box::new(r)),
+                    name: field,
+                }));
+            }
+        }
+        Ok(air::Expression::GetField(air::GetField {
+            field,
+            input: Box::new(expr),
+        }))
     }
 }
