@@ -340,6 +340,12 @@ pub enum Type {
     Undefined,
 }
 
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum SqlConvertTargetType {
+    Array,
+    Document,
+}
+
 #[derive(PartialEq, Debug, Clone)]
 pub struct MQLSemanticOperator {
     pub op: MQLOperator,
@@ -408,7 +414,7 @@ pub struct Let {
 #[derive(PartialEq, Debug, Clone)]
 pub struct SqlConvert {
     pub input: Box<Expression>,
-    pub to: Type,
+    pub to: SqlConvertTargetType,
     pub on_null: Box<Expression>,
     pub on_error: Box<Expression>,
 }

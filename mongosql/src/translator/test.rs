@@ -1278,7 +1278,7 @@ mod cast_expression {
                 "2012-12-20T12:12:12Z".to_string()
             ))
             .into(),
-            to: air::Type::Array,
+            to: air::SqlConvertTargetType::Array,
             on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
             on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
         })),
@@ -1301,7 +1301,7 @@ mod cast_expression {
                 "2012-12-20T12:12:12Z".to_string()
             ))
             .into(),
-            to: air::Type::Document,
+            to: air::SqlConvertTargetType::Document,
             on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
             on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
         })),

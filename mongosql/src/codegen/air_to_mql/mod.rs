@@ -1,4 +1,5 @@
-use crate::air::{self, MQLOperator, SQLOperator};
+use crate::air::{self, MQLOperator, SQLOperator, SqlConvertTargetType};
+
 use bson::{bson, doc, Bson};
 use thiserror::Error;
 
@@ -161,6 +162,14 @@ impl MqlCodeGenerator {
         })
     }
 
+    fn sql_convert_type(t: SqlConvertTargetType) -> &'static str {
+        use SqlConvertTargetType::*;
+        match t {
+            Array => "array",
+            Document => "object",
+        }
+    }
+
     pub fn codegen_air_expression(&self, expr: air::Expression) -> Result<bson::Bson> {
         use air::{Expression::*, LiteralValue::*};
         match expr {
@@ -280,6 +289,22 @@ impl MqlCodeGenerator {
                     }
                 })
             }),
+            SqlConvert(sc) => {
+                let input = self.codegen_air_expression(*sc.input)?;
+                let convert_to = Self::sql_convert_type(sc.to);
+                let on_null = self.codegen_air_expression(*sc.on_null)?;
+                let on_error = self.codegen_air_expression(*sc.on_error)?;
+                Ok({
+                    bson!({
+                        "$sqlConvert": {
+                            "input": input,
+                            "type": convert_to,
+                            "onNull": on_null,
+                            "onError": on_error,
+                        }
+                    })
+                })
+            }
             _ => Err(Error::UnimplementedAIR),
         }
     }

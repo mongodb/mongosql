@@ -12,6 +12,7 @@ use mongosql_datastructures::{
 };
 use std::collections::BTreeSet;
 
+use crate::translator::Error::InvalidSqlConvertToType;
 use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
@@ -32,6 +33,8 @@ pub enum Error {
     DuplicateKey(#[from] DuplicateKeyError),
     #[error("project fields may not be empty, contain dots, or start with dollars")]
     InvalidProjectField,
+    #[error("invalid sqlConvert target type: {0:?}")]
+    InvalidSqlConvertToType(air::Type),
 }
 
 impl From<mir::Type> for air::Type {
@@ -426,9 +429,14 @@ impl MqlTranslator {
         let on_error = self.translate_expression(*cast.on_error)?.into();
         Ok(match to {
             air::Type::Array | air::Type::Document => {
+                let sql_convert_to = match to {
+                    air::Type::Array => air::SqlConvertTargetType::Array,
+                    air::Type::Document => air::SqlConvertTargetType::Document,
+                    _ => return Err(InvalidSqlConvertToType(to)),
+                };
                 air::Expression::SqlConvert(air::SqlConvert {
                     input,
-                    to,
+                    to: sql_convert_to,
                     on_null,
                     on_error,
                 })

@@ -1205,6 +1205,45 @@ mod get_field {
     );
 }
 
+mod air_sql_convert {
+    use crate::{
+        air::{Expression::*, LiteralValue, SqlConvert, SqlConvertTargetType},
+        unchecked_unique_linked_hash_map,
+    };
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        array,
+        expected = Ok(bson!({ "$sqlConvert": {
+          "input": [],
+          "type": "array",
+          "onNull": {"$literal": null},
+          "onError": {"$literal": null}
+        }})),
+        input = SqlConvert(SqlConvert {
+            input: Box::new(Array(vec![])),
+            to: SqlConvertTargetType::Array,
+            on_null: Box::new(Literal(LiteralValue::Null)),
+            on_error: Box::new(Literal(LiteralValue::Null)),
+        })
+    );
+    test_codegen_air_expr!(
+        document,
+        expected = Ok(bson!({ "$sqlConvert": {
+          "input": {"$literal":{}},
+          "type": "object",
+          "onNull": {"$literal": null},
+          "onError": {"$literal": null}
+        }})),
+        input = SqlConvert(SqlConvert {
+            input: Box::new(Document(unchecked_unique_linked_hash_map! {})),
+            to: SqlConvertTargetType::Document,
+            on_null: Box::new(Literal(LiteralValue::Null)),
+            on_error: Box::new(Literal(LiteralValue::Null)),
+        })
+    );
+}
+
 mod air_documents_stage {
     use crate::air::*;
 
