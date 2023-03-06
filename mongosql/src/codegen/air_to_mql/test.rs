@@ -1492,3 +1492,44 @@ mod air_replace_with_stage {
         }),
     );
 }
+
+mod air_is {
+    use crate::air::{Expression::*, FieldRef, Is, Type, TypeOrMissing};
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        target_type_missing,
+        expected = Ok(bson!({"$sqlIs": ["$x", {"$literal": "missing"}]})),
+        input = Is(Is {
+            expr: Box::new(FieldRef(FieldRef {
+                parent: None,
+                name: "x".into(),
+            })),
+            target_type: TypeOrMissing::Missing,
+        })
+    );
+
+    test_codegen_air_expr!(
+        target_type_number,
+        expected = Ok(bson!({"$sqlIs": ["$x", {"$literal": "number"}]})),
+        input = Is(Is {
+            expr: Box::new(FieldRef(FieldRef {
+                parent: None,
+                name: "x".into(),
+            })),
+            target_type: TypeOrMissing::Number,
+        })
+    );
+
+    test_codegen_air_expr!(
+        target_type_type,
+        expected = Ok(bson!({"$sqlIs": ["$x", {"$literal": "object"}]})),
+        input = Is(Is {
+            expr: Box::new(FieldRef(FieldRef {
+                parent: None,
+                name: "x".into(),
+            })),
+            target_type: TypeOrMissing::Type(Type::Document),
+        })
+    );
+}

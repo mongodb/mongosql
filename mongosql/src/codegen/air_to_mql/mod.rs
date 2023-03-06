@@ -1,4 +1,6 @@
-use crate::air::{self, AggregationFunction, MQLOperator, SQLOperator, SqlConvertTargetType};
+use crate::air::{
+    self, AggregationFunction, MQLOperator, SQLOperator, SqlConvertTargetType, Type, TypeOrMissing,
+};
 
 use bson::{bson, doc, Bson};
 use thiserror::Error;
@@ -204,6 +206,42 @@ impl MqlCodeGenerator {
         }
     }
 
+    fn type_as_str(t: Type) -> &'static str {
+        use Type::*;
+        match t {
+            Array => "array",
+            BinData => "binData",
+            Boolean => "bool",
+            Datetime => "date",
+            DbPointer => "dbPointer",
+            Decimal128 => "decimal",
+            Document => "object",
+            Double => "double",
+            Int32 => "int",
+            Int64 => "long",
+            Javascript => "javascript",
+            JavascriptWithScope => "javascriptWithScope",
+            MaxKey => "maxKey",
+            MinKey => "minKey",
+            Null => "null",
+            ObjectId => "objectId",
+            RegularExpression => "regex",
+            String => "string",
+            Symbol => "symbol",
+            Timestamp => "timestamp",
+            Undefined => "undefined",
+        }
+    }
+
+    fn type_or_missing_as_str(t: TypeOrMissing) -> &'static str {
+        use TypeOrMissing::*;
+        match t {
+            Missing => "missing",
+            Number => "number",
+            Type(ty) => Self::type_as_str(ty),
+        }
+    }
+
     pub fn codegen_air_expression(&self, expr: air::Expression) -> Result<bson::Bson> {
         use air::{Expression::*, LiteralValue::*};
         match expr {
@@ -338,6 +376,11 @@ impl MqlCodeGenerator {
                         }
                     })
                 })
+            }
+            Is(is) => {
+                let expr = self.codegen_air_expression(*is.expr).unwrap();
+                let target_type = Self::type_or_missing_as_str(is.target_type);
+                Ok(bson!({"$sqlIs": [expr, {"$literal": target_type}]}))
             }
             _ => Err(Error::UnimplementedAIR),
         }

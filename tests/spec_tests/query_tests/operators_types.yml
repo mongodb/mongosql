@@ -38,12 +38,13 @@ tests:
   - description: Correctness test for IS DOUBLE
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS DOUBLE } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'double']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'double'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -74,12 +75,13 @@ tests:
   - description: Correctness test for IS STRING
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS STRING } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'string']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'string'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -110,12 +112,13 @@ tests:
   - description: Correctness test for IS DOCUMENT
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS DOCUMENT } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'object']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'object'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -146,12 +149,13 @@ tests:
   - description: Correctness test for IS ARRAY
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS ARRAY } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'array']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'array'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -182,12 +186,13 @@ tests:
   - description: Correctness test for IS BINDATA
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS BINDATA } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'binData']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'binData'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -218,12 +223,13 @@ tests:
   - description: Correctness test for IS UNDEFINED
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS UNDEFINED } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'undefined']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'undefined'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -254,12 +260,13 @@ tests:
   - description: Correctness test for IS OBJECTID
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS OBJECTID } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'objectId']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'objectId'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -290,12 +297,13 @@ tests:
   - description: Correctness test for IS BOOL
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS BOOL } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'bool']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'bool'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -326,12 +334,13 @@ tests:
   - description: Correctness test for IS BSON_DATE
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS BSON_DATE } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'date']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'date'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -362,12 +371,13 @@ tests:
   - description: Correctness test for IS NULL
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS NULL } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$or': [{'$eq': [{'$type': '$bar.v'}, 'null']}, {'$eq': [{'$type': '$bar.v'}, 'missing']}]}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'null'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -398,12 +408,13 @@ tests:
   - description: Correctness test for IS MISSING
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS MISSING } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'missing']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'missing'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -434,12 +445,13 @@ tests:
   - description: Correctness test for IS REGEX
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS REGEX } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'regex']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'regex'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -470,12 +482,13 @@ tests:
   - description: Correctness test for IS DBPOINTER
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS DBPOINTER } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'dbPointer']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'dbPointer'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -506,12 +519,13 @@ tests:
   - description: Correctness test for IS JAVASCRIPT
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS JAVASCRIPT } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'javascript']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'javascript'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -542,12 +556,13 @@ tests:
   - description: Correctness test for IS SYMBOL
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS SYMBOL } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'symbol']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'symbol'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -578,12 +593,13 @@ tests:
   - description: Correctness test for IS JAVASCRIPTWITHSCOPE
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS JAVASCRIPTWITHSCOPE } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'javascriptWithScope']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'javascriptWithScope'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -614,12 +630,13 @@ tests:
   - description: Correctness test for IS INT
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS INT } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'int']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'int'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -650,12 +667,13 @@ tests:
   - description: Correctness test for IS BSON_TIMESTAMP
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS BSON_TIMESTAMP } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'timestamp']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'timestamp'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -686,12 +704,13 @@ tests:
   - description: Correctness test for IS LONG
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS LONG } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'long']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'long'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -722,12 +741,13 @@ tests:
   - description: Correctness test for IS DECIMAL
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS DECIMAL } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'decimal']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'decimal'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -758,12 +778,13 @@ tests:
   - description: Correctness test for IS MINKEY
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS MINKEY } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'minKey']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'minKey'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -794,12 +815,13 @@ tests:
   - description: Correctness test for IS MAXKEY
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS MAXKEY } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$eq': [{'$type': '$bar.v'}, 'maxKey']}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'maxKey'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -830,12 +852,13 @@ tests:
   - description: Correctness test for IS NUMBER
     current_db: foo
     query: "SELECT VALUE { 'type': type, 'tc': v IS NUMBER } FROM bar AS bar"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: foo
     translation_target_coll: bar
     translation:
       - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
       - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$isNumber': '$bar.v'}}}}
+      - {'$project': {'_id': 0, '__bot': {'type': '$bar.type', 'tc': {'$sqlIs': ['$bar.v', {'$literal': 'number'}]}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}

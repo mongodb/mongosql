@@ -57,6 +57,7 @@ tests:
 
   - description: WHERE with CASE that must return BOOLEAN
     query: "SELECT * FROM [{'a': false}, {'a': true}] AS arr WHERE CASE WHEN a IS BOOLEAN THEN a ELSE false END"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     current_db: test
     translation_target_db: test
     translation:
@@ -64,7 +65,7 @@ tests:
       - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$match': {'$expr': {"$switch": {
             "branches": [
-            {"case": {'$eq': [{$type: '$arr.a'}, 'bool']}, "then": '$arr.a' },
+            {"case": {'$sqlIs': ['$arr.a', {'$literal': 'bool'}]}, "then": '$arr.a' },
             ],
             "default": {'$literal': false}
           }}}}

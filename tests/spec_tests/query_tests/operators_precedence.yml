@@ -142,13 +142,14 @@ tests:
   - description: IS binds tighter than NOT
     current_db: db
     query: "SELECT VALUE {'a': a, 'v': NOT a IS BOOL, 'alt': (NOT a) IS BOOL} FROM [{'a': true}, {'a': null}] AS arr"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: db
     translation:
       - {'$documents': [{'a': {'$literal': true}}, {'a': {'$literal': null}}]}
       - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
       - {'$project': {'_id': 0, '__bot': {'a': '$arr.a',
-                                          'v': {'$sqlNot': [{'$eq': [{'$type': '$arr.a'}, 'bool']}]},
-                                          'alt': {'$eq': [{'$type': {'$sqlNot': ['$arr.a']}}, 'bool']}
+                                          'v': {'$sqlNot': [{'$sqlIs': ['$arr.a', {'$literal': 'bool'}]}]},
+                                          'alt': {'$sqlIs': [{'$sqlNot': ['$arr.a']}, {'$literal': 'bool'}]}
       }}}
       - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
         {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
@@ -171,12 +172,12 @@ tests:
   - description: LIKE binds tighter than IS
     current_db: db
     query: "SELECT VALUE {'a': a, 'b': b, 'v': a LIKE b IS NULL} FROM [{'a': 'str', 'b': 'str'}, {'a': 'str', 'b': null}] AS arr"
-    skip_reason: "SQL-330: Update $like desugarer to work for non-literal patterns"
+    skip_reason: "SQL-330: Update $like desugarer to work for non-literal patterns, SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: db
     translation:
       - {'$documents': [{'a': {'$literal': true}, 'b': {'$literal': 1}}, {'a': {'$literal': true}, 'b': {'$literal': null}}]}
       - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'b': '$arr.b', 'v': {'$eq': [{'$type': {'$like': {'input': '$arr.a', 'pattern': '$arr.b'}}}, 'null']}}}}
+      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'b': '$arr.b', 'v': {'$sqlIs': [{'$like': {'input': '$arr.a', 'pattern': '$arr.b'}}, {'$literal': 'null'}]}}}}
       - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
         {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
       }}}
