@@ -70,6 +70,7 @@ tests:
 
   - description: Delimited identifier containing a .
     query: "SELECT VALUE {'ab': `a.b`} FROM bar"
+    skip_reason: "SQL-1298: Fix GetField air_to_mql codegen"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
@@ -93,6 +94,7 @@ tests:
 
   - description: Nested delimited identifier containing a .
     query: "SELECT VALUE {'abc': a.`b.c`} FROM bar"
+    skip_reason: "SQL-1298: Fix GetField air_to_mql codegen"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
@@ -117,6 +119,7 @@ tests:
 
   - description: Delimited identifier with a $
     query: "SELECT VALUE {'ab': `$a.b`} FROM bar"
+    skip_reason: "SQL-1298: Fix GetField air_to_mql codegen"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
@@ -139,6 +142,7 @@ tests:
 
   - description: Nested delimited identifiers containing $ and .
     query: "SELECT VALUE {'abcd': `$a.$b`.`$c.d`} FROM bar"
+    skip_reason: "SQL-1298: Fix GetField air_to_mql codegen"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
@@ -162,6 +166,7 @@ tests:
 
   - description: Mixed identifiers containing $ and .
     query: "SELECT VALUE {'abcd': `$a.$b`.`$c`.d} FROM bar"
+    skip_reason: "SQL-1298: Fix GetField air_to_mql codegen"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar

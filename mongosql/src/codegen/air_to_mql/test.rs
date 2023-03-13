@@ -1373,7 +1373,7 @@ mod air_sql_convert {
         array,
         expected = Ok(bson!({ "$sqlConvert": {
           "input": [],
-          "type": "array",
+          "to": "array",
           "onNull": {"$literal": null},
           "onError": {"$literal": null}
         }})),
@@ -1388,7 +1388,7 @@ mod air_sql_convert {
         document,
         expected = Ok(bson!({ "$sqlConvert": {
           "input": {"$literal":{}},
-          "type": "object",
+          "to": "object",
           "onNull": {"$literal": null},
           "onError": {"$literal": null}
         }})),
@@ -1562,6 +1562,35 @@ mod aid_set_field {
             value: Box::new(FieldRef(FieldRef {
                 parent: None,
                 name: "x".into(),
+            }))
+        })
+    );
+}
+
+mod air_unset_field {
+    use crate::air::{Expression::*, FieldRef, UnsetField};
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        simple,
+        expected = Ok(bson!({"$unsetField": {"field": "__bot", "input": "$doc"}})),
+        input = UnsetField(UnsetField {
+            field: "__bot".into(),
+            input: Box::new(FieldRef(FieldRef {
+                parent: None,
+                name: "doc".into(),
+            }))
+        })
+    );
+
+    test_codegen_air_expr!(
+        use_literal_when_needed,
+        expected = Ok(bson!({"$unsetField": {"field": {"$literal": "$x"}, "input": "$doc"}})),
+        input = UnsetField(UnsetField {
+            field: "$x".into(),
+            input: Box::new(FieldRef(FieldRef {
+                parent: None,
+                name: "doc".into(),
             }))
         })
     );

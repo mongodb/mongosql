@@ -2218,7 +2218,7 @@ mod translate_plan {
                         "_bot".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1)),
                     }
                 }).into(),
-                new_root: air::Expression::Unset(air::Unset {
+                new_root: air::Expression::UnsetField(air::UnsetField {
                     field: "___bot".to_string(),
                     input: air::Expression::SetField(air::SetField {
                         field: "".to_string(),

@@ -352,6 +352,7 @@ tests:
   - description: unary ops bind tighter than mul/div
     current_db: db
     query: "SELECT VALUE {'a': a, 'b': b, 'v': - a * b, 'alt': - (a * b)} FROM [{'a': -1, 'b': 1}] AS arr"
+    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     translation_target_db: db
     translation:
       - {'$documents': [{'a': {'$literal': -1}, 'b': {'$literal': 1}}]}

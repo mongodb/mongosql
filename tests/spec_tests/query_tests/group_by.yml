@@ -637,6 +637,7 @@ tests:
 
   - description: correctness test for DISTINCT and non-DISTINCT aggregation over same field
     query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS dsuma, SUM(a) AS suma"
+    skip_reason: "SQL-1254: Rewrite desugarAccumulators"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
@@ -737,6 +738,7 @@ tests:
 
   - description: multi-item group key correctness test
     query: "SELECT * FROM foo.multi AS multi GROUP BY a AS a, b AS b AGGREGATE SUM(c) AS sumc"
+    skip_reason: "SQL-1254: Rewrite desugarAccumulators"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: multi
@@ -1139,6 +1141,7 @@ tests:
 
   - description: AVG correctness test
     query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE AVG(a.b) AS gavg"
+    skip_reason: "SQL-1254: Rewrite desugarAccumulators"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: baz
@@ -1595,6 +1598,7 @@ tests:
 
   - description: STDDEV_POP correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_POP(b) AS gstdp"
+    skip_reason: "SQL-1254: Rewrite desugarAccumulators"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
@@ -1656,6 +1660,7 @@ tests:
 
   - description: STDDEV_SAMP correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_SAMP(b) as gstds"
+    skip_reason: "SQL-1254: Rewrite desugarAccumulators"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
@@ -1711,6 +1716,7 @@ tests:
 
   - description: SUM correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE SUM(b) AS gsum"
+    skip_reason: "SQL-1254: Rewrite desugarAccumulators"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar

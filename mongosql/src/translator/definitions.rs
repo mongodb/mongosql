@@ -137,7 +137,7 @@ impl MqlTranslator {
                 self.mapping_registry.insert(key, "");
                 air::Stage::ReplaceWith(air::ReplaceWith {
                     source: Box::new(source),
-                    new_root: Box::new(air::Expression::Unset(air::Unset {
+                    new_root: Box::new(air::Expression::UnsetField(air::UnsetField {
                         field: name.clone(),
                         input: Box::new(air::Expression::SetField(air::SetField {
                             field: "".to_string(),

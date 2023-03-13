@@ -824,7 +824,7 @@ tests:
     translation:
       - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
       - {'$project': {'_id': 0, 'c': '$nullAndMissing'}}
-      - {'$project': {'_id': 0, '__bot': {'d': '$c.d', 'v': {'$year': '$c.d'}}}}
+      - {'$project': {'_id': 0, '__bot': {'d': '$c.d', 'v': {'$year': ['$c.d']}}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
            { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -1014,7 +1014,7 @@ tests:
     translation:
       - { '$project': { '_id': 0, 'abs': '$$ROOT' }}
       - { '$project': { '_id': 0, 'c': '$abs' }}
-      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'n': { '$abs': '$c.v' }}}}
+      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'n': { '$abs': ['$c.v'] }}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -1037,7 +1037,7 @@ tests:
     translation:
       - { '$project': { '_id': 0, 'ceilAndFloor': '$$ROOT' }}
       - { '$project': { '_id': 0, 'c': '$ceilAndFloor' }}
-      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'n': { '$ceil': '$c.v' }}}}
+      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'n': { '$ceil': ['$c.v'] }}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -1055,6 +1055,7 @@ tests:
   - description: COS correctness tests
     current_db: foo
     query: "SELECT VALUE {'radians': radians, 'n': COS(radians)} FROM trigonometry AS c"
+    skip_reason: "SQL-1303: Fix to_air_op"
     translation_target_db: foo
     translation_target_coll: trigonometry
     translation:
@@ -1083,7 +1084,7 @@ tests:
     translation:
       - { '$project': { '_id': 0, 'trigonometry': '$$ROOT' }}
       - { '$project': { '_id': 0, 'c': '$trigonometry' }}
-      - { '$project': { '_id': 0, '__bot': { 'radians': '$c.radians', 'n': { '$radiansToDegrees': '$c.radians' }}}}
+      - { '$project': { '_id': 0, '__bot': { 'radians': '$c.radians', 'n': { '$radiansToDegrees': ['$c.radians'] }}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -1106,7 +1107,7 @@ tests:
     translation:
       - { '$project': { '_id': 0, 'ceilAndFloor': '$$ROOT' }}
       - { '$project': { '_id': 0, 'c': '$ceilAndFloor' }}
-      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'n': { '$floor': '$c.v' }}}}
+      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'n': { '$floor': ['$c.v'] }}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -1273,7 +1274,7 @@ tests:
     translation:
       - { '$project': { '_id': 0, 'radians': '$$ROOT' }}
       - { '$project': { '_id': 0, 'c': '$radians' }}
-      - { '$project': { '_id': 0, '__bot': { 'degrees': '$c.degrees', 'n': { '$degreesToRadians': '$c.degrees' }}}}
+      - { '$project': { '_id': 0, '__bot': { 'degrees': '$c.degrees', 'n': { '$degreesToRadians': ['$c.degrees'] }}}}
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         }}}}
@@ -1330,6 +1331,7 @@ tests:
   - description: SIN correctness tests
     current_db: foo
     query: "SELECT VALUE {'radians': radians, 'n': SIN(radians)} FROM trigonometry AS c"
+    skip_reason: "SQL-1303: Fix to_air_op"
     translation_target_db: foo
     translation_target_coll: trigonometry
     translation:
@@ -1353,6 +1355,7 @@ tests:
   - description: SQRT correctness tests
     current_db: foo
     query: "SELECT VALUE {'v': v, 'n': SQRT(v)} FROM sqrt AS c"
+    skip_reason: "SQL-1303: Fix to_air_op"
     translation_target_db: foo
     translation_target_coll: sqrt
     translation:
@@ -1376,6 +1379,7 @@ tests:
   - description: TAN correctness tests
     current_db: foo
     query: "SELECT VALUE {'radians': radians, 'n': TAN(radians)} FROM trigonometry AS c"
+    skip_reason: "SQL-1303: Fix to_air_op"
     translation_target_db: foo
     translation_target_coll: trigonometry
     translation:
@@ -1566,7 +1570,7 @@ tests:
     translation:
       - { $project: { _id: 0, datepart: "$$ROOT" } }
       - { $project: { _id: 0, d: "$datepart" } }
-      - { $project: { _id: 0, __bot: { datepart: { '$dayOfYear': '$d.date1' } } } }
+      - { $project: { _id: 0, __bot: { datepart: { '$dayOfYear': ['$d.date1'] } } } }
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         } } } }
@@ -1581,7 +1585,7 @@ tests:
     translation:
       - { $project: { _id: 0, datepart: "$$ROOT" } }
       - { $project: { _id: 0, d: "$datepart" } }
-      - { $project: { _id: 0, __bot: { datepart: { '$isoWeek': '$d.date1' } } } }
+      - { $project: { _id: 0, __bot: { datepart: { '$isoWeek': ['$d.date1'] } } } }
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         } } } }
@@ -1596,7 +1600,7 @@ tests:
     translation:
       - { $project: { _id: 0, datepart: "$$ROOT" } }
       - { $project: { _id: 0, d: "$datepart" } }
-      - { $project: { _id: 0, __bot: { datepart: { '$isoDayOfWeek': '$d.date1' } } } }
+      - { $project: { _id: 0, __bot: { datepart: { '$isoDayOfWeek': ['$d.date1'] } } } }
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         } } } }

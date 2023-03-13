@@ -242,6 +242,18 @@ impl MqlCodeGenerator {
         }
     }
 
+    /// Wraps a string value, s, in $literal if the condition, f, is true for the string.
+    fn wrap_in_literal_if<F>(s: String, f: F) -> Bson
+    where
+        F: Fn(String) -> bool,
+    {
+        if f(s.clone()) {
+            bson!({ "$literal": s })
+        } else {
+            Bson::String(s)
+        }
+    }
+
     pub fn codegen_air_expression(&self, expr: air::Expression) -> Result<bson::Bson> {
         use air::{Expression::*, LiteralValue::*};
         match expr {
@@ -370,7 +382,7 @@ impl MqlCodeGenerator {
                     bson!({
                         "$sqlConvert": {
                             "input": input,
-                            "type": convert_to,
+                            "to": convert_to,
                             "onNull": on_null,
                             "onError": on_error,
                         }
@@ -383,11 +395,7 @@ impl MqlCodeGenerator {
                 Ok(bson ! ({"$sqlIs": [expr, {"$literal": target_type}]}))
             }
             SetField(sf) => {
-                let field = if sf.field.starts_with('$') {
-                    bson!({"$literal": sf.field})
-                } else {
-                    Bson::String(sf.field)
-                };
+                let field = Self::wrap_in_literal_if(sf.field, |s| s.starts_with('$'));
                 let input = self.codegen_air_expression(*sf.input)?;
                 let value = self.codegen_air_expression(*sf.value)?;
                 Ok(bson!({"$setField": {
@@ -395,6 +403,11 @@ impl MqlCodeGenerator {
                     "input": input,
                     "value": value
                 }}))
+            }
+            UnsetField(uf) => {
+                let field = Self::wrap_in_literal_if(uf.field, |s| s.starts_with('$'));
+                let input = self.codegen_air_expression(*uf.input)?;
+                Ok(bson!({"$unsetField": {"field": field, "input": input}}))
             }
             _ => Err(Error::UnimplementedAIR),
         }

@@ -164,7 +164,7 @@ pub enum Expression {
     Literal(LiteralValue),
     GetField(GetField),
     SetField(SetField),
-    Unset(Unset),
+    UnsetField(UnsetField),
     FieldRef(FieldRef),
     Switch(Switch),
     Let(Let),
@@ -382,7 +382,7 @@ pub struct SetField {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct Unset {
+pub struct UnsetField {
     pub field: String,
     pub input: Box<Expression>,
 }
