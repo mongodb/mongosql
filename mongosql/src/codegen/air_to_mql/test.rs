@@ -1533,3 +1533,36 @@ mod air_is {
         })
     );
 }
+
+mod aid_set_field {
+    use crate::air::{Expression::*, FieldRef, SetField};
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        simple,
+        expected = Ok(bson!({"$setField": {"field": "", "input": "$$ROOT", "value": "$__bot"}})),
+        input = SetField(SetField {
+            field: "".into(),
+            input: Box::new(Variable("ROOT".into())),
+            value: Box::new(FieldRef(FieldRef {
+                parent: None,
+                name: "__bot".into(),
+            }))
+        })
+    );
+
+    test_codegen_air_expr!(
+        use_literal_when_needed,
+        expected = Ok(
+            bson!({"$setField": {"field": {"$literal": "$x_val"}, "input": "$$ROOT", "value": "$x"}})
+        ),
+        input = SetField(SetField {
+            field: "$x_val".into(),
+            input: Box::new(Variable("ROOT".into())),
+            value: Box::new(FieldRef(FieldRef {
+                parent: None,
+                name: "x".into(),
+            }))
+        })
+    );
+}

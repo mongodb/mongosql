@@ -380,7 +380,21 @@ impl MqlCodeGenerator {
             Is(is) => {
                 let expr = self.codegen_air_expression(*is.expr).unwrap();
                 let target_type = Self::type_or_missing_as_str(is.target_type);
-                Ok(bson!({"$sqlIs": [expr, {"$literal": target_type}]}))
+                Ok(bson ! ({"$sqlIs": [expr, {"$literal": target_type}]}))
+            }
+            SetField(sf) => {
+                let field = if sf.field.starts_with('$') {
+                    bson!({"$literal": sf.field})
+                } else {
+                    Bson::String(sf.field)
+                };
+                let input = self.codegen_air_expression(*sf.input)?;
+                let value = self.codegen_air_expression(*sf.value)?;
+                Ok(bson!({"$setField": {
+                    "field": field,
+                    "input": input,
+                    "value": value
+                }}))
             }
             _ => Err(Error::UnimplementedAIR),
         }
