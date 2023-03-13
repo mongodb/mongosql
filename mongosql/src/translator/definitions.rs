@@ -167,7 +167,7 @@ impl MqlTranslator {
             mir::Stage::Join(_j) => Err(Error::UnimplementedStruct),
             mir::Stage::Set(_s) => Err(Error::UnimplementedStruct),
             mir::Stage::Derived(_d) => Err(Error::UnimplementedStruct),
-            mir::Stage::Unwind(_u) => Err(Error::UnimplementedStruct),
+            mir::Stage::Unwind(u) => self.translate_unwind(u),
         }
     }
 
@@ -461,6 +461,15 @@ impl MqlTranslator {
                 aggregations,
             })),
             specifications,
+        }))
+    }
+
+    pub fn translate_unwind(&mut self, mir_unwind: mir::Unwind) -> Result<air::Stage> {
+        Ok(air::Stage::Unwind(air::Unwind {
+            source: Box::new(self.translate_stage(*mir_unwind.source)?),
+            path: Box::new(self.translate_expression(*mir_unwind.path)?),
+            index: mir_unwind.index,
+            outer: mir_unwind.outer,
         }))
     }
 

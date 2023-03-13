@@ -1694,6 +1694,119 @@ mod projection_stage {
     );
 }
 
+mod unwind_stage {
+    use crate::unchecked_unique_linked_hash_map;
+
+    test_translate_stage! {
+        unwind,
+        expected = Ok(air::Stage::Unwind(air::Unwind {
+            source: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test_db".to_string(),
+                    collection: "foo".to_string()
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "foo".to_string() => air::Expression::Variable("ROOT".to_string())
+                }
+            })),
+            path: Box::new(air::Expression::FieldRef(air::FieldRef {
+                parent: None,
+                name: "foo".to_string()
+            })),
+            index: None,
+            outer: false,
+        })),
+        input = mir::Stage::Unwind(mir::Unwind {
+            source: Box::new(mir::Stage::Collection(mir::Collection{
+                db: "test_db".into(),
+                collection: "foo".into(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            path: Box::new(mir::Expression::Reference(("foo",0u16).into())),
+            index: None,
+            outer: false,
+            cache: mir::schema::SchemaCache::new(),
+        })
+    }
+
+    test_translate_stage! {
+        unwind_outer,
+        expected = Ok(air::Stage::Unwind(air::Unwind {
+            source: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test_db".to_string(),
+                    collection: "foo".to_string()
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "foo".to_string() => air::Expression::Variable("ROOT".to_string())
+                }
+            })),
+            path: Box::new(air::Expression::FieldRef(air::FieldRef {
+                parent: Some(Box::new(air::FieldRef {
+                    parent: None,
+                    name: "foo".to_string()
+                })),
+                name: "bar".to_string()
+            })),
+            index: None,
+            outer: true,
+        })),
+        input = mir::Stage::Unwind(mir::Unwind {
+            source: Box::new(mir::Stage::Collection(mir::Collection{
+                db: "test_db".into(),
+                collection: "foo".into(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            path: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: mir::Expression::Reference(("foo",0u16).into()).into(),
+                field: "bar".into(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            index: None,
+            outer: true,
+            cache: mir::schema::SchemaCache::new(),
+        })
+    }
+    test_translate_stage! {
+        unwind_index,
+        expected = Ok(air::Stage::Unwind(air::Unwind {
+            source: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test_db".to_string(),
+                    collection: "foo".to_string()
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "foo".to_string() => air::Expression::Variable("ROOT".to_string())
+                }
+            })),
+            path: Box::new(air::Expression::FieldRef(air::FieldRef {
+                parent: Some(Box::new(air::FieldRef {
+                    parent: None,
+                    name: "foo".to_string()
+                })),
+                name: "bar".to_string()
+            })),
+            index: Some("i".to_string()),
+            outer: true,
+        })),
+        input = mir::Stage::Unwind(mir::Unwind {
+            source: Box::new(mir::Stage::Collection(mir::Collection{
+                db: "test_db".into(),
+                collection: "foo".into(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            path: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: mir::Expression::Reference(("foo",0u16).into()).into(),
+                field: "bar".into(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            index: Some("i".into()),
+            outer: true,
+            cache: mir::schema::SchemaCache::new(),
+        })
+    }
+}
+
 mod group_stage {
     use crate::{translator::Error, unchecked_unique_linked_hash_map};
     use mongosql_datastructures::binding_tuple::Key;
