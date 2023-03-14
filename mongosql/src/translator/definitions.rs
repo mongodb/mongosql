@@ -1,5 +1,5 @@
 use crate::{
-    air::{self, SQLOperator},
+    air::{self, SQLOperator, TypeOrMissing},
     mapping_registry::{Key, MqlMappingRegistry},
     mir,
 };
@@ -63,6 +63,16 @@ impl From<mir::Type> for air::Type {
             mir::Type::Symbol => air::Type::Symbol,
             mir::Type::Timestamp => air::Type::Timestamp,
             mir::Type::Undefined => air::Type::Undefined,
+        }
+    }
+}
+
+impl From<mir::TypeOrMissing> for TypeOrMissing {
+    fn from(item: mir::TypeOrMissing) -> Self {
+        match item {
+            mir::TypeOrMissing::Missing => TypeOrMissing::Missing,
+            mir::TypeOrMissing::Type(t) => TypeOrMissing::Type(t.into()),
+            mir::TypeOrMissing::Number => TypeOrMissing::Number,
         }
     }
 }
@@ -485,6 +495,7 @@ impl MqlTranslator {
                 self.translate_scalar_function(scalar_func)
             }
             mir::Expression::FieldAccess(field_access) => self.translate_field_access(field_access),
+            mir::Expression::Is(is) => self.translate_is(is),
             mir::Expression::Like(like_expr) => self.translate_like(like_expr),
             _ => Err(Error::UnimplementedStruct),
         }
@@ -698,6 +709,15 @@ impl MqlTranslator {
         Ok(air::Expression::GetField(air::GetField {
             field,
             input: Box::new(expr),
+        }))
+    }
+
+    fn translate_is(&self, is_expr: mir::IsExpr) -> Result<air::Expression> {
+        let expr = self.translate_expression(*is_expr.expr)?;
+        let target_type = air::TypeOrMissing::from(is_expr.target_type);
+        Ok(air::Expression::Is(air::Is {
+            expr: Box::new(expr),
+            target_type,
         }))
     }
 

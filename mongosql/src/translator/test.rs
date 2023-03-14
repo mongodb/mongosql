@@ -2273,3 +2273,331 @@ mod translate_plan {
         })
     );
 }
+
+mod translate_is {
+    use crate::{air, mir};
+
+    test_translate_expression!(
+        is_number,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Number,
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Number,
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_missing,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Missing,
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Missing,
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_array,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::Array),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::Array),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_bindata,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::BinData),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::BinData),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_bool,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::Boolean),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::Boolean),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_datetime,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::Datetime),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::Datetime),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_dbpointer,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::DbPointer),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::DbPointer),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_decimal128,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::Decimal128),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::Decimal128),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_document,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::Document),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::Document),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        is_type_double,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::Double),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::Double),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_int32,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::Int32),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::Int32),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_int64,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::Int64),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::Int64),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_javascript,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::Javascript),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::Javascript),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_javascript_with_scope,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::JavascriptWithScope),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::JavascriptWithScope),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_max_key,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::MaxKey),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::MaxKey),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_min_key,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::MinKey),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::MinKey),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_null,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::Null),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::Null),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_object_id,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::ObjectId),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::ObjectId),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_regular_expression,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::RegularExpression),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::RegularExpression),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_string,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::String),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::String),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_symbol,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::Symbol),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::Symbol),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_timestamp,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::Timestamp),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::Timestamp),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+    test_translate_expression!(
+        is_type_undefined,
+        expected = Ok(air::Expression::Is(air::Is {
+            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            target_type: air::TypeOrMissing::Type(air::Type::Undefined),
+        })),
+        input = mir::Expression::Is(mir::IsExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            target_type: mir::TypeOrMissing::Type(mir::Type::Undefined),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+}
