@@ -485,6 +485,7 @@ impl MqlTranslator {
                 self.translate_scalar_function(scalar_func)
             }
             mir::Expression::FieldAccess(field_access) => self.translate_field_access(field_access),
+            mir::Expression::Like(like_expr) => self.translate_like(like_expr),
             _ => Err(Error::UnimplementedStruct),
         }
     }
@@ -697,6 +698,16 @@ impl MqlTranslator {
         Ok(air::Expression::GetField(air::GetField {
             field,
             input: Box::new(expr),
+        }))
+    }
+
+    fn translate_like(&self, like_expr: mir::LikeExpr) -> Result<air::Expression> {
+        let expr = self.translate_expression(*like_expr.expr)?.into();
+        let pattern = self.translate_expression(*like_expr.pattern)?.into();
+        Ok(air::Expression::Like(air::Like {
+            expr,
+            pattern,
+            escape: like_expr.escape,
         }))
     }
 }

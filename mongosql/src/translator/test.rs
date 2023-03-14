@@ -1361,6 +1361,36 @@ mod reference_expression {
     );
 }
 
+mod like_expression {
+    use crate::{air, mir};
+    test_translate_expression!(
+        like_expr,
+        expected = Ok(air::Expression::Like(air::Like {
+            expr: Box::new(air::Expression::FieldRef(air::FieldRef {
+                name: "input".to_string(),
+                parent: None
+            })),
+            pattern: Box::new(air::Expression::FieldRef(air::FieldRef {
+                name: "pattern".to_string(),
+                parent: None
+            })),
+            escape: Some("escape".to_string())
+        })),
+        input = mir::Expression::Like(mir::LikeExpr {
+            expr: mir::Expression::Reference(("input", 0u16).into()).into(),
+            pattern: mir::Expression::Reference(("pattern", 0u16).into()).into(),
+            escape: Some("escape".to_string()),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("input", 0u16), "input");
+            mr.insert(("pattern", 0u16), "pattern");
+            mr
+        },
+    );
+}
+
 mod field_access_expression {
     use crate::{air, mir, unchecked_unique_linked_hash_map};
 
