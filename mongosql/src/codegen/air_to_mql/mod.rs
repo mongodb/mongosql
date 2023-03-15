@@ -404,6 +404,16 @@ impl MqlCodeGenerator {
                     "value": value
                 }}))
             }
+            Like(like_expr) => {
+                let mut like = doc! {
+                    "input": self.codegen_air_expression(*like_expr.expr)?,
+                    "pattern": self.codegen_air_expression(*like_expr.pattern)?,
+                };
+                if like_expr.escape.is_some() {
+                    like.insert("escape", like_expr.escape.unwrap());
+                }
+                Ok(Bson::Document(doc! {"$like": like}))
+            }
             UnsetField(uf) => {
                 let field = Self::wrap_in_literal_if(uf.field, |s| s.starts_with('$'));
                 let input = self.codegen_air_expression(*uf.input)?;

@@ -1338,6 +1338,49 @@ mod air_field_ref {
     );
 }
 
+mod air_like {
+    use crate::air::{self, Expression};
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        like_expr_with_escape,
+        expected = Ok(bson!({"$like": {
+            "input": "$input",
+            "pattern": "$pattern",
+            "escape": "escape",
+        }})),
+        input = Expression::Like(air::Like {
+            expr: Box::new(Expression::FieldRef(air::FieldRef {
+                parent: None,
+                name: "input".to_string()
+            })),
+            pattern: Box::new(Expression::FieldRef(air::FieldRef {
+                parent: None,
+                name: "pattern".to_string()
+            })),
+            escape: Some("escape".to_string()),
+        })
+    );
+    test_codegen_air_expr!(
+        like_expr_without_escape,
+        expected = Ok(bson!({"$like": {
+            "input": "$input",
+            "pattern": "$pattern",
+        }})),
+        input = Expression::Like(air::Like {
+            expr: Box::new(Expression::FieldRef(air::FieldRef {
+                parent: None,
+                name: "input".to_string()
+            })),
+            pattern: Box::new(Expression::FieldRef(air::FieldRef {
+                parent: None,
+                name: "pattern".to_string()
+            })),
+            escape: None,
+        })
+    );
+}
+
 mod get_field {
     use crate::{
         air::{

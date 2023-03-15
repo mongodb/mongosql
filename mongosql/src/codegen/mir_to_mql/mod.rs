@@ -1048,15 +1048,16 @@ impl MqlCodeGenerator {
                     }
                 })
             }
-            Like(expr) => Ok(match expr.escape {
-                Some(escape) => Bson::Document(bson::doc! {
-                "$like": {"input": self.codegen_expression(*expr.expr)?,
-                          "pattern": self.codegen_expression(*expr.pattern)?,
-                          "escape": escape}}),
-                None => Bson::Document(bson::doc! {
-                "$like": {"input": self.codegen_expression(*expr.expr)?,
-                          "pattern": self.codegen_expression(*expr.pattern)?}}),
-            }),
+            Like(like_expr) => {
+                let mut like = bson::doc! {
+                    "input": self.codegen_expression(*like_expr.expr)?,
+                    "pattern": self.codegen_expression(*like_expr.pattern)?,
+                };
+                if like_expr.escape.is_some() {
+                    like.insert("escape", like_expr.escape.unwrap());
+                }
+                Ok(Bson::Document(bson::doc! {"$like": like}))
+            }
             Subquery(s) => Ok(
                 bson::bson!({ "$subquery":  self.codegen_subquery(*s.subquery, Some(*s.output_expr))? }),
             ),
