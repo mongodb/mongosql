@@ -440,7 +440,7 @@ impl MqlCodeGenerator {
             air::Stage::Collection(c) => self.codegen_collection(c),
             air::Stage::Join(_j) => Err(Error::UnimplementedAIR),
             air::Stage::Unwind(_u) => Err(Error::UnimplementedAIR),
-            air::Stage::Lookup(_l) => Err(Error::UnimplementedAIR),
+            air::Stage::Lookup(l) => self.codegen_lookup(l),
             air::Stage::ReplaceWith(r) => self.codegen_replace_with(r),
             air::Stage::Match(m) => self.codegen_match(m),
             air::Stage::UnionWith(_u) => Err(Error::UnimplementedAIR),
@@ -493,6 +493,37 @@ impl MqlCodeGenerator {
             database: Some(air_coll.db),
             collection: Some(air_coll.collection),
             pipeline: vec![],
+        })
+    }
+
+    fn codegen_lookup(&self, air_lookup: air::Lookup) -> Result<MqlTranslation> {
+        let lookup_pipeline_translation = self.codegen_air_stage(*air_lookup.pipeline)?.pipeline;
+        let source_translation = self.codegen_air_stage(*air_lookup.source)?;
+        let mut pipeline = source_translation.pipeline;
+        let mut lookup_doc = doc! {
+            "as": air_lookup.as_var,
+            "pipeline": lookup_pipeline_translation,
+        };
+        match (air_lookup.from_db, air_lookup.from_coll) {
+            (None, Some(from_coll)) => lookup_doc.extend(doc! {"from": from_coll}),
+            (Some(from_db), Some(from_coll)) => {
+                lookup_doc.extend(doc! {"from": {"db": from_db, "coll": from_coll}})
+            }
+            _ => {}
+        }
+        if let Some(let_vars) = air_lookup.let_vars {
+            lookup_doc.extend(doc! { "let":
+                let_vars
+                    .into_iter()
+                    .map(|v| Ok((v.name, self.codegen_air_expression(*v.expr)?)))
+                    .collect::<Result<bson::Document>>()?
+            });
+        }
+        pipeline.push(doc! {"$lookup": lookup_doc});
+        Ok(MqlTranslation {
+            database: source_translation.database,
+            collection: source_translation.collection,
+            pipeline,
         })
     }
 
