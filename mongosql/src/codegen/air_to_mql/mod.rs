@@ -442,11 +442,24 @@ impl MqlCodeGenerator {
             air::Stage::Unwind(_u) => Err(Error::UnimplementedAIR),
             air::Stage::Lookup(_l) => Err(Error::UnimplementedAIR),
             air::Stage::ReplaceWith(r) => self.codegen_replace_with(r),
-            air::Stage::Match(_m) => Err(Error::UnimplementedAIR),
+            air::Stage::Match(m) => self.codegen_match(m),
             air::Stage::UnionWith(_u) => Err(Error::UnimplementedAIR),
             air::Stage::Skip(_s) => Err(Error::UnimplementedAIR),
             air::Stage::Documents(d) => self.codegen_documents(d),
         }
+    }
+
+    fn codegen_match(&self, air_match: air::Match) -> Result<MqlTranslation> {
+        let source_translation = self.codegen_air_stage(*air_match.source)?;
+        let mut pipeline = source_translation.pipeline;
+        let expr = bson!({ "$expr": self.codegen_air_expression(*air_match.expr)?});
+
+        pipeline.push(doc! {"$match": expr});
+        Ok(MqlTranslation {
+            database: source_translation.database,
+            collection: source_translation.collection,
+            pipeline,
+        })
     }
 
     fn codegen_replace_with(&self, air_replace_with: air::ReplaceWith) -> Result<MqlTranslation> {

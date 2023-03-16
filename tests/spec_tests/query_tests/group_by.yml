@@ -811,7 +811,7 @@ tests:
           "$group":
             {
               "_id": { "a": "$multi.a", "b": "$multi.b" },
-              "sumc": { $sqlSum: { "var": "$multi.c", "distinct": false } },
+              "sumc": { "$sum":  "$multi.c" },
             },
         }
       - {

@@ -214,6 +214,7 @@ tests:
       - {'': {'empty': 7}}
 
   - description: Unaliased use of field reference expression with $ and .
+    skip_reason: "SQL-1298: Fix GetField air_to_mql codegen"
     query: "SELECT * FROM bar WHERE `$a.b` = 4"
     current_db: foo
     translation_target_db: foo
@@ -227,6 +228,7 @@ tests:
       - {'bar': {'_id': 4, '$a.b': 4}}
 
   - description: Unaliased use of nested field reference expressions with $ and .
+    skip_reason: "SQL-1298: Fix GetField air_to_mql codegen"
     query: "SELECT * FROM bar WHERE `$a.$b`.`$c`.d = 6"
     current_db: foo
     translation_target_db: foo

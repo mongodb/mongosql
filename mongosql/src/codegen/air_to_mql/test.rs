@@ -56,6 +56,35 @@ macro_rules! test_codegen_air_plan {
     };
 }
 
+mod air_match {
+    use crate::air::*;
+
+    use bson::doc;
+
+    test_codegen_air_plan!(
+        simple,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![doc!{"$match": {"$expr": { "$eq": [{ "$literal": 1}, { "$literal": 2}]}}}],
+        }),
+        input = Stage::Match( Match {
+            source:Box::new(
+                Stage::Collection( Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                    })
+            ),
+            expr : Box::new(
+                Expression::MQLSemanticOperator( MQLSemanticOperator {
+                    op: MQLOperator::Eq,
+                    args: vec![Expression::Literal(LiteralValue::Integer(1)), Expression::Literal(LiteralValue::Integer(2))]
+                })
+            )
+        }),
+    );
+}
+
 mod air_collection {
     use crate::air::*;
 
