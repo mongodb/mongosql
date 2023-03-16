@@ -340,10 +340,50 @@ pub enum Type {
     Undefined,
 }
 
+impl Type {
+    pub fn to_str(self) -> &'static str {
+        use Type::*;
+        match self {
+            Array => "array",
+            BinData => "binData",
+            Boolean => "bool",
+            Datetime => "date",
+            DbPointer => "dbPointer",
+            Decimal128 => "decimal",
+            Document => "object",
+            Double => "double",
+            Int32 => "int",
+            Int64 => "long",
+            Javascript => "javascript",
+            JavascriptWithScope => "javascriptWithScope",
+            MaxKey => "maxKey",
+            MinKey => "minKey",
+            Null => "null",
+            ObjectId => "objectId",
+            RegularExpression => "regex",
+            String => "string",
+            Symbol => "symbol",
+            Timestamp => "timestamp",
+            Undefined => "undefined",
+        }
+    }
+}
+
+
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum SqlConvertTargetType {
     Array,
     Document,
+}
+
+impl SqlConvertTargetType {
+    pub fn to_str(self) -> &'static str {
+        use SqlConvertTargetType::*;
+        match self {
+            Array => "array",
+            Document => "object",
+        }
+    }
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -483,6 +523,17 @@ pub enum TypeOrMissing {
     Missing,
     Number,
     Type(Type),
+}
+
+impl TypeOrMissing {
+    pub fn to_str(&self) -> &'static str {
+        use TypeOrMissing::*;
+        match self {
+            Missing => "missing",
+            Number => "number",
+            Type(ty) => ty.to_str(),
+        }
+    }
 }
 
 #[derive(PartialEq, Debug, Clone)]

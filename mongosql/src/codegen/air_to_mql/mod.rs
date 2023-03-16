@@ -1,6 +1,4 @@
-use crate::air::{
-    self, AggregationFunction, MQLOperator, SQLOperator, SqlConvertTargetType, Type, TypeOrMissing,
-};
+use crate::air::{self, AggregationFunction, MQLOperator, SQLOperator};
 
 use bson::{bson, doc, Bson};
 use thiserror::Error;
@@ -16,6 +14,10 @@ pub enum Error {
     UnimplementedAIR,
     #[error("cannot generate MQL for {0:?} operator")]
     UnsupportedOperator(SQLOperator),
+    #[error("cannot $convert to document")]
+    ConvertToDocument,
+    #[error("cannot $convert to array")]
+    ConvertToArray,
 }
 
 #[derive(PartialEq, Debug)]
@@ -198,50 +200,6 @@ impl MqlCodeGenerator {
         })
     }
 
-    fn sql_convert_type(t: SqlConvertTargetType) -> &'static str {
-        use SqlConvertTargetType::*;
-        match t {
-            Array => "array",
-            Document => "object",
-        }
-    }
-
-    fn type_as_str(t: Type) -> &'static str {
-        use Type::*;
-        match t {
-            Array => "array",
-            BinData => "binData",
-            Boolean => "bool",
-            Datetime => "date",
-            DbPointer => "dbPointer",
-            Decimal128 => "decimal",
-            Document => "object",
-            Double => "double",
-            Int32 => "int",
-            Int64 => "long",
-            Javascript => "javascript",
-            JavascriptWithScope => "javascriptWithScope",
-            MaxKey => "maxKey",
-            MinKey => "minKey",
-            Null => "null",
-            ObjectId => "objectId",
-            RegularExpression => "regex",
-            String => "string",
-            Symbol => "symbol",
-            Timestamp => "timestamp",
-            Undefined => "undefined",
-        }
-    }
-
-    fn type_or_missing_as_str(t: TypeOrMissing) -> &'static str {
-        use TypeOrMissing::*;
-        match t {
-            Missing => "missing",
-            Number => "number",
-            Type(ty) => Self::type_as_str(ty),
-        }
-    }
-
     /// Wraps a string value, s, in $literal if the condition, f, is true for the string.
     fn wrap_in_literal_if<F>(s: String, f: F) -> Bson
     where
@@ -373,25 +331,9 @@ impl MqlCodeGenerator {
                     }
                 })
             }),
-            SqlConvert(sc) => {
-                let input = self.codegen_air_expression(*sc.input)?;
-                let convert_to = Self::sql_convert_type(sc.to);
-                let on_null = self.codegen_air_expression(*sc.on_null)?;
-                let on_error = self.codegen_air_expression(*sc.on_error)?;
-                Ok({
-                    bson!({
-                        "$sqlConvert": {
-                            "input": input,
-                            "to": convert_to,
-                            "onNull": on_null,
-                            "onError": on_error,
-                        }
-                    })
-                })
-            }
             Is(is) => {
                 let expr = self.codegen_air_expression(*is.expr).unwrap();
-                let target_type = Self::type_or_missing_as_str(is.target_type);
+                let target_type = is.target_type.to_str();
                 Ok(bson ! ({"$sqlIs": [expr, {"$literal": target_type}]}))
             }
             SetField(sf) => {
@@ -419,8 +361,43 @@ impl MqlCodeGenerator {
                 let input = self.codegen_air_expression(*uf.input)?;
                 Ok(bson!({"$unsetField": {"field": field, "input": input}}))
             }
+            Convert(c) => Ok({
+                let input = self.codegen_air_expression(*c.input)?;
+                let on_error = self.codegen_air_expression(*c.on_error)?;
+                let on_null = self.codegen_air_expression(*c.on_null)?;
+                bson!({
+                    "$convert": {
+                        "input": input,
+                        "to": Self::convert_mql_type(c.to)?,
+                        "onNull": on_null,
+                        "onError": on_error
+                    }
+                })
+            }),
+            SqlConvert(sc) => Ok({
+                let input = self.codegen_air_expression(*sc.input)?;
+                let on_error = self.codegen_air_expression(*sc.on_error)?;
+                let on_null = self.codegen_air_expression(*sc.on_null)?;
+                bson!({
+                    "$sqlConvert": {
+                        "input": input,
+                        "to": sc.to.to_str(),
+                        "onNull": on_null,
+                        "onError": on_error
+                    }
+                })
+            }),
             _ => Err(Error::UnimplementedAIR),
         }
+    }
+
+    fn convert_mql_type(ty: air::Type) -> Result<&'static str> {
+        use air::Type::*;
+        Ok(match ty {
+            Array => return Err(Error::ConvertToArray),
+            Document => return Err(Error::ConvertToDocument),
+            _ => ty.to_str(),
+        })
     }
 
     #[allow(clippy::only_used_in_recursion)] // false positive

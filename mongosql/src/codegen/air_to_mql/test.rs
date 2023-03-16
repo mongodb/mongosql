@@ -916,7 +916,7 @@ mod air_sql_semantic_operator {
 
     test_codegen_air_expr!(
         pos,
-        expected = Ok(bson::bson! ({ "$sqlPos": [{ "$literal": 2}]})),
+        expected = Ok(bson! ({ "$sqlPos": [{ "$literal": 2}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
             op: Pos,
             args: vec![Literal(Integer(2))],
@@ -925,7 +925,7 @@ mod air_sql_semantic_operator {
 
     test_codegen_air_expr!(
         neg,
-        expected = Ok(bson::bson! ({ "$sqlNeg": [{ "$literal": 1}]})),
+        expected = Ok(bson! ({ "$sqlNeg": [{ "$literal": 1}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
             op: Neg,
             args: vec![Literal(Integer(1))],
@@ -1265,6 +1265,171 @@ mod air_sql_semantic_operator {
         input = SQLSemanticOperator(SQLSemanticOperator {
             op: ComputedFieldAccess,
             args: vec![]
+        })
+    );
+}
+
+macro_rules! test_codegen_working_convert {
+    ($test_name:ident, expected = $expected_ty_str:expr, input = $input:expr) => {
+    test_codegen_air_expr!(
+        $test_name,
+        expected = Ok(bson!({ "$convert":
+            {
+                    "input": {"$literal": "foo"},
+                    "to": $expected_ty_str,
+                    "onError": {"$literal": null},
+                    "onNull": {"$literal": null},
+                }
+            })),
+        input = Expression::Convert(Convert {
+                input: Expression::Literal(String("foo".to_string())).into(),
+                to: $input,
+                on_null: Expression::Literal(Null).into(),
+                on_error: Expression::Literal(Null).into(),
+            })
+        );
+    };
+}
+
+mod air_mql_convert {
+    use crate::{
+        air::{Convert, Expression, LiteralValue::*, Type},
+        codegen,
+    };
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        convert_array,
+        expected = Err(codegen::air_to_mql::Error::ConvertToArray),
+        input = Expression::Convert(Convert {
+            input: Expression::Literal(String("foo".to_string())).into(),
+            to: Type::Array,
+            on_null: Expression::Literal(Null).into(),
+            on_error: Expression::Literal(Null).into(),
+        })
+    );
+
+    test_codegen_air_expr!(
+        convert_document,
+        expected = Err(codegen::air_to_mql::Error::ConvertToDocument),
+        input = Expression::Convert(Convert {
+            input: Expression::Literal(String("foo".to_string())).into(),
+            to: Type::Document,
+            on_null: Expression::Literal(Null).into(),
+            on_error: Expression::Literal(Null).into(),
+        })
+    );
+
+    test_codegen_working_convert!(
+        convert_bin_data,
+        expected = "binData",
+        input = Type::BinData
+    );
+
+    test_codegen_working_convert!(convert_date, expected = "date", input = Type::Datetime);
+
+    test_codegen_working_convert!(
+        convert_db_pointer,
+        expected = "dbPointer",
+        input = Type::DbPointer
+    );
+
+    test_codegen_working_convert!(
+        convert_decimal,
+        expected = "decimal",
+        input = Type::Decimal128
+    );
+
+    test_codegen_working_convert!(convert_double, expected = "double", input = Type::Double);
+
+    test_codegen_working_convert!(convert_int, expected = "int", input = Type::Int32);
+
+    test_codegen_working_convert!(convert_long, expected = "long", input = Type::Int64);
+
+    test_codegen_working_convert!(
+        convert_javascript,
+        expected = "javascript",
+        input = Type::Javascript
+    );
+
+    test_codegen_working_convert!(
+        convert_javascript_with_scope,
+        expected = "javascriptWithScope",
+        input = Type::JavascriptWithScope
+    );
+
+    test_codegen_working_convert!(convert_max_key, expected = "maxKey", input = Type::MaxKey);
+
+    test_codegen_working_convert!(convert_min_key, expected = "minKey", input = Type::MinKey);
+
+    test_codegen_working_convert!(convert_null, expected = "null", input = Type::Null);
+
+    test_codegen_working_convert!(
+        convert_object_id,
+        expected = "objectId",
+        input = Type::ObjectId
+    );
+
+    test_codegen_working_convert!(
+        convert_regular_expression,
+        expected = "regex",
+        input = Type::RegularExpression
+    );
+
+    test_codegen_working_convert!(convert_string, expected = "string", input = Type::String);
+
+    test_codegen_working_convert!(convert_symbol, expected = "symbol", input = Type::Symbol);
+
+    test_codegen_working_convert!(
+        convert_timestamp,
+        expected = "timestamp",
+        input = Type::Timestamp
+    );
+
+    test_codegen_working_convert!(
+        convert_undefined,
+        expected = "undefined",
+        input = Type::Undefined
+    );
+}
+
+mod air_mql_sql_convert {
+    use crate::air::{Expression, LiteralValue::*, SqlConvert, SqlConvertTargetType};
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        sql_convert_array,
+        expected = Ok(bson!({ "$sqlConvert":
+            {
+                "input": {"$literal": "foo"},
+                "to": "array",
+                "onError": {"$literal": null},
+                "onNull": {"$literal": null},
+            }
+        })),
+        input = Expression::SqlConvert(SqlConvert {
+            input: Expression::Literal(String("foo".to_string())).into(),
+            to: SqlConvertTargetType::Array,
+            on_null: Expression::Literal(Null).into(),
+            on_error: Expression::Literal(Null).into(),
+        })
+    );
+
+    test_codegen_air_expr!(
+        sql_convert_document,
+        expected = Ok(bson!({ "$sqlConvert":
+            {
+                "input": {"$literal": "foo"},
+                "to": "object",
+                "onError": {"$literal": null},
+                "onNull": {"$literal": null},
+            }
+        })),
+        input = Expression::SqlConvert(SqlConvert {
+            input: Expression::Literal(String("foo".to_string())).into(),
+            to: SqlConvertTargetType::Document,
+            on_null: Expression::Literal(Null).into(),
+            on_error: Expression::Literal(Null).into(),
         })
     );
 }
