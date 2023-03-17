@@ -433,6 +433,15 @@ pub struct FieldRef {
     pub name: String,
 }
 
+impl FieldRef {
+    pub fn root_parent(&self) -> String {
+        match &self.parent {
+            Some(parent) => parent.root_parent(),
+            None => self.name.clone(),
+        }
+    }
+}
+
 #[derive(PartialEq, Debug, Clone)]
 pub struct SwitchCase {
     pub case: Box<Expression>,

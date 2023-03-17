@@ -310,6 +310,137 @@ mod air_group {
     );
 }
 
+mod air_unwind {
+    use crate::{air::*, unchecked_unique_linked_hash_map};
+    use bson::doc;
+
+    test_codegen_air_plan!(
+        unwind_with_only_path,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                doc!{"$unwind": {"path": "$array" }}
+            ],
+        }),
+        input = Stage::Unwind(Unwind {
+            source: Box::new(Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            })),
+            path: Expression::FieldRef(FieldRef {
+                parent: None,
+                name: "array".into(),
+            }).into(),
+            index: None,
+            outer: false
+        }),
+    );
+
+    test_codegen_air_plan!(
+        unwind_with_index_string,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                doc!{"$unwind": {"path": "$array", "includeArrayIndex": "i" }}
+            ],
+        }),
+        input = Stage::Unwind(Unwind {
+            source: Box::new(Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            })),
+            path: Expression::FieldRef(FieldRef {
+                parent: None,
+                name: "array".into(),
+            }).into(),
+            index: Some("i".into()),
+            outer: false
+        }),
+    );
+
+    test_codegen_air_plan!(
+        unwind_with_preserve_null_and_empty_arrays,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                doc!{"$unwind": {"path": "$array", "preserveNullAndEmptyArrays": true }}
+            ],
+        }),
+        input = Stage::Unwind(Unwind {
+            source: Box::new(Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            })),
+            path: Expression::FieldRef(FieldRef {
+                parent: None,
+                name: "array".into(),
+            }).into(),
+            index: None,
+            outer: true
+        }),
+    );
+    test_codegen_air_plan!(
+        unwind_with_all_args,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                doc!{"$unwind": {"path": "$array", "includeArrayIndex": "i", "preserveNullAndEmptyArrays": true }}
+            ],
+        }),
+        input = Stage::Unwind(Unwind {
+            source: Box::new(Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            })),
+            path: Expression::FieldRef(FieldRef {
+                parent: None,
+                name: "array".into(),
+            }).into(),
+            index: Some("i".into()),
+            outer: true
+        }),
+    );
+    test_codegen_air_plan!(
+        unwind_proper_field_paths,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                doc!{"$project": {"_id": 0, "foo": "$col"}},
+                doc!{"$unwind": {"path": "$foo.a.b", "includeArrayIndex": "foo.i", "preserveNullAndEmptyArrays": true }}
+            ],
+        }),
+        input = Stage::Unwind(Unwind {
+            source: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                "foo".to_string() => Expression::FieldRef(
+                    FieldRef { parent: None,  name: "col".to_string() }
+                )}
+            })),
+            path: Expression::FieldRef(FieldRef {
+                parent:Some(FieldRef {
+                    parent: Some(FieldRef {
+                        parent: None,
+                        name: "foo".into(),
+                    }.into()),
+                    name: "a".into(),
+                }.into()),
+                name: "b".into(),
+            }).into(),
+            index: Some("i".into()),
+            outer: true,
+        }),
+    );
+}
+
 mod air_literal {
     use crate::air::{Expression::*, LiteralValue::*};
     use bson::{bson, Bson};

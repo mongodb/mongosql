@@ -416,7 +416,7 @@ impl MqlCodeGenerator {
             air::Stage::Sort(_s) => Err(Error::UnimplementedAIR),
             air::Stage::Collection(c) => self.codegen_collection(c),
             air::Stage::Join(_j) => Err(Error::UnimplementedAIR),
-            air::Stage::Unwind(_u) => Err(Error::UnimplementedAIR),
+            air::Stage::Unwind(u) => self.codegen_unwind(u),
             air::Stage::Lookup(l) => self.codegen_lookup(l),
             air::Stage::ReplaceWith(r) => self.codegen_replace_with(r),
             air::Stage::Match(m) => self.codegen_match(m),
@@ -557,6 +557,54 @@ impl MqlCodeGenerator {
             .collect::<Result<bson::Document>>()?;
         group_doc.extend(aggs);
         pipeline.push(doc! {"$group": group_doc});
+        Ok(MqlTranslation {
+            database: source_translation.database,
+            collection: source_translation.collection,
+            pipeline,
+        })
+    }
+
+    fn codegen_unwind(&self, air_unwind: air::Unwind) -> Result<MqlTranslation> {
+        let source_translation = self.codegen_air_stage(*air_unwind.source)?;
+        let mut pipeline = source_translation.pipeline;
+        let mut include_array_index = air_unwind.index;
+        // If the `path` field_ref has a parent, we need to crawl up the parent chain
+        // and find the root parent and append the argument to `includeArrayIndex` to that.
+        // If the path does not have a parent, then we're already at the root level of the document
+        // and can just use the argument as is.
+        if include_array_index.is_some() {
+            if let Some(field_ref) = match &*air_unwind.path {
+                air::Expression::FieldRef(f) => Some(f),
+                _ => None,
+            } {
+                if field_ref.parent.is_some() {
+                    include_array_index = Some(format!(
+                        "{}.{}",
+                        field_ref.root_parent(),
+                        include_array_index.unwrap()
+                    ));
+                }
+            }
+        }
+        let path = self.codegen_air_expression(*air_unwind.path)?;
+        let preserve_null_and_empty_arrays = air_unwind.outer;
+
+        let unwind_body = match (
+            include_array_index.is_some(),
+            preserve_null_and_empty_arrays,
+        ) {
+            (true, true) => {
+                doc! {"path": path, "includeArrayIndex": include_array_index.unwrap(), "preserveNullAndEmptyArrays": preserve_null_and_empty_arrays}
+            }
+            (true, false) => doc! {"path": path, "includeArrayIndex": include_array_index.unwrap()},
+            (false, true) => {
+                doc! {"path": path, "preserveNullAndEmptyArrays": preserve_null_and_empty_arrays}
+            }
+            (false, false) => doc! {"path": path},
+        };
+
+        pipeline.push(doc! {"$unwind": unwind_body});
+
         Ok(MqlTranslation {
             database: source_translation.database,
             collection: source_translation.collection,
