@@ -1055,7 +1055,6 @@ tests:
   - description: COS correctness tests
     current_db: foo
     query: "SELECT VALUE {'radians': radians, 'n': COS(radians)} FROM trigonometry AS c"
-    skip_reason: "SQL-1303: Fix to_air_op"
     translation_target_db: foo
     translation_target_coll: trigonometry
     translation:
@@ -1331,7 +1330,6 @@ tests:
   - description: SIN correctness tests
     current_db: foo
     query: "SELECT VALUE {'radians': radians, 'n': SIN(radians)} FROM trigonometry AS c"
-    skip_reason: "SQL-1303: Fix to_air_op"
     translation_target_db: foo
     translation_target_coll: trigonometry
     translation:
@@ -1355,7 +1353,6 @@ tests:
   - description: SQRT correctness tests
     current_db: foo
     query: "SELECT VALUE {'v': v, 'n': SQRT(v)} FROM sqrt AS c"
-    skip_reason: "SQL-1303: Fix to_air_op"
     translation_target_db: foo
     translation_target_coll: sqrt
     translation:
@@ -1379,7 +1376,6 @@ tests:
   - description: TAN correctness tests
     current_db: foo
     query: "SELECT VALUE {'radians': radians, 'n': TAN(radians)} FROM trigonometry AS c"
-    skip_reason: "SQL-1303: Fix to_air_op"
     translation_target_db: foo
     translation_target_coll: trigonometry
     translation:

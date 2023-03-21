@@ -636,7 +636,7 @@ impl MqlTranslator {
             BitLength => ScalarFunctionType::Sql(air::SQLOperator::BitLength),
             Abs => ScalarFunctionType::Mql(air::MQLOperator::Abs),
             Ceil => ScalarFunctionType::Mql(air::MQLOperator::Ceil),
-            Cos => ScalarFunctionType::Mql(air::MQLOperator::Cos),
+            Cos => ScalarFunctionType::Sql(air::SQLOperator::Cos),
             Degrees => ScalarFunctionType::Mql(air::MQLOperator::RadiansToDegrees),
             Floor => ScalarFunctionType::Mql(air::MQLOperator::Floor),
             Log => ScalarFunctionType::Sql(air::SQLOperator::Log),
@@ -644,9 +644,9 @@ impl MqlTranslator {
             Pow => ScalarFunctionType::Mql(air::MQLOperator::Pow),
             Radians => ScalarFunctionType::Mql(air::MQLOperator::DegreesToRadians),
             Round => ScalarFunctionType::Sql(air::SQLOperator::Round),
-            Sin => ScalarFunctionType::Mql(air::MQLOperator::Sin),
-            Sqrt => ScalarFunctionType::Mql(air::MQLOperator::Sqrt),
-            Tan => ScalarFunctionType::Mql(air::MQLOperator::Tan),
+            Sin => ScalarFunctionType::Sql(air::SQLOperator::Sin),
+            Sqrt => ScalarFunctionType::Sql(air::SQLOperator::Sqrt),
+            Tan => ScalarFunctionType::Sql(air::SQLOperator::Tan),
 
             // String value scalar functions
             Substring => ScalarFunctionType::Sql(air::SQLOperator::SubstrCP),

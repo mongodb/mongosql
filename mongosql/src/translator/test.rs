@@ -862,9 +862,9 @@ mod scalar_function_expression {
 
     test_translate_expression!(
         cos,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Cos,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Cos,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -877,9 +877,9 @@ mod scalar_function_expression {
 
     test_translate_expression!(
         sin,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Sin,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Sin,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -892,9 +892,9 @@ mod scalar_function_expression {
 
     test_translate_expression!(
         tan,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Tan,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Tan,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
@@ -907,9 +907,9 @@ mod scalar_function_expression {
 
     test_translate_expression!(
         sqrt,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Sqrt,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Sqrt,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
