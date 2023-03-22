@@ -324,9 +324,10 @@ impl MqlCodeGenerator {
             }
             GetField(gf) => Ok({
                 let input = self.codegen_air_expression(*gf.input)?;
+                let field = Self::wrap_in_literal_if(gf.field, |s| s.starts_with('$'));
                 bson!({
                     "$getField": {
-                        "field": gf.field,
+                        "field": field,
                         "input": input,
                     }
                 })

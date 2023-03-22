@@ -1,55 +1,55 @@
 catalog_data:
   foo:
     bar:
-      - {'_id': 1, 'a': {'b': 1}}
-      - {'_id': 2, 'a.b': 2}
-      - {'_id': 3, 'a': {'b.c': 3}}
-      - {'_id': 4, '$a.b': 4}
-      - {'_id': 5, '$a.$b': {'$c.d': 5}}
-      - {'_id': 6, '$a.$b': {'$c': {'d': 6}}}
-      - {'_id': 7, '': 7}
+      - { "_id": 1, "a": { "b": 1 } }
+      - { "_id": 2, "a.b": 2 }
+      - { "_id": 3, "a": { "b.c": 3 } }
+      - { "_id": 4, "$a.b": 4 }
+      - { "_id": 5, "$a.$b": { "$c.d": 5 } }
+      - { "_id": 6, "$a.$b": { "$c": { "d": 6 } } }
+      - { "_id": 7, "": 7 }
 
 catalog_schema:
   {
-    'foo': {
-      'bar': {
-        'bsonType': 'object',
-        'additionalProperties': true,
-        "properties": {
-          "_id": {
-            "bsonType": "int"
-          },
-          "a": {
-            "bsonType":  'object',
-            'additionalProperties': true ,
-            "properties": {
-              "b": {
-                "bsonType": "int"
-              },
-              "b.c": {
-                "bsonType": "int"
-              }
-            }
-          },
-          "a.b": { "bsonType": "int" },
-          "$a.b": { "bsonType": "int" },
-          "$a.$b": {
-            "bsonType":  'object',
+    "foo":
+      {
+        "bar":
+          {
+            "bsonType": "object",
             "additionalProperties": true,
-            "properties": {
-              "$c": {
-                "bsonType":  'object',
-                "additionalProperties": true,
-                "properties": {
-                  "d": { "bsonType": "int" },
-                }
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a":
+                  {
+                    "bsonType": "object",
+                    "additionalProperties": true,
+                    "properties":
+                      {
+                        "b": { "bsonType": "int" },
+                        "b.c": { "bsonType": "int" },
+                      },
+                  },
+                "a.b": { "bsonType": "int" },
+                "$a.b": { "bsonType": "int" },
+                "$a.$b":
+                  {
+                    "bsonType": "object",
+                    "additionalProperties": true,
+                    "properties":
+                      {
+                        "$c":
+                          {
+                            "bsonType": "object",
+                            "additionalProperties": true,
+                            "properties": { "d": { "bsonType": "int" } },
+                          },
+                        "$c.d": { "bsonType": "int" },
+                      },
+                  },
               },
-              "$c.d": { "bsonType": "int" },
-            }
           },
-        }
-      }
-    }
+      },
   }
 
 tests:
@@ -58,136 +58,272 @@ tests:
     current_db: test
     translation_target_db: test
     translation:
-      - {'$documents': [{'a': {'c': {'$literal': 1}}}, {'a': {'$literal': 3}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'c': '$arr.a.c'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
+      - {
+          "$documents":
+            [{ "a": { "c": { "$literal": 1 } } }, { "a": { "$literal": 3 } }],
+        }
+      - { "$project": { "_id": 0, "arr": "$$ROOT" } }
+      - { "$project": { "_id": 0, "__bot": { "c": "$arr.a.c" } } }
+      - {
+          "$replaceWith":
+            {
+              "$unsetField":
+                {
+                  "field": "__bot",
+                  "input":
+                    {
+                      "$setField":
+                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
+                    },
+                },
+            },
+        }
     result:
-      - {'': {'c': 1}}
-      - {'': {}}
+      - { "": { "c": 1 } }
+      - { "": {} }
 
   - description: Delimited identifier containing a .
     query: "SELECT VALUE {'ab': `a.b`} FROM bar"
-    skip_reason: "SQL-1298: Fix GetField air_to_mql codegen"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
     translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'ab': {'$getField': {'field':
-        {'$literal': 'a.b'}, 'input': '$bar'}}}}}
-      - {'$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
+      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
+      - { "$project": { "_id": 0, "bar": "$bar" } }
+      - {
+          "$project":
+            {
+              "_id": 0,
+              "__bot":
+                { "ab": { "$getField": { "field": "a.b", "input": "$bar" } } },
+            },
+        }
+      - {
+          "$replaceWith":
+            {
+              "$unsetField":
+                {
+                  "field": "__bot",
+                  "input":
+                    {
+                      "$setField":
+                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
+                    },
+                },
+            },
+        }
 
     result:
-      - {'': {}}
-      - {'': {'ab': 2}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
+      - { "": {} }
+      - { "": { "ab": 2 } }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
 
   - description: Nested delimited identifier containing a .
     query: "SELECT VALUE {'abc': a.`b.c`} FROM bar"
-    skip_reason: "SQL-1298: Fix GetField air_to_mql codegen"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
     translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'abc': {'$getField': {'field':
-        {'$literal': 'b.c'}, 'input': '$bar.a'}}}}}
-      - {'$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-           }}}}
+      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
+      - { "$project": { "_id": 0, "bar": "$bar" } }
+      - {
+          "$project":
+            {
+              "_id": 0,
+              "__bot":
+                {
+                  "abc": { "$getField": { "field": "b.c", "input": "$bar.a" } },
+                },
+            },
+        }
+      - {
+          "$replaceWith":
+            {
+              "$unsetField":
+                {
+                  "field": "__bot",
+                  "input":
+                    {
+                      "$setField":
+                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
+                    },
+                },
+            },
+        }
     result:
-      - {'': {}}
-      - {'': {}}
-      - {'': {'abc': 3}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
-
-
+      - { "": {} }
+      - { "": {} }
+      - { "": { "abc": 3 } }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
 
   - description: Delimited identifier with a $
     query: "SELECT VALUE {'ab': `$a.b`} FROM bar"
-    skip_reason: "SQL-1298: Fix GetField air_to_mql codegen"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
     translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'ab': {'$getField': {'field':
-        {'$literal': '$a.b'}, 'input': '$bar'}}}}}
-      - {'$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-           }}}}
+      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
+      - { "$project": { "_id": 0, "bar": "$bar" } }
+      - {
+          "$project":
+            {
+              "_id": 0,
+              "__bot":
+                {
+                  "ab":
+                    {
+                      "$getField":
+                        { "field": { "$literal": "$a.b" }, "input": "$bar" },
+                    },
+                },
+            },
+        }
+      - {
+          "$replaceWith":
+            {
+              "$unsetField":
+                {
+                  "field": "__bot",
+                  "input":
+                    {
+                      "$setField":
+                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
+                    },
+                },
+            },
+        }
     result:
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {'ab': 4}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": { "ab": 4 } }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
 
   - description: Nested delimited identifiers containing $ and .
     query: "SELECT VALUE {'abcd': `$a.$b`.`$c.d`} FROM bar"
-    skip_reason: "SQL-1298: Fix GetField air_to_mql codegen"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
     translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'abcd': {'$getField': {'field': {
-        '$literal': '$c.d'}, 'input': {'$getField': {'field': {
-        '$literal': '$a.$b'}, 'input': '$bar'}}}}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-           }}}}
+      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
+      - { "$project": { "_id": 0, "bar": "$bar" } }
+      - {
+          "$project":
+            {
+              "_id": 0,
+              "__bot":
+                {
+                  "abcd":
+                    {
+                      "$getField":
+                        {
+                          "field": { "$literal": "$c.d" },
+                          "input":
+                            {
+                              "$getField":
+                                {
+                                  "field": { "$literal": "$a.$b" },
+                                  "input": "$bar",
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        }
+      - {
+          "$replaceWith":
+            {
+              "$unsetField":
+                {
+                  "field": "__bot",
+                  "input":
+                    {
+                      "$setField":
+                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
+                    },
+                },
+            },
+        }
     result:
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {'abcd': 5}}
-      - {'': {}}
-      - {'': {}}
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": { "abcd": 5 } }
+      - { "": {} }
+      - { "": {} }
 
   - description: Mixed identifiers containing $ and .
     query: "SELECT VALUE {'abcd': `$a.$b`.`$c`.d} FROM bar"
-    skip_reason: "SQL-1298: Fix GetField air_to_mql codegen"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
     translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'abcd': {'$getField': {
-        'field': 'd', 'input': {'$getField': {'field': {'$literal': '$c'},
-        'input': {'$getField': {'field': {'$literal': '$a.$b'}, 'input': '$bar'}}
-        }}}}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-           }}}}
+      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
+      - { "$project": { "_id": 0, "bar": "$bar" } }
+      - {
+          "$project":
+            {
+              "_id": 0,
+              "__bot":
+                {
+                  "abcd":
+                    {
+                      "$getField":
+                        {
+                          "field": "d",
+                          "input":
+                            {
+                              "$getField":
+                                {
+                                  "field": { "$literal": "$c" },
+                                  "input":
+                                    {
+                                      "$getField":
+                                        {
+                                          "field": { "$literal": "$a.$b" },
+                                          "input": "$bar",
+                                        },
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        }
+      - {
+          "$replaceWith":
+            {
+              "$unsetField":
+                {
+                  "field": "__bot",
+                  "input":
+                    {
+                      "$setField":
+                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
+                    },
+                },
+            },
+        }
     result:
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {'abcd': 6}}
-      - {'': {}}
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": { "abcd": 6 } }
+      - { "": {} }
 
   - description: Delimited identifier containing an empty string
     skip_reason: "SQL-1091: Modify mongoast to support empty field names in getField"
@@ -196,52 +332,116 @@ tests:
     translation_target_db: foo
     translation_target_coll: bar
     translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'empty': {'$getField': {'field':
-        {'$literal': ''}, 'input': '$bar'}}}}}
-      - {'$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
+      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
+      - { "$project": { "_id": 0, "bar": "$bar" } }
+      - {
+          "$project":
+            {
+              "_id": 0,
+              "__bot":
+                {
+                  "empty":
+                    {
+                      "$getField":
+                        { "field": { "$literal": "" }, "input": "$bar" },
+                    },
+                },
+            },
+        }
+      - {
+          "$replaceWith":
+            {
+              "$unsetField":
+                {
+                  "field": "__bot",
+                  "input":
+                    {
+                      "$setField":
+                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
+                    },
+                },
+            },
+        }
     result:
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {}}
-      - {'': {'empty': 7}}
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": {} }
+      - { "": { "empty": 7 } }
 
   - description: Unaliased use of field reference expression with $ and .
-    skip_reason: "SQL-1298: Fix GetField air_to_mql codegen"
     query: "SELECT * FROM bar WHERE `$a.b` = 4"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
     translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$match': {'$expr': {'$sqlEq': [{'$getField': { 'field':
-        {'$literal': '$a.b'}, 'input': '$bar'}}, {'$literal': 4}]}}}
+      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
+      - { "$project": { "_id": 0, "bar": "$bar" } }
+      - {
+          "$match":
+            {
+              "$expr":
+                {
+                  "$sqlEq":
+                    [
+                      {
+                        "$getField":
+                          { "field": { "$literal": "$a.b" }, "input": "$bar" },
+                      },
+                      { "$literal": 4 },
+                    ],
+                },
+            },
+        }
     result:
-      - {'bar': {'_id': 4, '$a.b': 4}}
+      - { "bar": { "_id": 4, "$a.b": 4 } }
 
   - description: Unaliased use of nested field reference expressions with $ and .
-    skip_reason: "SQL-1298: Fix GetField air_to_mql codegen"
     query: "SELECT * FROM bar WHERE `$a.$b`.`$c`.d = 6"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
     translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$match': {'$expr': {'$sqlEq': [
-        {'$getField': { 'field': 'd', 'input': { '$getField': { 'field':
-        {'$literal': '$c'}, 'input': {'$getField': { 'field':
-        {'$literal': '$a.$b'}, 'input': '$bar'}}}}}}, {'$literal': 6}]}}}
+      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
+      - { "$project": { "_id": 0, "bar": "$bar" } }
+      - {
+          "$match":
+            {
+              "$expr":
+                {
+                  "$sqlEq":
+                    [
+                      {
+                        "$getField":
+                          {
+                            "field": "d",
+                            "input":
+                              {
+                                "$getField":
+                                  {
+                                    "field": { "$literal": "$c" },
+                                    "input":
+                                      {
+                                        "$getField":
+                                          {
+                                            "field": { "$literal": "$a.$b" },
+                                            "input": "$bar",
+                                          },
+                                      },
+                                  },
+                              },
+                          },
+                      },
+                      { "$literal": 6 },
+                    ],
+                },
+            },
+        }
     result:
-      - {'bar': {'_id': 6, '$a.$b': {'$c': {'d': 6}}}}
+      - { "bar": { "_id": 6, "$a.$b": { "$c": { "d": 6 } } } }
 
   - description: Undelimited identifier starting with digit is not parsed as an identifier
     query: "SELECT 1a FROM [{'1a': 2}] arr"
@@ -255,57 +455,139 @@ tests:
     current_db: test
     translation_target_db: test
     translation:
-      - {'$documents': [{'1a': {'$literal': 2}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'1a': '$arr.1a'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
+      - { "$documents": [{ "1a": { "$literal": 2 } }] }
+      - { "$project": { "_id": 0, "arr": "$$ROOT" } }
+      - { "$project": { "_id": 0, "__bot": { "1a": "$arr.1a" } } }
+      - {
+          "$replaceWith":
+            {
+              "$unsetField":
+                {
+                  "field": "__bot",
+                  "input":
+                    {
+                      "$setField":
+                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
+                    },
+                },
+            },
+        }
     result:
-      - {'': {'1a': 2}}
+      - { "": { "1a": 2 } }
 
   - description: Backtick delimited identifiers containing delimiter characters
-    query: "SELECT VALUE {'a`b': `a``b`, 'a\"b': `a\"b`, 'a`\"b': `a``\"b`} FROM [{'a`b': 1, 'a\"b': 2, 'a`\"b': 3}] arr"
+    query: 'SELECT VALUE {''a`b'': `a``b`, ''a"b'': `a"b`, ''a`"b'': `a``"b`} FROM [{''a`b'': 1, ''a"b'': 2, ''a`"b'': 3}] arr'
     current_db: test
     translation_target_db: test
     translation:
-      - {'$documents': [{'a`b': {'$literal': 1}, 'a"b': {'$literal': 2}, 'a`"b': {'$literal': 3}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a`b': '$arr.a`b', 'a"b': '$arr.a"b', 'a`"b': '$arr.a`"b'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
+      - {
+          "$documents":
+            [
+              {
+                "a`b": { "$literal": 1 },
+                'a"b': { "$literal": 2 },
+                'a`"b': { "$literal": 3 },
+              },
+            ],
+        }
+      - { "$project": { "_id": 0, "arr": "$$ROOT" } }
+      - {
+          "$project":
+            {
+              "_id": 0,
+              "__bot":
+                { "a`b": "$arr.a`b", 'a"b': '$arr.a"b', 'a`"b': '$arr.a`"b' },
+            },
+        }
+      - {
+          "$replaceWith":
+            {
+              "$unsetField":
+                {
+                  "field": "__bot",
+                  "input":
+                    {
+                      "$setField":
+                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
+                    },
+                },
+            },
+        }
     result:
-      - {'': {'a`b': 1, 'a"b': 2, 'a`"b': 3}}
+      - { "": { "a`b": 1, 'a"b': 2, 'a`"b': 3 } }
 
   - description: Double quote delimited identifiers containing delimiter characters
-    query: "SELECT VALUE {'a`b': \"a`b\", 'a\"b': \"a\"\"b\", 'a`\"b': \"a`\"\"b\"} FROM [{'a`b': 1, 'a\"b': 2, 'a`\"b': 3}] arr"
+    query: 'SELECT VALUE {''a`b'': "a`b", ''a"b'': "a""b", ''a`"b'': "a`""b"} FROM [{''a`b'': 1, ''a"b'': 2, ''a`"b'': 3}] arr'
     current_db: test
     translation_target_db: test
     translation:
-      - {'$documents': [{'a`b': {'$literal': 1}, 'a"b': {'$literal': 2}, 'a`"b': {'$literal': 3}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a`b': '$arr.a`b', 'a"b': '$arr.a"b', 'a`"b': '$arr.a`"b'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
+      - {
+          "$documents":
+            [
+              {
+                "a`b": { "$literal": 1 },
+                'a"b': { "$literal": 2 },
+                'a`"b': { "$literal": 3 },
+              },
+            ],
+        }
+      - { "$project": { "_id": 0, "arr": "$$ROOT" } }
+      - {
+          "$project":
+            {
+              "_id": 0,
+              "__bot":
+                { "a`b": "$arr.a`b", 'a"b': '$arr.a"b', 'a`"b': '$arr.a`"b' },
+            },
+        }
+      - {
+          "$replaceWith":
+            {
+              "$unsetField":
+                {
+                  "field": "__bot",
+                  "input":
+                    {
+                      "$setField":
+                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
+                    },
+                },
+            },
+        }
     result:
-      - {'': {'a`b': 1, 'a"b': 2, 'a`"b': 3}}
+      - { "": { "a`b": 1, 'a"b': 2, 'a`"b': 3 } }
 
   - description: Regular and delimited identifiers
     query: "SELECT VALUE {'a': a, 'b': `b`} FROM [{'a': 1, 'b': 2}, {'a': 3, 'b': 4}] arr"
     current_db: test
     translation_target_db: test
     translation:
-      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 2}}, {'a': {'$literal': 3}, 'b': {'$literal': 4}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'b': '$arr.b'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
+      - {
+          "$documents":
+            [
+              { "a": { "$literal": 1 }, "b": { "$literal": 2 } },
+              { "a": { "$literal": 3 }, "b": { "$literal": 4 } },
+            ],
+        }
+      - { "$project": { "_id": 0, "arr": "$$ROOT" } }
+      - { "$project": { "_id": 0, "__bot": { "a": "$arr.a", "b": "$arr.b" } } }
+      - {
+          "$replaceWith":
+            {
+              "$unsetField":
+                {
+                  "field": "__bot",
+                  "input":
+                    {
+                      "$setField":
+                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
+                    },
+                },
+            },
+        }
     result:
-      - {'': {'a': 1, 'b': 2}}
-      - {'': {'a': 3, 'b': 4}}
+      - { "": { "a": 1, "b": 2 } }
+      - { "": { "a": 3, "b": 4 } }
 
   - description: Undelimited identifier with non-ASCII characters is invalid
     query: "SELECT VALUE {'αβγ': αβγ} FROM [{'αβγ': 1}] arr"
@@ -319,42 +601,83 @@ tests:
     current_db: test
     translation_target_db: test
     translation:
-      - {'$documents': [{'αβγ': {'$literal': 1}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'αβγ': '$arr.αβγ'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
+      - { "$documents": [{ "αβγ": { "$literal": 1 } }] }
+      - { "$project": { "_id": 0, "arr": "$$ROOT" } }
+      - { "$project": { "_id": 0, "__bot": { "αβγ": "$arr.αβγ" } } }
+      - {
+          "$replaceWith":
+            {
+              "$unsetField":
+                {
+                  "field": "__bot",
+                  "input":
+                    {
+                      "$setField":
+                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
+                    },
+                },
+            },
+        }
     result:
-      - {'': {'αβγ': 1}}
+      - { "": { "αβγ": 1 } }
 
   - description: Compound identifier with more than 3 parts
     query: "SELECT VALUE {'d': a.b.c.d} FROM [{'a': {'b': {'c': {'d': 1}}}}] arr"
     current_db: test
     translation_target_db: test
     translation:
-      - {'$documents': [{'a': {'b': {'c': {'d': {'$literal': 1}}}}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'d': '$arr.a.b.c.d'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
+      - {
+          "$documents": [{ "a": { "b": { "c": { "d": { "$literal": 1 } } } } }],
+        }
+      - { "$project": { "_id": 0, "arr": "$$ROOT" } }
+      - { "$project": { "_id": 0, "__bot": { "d": "$arr.a.b.c.d" } } }
+      - {
+          "$replaceWith":
+            {
+              "$unsetField":
+                {
+                  "field": "__bot",
+                  "input":
+                    {
+                      "$setField":
+                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
+                    },
+                },
+            },
+        }
     result:
-      - {'': {'d': 1}}
+      - { "": { "d": 1 } }
 
   - description: Case-sensitive identifiers
     query: "SELECT VALUE {'a': a, 'A': A} FROM [{'a': 1, 'A': 2}, {'a': 3}, {'A': 4}] arr"
     current_db: test
     translation_target_db: test
     translation:
-      - {'$documents': [{'a': {'$literal': 1}, 'A': {'$literal': 2}}, {'a': {'$literal': 3}}, {'A': {'$literal': 4}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'A': '$arr.A'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
+      - {
+          "$documents":
+            [
+              { "a": { "$literal": 1 }, "A": { "$literal": 2 } },
+              { "a": { "$literal": 3 } },
+              { "A": { "$literal": 4 } },
+            ],
+        }
+      - { "$project": { "_id": 0, "arr": "$$ROOT" } }
+      - { "$project": { "_id": 0, "__bot": { "a": "$arr.a", "A": "$arr.A" } } }
+      - {
+          "$replaceWith":
+            {
+              "$unsetField":
+                {
+                  "field": "__bot",
+                  "input":
+                    {
+                      "$setField":
+                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
+                    },
+                },
+            },
+        }
     result:
-      - {'': {'a': 1, 'A': 2}}
-      - {'': {'a': 3}}
-      - {'': {'A': 4}}
-
+      - { "": { "a": 1, "A": 2 } }
+      - { "": { "a": 3 } }
+      - { "": { "A": 4 } }

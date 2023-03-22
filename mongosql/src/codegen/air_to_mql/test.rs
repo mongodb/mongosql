@@ -1728,6 +1728,20 @@ mod get_field {
             .into(),
         })
     );
+
+    test_codegen_air_expr!(
+        with_dollar_sign,
+        expected = Ok(
+            bson!({"$getField": {"field": { "$literal": "$x"}, "input": {"$x": {"$literal": 42}}}})
+        ),
+        input = GetField(air::GetField {
+            field: "$x".to_string(),
+            input: Document(unchecked_unique_linked_hash_map! {
+                "$x".to_string() => Literal(LiteralValue::Integer(42)),
+            })
+            .into(),
+        })
+    );
 }
 
 mod air_sql_convert {
