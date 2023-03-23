@@ -440,7 +440,7 @@ impl MqlCodeGenerator {
             air::Stage::ReplaceWith(r) => self.codegen_replace_with(r),
             air::Stage::Match(m) => self.codegen_match(m),
             air::Stage::UnionWith(_u) => Err(Error::UnimplementedAIR),
-            air::Stage::Skip(_s) => Err(Error::UnimplementedAIR),
+            air::Stage::Skip(s) => self.codegen_skip(s),
             air::Stage::Documents(d) => self.codegen_documents(d),
         }
     }
@@ -624,6 +624,17 @@ impl MqlCodeGenerator {
 
         pipeline.push(doc! {"$unwind": unwind_body});
 
+        Ok(MqlTranslation {
+            database: source_translation.database,
+            collection: source_translation.collection,
+            pipeline,
+        })
+    }
+
+    fn codegen_skip(&self, air_skip: air::Skip) -> Result<MqlTranslation> {
+        let source_translation = self.codegen_air_stage(*air_skip.source)?;
+        let mut pipeline = source_translation.pipeline;
+        pipeline.push(doc! {"$skip": Bson::Int64(air_skip.skip)});
         Ok(MqlTranslation {
             database: source_translation.database,
             collection: source_translation.collection,

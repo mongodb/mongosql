@@ -2059,6 +2059,29 @@ mod air_lookup_stage {
     );
 }
 
+mod air_skip_stage {
+    use crate::air::*;
+    use bson::Bson;
+
+    test_codegen_air_plan!(
+        skip,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                bson::doc! {"$skip": Bson::Int64(10)},
+            ],
+        }),
+        input = Stage::Skip(Skip {
+            source: Box::new(Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            })),
+            skip: 10,
+        }),
+    );
+}
+
 mod air_is {
     use crate::air::{Expression::*, FieldRef, Is, Type, TypeOrMissing};
     use bson::bson;

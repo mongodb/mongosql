@@ -148,7 +148,7 @@ pub struct UnionWith {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Skip {
     pub source: Box<Stage>,
-    pub skip: u64,
+    pub skip: i64,
 }
 
 #[derive(PartialEq, Debug, Clone)]
