@@ -37,6 +37,8 @@ pub enum Error {
     InvalidGroupKey,
     #[error("invalid sqlConvert target type: {0:?}")]
     InvalidSqlConvertToType(air::Type),
+    #[error("unexpected expr type for sort: not a FieldAccess or Reference")]
+    ExprNotReferenceOrFieldAccess,
 }
 
 impl From<mir::Type> for air::Type {
@@ -173,7 +175,7 @@ impl MqlTranslator {
             mir::Stage::Group(g) => self.translate_group(g),
             mir::Stage::Limit(_l) => Err(Error::UnimplementedStruct),
             mir::Stage::Offset(_o) => Err(Error::UnimplementedStruct),
-            mir::Stage::Sort(_s) => Err(Error::UnimplementedStruct),
+            mir::Stage::Sort(s) => self.translate_sort(s),
             mir::Stage::Join(_j) => Err(Error::UnimplementedStruct),
             mir::Stage::Set(_s) => Err(Error::UnimplementedStruct),
             mir::Stage::Derived(_d) => Err(Error::UnimplementedStruct),
@@ -243,6 +245,28 @@ impl MqlTranslator {
         Ok(air::Stage::Project(air::Project {
             source: Box::new(source_translation),
             specifications: project_body,
+        }))
+    }
+
+    fn translate_sort(&mut self, mir_sort: mir::Sort) -> Result<air::Stage> {
+        let source_translation = self.translate_stage(*mir_sort.source)?;
+        let specifications = mir_sort
+            .specs
+            .into_iter()
+            .map(|spec| {
+                Ok(match spec {
+                    mir::SortSpecification::Asc(mir_expr) => {
+                        air::SortSpecification::Asc(self.get_reference_key_name(*mir_expr)?)
+                    }
+                    mir::SortSpecification::Desc(mir_expr) => {
+                        air::SortSpecification::Desc(self.get_reference_key_name(*mir_expr)?)
+                    }
+                })
+            })
+            .collect::<Result<Vec<air::SortSpecification>>>()?;
+        Ok(air::Stage::Sort(air::Sort {
+            source: source_translation.into(),
+            specs: specifications,
         }))
     }
 
@@ -546,6 +570,22 @@ impl MqlTranslator {
                 .map(|x| self.translate_expression(x))
                 .collect::<Result<Vec<air::Expression>>>()?,
         ))
+    }
+
+    fn get_reference_key_name(&self, expr: mir::Expression) -> Result<String> {
+        match expr {
+            mir::Expression::Reference(reference) => self
+                .mapping_registry
+                .get(&reference.key)
+                .ok_or(Error::ReferenceNotFound(reference.key))
+                .map(|s| s.clone()),
+            mir::Expression::FieldAccess(reference) => Ok(format!(
+                "{}.{}",
+                self.get_reference_key_name(*reference.expr)?,
+                reference.field
+            )),
+            _ => Err(Error::ExprNotReferenceOrFieldAccess),
+        }
     }
 
     fn translate_reference(&self, key: Key) -> Result<air::Expression> {

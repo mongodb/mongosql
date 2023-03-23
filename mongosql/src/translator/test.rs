@@ -2293,6 +2293,183 @@ mod group_stage {
     );
 }
 
+mod sort_stage {
+    use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
+
+    use crate::{map, unchecked_unique_linked_hash_map};
+
+    test_translate_stage!(
+        sort_stage_multi_key_reference,
+        expected = Ok(air::Stage::Sort(air::Sort {
+                source: air::Stage::Project(air::Project {
+                    source: air::Stage::Project(air::Project {
+                        source: air::Stage::Collection(air::Collection {
+                            db: "test_db".to_string(),
+                            collection: "foo".to_string(),
+                        }).into(),
+                        specifications: unchecked_unique_linked_hash_map!{
+                            "foo".to_string() => air::Expression::Variable("ROOT".to_string())
+                        }
+                    }).into(),
+                    specifications: unchecked_unique_linked_hash_map!{
+                        "__bot".to_string() => air::Expression::FieldRef(air::FieldRef{ parent: None, name: "foo".to_string()}),
+                        "bar".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1)),
+                        "baz".to_string() => air::Expression::Literal(air::LiteralValue::Integer(2)),
+                    }
+                }).into(),
+           specs: vec![
+                air::SortSpecification::Desc("bar".to_string()),
+                air::SortSpecification::Asc("baz".to_string())
+            ],
+        })),
+        input = mir::Stage::Sort(mir::Sort {
+            source: mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Collection(mir::Collection {
+                    db: "test_db".into(),
+                    collection: "foo".into(),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                expression: BindingTuple(map! {
+                    Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
+                    Key::named("bar", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                    Key::named("baz", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
+                }),
+            cache: mir::schema::SchemaCache::new(),
+        }).into(),
+            specs: vec![
+                mir::SortSpecification::Desc(
+                    mir::Expression::Reference(mir::ReferenceExpr {
+                        key: Key::named("bar", 0u16),
+                        cache: mir::schema::SchemaCache::new(),
+                    })
+                    .into()
+                ),
+                mir::SortSpecification::Asc(
+                    mir::Expression::Reference(mir::ReferenceExpr {
+                        key: Key::named("baz", 0u16),
+                        cache: mir::schema::SchemaCache::new(),
+                    })
+                    .into()
+                )
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+
+    test_translate_stage!(
+        sort_stage_multi_key_field_access,
+        expected = Ok(air::Stage::Sort(air::Sort {
+            source: air::Stage::Project(air::Project {
+                source: air::Stage::Collection(air::Collection {
+                    db: "test_db".into(),
+                    collection: "foo".into(),
+                })
+                .into(),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "foo".to_string() => air::Expression::Variable("ROOT".to_string())
+                }
+            })
+            .into(),
+
+            specs: vec![
+                air::SortSpecification::Desc("foo.bar".to_string()),
+                air::SortSpecification::Asc("foo.baz".to_string())
+            ],
+        })),
+        input = mir::Stage::Sort(mir::Sort {
+            source: mir::Stage::Collection(mir::Collection {
+                db: "test_db".into(),
+                collection: "foo".into(),
+                cache: mir::schema::SchemaCache::new(),
+            })
+            .into(),
+            specs: vec![
+                mir::SortSpecification::Desc(
+                    mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: mir::Expression::Reference(("foo", 0u16).into()).into(),
+                        field: "bar".into(),
+                        cache: mir::schema::SchemaCache::new()
+                    })
+                    .into()
+                ),
+                mir::SortSpecification::Asc(
+                    mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: mir::Expression::Reference(("foo", 0u16).into()).into(),
+                        field: "baz".into(),
+                        cache: mir::schema::SchemaCache::new()
+                    })
+                    .into()
+                )
+            ],
+            cache: mir::schema::SchemaCache::new()
+        })
+    );
+
+    test_translate_stage!(
+        sort_stage_nested_key,
+        expected = Ok(air::Stage::Sort(air::Sort {
+            source: air::Stage::Project(air::Project {
+                source: air::Stage::Collection(air::Collection {
+                    db: "test_db".into(),
+                    collection: "foo".into(),
+                })
+                .into(),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "foo".to_string() => air::Expression::Variable("ROOT".to_string())
+                }
+            })
+            .into(),
+
+            specs: vec![
+                air::SortSpecification::Desc("foo.bar.quz".to_string()),
+                air::SortSpecification::Asc("foo.baz.fizzle.bazzle".to_string())
+            ],
+        })),
+        input = mir::Stage::Sort(mir::Sort {
+            source: mir::Stage::Collection(mir::Collection {
+                db: "test_db".into(),
+                collection: "foo".into(),
+                cache: mir::schema::SchemaCache::new(),
+            })
+            .into(),
+            specs: vec![
+                mir::SortSpecification::Desc(
+                    mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: mir::Expression::FieldAccess(mir::FieldAccess {
+                            expr: mir::Expression::Reference(("foo", 0u16).into()).into(),
+                            field: "bar".into(),
+                            cache: mir::schema::SchemaCache::new()
+                        })
+                        .into(),
+                        field: "quz".into(),
+                        cache: mir::schema::SchemaCache::new()
+                    })
+                    .into(),
+                ),
+                mir::SortSpecification::Asc(
+                    mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: mir::Expression::FieldAccess(mir::FieldAccess {
+                            expr: mir::Expression::FieldAccess(mir::FieldAccess {
+                                expr: mir::Expression::Reference(("foo", 0u16).into()).into(),
+                                field: "baz".into(),
+                                cache: mir::schema::SchemaCache::new(),
+                            })
+                            .into(),
+                            field: "fizzle".into(),
+                            cache: mir::schema::SchemaCache::new(),
+                        })
+                        .into(),
+                        field: "bazzle".into(),
+                        cache: mir::schema::SchemaCache::new(),
+                    })
+                    .into()
+                )
+            ],
+            cache: mir::schema::SchemaCache::new()
+        })
+    );
+}
+
 mod translate_plan {
     use crate::{map, unchecked_unique_linked_hash_map};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
