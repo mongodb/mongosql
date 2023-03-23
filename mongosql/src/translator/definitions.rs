@@ -497,6 +497,7 @@ impl MqlTranslator {
             mir::Expression::FieldAccess(field_access) => self.translate_field_access(field_access),
             mir::Expression::Is(is) => self.translate_is(is),
             mir::Expression::Like(like_expr) => self.translate_like(like_expr),
+            mir::Expression::SimpleCase(simple_case) => self.translate_simple_case(simple_case),
             _ => Err(Error::UnimplementedStruct),
         }
     }
@@ -728,6 +729,37 @@ impl MqlTranslator {
             expr,
             pattern,
             escape: like_expr.escape,
+        }))
+    }
+
+    fn translate_simple_case(&self, simple_case: mir::SimpleCaseExpr) -> Result<air::Expression> {
+        let expr = self.translate_expression(*simple_case.expr)?;
+        let default = self.translate_expression(*simple_case.else_branch)?.into();
+        let branches = simple_case
+            .when_branch
+            .iter()
+            .map(|branch| {
+                Ok(air::SwitchCase {
+                    case: Box::new(air::Expression::SQLSemanticOperator(
+                        air::SQLSemanticOperator {
+                            op: air::SQLOperator::Eq,
+                            args: vec![
+                                air::Expression::Variable("target".to_string()),
+                                self.translate_expression(*branch.when.clone())?,
+                            ],
+                        },
+                    )),
+                    then: Box::new(self.translate_expression(*branch.then.clone())?),
+                })
+            })
+            .collect::<Result<Vec<air::SwitchCase>>>()?;
+        let switch = air::Expression::Switch(air::Switch { branches, default });
+        Ok(air::Expression::Let(air::Let {
+            vars: vec![air::LetVariable {
+                name: "target".to_string(),
+                expr: Box::new(expr),
+            }],
+            inside: Box::new(switch),
         }))
     }
 }

@@ -1557,6 +1557,76 @@ mod field_access_expression {
     );
 }
 
+mod simple_case_expression {
+    use crate::{air, mir};
+
+    test_translate_expression!(
+        integer_simple_case,
+        expected = Ok(air::Expression::Let(air::Let {
+            vars: vec![air::LetVariable {
+                name: "target".to_string(),
+                expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(3)))
+            }],
+            inside: Box::new(air::Expression::Switch(air::Switch {
+                branches: vec![
+                    air::SwitchCase {
+                        case: Box::new(air::Expression::SQLSemanticOperator(
+                            air::SQLSemanticOperator {
+                                op: air::SQLOperator::Eq,
+                                args: vec![
+                                    air::Expression::Variable("target".to_string()),
+                                    air::Expression::Literal(air::LiteralValue::Integer(4))
+                                ]
+                            }
+                        )),
+                        then: Box::new(air::Expression::Literal(air::LiteralValue::Integer(5))),
+                    },
+                    air::SwitchCase {
+                        case: Box::new(air::Expression::SQLSemanticOperator(
+                            air::SQLSemanticOperator {
+                                op: air::SQLOperator::Eq,
+                                args: vec![
+                                    air::Expression::Variable("target".to_string()),
+                                    air::Expression::Literal(air::LiteralValue::Integer(5))
+                                ]
+                            }
+                        )),
+                        then: Box::new(air::Expression::Literal(air::LiteralValue::Integer(6))),
+                    },
+                ],
+                default: Box::new(air::Expression::Literal(air::LiteralValue::Integer(7)))
+            }))
+        })),
+        input = mir::Expression::SimpleCase(mir::SimpleCaseExpr {
+            expr: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(3).into()
+            )),
+            when_branch: vec![
+                mir::WhenBranch {
+                    when: Box::new(mir::Expression::Literal(
+                        mir::LiteralValue::Integer(4).into()
+                    )),
+                    then: Box::new(mir::Expression::Literal(
+                        mir::LiteralValue::Integer(5).into()
+                    )),
+                },
+                mir::WhenBranch {
+                    when: Box::new(mir::Expression::Literal(
+                        mir::LiteralValue::Integer(5).into()
+                    )),
+                    then: Box::new(mir::Expression::Literal(
+                        mir::LiteralValue::Integer(6).into()
+                    )),
+                },
+            ],
+            else_branch: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(7).into()
+            )),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+}
+
 mod documents_stage {
     use crate::unchecked_unique_linked_hash_map;
 
