@@ -441,6 +441,83 @@ mod air_unwind {
     );
 }
 
+mod air_switch {
+    use crate::air::{
+        Expression::*, LiteralValue::*, MQLOperator::*, MQLSemanticOperator, Switch, SwitchCase,
+    };
+    use bson::{bson, doc};
+
+    test_codegen_air_expr!(
+        one_case,
+        expected = Ok(bson!({"$switch":
+            {
+                "branches": vec![doc!{
+                    "case": {"$lt": [{ "$literal": 10}, { "$literal": 20}]},
+                    "then": {"$literal": "first"}
+                }],
+                "default": {"$literal": "else"}
+            }
+        })),
+        input = Switch(Switch {
+            branches: vec![SwitchCase {
+                case: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                    op: Lt,
+                    args: vec![Literal(Integer(10)), Literal(Integer(20))],
+                })),
+                then: Box::new(Literal(String("first".to_string())))
+            }],
+            default: Box::new(Literal(String("else".to_string())))
+        })
+    );
+
+    test_codegen_air_expr!(
+        multiple_cases,
+        expected = Ok(bson!({"$switch":
+            {
+                "branches": vec![doc!{
+                    "case": {"$lt": [{ "$literal": 10}, { "$literal": 20}]},
+                    "then": {"$literal": "first"}
+                },
+                doc!{
+                    "case": {"$gt": [{ "$literal": 1}, { "$literal": 2}]},
+                    "then": {"$literal": "second"}
+                },
+                doc!{
+                    "case": {"$eq": [{ "$literal": 1}, { "$literal": 2}]},
+                    "then": {"$literal": "third"}
+                }],
+                "default": {"$literal": "else"}
+            }
+        })),
+        input = Switch(Switch {
+            branches: vec![
+                SwitchCase {
+                    case: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                        op: Lt,
+                        args: vec![Literal(Integer(10)), Literal(Integer(20))],
+                    })),
+                    then: Box::new(Literal(String("first".to_string())))
+                },
+                SwitchCase {
+                    case: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                        op: Gt,
+                        args: vec![Literal(Integer(1)), Literal(Integer(2))],
+                    })),
+                    then: Box::new(Literal(String("second".to_string())))
+                },
+                SwitchCase {
+                    case: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                        op: Eq,
+                        args: vec![Literal(Integer(1)), Literal(Integer(2))],
+                    })),
+                    then: Box::new(Literal(String("third".to_string())))
+                }
+            ],
+            default: Box::new(Literal(String("else".to_string())))
+        })
+    );
+}
+
 mod air_literal {
     use crate::air::{Expression::*, LiteralValue::*};
     use bson::{bson, Bson};

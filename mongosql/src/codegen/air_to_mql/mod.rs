@@ -215,6 +215,24 @@ impl MqlCodeGenerator {
     pub fn codegen_air_expression(&self, expr: air::Expression) -> Result<bson::Bson> {
         use air::{Expression::*, LiteralValue::*};
         match expr {
+            Switch(switch) => {
+                let branches = switch
+                    .branches
+                    .into_iter()
+                    .map(|sw| {
+                        Ok(doc! {"case": self.codegen_air_expression(*sw.case)?,
+                        "then": self.codegen_air_expression(*sw.then)?})
+                    })
+                    .collect::<Result<Vec<bson::Document>>>()?;
+                let default = self.codegen_air_expression(*switch.default)?;
+
+                Ok(bson!({
+                    "$switch": {
+                        "branches": branches,
+                        "default": default,
+                    }
+                }))
+            }
             Literal(lit) => Ok(bson::bson!({
                 "$literal": match lit {
                     Null => Bson::Null,
