@@ -12,436 +12,7 @@ macro_rules! test_codegen_air_expr {
     };
 }
 
-macro_rules! test_codegen_air_plan {
-    (
-		$func_name:ident,
-		expected = Ok({
-			database: $expected_db:expr,
-			collection: $expected_collection:expr,
-			pipeline: $expected_pipeline:expr,
-		}),
-		input = $input: expr,
-	) => {
-        #[test]
-        fn $func_name() {
-            use crate::codegen::{air_to_mql::MqlTranslation, generate_mql_from_air};
-
-            let input = $input;
-            let expected_db = $expected_db;
-            let expected_collection = $expected_collection;
-            let expected_pipeline = $expected_pipeline;
-
-            let MqlTranslation {
-                database: db,
-                collection: col,
-                pipeline: pipeline,
-            } = generate_mql_from_air(input).expect("codegen failed");
-
-            assert_eq!(expected_db, db);
-            assert_eq!(expected_collection, col);
-            assert_eq!(expected_pipeline, pipeline);
-        }
-    };
-
-    ($func_name:ident, expected = Err($expected_err:expr), input = $input:expr,) => {
-        #[test]
-        fn $func_name() {
-            use crate::codegen::generate_mql_from_air;
-
-            let input = $input;
-            let expected = Err($expected_err);
-
-            assert_eq!(expected, generate_mql_from_air(input));
-        }
-    };
-}
-
-mod air_match {
-    use crate::air::*;
-
-    use bson::doc;
-
-    test_codegen_air_plan!(
-        simple,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![doc!{"$match": {"$expr": { "$eq": [{ "$literal": 1}, { "$literal": 2}]}}}],
-        }),
-        input = Stage::Match( Match {
-            source:Box::new(
-                Stage::Collection( Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                    })
-            ),
-            expr : Box::new(
-                Expression::MQLSemanticOperator( MQLSemanticOperator {
-                    op: MQLOperator::Eq,
-                    args: vec![Expression::Literal(LiteralValue::Integer(1)), Expression::Literal(LiteralValue::Integer(2))]
-                })
-            )
-        }),
-    );
-}
-
-mod air_collection {
-    use crate::air::*;
-
-    test_codegen_air_plan!(
-        simple,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: Vec::<bson::Document>::new(),
-        }),
-        input = Stage::Collection(Collection {
-            db: "mydb".to_string(),
-            collection: "col".to_string(),
-        }),
-    );
-}
-
-mod air_project {
-    use crate::{air::*, unchecked_unique_linked_hash_map};
-    use bson::doc;
-
-    test_codegen_air_plan!(
-        simple,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![doc!{"$project": {"_id": 0, "foo": "$col", "bar": {"$literal": 19}}}],
-        }),
-        input = Stage::Project(Project {
-            source: Box::new(
-                Stage::Collection( Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                }),
-            ),
-            specifications: unchecked_unique_linked_hash_map! {
-                "foo".to_string() => Expression::FieldRef(
-                    FieldRef { parent: None,  name: "col".to_string() }
-                ),
-                "bar".to_string() => Expression::Literal(LiteralValue::Integer(19)),
-            },
-        }),
-    );
-
-    test_codegen_air_plan!(
-        project_of_id_overwritten,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![doc!{"$project": {"_id": "$col", "bar": {"$literal": 19}}}],
-        }),
-        input = Stage::Project(Project {
-            source: Box::new(
-                Stage::Collection( Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                }),
-            ),
-            specifications: unchecked_unique_linked_hash_map! {
-                "_id".to_string() => Expression::FieldRef(
-                    FieldRef { parent: None,  name: "col".to_string() }
-                ),
-                "bar".to_string() => Expression::Literal(LiteralValue::Integer(19)),
-            },
-        }),
-    );
-}
-
-mod air_group {
-    use crate::air::*;
-    use bson::doc;
-
-    test_codegen_air_plan!(
-        simple,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                doc!{"$group": {"_id": {"foo": "$foo", "bar": {"$add": ["$bar", {"$literal": 1}]}},
-                                "x": {"$min": "$x"},
-                                "y": {"$max": {"$mod": ["$x", {"$literal": 1}]}}
-                               }
-                }
-            ],
-        }),
-        input = Stage::Group(Group {
-            source: Box::new(
-                Stage::Collection( Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
-            keys: vec![
-                NameExprPair {
-                    name: "foo".into(),
-                    expr: Expression::FieldRef(FieldRef {
-                        parent: None,
-                        name: "foo".into(),
-                    })
-                },
-                NameExprPair {
-                    name: "bar".into(),
-                    expr: Expression::MQLSemanticOperator( MQLSemanticOperator {
-                        op: MQLOperator::Add,
-                        args: vec![
-                            Expression::FieldRef(FieldRef {
-                                parent: None,
-                                name: "bar".into(),
-                            }),
-                            Expression::Literal(LiteralValue::Integer(1))
-                        ],
-                    })
-                },
-            ],
-            aggregations: vec![
-                AccumulatorExpr {
-                    alias: "x".into(),
-                    function: AggregationFunction::Min,
-                    distinct: false,
-                    arg: Expression::FieldRef(FieldRef {
-                        parent: None,
-                        name: "x".into(),
-                    }).into(),
-                },
-                AccumulatorExpr {
-                    alias: "y".into(),
-                    function: AggregationFunction::Max,
-                    distinct: false,
-                    arg: Expression::MQLSemanticOperator(MQLSemanticOperator {
-                        op: MQLOperator::Mod,
-                        args: vec![
-                            Expression::FieldRef(FieldRef {
-                                parent: None,
-                                name: "x".into(),
-                            }),
-                            Expression::Literal(LiteralValue::Integer(1i32))
-                        ],
-                    }).into(),
-                },
-            ],
-        }),
-    );
-
-    test_codegen_air_plan!(
-        distinct_ops_are_sql_ops,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                doc!{"$group": {"_id": {"foo": "$foo"},
-                                "x": {"$sqlMin": {"var": "$x", "distinct": true}},
-                               }
-                }
-            ],
-        }),
-        input = Stage::Group(Group {
-            source: Box::new(
-                Stage::Collection( Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
-            keys: vec![
-                NameExprPair {
-                    name: "foo".into(),
-                    expr: Expression::FieldRef(FieldRef {
-                        parent: None,
-                        name: "foo".into(),
-                    })
-                },
-            ],
-            aggregations: vec![
-                AccumulatorExpr {
-                    alias: "x".into(),
-                    function: AggregationFunction::Min,
-                    distinct: true,
-                    arg: Expression::FieldRef(FieldRef {
-                        parent: None,
-                        name: "x".into(),
-                    }).into(),
-                },
-            ],
-        }),
-    );
-
-    test_codegen_air_plan!(
-        count_is_always_a_sql_op,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                doc!{"$group": {"_id": {"foo": "$foo"},
-                                "x": {"$sqlCount": {"var": "$x", "distinct": false}},
-                               }
-                }
-            ],
-        }),
-        input = Stage::Group(Group {
-            source: Box::new(
-                Stage::Collection( Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
-            keys: vec![
-                NameExprPair {
-                    name: "foo".into(),
-                    expr: Expression::FieldRef(FieldRef {
-                        parent: None,
-                        name: "foo".into(),
-                    })
-                },
-            ],
-            aggregations: vec![
-                AccumulatorExpr {
-                    alias: "x".into(),
-                    function: AggregationFunction::Count,
-                    distinct: false,
-                    arg: Expression::FieldRef(FieldRef {
-                        parent: None,
-                        name: "x".into(),
-                    }).into(),
-                },
-            ],
-        }),
-    );
-}
-
-mod air_unwind {
-    use crate::{air::*, unchecked_unique_linked_hash_map};
-    use bson::doc;
-
-    test_codegen_air_plan!(
-        unwind_with_only_path,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                doc!{"$unwind": {"path": "$array" }}
-            ],
-        }),
-        input = Stage::Unwind(Unwind {
-            source: Box::new(Stage::Collection(Collection {
-                db: "mydb".to_string(),
-                collection: "col".to_string(),
-            })),
-            path: Expression::FieldRef(FieldRef {
-                parent: None,
-                name: "array".into(),
-            }).into(),
-            index: None,
-            outer: false
-        }),
-    );
-
-    test_codegen_air_plan!(
-        unwind_with_index_string,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                doc!{"$unwind": {"path": "$array", "includeArrayIndex": "i" }}
-            ],
-        }),
-        input = Stage::Unwind(Unwind {
-            source: Box::new(Stage::Collection(Collection {
-                db: "mydb".to_string(),
-                collection: "col".to_string(),
-            })),
-            path: Expression::FieldRef(FieldRef {
-                parent: None,
-                name: "array".into(),
-            }).into(),
-            index: Some("i".into()),
-            outer: false
-        }),
-    );
-
-    test_codegen_air_plan!(
-        unwind_with_preserve_null_and_empty_arrays,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                doc!{"$unwind": {"path": "$array", "preserveNullAndEmptyArrays": true }}
-            ],
-        }),
-        input = Stage::Unwind(Unwind {
-            source: Box::new(Stage::Collection(Collection {
-                db: "mydb".to_string(),
-                collection: "col".to_string(),
-            })),
-            path: Expression::FieldRef(FieldRef {
-                parent: None,
-                name: "array".into(),
-            }).into(),
-            index: None,
-            outer: true
-        }),
-    );
-    test_codegen_air_plan!(
-        unwind_with_all_args,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                doc!{"$unwind": {"path": "$array", "includeArrayIndex": "i", "preserveNullAndEmptyArrays": true }}
-            ],
-        }),
-        input = Stage::Unwind(Unwind {
-            source: Box::new(Stage::Collection(Collection {
-                db: "mydb".to_string(),
-                collection: "col".to_string(),
-            })),
-            path: Expression::FieldRef(FieldRef {
-                parent: None,
-                name: "array".into(),
-            }).into(),
-            index: Some("i".into()),
-            outer: true
-        }),
-    );
-    test_codegen_air_plan!(
-        unwind_proper_field_paths,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                doc!{"$project": {"_id": 0, "foo": "$col"}},
-                doc!{"$unwind": {"path": "$foo.a.b", "includeArrayIndex": "foo.i", "preserveNullAndEmptyArrays": true }}
-            ],
-        }),
-        input = Stage::Unwind(Unwind {
-            source: Box::new(Stage::Project(Project {
-                source: Box::new(Stage::Collection(Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
-                specifications: unchecked_unique_linked_hash_map! {
-                "foo".to_string() => Expression::FieldRef(
-                    FieldRef { parent: None,  name: "col".to_string() }
-                )}
-            })),
-            path: Expression::FieldRef(FieldRef {
-                parent:Some(FieldRef {
-                    parent: Some(FieldRef {
-                        parent: None,
-                        name: "foo".into(),
-                    }.into()),
-                    name: "a".into(),
-                }.into()),
-                name: "b".into(),
-            }).into(),
-            index: Some("i".into()),
-            outer: true,
-        }),
-    );
-}
-
-mod air_switch {
+mod switch {
     use crate::air::{
         Expression::*, LiteralValue::*, MQLOperator::*, MQLSemanticOperator, Switch, SwitchCase,
     };
@@ -518,7 +89,7 @@ mod air_switch {
     );
 }
 
-mod air_literal {
+mod literal {
     use crate::air::{Expression::*, LiteralValue::*};
     use bson::{bson, Bson};
 
@@ -559,7 +130,7 @@ mod air_literal {
     );
 }
 
-mod air_mql_semantic_operator {
+mod mql_semantic_operator {
     use crate::air::{Expression::*, LiteralValue::*, MQLOperator::*, MQLSemanticOperator};
     use bson::bson;
 
@@ -1104,7 +675,7 @@ mod air_mql_semantic_operator {
     );
 }
 
-mod air_sql_semantic_operator {
+mod sql_semantic_operator {
     use crate::{
         air::{Expression::*, LiteralValue::*, SQLOperator::*, SQLSemanticOperator},
         codegen::air_to_mql::Error,
@@ -1477,34 +1048,358 @@ mod air_sql_semantic_operator {
     );
 }
 
-macro_rules! test_codegen_working_convert {
-    ($test_name:ident, expected = $expected_ty_str:expr, input = $input:expr) => {
-    test_codegen_air_expr!(
-        $test_name,
-        expected = Ok(bson!({ "$convert":
-            {
-                    "input": {"$literal": "foo"},
-                    "to": $expected_ty_str,
-                    "onError": {"$literal": null},
-                    "onNull": {"$literal": null},
-                }
-            })),
-        input = Expression::Convert(Convert {
-                input: Expression::Literal(String("foo".to_string())).into(),
-                to: $input,
-                on_null: Expression::Literal(Null).into(),
-                on_error: Expression::Literal(Null).into(),
-            })
-        );
+mod document {
+    use crate::{
+        air::{Expression::*, LiteralValue::*},
+        unchecked_unique_linked_hash_map,
     };
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        empty,
+        expected = Ok(bson!({"$literal": {}})),
+        input = Document(unchecked_unique_linked_hash_map! {})
+    );
+    test_codegen_air_expr!(
+        non_empty,
+        expected = Ok(bson!({"foo": {"$literal": 1}})),
+        input =
+            Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(1))})
+    );
+    test_codegen_air_expr!(
+        nested,
+        expected = Ok(bson!({"foo": {"$literal": 1}, "bar": {"baz": {"$literal": 2}}})),
+        input = Document(unchecked_unique_linked_hash_map! {
+            "foo".to_string() => Literal(Integer(1)),
+            "bar".to_string() => Document(unchecked_unique_linked_hash_map!{
+                "baz".to_string() => Literal(Integer(2))
+            }),
+        })
+    );
 }
 
-mod air_mql_convert {
+mod array {
+    use crate::air::{Expression::*, LiteralValue::*};
+    use bson::bson;
+
+    test_codegen_air_expr!(empty, expected = Ok(bson!([])), input = Array(vec![]));
+
+    test_codegen_air_expr!(
+        non_empty,
+        expected = Ok(bson!([{"$literal": "abc"}])),
+        input = Array(vec![Literal(String("abc".to_string()))])
+    );
+
+    test_codegen_air_expr!(
+        nested,
+        expected = Ok(bson!([{ "$literal": null }, [{ "$literal": null }]])),
+        input = Array(vec![Literal(Null), Array(vec![Literal(Null)])])
+    );
+}
+
+mod variable {
+    use crate::air::Expression::*;
+    use bson::{bson, Bson};
+
+    test_codegen_air_expr!(
+        simple,
+        expected = Ok(bson!(Bson::String("$$foo".to_string()))),
+        input = Variable("foo".to_string())
+    );
+}
+
+mod field_ref {
+    use crate::air::{self, Expression::FieldRef};
+    use bson::{bson, Bson};
+
+    test_codegen_air_expr!(
+        no_parent,
+        expected = Ok(bson!(Bson::String("$foo".to_string()))),
+        input = FieldRef(air::FieldRef {
+            parent: None,
+            name: "foo".to_string()
+        })
+    );
+    test_codegen_air_expr!(
+        parent,
+        expected = Ok(bson!(Bson::String("$bar.foo".to_string()))),
+        input = FieldRef(air::FieldRef {
+            parent: Some(Box::new(air::FieldRef {
+                parent: None,
+                name: "bar".to_string()
+            })),
+            name: "foo".to_string()
+        })
+    );
+
+    test_codegen_air_expr!(
+        grandparent,
+        expected = Ok(bson!(Bson::String("$baz.bar.foo".to_string()))),
+        input = FieldRef(air::FieldRef {
+            parent: Some(Box::new(air::FieldRef {
+                parent: Some(Box::new(air::FieldRef {
+                    parent: None,
+                    name: "baz".to_string()
+                })),
+                name: "bar".to_string()
+            })),
+            name: "foo".to_string()
+        })
+    );
+}
+
+mod like {
+    use crate::air::{self, Expression};
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        with_escape,
+        expected = Ok(bson!({"$like": {
+            "input": "$input",
+            "pattern": "$pattern",
+            "escape": "escape",
+        }})),
+        input = Expression::Like(air::Like {
+            expr: Box::new(Expression::FieldRef(air::FieldRef {
+                parent: None,
+                name: "input".to_string()
+            })),
+            pattern: Box::new(Expression::FieldRef(air::FieldRef {
+                parent: None,
+                name: "pattern".to_string()
+            })),
+            escape: Some("escape".to_string()),
+        })
+    );
+
+    test_codegen_air_expr!(
+        without_escape,
+        expected = Ok(bson!({"$like": {
+            "input": "$input",
+            "pattern": "$pattern",
+        }})),
+        input = Expression::Like(air::Like {
+            expr: Box::new(Expression::FieldRef(air::FieldRef {
+                parent: None,
+                name: "input".to_string()
+            })),
+            pattern: Box::new(Expression::FieldRef(air::FieldRef {
+                parent: None,
+                name: "pattern".to_string()
+            })),
+            escape: None,
+        })
+    );
+}
+
+mod is {
+    use crate::air::{Expression::*, FieldRef, Is, Type, TypeOrMissing};
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        target_type_missing,
+        expected = Ok(bson!({"$sqlIs": ["$x", {"$literal": "missing"}]})),
+        input = Is(Is {
+            expr: Box::new(FieldRef(FieldRef {
+                parent: None,
+                name: "x".into(),
+            })),
+            target_type: TypeOrMissing::Missing,
+        })
+    );
+
+    test_codegen_air_expr!(
+        target_type_number,
+        expected = Ok(bson!({"$sqlIs": ["$x", {"$literal": "number"}]})),
+        input = Is(Is {
+            expr: Box::new(FieldRef(FieldRef {
+                parent: None,
+                name: "x".into(),
+            })),
+            target_type: TypeOrMissing::Number,
+        })
+    );
+
+    test_codegen_air_expr!(
+        target_type_type,
+        expected = Ok(bson!({"$sqlIs": ["$x", {"$literal": "object"}]})),
+        input = Is(Is {
+            expr: Box::new(FieldRef(FieldRef {
+                parent: None,
+                name: "x".into(),
+            })),
+            target_type: TypeOrMissing::Type(Type::Document),
+        })
+    );
+}
+
+mod get_field {
+    use crate::{
+        air::{
+            self,
+            Expression::{Document, GetField, Literal},
+            LiteralValue,
+        },
+        unchecked_unique_linked_hash_map,
+    };
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        basic,
+        expected = Ok(bson!({"$getField": {"field": "x", "input": {"x": {"$literal": 42}}}})),
+        input = GetField(air::GetField {
+            field: "x".to_string(),
+            input: Document(unchecked_unique_linked_hash_map! {
+                "x".to_string() => Literal(LiteralValue::Integer(42)),
+            })
+            .into(),
+        })
+    );
+
+    test_codegen_air_expr!(
+        with_dollar_sign,
+        expected = Ok(
+            bson!({"$getField": {"field": { "$literal": "$x"}, "input": {"$x": {"$literal": 42}}}})
+        ),
+        input = GetField(air::GetField {
+            field: "$x".to_string(),
+            input: Document(unchecked_unique_linked_hash_map! {
+                "$x".to_string() => Literal(LiteralValue::Integer(42)),
+            })
+            .into(),
+        })
+    );
+}
+
+mod set_field {
+    use crate::air::{Expression::*, FieldRef, SetField};
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        simple,
+        expected = Ok(bson!({"$setField": {"field": "", "input": "$$ROOT", "value": "$__bot"}})),
+        input = SetField(SetField {
+            field: "".into(),
+            input: Box::new(Variable("ROOT".into())),
+            value: Box::new(FieldRef(FieldRef {
+                parent: None,
+                name: "__bot".into(),
+            }))
+        })
+    );
+
+    test_codegen_air_expr!(
+        use_literal_when_needed,
+        expected = Ok(
+            bson!({"$setField": {"field": {"$literal": "$x_val"}, "input": "$$ROOT", "value": "$x"}})
+        ),
+        input = SetField(SetField {
+            field: "$x_val".into(),
+            input: Box::new(Variable("ROOT".into())),
+            value: Box::new(FieldRef(FieldRef {
+                parent: None,
+                name: "x".into(),
+            }))
+        })
+    );
+}
+
+mod unset_field {
+    use crate::air::{Expression::*, FieldRef, UnsetField};
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        simple,
+        expected = Ok(bson!({"$unsetField": {"field": "__bot", "input": "$doc"}})),
+        input = UnsetField(UnsetField {
+            field: "__bot".into(),
+            input: Box::new(FieldRef(FieldRef {
+                parent: None,
+                name: "doc".into(),
+            }))
+        })
+    );
+
+    test_codegen_air_expr!(
+        use_literal_when_needed,
+        expected = Ok(bson!({"$unsetField": {"field": {"$literal": "$x"}, "input": "$doc"}})),
+        input = UnsetField(UnsetField {
+            field: "$x".into(),
+            input: Box::new(FieldRef(FieldRef {
+                parent: None,
+                name: "doc".into(),
+            }))
+        })
+    );
+}
+
+mod sql_convert {
+    use crate::{
+        air::{Expression::*, LiteralValue, SqlConvert, SqlConvertTargetType},
+        unchecked_unique_linked_hash_map,
+    };
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        array,
+        expected = Ok(bson!({ "$sqlConvert": {
+          "input": [],
+          "to": "array",
+          "onNull": {"$literal": null},
+          "onError": {"$literal": null}
+        }})),
+        input = SqlConvert(SqlConvert {
+            input: Box::new(Array(vec![])),
+            to: SqlConvertTargetType::Array,
+            on_null: Box::new(Literal(LiteralValue::Null)),
+            on_error: Box::new(Literal(LiteralValue::Null)),
+        })
+    );
+    test_codegen_air_expr!(
+        document,
+        expected = Ok(bson!({ "$sqlConvert": {
+          "input": {"$literal":{}},
+          "to": "object",
+          "onNull": {"$literal": null},
+          "onError": {"$literal": null}
+        }})),
+        input = SqlConvert(SqlConvert {
+            input: Box::new(Document(unchecked_unique_linked_hash_map! {})),
+            to: SqlConvertTargetType::Document,
+            on_null: Box::new(Literal(LiteralValue::Null)),
+            on_error: Box::new(Literal(LiteralValue::Null)),
+        })
+    );
+}
+
+mod convert {
     use crate::{
         air::{Convert, Expression, LiteralValue::*, Type},
         codegen,
     };
     use bson::bson;
+
+    macro_rules! test_codegen_working_convert {
+        ($test_name:ident, expected = $expected_ty_str:expr, input = $input:expr) => {
+        test_codegen_air_expr!(
+            $test_name,
+            expected = Ok(bson!({ "$convert":
+                {
+                        "input": {"$literal": "foo"},
+                        "to": $expected_ty_str,
+                        "onError": {"$literal": null},
+                        "onNull": {"$literal": null},
+                    }
+                })),
+            input = Expression::Convert(Convert {
+                    input: Expression::Literal(String("foo".to_string())).into(),
+                    to: $input,
+                    on_null: Expression::Literal(Null).into(),
+                    on_error: Expression::Literal(Null).into(),
+                })
+            );
+        };
+    }
 
     test_codegen_air_expr!(
         convert_array,
@@ -1598,589 +1493,5 @@ mod air_mql_convert {
         convert_undefined,
         expected = "undefined",
         input = Type::Undefined
-    );
-}
-
-mod air_mql_sql_convert {
-    use crate::air::{Expression, LiteralValue::*, SqlConvert, SqlConvertTargetType};
-    use bson::bson;
-
-    test_codegen_air_expr!(
-        sql_convert_array,
-        expected = Ok(bson!({ "$sqlConvert":
-            {
-                "input": {"$literal": "foo"},
-                "to": "array",
-                "onError": {"$literal": null},
-                "onNull": {"$literal": null},
-            }
-        })),
-        input = Expression::SqlConvert(SqlConvert {
-            input: Expression::Literal(String("foo".to_string())).into(),
-            to: SqlConvertTargetType::Array,
-            on_null: Expression::Literal(Null).into(),
-            on_error: Expression::Literal(Null).into(),
-        })
-    );
-
-    test_codegen_air_expr!(
-        sql_convert_document,
-        expected = Ok(bson!({ "$sqlConvert":
-            {
-                "input": {"$literal": "foo"},
-                "to": "object",
-                "onError": {"$literal": null},
-                "onNull": {"$literal": null},
-            }
-        })),
-        input = Expression::SqlConvert(SqlConvert {
-            input: Expression::Literal(String("foo".to_string())).into(),
-            to: SqlConvertTargetType::Document,
-            on_null: Expression::Literal(Null).into(),
-            on_error: Expression::Literal(Null).into(),
-        })
-    );
-}
-
-mod air_document {
-    use crate::{
-        air::{Expression::*, LiteralValue::*},
-        unchecked_unique_linked_hash_map,
-    };
-    use bson::bson;
-
-    test_codegen_air_expr!(
-        empty,
-        expected = Ok(bson!({"$literal": {}})),
-        input = Document(unchecked_unique_linked_hash_map! {})
-    );
-    test_codegen_air_expr!(
-        non_empty,
-        expected = Ok(bson!({"foo": {"$literal": 1}})),
-        input =
-            Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(1))})
-    );
-    test_codegen_air_expr!(
-        nested,
-        expected = Ok(bson!({"foo": {"$literal": 1}, "bar": {"baz": {"$literal": 2}}})),
-        input = Document(unchecked_unique_linked_hash_map! {
-            "foo".to_string() => Literal(Integer(1)),
-            "bar".to_string() => Document(unchecked_unique_linked_hash_map!{
-                "baz".to_string() => Literal(Integer(2))
-            }),
-        })
-    );
-}
-
-mod air_array {
-    use crate::air::{Expression::*, LiteralValue::*};
-    use bson::bson;
-
-    test_codegen_air_expr!(empty, expected = Ok(bson!([])), input = Array(vec![]));
-    test_codegen_air_expr!(
-        non_empty,
-        expected = Ok(bson!([{"$literal": "abc"}])),
-        input = Array(vec![Literal(String("abc".to_string()))])
-    );
-    test_codegen_air_expr!(
-        nested,
-        expected = Ok(bson!([{ "$literal": null }, [{ "$literal": null }]])),
-        input = Array(vec![Literal(Null), Array(vec![Literal(Null)])])
-    );
-}
-
-mod air_variable {
-    use crate::air::Expression::*;
-    use bson::{bson, Bson};
-
-    test_codegen_air_expr!(
-        simple,
-        expected = Ok(bson!(Bson::String("$$foo".to_string()))),
-        input = Variable("foo".to_string())
-    );
-}
-
-mod air_field_ref {
-    use crate::air::{self, Expression::FieldRef};
-    use bson::{bson, Bson};
-
-    test_codegen_air_expr!(
-        no_parent,
-        expected = Ok(bson!(Bson::String("$foo".to_string()))),
-        input = FieldRef(air::FieldRef {
-            parent: None,
-            name: "foo".to_string()
-        })
-    );
-    test_codegen_air_expr!(
-        parent,
-        expected = Ok(bson!(Bson::String("$bar.foo".to_string()))),
-        input = FieldRef(air::FieldRef {
-            parent: Some(Box::new(air::FieldRef {
-                parent: None,
-                name: "bar".to_string()
-            })),
-            name: "foo".to_string()
-        })
-    );
-
-    test_codegen_air_expr!(
-        grandparent,
-        expected = Ok(bson!(Bson::String("$baz.bar.foo".to_string()))),
-        input = FieldRef(air::FieldRef {
-            parent: Some(Box::new(air::FieldRef {
-                parent: Some(Box::new(air::FieldRef {
-                    parent: None,
-                    name: "baz".to_string()
-                })),
-                name: "bar".to_string()
-            })),
-            name: "foo".to_string()
-        })
-    );
-}
-
-mod air_like {
-    use crate::air::{self, Expression};
-    use bson::bson;
-
-    test_codegen_air_expr!(
-        like_expr_with_escape,
-        expected = Ok(bson!({"$like": {
-            "input": "$input",
-            "pattern": "$pattern",
-            "escape": "escape",
-        }})),
-        input = Expression::Like(air::Like {
-            expr: Box::new(Expression::FieldRef(air::FieldRef {
-                parent: None,
-                name: "input".to_string()
-            })),
-            pattern: Box::new(Expression::FieldRef(air::FieldRef {
-                parent: None,
-                name: "pattern".to_string()
-            })),
-            escape: Some("escape".to_string()),
-        })
-    );
-    test_codegen_air_expr!(
-        like_expr_without_escape,
-        expected = Ok(bson!({"$like": {
-            "input": "$input",
-            "pattern": "$pattern",
-        }})),
-        input = Expression::Like(air::Like {
-            expr: Box::new(Expression::FieldRef(air::FieldRef {
-                parent: None,
-                name: "input".to_string()
-            })),
-            pattern: Box::new(Expression::FieldRef(air::FieldRef {
-                parent: None,
-                name: "pattern".to_string()
-            })),
-            escape: None,
-        })
-    );
-}
-
-mod get_field {
-    use crate::{
-        air::{
-            self,
-            Expression::{Document, GetField, Literal},
-            LiteralValue,
-        },
-        unchecked_unique_linked_hash_map,
-    };
-    use bson::bson;
-
-    test_codegen_air_expr!(
-        basic,
-        expected = Ok(bson!({"$getField": {"field": "x", "input": {"x": {"$literal": 42}}}})),
-        input = GetField(air::GetField {
-            field: "x".to_string(),
-            input: Document(unchecked_unique_linked_hash_map! {
-                "x".to_string() => Literal(LiteralValue::Integer(42)),
-            })
-            .into(),
-        })
-    );
-
-    test_codegen_air_expr!(
-        with_dollar_sign,
-        expected = Ok(
-            bson!({"$getField": {"field": { "$literal": "$x"}, "input": {"$x": {"$literal": 42}}}})
-        ),
-        input = GetField(air::GetField {
-            field: "$x".to_string(),
-            input: Document(unchecked_unique_linked_hash_map! {
-                "$x".to_string() => Literal(LiteralValue::Integer(42)),
-            })
-            .into(),
-        })
-    );
-}
-
-mod air_sql_convert {
-    use crate::{
-        air::{Expression::*, LiteralValue, SqlConvert, SqlConvertTargetType},
-        unchecked_unique_linked_hash_map,
-    };
-    use bson::bson;
-
-    test_codegen_air_expr!(
-        array,
-        expected = Ok(bson!({ "$sqlConvert": {
-          "input": [],
-          "to": "array",
-          "onNull": {"$literal": null},
-          "onError": {"$literal": null}
-        }})),
-        input = SqlConvert(SqlConvert {
-            input: Box::new(Array(vec![])),
-            to: SqlConvertTargetType::Array,
-            on_null: Box::new(Literal(LiteralValue::Null)),
-            on_error: Box::new(Literal(LiteralValue::Null)),
-        })
-    );
-    test_codegen_air_expr!(
-        document,
-        expected = Ok(bson!({ "$sqlConvert": {
-          "input": {"$literal":{}},
-          "to": "object",
-          "onNull": {"$literal": null},
-          "onError": {"$literal": null}
-        }})),
-        input = SqlConvert(SqlConvert {
-            input: Box::new(Document(unchecked_unique_linked_hash_map! {})),
-            to: SqlConvertTargetType::Document,
-            on_null: Box::new(Literal(LiteralValue::Null)),
-            on_error: Box::new(Literal(LiteralValue::Null)),
-        })
-    );
-}
-
-mod air_documents_stage {
-    use crate::air::*;
-
-    test_codegen_air_plan!(
-        empty,
-        expected = Ok({
-            database: None,
-            collection: None,
-            pipeline: vec![
-                bson::doc!{"$documents": []},
-            ],
-        }),
-        input = Stage::Documents(Documents {
-            array: vec![],
-        }),
-    );
-    test_codegen_air_plan!(
-        non_empty,
-        expected = Ok({
-            database: None,
-            collection: None,
-            pipeline: vec![
-                bson::doc!{"$documents": [{"$literal": false}]},
-            ],
-        }),
-        input = Stage::Documents(Documents {
-            array: vec![Expression::Literal(LiteralValue::Boolean(false))],
-        }),
-    );
-}
-
-mod air_replace_with_stage {
-    use crate::{air::*, unchecked_unique_linked_hash_map};
-
-    test_codegen_air_plan!(
-        simple,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                bson::doc! {"$replaceWith": {"$literal": "$name"}},
-            ],
-        }),
-        input = Stage::ReplaceWith(ReplaceWith {
-            source: Box::new(
-                Stage::Collection(Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                }),
-            ),
-            new_root: Box::new(Expression::Literal(LiteralValue::String("$name".to_string()))),
-        }),
-    );
-    test_codegen_air_plan!(
-        document,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                bson::doc! {
-                    "$replaceWith": {
-                        "$mergeDocuments": [
-                            {"$literal": "$name"},
-                            {"_id": {"$literal": "$_id"}}
-                        ]
-                    }
-                },
-            ],
-        }),
-        input = Stage::ReplaceWith(ReplaceWith {
-            source: Box::new(
-                Stage::Collection(Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                }),
-            ),
-            new_root: Box::new(
-                Expression::Document(unchecked_unique_linked_hash_map! {
-                    "$mergeDocuments".to_string() => Expression::Array(vec![
-                        Expression::Literal(LiteralValue::String("$name".to_string())),
-                        Expression::Document(unchecked_unique_linked_hash_map! {
-                            "_id".to_string() => Expression::Literal(
-                                LiteralValue::String("$_id".to_string())
-                            )
-                        })
-                    ])
-                })
-            ),
-        }),
-    );
-}
-
-mod air_lookup_stage {
-    use crate::air::*;
-
-    macro_rules! test_input {
-        ($from_coll:expr, $from_db:expr, $let_vars:expr) => {
-            Stage::Lookup(Lookup {
-                source: Box::new(Stage::Collection(Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
-                from_db: $from_db,
-                from_coll: $from_coll,
-                let_vars: $let_vars,
-                pipeline: Box::new(Stage::Collection(Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
-                as_var: "as_var".to_string(),
-            })
-        };
-    }
-
-    test_codegen_air_plan!(
-        lookup_with_no_optional_fields,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                bson::doc! {"$lookup": {"pipeline": [], "as": "as_var"}},
-            ],
-        }),
-        input = test_input!(None, None, None),
-    );
-
-    test_codegen_air_plan!(
-        lookup_with_from_coll,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                bson::doc! {"$lookup": {"from": "from_coll", "pipeline": [], "as": "as_var"}},
-            ],
-        }),
-        input = test_input!(Some("from_coll".to_string()), None, None),
-    );
-    test_codegen_air_plan!(
-        lookup_with_from_db,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                bson::doc! {"$lookup": {"from": {"db": "from_db", "coll": "from_coll"}, "pipeline": [], "as": "as_var"}},
-            ],
-        }),
-        input = test_input!(Some("from_coll".to_string()), Some("from_db".to_string()), None),
-    );
-    test_codegen_air_plan!(
-        lookup_with_single_let_var,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                bson::doc! {"$lookup": {
-                    "from": {"db": "from_db", "coll": "from_coll"},
-                    "let": {"x": {"$literal": 9}},
-                    "pipeline": [],
-                    "as": "as_var"
-                }},
-            ],
-        }),
-        input = test_input!(
-            Some("from_coll".to_string()),
-            Some("from_db".to_string()),
-            Some(vec![LetVariable{name: "x".to_string(), expr: Box::new(Expression::Literal(LiteralValue::Integer(9)))}])
-        ),
-    );
-    test_codegen_air_plan!(
-        lookup_with_multiple_let_vars,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                bson::doc! {"$lookup": {
-                    "from": {"db": "from_db", "coll": "from_coll"},
-                    "let": {
-                        "x": {"$literal": 9},
-                        "y": "$a"
-                    },
-                    "pipeline": [],
-                    "as": "as_var"
-                }},
-            ],
-        }),
-        input = test_input!(
-            Some("from_coll".to_string()),
-            Some("from_db".to_string()),
-            Some(vec![
-                LetVariable{name: "x".to_string(), expr: Box::new(Expression::Literal(LiteralValue::Integer(9)))},
-                LetVariable{name: "y".to_string(), expr: Box::new(Expression::FieldRef(FieldRef {
-                    parent: None,
-                    name: "a".into(),
-                }))},
-            ])
-        ),
-    );
-}
-
-mod air_skip_stage {
-    use crate::air::*;
-    use bson::Bson;
-
-    test_codegen_air_plan!(
-        skip,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                bson::doc! {"$skip": Bson::Int64(10)},
-            ],
-        }),
-        input = Stage::Skip(Skip {
-            source: Box::new(Stage::Collection(Collection {
-                db: "mydb".to_string(),
-                collection: "col".to_string(),
-            })),
-            skip: 10,
-        }),
-    );
-}
-
-mod air_is {
-    use crate::air::{Expression::*, FieldRef, Is, Type, TypeOrMissing};
-    use bson::bson;
-
-    test_codegen_air_expr!(
-        target_type_missing,
-        expected = Ok(bson!({"$sqlIs": ["$x", {"$literal": "missing"}]})),
-        input = Is(Is {
-            expr: Box::new(FieldRef(FieldRef {
-                parent: None,
-                name: "x".into(),
-            })),
-            target_type: TypeOrMissing::Missing,
-        })
-    );
-
-    test_codegen_air_expr!(
-        target_type_number,
-        expected = Ok(bson!({"$sqlIs": ["$x", {"$literal": "number"}]})),
-        input = Is(Is {
-            expr: Box::new(FieldRef(FieldRef {
-                parent: None,
-                name: "x".into(),
-            })),
-            target_type: TypeOrMissing::Number,
-        })
-    );
-
-    test_codegen_air_expr!(
-        target_type_type,
-        expected = Ok(bson!({"$sqlIs": ["$x", {"$literal": "object"}]})),
-        input = Is(Is {
-            expr: Box::new(FieldRef(FieldRef {
-                parent: None,
-                name: "x".into(),
-            })),
-            target_type: TypeOrMissing::Type(Type::Document),
-        })
-    );
-}
-
-mod aid_set_field {
-    use crate::air::{Expression::*, FieldRef, SetField};
-    use bson::bson;
-
-    test_codegen_air_expr!(
-        simple,
-        expected = Ok(bson!({"$setField": {"field": "", "input": "$$ROOT", "value": "$__bot"}})),
-        input = SetField(SetField {
-            field: "".into(),
-            input: Box::new(Variable("ROOT".into())),
-            value: Box::new(FieldRef(FieldRef {
-                parent: None,
-                name: "__bot".into(),
-            }))
-        })
-    );
-
-    test_codegen_air_expr!(
-        use_literal_when_needed,
-        expected = Ok(
-            bson!({"$setField": {"field": {"$literal": "$x_val"}, "input": "$$ROOT", "value": "$x"}})
-        ),
-        input = SetField(SetField {
-            field: "$x_val".into(),
-            input: Box::new(Variable("ROOT".into())),
-            value: Box::new(FieldRef(FieldRef {
-                parent: None,
-                name: "x".into(),
-            }))
-        })
-    );
-}
-
-mod air_unset_field {
-    use crate::air::{Expression::*, FieldRef, UnsetField};
-    use bson::bson;
-
-    test_codegen_air_expr!(
-        simple,
-        expected = Ok(bson!({"$unsetField": {"field": "__bot", "input": "$doc"}})),
-        input = UnsetField(UnsetField {
-            field: "__bot".into(),
-            input: Box::new(FieldRef(FieldRef {
-                parent: None,
-                name: "doc".into(),
-            }))
-        })
-    );
-
-    test_codegen_air_expr!(
-        use_literal_when_needed,
-        expected = Ok(bson!({"$unsetField": {"field": {"$literal": "$x"}, "input": "$doc"}})),
-        input = UnsetField(UnsetField {
-            field: "$x".into(),
-            input: Box::new(FieldRef(FieldRef {
-                parent: None,
-                name: "doc".into(),
-            }))
-        })
     );
 }
