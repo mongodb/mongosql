@@ -650,20 +650,6 @@ mod limit_offset {
             cache: SchemaCache::new(),
         }),
     );
-    test_codegen_plan!(
-        offset_out_of_i64_range,
-        expected = Err(Error::OffsetOutOfI64Range(u64::MAX)),
-        input = Stage::Offset(Offset {
-            offset: u64::MAX,
-            source: Stage::Collection(Collection {
-                db: "mydb".to_string(),
-                collection: "col".to_string(),
-                cache: SchemaCache::new(),
-            })
-            .into(),
-            cache: SchemaCache::new(),
-        }),
-    );
 }
 
 mod literal {

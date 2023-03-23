@@ -105,7 +105,7 @@ pub struct Limit {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Offset {
     pub source: Box<Stage>,
-    pub offset: u64,
+    pub offset: i64,
     pub cache: SchemaCache<ResultSet>,
 }
 

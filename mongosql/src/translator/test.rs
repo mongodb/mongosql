@@ -2470,6 +2470,35 @@ mod sort_stage {
     );
 }
 
+mod offset_stage {
+    use crate::unchecked_unique_linked_hash_map;
+
+    test_translate_stage!(
+        simple,
+        expected = Ok(air::Stage::Skip(air::Skip {
+            source: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test_db".to_string(),
+                    collection: "foo".to_string()
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "foo".to_string() => air::Expression::Variable("ROOT".to_string())
+                }
+            })),
+            skip: 10,
+        })),
+        input = mir::Stage::Offset(mir::Offset {
+            source: Box::new(mir::Stage::Collection(mir::Collection {
+                db: "test_db".to_string(),
+                collection: "foo".to_string(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            offset: 10,
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+}
+
 mod translate_plan {
     use crate::{map, unchecked_unique_linked_hash_map};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};

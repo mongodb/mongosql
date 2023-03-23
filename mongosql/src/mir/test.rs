@@ -10559,7 +10559,7 @@ mod constant_folding {
         expected = test_source(),
         input = Stage::Offset(Offset {
             source: Box::new(test_source()),
-            offset: 0u64,
+            offset: 0,
             cache: SchemaCache::new(),
         }),
     );
@@ -10567,12 +10567,12 @@ mod constant_folding {
         offset_nonzero,
         expected = Stage::Offset(Offset {
             source: Box::new(test_source()),
-            offset: 1u64,
+            offset: 1,
             cache: SchemaCache::new(),
         }),
         input = Stage::Offset(Offset {
             source: Box::new(test_source()),
-            offset: 1u64,
+            offset: 1,
             cache: SchemaCache::new(),
         }),
     );

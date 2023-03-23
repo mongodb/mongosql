@@ -174,7 +174,7 @@ impl MqlTranslator {
             mir::Stage::Filter(f) => self.translate_filter(f),
             mir::Stage::Group(g) => self.translate_group(g),
             mir::Stage::Limit(_l) => Err(Error::UnimplementedStruct),
-            mir::Stage::Offset(_o) => Err(Error::UnimplementedStruct),
+            mir::Stage::Offset(o) => self.translate_offset(o),
             mir::Stage::Sort(s) => self.translate_sort(s),
             mir::Stage::Join(_j) => Err(Error::UnimplementedStruct),
             mir::Stage::Set(_s) => Err(Error::UnimplementedStruct),
@@ -495,6 +495,15 @@ impl MqlTranslator {
                 aggregations,
             })),
             specifications,
+        }))
+    }
+
+    fn translate_offset(&mut self, mir_offset: mir::Offset) -> Result<air::Stage> {
+        let source_translation = self.translate_stage(*mir_offset.source)?;
+
+        Ok(air::Stage::Skip(air::Skip {
+            source: Box::new(source_translation),
+            skip: mir_offset.offset,
         }))
     }
 

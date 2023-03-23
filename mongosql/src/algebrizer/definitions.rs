@@ -1012,7 +1012,7 @@ impl<'a> Algebrizer<'a> {
             Some(x) => {
                 let stage = mir::Stage::Offset(mir::Offset {
                     source: Box::new(source),
-                    offset: u64::from(x),
+                    offset: i64::from(x),
                     cache: SchemaCache::new(),
                 });
                 stage.schema(&self.schema_inference_state())?;

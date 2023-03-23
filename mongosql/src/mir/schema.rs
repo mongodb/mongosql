@@ -485,12 +485,18 @@ impl CachedSchema for Stage {
             }
             Stage::Offset(o) => {
                 let source_result_set = o.source.schema(state)?;
+
+                // Note that the parser parses the OFFSET value as a u32, which
+                // we convert to an i64 during algebrization. This means we can
+                // be sure the o.offset i64 value is actually always positive.
+                // Therefore, converting to u64 for result set size arithmetic
+                // is safe to do.
                 Ok(ResultSet {
                     schema_env: source_result_set.schema_env,
-                    min_size: source_result_set.min_size.saturating_sub(o.offset),
+                    min_size: source_result_set.min_size.saturating_sub(o.offset as u64),
                     max_size: source_result_set
                         .max_size
-                        .map(|x| x.saturating_sub(o.offset)),
+                        .map(|x| x.saturating_sub(o.offset as u64)),
                 })
             }
             Stage::Sort(s) => {

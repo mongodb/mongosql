@@ -34,8 +34,6 @@ pub enum Error {
     NoFieldPathForExpr,
     #[error("LIMIT ({0}) cannot be converted to i64")]
     LimitOutOfI64Range(u64),
-    #[error("OFFSET ({0}) cannot be converted to i64")]
-    OffsetOutOfI64Range(u64),
     #[error("UNWIND PATH option must be an identifier")]
     InvalidUnwindPath,
 }
@@ -410,13 +408,9 @@ impl MqlCodeGenerator {
                     .codegen_stage(*l.source)?
                     .with_additional_stage(doc! {"$limit": limit}))
             }
-            Offset(o) => {
-                let offset =
-                    i64::try_from(o.offset).or(Err(Error::OffsetOutOfI64Range(o.offset)))?;
-                Ok(self
-                    .codegen_stage(*o.source)?
-                    .with_additional_stage(doc! {"$skip": offset}))
-            }
+            Offset(o) => Ok(self
+                .codegen_stage(*o.source)?
+                .with_additional_stage(doc! {"$skip": o.offset})),
             Sort(s) => self.codegen_sort(s),
             Collection(c) => Ok(MqlTranslation {
                 database: Some(c.db),

@@ -3791,7 +3791,7 @@ mod limit_or_offset_clause {
         method = algebrize_offset_clause,
         expected = Ok(mir::Stage::Offset(mir::Offset {
             source: Box::new(mir_source_foo()),
-            offset: 3_u64,
+            offset: 3,
             cache: SchemaCache::new(),
         })),
         input = Some(3_u32),
