@@ -531,6 +531,9 @@ impl MqlTranslator {
             mir::Expression::Is(is) => self.translate_is(is),
             mir::Expression::Like(like_expr) => self.translate_like(like_expr),
             mir::Expression::SimpleCase(simple_case) => self.translate_simple_case(simple_case),
+            mir::Expression::SearchedCase(searched_case) => {
+                self.translate_searched_case(searched_case)
+            }
             _ => Err(Error::UnimplementedStruct),
         }
     }
@@ -810,5 +813,25 @@ impl MqlTranslator {
             }],
             inside: Box::new(switch),
         }))
+    }
+
+    fn translate_searched_case(
+        &self,
+        searched_case: mir::SearchedCaseExpr,
+    ) -> Result<air::Expression> {
+        let default = self
+            .translate_expression(*searched_case.else_branch)?
+            .into();
+        let branches = searched_case
+            .when_branch
+            .iter()
+            .map(|branch| {
+                Ok(air::SwitchCase {
+                    case: Box::new(self.translate_expression(*branch.when.clone())?),
+                    then: Box::new(self.translate_expression(*branch.then.clone())?),
+                })
+            })
+            .collect::<Result<Vec<air::SwitchCase>>>()?;
+        Ok(air::Expression::Switch(air::Switch { branches, default }))
     }
 }

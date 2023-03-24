@@ -1627,6 +1627,93 @@ mod simple_case_expression {
     );
 }
 
+mod searched_case_expression {
+    use crate::{air, mir};
+
+    test_translate_expression!(
+        integer_searched_case,
+        expected = Ok(air::Expression::Switch(air::Switch {
+            branches: vec![
+                air::SwitchCase {
+                    case: Box::new(air::Expression::SQLSemanticOperator(
+                        air::SQLSemanticOperator {
+                            op: air::SQLOperator::Eq,
+                            args: vec![
+                                air::Expression::Literal(air::LiteralValue::Integer(4)),
+                                air::Expression::Literal(air::LiteralValue::Integer(4))
+                            ]
+                        }
+                    )),
+                    then: Box::new(air::Expression::Literal(air::LiteralValue::Integer(5))),
+                },
+                air::SwitchCase {
+                    case: Box::new(air::Expression::SQLSemanticOperator(
+                        air::SQLSemanticOperator {
+                            op: air::SQLOperator::Eq,
+                            args: vec![
+                                air::Expression::Literal(air::LiteralValue::Integer(5)),
+                                air::Expression::Literal(air::LiteralValue::Integer(5))
+                            ]
+                        }
+                    )),
+                    then: Box::new(air::Expression::Literal(air::LiteralValue::Integer(6))),
+                },
+            ],
+            default: Box::new(air::Expression::Literal(air::LiteralValue::Integer(7)))
+        })),
+        input = mir::Expression::SearchedCase(mir::SearchedCaseExpr {
+            when_branch: vec![
+                mir::WhenBranch {
+                    when: Box::new(mir::Expression::ScalarFunction(
+                        mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::Eq,
+                            args: vec![
+                                mir::Expression::Literal(mir::LiteralExpr {
+                                    value: mir::LiteralValue::Integer(4),
+                                    cache: mir::schema::SchemaCache::new()
+                                }),
+                                mir::Expression::Literal(mir::LiteralExpr {
+                                    value: mir::LiteralValue::Integer(4),
+                                    cache: mir::schema::SchemaCache::new()
+                                })
+                            ],
+                            cache: mir::schema::SchemaCache::new(),
+                        }
+                    )),
+                    then: Box::new(mir::Expression::Literal(
+                        mir::LiteralValue::Integer(5).into()
+                    )),
+                },
+                mir::WhenBranch {
+                    when: Box::new(mir::Expression::ScalarFunction(
+                        mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::Eq,
+                            args: vec![
+                                mir::Expression::Literal(mir::LiteralExpr {
+                                    value: mir::LiteralValue::Integer(5),
+                                    cache: mir::schema::SchemaCache::new()
+                                }),
+                                mir::Expression::Literal(mir::LiteralExpr {
+                                    value: mir::LiteralValue::Integer(5),
+                                    cache: mir::schema::SchemaCache::new()
+                                })
+                            ],
+                            cache: mir::schema::SchemaCache::new(),
+                        }
+                    )),
+                    then: Box::new(mir::Expression::Literal(
+                        mir::LiteralValue::Integer(6).into()
+                    )),
+                },
+            ],
+            else_branch: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(7).into()
+            )),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+}
+
 mod documents_stage {
     use crate::unchecked_unique_linked_hash_map;
 
