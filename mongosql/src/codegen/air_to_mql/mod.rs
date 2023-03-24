@@ -443,7 +443,7 @@ impl MqlCodeGenerator {
             air::Stage::Project(p) => self.codegen_project(p),
             air::Stage::Group(g) => self.codegen_group(g),
             air::Stage::Limit(_l) => Err(Error::UnimplementedAIR),
-            air::Stage::Sort(_s) => Err(Error::UnimplementedAIR),
+            air::Stage::Sort(s) => self.codegen_sort(s),
             air::Stage::Collection(c) => self.codegen_collection(c),
             air::Stage::Join(_j) => Err(Error::UnimplementedAIR),
             air::Stage::Unwind(u) => self.codegen_unwind(u),
@@ -454,6 +454,31 @@ impl MqlCodeGenerator {
             air::Stage::Skip(s) => self.codegen_skip(s),
             air::Stage::Documents(d) => self.codegen_documents(d),
         }
+    }
+
+    fn codegen_sort(&self, air_sort: air::Sort) -> Result<MqlTranslation> {
+        use air::SortSpecification::*;
+
+        let source_translation = self.codegen_air_stage(*air_sort.source)?;
+        let mut pipeline = source_translation.pipeline;
+        let sort_specs = air_sort
+            .specs
+            .into_iter()
+            .map(|spec| {
+                let (key, direction) = match spec {
+                    Asc(key) => (key, Bson::Int32(1)),
+                    Desc(key) => (key, Bson::Int32(-1)),
+                };
+                Ok((key, direction))
+            })
+            .collect::<Result<bson::Document>>()?;
+
+        pipeline.push(doc! {"$sort": sort_specs});
+        Ok(MqlTranslation {
+            database: source_translation.database,
+            collection: source_translation.collection,
+            pipeline,
+        })
     }
 
     fn codegen_match(&self, air_match: air::Match) -> Result<MqlTranslation> {

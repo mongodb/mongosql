@@ -42,6 +42,77 @@ macro_rules! test_codegen_air_stage {
     };
 }
 
+mod sort {
+    use crate::{
+        air::Expression::*, air::LiteralValue::*, air::SortSpecification::*, air::*,
+        unchecked_unique_linked_hash_map,
+    };
+    use bson::bson;
+
+    test_codegen_air_stage!(
+        empty,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                bson::doc!{"$sort": {}},
+            ],
+        }),
+        input = Stage::Sort(Sort {
+            specs: vec![],
+            source: Box::new(
+                Stage::Collection( Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                }),
+            ),
+        }),
+    );
+
+    test_codegen_air_stage!(
+        single_spec,
+        expected = Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                bson::doc!{"$documents": [bson!({"foo": {"$literal": 1}}), bson!({"foo": {"$literal": 2}})]},
+                bson::doc!{"$sort": {"foo": 1}}
+            ],
+        }),
+        input = Stage::Sort(Sort {
+            specs: vec![Asc("foo".to_string())],
+            source: Box::new(
+                Stage::Documents(Documents {
+                    array: vec![Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(1))}),
+                                Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(2))})],
+                })
+            )
+        }),
+    );
+
+    test_codegen_air_stage!(
+        multi_spec,
+        expected = Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                bson::doc!{"$documents": [bson!({"foo": {"$literal": 1}, "bar": {"$literal": 3}}),
+                                        bson!({"foo": {"$literal": 2}, "bar": {"$literal": 4}})]},
+                bson::doc!{"$sort": {"foo": -1, "bar": 1}}
+            ],
+        }),
+        input = Stage::Sort(Sort {
+            specs: vec![Desc("foo".to_string()), Asc("bar".to_string())],
+            source: Box::new(
+                Stage::Documents(Documents {
+                    array: vec![Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(1)), "bar".to_string() => Literal(Integer(3))}),
+                                Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(2)), "bar".to_string() => Literal(Integer(4))})],
+                })
+            )
+        }),
+    );
+}
+
 mod match_stage {
     use crate::air::*;
 
