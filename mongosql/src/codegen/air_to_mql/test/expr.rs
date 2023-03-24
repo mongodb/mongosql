@@ -1495,3 +1495,118 @@ mod convert {
         input = Type::Undefined
     );
 }
+
+mod let_expr {
+    use crate::air::{Expression::*, FieldRef, Let, LetVariable, MQLOperator, MQLSemanticOperator};
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        no_variables,
+        expected = Ok(bson!({
+            "$let": {
+                "vars": {},
+                "in": {
+                    "$add": ["$x", "$y"]
+                }
+            }
+        })),
+        input = Let(Let {
+            vars: vec![],
+            inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                op: MQLOperator::Add,
+                args: vec![
+                    FieldRef(FieldRef {
+                        parent: None,
+                        name: "x".to_string(),
+                    }),
+                    FieldRef(FieldRef {
+                        parent: None,
+                        name: "y".to_string(),
+                    }),
+                ],
+            })),
+        })
+    );
+
+    test_codegen_air_expr!(
+        one_variable,
+        expected = Ok(bson!({
+            "$let": {
+                "vars": {
+                    "v_x": "$x"
+                },
+                "in": {
+                    "$add": ["$$v_x", "$y"]
+                }
+            }
+        })),
+        input = Let(Let {
+            vars: vec![LetVariable {
+                name: "v_x".to_string(),
+                expr: Box::new(FieldRef(FieldRef {
+                    parent: None,
+                    name: "x".to_string(),
+                })),
+            }],
+            inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                op: MQLOperator::Add,
+                args: vec![
+                    Variable("v_x".to_string()),
+                    FieldRef(FieldRef {
+                        parent: None,
+                        name: "y".to_string(),
+                    }),
+                ],
+            })),
+        })
+    );
+
+    test_codegen_air_expr!(
+        multiple_variables,
+        expected = Ok(bson!({
+            "$let": {
+                "vars": {
+                    "v_x": "$x",
+                    "v_y": "$y",
+                    "v_z": "$z"
+                },
+                "in": {
+                    "$add": ["$$v_x", "$$v_y", "$$v_z"]
+                }
+            }
+        })),
+        input = Let(Let {
+            vars: vec![
+                LetVariable {
+                    name: "v_x".to_string(),
+                    expr: Box::new(FieldRef(FieldRef {
+                        parent: None,
+                        name: "x".to_string(),
+                    })),
+                },
+                LetVariable {
+                    name: "v_y".to_string(),
+                    expr: Box::new(FieldRef(FieldRef {
+                        parent: None,
+                        name: "y".to_string(),
+                    })),
+                },
+                LetVariable {
+                    name: "v_z".to_string(),
+                    expr: Box::new(FieldRef(FieldRef {
+                        parent: None,
+                        name: "z".to_string(),
+                    })),
+                },
+            ],
+            inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
+                op: MQLOperator::Add,
+                args: vec![
+                    Variable("v_x".to_string()),
+                    Variable("v_y".to_string()),
+                    Variable("v_z".to_string()),
+                ],
+            })),
+        })
+    );
+}

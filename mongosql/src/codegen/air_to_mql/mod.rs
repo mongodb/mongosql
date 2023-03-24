@@ -406,6 +406,17 @@ impl MqlCodeGenerator {
                     }
                 })
             }),
+            Let(l) => {
+                let vars = l
+                    .vars
+                    .into_iter()
+                    .map(|v| Ok((v.name, self.codegen_air_expression(*v.expr)?)))
+                    .collect::<Result<bson::Document>>()?;
+
+                let inside = self.codegen_air_expression(*l.inside)?;
+
+                Ok(bson!({"$let": {"vars": vars, "in": inside}}))
+            }
             _ => Err(Error::UnimplementedAIR),
         }
     }
