@@ -39,6 +39,8 @@ pub enum Error {
     InvalidSqlConvertToType(air::Type),
     #[error("unexpected expr type for sort: not a FieldAccess or Reference")]
     ExprNotReferenceOrFieldAccess,
+    #[error("LIMIT ({0}) cannot be converted to i64")]
+    LimitOutOfI64Range(u64),
 }
 
 impl From<mir::Type> for air::Type {
@@ -173,7 +175,7 @@ impl MqlTranslator {
             mir::Stage::Project(p) => self.translate_project(p),
             mir::Stage::Filter(f) => self.translate_filter(f),
             mir::Stage::Group(g) => self.translate_group(g),
-            mir::Stage::Limit(_l) => Err(Error::UnimplementedStruct),
+            mir::Stage::Limit(l) => self.translate_limit(l),
             mir::Stage::Offset(o) => self.translate_offset(o),
             mir::Stage::Sort(s) => self.translate_sort(s),
             mir::Stage::Join(_j) => Err(Error::UnimplementedStruct),
@@ -277,6 +279,17 @@ impl MqlTranslator {
         Ok(air::Stage::Match(air::Match {
             source: Box::new(source_translation),
             expr: Box::new(expr_translation),
+        }))
+    }
+
+    fn translate_limit(&mut self, mir_limit: mir::Limit) -> Result<air::Stage> {
+        let source_translation = self.translate_stage(*mir_limit.source)?;
+        let limit =
+            i64::try_from(mir_limit.limit).or(Err(Error::LimitOutOfI64Range(mir_limit.limit)))?;
+
+        Ok(air::Stage::Limit(air::Limit {
+            source: Box::new(source_translation),
+            limit,
         }))
     }
 

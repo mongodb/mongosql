@@ -1779,6 +1779,49 @@ mod filter_stage {
     );
 }
 
+mod limit_stage {
+    use crate::{translator, unchecked_unique_linked_hash_map};
+    use translator::Error;
+
+    test_translate_stage!(
+        simple,
+        expected = Ok(air::Stage::Limit(air::Limit {
+            source: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test_db".into(),
+                    collection: "col".into(),
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "col".into() => air::Expression::Variable("ROOT".to_string()),
+                },
+            })),
+            limit: 1i64,
+        })),
+        input = mir::Stage::Limit(mir::Limit {
+            source: Box::new(mir::Stage::Collection(mir::Collection {
+                db: "test_db".into(),
+                collection: "col".into(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            limit: 1,
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+    test_translate_stage!(
+        out_of_i64_range,
+        expected = Err(Error::LimitOutOfI64Range(u64::MAX)),
+        input = mir::Stage::Limit(mir::Limit {
+            source: Box::new(mir::Stage::Collection(mir::Collection {
+                db: "test_db".into(),
+                collection: "col".into(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            limit: u64::MAX,
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+}
+
 mod collection {
     use crate::unchecked_unique_linked_hash_map;
 

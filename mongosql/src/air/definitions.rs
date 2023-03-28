@@ -66,7 +66,7 @@ pub enum AggregationFunction {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Limit {
     pub source: Box<Stage>,
-    pub limit: u64,
+    pub limit: i64,
 }
 
 #[derive(PartialEq, Debug, Clone)]
