@@ -1,11 +1,13 @@
 tests:
   - name: "nothing to desugar"
+    skip_reason: "SQL-1253"
     input:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
     expected:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
 
   - name: "desugar inner join"
+    skip_reason: "SQL-1253"
     input:
       - {
         "$join": { "collection": "bar", "joinType": "inner", "pipeline": [] },
@@ -36,6 +38,7 @@ tests:
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "desugar left join"
+    skip_reason: "SQL-1253"
     input:
       - { "$join": { "collection": "bar", "joinType": "left", "pipeline": [] } }
     expected:
@@ -64,6 +67,7 @@ tests:
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "desugar join with db specified"
+    skip_reason: "SQL-1253"
     input:
       - {
         "$join":
@@ -100,6 +104,7 @@ tests:
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "desugar join with no collection and non-empty pipeline"
+    skip_reason: "SQL-1253"
     input:
       - {
         "$join":
@@ -135,6 +140,7 @@ tests:
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "desugar join non-empty let and match"
+    skip_reason: "SQL-1253"
     input:
       - {
         "$join":
@@ -178,6 +184,7 @@ tests:
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "desugar when join is not first in pipeline"
+    skip_reason: "SQL-1253"
     input:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
       - {
@@ -223,6 +230,7 @@ tests:
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "desugar multiple joins"
+    skip_reason: "SQL-1253"
     input:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
       - {
@@ -307,6 +315,7 @@ tests:
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "nested join"
+    skip_reason: "SQL-1253"
     input:
       - {
         "$join":

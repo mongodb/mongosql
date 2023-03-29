@@ -1,11 +1,13 @@
 tests:
   - name: "nothing to desugar"
+    skip_reason: "SQL-1258"
     input: 
       - { "$project": { "_id": 0, "expr": 1 } }
     expected: 
       - { "$project": { "_id": 0, "expr": 1 } }
 
   - name: "desugar $sqlEq"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlEq": ["$a", "$b"] } } }
     expected:
@@ -63,6 +65,7 @@ tests:
       }
 
   - name: "desugar $sqlIndexOfCP"
+    skip_reason: "SQL-1258"
     input:
       - {
         "$project":
@@ -125,6 +128,7 @@ tests:
       }
 
   - name: "desugar $sqlLt"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlLt": ["$a", "$b"] } } }
     expected:
@@ -182,6 +186,7 @@ tests:
       }
 
   - name: "desugar $sqlLt with non-null literal"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlLt": ["$a", 200] } } }
     expected:
@@ -217,6 +222,7 @@ tests:
       }
 
   - name: "desugar $sqlLt with null literal"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlLt": ["$a", null] } } }
     expected:
@@ -274,6 +280,7 @@ tests:
       }
 
   - name: "desugar $sqlLte"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlLte": ["$a", "$b"] } } }
     expected:
@@ -331,6 +338,7 @@ tests:
       }
 
   - name: "desugar $sqlGt"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlGt": ["$a", "$b"] } } }
     expected:
@@ -388,6 +396,7 @@ tests:
       }
 
   - name: "desugar $sqlGte"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlGte": ["$a", "$b"] } } }
     expected:
@@ -445,6 +454,7 @@ tests:
       }
 
   - name: "desugar $sqlNe"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlNe": ["$a", "$b"] } } }
     expected:
@@ -502,6 +512,7 @@ tests:
       }
 
   - name: "desugar $sqlNot"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlNot": ["$a"] } } }
     expected:
@@ -536,6 +547,7 @@ tests:
       }
 
   - name: "desugar nested SQL null semantic expressions"
+    skip_reason: "SQL-1258"
     input:
       - {
         "$project":
@@ -608,6 +620,7 @@ tests:
       }
 
   - name: "desugar $sqlNot literal"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlNot": [false] } } }
     expected:
@@ -620,6 +633,7 @@ tests:
       }
 
   - name: "desugar $sqlSize"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlSize": "$a" } } }
     expected:
@@ -654,6 +668,7 @@ tests:
       }
 
   - name: "desugar $sqlStrLenBytes"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlStrLenBytes": ["$a"] } } }
     expected:
@@ -692,6 +707,7 @@ tests:
       }
 
   - name: "desugar $sqlStrLenCP"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlStrLenCP": ["$a"] } } }
     expected:
@@ -730,6 +746,7 @@ tests:
       }
 
   - name: "desugar $sqlSubstrCP"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlSubstrCP": ["$a", 1, 2] } } }
     expected:
@@ -772,6 +789,7 @@ tests:
       }
 
   - name: "desugar $sqlToLower"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlToLower": ["$a"] } } }
     expected:
@@ -809,6 +827,7 @@ tests:
       }
 
   - name: "desugar $sqlToUpper"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlToUpper": ["$a"] } } }
     expected:
@@ -846,6 +865,7 @@ tests:
       }
 
   - name: "desugar $sqlAnd"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlAnd": ["$a", "$b"] } } }
     expected:
@@ -923,6 +943,7 @@ tests:
       }
 
   - name: "desugar $sqlAnd with literal in input"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlAnd": ["$a", false] } } }
     expected:
@@ -984,6 +1005,7 @@ tests:
       }
 
   - name: "desugar $sqlOr"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlOr": ["$a", "$b"] } } }
     expected:
@@ -1061,6 +1083,7 @@ tests:
       }
 
   - name: "desugar $sqlOr with literal in input"
+    skip_reason: "SQL-1258"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlOr": ["$a", true] } } }
     expected:

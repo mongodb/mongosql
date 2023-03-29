@@ -1,6 +1,6 @@
 use crate::air::{
     self,
-    desugarer::{Pass, Result},
+    desugarer::{Error, Pass, Result},
 };
 
 /// Desugars any aggregations in Group stages into appropriate, equivalent
@@ -11,6 +11,6 @@ pub struct AccumulatorsDesugarerPass;
 
 impl Pass for AccumulatorsDesugarerPass {
     fn apply(&self, _pipeline: air::Stage) -> Result<air::Stage> {
-        todo!()
+        Err(Error::TodoError)
     }
 }

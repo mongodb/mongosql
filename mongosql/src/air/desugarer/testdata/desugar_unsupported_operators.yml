@@ -1,11 +1,13 @@
 tests:
   - name: "nothing to desugar"
+    skip_reason: "SQL-1257"
     input:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
     expected:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
 
   - name: "desugar $sqlBetween"
+    skip_reason: "SQL-1257"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlBetween": ["$x", 1, 10] } } }
     expected:
@@ -36,6 +38,7 @@ tests:
       }
 
   - name: "desugar nested $sqlBetween"
+    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -121,6 +124,7 @@ tests:
       }
 
   - name: "desugar $sqlConvert"
+    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -180,6 +184,7 @@ tests:
       }
 
   - name: "desugar $sqlDivide"
+    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -206,6 +211,7 @@ tests:
       }
 
   - name: "desugar $sqlDivide non-null onError"
+    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -232,12 +238,14 @@ tests:
       }
 
   - name: "desugar $sqlSlice with no start argument"
+    skip_reason: "SQL-1257"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlSlice": ["$arr", "$len"] } } }
     expected:
       - { "$project": { "_id": 0, "expr": { "$slice": ["$arr", "$len"] } } }
 
   - name: "desugar $sqlSlice with start argument"
+    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -261,6 +269,7 @@ tests:
       }
 
   - name: "desugar $coalesce"
+    skip_reason: "SQL-1257"
     input:
       - {
         "$project": { "_id": 0, "expr": { "$coalesce": ["$a", "$b", "$c"] } },
@@ -287,6 +296,7 @@ tests:
       }
 
   - name: "desugar $like with no escape"
+    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -309,6 +319,7 @@ tests:
       }
 
   - name: "desugar $like with escape"
+    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -339,6 +350,7 @@ tests:
       }
 
   - name: "desugar $nullIf"
+    skip_reason: "SQL-1257"
     input:
       - { "$project": { "_id": 0, "expr": { "$nullIf": ["$a", "$b"] } } }
     expected:
@@ -362,6 +374,7 @@ tests:
       }
 
   - name: "desugar $sqlLog"
+    skip_reason: "SQL-1257"
     input:
       - {
         "$project": { "_id": 0, "expr": { "$sqlLog": ["$number", "$base"] } },
@@ -450,6 +463,7 @@ tests:
       }
 
   - name: "desugar $sqlRound"
+    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -534,6 +548,7 @@ tests:
       }
 
   - name: "desugar $sqlSplit"
+    skip_reason: "SQL-1257"
     input:
       - {
         "$project": { "_id": 0, "expr": { "$sqlSplit": ["$a", "$b", "$c"] } },
@@ -668,6 +683,7 @@ tests:
       }
 
   - name: "desugar $sqlCos"
+    skip_reason: "SQL-1257"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlCos": ["$v"] } } }
     expected:
@@ -713,6 +729,7 @@ tests:
       }
 
   - name: "desugar $sqlSin"
+    skip_reason: "SQL-1257"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlSin": ["$v"] } } }
     expected:
@@ -758,6 +775,7 @@ tests:
       }
 
   - name: "desugar $sqlTan"
+    skip_reason: "SQL-1257"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlTan": ["$v"] } } }
     expected:
@@ -803,6 +821,7 @@ tests:
       }
 
   - name: "desugar $sqlSqrt"
+    skip_reason: "SQL-1257"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlSqrt": ["$v"] } } }
     expected:
@@ -861,6 +880,7 @@ tests:
       }
 
   - name: "desugar $sqlMod"
+    skip_reason: "SQL-1257"
     input:
       - {
         "$project":

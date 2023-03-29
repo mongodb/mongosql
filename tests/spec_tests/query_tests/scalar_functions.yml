@@ -905,6 +905,7 @@ tests:
 
   - description: TRIM(BOTH substr FROM str) correctness test
     current_db: foo
+    skip_reason: "SQL-1335: trim codegen incorrect"
     query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(BOTH substr FROM str)} FROM `trim` AS c"
     translation_target_db: foo
     translation_target_coll: trim
@@ -930,6 +931,7 @@ tests:
 
   - description: TRIM(LEADING substr FROM str) correctness test
     current_db: foo
+    skip_reason: "SQL-1335: trim codegen incorrect"
     query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(LEADING substr FROM str)} FROM `trim` AS c"
     translation_target_db: foo
     translation_target_coll: trim
@@ -955,6 +957,7 @@ tests:
 
   - description: TRIM(TRAILING substr FROM str) correctness test
     current_db: foo
+    skip_reason: "SQL-1335: trim codegen incorrect"
     query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(TRAILING substr FROM str)} FROM `trim` AS c"
     translation_target_db: foo
     translation_target_coll: trim

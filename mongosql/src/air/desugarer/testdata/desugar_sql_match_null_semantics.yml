@@ -1,11 +1,13 @@
 tests:
   - name: "nothing to desugar"
+    skip_reason: "SQL-1256"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlEq": ["$a", "$b"] } } }
     expected:
       - { "$project": { "_id": 0, "expr": { "$sqlEq": ["$a", "$b"] } } }
 
   - name: "dynamic desugar $sqlEq in match"
+    skip_reason: "SQL-1256"
     input:
       - { "$match": { "$expr": { "$sqlEq": ["$a", "$b"] } } }
     expected:
@@ -24,6 +26,7 @@ tests:
       - { "$match": { "$expr": { "$eq": ["$a", "$b"] } } }
 
   - name: "dynamic desugar $sqlEq in match with dotted field paths"
+    skip_reason: "SQL-1256"
     input:
       - { "$match": { "$expr": { "$sqlEq": ["$a.b", "$b.a"] } } }
     expected:
@@ -42,6 +45,7 @@ tests:
       - { "$match": { "$expr": { "$eq": ["$a.b", "$b.a"] } } }
 
   - name: "literal desugar $sqlEq in match"
+    skip_reason: "SQL-1256"
     input:
       - { "$match": { "$expr": { "$sqlEq": ["$a", 10] } } }
     expected:
@@ -58,6 +62,7 @@ tests:
       - { "$match": { "$expr": { "$eq": ["$a", { "$numberInt": "10" }] } } }
 
   - name: "nested $sql null semantic operators"
+    skip_reason: "SQL-1256"
     input:
       - {
         "$match":
@@ -85,6 +90,7 @@ tests:
       }
 
   - name: "duplicate values in $match do not get duplicated in schema constraints"
+    skip_reason: "SQL-1256"
     input:
       - {
         "$match":
@@ -122,6 +128,7 @@ tests:
       }
 
   - name: "same fields with different parents in $match show in schema constraints"
+    skip_reason: "SQL-1256"
     input:
       - { "$match": { "$expr": { "$sqlEq": ["$a.a", "$b.a"] } } }
     expected:

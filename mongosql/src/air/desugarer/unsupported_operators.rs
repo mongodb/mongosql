@@ -1,6 +1,6 @@
 use crate::air::{
     self,
-    desugarer::{Pass, Result},
+    desugarer::{Error, Pass, Result},
 };
 
 /// Desugars any SQL operators that do not exist in MQL (e.g. Between, Like,
@@ -10,6 +10,6 @@ pub struct UnsupportedOperatorsDesugarerPass;
 
 impl Pass for UnsupportedOperatorsDesugarerPass {
     fn apply(&self, _pipeline: air::Stage) -> Result<air::Stage> {
-        todo!()
+        Err(Error::TodoError)
     }
 }

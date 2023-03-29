@@ -973,9 +973,9 @@ mod scalar_function_expression {
 
     test_translate_expression!(
         trim,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Trim,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Trim,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Null),
                     air::Expression::Literal(air::LiteralValue::String("h".into())),
@@ -994,9 +994,9 @@ mod scalar_function_expression {
 
     test_translate_expression!(
         ltrim,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::LTrim,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::LTrim,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Null),
                     air::Expression::Literal(air::LiteralValue::String("h".into())),
@@ -1015,9 +1015,9 @@ mod scalar_function_expression {
 
     test_translate_expression!(
         rtrim,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::RTrim,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::RTrim,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Null),
                     air::Expression::Literal(air::LiteralValue::String("h".into())),

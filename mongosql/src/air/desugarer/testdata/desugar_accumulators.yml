@@ -1,11 +1,13 @@
 tests:
   - name: "nothing to desugar"
+    skip_reason: "SQL-1254"
     input:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
     expected:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
 
   - name: "desugar non-distinct $sqlAvg"
+    skip_reason: "SQL-1254"
     input:
       - {
         "$group":
@@ -18,6 +20,7 @@ tests:
       - { "$group": { "_id": null, "acc": { "$avg": "$a" } } }
 
   - name: "desugar distinct $sqlAvg"
+    skip_reason: "SQL-1254"
     input:
       - {
         "$group":
@@ -31,6 +34,7 @@ tests:
       - { "$project": { "acc": { "$avg": "$acc" } } }
 
   - name: "desugar non-distinct $sqlCount"
+    skip_reason: "SQL-1254"
     input:
       - {
         "$group":
@@ -60,6 +64,7 @@ tests:
       }
 
   - name: "desugar distinct $sqlCount"
+    skip_reason: "SQL-1254"
     input:
       - {
         "$group":
@@ -106,6 +111,7 @@ tests:
       }
 
   - name: "desugar non-distinct $sqlLast"
+    skip_reason: "SQL-1254"
     input:
       - {
         "$group":
@@ -118,6 +124,7 @@ tests:
       - { "$group": { "_id": null, "acc": { "$last": "$a" } } }
 
   - name: "desugar distinct $sqlLast"
+    skip_reason: "SQL-1254"
     input:
       - {
         "$group":
@@ -131,6 +138,7 @@ tests:
       - { "$project": { "acc": { "$last": "$acc" } } }
 
   - name: "desugar non-distinct $sqlMergeObjects"
+    skip_reason: "SQL-1254"
     input:
       - {
         "$group":
@@ -143,6 +151,7 @@ tests:
       - { "$group": { "_id": null, "acc": { "$mergeObjects": "$a" } } }
 
   - name: "desugar distinct $sqlMergeObjects"
+    skip_reason: "SQL-1254"
     input:
       - {
         "$group":
@@ -156,6 +165,7 @@ tests:
       - { "$project": { "acc": { "$mergeObjects": "$acc" } } }
 
   - name: "desugar non-distinct $sqlStdDevPop"
+    skip_reason: "SQL-1254"
     input:
       - {
         "$group":
@@ -168,6 +178,7 @@ tests:
       - { "$group": { "_id": null, "acc": { "$stdDevPop": "$a" } } }
 
   - name: "desugar distinct $sqlStdDevPop"
+    skip_reason: "SQL-1254"
     input:
       - {
         "$group":
@@ -181,6 +192,7 @@ tests:
       - { "$project": { "acc": { "$stdDevPop": "$acc" } } }
 
   - name: "desugar non-distinct $sqlStdDevSamp"
+    skip_reason: "SQL-1254"
     input:
       - {
         "$group":
@@ -193,6 +205,7 @@ tests:
       - { "$group": { "_id": null, "acc": { "$stdDevSamp": "$a" } } }
 
   - name: "desugar distinct $sqlStdDevSamp"
+    skip_reason: "SQL-1254"
     input:
       - {
         "$group":
@@ -206,6 +219,7 @@ tests:
       - { "$project": { "acc": { "$stdDevSamp": "$acc" } } }
 
   - name: "desugar non-distinct $sqlSum"
+    skip_reason: "SQL-1254"
     input:
       - {
         "$group":
@@ -218,6 +232,7 @@ tests:
       - { "$group": { "_id": null, "acc": { "$sum": "$a" } } }
 
   - name: "desugar distinct $sqlSum"
+    skip_reason: "SQL-1254"
     input:
       - {
         "$group":
@@ -231,6 +246,7 @@ tests:
       - { "$project": { "acc": { "$sum": "$acc" } } }
 
   - name: "desugar mix of distinct $sql, non-distinct $sql, and non-$sql accumulators"
+    skip_reason: "SQL-1254"
     input:
       - {
         "$group":

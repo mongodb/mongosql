@@ -984,42 +984,6 @@ mod sql_semantic_operator {
         })
     );
     test_codegen_air_expr!(
-        trim,
-        expected =
-            Ok(bson!({ "$trim": { "input": {"$literal": "foo"}, "chars": {"$literal": "a"}}})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
-            op: Trim,
-            args: vec![
-                Literal(String("a".to_string())),
-                Literal(String("foo".to_string())),
-            ],
-        })
-    );
-    test_codegen_air_expr!(
-        ltrim,
-        expected =
-            Ok(bson!({ "$ltrim": { "input": {"$literal": "foo"}, "chars": {"$literal": "a"}}})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
-            op: LTrim,
-            args: vec![
-                Literal(String("a".to_string())),
-                Literal(String("foo".to_string())),
-            ],
-        })
-    );
-    test_codegen_air_expr!(
-        rtrim,
-        expected =
-            Ok(bson!({ "$rtrim": { "input": {"$literal": "foo"}, "chars": {"$literal": "a"}}})),
-        input = SQLSemanticOperator(SQLSemanticOperator {
-            op: RTrim,
-            args: vec![
-                Literal(String("a".to_string())),
-                Literal(String("foo".to_string())),
-            ],
-        })
-    );
-    test_codegen_air_expr!(
         split,
         expected = Ok(bson!({ "$sqlSplit": [{ "$literal": "foo" }, { "$literal": "o" }]})),
         input = SQLSemanticOperator(SQLSemanticOperator {

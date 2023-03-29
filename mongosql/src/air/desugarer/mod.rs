@@ -12,6 +12,10 @@ use crate::air::desugarer::sql_null_semantics_operators::SQLNullSemanticsOperato
 mod subquery;
 use crate::air::desugarer::subquery::SubqueryExprDesugarerPass;
 mod unsupported_operators;
+
+#[cfg(test)]
+mod test;
+
 use crate::air::desugarer::unsupported_operators::UnsupportedOperatorsDesugarerPass;
 
 pub type Result<T> = std::result::Result<T, Error>;

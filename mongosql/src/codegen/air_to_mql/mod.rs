@@ -191,9 +191,6 @@ impl MqlCodeGenerator {
             ToUpper => "$sqlToUpper",
             ToLower => "$sqlToLower",
             Split => "$sqlSplit",
-            Trim => "$trim",
-            LTrim => "$ltrim",
-            RTrim => "$rtrim",
 
             // ComputedFieldAccess, CurrentTimestamp
             _ => return None,
@@ -334,10 +331,6 @@ impl MqlCodeGenerator {
                         );
                         Bson::Document(bson::doc! { Self::to_sql_op(sqls.op).unwrap(): args})
                     }
-                    SQLOperator::Trim | SQLOperator::LTrim | SQLOperator::RTrim => bson::bson!({
-                        Self::to_sql_op(sqls.op).unwrap(): {"input": self.codegen_air_expression(sqls.args[1].clone())?,
-                            "chars": self.codegen_air_expression(sqls.args[0].clone())?,
-                    }}),
                 })
             }
             GetField(gf) => Ok({

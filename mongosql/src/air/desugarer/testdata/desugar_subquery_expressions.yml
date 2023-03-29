@@ -1,11 +1,13 @@
 tests:
   - name: "nothing to desugar"
+    skip_reason: "SQL-1255"
     input:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
     expected:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
 
   - name: "desugar $subquery expression with only coll"
+    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -52,6 +54,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "desugar $subquery expression with no source"
+    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -96,6 +99,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "desugar fully specified $subquery expression"
+    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -163,6 +167,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "nested subquery expression is desugared in nested pipeline"
+    skip_reason: "SQL-1255"
     input:
       - {
         "$lookup":
@@ -244,6 +249,7 @@ tests:
       }
 
   - name: "desugar stage with multiple subquery expressions"
+    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -398,6 +404,7 @@ tests:
       }
 
   - name: "desugar $subqueryExists expression with only coll"
+    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -426,6 +433,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "desugar $subqueryExists expression with no source"
+    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -459,6 +467,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "desugar fully specified $subqueryExists expression"
+    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -506,6 +515,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "desugar $subqueryComparison expression with only coll"
+    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -559,6 +569,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "desugar $subqueryComparison expression with no source"
+    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -611,6 +622,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "desugar fully specified $subqueryComparison expression"
+    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -678,6 +690,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "desugar $subqueryComparison expression with ALL modifier"
+    skip_reason: "SQL-1255"
     input:
       - {
         "$project":

@@ -304,9 +304,6 @@ pub enum SQLOperator {
     SubstrCP,
     ToUpper,
     ToLower,
-    Trim,
-    LTrim,
-    RTrim,
     Split,
 
     // Extended Operators

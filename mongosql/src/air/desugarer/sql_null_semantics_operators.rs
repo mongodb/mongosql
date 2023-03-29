@@ -1,6 +1,6 @@
 use crate::air::{
     self,
-    desugarer::{Pass, Result},
+    desugarer::{Error, Pass, Result},
 };
 
 /// Desugars any SQL operators that require SQL null semantics into their
@@ -10,6 +10,6 @@ pub struct SQLNullSemanticsOperatorsDesugarerPass;
 
 impl Pass for SQLNullSemanticsOperatorsDesugarerPass {
     fn apply(&self, _pipeline: air::Stage) -> Result<air::Stage> {
-        todo!()
+        Err(Error::TodoError)
     }
 }

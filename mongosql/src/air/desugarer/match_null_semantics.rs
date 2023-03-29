@@ -1,6 +1,6 @@
 use crate::air::{
     self,
-    desugarer::{Pass, Result},
+    desugarer::{Error, Pass, Result},
 };
 
 /// Desugars Match stages with SQL operators such that they can partially
@@ -13,6 +13,6 @@ pub struct MatchDesugarerPass;
 
 impl Pass for MatchDesugarerPass {
     fn apply(&self, _pipeline: air::Stage) -> Result<air::Stage> {
-        todo!()
+        Err(Error::TodoError)
     }
 }

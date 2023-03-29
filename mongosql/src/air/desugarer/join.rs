@@ -1,6 +1,6 @@
 use crate::air::{
     self,
-    desugarer::{Pass, Result},
+    desugarer::{Error, Pass, Result},
 };
 
 /// Desugars any Join stages in the pipeline into sequences of equivalent,
@@ -10,6 +10,6 @@ pub struct JoinDesugarerPass;
 
 impl Pass for JoinDesugarerPass {
     fn apply(&self, _pipeline: air::Stage) -> Result<air::Stage> {
-        todo!()
+        Err(Error::TodoError)
     }
 }

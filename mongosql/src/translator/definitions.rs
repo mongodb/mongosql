@@ -718,9 +718,9 @@ impl MqlTranslator {
             Substring => ScalarFunctionType::Sql(air::SQLOperator::SubstrCP),
             Upper => ScalarFunctionType::Sql(air::SQLOperator::ToUpper),
             Lower => ScalarFunctionType::Sql(air::SQLOperator::ToLower),
-            BTrim => ScalarFunctionType::Sql(air::SQLOperator::Trim),
-            LTrim => ScalarFunctionType::Sql(air::SQLOperator::LTrim),
-            RTrim => ScalarFunctionType::Sql(air::SQLOperator::RTrim),
+            BTrim => ScalarFunctionType::Mql(air::MQLOperator::Trim),
+            LTrim => ScalarFunctionType::Mql(air::MQLOperator::LTrim),
+            RTrim => ScalarFunctionType::Mql(air::MQLOperator::RTrim),
             Split => ScalarFunctionType::Sql(air::SQLOperator::Split),
 
             // Datetime value scalar function
