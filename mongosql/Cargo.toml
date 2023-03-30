@@ -7,7 +7,7 @@ edition = "2021"
 [dependencies]
 bson = "2"
 itertools = "0.10.1"
-lalrpop-util = { version = "0.19.4", features = ["lexer"] }
+lalrpop-util = { version = "0.19.9", features = ["lexer"] }
 lazy_static = "1"
 linked-hash-map = "0.5.4"
 quickcheck = "1"
@@ -31,5 +31,5 @@ name = "translate"
 harness = false
 
 [build-dependencies]
-lalrpop = "0.19.4"
+lalrpop = "0.19.9"
 regex = "1.4.6"
