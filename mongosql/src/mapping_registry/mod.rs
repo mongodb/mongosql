@@ -2,30 +2,52 @@ pub use mongosql_datastructures::binding_tuple::Key;
 use std::collections::BTreeMap;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
-pub struct MqlMappingRegistry(BTreeMap<Key, String>);
+pub enum MqlReferenceType {
+    FieldRef,
+    Variable,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct MqlMappingRegistryValue {
+    pub name: String,
+    pub ref_type: MqlReferenceType,
+}
+
+impl MqlMappingRegistryValue {
+    pub fn new(name: String, ref_type: MqlReferenceType) -> Self {
+        MqlMappingRegistryValue { name, ref_type }
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub struct MqlMappingRegistry(BTreeMap<Key, MqlMappingRegistryValue>);
 
 impl MqlMappingRegistry {
     pub fn new() -> Self {
         MqlMappingRegistry(BTreeMap::new())
     }
 
-    pub fn with_registry(tree: BTreeMap<Key, String>) -> Self {
+    pub fn with_registry(tree: BTreeMap<Key, MqlMappingRegistryValue>) -> Self {
         MqlMappingRegistry(tree)
     }
 
-    pub fn get(&self, k: &Key) -> Option<&String> {
+    pub fn get(&self, k: &Key) -> Option<&MqlMappingRegistryValue> {
         self.0.get(k)
     }
 
-    pub fn get_registry(&self) -> &BTreeMap<Key, String> {
+    pub fn get_registry(&self) -> &BTreeMap<Key, MqlMappingRegistryValue> {
         &self.0
     }
 
-    pub fn remove(&mut self, k: &Key) -> Option<String> {
+    pub fn remove(&mut self, k: &Key) -> Option<MqlMappingRegistryValue> {
         self.0.remove(k)
     }
 
-    pub fn insert<K: Into<Key>, V: Into<String>>(&mut self, k: K, v: V) -> Option<String> {
+    pub fn insert<K: Into<Key>, V: Into<MqlMappingRegistryValue>>(
+        &mut self,
+        k: K,
+        v: V,
+    ) -> Option<MqlMappingRegistryValue> {
         self.0.insert(k.into(), v.into())
     }
 

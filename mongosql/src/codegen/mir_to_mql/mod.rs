@@ -1,6 +1,6 @@
 use crate::{
     map,
-    mapping_registry::MqlMappingRegistry,
+    mapping_registry::{MqlMappingRegistry, MqlMappingRegistryValue, MqlReferenceType},
     mir::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
@@ -65,7 +65,7 @@ impl MqlTranslation {
         match expr {
             mir::Expression::Reference(mir::ReferenceExpr { key, .. }) => {
                 match self.mapping_registry.get(&key) {
-                    Some(name) => Ok(vec![name.clone()]),
+                    Some(registry_value) => Ok(vec![registry_value.name.clone()]),
                     None => Err(Error::ReferenceNotFound(key)),
                 }
             }
@@ -89,16 +89,19 @@ impl MqlTranslation {
         };
         let mongo_bot_name = self.mapping_registry.remove(&key);
         match mongo_bot_name {
-            Some(name) => {
-                self.mapping_registry.insert(key, "");
+            Some(registry_value) => {
+                self.mapping_registry.insert(
+                    key,
+                    MqlMappingRegistryValue::new("".to_string(), MqlReferenceType::FieldRef),
+                );
                 self.with_additional_stage(doc! {"$replaceWith":
                     {"$unsetField":
-                        {"field": name.clone(),
+                        {"field": registry_value.name.clone(),
                          "input":
                             {"$setField":
                                 {"field": "",
                                  "input": "$$ROOT",
-                                 "value": format! ("${name}")
+                                 "value": format! ("${}", registry_value.name)
                                 }
                             }
                         }
@@ -338,11 +341,14 @@ impl MqlCodeGenerator {
                     while let_bindings.contains_key(&generated_name) {
                         generated_name.push('_');
                     }
-                    let_bindings.insert(generated_name.clone(), format!("${value}"));
+                    let_bindings.insert(generated_name.clone(), format!("${}", value.name));
                     generated_name.insert(0, '$');
-                    (key, generated_name)
+                    (
+                        key,
+                        MqlMappingRegistryValue::new(generated_name, MqlReferenceType::Variable),
+                    )
                 })
-                .collect::<BTreeMap<Key, String>>(),
+                .collect::<BTreeMap<Key, MqlMappingRegistryValue>>(),
         );
         Ok((let_bindings, new_mapping_registry))
     }
@@ -395,7 +401,10 @@ impl MqlCodeGenerator {
                         mapped_k.clone(),
                         expression_generator.codegen_expression(e)?,
                     );
-                    output_registry.insert(k, mapped_k);
+                    output_registry.insert(
+                        k,
+                        MqlMappingRegistryValue::new(mapped_k, MqlReferenceType::FieldRef),
+                    );
                 }
                 Ok(source_translation
                     .with_mapping_registry(output_registry)
@@ -416,7 +425,7 @@ impl MqlCodeGenerator {
                 database: Some(c.db),
                 collection: Some(c.collection.clone()),
                 mapping_registry: MqlMappingRegistry::with_registry(
-                    map! {(&c.collection, self.scope_level).into() => c.collection.clone()},
+                    map! {(&c.collection, self.scope_level).into() => MqlMappingRegistryValue::new(c.collection.clone(), MqlReferenceType::FieldRef)},
                 ),
                 // It is not technically possible to have a collection named _id in a mongod
                 // instance, but it may be possible in datalake or other future instantiations
@@ -429,7 +438,7 @@ impl MqlCodeGenerator {
             }),
             Array(arr) => {
                 let mapping_registry = MqlMappingRegistry::with_registry(
-                    map! {(&arr.alias, self.scope_level).into() => arr.alias.clone()},
+                    map! {(&arr.alias, self.scope_level).into() => MqlMappingRegistryValue::new(arr.alias.clone(), MqlReferenceType::FieldRef)},
                 );
                 let docs = arr
                     .array
@@ -648,14 +657,14 @@ impl MqlCodeGenerator {
                             .ok_or_else(|| Error::ReferenceNotFound(key.clone()))?;
                         // _id will be 0 instead of a Document. We assume it is
                         // always a Document in the else.
-                        if datasource == "_id" {
-                            output_registry.insert(key.clone(), datasource);
+                        if datasource.name == "_id" {
+                            output_registry.insert(key.clone(), datasource.clone());
                             project_body.insert(
-                                datasource,
+                                datasource.name.clone(),
                                 bson::bson! {{fa.field.clone(): format!("$_id.{alias}")}},
                             )
                         } else {
-                            match project_body.get_mut(datasource) {
+                            match project_body.get_mut(datasource.name.clone()) {
                                 // We can safely unwrap here since `doc` will always be a
                                 // Bson::Document.
                                 Some(doc) => doc
@@ -663,9 +672,9 @@ impl MqlCodeGenerator {
                                     .unwrap()
                                     .insert(fa.field.clone(), format!("$_id.{alias}")),
                                 None => {
-                                    output_registry.insert(key.clone(), datasource);
+                                    output_registry.insert(key.clone(), datasource.clone());
                                     project_body.insert(
-                                        datasource,
+                                        datasource.name.clone(),
                                         bson::bson! {{fa.field.clone(): format!("$_id.{alias}")}},
                                     )
                                 }
@@ -737,7 +746,10 @@ impl MqlCodeGenerator {
             let bot_name =
                 MqlCodeGenerator::generate_unique_bot_name(|s| project_body.contains_key(s));
             project_body.insert(bot_name.clone(), bot_body);
-            output_registry.insert(Key::bot(self.scope_level), bot_name);
+            output_registry.insert(
+                Key::bot(self.scope_level),
+                MqlMappingRegistryValue::new(bot_name, MqlReferenceType::FieldRef),
+            );
         }
         Ok(source_translation
             .with_additional_stage(doc! {"$group": group_body})
@@ -848,7 +860,7 @@ impl MqlCodeGenerator {
                 .mapping_registry
                 .get(&key)
                 .ok_or(Error::ReferenceNotFound(key))
-                .map(|s| Bson::String(format!("${s}"))),
+                .map(|s| Bson::String(format!("${}", s.name))),
             Array(exprs) => Ok(Bson::Array(
                 exprs
                     .array

@@ -1,6 +1,7 @@
 use crate::{
     air::{self, SQLOperator, TypeOrMissing},
-    mapping_registry::{Key, MqlMappingRegistry},
+    map,
+    mapping_registry::{Key, MqlMappingRegistry, MqlMappingRegistryValue, MqlReferenceType},
     mir,
 };
 
@@ -10,7 +11,7 @@ use mongosql_datastructures::{
     unique_linked_hash_map,
     unique_linked_hash_map::{DuplicateKeyError, UniqueLinkedHashMap, UniqueLinkedHashMapEntry},
 };
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use crate::translator::Error::InvalidSqlConvertToType;
 use thiserror::Error;
@@ -147,18 +148,21 @@ impl MqlTranslator {
         };
         let mongo_bot_name = self.mapping_registry.remove(&key);
         Ok(match mongo_bot_name {
-            Some(name) => {
-                self.mapping_registry.insert(key, "");
+            Some(registry_value) => {
+                self.mapping_registry.insert(
+                    key,
+                    MqlMappingRegistryValue::new("".to_string(), MqlReferenceType::FieldRef),
+                );
                 air::Stage::ReplaceWith(air::ReplaceWith {
                     source: Box::new(source),
                     new_root: Box::new(air::Expression::UnsetField(air::UnsetField {
-                        field: name.clone(),
+                        field: registry_value.name.clone(),
                         input: Box::new(air::Expression::SetField(air::SetField {
                             field: "".to_string(),
                             input: Box::new(air::Expression::Variable("ROOT".to_string())),
                             value: Box::new(air::Expression::FieldRef(air::FieldRef {
                                 parent: None,
-                                name,
+                                name: registry_value.name,
                             })),
                         })),
                     })),
@@ -178,7 +182,7 @@ impl MqlTranslator {
             mir::Stage::Limit(l) => self.translate_limit(l),
             mir::Stage::Offset(o) => self.translate_offset(o),
             mir::Stage::Sort(s) => self.translate_sort(s),
-            mir::Stage::Join(_j) => Err(Error::UnimplementedStruct),
+            mir::Stage::Join(j) => self.translate_join(j),
             mir::Stage::Set(_s) => Err(Error::UnimplementedStruct),
             mir::Stage::Derived(_d) => Err(Error::UnimplementedStruct),
             mir::Stage::Unwind(u) => self.translate_unwind(u),
@@ -196,7 +200,7 @@ impl MqlTranslator {
 
         self.mapping_registry.insert(
             Key::named(&mir_arr.alias, self.scope_level),
-            mir_arr.alias.clone(),
+            MqlMappingRegistryValue::new(mir_arr.alias.clone(), MqlReferenceType::FieldRef),
         );
 
         Ok(air::Stage::Project(air::Project {
@@ -215,7 +219,10 @@ impl MqlTranslator {
 
         self.mapping_registry.insert(
             Key::named(&mir_collection.collection, self.scope_level),
-            mir_collection.collection.clone(),
+            MqlMappingRegistryValue::new(
+                mir_collection.collection.clone(),
+                MqlReferenceType::FieldRef,
+            ),
         );
         Ok(air::Stage::Project(air::Project {
             source: Box::new(coll_stage),
@@ -241,7 +248,10 @@ impl MqlTranslator {
             }
 
             project_body.insert(mapped_k.clone(), self.translate_expression(e)?)?;
-            output_registry.insert(k, mapped_k);
+            output_registry.insert(
+                k,
+                MqlMappingRegistryValue::new(mapped_k, MqlReferenceType::FieldRef),
+            );
         }
         self.mapping_registry = output_registry;
         Ok(air::Stage::Project(air::Project {
@@ -319,7 +329,7 @@ impl MqlTranslator {
     fn get_datasource_and_field_for_unaliased_group_key<'a>(
         &'a self,
         e: &'a mir::Expression,
-    ) -> Result<(&'a String, &'a String)> {
+    ) -> Result<(&'a MqlMappingRegistryValue, &'a String)> {
         let (key, field) = match e {
             mir::Expression::FieldAccess(mir::FieldAccess {
                 ref expr,
@@ -382,7 +392,7 @@ impl MqlTranslator {
                     );
                     let (datasource, field) =
                         self.get_datasource_and_field_for_unaliased_group_key(&e)?;
-                    match specifications.get_mut(datasource) {
+                    match specifications.get_mut(&datasource.name) {
                         // If we have already put something under this Datasource, we just update
                         // the document.
                         Some(air::Expression::Document(ref mut d)) => {
@@ -391,7 +401,7 @@ impl MqlTranslator {
                         // We have nothing under this Datasource, so we need to create a new
                         // Document with one key/value pair.
                         None => specifications.insert(
-                            datasource.clone(),
+                            datasource.name.clone(),
                             air::Expression::Document(unique_linked_hash_map! {field.clone() => make_key_ref(unique_name.clone())}),
                         )?,
                         // We only generate Project fields where the values are Documents because the keys of
@@ -485,8 +495,10 @@ impl MqlTranslator {
         self.mapping_registry = MqlMappingRegistry::new();
 
         for key in specifications.keys() {
-            self.mapping_registry
-                .insert(Key::named(key, self.scope_level), key.clone());
+            self.mapping_registry.insert(
+                Key::named(key, self.scope_level),
+                MqlMappingRegistryValue::new(key.clone(), MqlReferenceType::FieldRef),
+            );
         }
         // bot_body will only be empty if all Group keys are references and there are not
         // aggregation functions. If it is not empty, we need to add it to the output Project
@@ -495,8 +507,10 @@ impl MqlTranslator {
             let unique_bot_name =
                 Self::generate_unique_bot_name(|s| specifications.contains_key(s));
             specifications.insert(unique_bot_name.clone(), air::Expression::Document(bot_body))?;
-            self.mapping_registry
-                .insert(Key::bot(self.scope_level), unique_bot_name);
+            self.mapping_registry.insert(
+                Key::bot(self.scope_level),
+                MqlMappingRegistryValue::new(unique_bot_name, MqlReferenceType::FieldRef),
+            );
         }
 
         // Return the proper Stages, which is a Project with specifications set as above and the
@@ -508,6 +522,72 @@ impl MqlTranslator {
                 aggregations,
             })),
             specifications,
+        }))
+    }
+
+    fn generate_let_bindings(&mut self, registry: MqlMappingRegistry) {
+        let mut let_bindings: bson::Document = map![];
+        let new_mapping_registry = MqlMappingRegistry::with_registry(
+            registry
+                .get_registry()
+                .clone()
+                .into_iter()
+                .map(|(key, value)| {
+                    let mut generated_name = format!(
+                        "v{}_{}",
+                        Self::get_datasource_name(&key.datasource, "__bot"),
+                        key.scope
+                    );
+
+                    // Here, we replace any invalid characters with an underscore
+                    // and then lowercase the whole name. The [[:word:]] character
+                    // class matches word characters ([0-9A-Za-z_]).
+                    generated_name = regex::Regex::new(r"[[:ascii:]&&[:^word:]]")
+                        .unwrap()
+                        .replace_all(generated_name.as_str(), "_")
+                        .to_string()
+                        .to_ascii_lowercase();
+                    while let_bindings.contains_key(&generated_name) {
+                        generated_name.push('_');
+                    }
+                    let_bindings.insert(generated_name.clone(), format!("${}", value.name));
+                    (
+                        key,
+                        MqlMappingRegistryValue::new(generated_name, MqlReferenceType::Variable),
+                    )
+                })
+                .collect::<BTreeMap<Key, MqlMappingRegistryValue>>(),
+        );
+        // update the mapping registry with the new values for existing keys
+        self.mapping_registry.merge(new_mapping_registry);
+    }
+
+    fn translate_join(&mut self, mir_join: mir::Join) -> Result<air::Stage> {
+        let join_type = match mir_join.join_type {
+            mir::JoinType::Inner => air::JoinType::Inner,
+            mir::JoinType::Left => air::JoinType::Left,
+        };
+
+        // the two sides of the join are projects, which reset the mapping registry
+        // here we store mappings for each side of the join, and merge with the overall registry
+        let left = self.translate_stage(*mir_join.left)?;
+        let left_registry = self.mapping_registry.clone();
+        let right = self.translate_stage(*mir_join.right)?;
+        self.mapping_registry.merge(left_registry.clone());
+
+        let condition = mir_join
+            .condition
+            .map(|x| {
+                self.generate_let_bindings(left_registry);
+                self.translate_expression(x)
+            })
+            .transpose()?;
+
+        Ok(air::Stage::Join(air::Join {
+            join_type,
+            left: Box::new(left),
+            right: Box::new(right),
+            condition,
         }))
     }
 
@@ -603,7 +683,7 @@ impl MqlTranslator {
                 .mapping_registry
                 .get(&reference.key)
                 .ok_or(Error::ReferenceNotFound(reference.key))
-                .map(|s| s.clone()),
+                .map(|s| s.name.clone()),
             mir::Expression::FieldAccess(reference) => Ok(format!(
                 "{}.{}",
                 self.get_reference_key_name(*reference.expr)?,
@@ -617,11 +697,12 @@ impl MqlTranslator {
         self.mapping_registry
             .get(&key)
             .ok_or(Error::ReferenceNotFound(key))
-            .map(|s| {
-                air::Expression::FieldRef(air::FieldRef {
+            .map(|s| match s.ref_type {
+                MqlReferenceType::FieldRef => air::Expression::FieldRef(air::FieldRef {
                     parent: None,
-                    name: s.clone(),
-                })
+                    name: s.name.clone(),
+                }),
+                MqlReferenceType::Variable => air::Expression::Variable(s.name.to_string()),
             })
     }
 

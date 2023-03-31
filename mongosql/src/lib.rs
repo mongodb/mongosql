@@ -146,9 +146,9 @@ fn mql_schema_env_to_json_schema(
     let keys: std::collections::BTreeMap<String, Schema> = schema_env
         .into_iter()
         .map(|(k, v)| {
-            let mql_name = mapping_registry.get(&k);
-            match mql_name {
-                Some(mql_name) => Ok((mql_name.clone(), v)),
+            let registry_value = mapping_registry.get(&k);
+            match registry_value {
+                Some(registry_value) => Ok((registry_value.name.clone(), v)),
                 None => Err(result::Error::CodegenMIR(
                     codegen::mir_to_mql::Error::ReferenceNotFound(k),
                 )),

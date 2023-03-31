@@ -689,7 +689,11 @@ mod literal {
 }
 
 mod reference {
-    use crate::{codegen::mir_to_mql::Error, mir::Expression::*};
+    use crate::{
+        codegen::mir_to_mql::Error,
+        mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
+        mir::Expression::*,
+    };
     use bson::Bson;
 
     test_codegen_expr!(
@@ -704,7 +708,10 @@ mod reference {
         input = Reference(("f", 0u16).into()),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -794,6 +801,7 @@ mod document {
 
 mod field_access {
     use crate::{
+        mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{schema::SchemaCache, *},
         unchecked_unique_linked_hash_map,
     };
@@ -809,7 +817,10 @@ mod field_access {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -828,7 +839,10 @@ mod field_access {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -870,7 +884,10 @@ mod field_access {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -884,7 +901,10 @@ mod field_access {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -898,7 +918,10 @@ mod field_access {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -912,7 +935,10 @@ mod field_access {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1449,6 +1475,7 @@ mod union {
 mod function {
     use crate::{
         codegen::mir_to_mql::Error,
+        mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{
             definitions::*, schema::SchemaCache, DateFunction, Expression::*, LiteralValue,
             ScalarFunction::*,
@@ -1469,7 +1496,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1488,8 +1518,14 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("input", 0u16), "input");
-            mr.insert(("pattern", 0u16), "pattern");
+            mr.insert(
+                ("input", 0u16),
+                MqlMappingRegistryValue::new("input".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("pattern", 0u16),
+                MqlMappingRegistryValue::new("pattern".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1503,7 +1539,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1518,7 +1557,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1532,7 +1574,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1546,7 +1591,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1560,7 +1608,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1576,7 +1627,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1596,8 +1650,14 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f1", 0u16), "f1");
-            mr.insert(("f2", 0u16), "f2");
+            mr.insert(
+                ("f1", 0u16),
+                MqlMappingRegistryValue::new("f1".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("f2", 0u16),
+                MqlMappingRegistryValue::new("f2".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1616,7 +1676,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1636,8 +1699,14 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f1", 0u16), "f1");
-            mr.insert(("f2", 0u16), "f2");
+            mr.insert(
+                ("f1", 0u16),
+                MqlMappingRegistryValue::new("f1".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("f2", 0u16),
+                MqlMappingRegistryValue::new("f2".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1656,7 +1725,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1675,7 +1747,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1694,7 +1769,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1713,7 +1791,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1732,7 +1813,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1751,7 +1835,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1770,7 +1857,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1790,7 +1880,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1804,7 +1897,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1824,8 +1920,14 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f1", 0u16), "f1");
-            mr.insert(("f2", 0u16), "f2");
+            mr.insert(
+                ("f1", 0u16),
+                MqlMappingRegistryValue::new("f1".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("f2", 0u16),
+                MqlMappingRegistryValue::new("f2".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1845,8 +1947,14 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f1", 0u16), "f1");
-            mr.insert(("f2", 0u16), "f2");
+            mr.insert(
+                ("f1", 0u16),
+                MqlMappingRegistryValue::new("f1".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("f2", 0u16),
+                MqlMappingRegistryValue::new("f2".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1866,8 +1974,14 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f1", 0u16), "f1");
-            mr.insert(("f2", 0u16), "f2");
+            mr.insert(
+                ("f1", 0u16),
+                MqlMappingRegistryValue::new("f1".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("f2", 0u16),
+                MqlMappingRegistryValue::new("f2".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1887,8 +2001,14 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f1", 0u16), "f1");
-            mr.insert(("f2", 0u16), "f2");
+            mr.insert(
+                ("f1", 0u16),
+                MqlMappingRegistryValue::new("f1".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("f2", 0u16),
+                MqlMappingRegistryValue::new("f2".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1908,7 +2028,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1922,7 +2045,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1939,7 +2065,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1953,7 +2082,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1967,7 +2099,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1981,7 +2116,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1999,7 +2137,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2013,7 +2154,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2027,7 +2171,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2053,7 +2200,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2070,7 +2220,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2087,7 +2240,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2101,7 +2257,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2115,7 +2274,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2129,7 +2291,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2143,7 +2308,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2157,7 +2325,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2171,7 +2342,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2185,7 +2359,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2199,7 +2376,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2213,7 +2393,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2227,7 +2410,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2315,7 +2501,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2330,7 +2519,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2344,7 +2536,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2358,7 +2553,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2372,7 +2570,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2391,8 +2592,14 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f1", 0u16), "f1");
-            mr.insert(("f2", 0u16), "f2");
+            mr.insert(
+                ("f1", 0u16),
+                MqlMappingRegistryValue::new("f1".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("f2", 0u16),
+                MqlMappingRegistryValue::new("f2".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2411,8 +2618,14 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f1", 0u16), "f1");
-            mr.insert(("f2", 0u16), "f2");
+            mr.insert(
+                ("f1", 0u16),
+                MqlMappingRegistryValue::new("f1".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("f2", 0u16),
+                MqlMappingRegistryValue::new("f2".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2431,8 +2644,14 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f1", 0u16), "f1");
-            mr.insert(("f2", 0u16), "f2");
+            mr.insert(
+                ("f1", 0u16),
+                MqlMappingRegistryValue::new("f1".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("f2", 0u16),
+                MqlMappingRegistryValue::new("f2".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2451,8 +2670,14 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f1", 0u16), "f1");
-            mr.insert(("f2", 0u16), "f2");
+            mr.insert(
+                ("f1", 0u16),
+                MqlMappingRegistryValue::new("f1".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("f2", 0u16),
+                MqlMappingRegistryValue::new("f2".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2472,7 +2697,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2488,7 +2716,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2504,7 +2735,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2520,7 +2754,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2536,7 +2773,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2552,7 +2792,10 @@ mod function {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -3500,6 +3743,7 @@ mod subquery {
     use crate::{
         codegen::mir_to_mql::Error,
         map,
+        mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{binding_tuple::DatasourceName::Bottom, schema::SchemaCache, SubqueryModifier::*, *},
         unchecked_unique_linked_hash_map,
     };
@@ -3554,7 +3798,7 @@ mod subquery {
         })).into()),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("foo", 0u16), "foo");
+            mr.insert(("foo", 0u16), MqlMappingRegistryValue::new("foo".to_string(), MqlReferenceType::FieldRef));
             mr
         },
     );
@@ -3620,7 +3864,10 @@ mod subquery {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("foo", 0u16), "foo");
+            mr.insert(
+                ("foo", 0u16),
+                MqlMappingRegistryValue::new("foo".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -3765,8 +4012,14 @@ mod subquery {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("Foo", 0u16), "Foo");
-            mr.insert(("foo", 0u16), "foo");
+            mr.insert(
+                ("Foo", 0u16),
+                MqlMappingRegistryValue::new("Foo".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("foo", 0u16),
+                MqlMappingRegistryValue::new("foo".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -3822,8 +4075,14 @@ mod subquery {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("Foo coll-ß", 0u16), "Foo coll-ß");
-            mr.insert(("foo_coll_ß", 0u16), "foo_coll_ß");
+            mr.insert(
+                ("Foo coll-ß", 0u16),
+                MqlMappingRegistryValue::new("Foo coll-ß".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("foo_coll_ß", 0u16),
+                MqlMappingRegistryValue::new("foo_coll_ß".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -3911,8 +4170,14 @@ mod subquery {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("foo", 0u16), "foo");
-            mr.insert(("x", 0u16), "x");
+            mr.insert(
+                ("foo", 0u16),
+                MqlMappingRegistryValue::new("foo".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("x", 0u16),
+                MqlMappingRegistryValue::new("x".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -3942,8 +4207,14 @@ mod subquery {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("foo", 0u16), "foo");
-            mr.insert(("x", 0u16), "x");
+            mr.insert(
+                ("foo", 0u16),
+                MqlMappingRegistryValue::new("foo".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("x", 0u16),
+                MqlMappingRegistryValue::new("x".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );

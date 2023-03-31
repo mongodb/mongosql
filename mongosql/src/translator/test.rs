@@ -1339,7 +1339,12 @@ mod type_assertion_expression {
 }
 
 mod reference_expression {
-    use crate::{air, mir, translator::Error};
+    use crate::{
+        air,
+        mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
+        mir,
+        translator::Error,
+    };
     test_translate_expression!(
         not_found,
         expected = Err(Error::ReferenceNotFound(("f", 0u16).into())),
@@ -1347,7 +1352,7 @@ mod reference_expression {
     );
 
     test_translate_expression!(
-        found,
+        found_field_ref,
         expected = Ok(air::Expression::FieldRef(air::FieldRef {
             parent: None,
             name: "f".to_string()
@@ -1355,14 +1360,35 @@ mod reference_expression {
         input = mir::Expression::Reference(("f", 0u16).into()),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr
+        },
+    );
+
+    test_translate_expression!(
+        found_variable,
+        expected = Ok(air::Expression::Variable("f".to_string())),
+        input = mir::Expression::Reference(("f", 0u16).into()),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::Variable),
+            );
             mr
         },
     );
 }
 
 mod like_expression {
-    use crate::{air, mir};
+    use crate::{
+        air,
+        mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
+        mir,
+    };
     test_translate_expression!(
         like_expr,
         expected = Ok(air::Expression::Like(air::Like {
@@ -1384,15 +1410,25 @@ mod like_expression {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("input", 0u16), "input");
-            mr.insert(("pattern", 0u16), "pattern");
+            mr.insert(
+                ("input", 0u16),
+                MqlMappingRegistryValue::new("input".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("pattern", 0u16),
+                MqlMappingRegistryValue::new("pattern".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
 }
 
 mod field_access_expression {
-    use crate::{air, mir, unchecked_unique_linked_hash_map};
+    use crate::{
+        air,
+        mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
+        mir, unchecked_unique_linked_hash_map,
+    };
 
     test_translate_expression!(
         from_reference,
@@ -1410,7 +1446,10 @@ mod field_access_expression {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1438,7 +1477,10 @@ mod field_access_expression {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1491,7 +1533,10 @@ mod field_access_expression {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1511,7 +1556,10 @@ mod field_access_expression {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1531,7 +1579,10 @@ mod field_access_expression {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -1551,7 +1602,10 @@ mod field_access_expression {
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
-            mr.insert(("f", 0u16), "f");
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );
@@ -2418,6 +2472,84 @@ mod group_stage {
                 })
             ),],
             aggregations: vec![],
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+}
+
+mod join_stage {
+    use crate::{air, mir, unchecked_unique_linked_hash_map};
+
+    fn input_collection(collection_name: &str) -> Box<mir::Stage> {
+        Box::new(mir::Stage::Collection(mir::Collection {
+            db: "test_db".into(),
+            collection: collection_name.into(),
+            cache: mir::schema::SchemaCache::new(),
+        }))
+    }
+
+    fn transformed_collection(collection_name: &str) -> Box<air::Stage> {
+        Box::new(air::Stage::Project(air::Project {
+            source: Box::new(air::Stage::Collection(air::Collection {
+                db: "test_db".into(),
+                collection: collection_name.into(),
+            })),
+            specifications: unchecked_unique_linked_hash_map! {
+                collection_name.to_string() => air::Expression::Variable("ROOT".to_string())
+            },
+        }))
+    }
+
+    test_translate_stage!(
+        join_without_condition,
+        expected = Ok(air::Stage::Join(air::Join {
+            join_type: air::JoinType::Inner,
+            left: transformed_collection("foo"),
+            right: transformed_collection("bar"),
+            condition: None
+        })),
+        input = mir::Stage::Join(mir::Join {
+            join_type: mir::JoinType::Inner,
+            left: input_collection("foo"),
+            right: input_collection("bar"),
+            condition: None,
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+
+    test_translate_stage!(
+        join_with_condition,
+        expected = Ok(air::Stage::Join(air::Join {
+            join_type: air::JoinType::Left,
+            left: transformed_collection("foo"),
+            right: transformed_collection("bar"),
+            condition: Some(air::Expression::SQLSemanticOperator(
+                air::SQLSemanticOperator {
+                    op: air::SQLOperator::Eq,
+                    args: vec![
+                        air::Expression::Variable("vfoo_0".to_string()),
+                        air::Expression::FieldRef(air::FieldRef {
+                            parent: None,
+                            name: "bar".to_string()
+                        }),
+                    ]
+                }
+            ))
+        })),
+        input = mir::Stage::Join(mir::Join {
+            join_type: mir::JoinType::Left,
+            left: input_collection("foo"),
+            right: input_collection("bar"),
+            condition: Some(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Eq,
+                    args: vec![
+                        mir::Expression::Reference(("foo", 0u16).into()),
+                        mir::Expression::Reference(("bar", 0u16).into())
+                    ],
+                    cache: mir::schema::SchemaCache::new(),
+                }
+            )),
             cache: mir::schema::SchemaCache::new(),
         })
     );
