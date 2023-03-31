@@ -7,7 +7,7 @@ impl MqlCodeGenerator {
         match stage {
             air::Stage::Project(p) => self.codegen_project(p),
             air::Stage::Group(g) => self.codegen_group(g),
-            air::Stage::Limit(_l) => Err(Error::UnimplementedAIR),
+            air::Stage::Limit(l) => self.codegen_limit(l),
             air::Stage::Sort(s) => self.codegen_sort(s),
             air::Stage::Collection(c) => self.codegen_collection(c),
             air::Stage::Join(_j) => Err(Error::UnimplementedAIR),
@@ -236,6 +236,17 @@ impl MqlCodeGenerator {
         let source_translation = self.codegen_air_stage(*air_skip.source)?;
         let mut pipeline = source_translation.pipeline;
         pipeline.push(doc! {"$skip": Bson::Int64(air_skip.skip)});
+        Ok(MqlTranslation {
+            database: source_translation.database,
+            collection: source_translation.collection,
+            pipeline,
+        })
+    }
+
+    fn codegen_limit(&self, air_limit: air::Limit) -> Result<MqlTranslation> {
+        let source_translation = self.codegen_air_stage(*air_limit.source)?;
+        let mut pipeline = source_translation.pipeline;
+        pipeline.push(doc! {"$limit": Bson::Int64(air_limit.limit)});
         Ok(MqlTranslation {
             database: source_translation.database,
             collection: source_translation.collection,

@@ -719,3 +719,26 @@ mod skip {
         }),
     );
 }
+
+mod limit {
+    use crate::air::*;
+    use bson::Bson;
+
+    test_codegen_air_stage!(
+        limit,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                bson::doc! {"$limit": Bson::Int64(123)},
+            ],
+        }),
+        input = Stage::Limit(Limit {
+            source: Box::new(Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            })),
+            limit: 123,
+        }),
+    );
+}
