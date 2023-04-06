@@ -23,12 +23,4 @@ impl MqlCodeGenerator {
             _ => ty.to_str(),
         })
     }
-
-    #[allow(clippy::only_used_in_recursion)] // false positive
-    pub(crate) fn codegen_field_ref(&self, field_ref: air::FieldRef) -> String {
-        match field_ref.parent {
-            None => format!("${}", field_ref.name),
-            Some(parent) => format!("{}.{}", self.codegen_field_ref(*parent), field_ref.name),
-        }
-    }
 }

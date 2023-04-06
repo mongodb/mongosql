@@ -369,9 +369,29 @@ mod expression {
 
         test_from_expr!(
             simple_variable,
-            expected = air::Expression::Variable("v".to_string()),
+            expected = air::Expression::Variable(air::Variable {
+                parent: None,
+                name: "v".to_string()
+            }),
             input =
                 agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::Variable("v".to_string()))
+        );
+
+        test_from_expr!(
+            nested_variable,
+            expected = air::Expression::Variable(air::Variable {
+                parent: Some(Box::new(air::Variable {
+                    parent: Some(Box::new(air::Variable {
+                        parent: None,
+                        name: "x".to_string()
+                    })),
+                    name: "y".to_string()
+                })),
+                name: "z".to_string()
+            }),
+            input = agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::Variable(
+                "x.y.z".to_string()
+            ))
         );
     }
 

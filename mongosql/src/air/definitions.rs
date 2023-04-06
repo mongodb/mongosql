@@ -93,6 +93,7 @@ pub struct Join {
     pub join_type: JoinType,
     pub left: Box<Stage>,
     pub right: Box<Stage>,
+    pub let_vars: Option<Vec<LetVariable>>,
     pub condition: Option<Expression>,
 }
 
@@ -175,7 +176,7 @@ pub enum Expression {
     SubqueryComparison(SubqueryComparison),
     SubqueryExists(SubqueryExists),
     Is(Is),
-    Variable(String),
+    Variable(Variable),
     Array(Vec<Expression>),
     Document(UniqueLinkedHashMap<String, Expression>),
 }
@@ -546,6 +547,12 @@ impl TypeOrMissing {
 pub struct Is {
     pub expr: Box<Expression>,
     pub target_type: TypeOrMissing,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Variable {
+    pub parent: Option<Box<Variable>>,
+    pub name: String,
 }
 
 } // end of generate_visitors! block

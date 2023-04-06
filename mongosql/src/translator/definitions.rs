@@ -1,6 +1,5 @@
 use crate::{
-    air::{self, SQLOperator, TypeOrMissing},
-    map,
+    air::{self, LetVariable, SQLOperator, TypeOrMissing},
     mapping_registry::{Key, MqlMappingRegistry, MqlMappingRegistryValue, MqlReferenceType},
     mir,
 };
@@ -19,7 +18,10 @@ use thiserror::Error;
 type Result<T> = std::result::Result<T, Error>;
 
 lazy_static! {
-    pub static ref ROOT: air::Expression = air::Expression::Variable("ROOT".into());
+    pub static ref ROOT: air::Expression = air::Expression::Variable(air::Variable {
+        parent: None,
+        name: "ROOT".into()
+    });
 }
 
 #[derive(Debug, Error, PartialEq, Eq)]
@@ -159,7 +161,10 @@ impl MqlTranslator {
                         field: registry_value.name.clone(),
                         input: Box::new(air::Expression::SetField(air::SetField {
                             field: "".to_string(),
-                            input: Box::new(air::Expression::Variable("ROOT".to_string())),
+                            input: Box::new(air::Expression::Variable(air::Variable {
+                                parent: None,
+                                name: "ROOT".to_string(),
+                            })),
                             value: Box::new(air::Expression::FieldRef(air::FieldRef {
                                 parent: None,
                                 name: registry_value.name,
@@ -525,8 +530,8 @@ impl MqlTranslator {
         }))
     }
 
-    fn generate_let_bindings(&mut self, registry: MqlMappingRegistry) {
-        let mut let_bindings: bson::Document = map![];
+    fn generate_let_bindings(&mut self, registry: MqlMappingRegistry) -> Option<Vec<LetVariable>> {
+        let mut let_bindings: Vec<LetVariable> = vec![];
         let new_mapping_registry = MqlMappingRegistry::with_registry(
             registry
                 .get_registry()
@@ -547,10 +552,16 @@ impl MqlTranslator {
                         .replace_all(generated_name.as_str(), "_")
                         .to_string()
                         .to_ascii_lowercase();
-                    while let_bindings.contains_key(&generated_name) {
+                    while let_bindings.iter().any(|x| x.name == generated_name) {
                         generated_name.push('_');
                     }
-                    let_bindings.insert(generated_name.clone(), format!("${}", value.name));
+                    let_bindings.push(air::LetVariable {
+                        name: generated_name.clone(),
+                        expr: Box::new(air::Expression::FieldRef(air::FieldRef {
+                            parent: None,
+                            name: value.name,
+                        })),
+                    });
                     (
                         key,
                         MqlMappingRegistryValue::new(generated_name, MqlReferenceType::Variable),
@@ -560,6 +571,7 @@ impl MqlTranslator {
         );
         // update the mapping registry with the new values for existing keys
         self.mapping_registry.merge(new_mapping_registry);
+        Some(let_bindings)
     }
 
     fn translate_join(&mut self, mir_join: mir::Join) -> Result<air::Stage> {
@@ -575,10 +587,11 @@ impl MqlTranslator {
         let right = self.translate_stage(*mir_join.right)?;
         self.mapping_registry.merge(left_registry.clone());
 
+        let mut let_vars = None;
         let condition = mir_join
             .condition
             .map(|x| {
-                self.generate_let_bindings(left_registry);
+                let_vars = self.generate_let_bindings(left_registry);
                 self.translate_expression(x)
             })
             .transpose()?;
@@ -587,6 +600,7 @@ impl MqlTranslator {
             join_type,
             left: Box::new(left),
             right: Box::new(right),
+            let_vars,
             condition,
         }))
     }
@@ -702,7 +716,10 @@ impl MqlTranslator {
                     parent: None,
                     name: s.name.clone(),
                 }),
-                MqlReferenceType::Variable => air::Expression::Variable(s.name.to_string()),
+                MqlReferenceType::Variable => air::Expression::Variable(air::Variable {
+                    parent: None,
+                    name: s.name.to_string(),
+                }),
             })
     }
 
@@ -853,6 +870,12 @@ impl MqlTranslator {
                 }));
             }
         }
+        if let air::Expression::Variable(v) = expr.clone() {
+            return Ok(air::Expression::Variable(air::Variable {
+                parent: Some(Box::new(v)),
+                name: field,
+            }));
+        }
         Ok(air::Expression::GetField(air::GetField {
             field,
             input: Box::new(expr),
@@ -890,7 +913,10 @@ impl MqlTranslator {
                         air::SQLSemanticOperator {
                             op: air::SQLOperator::Eq,
                             args: vec![
-                                air::Expression::Variable("target".to_string()),
+                                air::Expression::Variable(air::Variable {
+                                    parent: None,
+                                    name: "target".to_string(),
+                                }),
                                 self.translate_expression(*branch.when.clone())?,
                             ],
                         },

@@ -3,6 +3,22 @@ use crate::air::{self, SQLOperator};
 use bson::{bson, doc, Bson};
 
 impl MqlCodeGenerator {
+    #[allow(clippy::only_used_in_recursion)] // false positive
+    pub fn codegen_variable(&self, var: air::Variable) -> String {
+        match var.parent {
+            None => format!("$${}", var.name),
+            Some(parent) => format!("{}.{}", self.codegen_variable(*parent), var.name),
+        }
+    }
+
+    #[allow(clippy::only_used_in_recursion)] // false positive
+    pub fn codegen_field_ref(&self, field_ref: air::FieldRef) -> String {
+        match field_ref.parent {
+            None => format!("${}", field_ref.name),
+            Some(parent) => format!("{}.{}", self.codegen_field_ref(*parent), field_ref.name),
+        }
+    }
+
     pub fn codegen_air_expression(&self, expr: air::Expression) -> Result<bson::Bson> {
         use air::{Expression::*, LiteralValue::*};
         match expr {
@@ -50,7 +66,7 @@ impl MqlCodeGenerator {
                     .map(|e| self.codegen_air_expression(e))
                     .collect::<Result<Vec<Bson>>>()?,
             )),
-            Variable(var) => Ok(Bson::String(format!("$${var}"))),
+            Variable(var) => Ok(Bson::String(self.codegen_variable(var))),
             FieldRef(fr) => Ok(Bson::String(self.codegen_field_ref(fr))),
             MQLSemanticOperator(mqls) => {
                 let ops = mqls

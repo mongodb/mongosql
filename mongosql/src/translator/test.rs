@@ -1370,7 +1370,10 @@ mod reference_expression {
 
     test_translate_expression!(
         found_variable,
-        expected = Ok(air::Expression::Variable("f".to_string())),
+        expected = Ok(air::Expression::Variable(air::Variable {
+            parent: None,
+            name: "f".to_string()
+        })),
         input = mir::Expression::Reference(("f", 0u16).into()),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1628,7 +1631,10 @@ mod simple_case_expression {
                             air::SQLSemanticOperator {
                                 op: air::SQLOperator::Eq,
                                 args: vec![
-                                    air::Expression::Variable("target".to_string()),
+                                    air::Expression::Variable(air::Variable {
+                                        parent: None,
+                                        name: "target".to_string()
+                                    }),
                                     air::Expression::Literal(air::LiteralValue::Integer(4))
                                 ]
                             }
@@ -1640,7 +1646,10 @@ mod simple_case_expression {
                             air::SQLSemanticOperator {
                                 op: air::SQLOperator::Eq,
                                 args: vec![
-                                    air::Expression::Variable("target".to_string()),
+                                    air::Expression::Variable(air::Variable {
+                                        parent: None,
+                                        name: "target".to_string()
+                                    }),
                                     air::Expression::Literal(air::LiteralValue::Integer(5))
                                 ]
                             }
@@ -1778,7 +1787,7 @@ mod documents_stage {
                 array: vec![air::Expression::Literal(air::LiteralValue::Boolean(false))],
             })),
             specifications: unchecked_unique_linked_hash_map! {
-                "foo".into() => air::Expression::Variable("ROOT".into()),
+                "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
             },
         })),
         input = mir::Stage::Array(mir::ArraySource {
@@ -1795,7 +1804,7 @@ mod documents_stage {
         expected = Ok(air::Stage::Project(air::Project {
             source: Box::new(air::Stage::Documents(air::Documents { array: vec![] })),
             specifications: unchecked_unique_linked_hash_map! {
-                "foo".into() => translator::ROOT.clone(),
+                "foo".to_string() => translator::ROOT.clone(),
             },
         })),
         input = mir::Stage::Array(mir::ArraySource {
@@ -1815,7 +1824,7 @@ mod filter_stage {
             source: air::Stage::Project(air::Project {
                 source: Box::new(air::Stage::Documents(air::Documents { array: vec![] })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".into() => air::Expression::Variable("ROOT".to_string()),
+                    "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
                 },
             })
             .into(),
@@ -1846,7 +1855,7 @@ mod limit_stage {
                     collection: "col".into(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "col".into() => air::Expression::Variable("ROOT".to_string()),
+                    "col".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
                 },
             })),
             limit: 1i64,
@@ -1887,7 +1896,7 @@ mod collection {
                 collection: "foo".into(),
             })),
             specifications: unchecked_unique_linked_hash_map! {
-                "foo".into() => translator::ROOT.clone(),
+                "foo".to_string() => translator::ROOT.clone(),
             },
         })),
         input = mir::Stage::Collection(mir::Collection {
@@ -1911,7 +1920,7 @@ mod projection_stage {
                     collection: "foo".to_string()
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() =>  air::Expression::Variable("ROOT".to_string())
+                    "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
                 }
             })),
             specifications: unchecked_unique_linked_hash_map! {
@@ -1946,7 +1955,7 @@ mod projection_stage {
                     collection: "foo".to_string()
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() =>  air::Expression::Variable("ROOT".to_string())
+                    "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
                 }
             })),
             specifications: unchecked_unique_linked_hash_map! {
@@ -1990,7 +1999,7 @@ mod unwind_stage {
                     collection: "foo".to_string()
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::Expression::Variable("ROOT".to_string())
+                    "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
                 }
             })),
             path: Box::new(air::Expression::FieldRef(air::FieldRef {
@@ -2022,7 +2031,7 @@ mod unwind_stage {
                     collection: "foo".to_string()
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::Expression::Variable("ROOT".to_string())
+                    "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
                 }
             })),
             path: Box::new(air::Expression::FieldRef(air::FieldRef {
@@ -2060,7 +2069,7 @@ mod unwind_stage {
                     collection: "foo".to_string()
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::Expression::Variable("ROOT".to_string())
+                    "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
                 }
             })),
             path: Box::new(air::Expression::FieldRef(air::FieldRef {
@@ -2104,7 +2113,9 @@ mod group_stage {
                         db: "test_db".into(),
                         collection: "foo".into()
                     }).into(),
-                    specifications: unchecked_unique_linked_hash_map! {"foo".to_string() => air::Expression::Variable("ROOT".into())}
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                    }
                 }).into(),
                 keys: vec![
                     air::NameExprPair {
@@ -2186,7 +2197,9 @@ mod group_stage {
                         db: "test_db".into(),
                         collection: "foo".into()
                     }).into(),
-                    specifications: unchecked_unique_linked_hash_map! {"foo".to_string() => air::Expression::Variable("ROOT".into())}
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                    }
                 }).into(),
                 keys: vec![
                     air::NameExprPair {
@@ -2291,7 +2304,9 @@ mod group_stage {
                         db: "test_db".into(),
                         collection: "foo".into()
                     }).into(),
-                    specifications: unchecked_unique_linked_hash_map! {"foo".to_string() => air::Expression::Variable("ROOT".into())}
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                    }
                 }).into(),
                 keys: vec![
                     air::NameExprPair {
@@ -2370,7 +2385,9 @@ mod group_stage {
                         db: "test_db".into(),
                         collection: "foo".into()
                     }).into(),
-                    specifications: unchecked_unique_linked_hash_map! {"foo".to_string() => air::Expression::Variable("ROOT".into())}
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                    }
                 }).into(),
                 keys: vec![
                     air::NameExprPair {
@@ -2495,7 +2512,7 @@ mod join_stage {
                 collection: collection_name.into(),
             })),
             specifications: unchecked_unique_linked_hash_map! {
-                collection_name.to_string() => air::Expression::Variable("ROOT".to_string())
+                collection_name.to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
             },
         }))
     }
@@ -2506,6 +2523,7 @@ mod join_stage {
             join_type: air::JoinType::Inner,
             left: transformed_collection("foo"),
             right: transformed_collection("bar"),
+            let_vars: None,
             condition: None
         })),
         input = mir::Stage::Join(mir::Join {
@@ -2523,11 +2541,21 @@ mod join_stage {
             join_type: air::JoinType::Left,
             left: transformed_collection("foo"),
             right: transformed_collection("bar"),
+            let_vars: Some(vec![air::LetVariable {
+                name: "vfoo_0".to_string(),
+                expr: Box::new(air::Expression::FieldRef(air::FieldRef {
+                    parent: None,
+                    name: "foo".to_string()
+                })),
+            }]),
             condition: Some(air::Expression::SQLSemanticOperator(
                 air::SQLSemanticOperator {
                     op: air::SQLOperator::Eq,
                     args: vec![
-                        air::Expression::Variable("vfoo_0".to_string()),
+                        air::Expression::Variable(air::Variable {
+                            parent: None,
+                            name: "vfoo_0".to_string()
+                        }),
                         air::Expression::FieldRef(air::FieldRef {
                             parent: None,
                             name: "bar".to_string()
@@ -2553,6 +2581,118 @@ mod join_stage {
             cache: mir::schema::SchemaCache::new(),
         })
     );
+
+    test_translate_stage!(
+        let_binding_name_conflict_appends_underscores_for_uniqueness,
+        expected = Ok(air::Stage::Join(air::Join {
+            join_type: air::JoinType::Inner,
+            left: Box::new(air::Stage::Join(air::Join {
+                join_type: air::JoinType::Inner,
+                left: transformed_collection("Foo"),
+                right: transformed_collection("foo"),
+                condition: None,
+                let_vars: None,
+            })),
+            right: transformed_collection("bar"),
+            let_vars: Some(vec![
+                air::LetVariable {
+                    name: "vfoo_0".to_string(),
+                    expr: Box::new(air::Expression::FieldRef(air::FieldRef {
+                        parent: None,
+                        name: "Foo".to_string()
+                    })),
+                },
+                air::LetVariable {
+                    name: "vfoo_0_".to_string(),
+                    expr: Box::new(air::Expression::FieldRef(air::FieldRef {
+                        parent: None,
+                        name: "foo".to_string()
+                    })),
+                }
+            ]),
+            condition: Some(air::Expression::Literal(air::LiteralValue::Boolean(true))),
+        })),
+        input = mir::Stage::Join(mir::Join {
+            condition: Some(mir::Expression::Literal(
+                mir::LiteralValue::Boolean(true).into()
+            )),
+            left: mir::Stage::Join(mir::Join {
+                condition: None,
+                left: mir::Stage::Collection(mir::Collection {
+                    db: "test_db".to_string(),
+                    collection: "Foo".to_string(),
+                    cache: mir::schema::SchemaCache::new(),
+                })
+                .into(),
+                right: mir::Stage::Collection(mir::Collection {
+                    db: "test_db".to_string(),
+                    collection: "foo".to_string(),
+                    cache: mir::schema::SchemaCache::new(),
+                })
+                .into(),
+                join_type: mir::JoinType::Inner,
+                cache: mir::schema::SchemaCache::new(),
+            })
+            .into(),
+            right: mir::Stage::Collection(mir::Collection {
+                db: "test_db".to_string(),
+                collection: "bar".to_string(),
+                cache: mir::schema::SchemaCache::new(),
+            })
+            .into(),
+            join_type: mir::JoinType::Inner,
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+
+    test_translate_stage!(
+        test_translate_array,
+        expected = Ok(air::Stage::Join(air::Join {
+            condition: None,
+            left: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                })),
+                specifications: unchecked_unique_linked_hash_map!(
+                    "col".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                )
+            })),
+            right: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Documents(air::Documents {
+                    array: vec![
+                        air::Expression::Literal(air::LiteralValue::Integer(1)),
+                        air::Expression::Literal(air::LiteralValue::Integer(1))
+                    ]
+                })),
+                specifications: unchecked_unique_linked_hash_map!(
+                    "arr".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                )
+            })),
+            let_vars: None,
+            join_type: air::JoinType::Left,
+        })),
+        input = mir::Stage::Join(mir::Join {
+            condition: None,
+            left: mir::Stage::Collection(mir::Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+                cache: mir::schema::SchemaCache::new(),
+            })
+            .into(),
+            right: mir::Stage::Array(mir::ArraySource {
+                array: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1).into())
+                ],
+                alias: "arr".to_string(),
+                cache: mir::schema::SchemaCache::new(),
+            })
+            .into(),
+            join_type: mir::JoinType::Left,
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
 }
 
 mod sort_stage {
@@ -2570,7 +2710,7 @@ mod sort_stage {
                             collection: "foo".to_string(),
                         }).into(),
                         specifications: unchecked_unique_linked_hash_map!{
-                            "foo".to_string() => air::Expression::Variable("ROOT".to_string())
+                            "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
                         }
                     }).into(),
                     specifications: unchecked_unique_linked_hash_map!{
@@ -2628,7 +2768,7 @@ mod sort_stage {
                 })
                 .into(),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::Expression::Variable("ROOT".to_string())
+                    "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
                 }
             })
             .into(),
@@ -2677,7 +2817,7 @@ mod sort_stage {
                 })
                 .into(),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::Expression::Variable("ROOT".to_string())
+                    "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
                 }
             })
             .into(),
@@ -2744,7 +2884,7 @@ mod offset_stage {
                     collection: "foo".to_string()
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::Expression::Variable("ROOT".to_string())
+                    "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
                 }
             })),
             skip: 10,
@@ -2776,7 +2916,7 @@ mod translate_plan {
                             collection: "foo".to_string(),
                         }).into(),
                         specifications: unchecked_unique_linked_hash_map!{
-                            "foo".to_string() => air::Expression::Variable("ROOT".to_string())
+                            "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
                         }
                     }).into(),
                     specifications: unchecked_unique_linked_hash_map!{
@@ -2790,7 +2930,7 @@ mod translate_plan {
                     field: "___bot".to_string(),
                     input: air::Expression::SetField(air::SetField {
                         field: "".to_string(),
-                        input: air::Expression::Variable("ROOT".to_string()).into(),
+                        input: air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}).into(),
                         value: air::Expression::FieldRef(air::FieldRef { parent: None, name: "___bot".to_string() }).into(),
                     }).into()
                 }).into()

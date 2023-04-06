@@ -10,7 +10,7 @@ impl MqlCodeGenerator {
             air::Stage::Limit(l) => self.codegen_limit(l),
             air::Stage::Sort(s) => self.codegen_sort(s),
             air::Stage::Collection(c) => self.codegen_collection(c),
-            air::Stage::Join(_j) => Err(Error::UnimplementedAIR),
+            air::Stage::Join(j) => self.codegen_join(j),
             air::Stage::Unwind(u) => self.codegen_unwind(u),
             air::Stage::Lookup(l) => self.codegen_lookup(l),
             air::Stage::ReplaceWith(r) => self.codegen_replace_with(r),
@@ -252,5 +252,52 @@ impl MqlCodeGenerator {
             collection: source_translation.collection,
             pipeline,
         })
+    }
+
+    fn codegen_join(&self, air_join: air::Join) -> Result<MqlTranslation> {
+        let mut left_translation = self.codegen_air_stage(*air_join.left)?;
+        let right_translation = self.codegen_air_stage(*air_join.right)?;
+        let join_type = match air_join.join_type {
+            air::JoinType::Inner => "inner",
+            air::JoinType::Left => "left",
+        };
+        let mut join_doc = doc! {};
+        if let Some(right_db) = right_translation.database.clone() {
+            if left_translation.database != right_translation.database {
+                join_doc.insert("database", right_db);
+            }
+        }
+
+        if right_translation.collection.is_some() {
+            join_doc.insert("collection", right_translation.collection);
+        }
+
+        join_doc.insert("joinType", join_type);
+
+        if air_join.let_vars.is_some() {
+            join_doc.insert(
+                "let",
+                air_join
+                    .let_vars
+                    .unwrap()
+                    .iter()
+                    .map(|v| {
+                        Ok((
+                            v.name.clone(),
+                            self.codegen_air_expression(*v.expr.clone())?,
+                        ))
+                    })
+                    .collect::<Result<bson::Document>>()?,
+            );
+        }
+
+        join_doc.insert("pipeline", right_translation.pipeline);
+        if air_join.condition.is_some() {
+            let cond = self.codegen_air_expression(air_join.condition.unwrap())?;
+            join_doc.insert("condition", doc! {"$match": {"$expr": cond}});
+        }
+
+        left_translation.pipeline.push(doc! {"$join": join_doc});
+        Ok(left_translation)
     }
 }

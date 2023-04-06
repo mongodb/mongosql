@@ -505,8 +505,12 @@ impl From<Expression> for air::Expression {
             Expression::Literal(lv) => air::Expression::Literal(air::LiteralValue::from(lv)),
             Expression::StringOrRef(v) => match v {
                 StringOrRef::String(s) => air::Expression::Literal(air::LiteralValue::String(s)),
-                StringOrRef::FieldRef(s) => air::Expression::FieldRef(from_dotted_field_path(s)),
-                StringOrRef::Variable(s) => air::Expression::Variable(s),
+                StringOrRef::FieldRef(s) => {
+                    air::Expression::FieldRef(ref_from_dotted_field_path(s))
+                }
+                StringOrRef::Variable(s) => {
+                    air::Expression::Variable(var_from_dotted_field_path(s))
+                }
             },
             Expression::TaggedOperator(to) => to.into(),
             Expression::UntaggedOperator(uo) => uo.into(),
@@ -534,7 +538,7 @@ impl From<LiteralValue> for air::LiteralValue {
     }
 }
 
-fn from_dotted_field_path(p: String) -> air::FieldRef {
+fn ref_from_dotted_field_path(p: String) -> air::FieldRef {
     let r = p.split('.').fold(None, |acc, n| {
         Some(Box::new(air::FieldRef {
             parent: acc,
@@ -544,6 +548,18 @@ fn from_dotted_field_path(p: String) -> air::FieldRef {
 
     // The fold operation will always result in a non-None value, so unwrapping is safe.
     *r.unwrap()
+}
+
+fn var_from_dotted_field_path(p: String) -> air::Variable {
+    let v = p.split('.').fold(None, |acc, n| {
+        Some(Box::new(air::Variable {
+            parent: acc,
+            name: n.to_string(),
+        }))
+    });
+
+    // The fold operation will always result in a non-None value, so unwrapping is safe.
+    *v.unwrap()
 }
 
 impl From<Box<Expression>> for Box<air::Expression> {

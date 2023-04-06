@@ -1062,13 +1062,31 @@ mod array {
 }
 
 mod variable {
-    use crate::air::Expression::*;
+    use crate::air::{Expression::*, Variable};
     use bson::{bson, Bson};
 
     test_codegen_air_expr!(
         simple,
         expected = Ok(bson!(Bson::String("$$foo".to_string()))),
-        input = Variable("foo".to_string())
+        input = Variable(Variable {
+            parent: None,
+            name: "foo".to_string()
+        })
+    );
+
+    test_codegen_air_expr!(
+        nested,
+        expected = Ok(bson!(Bson::String("$$x.y.z".to_string()))),
+        input = Variable(Variable {
+            parent: Some(Box::new(Variable {
+                parent: Some(Box::new(Variable {
+                    parent: None,
+                    name: "x".to_string()
+                })),
+                name: "y".to_string(),
+            })),
+            name: "z".to_string()
+        })
     );
 }
 
@@ -1236,7 +1254,7 @@ mod get_field {
 }
 
 mod set_field {
-    use crate::air::{Expression::*, FieldRef, SetField};
+    use crate::air::{Expression::*, FieldRef, SetField, Variable};
     use bson::bson;
 
     test_codegen_air_expr!(
@@ -1244,7 +1262,10 @@ mod set_field {
         expected = Ok(bson!({"$setField": {"field": "", "input": "$$ROOT", "value": "$__bot"}})),
         input = SetField(SetField {
             field: "".into(),
-            input: Box::new(Variable("ROOT".into())),
+            input: Box::new(Variable(Variable {
+                parent: None,
+                name: "ROOT".into()
+            })),
             value: Box::new(FieldRef(FieldRef {
                 parent: None,
                 name: "__bot".into(),
@@ -1259,7 +1280,10 @@ mod set_field {
         ),
         input = SetField(SetField {
             field: "$x_val".into(),
-            input: Box::new(Variable("ROOT".into())),
+            input: Box::new(Variable(Variable {
+                parent: None,
+                name: "ROOT".into()
+            })),
             value: Box::new(FieldRef(FieldRef {
                 parent: None,
                 name: "x".into(),
@@ -1461,7 +1485,9 @@ mod convert {
 }
 
 mod let_expr {
-    use crate::air::{Expression::*, FieldRef, Let, LetVariable, MQLOperator, MQLSemanticOperator};
+    use crate::air::{
+        Expression::*, FieldRef, Let, LetVariable, MQLOperator, MQLSemanticOperator, Variable,
+    };
     use bson::bson;
 
     test_codegen_air_expr!(
@@ -1515,7 +1541,10 @@ mod let_expr {
             inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
                 op: MQLOperator::Add,
                 args: vec![
-                    Variable("v_x".to_string()),
+                    Variable(Variable {
+                        parent: None,
+                        name: "v_x".to_string()
+                    }),
                     FieldRef(FieldRef {
                         parent: None,
                         name: "y".to_string(),
@@ -1566,9 +1595,18 @@ mod let_expr {
             inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
                 op: MQLOperator::Add,
                 args: vec![
-                    Variable("v_x".to_string()),
-                    Variable("v_y".to_string()),
-                    Variable("v_z".to_string()),
+                    Variable(Variable {
+                        parent: None,
+                        name: "v_x".to_string()
+                    }),
+                    Variable(Variable {
+                        parent: None,
+                        name: "v_y".to_string()
+                    }),
+                    Variable(Variable {
+                        parent: None,
+                        name: "v_z".to_string()
+                    }),
                 ],
             })),
         })

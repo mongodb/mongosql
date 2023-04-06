@@ -742,3 +742,191 @@ mod limit {
         }),
     );
 }
+
+mod join {
+    use crate::{air::*, unchecked_unique_linked_hash_map};
+
+    test_codegen_air_stage!(
+        simple_inner_join,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}},
+            bson::doc!{"$join": {"collection": "col2", "joinType": "inner", "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}]}}],
+        }),
+        input = Stage::Join(Join {
+            condition: None,
+            left: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                })),
+                specifications: unchecked_unique_linked_hash_map!(
+                    "col".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                )
+            })),
+            right: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "mydb".to_string(),
+                    collection: "col2".to_string(),
+                })),
+                specifications: unchecked_unique_linked_hash_map!(
+                    "col2".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                )
+            })),
+            let_vars: None,
+            join_type: JoinType::Inner,
+        }),
+    );
+
+    test_codegen_air_stage!(
+        left_join_different_databases,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}},
+            bson::doc!{"$join": {"database": "mydb2", "collection": "col2", "joinType": "left", "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}]}}],
+        }),
+        input = Stage::Join(Join {
+            condition: None,
+            left: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                })),
+                specifications: unchecked_unique_linked_hash_map!(
+                    "col".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                )
+            })),
+            right: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "mydb2".to_string(),
+                    collection: "col2".to_string(),
+                })),
+                specifications: unchecked_unique_linked_hash_map!(
+                    "col2".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                )
+            })),
+            let_vars: None,
+            join_type: JoinType::Left,
+        }),
+    );
+
+    test_codegen_air_stage!(
+        left_join_different_databases_with_condition,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}}, bson::doc!{
+                "$join":
+                {"collection": "col2",
+                "joinType":"left",
+                "database": "mydb2",
+                "let": {"vcol_0": "$col"},
+                "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}],
+                "condition": {"$match": {"$expr": {"$literal": true}}}
+            }}],
+        }),
+        input = Stage::Join(Join {
+            condition: Some(Expression::Literal(LiteralValue::Boolean(true))),
+            left: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                })),
+                specifications: unchecked_unique_linked_hash_map!(
+                    "col".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                )
+            })),
+            right: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "mydb2".to_string(),
+                    collection: "col2".to_string(),
+                })),
+                specifications: unchecked_unique_linked_hash_map!(
+                    "col2".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                )
+            })),
+            let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef(FieldRef{parent: None, name: "col".to_string()}))}]),
+            join_type: JoinType::Left,
+        }),
+    );
+
+    test_codegen_air_stage!(
+        join_references_left_and_right,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}}, bson::doc!{
+                "$join":
+                {"collection": "col2",
+                "joinType":"left",
+                "database": "mydb2",
+                "let": {"vcol_0": "$col"},
+                "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}],
+                "condition": {"$match": {"$expr": {"$sqlEq": ["$$vcol_0", "$col2"]}}}
+            }}],
+        }),
+        input = Stage::Join(Join {
+            condition: Some(Expression::SQLSemanticOperator(SQLSemanticOperator { op: SQLOperator::Eq, args: vec![Expression::Variable(Variable{parent: None, name: "vcol_0".to_string()}),Expression::FieldRef(FieldRef{parent: None, name: "col2".to_string()})] })),
+            left: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                })),
+                specifications: unchecked_unique_linked_hash_map!(
+                    "col".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                )
+            })),
+            right: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "mydb2".to_string(),
+                    collection: "col2".to_string(),
+                })),
+                specifications: unchecked_unique_linked_hash_map!(
+                    "col2".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                )
+            })),
+            let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef(FieldRef{parent: None, name: "col".to_string()}))}]),
+            join_type: JoinType::Left,
+        }),
+    );
+
+    test_codegen_air_stage!(
+        join_with_array, // array sources require no collection or database in the $join
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}}, bson::doc!{
+                "$join":
+                {"joinType":"left",
+                "pipeline": [
+                    {"$documents": [{"$literal": 1}, {"$literal": 1}]},
+                    bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
+                ],
+            }}],
+        }),
+        input = Stage::Join(Join {
+            condition: None,
+            left: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Collection(Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                })),
+                specifications: unchecked_unique_linked_hash_map!(
+                    "col".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                )
+            })),
+            right: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Documents(Documents {
+                    array: vec![Expression::Literal(LiteralValue::Integer(1)), Expression::Literal(LiteralValue::Integer(1))]
+                })),
+                specifications: unchecked_unique_linked_hash_map!(
+                    "arr".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                )
+            })),
+            let_vars: None,
+            join_type: JoinType::Left,
+        }),
+    );
+}
