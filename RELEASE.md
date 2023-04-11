@@ -39,6 +39,9 @@ Close the release on JIRA, adding the current date (you may need to ask the SQL 
 
 ### Releasing
 
+#### Ensure Evergreen Passing
+Ensure that the build you are releasing is passing the tests on the [mongosql-rs waterfall](https://spruce.mongodb.com/commits/mongosql-rs).
+
 #### Ensure master up to date
 Ensure you have the `master` branch checked out, and that you have pulled the latest commit from `10gen/mongosql-rs`.
 
@@ -48,7 +51,8 @@ Create an annotated tag and push it:
 git tag -a -m X.Y.Z vX.Y.Z
 git push --tags
 ```
-This should trigger an Evergreen version that can be viewed on the [mongosql-rs waterfall](https://evergreen.mongodb.com/waterfall/mongosql-rs).
+This should trigger an Evergreen run that can be viewed on the [mongosql-rs waterfall](https://spruce.mongodb.com/waterfall/mongosql-rs).  
+The description for the tag triggered release starts with "Triggered From Git Tag 'vX.Y.Z"
 If it does not, you may have to ask the project manager to give you the right permissions to do so.
 Make sure to run the 'release' task, if it is not run automatically.
 

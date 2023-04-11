@@ -505,11 +505,6 @@ tasks:
 
   - name: release
     git_tag_only: true
-    depends_on:
-      - name: test-go
-        variant: '*'
-      - name: test-rust
-        variant: '*'
     commands:
       - func: "perform release"
 
