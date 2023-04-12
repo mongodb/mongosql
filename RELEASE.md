@@ -68,9 +68,9 @@ Complete these tasks after the release builds have completed on evergreen.
 #### Verify Release Downloads
 Make sure the libraries are available at the proper urls:
 - POSIX:
-  https://translators-connectors-releases.s3.us-east-1.amazonaws.com/mongosql-rs/{rhel76,ubuntu1804,macos}/<SemVer>/libmongosql.a
+  `https://translators-connectors-releases.s3.us-east-1.amazonaws.com/mongosql-rs/{rhel76,ubuntu1804,macos,macos-arm64,amazon2-arm64}/${release_version}/libmongosql.a`
 - Windows:
-  https://translators-connectors-releases.s3.us-east-1.amazonaws.com/mongosql-rs/{windows}/<SemVer>/mongosql.dll
+  `https://translators-connectors-releases.s3.us-east-1.amazonaws.com/mongosql-rs/windows/${release_version}/mongosql.dll`
 
 #### Update and Close Release Ticket
 Find the JIRA ticket tracking this release.
