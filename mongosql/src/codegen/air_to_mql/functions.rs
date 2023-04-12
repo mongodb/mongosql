@@ -42,6 +42,9 @@ impl MqlCodeGenerator {
             // String operators
             Concat => "$concat",
 
+            // Conditional operators
+            Cond => "$cond",
+
             // Arithmetic operators
             Add => "$add",
             Subtract => "$subtract",

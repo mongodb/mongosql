@@ -187,6 +187,9 @@ pub enum MQLOperator {
     // String operators
     Concat,
 
+    // Conditional operators
+    Cond,
+
     // Arithmetic operators
     Add,
     Subtract,

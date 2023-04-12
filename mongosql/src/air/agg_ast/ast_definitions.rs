@@ -599,6 +599,8 @@ impl From<TaggedOperator> for air::Expression {
                 vars: l
                     .vars
                     .into_iter()
+                    // sort alphabetically for testing purposes
+                    .sorted_by(|a, b| Ord::cmp(&a.0, &b.0))
                     .map(|(k, v)| air::LetVariable {
                         name: k,
                         expr: Box::new(v.into()),
@@ -754,6 +756,7 @@ impl From<UntaggedOperator> for air::Expression {
         } else {
             let op = match ast_op.op.as_str() {
                 "$concat" => air::MQLOperator::Concat,
+                "$cond" => air::MQLOperator::Cond,
                 "$add" => air::MQLOperator::Add,
                 "$subtract" => air::MQLOperator::Subtract,
                 "$multiply" => air::MQLOperator::Multiply,
