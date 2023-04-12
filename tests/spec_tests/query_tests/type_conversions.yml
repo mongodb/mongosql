@@ -1543,7 +1543,6 @@ tests:
   - description: Cast invalid source types to BSON_DATE
     current_db: foo
     query: "SELECT VALUE {'type': type, 'asDate': CAST(v AS BSON_DATE)} FROM invalidSourceTypes AS invalidSourceTypes"
-    skip_reason: "SQL-1313: casting timestamp to BSON_DATE is no longer null"
     translation_target_db: foo
     translation_target_coll: invalidSourceTypes
     translation:
@@ -1561,7 +1560,7 @@ tests:
       - {'': {'type': 'javascript', 'asDate': null}}
       - {'': {'type': 'symbol', 'asDate': null}}
       - {'': {'type': 'javascriptWithScope', 'asDate': null}}
-      - {'': {'type': 'timestamp', 'asDate': null}}
+      - {'': {'type': 'timestamp', 'asDate': {'$date': {'$numberLong': '42000'}}}}
       - {'': {'type': 'minKey', 'asDate': null}}
       - {'': {'type': 'maxKey', 'asDate': null}}
 
