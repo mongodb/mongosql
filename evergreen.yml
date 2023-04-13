@@ -505,11 +505,6 @@ tasks:
 
   - name: release
     git_tag_only: true
-    commands:
-      - func: "perform release"
-
-  - name: test-release
-    patch_only: true
     depends_on:
       - name: compile
         variant: '*'
@@ -601,4 +596,3 @@ buildvariants:
     run_on: [ ubuntu1804-large ]
     tasks:
       - name: release
-      - name: test-release
