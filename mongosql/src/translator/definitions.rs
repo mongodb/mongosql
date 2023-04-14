@@ -188,7 +188,7 @@ impl MqlTranslator {
             mir::Stage::Offset(o) => self.translate_offset(o),
             mir::Stage::Sort(s) => self.translate_sort(s),
             mir::Stage::Join(j) => self.translate_join(j),
-            mir::Stage::Set(_s) => Err(Error::UnimplementedStruct),
+            mir::Stage::Set(s) => self.translate_set(s),
             mir::Stage::Derived(_d) => Err(Error::UnimplementedStruct),
             mir::Stage::Unwind(u) => self.translate_unwind(u),
         }
@@ -602,6 +602,18 @@ impl MqlTranslator {
             right: Box::new(right),
             let_vars,
             condition,
+        }))
+    }
+
+    fn translate_set(&mut self, mir_set: mir::Set) -> Result<air::Stage> {
+        let source = self.translate_stage(*mir_set.left)?;
+        let source_registry = self.mapping_registry.clone();
+        let pipeline = self.translate_stage(*mir_set.right)?;
+        self.mapping_registry.merge(source_registry);
+
+        Ok(air::Stage::UnionWith(air::UnionWith {
+            source: Box::new(source),
+            pipeline: Box::new(pipeline),
         }))
     }
 

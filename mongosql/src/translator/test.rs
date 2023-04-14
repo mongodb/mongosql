@@ -1777,6 +1777,50 @@ mod searched_case_expression {
     );
 }
 
+mod set_stage {
+    use crate::unchecked_unique_linked_hash_map;
+
+    test_translate_stage!(
+        simple,
+        expected = Ok(air::Stage::UnionWith(air::UnionWith {
+            source: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "foo".into(),
+                    collection: "a".into(),
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "a".to_string() => translator::ROOT.clone(),
+                },
+            })),
+            pipeline: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "bar".into(),
+                    collection: "b".into(),
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "b".to_string() => translator::ROOT.clone(),
+                },
+            })),
+        })),
+        input = mir::Stage::Set(mir::Set {
+            operation: mir::SetOperation::UnionAll,
+            left: mir::Stage::Collection(mir::Collection {
+                db: "foo".to_string(),
+                collection: "a".to_string(),
+                cache: mir::schema::SchemaCache::new(),
+            })
+            .into(),
+            right: mir::Stage::Collection(mir::Collection {
+                db: "bar".to_string(),
+                collection: "b".to_string(),
+                cache: mir::schema::SchemaCache::new(),
+            })
+            .into(),
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+}
+
 mod documents_stage {
     use crate::unchecked_unique_linked_hash_map;
 
