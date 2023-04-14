@@ -7,6 +7,8 @@ mod join;
 use crate::air::desugarer::join::JoinDesugarerPass;
 mod match_null_semantics;
 use crate::air::desugarer::match_null_semantics::MatchDesugarerPass;
+mod lookup;
+use crate::air::desugarer::lookup::LookupDesugarerPass;
 mod sql_null_semantics_operators;
 use crate::air::desugarer::sql_null_semantics_operators::SQLNullSemanticsOperatorsDesugarerPass;
 mod subquery;
@@ -39,6 +41,7 @@ pub fn desugar_pipeline(pipeline: air::Stage) -> Result<air::Stage> {
     let passes: Vec<&dyn Pass> = vec![
         &JoinDesugarerPass,
         &AccumulatorsDesugarerPass,
+        &LookupDesugarerPass,
         &SubqueryExprDesugarerPass,
         &MatchDesugarerPass,
         &UnsupportedOperatorsDesugarerPass,

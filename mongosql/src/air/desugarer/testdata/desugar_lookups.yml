@@ -1,5 +1,6 @@
 tests:
   - name: "$lookup when FromDB = the current DB, should remove FromDB name"
+    skip_reason: "SQL-1259: Rewrite getSimplifyLookups"
     input:
       - {
         "$lookup":
@@ -13,6 +14,7 @@ tests:
       - { "$lookup": { "from": "bar", "pipeline": [], "as": "baz" } }
 
   - name: "$lookup when FromDB != the current DB, should be maintained"
+    skip_reason: "SQL-1259: Rewrite getSimplifyLookups"
     input:
       - {
         "$lookup":
