@@ -48,6 +48,116 @@ macro_rules! test_translate_plan {
     };
 }
 
+mod date_function_expression {
+    use crate::{air, mir};
+
+    test_translate_expression!(
+        dateadd,
+        expected = Ok(air::Expression::DateFunction(
+            air::DateFunctionApplication {
+                function: air::DateFunction::Add,
+                unit: air::DatePart::Year,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(5)),
+                    air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
+                        op: air::SQLOperator::CurrentTimestamp,
+                        args: vec![],
+                    }),
+                ],
+            }
+        )),
+        input = mir::Expression::DateFunction(mir::DateFunctionApplication {
+            function: mir::DateFunction::Add,
+            date_part: mir::DatePart::Year,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralExpr {
+                    value: mir::LiteralValue::Integer(5),
+                    cache: mir::schema::SchemaCache::new()
+                }),
+                mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::CurrentTimestamp,
+                    args: vec![],
+                    cache: mir::schema::SchemaCache::new(),
+                }),
+            ],
+            cache: mir::schema::SchemaCache::new()
+        }),
+    );
+    test_translate_expression!(
+        datediff,
+        expected = Ok(air::Expression::DateFunction(
+            air::DateFunctionApplication {
+                function: air::DateFunction::Diff,
+                unit: air::DatePart::Year,
+                args: vec![
+                    air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
+                        op: air::SQLOperator::CurrentTimestamp,
+                        args: vec![],
+                    }),
+                    air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
+                        op: air::SQLOperator::CurrentTimestamp,
+                        args: vec![],
+                    }),
+                    air::Expression::Literal(air::LiteralValue::String("sunday".to_string())),
+                ],
+            }
+        )),
+        input = mir::Expression::DateFunction(mir::DateFunctionApplication {
+            function: mir::DateFunction::Diff,
+            date_part: mir::DatePart::Year,
+            args: vec![
+                mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::CurrentTimestamp,
+                    args: vec![],
+                    cache: mir::schema::SchemaCache::new(),
+                }),
+                mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::CurrentTimestamp,
+                    args: vec![],
+                    cache: mir::schema::SchemaCache::new(),
+                }),
+                mir::Expression::Literal(mir::LiteralExpr {
+                    value: mir::LiteralValue::String("sunday".to_string()),
+                    cache: mir::schema::SchemaCache::new()
+                }),
+            ],
+            cache: mir::schema::SchemaCache::new()
+        }),
+    );
+    test_translate_expression!(
+        datetrunc,
+        expected = Ok(air::Expression::DateFunction(
+            air::DateFunctionApplication {
+                function: air::DateFunction::Trunc,
+                unit: air::DatePart::Year,
+                args: vec![
+                    air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
+                        op: air::SQLOperator::CurrentTimestamp,
+                        args: vec![],
+                    }),
+                    air::Expression::Literal(air::LiteralValue::String("sunday".to_string())),
+                ],
+            }
+        )),
+        input = mir::Expression::DateFunction(mir::DateFunctionApplication {
+            function: mir::DateFunction::Trunc,
+            date_part: mir::DatePart::Year,
+            args: vec![
+                mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::CurrentTimestamp,
+                    args: vec![],
+                    cache: mir::schema::SchemaCache::new(),
+                }),
+                mir::Expression::Literal(mir::LiteralExpr {
+                    value: mir::LiteralValue::String("sunday".to_string()),
+                    cache: mir::schema::SchemaCache::new()
+                }),
+            ],
+            cache: mir::schema::SchemaCache::new()
+        }),
+    );
+}
+
 mod literal_expression {
     use crate::{air, mir};
     test_translate_expression!(

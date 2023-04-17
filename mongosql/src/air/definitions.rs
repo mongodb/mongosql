@@ -179,6 +179,7 @@ pub enum Expression {
     Variable(Variable),
     Array(Vec<Expression>),
     Document(UniqueLinkedHashMap<String, Expression>),
+    DateFunction(DateFunctionApplication),
 }
 
 #[allow(dead_code)]
@@ -543,6 +544,32 @@ pub struct Is {
 pub struct Variable {
     pub parent: Option<Box<Variable>>,
     pub name: String,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum DatePart {
+    Year,
+    Quarter,
+    Month,
+    Week,
+    Day,
+    Hour,
+    Minute,
+    Second,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum DateFunction {
+    Add,
+    Diff,
+    Trunc,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct DateFunctionApplication{
+    pub function: DateFunction,
+    pub unit: DatePart,
+    pub args: Vec<Expression>,
 }
 
 } // end of generate_visitors! block

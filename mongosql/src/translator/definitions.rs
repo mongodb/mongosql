@@ -86,6 +86,31 @@ impl From<mir::TypeOrMissing> for TypeOrMissing {
     }
 }
 
+impl From<mir::DatePart> for air::DatePart {
+    fn from(dp: mir::DatePart) -> Self {
+        match dp {
+            mir::DatePart::Year => air::DatePart::Year,
+            mir::DatePart::Quarter => air::DatePart::Quarter,
+            mir::DatePart::Month => air::DatePart::Month,
+            mir::DatePart::Week => air::DatePart::Week,
+            mir::DatePart::Day => air::DatePart::Day,
+            mir::DatePart::Hour => air::DatePart::Hour,
+            mir::DatePart::Minute => air::DatePart::Minute,
+            mir::DatePart::Second => air::DatePart::Second,
+        }
+    }
+}
+
+impl From<mir::DateFunction> for air::DateFunction {
+    fn from(df: mir::DateFunction) -> Self {
+        match df {
+            mir::DateFunction::Add => air::DateFunction::Add,
+            mir::DateFunction::Diff => air::DateFunction::Diff,
+            mir::DateFunction::Trunc => air::DateFunction::Trunc,
+        }
+    }
+}
+
 #[derive(Debug)]
 enum ScalarFunctionType {
     Sql(air::SQLOperator),
@@ -681,6 +706,9 @@ impl MqlTranslator {
             mir::Expression::SearchedCase(searched_case) => {
                 self.translate_searched_case(searched_case)
             }
+            mir::Expression::DateFunction(date_func_app) => {
+                self.translate_date_function(date_func_app)
+            }
             mir::Expression::Subquery(subquery) => self.translate_subquery(subquery),
             _ => Err(Error::UnimplementedStruct),
         }
@@ -994,6 +1022,23 @@ impl MqlTranslator {
             })
             .collect::<Result<Vec<air::SwitchCase>>>()?;
         Ok(air::Expression::Switch(air::Switch { branches, default }))
+    }
+
+    fn translate_date_function(
+        &self,
+        date_func_app: mir::DateFunctionApplication,
+    ) -> Result<air::Expression> {
+        Ok(air::Expression::DateFunction(
+            air::DateFunctionApplication {
+                function: air::DateFunction::from(date_func_app.function),
+                unit: air::DatePart::from(date_func_app.date_part),
+                args: date_func_app
+                    .args
+                    .into_iter()
+                    .map(|expr| self.translate_expression(expr))
+                    .collect::<Result<Vec<air::Expression>>>()?,
+            },
+        ))
     }
 
     fn translate_subquery(&self, subquery: mir::SubqueryExpr) -> Result<air::Expression> {
