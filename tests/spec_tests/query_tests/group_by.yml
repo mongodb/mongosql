@@ -1373,7 +1373,7 @@ tests:
           "$group":
             {
               "_id": { "a": "$arr.a" },
-              "glast": { "$sqlLast": { "var": "$arr.b", "distinct": false } },
+              "glast": { "$last": "$arr.b" },
             },
         }
       - {
@@ -1517,7 +1517,7 @@ tests:
               "_id": { "a": "$arr.a" },
               "gmerge":
                 {
-                  "$sqlMergeObjects": { "var": "$arr.doc", "distinct": false },
+                  "$mergeObjects": "$arr.doc"
                 },
             },
         }

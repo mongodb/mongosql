@@ -2308,6 +2308,49 @@ mod collection {
     );
 }
 
+mod derived_stage {
+    use crate::{map, unchecked_unique_linked_hash_map};
+    use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
+
+    test_translate_stage!(
+        derived,
+        expected = Ok(air::Stage::Project(air::Project {
+            source: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test_db".to_string(),
+                    collection: "foo".to_string()
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "foo".to_string() =>  air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()})
+                }
+            })),
+            specifications: unchecked_unique_linked_hash_map! {
+                "__bot".to_string() => air::Expression::FieldRef(
+                    air::FieldRef {
+                        parent: None,
+                        name: "foo".to_string()
+                    }),
+                "bar".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+            }
+        })),
+        input = mir::Stage::Derived(mir::Derived {
+            source: Box::new(mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Collection(mir::Collection {
+                    db: "test_db".into(),
+                    collection: "foo".into(),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                expression: BindingTuple(map! {
+                    Key::bot(0) => mir::Expression::Reference(("foo", 1u16).into()),
+                    Key::named("bar", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                }),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+}
+
 mod projection_stage {
     use crate::{map, unchecked_unique_linked_hash_map};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};

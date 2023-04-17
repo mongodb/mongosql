@@ -167,7 +167,15 @@ impl MqlCodeGenerator {
                      distinct,
                      arg,
                  }| {
-                    Ok(if distinct || function == AggregationFunction::Count {
+                    Ok(if function == AggregationFunction::AddToArray {
+                        if distinct {
+                            (alias, bson!({ "$addToSet": self.codegen_air_expression(*arg)? }))
+                        }
+                        else{
+                            (alias, bson!({ "$push": self.codegen_air_expression(*arg)? }))
+                        }
+                    }
+                    else if distinct || function == AggregationFunction::Count {
                         (alias, bson!({ Self::agg_func_to_sql_op(function): {"var": self.codegen_air_expression(*arg)?, "distinct": distinct }}))
                     } else {
                         (alias, bson!({ Self::agg_func_to_mql_op(function): self.codegen_air_expression(*arg)? }))

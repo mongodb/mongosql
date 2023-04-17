@@ -216,7 +216,7 @@ impl MqlTranslator {
             mir::Stage::Sort(s) => self.translate_sort(s),
             mir::Stage::Join(j) => self.translate_join(j),
             mir::Stage::Set(s) => self.translate_set(s),
-            mir::Stage::Derived(_d) => Err(Error::UnimplementedStruct),
+            mir::Stage::Derived(d) => self.translate_derived(d),
             mir::Stage::Unwind(u) => self.translate_unwind(u),
         }
     }
@@ -677,6 +677,13 @@ impl MqlTranslator {
             source: Box::new(source_translation),
             skip: mir_offset.offset,
         }))
+    }
+
+    pub fn translate_derived(&mut self, mir_derived: mir::Derived) -> Result<air::Stage> {
+        self.scope_level += 1;
+        let derived_translation = self.translate_stage(*mir_derived.source)?;
+        self.scope_level -= 1;
+        Ok(derived_translation)
     }
 
     pub fn translate_unwind(&mut self, mir_unwind: mir::Unwind) -> Result<air::Stage> {
