@@ -44,6 +44,8 @@ pub enum Error {
     ExprNotReferenceOrFieldAccess,
     #[error("LIMIT ({0}) cannot be converted to i64")]
     LimitOutOfI64Range(u64),
+    #[error("expected FieldRef for subquery output path")]
+    SubqueryOutputPathNotFieldRef,
 }
 
 impl From<mir::Type> for air::Type {
@@ -238,7 +240,31 @@ impl MqlTranslator {
     }
 
     fn translate_project(&mut self, mir_project: mir::Project) -> Result<air::Stage> {
+        // Store the incoming mapping registry so we can maintain references
+        // to outer scopes in the output registry.
+        let mut outer_scope_mr = self.mapping_registry.clone();
+
+        // When we translate expressions in this project, we'll also want to
+        // maintain references to outer scopes, so we clone the translator.
+        //
+        // The reason we need expr_translator AND outer_scope_mr is that the
+        // expr_translator must be extended with the mapping registry from the
+        // source of this Project, which are only in scope for the translation
+        // of this stage, whereas the outer_scope_mr is not extended with those
+        // mappings. Instead, outer_scope_mr is extended with the new mappings
+        // created by this Project's translation.
+        let mut expr_translator = self.clone();
+
+        // Translate the source stage.
         let source_translation = self.translate_stage(*mir_project.source)?;
+
+        // Extend the expr_translator with mappings from the source. This means
+        // we can use expr_translator to translate expressions in this Project
+        // because expr_translator contains mappings from outer scopes as well
+        // as from this Project's source.
+        expr_translator
+            .mapping_registry
+            .merge(self.mapping_registry.clone());
 
         // We will add mappings to the mapping registry introduced by this Project Stage, which
         // is all of the keys. Previous bindings are removed after the subexpressions are
@@ -252,13 +278,18 @@ impl MqlTranslator {
                 return Err(Error::InvalidProjectField);
             }
 
-            project_body.insert(mapped_k.clone(), self.translate_expression(e)?)?;
+            project_body.insert(mapped_k.clone(), expr_translator.translate_expression(e)?)?;
             output_registry.insert(
                 k,
                 MqlMappingRegistryValue::new(mapped_k, MqlReferenceType::FieldRef),
             );
         }
-        self.mapping_registry = output_registry;
+
+        // Extend the outer_scope_mr with the output mappings for this stage's
+        // translation.
+        outer_scope_mr.merge(output_registry);
+
+        self.mapping_registry = outer_scope_mr;
         Ok(air::Stage::Project(air::Project {
             source: Box::new(source_translation),
             specifications: project_body,
@@ -530,7 +561,7 @@ impl MqlTranslator {
         }))
     }
 
-    fn generate_let_bindings(&mut self, registry: MqlMappingRegistry) -> Option<Vec<LetVariable>> {
+    fn generate_let_bindings(&mut self, registry: MqlMappingRegistry) -> Vec<LetVariable> {
         let mut let_bindings: Vec<LetVariable> = vec![];
         let new_mapping_registry = MqlMappingRegistry::with_registry(
             registry
@@ -571,7 +602,7 @@ impl MqlTranslator {
         );
         // update the mapping registry with the new values for existing keys
         self.mapping_registry.merge(new_mapping_registry);
-        Some(let_bindings)
+        let_bindings
     }
 
     fn translate_join(&mut self, mir_join: mir::Join) -> Result<air::Stage> {
@@ -580,18 +611,17 @@ impl MqlTranslator {
             mir::JoinType::Left => air::JoinType::Left,
         };
 
-        // the two sides of the join are projects, which reset the mapping registry
-        // here we store mappings for each side of the join, and merge with the overall registry
+        // We need to store the left_registry to generate the let bindings
+        // since only datasources from the left will be bound to variables.
         let left = self.translate_stage(*mir_join.left)?;
         let left_registry = self.mapping_registry.clone();
         let right = self.translate_stage(*mir_join.right)?;
-        self.mapping_registry.merge(left_registry.clone());
 
         let mut let_vars = None;
         let condition = mir_join
             .condition
             .map(|x| {
-                let_vars = self.generate_let_bindings(left_registry);
+                let_vars = Some(self.generate_let_bindings(left_registry));
                 self.translate_expression(x)
             })
             .transpose()?;
@@ -607,9 +637,7 @@ impl MqlTranslator {
 
     fn translate_set(&mut self, mir_set: mir::Set) -> Result<air::Stage> {
         let source = self.translate_stage(*mir_set.left)?;
-        let source_registry = self.mapping_registry.clone();
         let pipeline = self.translate_stage(*mir_set.right)?;
-        self.mapping_registry.merge(source_registry);
 
         Ok(air::Stage::UnionWith(air::UnionWith {
             source: Box::new(source),
@@ -653,6 +681,7 @@ impl MqlTranslator {
             mir::Expression::SearchedCase(searched_case) => {
                 self.translate_searched_case(searched_case)
             }
+            mir::Expression::Subquery(subquery) => self.translate_subquery(subquery),
             _ => Err(Error::UnimplementedStruct),
         }
     }
@@ -965,5 +994,37 @@ impl MqlTranslator {
             })
             .collect::<Result<Vec<air::SwitchCase>>>()?;
         Ok(air::Expression::Switch(air::Switch { branches, default }))
+    }
+
+    fn translate_subquery(&self, subquery: mir::SubqueryExpr) -> Result<air::Expression> {
+        // Clone self so that we can translate the subquery pipeline and output
+        // path without modifying self's mapping registry or scope.
+        let mut subquery_translator = self.clone();
+
+        // Generate let bindings for the subquery and update the subquery
+        // translator's mapping registry
+        let let_bindings =
+            subquery_translator.generate_let_bindings(subquery_translator.mapping_registry.clone());
+
+        // Increase the scope level to translate the subquery pipeline
+        subquery_translator.scope_level += 1;
+
+        // Translate the subquery pipeline
+        let subquery_translation = subquery_translator.translate_stage(*subquery.subquery)?;
+
+        // Translate the output_expr. This should always result in a FieldRef.
+        // The subquery expression itself stores the components of the FieldRef
+        // as a Vec<String>.
+        let output_expr = subquery_translator.translate_expression(*subquery.output_expr)?;
+        let output_path = match output_expr {
+            air::Expression::FieldRef(fr) => fr.path_components(),
+            _ => return Err(Error::SubqueryOutputPathNotFieldRef),
+        };
+
+        Ok(air::Expression::Subquery(air::Subquery {
+            let_bindings,
+            output_path,
+            pipeline: Box::new(subquery_translation),
+        }))
     }
 }

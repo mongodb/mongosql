@@ -434,15 +434,6 @@ pub struct FieldRef {
     pub name: String,
 }
 
-impl FieldRef {
-    pub fn root_parent(&self) -> String {
-        match &self.parent {
-            Some(parent) => parent.root_parent(),
-            None => self.name.clone(),
-        }
-    }
-}
-
 #[derive(PartialEq, Debug, Clone)]
 pub struct SwitchCase {
     pub case: Box<Expression>,
@@ -486,11 +477,9 @@ pub struct Like {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Subquery {
-    pub db: Option<String>,
-    pub collection: Option<String>,
-    pub let_bindings: bson::Document,
-    pub output_path: Option<Vec<String>>,
-    pub pipeline: Vec<bson::Document>,
+    pub let_bindings: Vec<LetVariable>,
+    pub output_path: Vec<String>,
+    pub pipeline: Box<Stage>,
 }
 
 #[allow(dead_code)]
@@ -516,15 +505,13 @@ pub struct SubqueryComparison {
     pub op: SubqueryComparisonOp,
     pub modifier: SubqueryModifier,
     pub arg: Box<Expression>,
-    pub subquery: Box<Stage>,
+    pub subquery: Box<Subquery>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct SubqueryExists {
-    pub db: Option<String>,
-    pub collection: Option<String>,
-    pub let_bindings: bson::Document,
-    pub pipeline: Vec<bson::Document>,
+    pub let_bindings: Vec<LetVariable>,
+    pub pipeline: Box<Stage>,
 }
 
 #[allow(dead_code)]

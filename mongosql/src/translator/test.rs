@@ -1821,6 +1821,253 @@ mod set_stage {
     );
 }
 
+mod subquery_expression {
+    use crate::{
+        air, map,
+        mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
+        mir::{self, binding_tuple::DatasourceName::Bottom},
+        unchecked_unique_linked_hash_map,
+    };
+
+    test_translate_expression!(
+        uncorrelated,
+        expected = Ok(air::Expression::Subquery(air::Subquery {
+            let_bindings: vec![],
+            output_path: vec!["foo".to_string()],
+            pipeline: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test".to_string(),
+                    collection: "foo".to_string(),
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                },
+            })),
+        })),
+        input = mir::Expression::Subquery(mir::SubqueryExpr {
+            output_expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+            subquery: Box::new(mir::Stage::Collection(mir::Collection {
+                db: "test".to_string(),
+                collection: "foo".to_string(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        correlated,
+        expected = Ok(air::Expression::Subquery(air::Subquery {
+            let_bindings: vec![air::LetVariable {
+                name: "vfoo_0".to_string(),
+                expr: Box::new(air::Expression::FieldRef(air::FieldRef {
+                    parent: None,
+                    name: "foo".to_string(),
+                })),
+            },],
+            output_path: vec!["__bot".to_string(), "a".to_string()],
+            pipeline: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Project(air::Project {
+                    source: Box::new(air::Stage::Collection(air::Collection {
+                        db: "test".to_string(),
+                        collection: "bar".to_string(),
+                    })),
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "bar".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                    },
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "__bot".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map! {
+                        "a".to_string() => air::Expression::Variable(air::Variable {
+                            parent: Some(Box::new(air::Variable {
+                                parent: None,
+                                name: "vfoo_0".to_string(),
+                            })),
+                            name: "a".to_string()
+                        })
+                    }),
+                },
+            })),
+        })),
+        input = mir::Expression::Subquery(mir::SubqueryExpr {
+            output_expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::Reference((Bottom, 1u16).into())),
+                field: "a".to_string(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            subquery: Box::new(mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Collection(mir::Collection {
+                    db: "test".to_string(),
+                    collection: "bar".to_string(),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                expression: map! {
+                    (Bottom, 1u16).into() => mir::Expression::Document(mir::DocumentExpr {
+                        document: unchecked_unique_linked_hash_map! {
+                            "a".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
+                                expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
+                                field: "a".to_string(),
+                                cache: mir::schema::SchemaCache::new(),
+                            }),
+                        },
+                        cache: mir::schema::SchemaCache::new(),
+                    })
+                },
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(
+                ("foo", 0u16),
+                MqlMappingRegistryValue::new("foo".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr
+        },
+    );
+
+    test_translate_stage!(
+        unqualified_correlated_reference,
+        expected = Ok(air::Stage::Project(air::Project {
+            source: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Project(air::Project {
+                    source: Box::new(air::Stage::Collection(air::Collection {
+                        db: "foo".to_string(),
+                        collection: "schema_coll".to_string(),
+                    })),
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "schema_coll".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                    },
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "q".to_string() => air::Expression::FieldRef(air::FieldRef{parent: None, name: "schema_coll".to_string()}),
+                },
+            })),
+            specifications: unchecked_unique_linked_hash_map! {
+                "__bot".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map! {
+                    "bar".to_string() => air::Expression::Subquery(air::Subquery {
+                        let_bindings: vec![air::LetVariable {
+                            name: "vq_0".to_string(),
+                            expr: Box::new(air::Expression::FieldRef(air::FieldRef {
+                                parent: None,
+                                name: "q".to_string(),
+                            })),
+                        },],
+                        output_path: vec!["__bot".to_string(), "bar".to_string()],
+                        pipeline: Box::new(air::Stage::Limit(air::Limit {
+                            source: Box::new(air::Stage::Project(air::Project {
+                                source: Box::new(air::Stage::Project(air::Project {
+                                    source: Box::new(air::Stage::Project(air::Project {
+                                        source: Box::new(air::Stage::Collection(air::Collection {
+                                            db: "foo".to_string(),
+                                            collection: "schema_foo".to_string(),
+                                        })),
+                                        specifications: unchecked_unique_linked_hash_map! {
+                                            "schema_foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                                        },
+                                    })),
+                                    specifications: unchecked_unique_linked_hash_map! {
+                                        "q".to_string() => air::Expression::FieldRef(air::FieldRef {parent: None, name: "schema_foo".to_string()}),
+                                    },
+                                })),
+                                specifications: unchecked_unique_linked_hash_map! {
+                                    "__bot".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map! {
+                                        "bar".to_string() => air::Expression::Variable(air::Variable {
+                                            parent: Some(Box::new(air::Variable {
+                                                parent: None,
+                                                name: "vq_0".to_string(),
+                                            })),
+                                            name: "bar".to_string()
+                                        })
+                                    }),
+                                },
+                            })),
+                            limit: 1,
+                        })),
+                    })
+                }),
+            },
+        })),
+        input = mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Collection(mir::Collection {
+                    db: "foo".to_string(),
+                    collection: "schema_coll".to_string(),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                expression: map! {
+                    ("q".to_string(), 0u16).into() => mir::Expression::Reference(("schema_coll".to_string(), 0u16).into()),
+                },
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            expression: map! {
+                (Bottom, 0u16).into() => mir::Expression::Document(mir::DocumentExpr {
+                    document: unchecked_unique_linked_hash_map! {
+                        "bar".to_string() => mir::Expression::Subquery(mir::SubqueryExpr {
+                            output_expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                                expr: Box::new(mir::Expression::Reference((Bottom, 1u16).into())),
+                                field: "bar".to_string(),
+                                cache: mir::schema::SchemaCache::new(),
+                            })),
+                            subquery: Box::new(mir::Stage::Limit(mir::Limit {
+                                source: Box::new(mir::Stage::Project(mir::Project {
+                                    source: Box::new(mir::Stage::Project(mir::Project {
+                                        source: Box::new(mir::Stage::Collection(mir::Collection {
+                                            db: "foo".to_string(),
+                                            collection: "schema_foo".to_string(),
+                                            cache: mir::schema::SchemaCache::new(),
+                                        })),
+                                        expression: map! {
+                                            ("q", 1u16).into() => mir::Expression::Reference(("schema_foo", 1u16).into()),
+                                        },
+                                        cache: mir::schema::SchemaCache::new(),
+                                    })),
+                                    expression: map! {
+                                        (Bottom, 1u16).into() => mir::Expression::Document(mir::DocumentExpr {
+                                            document: unchecked_unique_linked_hash_map! {
+                                                "bar".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
+                                                    expr: Box::new(mir::Expression::Reference(("q", 0u16).into())),
+                                                    field: "bar".to_string(),
+                                                    cache: mir::schema::SchemaCache::new(),
+                                                }),
+                                            },
+                                            cache: mir::schema::SchemaCache::new(),
+                                        })
+                                    },
+                                    cache: mir::schema::SchemaCache::new(),
+                                })),
+                                limit: 1,
+                                cache: mir::schema::SchemaCache::new(),
+                            })),
+                            cache: mir::schema::SchemaCache::new(),
+                        }),
+                    },
+                    cache: mir::schema::SchemaCache::new(),
+                })
+            },
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
+
+    test_translate_expression!(
+        invalid_output_path,
+        expected = Err(crate::translator::Error::SubqueryOutputPathNotFieldRef),
+        input = mir::Expression::Subquery(mir::SubqueryExpr {
+            output_expr: Box::new(mir::Expression::Literal(mir::LiteralExpr {
+                value: mir::LiteralValue::Integer(1),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            subquery: Box::new(mir::Stage::Collection(mir::Collection {
+                db: "test".to_string(),
+                collection: "foo".to_string(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+}
+
 mod documents_stage {
     use crate::unchecked_unique_linked_hash_map;
 
