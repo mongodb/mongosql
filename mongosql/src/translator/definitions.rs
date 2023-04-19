@@ -1064,19 +1064,35 @@ impl MqlTranslator {
         // Translate the subquery pipeline
         let subquery_translation = subquery_translator.translate_stage(*subquery.subquery)?;
 
-        // Translate the output_expr. This should always result in a FieldRef.
-        // The subquery expression itself stores the components of the FieldRef
-        // as a Vec<String>.
-        let output_expr = subquery_translator.translate_expression(*subquery.output_expr)?;
-        let output_path = match output_expr {
-            air::Expression::FieldRef(fr) => fr.path_components(),
-            _ => return Err(Error::SubqueryOutputPathNotFieldRef),
-        };
+        // Translate the output_expr to a Vec<String>. Instead of using
+        // translate_expression, which may produce GetFields instead of
+        // FieldRefs, we manually walk the mir::Expression FieldAccess
+        // tree to get the components.
+        let output_path = subquery_translator.generate_path_components(*subquery.output_expr)?;
 
         Ok(air::Expression::Subquery(air::Subquery {
             let_bindings,
             output_path,
             pipeline: Box::new(subquery_translation),
         }))
+    }
+
+    /// generate_path_components takes an expression and returns a vector of
+    /// its components by recursively tracing its path.
+    fn generate_path_components(&self, expr: mir::Expression) -> Result<Vec<String>> {
+        match expr {
+            mir::Expression::Reference(mir::ReferenceExpr { key, .. }) => {
+                match self.mapping_registry.get(&key) {
+                    Some(registry_value) => Ok(vec![registry_value.name.clone()]),
+                    None => Err(Error::ReferenceNotFound(key)),
+                }
+            }
+            mir::Expression::FieldAccess(fa) => {
+                let mut path = self.generate_path_components(*fa.expr)?;
+                path.push(fa.field.clone());
+                Ok(path)
+            }
+            _ => Err(Error::SubqueryOutputPathNotFieldRef),
+        }
     }
 }

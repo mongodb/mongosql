@@ -2161,6 +2161,188 @@ mod subquery_expression {
     );
 
     test_translate_expression!(
+        datasource_names_normalized_and_conflicts_avoided_in_let_bindings,
+        expected = Ok(air::Expression::Subquery(air::Subquery {
+            let_bindings: vec![
+                air::LetVariable {
+                    name: "vfoo_coll_ß_0".to_string(),
+                    expr: Box::new(air::Expression::FieldRef(air::FieldRef {
+                        parent: None,
+                        name: "Foo coll-ß".to_string(),
+                    })),
+                },
+                air::LetVariable {
+                    name: "vfoo_coll_ß_0_".to_string(),
+                    expr: Box::new(air::Expression::FieldRef(air::FieldRef {
+                        parent: None,
+                        name: "foo_coll_ß".to_string(),
+                    })),
+                },
+            ],
+            output_path: vec!["__bot".to_string(), "a".to_string()],
+            pipeline: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Project(air::Project {
+                    source: Box::new(air::Stage::Collection(air::Collection {
+                        db: "test".to_string(),
+                        collection: "bar".to_string(),
+                    })),
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "bar".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                    },
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "__bot".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map! {
+                        "a".to_string() => air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
+                            op: air::SQLOperator::Eq,
+                            args: vec![
+                                air::Expression::Variable(air::Variable {
+                                    parent: Some(Box::new(air::Variable {
+                                        parent: None,
+                                        name: "vfoo_coll_ß_0".to_string()
+                                    })),
+                                    name: "a".to_string(),
+                                }),
+                                air::Expression::Variable(air::Variable {
+                                    parent: Some(Box::new(air::Variable {
+                                        parent: None,
+                                        name: "vfoo_coll_ß_0_".to_string()
+                                    })),
+                                    name: "a".to_string(),
+                                }),
+                            ],
+                        }),
+                    }),
+                },
+            })),
+        })),
+        input = mir::Expression::Subquery(mir::SubqueryExpr {
+            output_expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::Reference((Bottom, 1u16).into())),
+                field: "a".to_string(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            subquery: Box::new(mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Collection(mir::Collection {
+                    db: "test".to_string(),
+                    collection: "bar".to_string(),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                expression: map! {
+                    (Bottom, 1u16).into() => mir::Expression::Document(mir::DocumentExpr {
+                        document: unchecked_unique_linked_hash_map! {
+                            "a".to_string() => mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                                function: mir::ScalarFunction::Eq,
+                                args: vec![
+                                    mir::Expression::FieldAccess(mir::FieldAccess{
+                                        expr: Box::new(mir::Expression::Reference(("Foo coll-ß", 0u16).into())),
+                                        field: "a".into(),
+                                        cache: mir::schema::SchemaCache::new(),
+                                    }),
+                                    mir::Expression::FieldAccess(mir::FieldAccess{
+                                        expr: Box::new(mir::Expression::Reference(("foo_coll_ß", 0u16).into())),
+                                        field: "a".into(),
+                                        cache: mir::schema::SchemaCache::new(),
+                                    }),
+                                ],
+                                cache: mir::schema::SchemaCache::new(),
+                            }),
+                        },
+                        cache: mir::schema::SchemaCache::new(),
+                    })
+                },
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(
+                ("Foo coll-ß", 0u16),
+                MqlMappingRegistryValue::new("Foo coll-ß".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr.insert(
+                ("foo_coll_ß", 0u16),
+                MqlMappingRegistryValue::new("foo_coll_ß".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr
+        },
+    );
+
+    // This test verifies that we are using the datasource's MQL field name
+    // in the output path. We create an MQL field name that doesn't match the
+    // corresponding datasource by forcing a naming conflict in the project
+    // stage. The translation engine could never actually produce a query like
+    // this one, though, since a subquery expression's degree must be exactly 1.
+    test_translate_expression!(
+        use_datasource_mql_name,
+        expected = Ok(air::Expression::Subquery(air::Subquery {
+            let_bindings: vec![],
+            output_path: vec!["___bot".to_string()],
+            pipeline: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Project(air::Project {
+                    source: Box::new(air::Stage::Collection(air::Collection {
+                        db: "test".to_string(),
+                        collection: "__bot".to_string(),
+                    })),
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "__bot".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                    },
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "___bot".to_string() => air::Expression::FieldRef(air::FieldRef{parent: None, name: "__bot".to_string()}),
+                    "__bot".to_string() => air::Expression::Literal(air::LiteralValue::Integer(42)),
+                }
+            })),
+        })),
+        input = mir::Expression::Subquery(mir::SubqueryExpr {
+            output_expr: Box::new(mir::Expression::Reference((Bottom, 1u16).into())),
+            subquery: Box::new(mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Collection(mir::Collection {
+                    db: "test".to_string(),
+                    collection: "__bot".to_string(),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                expression: map! {
+                    (Bottom, 1u16).into() => mir::Expression::Reference(("__bot", 1u16).into()),
+                    ("__bot", 1u16).into() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+                },
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        output_path_contains_dot,
+        expected = Ok(air::Expression::Subquery(air::Subquery {
+            let_bindings: vec![],
+            output_path: vec!["foo".to_string(), "a.b".to_string()],
+            pipeline: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test".to_string(),
+                    collection: "foo".to_string(),
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                },
+            })),
+        })),
+        input = mir::Expression::Subquery(mir::SubqueryExpr {
+            output_expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                field: "a.b".to_string(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            subquery: Box::new(mir::Stage::Collection(mir::Collection {
+                db: "test".to_string(),
+                collection: "foo".to_string(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
         invalid_output_path,
         expected = Err(crate::translator::Error::SubqueryOutputPathNotFieldRef),
         input = mir::Expression::Subquery(mir::SubqueryExpr {

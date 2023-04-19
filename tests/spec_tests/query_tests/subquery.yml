@@ -216,7 +216,7 @@ tests:
                                                                          'pipeline': [
                                                                                        {'$project': {'_id': 0, 'employees': '$$ROOT'}},
                                                                                        {'$project': {'_id': 0, 'emp': '$employees'}},
-                                                                                       {'$group': {'_id': {'_': {'$literal': null}}, 'avg_salary': {'$sqlAvg': {'var': '$emp.salary', 'distinct': false}}}},
+                                                                                       {'$group': {'_id': {'_': {'$literal': null}}, 'avg_salary': {'$avg': '$emp.salary'}}},
                                                                                        {'$project': {'_id': 0, '__bot': {'_': '$_id._', 'avg_salary': '$avg_salary'}}},
                                                                                        {'$project': {'_id': 0, '__bot': {'avg_salary': '$__bot.avg_salary'}}}
                                                                          ]

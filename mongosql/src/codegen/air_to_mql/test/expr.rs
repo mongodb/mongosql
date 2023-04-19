@@ -1612,3 +1612,95 @@ mod let_expr {
         })
     );
 }
+
+mod subquery {
+    use crate::{
+        air::{
+            Collection, Documents, Expression::*, FieldRef, LetVariable, Project, Stage::*,
+            Subquery, Variable,
+        },
+        unchecked_unique_linked_hash_map,
+    };
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        no_db_or_coll,
+        expected = Ok(bson!({
+            "$subquery": {
+                "let": {},
+                "outputPath": ["arr"],
+                "pipeline": [
+                    {"$documents": []},
+                    {"$project": {"_id": 0, "arr": "$$ROOT"}}
+                ]
+            }
+        })),
+        input = Subquery(Subquery {
+            let_bindings: vec![],
+            output_path: vec!["arr".to_string()],
+            pipeline: Box::new(Project(Project {
+                source: Box::new(Documents(Documents { array: vec![] })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "arr".to_string() => Variable(Variable{parent: None, name: "ROOT".to_string()}),
+                }
+            })),
+        })
+    );
+
+    test_codegen_air_expr!(
+        fully_specified,
+        expected = Ok(bson!({
+            "$subquery": {
+                "db": "test",
+                "collection": "bar",
+                "let": {
+                    "vfoo_0": "$foo",
+                    "vbaz_0": "$baz"
+                },
+                "outputPath": ["__bot", "a"],
+                "pipeline": [
+                    {"$project": {"_id": 0,"bar": "$$ROOT"}},
+                    {"$project": {"_id": 0,"__bot": {"a": "$$vfoo_0.a"}}}
+                ]
+            }
+        })),
+        input = Subquery(Subquery {
+            let_bindings: vec![
+                LetVariable {
+                    name: "vfoo_0".to_string(),
+                    expr: Box::new(FieldRef(FieldRef {
+                        parent: None,
+                        name: "foo".to_string()
+                    })),
+                },
+                LetVariable {
+                    name: "vbaz_0".to_string(),
+                    expr: Box::new(FieldRef(FieldRef {
+                        parent: None,
+                        name: "baz".to_string()
+                    })),
+                },
+            ],
+            output_path: vec!["__bot".to_string(), "a".to_string()],
+            pipeline: Box::new(Project(Project {
+                source: Box::new(Project(Project {
+                    source: Box::new(Collection(Collection {
+                        db: "test".to_string(),
+                        collection: "bar".to_string(),
+                    })),
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "bar".to_string() => Variable(Variable{parent: None, name: "ROOT".to_string()}),
+                    }
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "__bot".to_string() => Document(unchecked_unique_linked_hash_map! {
+                        "a".to_string() => Variable(Variable{
+                            parent: Some(Box::new(Variable{parent: None, name: "vfoo_0".to_string()})),
+                            name: "a".to_string(),
+                        }),
+                    }),
+                }
+            })),
+        })
+    );
+}
