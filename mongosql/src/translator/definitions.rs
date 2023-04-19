@@ -716,9 +716,13 @@ impl MqlTranslator {
             mir::Expression::DateFunction(date_func_app) => {
                 self.translate_date_function(date_func_app)
             }
-            mir::Expression::Subquery(subquery) => self.translate_subquery(subquery),
+            mir::Expression::Subquery(subquery) => self
+                .translate_subquery(subquery)
+                .map(air::Expression::Subquery),
             mir::Expression::Exists(exists) => self.translate_exists(exists),
-            _ => Err(Error::UnimplementedStruct),
+            mir::Expression::SubqueryComparison(subquery_comparison) => {
+                self.translate_subquery_comparison(subquery_comparison)
+            }
         }
     }
 
@@ -1066,7 +1070,7 @@ impl MqlTranslator {
         Ok((let_bindings, subquery_translation))
     }
 
-    fn translate_subquery(&self, subquery: mir::SubqueryExpr) -> Result<air::Expression> {
+    fn translate_subquery(&self, subquery: mir::SubqueryExpr) -> Result<air::Subquery> {
         // Clone self so that we can translate the subquery pipeline and output
         // path without modifying self's mapping registry or scope.
         let mut subquery_translator = self.clone();
@@ -1080,11 +1084,11 @@ impl MqlTranslator {
         // tree to get the components.
         let output_path = subquery_translator.generate_path_components(*subquery.output_expr)?;
 
-        Ok(air::Expression::Subquery(air::Subquery {
+        Ok(air::Subquery {
             let_bindings,
             output_path,
             pipeline: Box::new(pipeline),
-        }))
+        })
     }
 
     fn translate_exists(&self, exists: mir::ExistsExpr) -> Result<air::Expression> {
@@ -1099,6 +1103,40 @@ impl MqlTranslator {
             let_bindings,
             pipeline: Box::new(pipeline),
         }))
+    }
+
+    fn translate_subquery_comparison(
+        &self,
+        subquery_comparison: mir::SubqueryComparison,
+    ) -> Result<air::Expression> {
+        use mir::{SubqueryComparisonOp, SubqueryModifier};
+
+        let op = match subquery_comparison.operator {
+            SubqueryComparisonOp::Lt => air::SubqueryComparisonOp::Lt,
+            SubqueryComparisonOp::Lte => air::SubqueryComparisonOp::Lte,
+            SubqueryComparisonOp::Neq => air::SubqueryComparisonOp::Neq,
+            SubqueryComparisonOp::Eq => air::SubqueryComparisonOp::Eq,
+            SubqueryComparisonOp::Gt => air::SubqueryComparisonOp::Gt,
+            SubqueryComparisonOp::Gte => air::SubqueryComparisonOp::Gte,
+        };
+
+        let modifier = match subquery_comparison.modifier {
+            SubqueryModifier::Any => air::SubqueryModifier::Any,
+            SubqueryModifier::All => air::SubqueryModifier::All,
+        };
+
+        let arg = self.translate_expression(*subquery_comparison.argument)?;
+
+        let subquery = self.translate_subquery(subquery_comparison.subquery_expr)?;
+
+        Ok(air::Expression::SubqueryComparison(
+            air::SubqueryComparison {
+                op,
+                modifier,
+                arg: Box::new(arg),
+                subquery: Box::new(subquery),
+            },
+        ))
     }
 
     /// generate_path_components takes an expression and returns a vector of
