@@ -48,6 +48,95 @@ macro_rules! test_translate_plan {
     };
 }
 
+mod subquery_exists_expression {
+    use crate::{
+        air, map,
+        mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
+        mir::{self, binding_tuple::DatasourceName::Bottom},
+        unchecked_unique_linked_hash_map,
+    };
+
+    test_translate_expression!(
+        subquery_exists_uncorrelated,
+        expected = Ok(air::Expression::SubqueryExists(air::SubqueryExists {
+            let_bindings: vec![],
+            pipeline: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test".to_string(),
+                    collection: "foo".to_string(),
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                },
+            })),
+        })),
+        input = mir::Expression::Exists(
+            Box::new(mir::Stage::Collection(mir::Collection {
+                db: "test".into(),
+                collection: "foo".into(),
+                cache: mir::schema::SchemaCache::new(),
+            }))
+            .into()
+        ),
+    );
+    test_translate_expression!(
+        subquery_exists_correlated,
+        expected = Ok(air::Expression::SubqueryExists(air::SubqueryExists {
+            let_bindings: vec![air::LetVariable {
+                name: "vfoo_0".to_string(),
+                expr: Box::new(air::Expression::FieldRef(air::FieldRef {
+                    parent: None,
+                    name: "foo".to_string(),
+                })),
+            },],
+            pipeline: Box::new(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Project(air::Project {
+                    source: Box::new(air::Stage::Collection(air::Collection {
+                        db: "test".to_string(),
+                        collection: "bar".to_string(),
+                    })),
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "bar".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                    },
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "__bot".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map! {
+                        "a".to_string() => air::Expression::Variable(air::Variable {
+                            parent: Some(Box::new(air::Variable {
+                                parent: None,
+                                name: "vfoo_0".to_string(),
+                            })),
+                            name: "a".to_string()
+                        })
+                    }),
+                },
+            })),
+        })),
+        input = mir::Expression::Exists(Box::new(mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::Collection(mir::Collection {
+                db: "test".into(),
+                collection: "bar".into(),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            expression: map! {
+                (Bottom, 1u16).into() => mir::Expression::Document(unchecked_unique_linked_hash_map! {
+                    "a".into() => mir::Expression::FieldAccess(mir::FieldAccess{
+                        expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
+                        field: "a".into(),
+                        cache: mir::schema::SchemaCache::new(),
+                    })
+                }.into())
+            },
+            cache: mir::schema::SchemaCache::new(),
+        })).into()),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(("foo", 0u16), MqlMappingRegistryValue::new("foo".to_string(), MqlReferenceType::FieldRef));
+            mr
+        },
+    );
+}
+
 mod date_function_expression {
     use crate::{air, mir};
 

@@ -717,6 +717,7 @@ impl MqlTranslator {
                 self.translate_date_function(date_func_app)
             }
             mir::Expression::Subquery(subquery) => self.translate_subquery(subquery),
+            mir::Expression::Exists(exists) => self.translate_exists(exists),
             _ => Err(Error::UnimplementedStruct),
         }
     }
@@ -1048,21 +1049,30 @@ impl MqlTranslator {
         ))
     }
 
+    fn translate_subquery_pipeline(
+        &mut self,
+        subquery: mir::Stage,
+    ) -> Result<(Vec<LetVariable>, air::Stage)> {
+        // Generate let bindings for the subquery and update the subquery
+        // translator's mapping registry
+        let let_bindings = self.generate_let_bindings(self.mapping_registry.clone());
+
+        // Increase the scope level to translate the subquery pipeline
+        self.scope_level += 1;
+
+        // Translate the subquery pipeline
+        let subquery_translation = self.translate_stage(subquery)?;
+
+        Ok((let_bindings, subquery_translation))
+    }
+
     fn translate_subquery(&self, subquery: mir::SubqueryExpr) -> Result<air::Expression> {
         // Clone self so that we can translate the subquery pipeline and output
         // path without modifying self's mapping registry or scope.
         let mut subquery_translator = self.clone();
 
-        // Generate let bindings for the subquery and update the subquery
-        // translator's mapping registry
-        let let_bindings =
-            subquery_translator.generate_let_bindings(subquery_translator.mapping_registry.clone());
-
-        // Increase the scope level to translate the subquery pipeline
-        subquery_translator.scope_level += 1;
-
-        // Translate the subquery pipeline
-        let subquery_translation = subquery_translator.translate_stage(*subquery.subquery)?;
+        let (let_bindings, pipeline) =
+            subquery_translator.translate_subquery_pipeline(*subquery.subquery)?;
 
         // Translate the output_expr to a Vec<String>. Instead of using
         // translate_expression, which may produce GetFields instead of
@@ -1073,7 +1083,21 @@ impl MqlTranslator {
         Ok(air::Expression::Subquery(air::Subquery {
             let_bindings,
             output_path,
-            pipeline: Box::new(subquery_translation),
+            pipeline: Box::new(pipeline),
+        }))
+    }
+
+    fn translate_exists(&self, exists: mir::ExistsExpr) -> Result<air::Expression> {
+        // Clone self so that we can translate the subquery pipeline
+        // without modifying self's mapping registry or scope.
+        let mut subquery_translator = self.clone();
+
+        let (let_bindings, pipeline) =
+            subquery_translator.translate_subquery_pipeline(*exists.stage)?;
+
+        Ok(air::Expression::SubqueryExists(air::SubqueryExists {
+            let_bindings,
+            pipeline: Box::new(pipeline),
         }))
     }
 
