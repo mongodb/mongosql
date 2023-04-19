@@ -1,4 +1,4 @@
-use super::{Error, MqlCodeGenerator, MqlTranslation, Result};
+use super::{MqlCodeGenerator, MqlTranslation, Result};
 use crate::air::{self, AggregationFunction};
 use bson::{bson, doc, Bson};
 
@@ -15,10 +15,30 @@ impl MqlCodeGenerator {
             air::Stage::Lookup(l) => self.codegen_lookup(l),
             air::Stage::ReplaceWith(r) => self.codegen_replace_with(r),
             air::Stage::Match(m) => self.codegen_match(m),
-            air::Stage::UnionWith(_u) => Err(Error::UnimplementedAIR),
+            air::Stage::UnionWith(u) => self.codegen_union_with(u),
             air::Stage::Skip(s) => self.codegen_skip(s),
             air::Stage::Documents(d) => self.codegen_documents(d),
         }
+    }
+
+    fn codegen_union_with(&self, air_union_with: air::UnionWith) -> Result<MqlTranslation> {
+        let source_translation = self.codegen_air_stage(*air_union_with.source)?;
+        let mut pipeline = source_translation.pipeline;
+
+        let pipeline_translation = self.codegen_air_stage(*air_union_with.pipeline)?;
+
+        let mut union_body = doc! {};
+        if let Some(collection) = pipeline_translation.collection {
+            union_body.extend(doc! {"coll": collection});
+        }
+        union_body.extend(doc! {"pipeline": pipeline_translation.pipeline});
+
+        pipeline.push(doc! {"$unionWith": union_body});
+        Ok(MqlTranslation {
+            database: source_translation.database,
+            collection: source_translation.collection,
+            pipeline,
+        })
     }
 
     fn codegen_sort(&self, air_sort: air::Sort) -> Result<MqlTranslation> {

@@ -42,6 +42,119 @@ macro_rules! test_codegen_air_stage {
     };
 }
 
+mod union_with {
+    use crate::air::*;
+    use bson::doc;
+
+    test_codegen_air_stage!(
+        collection_union_with_collection,
+        expected = Ok({
+            database: Some("foo".to_string()),
+            collection: Some("a".to_string()),
+            pipeline: vec![
+                doc!{"$unionWith": {"coll": "b", "pipeline": []}}],
+        }),
+        input = Stage::UnionWith(UnionWith {
+            source: Stage::Collection(Collection {
+                db: "foo".to_string(),
+                collection: "a".to_string(),
+            }).into(),
+            pipeline: Stage::Collection(Collection {
+                db: "bar".to_string(),
+                collection: "b".to_string(),
+            }).into(),
+        }),
+    );
+    test_codegen_air_stage!(
+        array_union_with_array,
+        expected = Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                doc!{"$documents": [{"$literal": 1}]},
+                doc!{"$unionWith": {"pipeline": [
+                    {"$documents": [{"$literal": 2}]},
+                ]}}],
+        }),
+        input = Stage::UnionWith(UnionWith {
+            source: Stage::Documents(Documents {
+                array: vec![Expression::Literal(LiteralValue::Integer(1))],
+            }).into(),
+            pipeline: Stage::Documents(Documents {
+                array: vec![Expression::Literal(LiteralValue::Integer(2))],
+            }).into(),
+        }),
+    );
+    test_codegen_air_stage!(
+        array_union_with_collection,
+        expected = Ok({
+            database: None,
+            collection: None,
+            pipeline: vec![
+                doc!{"$documents": [{"$literal": 1}]},
+                doc!{"$unionWith": {"coll": "b", "pipeline": []}}],
+        }),
+        input = Stage::UnionWith(UnionWith {
+            source: Stage::Documents(Documents {
+                array: vec![Expression::Literal(LiteralValue::Integer(1))],
+            }).into(),
+            pipeline: Stage::Collection(Collection {
+                db: "bar".to_string(),
+                collection: "b".to_string(),
+            }).into(),
+        }),
+    );
+    test_codegen_air_stage!(
+        collection_union_with_array,
+        expected = Ok({
+            database: Some("foo".to_string()),
+            collection: Some("a".to_string()),
+            pipeline: vec![
+                bson::doc!{"$unionWith": {"pipeline": [
+                    {"$documents": [{"$literal": 1}]},
+                ]}}],
+        }),
+        input = Stage::UnionWith(UnionWith {
+            source: Stage::Collection(Collection {
+                db: "foo".to_string(),
+                collection: "a".to_string(),
+            }).into(),
+            pipeline: Stage::Documents(Documents {
+                array: vec![Expression::Literal(LiteralValue::Integer(1))],
+            }).into(),
+        }),
+    );
+    test_codegen_air_stage!(
+        collection_union_with_nested_union_with,
+        expected = Ok({
+            database: Some("foo".to_string()),
+            collection: Some("a".to_string()),
+            pipeline: vec![
+                doc!{"$unionWith": {"coll": "b", "pipeline": [
+                    {"$unionWith": {"pipeline": [
+                        {"$documents": [{"$literal": 1}]},
+                    ]}}
+                ]}}
+            ],
+        }),
+        input = Stage::UnionWith(UnionWith {
+            source: Stage::Collection(Collection {
+                db: "foo".to_string(),
+                collection: "a".to_string(),
+            }).into(),
+            pipeline: Stage::UnionWith(UnionWith {
+                source: Stage::Collection(Collection {
+                    db: "bar".to_string(),
+                    collection: "b".to_string(),
+                }).into(),
+                pipeline: Stage::Documents(Documents {
+                    array: vec![Expression::Literal(LiteralValue::Integer(1))],
+                }).into(),
+            }).into(),
+        }),
+    );
+}
+
 mod sort {
     use crate::{
         air::Expression::*, air::LiteralValue::*, air::SortSpecification::*, air::*,
