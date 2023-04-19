@@ -744,7 +744,7 @@ tests:
               },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
+      - { "$project": {"__subquery_result_0": 0 }}
       - { "$project": { "acc": { "$avg": "$acc" } } }
 
   - name: "subquery nested in unsupported op as arg"

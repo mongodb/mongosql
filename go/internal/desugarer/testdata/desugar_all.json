@@ -777,7 +777,6 @@
       },
       {
         "$project": {
-          "_id": 0,
           "__subquery_result_0": 0
         }
       },

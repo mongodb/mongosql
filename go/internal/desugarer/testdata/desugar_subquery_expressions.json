@@ -1113,5 +1113,47 @@
         }
       }
     ]
+  },
+  {
+    "name": "Preserve _id when desugaring subquery expression nested in a group",
+    "input": [
+      {
+        "$group": {
+          "_id": {
+            "a": {
+              "$subquery": {
+                "collection": "bar",
+                "outputPath": ["x"],
+                "pipeline": []
+              }
+            }
+          }
+        }
+      },
+      { "$project": { "_id": 0, "__bot.a": "$_id.a" } }
+    ],
+    "expected": [
+      {
+        "$lookup": {
+          "from": "bar",
+          "pipeline": [ { "$limit": 1 } ],
+          "as": "__subquery_result_0"
+        }
+      },
+      {
+        "$group": {
+          "_id": {
+            "a": {
+              "$let": {
+                "vars": { "docExpr": { "$arrayElemAt": [ "$__subquery_result_0", 0 ] } },
+                "in": "$$docExpr.x"
+              }
+            }
+          }
+        }
+      },
+      { "$project": { "__subquery_result_0": 0 } },
+      { "$project": { "_id": 0, "__bot.a": "$_id.a" } }
+    ]
   }
 ]

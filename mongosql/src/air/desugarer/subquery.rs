@@ -13,6 +13,8 @@ use crate::air::{
 ///      Project removes the field introduced by the Lookup; if there are
 ///      multiple subquery expressions in a stage, there will be multiple
 ///      Lookup stages but only one Project stage at the end.
+///      If the subquery is in a Group stage, we don't want to exclude the
+///      _id because it is the group key
 pub struct SubqueryExprDesugarerPass;
 
 impl Pass for SubqueryExprDesugarerPass {

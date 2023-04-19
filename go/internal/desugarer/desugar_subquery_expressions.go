@@ -51,7 +51,6 @@ func desugarSubqueryExprs(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 		subqueryCounter := 0
 
 		var asNames []string
-
 		out, _ := ast.Visit(stage, func(v ast.Visitor, n ast.Node) ast.Node {
 			switch tn := n.(type) {
 			case *ast.Pipeline:
@@ -76,8 +75,9 @@ func desugarSubqueryExprs(pipeline *ast.Pipeline, _ uint64) *ast.Pipeline {
 		newStages = append(newStages, out.(ast.Stage))
 
 		// If $lookup stages were introduced, we must exclude those fields at the end
+		_, isInGroup := stage.(*ast.GroupStage)
 		if len(asNames) > 0 {
-			newStages = append(newStages, makeExclusionStage(asNames))
+			newStages = append(newStages, makeExclusionStage(asNames, isInGroup))
 		}
 	}
 
@@ -349,13 +349,23 @@ func constantToString(expr ast.Expr) string {
 	return expr.(*ast.Constant).Value.StringValue()
 }
 
-func makeExclusionStage(asNames []string) *ast.ProjectStage {
-	exclusions := make([]ast.ProjectItem, len(asNames)+1)
-	exclusions[0] = ast.NewExcludeProjectItem(ast.NewFieldRef("_id", nil))
-
-	for i, asName := range asNames {
-		exclusions[i+1] = ast.NewExcludeProjectItem(ast.NewFieldRef(asName, nil))
+func makeExclusionStage(asNames []string, isInGroup bool) *ast.ProjectStage {
+	var exclusions []ast.ProjectItem
+	var i int
+	if isInGroup {
+		// If the subquery is in a group stage, we don't want to exclude the _id because it
+		//is the group key
+		exclusions = make([]ast.ProjectItem, len(asNames))
+		i = 0
+	} else {
+		exclusions = make([]ast.ProjectItem, len(asNames)+1)
+		exclusions[0] = ast.NewExcludeProjectItem(ast.NewFieldRef("_id", nil))
+		i = 1
 	}
 
+	for _, asName := range asNames {
+		exclusions[i] = ast.NewExcludeProjectItem(ast.NewFieldRef(asName, nil))
+		i++
+	}
 	return ast.NewProjectStage(exclusions...)
 }
