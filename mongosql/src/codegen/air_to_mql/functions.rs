@@ -44,6 +44,7 @@ impl MqlCodeGenerator {
 
             // Conditional operators
             Cond => "$cond",
+            IfNull => "$ifNull",
 
             // Arithmetic operators
             Add => "$add",
@@ -67,6 +68,7 @@ impl MqlCodeGenerator {
             // Array scalar functions
             Slice => "$slice",
             Size => "$size",
+            ElemAt => "$arrayElemAt",
 
             // Numeric value scalar functions
             IndexOfCP => "$indexOfCP",
@@ -111,6 +113,11 @@ impl MqlCodeGenerator {
 
             // MergeObjects merges an array of objects
             MergeObjects => "$mergeObjects",
+
+            //Type operators
+            Type => "$type",
+            IsArray => "$isArray",
+            IsNumber => "$isNumber",
         }
     }
 
@@ -118,7 +125,6 @@ impl MqlCodeGenerator {
         use SQLOperator::*;
         Some(match sqlo {
             // Arithmetic operators
-            Divide => "$sqlDivide",
             Pos => "$sqlPos",
             Neg => "$sqlNeg",
 

@@ -1,13 +1,11 @@
 tests:
   - name: "nothing to desugar"
-    skip_reason: "SQL-1257"
     input:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
     expected:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
 
   - name: "desugar $sqlBetween"
-    skip_reason: "SQL-1257"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlBetween": ["$x", 1, 10] } } }
     expected:
@@ -38,7 +36,6 @@ tests:
       }
 
   - name: "desugar nested $sqlBetween"
-    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -124,7 +121,6 @@ tests:
       }
 
   - name: "desugar $sqlConvert"
-    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -184,7 +180,6 @@ tests:
       }
 
   - name: "desugar $sqlDivide"
-    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -211,7 +206,6 @@ tests:
       }
 
   - name: "desugar $sqlDivide non-null onError"
-    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -238,14 +232,12 @@ tests:
       }
 
   - name: "desugar $sqlSlice with no start argument"
-    skip_reason: "SQL-1257"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlSlice": ["$arr", "$len"] } } }
     expected:
       - { "$project": { "_id": 0, "expr": { "$slice": ["$arr", "$len"] } } }
 
   - name: "desugar $sqlSlice with start argument"
-    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -269,7 +261,6 @@ tests:
       }
 
   - name: "desugar $coalesce"
-    skip_reason: "SQL-1257"
     input:
       - {
         "$project": { "_id": 0, "expr": { "$coalesce": ["$a", "$b", "$c"] } },
@@ -296,7 +287,6 @@ tests:
       }
 
   - name: "desugar $like with no escape"
-    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -319,7 +309,6 @@ tests:
       }
 
   - name: "desugar $like with escape"
-    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -350,7 +339,6 @@ tests:
       }
 
   - name: "desugar $nullIf"
-    skip_reason: "SQL-1257"
     input:
       - { "$project": { "_id": 0, "expr": { "$nullIf": ["$a", "$b"] } } }
     expected:
@@ -374,7 +362,6 @@ tests:
       }
 
   - name: "desugar $sqlLog"
-    skip_reason: "SQL-1257"
     input:
       - {
         "$project": { "_id": 0, "expr": { "$sqlLog": ["$number", "$base"] } },
@@ -383,87 +370,70 @@ tests:
       - {
         "$project":
           {
-            "_id": { "$numberInt": "0" },
+            "_id": 0,
             "expr":
               {
                 "$cond":
-                  {
-                    "if":
-                      {
-                        "$or":
-                          [
-                            {
-                              "$eq":
-                                [
-                                  "$number",
-                                  { "$literal": { "$numberDouble": "NaN" } },
-                                ],
-                            },
-                            {
-                              "$eq":
-                                [
-                                  "$base",
-                                  { "$literal": { "$numberDouble": "NaN" } },
-                                ],
-                            },
-                          ],
-                      },
-                    "then": { "$literal": { "$numberDouble": "NaN" } },
-                    "else":
-                      {
-                        "$cond":
+                  [
+                    {
+                      "$or":
+                        [
                           {
-                            "if":
+                            "$eq":
+                              [
+                                "$number",
+                                { "$literal": { "$numberDouble": "NaN" } },
+                              ],
+                          },
+                          {
+                            "$eq":
+                              [
+                                "$base",
+                                { "$literal": { "$numberDouble": "NaN" } },
+                              ],
+                          },
+                        ],
+                    },
+                  { "$literal": { "$numberDouble": "NaN" } },
+                  {
+                    "$cond":
+                      [
+                        {
+                          "$or":
+                            [
                               {
-                                "$or":
+                                "$lte":
                                   [
-                                    {
-                                      "$or":
-                                        [
-                                          {
-                                            "$lte":
-                                              [
-                                                "$number",
-                                                {
-                                                  "$literal":
-                                                    { "$numberInt": "0" },
-                                                },
-                                              ],
-                                          },
-                                          {
-                                            "$eq":
-                                              [
-                                                "$base",
-                                                {
-                                                  "$literal":
-                                                    { "$numberInt": "1" },
-                                                },
-                                              ],
-                                          },
-                                        ],
-                                    },
-                                    {
-                                      "$lte":
-                                        [
-                                          "$base",
-                                          {
-                                            "$literal": { "$numberInt": "0" },
-                                          },
-                                        ],
-                                    },
+                                    "$number",
+                                    { "$literal": 0},
                                   ],
                               },
-                            "then": { "$literal": null },
-                            "else": { "$log": ["$number", "$base"] },
-                          },
-                      },
-                  },
+                              {
+                                "$eq":
+                                  [
+                                    "$base",
+                                    { "$literal": 1 },
+                                  ],
+                              },
+                              {
+                                "$lte":
+                                  [
+                                    "$base",
+                                    { "$literal": 0 },
+                                  ],
+                              },
+                            ],
+                        },
+                        { "$literal": null },
+                        { "$log": ["$number", "$base"] },
+                      ],
+                    },
+                  ],
               },
           },
       }
 
   - name: "desugar $sqlRound"
-    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -473,7 +443,7 @@ tests:
       - {
         "$project":
           {
-            "_id": { "$numberInt": "0" },
+            "_id": 0,
             "expr":
               {
                 "$let":
@@ -486,61 +456,50 @@ tests:
                     "in":
                       {
                         "$cond":
-                          {
-                            "if":
-                              {
-                                "$eq":
-                                  [
-                                    "$$desugared_sqlRound_input1",
-                                    {
-                                      "$literal": { "$numberDouble": "NaN" },
-                                    },
-                                  ],
-                              },
-                            "then":
-                              { "$literal": { "$numberDouble": "NaN" } },
-                            "else":
-                              {
-                                "$cond":
+                          [
+                            {
+                              "$eq":
+                                [
+                                  "$$desugared_sqlRound_input1",
                                   {
-                                    "if":
-                                      {
-                                        "$and":
-                                          [
-                                            {
-                                              "$gte":
-                                                [
-                                                  "$$desugared_sqlRound_input1",
-                                                  {
-                                                    "$literal":
-                                                      { "$numberInt": "-20" },
-                                                  },
-                                                ],
-                                            },
-                                            {
-                                              "$lte":
-                                                [
-                                                  "$$desugared_sqlRound_input1",
-                                                  {
-                                                    "$literal":
-                                                      { "$numberInt": "100" },
-                                                  },
-                                                ],
-                                            },
-                                          ],
-                                      },
-                                    "then":
-                                      {
-                                        "$round":
-                                          [
-                                            "$$desugared_sqlRound_input0",
-                                            "$$desugared_sqlRound_input1",
-                                          ],
-                                      },
-                                    "else": { "$literal": null },
+                                    "$literal": { "$numberDouble": "NaN" },
                                   },
-                              },
-                          },
+                                ],
+                            },
+                            { "$literal": { "$numberDouble": "NaN" } },
+                            {
+                              "$cond":
+                                [
+                                  {
+                                    "$and":
+                                      [
+                                        {
+                                          "$gte":
+                                            [
+                                              "$$desugared_sqlRound_input1",
+                                              { "$literal": -20 },
+                                            ],
+                                        },
+                                        {
+                                          "$lte":
+                                            [
+                                              "$$desugared_sqlRound_input1",
+                                              { "$literal": 100 },
+                                            ],
+                                        },
+                                      ],
+                                  },
+                                  {
+                                    "$round":
+                                      [
+                                        "$$desugared_sqlRound_input0",
+                                        "$$desugared_sqlRound_input1",
+                                      ],
+                                  },
+                                  { "$literal": null },
+                                ],
+                            },
+                          ],
                       },
                   },
               },
@@ -548,7 +507,6 @@ tests:
       }
 
   - name: "desugar $sqlSplit"
-    skip_reason: "SQL-1257"
     input:
       - {
         "$project": { "_id": 0, "expr": { "$sqlSplit": ["$a", "$b", "$c"] } },
@@ -571,12 +529,10 @@ tests:
                     "in":
                       {
                         "$cond":
-                          {
-                            "if":
-                              { "$eq": ["$$desugared_sqlSplit_input1", ""] },
-                            "then": { "$literal": null },
-                            "else":
-                              {
+                          [
+                            { "$eq": ["$$desugared_sqlSplit_input1", ""] },
+                            { "$literal": null },
+                            {
                                 "$let":
                                   {
                                     "vars":
@@ -593,18 +549,16 @@ tests:
                                     "in":
                                       {
                                         "$cond":
-                                          {
-                                            "if":
-                                              {
-                                                "$lte":
-                                                  [
-                                                    "$$desugared_sqlSplit_split_expr",
-                                                    { "$literal": null },
-                                                  ],
-                                              },
-                                            "then": { "$literal": null },
-                                            "else":
-                                              {
+                                          [
+                                            {
+                                              "$lte":
+                                                [
+                                                  "$$desugared_sqlSplit_split_expr",
+                                                  { "$literal": null },
+                                                ],
+                                            },
+                                            { "$literal": null },
+                                            {
                                                 "$let":
                                                   {
                                                     "vars":
@@ -616,8 +570,7 @@ tests:
                                                                 "$$desugared_sqlSplit_split_expr",
                                                                 {
                                                                   "$cond":
-                                                                    {
-                                                                      "if":
+                                                                    [
                                                                         {
                                                                           "$gt":
                                                                             [
@@ -632,15 +585,14 @@ tests:
                                                                               },
                                                                             ],
                                                                         },
-                                                                      "then":
                                                                         {
                                                                           "$abs":
                                                                             [
                                                                               "$$desugared_sqlSplit_input2",
                                                                             ],
                                                                         },
-                                                                      "else": "$$desugared_sqlSplit_input2",
-                                                                    },
+                                                                      "$$desugared_sqlSplit_input2",
+                                                                    ],
                                                                 },
                                                                 1,
                                                               ],
@@ -652,30 +604,28 @@ tests:
                                                           [
                                                             {
                                                               "$cond":
-                                                                {
-                                                                  "if":
-                                                                    {
-                                                                      "$eq":
-                                                                        [
-                                                                          "$$desugared_sqlSplit_slice_expr",
-                                                                          [],
-                                                                        ],
-                                                                    },
-                                                                  "then":
-                                                                    [""],
-                                                                  "else": "$$desugared_sqlSplit_slice_expr",
-                                                                },
+                                                                [
+                                                                  {
+                                                                    "$eq":
+                                                                      [
+                                                                        "$$desugared_sqlSplit_slice_expr",
+                                                                        [],
+                                                                      ],
+                                                                  },
+                                                                  [""],
+                                                                  "$$desugared_sqlSplit_slice_expr",
+                                                                ],
                                                             },
                                                             0,
                                                           ],
                                                       },
                                                   },
                                               },
-                                          },
+                                          ],
                                       },
                                   },
                               },
-                          },
+                          ],
                       },
                   },
               },
@@ -683,152 +633,136 @@ tests:
       }
 
   - name: "desugar $sqlCos"
-    skip_reason: "SQL-1257"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlCos": ["$v"] } } }
     expected:
       - {
         "$project":
           {
-            "_id": { "$numberInt": "0" },
+            "_id": 0,
             "expr":
               {
                 "$cond":
-                  {
-                    "if":
+                  [
+                    "$or": [
                       {
-                        "$or":
+                        "$eq":
                           [
+                            "$v",
                             {
-                              "$eq":
-                                [
-                                  "$v",
-                                  {
-                                    "$literal":
-                                      { "$numberDouble": "Infinity" },
-                                  },
-                                ],
-                            },
-                            {
-                              "$eq":
-                                [
-                                  "$v",
-                                  {
-                                    "$literal":
-                                      { "$numberDouble": "-Infinity" },
-                                  },
-                                ],
+                              "$literal":
+                                { "$numberDouble": "Infinity" },
                             },
                           ],
                       },
-                    "then": { "$literal": null },
-                    "else": { "$cos": "$v" },
-                  },
+                      {
+                        "$eq":
+                          [
+                            "$v",
+                            {
+                              "$literal":
+                                { "$numberDouble": "-Infinity" },
+                            },
+                          ],
+                      },
+                    ],
+                    { "$literal": null },
+                    { "$cos": "$v" },
+                  ],
               },
           },
       }
 
   - name: "desugar $sqlSin"
-    skip_reason: "SQL-1257"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlSin": ["$v"] } } }
     expected:
       - {
         "$project":
           {
-            "_id": { "$numberInt": "0" },
+            "_id": 0,
             "expr":
               {
-                "$cond":
-                  {
-                    "if":
+                "$cond": [
+                  "$or":
+                    [
                       {
-                        "$or":
+                        "$eq":
                           [
+                            "$v",
                             {
-                              "$eq":
-                                [
-                                  "$v",
-                                  {
-                                    "$literal":
-                                      { "$numberDouble": "Infinity" },
-                                  },
-                                ],
-                            },
-                            {
-                              "$eq":
-                                [
-                                  "$v",
-                                  {
-                                    "$literal":
-                                      { "$numberDouble": "-Infinity" },
-                                  },
-                                ],
+                              "$literal":
+                                { "$numberDouble": "Infinity" },
                             },
                           ],
                       },
-                    "then": { "$literal": null },
-                    "else": { "$sin": "$v" },
-                  },
+                      {
+                        "$eq":
+                          [
+                            "$v",
+                            {
+                              "$literal":
+                                { "$numberDouble": "-Infinity" },
+                            },
+                          ],
+                      },
+                    ],
+                    { "$literal": null },
+                    { "$sin": "$v" },
+                  ],
               },
           },
       }
 
   - name: "desugar $sqlTan"
-    skip_reason: "SQL-1257"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlTan": ["$v"] } } }
     expected:
       - {
         "$project":
           {
-            "_id": { "$numberInt": "0" },
+            "_id": 0,
             "expr":
               {
-                "$cond":
-                  {
-                    "if":
+                "$cond": [
+                  "$or":
+                    [
                       {
-                        "$or":
+                        "$eq":
                           [
+                            "$v",
                             {
-                              "$eq":
-                                [
-                                  "$v",
-                                  {
-                                    "$literal":
-                                      { "$numberDouble": "Infinity" },
-                                  },
-                                ],
-                            },
-                            {
-                              "$eq":
-                                [
-                                  "$v",
-                                  {
-                                    "$literal":
-                                      { "$numberDouble": "-Infinity" },
-                                  },
-                                ],
+                              "$literal":
+                                { "$numberDouble": "Infinity" },
                             },
                           ],
                       },
-                    "then": { "$literal": null },
-                    "else": { "$tan": "$v" },
-                  },
+                      {
+                        "$eq":
+                          [
+                            "$v",
+                            {
+                              "$literal":
+                                { "$numberDouble": "-Infinity" },
+                            },
+                          ],
+                      },
+                    ],
+                    { "$literal": null },
+                    { "$tan": "$v" },
+                ],
               },
           },
       }
 
   - name: "desugar $sqlSqrt"
-    skip_reason: "SQL-1257"
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlSqrt": ["$v"] } } }
     expected:
       - {
         "$project":
           {
-            "_id": { "$numberInt": "0" },
+            "_id": 0,
             "expr":
               {
                 "$let":
@@ -837,42 +771,32 @@ tests:
                     "in":
                       {
                         "$cond":
-                          {
-                            "if":
-                              {
-                                "$eq":
-                                  [
-                                    "$$desugared_sqlSqrt_input",
-                                    {
-                                      "$literal": { "$numberDouble": "NaN" },
-                                    },
-                                  ],
-                              },
-                            "then":
-                              { "$literal": { "$numberDouble": "NaN" } },
-                            "else":
-                              {
-                                "$cond":
+                          [
+                            {
+                              "$eq":
+                                [
+                                  "$$desugared_sqlSqrt_input",
                                   {
-                                    "if":
-                                      {
-                                        "$lt":
-                                          [
-                                            "$$desugared_sqlSqrt_input",
-                                            {
-                                              "$literal":
-                                                { "$numberInt": "0" },
-                                            },
-                                          ],
-                                      },
-                                    "then": { "$literal": null },
-                                    "else":
-                                      {
-                                        "$sqrt": "$$desugared_sqlSqrt_input",
-                                      },
+                                    "$literal": { "$numberDouble": "NaN" },
                                   },
-                              },
-                          },
+                                ],
+                            },
+                            { "$literal": { "$numberDouble": "NaN" } },
+                            {
+                              "$cond":
+                                [
+                                  {
+                                    "$lt":
+                                      [
+                                        "$$desugared_sqlSqrt_input",
+                                        { "$literal": 0 },
+                                      ],
+                                  },
+                                  { "$literal": null },
+                                  { "$sqrt": "$$desugared_sqlSqrt_input", },
+                                ],
+                            },
+                          ],
                       },
                   },
               },
@@ -880,7 +804,6 @@ tests:
       }
 
   - name: "desugar $sqlMod"
-    skip_reason: "SQL-1257"
     input:
       - {
         "$project":
@@ -890,7 +813,7 @@ tests:
       - {
         "$project":
           {
-            "_id": { "$numberInt": "0" },
+            "_id": 0,
             "expr":
               {
                 "$let":
@@ -903,27 +826,141 @@ tests:
                     "in":
                       {
                         "$cond":
-                          {
-                            "if":
-                              {
-                                "$eq":
-                                  [
-                                    "$$desugared_sqlMod_input1",
-                                    { "$literal": { "$numberInt": "0" } },
-                                  ],
-                              },
-                            "then": { "$literal": null },
-                            "else":
-                              {
-                                "$mod":
-                                  [
-                                    "$$desugared_sqlMod_input0",
-                                    "$$desugared_sqlMod_input1",
-                                  ],
-                              },
-                          },
+                          [
+                            "$eq":
+                              [
+                                "$$desugared_sqlMod_input1",
+                                { "$literal": 0 },
+                              ],
+                            "$literal": null ,
+                            "$mod":
+                              [
+                                "$$desugared_sqlMod_input0",
+                                "$$desugared_sqlMod_input1",
+                              ],
+                          ],
                       },
                   },
               },
           },
+      }
+  
+  - name: "desugar $sqlPos"
+    input:
+      - {
+        "$project":
+          { "_id": 0, "expr": { "$sqlPos": ["$number"] } },
+      }
+    expected:
+      - {
+        "$project":
+          { "_id": 0, "expr": "$number" }
+      }
+  
+  - name: "desugar $sqlNeg"
+    input:
+      - {
+        "$project":
+          { "_id": 0, "expr": { "$sqlNeg": ["$number"] } },
+      }
+    expected:
+      - {
+        "$project":
+          { "_id": 0, "expr":
+            {
+              "$multiply":
+                [
+                  "$number",
+                  { "$literal": -1 }
+                ]
+            }
+          }
+      }
+  
+  - name: "desugar $sqlBitLength"
+    input:
+      - {
+        "$project":
+          { "_id": 0, "expr": { "$sqlBitLength": ["$number"] } },
+      }
+    expected:
+      - {
+        "$project":
+          { "_id": 0, "expr":
+            {
+              "$multiply":
+                [
+                  { "$sqlStrLenBytes": ["$number"] },
+                  { "$literal": 8 }
+                ]
+            }
+          }
+      }
+  
+  - name: "desugar $sqlIs with null type"
+    input:
+      - {
+        "$project":
+          { "_id": 0, "expr": { "$sqlIs": ["$target", {"$literal": "null"}] } },
+      }
+    expected:
+      - {
+        "$project":
+          { "_id": 0, "expr":
+            {
+              "$or":
+                [
+                  { "$eq": [ { "$type": "$target" }, "null" ] },
+                  { "$eq": [ { "$type": "$target" }, "missing" ] }
+                ]
+            }
+          }
+      }
+  
+  - name: "desugar $sqlIs with missing type"
+    input:
+      - {
+        "$project":
+          { "_id": 0, "expr": { "$sqlIs": ["$target", {"$literal": "missing"}] } },
+      }
+    expected:
+      - {
+        "$project":
+          { "_id": 0, "expr":  { "$eq": [ { "$type": "$target" }, "missing" ] } }
+      }
+  
+  - name: "desugar $sqlIs with number type"
+    input:
+      - {
+        "$project":
+          { "_id": 0, "expr": { "$sqlIs": ["$target", {"$literal": "number"}] } },
+      }
+    expected:
+      - {
+        "$project":
+          { "_id": 0, "expr": { "$isNumber": "$target" } }
+      }
+  
+  - name: "desugar $sqlIs with array type"
+    input:
+      - {
+        "$project":
+          { "_id": 0, "expr": { "$sqlIs": ["$target", {"$literal": "array"}] } },
+      }
+    expected:
+      - {
+        "$project":
+          { "_id": 0, "expr": { "$isArray": "$target" } }
+      }
+  
+  - name: "desugar $sqlIs with string type"
+    input:
+      - {
+        "$project":
+          { "_id": 0, "expr": { "$sqlIs": ["$target", {"$literal": "string"}] } },
+      }
+    expected:
+      - {
+        "$project":
+          { "_id": 0, "expr": { "$eq": [ { "$type": "$target" }, "string" ] } }
       }

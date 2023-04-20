@@ -696,18 +696,16 @@ mod expression {
 
         test_from_expr!(
             sql_divide,
-            expected = air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                op: air::SQLOperator::Divide,
-                args: vec![
-                    air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "a".to_string()
-                    }),
-                    air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "b".to_string()
-                    }),
-                ]
+            expected = air::Expression::SqlDivide(air::SqlDivide {
+                dividend: Box::new(air::Expression::FieldRef(air::FieldRef {
+                    parent: None,
+                    name: "a".to_string()
+                })),
+                divisor: Box::new(air::Expression::FieldRef(air::FieldRef {
+                    parent: None,
+                    name: "b".to_string()
+                })),
+                on_error: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
             }),
             input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SqlDivide(
                 agg_ast::SqlDivide {

@@ -210,6 +210,8 @@ pub(crate) enum TaggedOperator {
     Convert(Convert),
     #[serde(rename = "$like")]
     Like(Like),
+    #[serde(rename = "$regexMatch")]
+    RegexMatch(RegexMatch),
     #[serde(rename = "$sqlDivide")]
     SqlDivide(SqlDivide),
     #[serde(rename = "$trim")]
@@ -287,6 +289,13 @@ pub(crate) struct Like {
     pub(crate) input: Box<Expression>,
     pub(crate) pattern: Box<Expression>,
     pub(crate) escape: Option<String>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub(crate) struct RegexMatch {
+    pub(crate) input: Box<Expression>,
+    pub(crate) regex: Box<Expression>,
+    pub(crate) options: Option<Box<Expression>>,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -686,6 +695,11 @@ impl From<TaggedOperator> for air::Expression {
                     .collect(),
                 inside: l.inside.into(),
             }),
+            TaggedOperator::RegexMatch(r) => air::Expression::RegexMatch(air::RegexMatch {
+                input: r.input.into(),
+                regex: r.regex.into(),
+                options: r.options.map(|o| o.into()),
+            }),
             TaggedOperator::SqlConvert(c) => {
                 let target_type = match c.to.as_str() {
                     "array" => air::SqlConvertTargetType::Array,
@@ -711,12 +725,11 @@ impl From<TaggedOperator> for air::Expression {
                 pattern: l.pattern.into(),
                 escape: l.escape,
             }),
-            TaggedOperator::SqlDivide(d) => {
-                air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                    op: air::SQLOperator::Divide,
-                    args: vec![(*d.dividend).into(), (*d.divisor).into()],
-                })
-            }
+            TaggedOperator::SqlDivide(d) => air::Expression::SqlDivide(air::SqlDivide {
+                dividend: d.dividend.into(),
+                divisor: d.divisor.into(),
+                on_error: d.on_error.into(),
+            }),
             TaggedOperator::Subquery(s) => air::Expression::Subquery(s.into()),
             TaggedOperator::SubqueryComparison(sc) => {
                 air::Expression::SubqueryComparison(air::SubqueryComparison {
@@ -836,12 +849,24 @@ impl From<UntaggedOperator> for air::Expression {
                     args,
                 })
             }
+            "$numberDouble" => {
+                if let air::Expression::Literal(air::LiteralValue::String(s)) = args[0].clone() {
+                    if s == "Infinity" {
+                        return air::Expression::Literal(air::LiteralValue::Double(f64::INFINITY));
+                    } else if s == "-Infinity" {
+                        return air::Expression::Literal(air::LiteralValue::Double(
+                            f64::NEG_INFINITY,
+                        ));
+                    } else if s == "NaN" {
+                        return air::Expression::Literal(air::LiteralValue::Double(f64::NAN));
+                    }
+                }
+            }
             _ => (),
         }
 
         if ast_op.op.starts_with("$sql") {
             let op = match ast_op.op.as_str() {
-                "$sqlDivide" => air::SQLOperator::Divide,
                 "$sqlPos" => air::SQLOperator::Pos,
                 "$sqlNeg" => air::SQLOperator::Neg,
                 "$sqlLt" => air::SQLOperator::Lt,
@@ -879,6 +904,7 @@ impl From<UntaggedOperator> for air::Expression {
             let op = match ast_op.op.as_str() {
                 "$concat" => air::MQLOperator::Concat,
                 "$cond" => air::MQLOperator::Cond,
+                "$ifNull" => air::MQLOperator::IfNull,
                 "$add" => air::MQLOperator::Add,
                 "$subtract" => air::MQLOperator::Subtract,
                 "$multiply" => air::MQLOperator::Multiply,
@@ -894,6 +920,7 @@ impl From<UntaggedOperator> for air::Expression {
                 "$or" => air::MQLOperator::Or,
                 "$slice" => air::MQLOperator::Slice,
                 "$size" => air::MQLOperator::Size,
+                "$arrayElemAt" => air::MQLOperator::ElemAt,
                 "$indexOfCP" => air::MQLOperator::IndexOfCP,
                 "$indexOfBytes" => air::MQLOperator::IndexOfBytes,
                 "$strLenCP" => air::MQLOperator::StrLenCP,
@@ -930,6 +957,9 @@ impl From<UntaggedOperator> for air::Expression {
                 "$dateDiff" => air::MQLOperator::DateDiff,
                 "$dateTrunc" => air::MQLOperator::DateTrunc,
                 "$mergeObjects" => air::MQLOperator::MergeObjects,
+                "$type" => air::MQLOperator::Type,
+                "$isArray" => air::MQLOperator::IsArray,
+                "$isNumber" => air::MQLOperator::IsNumber,
                 _ => panic!("invalid mql operator '{}'", ast_op.op),
             };
 

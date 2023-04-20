@@ -685,6 +685,77 @@ mod mql_semantic_operator {
             args: vec![Literal(String("foo".to_string())),],
         })
     );
+
+    test_codegen_air_expr!(
+        is_number,
+        expected = Ok(bson!({ "$isNumber": [{ "$literal": "foo" }]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: IsNumber,
+            args: vec![Literal(String("foo".to_string())),],
+        })
+    );
+
+    test_codegen_air_expr!(
+        is_array,
+        expected = Ok(bson!({ "$isArray": [{ "$literal": "foo" }]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: IsArray,
+            args: vec![Literal(String("foo".to_string())),],
+        })
+    );
+
+    test_codegen_air_expr!(
+        if_null,
+        expected = Ok(bson!({ "$ifNull": [{ "$literal": "foo" }, { "$literal": "bar" }]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: IfNull,
+            args: vec![
+                Literal(String("foo".to_string())),
+                Literal(String("bar".to_string())),
+            ],
+        })
+    );
+
+    test_codegen_air_expr!(
+        type_op,
+        expected = Ok(bson!({ "$type": [{ "$literal": "foo" }]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: Type,
+            args: vec![Literal(String("foo".to_string())),],
+        })
+    );
+
+    test_codegen_air_expr!(
+        array_elem_at,
+        expected = Ok(
+            bson!({ "$arrayElemAt": [[{ "$literal": "foo" }, { "$literal": "bar" }], { "$literal": 1} ]})
+        ),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: ElemAt,
+            args: vec![
+                Array(vec![
+                    Literal(String("foo".to_string())),
+                    Literal(String("bar".to_string()))
+                ]),
+                Literal(Integer(1)),
+            ],
+        })
+    );
+
+    test_codegen_air_expr!(
+        cond,
+        expected = Ok(
+            bson!({ "$cond": [{ "$literal": false }, { "$literal": "foo" }, { "$literal": "bar"} ]})
+        ),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: Cond,
+            args: vec![
+                Literal(Boolean(false)),
+                Literal(String("foo".to_string())),
+                Literal(String("bar".to_string())),
+            ],
+        })
+    );
 }
 
 mod sql_semantic_operator {
@@ -693,17 +764,6 @@ mod sql_semantic_operator {
         codegen::air_to_mql::Error,
     };
     use bson::bson;
-
-    test_codegen_air_expr!(
-        divide,
-        expected = Ok(
-            bson::bson! ({"$sqlDivide": {"dividend": {"$literal": 1}, "divisor": {"$literal": 2}, "onError": {"$literal": bson::Bson::Null}}})
-        ),
-        input = SQLSemanticOperator(SQLSemanticOperator {
-            op: Divide,
-            args: vec![Literal(Integer(1)), Literal(Integer(2))],
-        })
-    );
 
     test_codegen_air_expr!(
         pos,
@@ -1372,6 +1432,22 @@ mod sql_convert {
     );
 }
 
+mod sql_divide {
+    use crate::air::{Expression::*, LiteralValue, SqlDivide};
+
+    test_codegen_air_expr!(
+        simple,
+        expected = Ok(
+            bson::bson! ({"$sqlDivide": {"dividend": {"$literal": 1}, "divisor": {"$literal": 2}, "onError": {"$literal": null}}})
+        ),
+        input = SqlDivide(SqlDivide {
+            dividend: Box::new(Literal(LiteralValue::Integer(1))),
+            divisor: Box::new(Literal(LiteralValue::Integer(2))),
+            on_error: Box::new(Literal(LiteralValue::Null)),
+        })
+    );
+}
+
 mod convert {
     use crate::{
         air::{Convert, Expression, LiteralValue::*, Type},
@@ -1621,6 +1697,37 @@ mod let_expr {
                     }),
                 ],
             })),
+        })
+    );
+}
+
+mod regex_match_expr {
+    use crate::air::{Expression::*, LiteralValue, RegexMatch};
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        regex_match_no_options,
+        expected = Ok(
+            bson!({ "$regexMatch": {"input": {"$literal": "input"}, "regex": {"$literal": "regex"}}})
+        ),
+        input = RegexMatch(RegexMatch {
+            input: Box::new(Literal(LiteralValue::String("input".to_string()))),
+            regex: Box::new(Literal(LiteralValue::String("regex".to_string()))),
+            options: None
+        })
+    );
+
+    test_codegen_air_expr!(
+        regex_match_options,
+        expected = Ok(
+            bson!({ "$regexMatch": {"input": {"$literal": "input"}, "regex": {"$literal": "regex"}, "options": {"$literal": "options"}}})
+        ),
+        input = RegexMatch(RegexMatch {
+            input: Box::new(Literal(LiteralValue::String("input".to_string()))),
+            regex: Box::new(Literal(LiteralValue::String("regex".to_string()))),
+            options: Some(Box::new(Literal(LiteralValue::String(
+                "options".to_string()
+            ))),)
         })
     );
 }

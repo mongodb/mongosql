@@ -175,6 +175,8 @@ pub enum Expression {
     Like(Like),
     Is(Is),
     DateFunction(DateFunctionApplication),
+    RegexMatch(RegexMatch),
+    SqlDivide(SqlDivide),
     Trim(Trim),
     Subquery(Subquery),
     SubqueryComparison(SubqueryComparison),
@@ -191,6 +193,7 @@ pub enum MQLOperator {
 
     // Conditional operators
     Cond,
+    IfNull,
 
     // Arithmetic operators
     Add,
@@ -214,6 +217,7 @@ pub enum MQLOperator {
     // Array scalar functions
     Slice,
     Size,
+    ElemAt,
 
     // Numeric value scalar functions
     IndexOfCP,
@@ -258,13 +262,17 @@ pub enum MQLOperator {
 
     // MergeObjects merges an array of objects
     MergeObjects,
+
+    // Type operators
+    IsArray,
+    IsNumber,
+    Type,
 }
 
 #[allow(dead_code)]
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum SQLOperator {
     // Arithmetic operators
-    Divide,
     Pos,
     Neg,
 
@@ -398,7 +406,7 @@ pub struct SQLSemanticOperator {
     pub args: Vec<Expression>,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(Debug, Clone)]
 pub enum LiteralValue {
     Null,
     Boolean(bool),
@@ -542,6 +550,20 @@ pub struct Is {
 pub struct Variable {
     pub parent: Option<Box<Variable>>,
     pub name: String,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct RegexMatch {
+    pub input: Box<Expression>,
+    pub regex: Box<Expression>,
+    pub options: Option<Box<Expression>>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct SqlDivide {
+    pub dividend: Box<Expression>,
+    pub divisor: Box<Expression>,
+    pub on_error: Box<Expression>
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]

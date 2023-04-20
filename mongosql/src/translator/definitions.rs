@@ -115,6 +115,7 @@ impl From<mir::DateFunction> for air::DateFunction {
 enum ScalarFunctionType {
     Sql(air::SQLOperator),
     Mql(air::MQLOperator),
+    Divide,
     Trim(air::TrimOperator),
 }
 
@@ -189,10 +190,7 @@ impl MqlTranslator {
                         field: registry_value.name.clone(),
                         input: Box::new(air::Expression::SetField(air::SetField {
                             field: "".to_string(),
-                            input: Box::new(air::Expression::Variable(air::Variable {
-                                parent: None,
-                                name: "ROOT".to_string(),
-                            })),
+                            input: Box::new(ROOT.clone()),
                             value: Box::new(air::Expression::FieldRef(air::FieldRef {
                                 parent: None,
                                 name: registry_value.name,
@@ -798,10 +796,7 @@ impl MqlTranslator {
                     parent: None,
                     name: s.name.clone(),
                 }),
-                MqlReferenceType::Variable => air::Expression::Variable(air::Variable {
-                    parent: None,
-                    name: s.name.to_string(),
-                }),
+                MqlReferenceType::Variable => air::Expression::Variable(s.name.to_string().into()),
             })
     }
 
@@ -847,7 +842,7 @@ impl MqlTranslator {
             Add => ScalarFunctionType::Mql(air::MQLOperator::Add),
             Sub => ScalarFunctionType::Mql(air::MQLOperator::Subtract),
             Mul => ScalarFunctionType::Mql(air::MQLOperator::Multiply),
-            Div => ScalarFunctionType::Sql(air::SQLOperator::Divide),
+            Div => ScalarFunctionType::Divide,
 
             // Comparison operators
             Lt => ScalarFunctionType::Sql(air::SQLOperator::Lt),
@@ -925,13 +920,18 @@ impl MqlTranslator {
         &self,
         scalar_func: mir::ScalarFunctionApplication,
     ) -> Result<air::Expression> {
-        let args = scalar_func
+        let args: Vec<air::Expression> = scalar_func
             .args
             .into_iter()
             .map(|x| self.translate_expression(x))
             .collect::<Result<Vec<air::Expression>>>()?;
         let op = Self::to_air_op(scalar_func.function);
         match op {
+            ScalarFunctionType::Divide => Ok(air::Expression::SqlDivide(air::SqlDivide {
+                dividend: Box::new(args[0].clone()),
+                divisor: Box::new(args[1].clone()),
+                on_error: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
+            })),
             ScalarFunctionType::Trim(op) => Ok(air::Expression::Trim(air::Trim {
                 op,
                 input: Box::new(args[1].clone()),
@@ -1000,10 +1000,7 @@ impl MqlTranslator {
                         air::SQLSemanticOperator {
                             op: air::SQLOperator::Eq,
                             args: vec![
-                                air::Expression::Variable(air::Variable {
-                                    parent: None,
-                                    name: "target".to_string(),
-                                }),
+                                air::Expression::Variable("target".to_string().into()),
                                 self.translate_expression(*branch.when.clone())?,
                             ],
                         },

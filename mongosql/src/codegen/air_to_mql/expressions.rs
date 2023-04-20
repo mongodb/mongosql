@@ -22,6 +22,8 @@ impl MqlCodeGenerator {
             Like(like) => self.codegen_like(like),
             Is(is) => self.codegen_is(is),
             DateFunction(_) => Err(Error::UnimplementedAIR),
+            RegexMatch(r) => self.codegen_regex_match(r),
+            SqlDivide(sd) => self.codegen_sql_divide(sd),
             Trim(trim) => self.codegen_trim(trim),
             Subquery(s) => self.codegen_subquery_expr(s),
             SubqueryComparison(_) => Err(Error::UnimplementedAIR),
@@ -87,13 +89,6 @@ impl MqlCodeGenerator {
                 return Err(Error::UnsupportedOperator(SQLOperator::ComputedFieldAccess));
             }
             SQLOperator::CurrentTimestamp => Bson::String("$$NOW".to_string()),
-            SQLOperator::Divide => Bson::Document(bson::doc! {
-                Self::to_sql_op(sql_op.op).unwrap(): {
-                    "dividend": self.codegen_air_expression(sql_op.args[0].clone())?,
-                    "divisor": self.codegen_air_expression(sql_op.args[1].clone())?,
-                    "onError": {"$literal": Bson::Null}
-                }
-            }),
             // operators that reverse argument order
             SQLOperator::IndexOfCP => {
                 let args = Bson::Array(
@@ -247,6 +242,24 @@ impl MqlCodeGenerator {
         let expr = self.codegen_air_expression(*is.expr).unwrap();
         let target_type = is.target_type.to_str();
         Ok(bson ! ({"$sqlIs": [expr, {"$literal": target_type}]}))
+    }
+
+    fn codegen_regex_match(&self, regex_match: air::RegexMatch) -> Result<Bson> {
+        let input = self.codegen_air_expression(*regex_match.input)?;
+        let regex = self.codegen_air_expression(*regex_match.regex)?;
+        Ok(match regex_match.options {
+            Some(opts) => {
+                bson!({"$regexMatch": {"input": input, "regex": regex, "options": self.codegen_air_expression(*opts)?}})
+            }
+            None => bson!({"$regexMatch": {"input": input, "regex": regex}}),
+        })
+    }
+
+    fn codegen_sql_divide(&self, sql_divide: air::SqlDivide) -> Result<Bson> {
+        let dividend = self.codegen_air_expression(*sql_divide.dividend)?;
+        let divisor = self.codegen_air_expression(*sql_divide.divisor)?;
+        let on_error = self.codegen_air_expression(*sql_divide.on_error)?;
+        Ok(bson!({"$sqlDivide": {"dividend": dividend, "divisor": divisor, "onError": on_error}}))
     }
 
     fn codegen_subquery_expr(&self, subquery: air::Subquery) -> Result<Bson> {

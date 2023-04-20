@@ -1,10 +1,11 @@
 use crate::air::{
     self,
     desugarer::{Pass, Result},
+    util::sql_op_to_mql_op,
     visitor::Visitor,
     Expression,
     Expression::*,
-    LetVariable, LiteralValue, MQLOperator, SQLOperator,
+    LetVariable, LiteralValue, MQLOperator,
     SQLOperator::*,
 };
 
@@ -148,26 +149,6 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
         })
     }
 
-    const fn sql_op_to_mql_op(sql_op: SQLOperator) -> MQLOperator {
-        match sql_op {
-            Eq => MQLOperator::Eq,
-            IndexOfCP => MQLOperator::IndexOfCP,
-            Lt => MQLOperator::Lt,
-            Lte => MQLOperator::Lte,
-            Gt => MQLOperator::Gt,
-            Gte => MQLOperator::Gte,
-            Ne => MQLOperator::Ne,
-            Not => MQLOperator::Not,
-            Size => MQLOperator::Size,
-            StrLenBytes => MQLOperator::StrLenBytes,
-            StrLenCP => MQLOperator::StrLenCP,
-            SubstrCP => MQLOperator::SubstrCP,
-            ToLower => MQLOperator::ToLower,
-            ToUpper => MQLOperator::ToUpper,
-            _ => unreachable!(),
-        }
-    }
-
     fn desugar_sql_op(&mut self, sql_operator: air::SQLSemanticOperator) -> Expression {
         let op_name = "sql".to_string() + &format!("{:?}", sql_operator.op);
 
@@ -194,9 +175,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
                 ),
                 Literal(LiteralValue::Null),
                 MQLSemanticOperator(air::MQLSemanticOperator {
-                    op: SQLNullSemanticsOperatorsDesugarerVisitor::sql_op_to_mql_op(
-                        sql_operator.op,
-                    ),
+                    op: sql_op_to_mql_op(sql_operator.op).unwrap(),
                     args: mql_operator_args,
                 }),
             ],

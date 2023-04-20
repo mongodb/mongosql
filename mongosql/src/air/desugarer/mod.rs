@@ -23,11 +23,13 @@ use crate::air::desugarer::unsupported_operators::UnsupportedOperatorsDesugarerP
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Errors that can occur during desugarer passes
-#[derive(Debug, Error, PartialEq, Eq)]
+#[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum Error {
     #[allow(dead_code)]
     #[error("TODO replace error when passes are implemented")]
     TodoError,
+    #[error("pattern for $like must be literal")]
+    InvalidLikePatternError,
 }
 
 /// A fallible transformation that can be applied to a pipeline

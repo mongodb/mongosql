@@ -875,7 +875,7 @@ mod join {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                    "col".to_string() => Expression::Variable("ROOT".to_string().into())
                 )
             })),
             right: Box::new(Stage::Project(Project {
@@ -884,7 +884,7 @@ mod join {
                     collection: "col2".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col2".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                    "col2".to_string() =>Expression::Variable("ROOT".to_string().into())
                 )
             })),
             let_vars: None,
@@ -908,7 +908,7 @@ mod join {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                    "col".to_string() => Expression::Variable("ROOT".to_string().into())
                 )
             })),
             right: Box::new(Stage::Project(Project {
@@ -917,7 +917,7 @@ mod join {
                     collection: "col2".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col2".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                    "col2".to_string() => Expression::Variable("ROOT".to_string().into())
                 )
             })),
             let_vars: None,
@@ -948,7 +948,7 @@ mod join {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                    "col".to_string() => Expression::Variable("ROOT".to_string().into())
                 )
             })),
             right: Box::new(Stage::Project(Project {
@@ -957,7 +957,7 @@ mod join {
                     collection: "col2".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col2".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                    "col2".to_string() => Expression::Variable("ROOT".to_string().into())
                 )
             })),
             let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef(FieldRef{parent: None, name: "col".to_string()}))}]),
@@ -981,14 +981,20 @@ mod join {
             }}],
         }),
         input = Stage::Join(Join {
-            condition: Some(Expression::SQLSemanticOperator(SQLSemanticOperator { op: SQLOperator::Eq, args: vec![Expression::Variable(Variable{parent: None, name: "vcol_0".to_string()}),Expression::FieldRef(FieldRef{parent: None, name: "col2".to_string()})] })),
+            condition: Some(Expression::SQLSemanticOperator(SQLSemanticOperator {
+                op: SQLOperator::Eq,
+                args: vec![
+                    Expression::Variable("vcol_0".to_string().into()),
+                    Expression::FieldRef(FieldRef{parent: None, name: "col2".to_string()}),
+                ]
+            })),
             left: Box::new(Stage::Project(Project {
                 source: Box::new(Stage::Collection(Collection {
                     db: "mydb".to_string(),
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                    "col".to_string() => Expression::Variable("ROOT".to_string().into())
                 )
             })),
             right: Box::new(Stage::Project(Project {
@@ -997,7 +1003,7 @@ mod join {
                     collection: "col2".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col2".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                    "col2".to_string() => Expression::Variable("ROOT".to_string().into())
                 )
             })),
             let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef(FieldRef{parent: None, name: "col".to_string()}))}]),
@@ -1027,7 +1033,7 @@ mod join {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                    "col".to_string() => Expression::Variable("ROOT".to_string().into())
                 )
             })),
             right: Box::new(Stage::Project(Project {
@@ -1035,7 +1041,7 @@ mod join {
                     array: vec![Expression::Literal(LiteralValue::Integer(1)), Expression::Literal(LiteralValue::Integer(1))]
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "arr".to_string() => Expression::Variable(Variable{parent: None, name: "ROOT".to_string()})
+                    "arr".to_string() => Expression::Variable("ROOT".to_string().into())
                 )
             })),
             let_vars: None,
