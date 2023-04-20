@@ -147,7 +147,7 @@ fn to_air_pipeline(pipeline: Vec<agg_ast::Stage>) -> air::Stage {
 
     pipeline
         .into_iter()
-        .fold(root, |acc, curr| (acc, curr).into())
+        .fold(root, |acc, curr| (Some(acc), curr).into())
 }
 
 #[cfg(test)]

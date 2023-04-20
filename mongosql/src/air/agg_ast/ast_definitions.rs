@@ -421,8 +421,17 @@ where
     }
 }
 
-impl From<(air::Stage, Stage)> for air::Stage {
-    fn from((source, ast_stage): (air::Stage, Stage)) -> Self {
+fn translate_pipeline(root: Option<air::Stage>, pipeline: Vec<Stage>) -> Option<air::Stage> {
+    if pipeline.is_empty() {
+        return root;
+    }
+    pipeline
+        .into_iter()
+        .fold(root, |acc, curr| Some((acc, curr).into()))
+}
+
+impl From<(Option<air::Stage>, Stage)> for air::Stage {
+    fn from((source, ast_stage): (Option<air::Stage>, Stage)) -> Self {
         match ast_stage {
             Stage::Collection(c) => air::Stage::Collection(air::Collection {
                 db: c.db,
@@ -440,12 +449,12 @@ impl From<(air::Stage, Stage)> for air::Stage {
                 let specs = to_unique_linked_hash_map_of_air_exprs(p);
 
                 air::Stage::Project(air::Project {
-                    source: Box::new(source),
+                    source: Box::new(source.expect("$project without valid source stage")),
                     specifications: specs,
                 })
             }
             Stage::ReplaceWith(r) => air::Stage::ReplaceWith(air::ReplaceWith {
-                source: Box::new(source),
+                source: Box::new(source.expect("$replaceWith without valid source stage")),
                 new_root: Box::new(r.into()),
             }),
             Stage::Match(m) => {
@@ -455,16 +464,16 @@ impl From<(air::Stage, Stage)> for air::Stage {
                 };
 
                 air::Stage::Match(air::Match {
-                    source: Box::new(source),
+                    source: Box::new(source.expect("$match without valid source stage")),
                     expr: Box::new(expr.into()),
                 })
             }
             Stage::Limit(l) => air::Stage::Limit(air::Limit {
-                source: Box::new(source),
+                source: Box::new(source.expect("$limit without valid source stage")),
                 limit: l,
             }),
             Stage::Skip(s) => air::Stage::Skip(air::Skip {
-                source: Box::new(source),
+                source: Box::new(source.expect("$skip without valid source stage")),
                 skip: s,
             }),
             Stage::Sort(s) => {
@@ -484,7 +493,7 @@ impl From<(air::Stage, Stage)> for air::Stage {
                     .collect::<Vec<air::SortSpecification>>();
 
                 air::Stage::Sort(air::Sort {
-                    source: Box::new(source),
+                    source: Box::new(source.expect("$sort without valid source stage")),
                     specs,
                 })
             }
@@ -580,6 +589,63 @@ impl From<Box<Expression>> for Box<air::Expression> {
     }
 }
 
+fn translate_let_bindings(let_bindings: HashMap<String, Expression>) -> Vec<air::LetVariable> {
+    let_bindings
+        .into_iter()
+        .map(|(k, e)| air::LetVariable {
+            name: k,
+            expr: Box::new(e.into()),
+        })
+        .collect()
+}
+
+fn make_optional_collection_stage(
+    db: Option<String>,
+    collection: Option<String>,
+) -> Option<air::Stage> {
+    let db = db.unwrap_or_else(|| "test".to_string());
+    let collection = collection.unwrap_or_else(|| "default".to_string());
+    Some(air::Stage::Collection(air::Collection { db, collection }))
+}
+
+impl From<Subquery> for air::Subquery {
+    fn from(s: Subquery) -> Self {
+        air::Subquery {
+            let_bindings: match s.let_bindings {
+                None => vec![],
+                Some(let_bindings) => translate_let_bindings(let_bindings),
+            },
+            output_path: match s.output_path {
+                None => vec![],
+                Some(v) => v,
+            },
+            pipeline: translate_pipeline(
+                make_optional_collection_stage(s.db, s.collection),
+                s.pipeline,
+            )
+            .expect("$subquery with empty pipeline not supported")
+            .into(),
+        }
+    }
+}
+
+impl From<SubqueryExists> for air::SubqueryExists {
+    fn from(s: SubqueryExists) -> Self {
+        air::SubqueryExists {
+            let_bindings: match s.let_bindings {
+                None => vec![],
+                Some(let_bindings) => translate_let_bindings(let_bindings),
+            },
+            pipeline: translate_pipeline(
+                make_optional_collection_stage(s.db, s.collection),
+                s.pipeline,
+            )
+            .expect("$subquery with empty pipeline not supported")
+            .into(),
+        }
+    }
+}
+
 impl From<TaggedOperator> for air::Expression {
     fn from(ast_op: TaggedOperator) -> Self {
         match ast_op {
@@ -651,6 +717,18 @@ impl From<TaggedOperator> for air::Expression {
                     args: vec![(*d.dividend).into(), (*d.divisor).into()],
                 })
             }
+            TaggedOperator::Subquery(s) => air::Expression::Subquery(s.into()),
+            TaggedOperator::SubqueryComparison(sc) => {
+                air::Expression::SubqueryComparison(air::SubqueryComparison {
+                    op: str_to_air_sqcop(&sc.op)
+                        .unwrap_or_else(|| panic!("found bad subquery comparison op: {}", sc.op)),
+                    modifier: str_to_air_sqcmod(&sc.modifier)
+                        .unwrap_or_else(|| panic!("found bad subquery modifier: {}", sc.modifier)),
+                    arg: sc.arg.into(),
+                    subquery: Box::new((*sc.subquery).into()),
+                })
+            }
+            TaggedOperator::SubqueryExists(se) => air::Expression::SubqueryExists(se.into()),
             TaggedOperator::Trim(t) => air::Expression::Trim(air::Trim {
                 op: air::TrimOperator::Trim,
                 input: t.input.into(),
@@ -666,11 +744,28 @@ impl From<TaggedOperator> for air::Expression {
                 input: rt.input.into(),
                 chars: rt.chars.into(),
             }),
-            // TODO: SQL-1319 finish implementing expressions
-            TaggedOperator::Subquery(_) => todo!(),
-            TaggedOperator::SubqueryComparison(_) => todo!(),
-            TaggedOperator::SubqueryExists(_) => todo!(),
         }
+    }
+}
+
+fn str_to_air_sqcop(op: &str) -> Option<air::SubqueryComparisonOp> {
+    match op {
+        "lt" => Some(air::SubqueryComparisonOp::Lt),
+        "lte" => Some(air::SubqueryComparisonOp::Lte),
+        // might as well support ne and neq both
+        "ne" | "neq" => Some(air::SubqueryComparisonOp::Neq),
+        "eq" => Some(air::SubqueryComparisonOp::Eq),
+        "gt" => Some(air::SubqueryComparisonOp::Gt),
+        "gte" => Some(air::SubqueryComparisonOp::Gte),
+        _ => None,
+    }
+}
+
+fn str_to_air_sqcmod(m: &str) -> Option<air::SubqueryModifier> {
+    match m {
+        "all" => Some(air::SubqueryModifier::All),
+        "any" => Some(air::SubqueryModifier::Any),
+        _ => None,
     }
 }
 

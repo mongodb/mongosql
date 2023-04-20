@@ -382,7 +382,8 @@ mod expression_test {
         use crate::{
             air::agg_ast::ast_definitions::{
                 Convert, Expression, GetField, Let, Like, LiteralValue, SetField, SqlConvert,
-                SqlDivide, StringOrRef, Switch, SwitchCase, TaggedOperator, UnsetField,
+                SqlDivide, Stage, StringOrRef, Subquery, SubqueryComparison, SubqueryExists,
+                Switch, SwitchCase, TaggedOperator, UnsetField,
             },
             map,
         };
@@ -553,6 +554,94 @@ mod expression_test {
                                 "divisor": 2,
                                 "onError": null
             }}"#
+        );
+
+        test_deserialize_expr!(
+            sql_subquery,
+            expected = Expression::TaggedOperator(TaggedOperator::Subquery(Subquery {
+                db: Some("foo".to_string()),
+                collection: Some("bar".to_string()),
+                let_bindings: None,
+                output_path: Some(vec!["x".to_string()]),
+                pipeline: vec![Stage::Project(
+                    map! {"x".to_string() => Expression::Literal(LiteralValue::Integer(1))}
+                )]
+            })),
+            input = r#"expr: {"$subquery": {
+                            "db": "foo",
+                            "collection": "bar",
+                            "outputPath": ["x"],
+                            "pipeline": [
+                              {
+                                "$project": {
+                                  "x": 1
+                                }
+                              }
+                            ]
+                          }}"#
+        );
+
+        test_deserialize_expr!(
+            sql_subquery_comparison,
+            expected = Expression::TaggedOperator(TaggedOperator::SubqueryComparison(
+                SubqueryComparison {
+                    op: "eq".to_string(),
+                    modifier: "all".to_string(),
+                    arg: Box::new(Expression::Literal(LiteralValue::Integer(42))),
+                    subquery: Subquery {
+                        db: Some("foo".to_string()),
+                        collection: Some("bar".to_string()),
+                        let_bindings: None,
+                        output_path: Some(vec!["x".to_string()]),
+                        pipeline: vec![
+                            Stage::Documents(vec![]),
+                            Stage::Project(
+                                map! {"x".to_string() => Expression::Literal(LiteralValue::Integer(1))}
+                            )
+                        ]
+                    }.into()
+                }
+            )),
+            input = r#"expr: {"$subqueryComparison": {
+                            "op": "eq",
+                            "modifier": "all",
+                            "arg": 42,
+                            "subquery": {
+                                "db": "foo",
+                                "collection": "bar",
+                                "outputPath": ["x"],
+                                "pipeline": [
+                                    {"$documents": []},
+                                    {
+                                        "$project": {
+                                            "x": 1
+                                        }
+                                    }
+                                ]
+                          }}}"#
+        );
+
+        test_deserialize_expr!(
+            sql_subquery_exists,
+            expected = Expression::TaggedOperator(TaggedOperator::SubqueryExists(SubqueryExists {
+                db: Some("foo".to_string()),
+                collection: Some("bar".to_string()),
+                let_bindings: None,
+                pipeline: vec![Stage::Project(
+                    map! {"x".to_string() => Expression::Literal(LiteralValue::Integer(1))}
+                )]
+            })),
+            input = r#"expr: {"$subqueryExists": {
+                            "db": "foo",
+                            "collection": "bar",
+                            "pipeline": [
+                              {
+                                "$project": {
+                                  "x": 1
+                                }
+                              }
+                            ]
+                          }}"#
         );
     }
 

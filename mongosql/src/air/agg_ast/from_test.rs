@@ -14,7 +14,7 @@ macro_rules! test_from_stage {
             let input = $input;
             let expected = $expected;
 
-            let source = default_source();
+            let source = Some(default_source());
 
             let actual = air::Stage::from((source, input));
 
@@ -468,7 +468,7 @@ mod expression {
     mod tagged_operators {
         use crate::{
             air::{self, agg_ast::ast_definitions as agg_ast},
-            map,
+            map, unchecked_unique_linked_hash_map,
         };
 
         test_from_expr!(
@@ -718,6 +718,224 @@ mod expression {
                         agg_ast::StringOrRef::FieldRef("b".to_string())
                     )),
                     on_error: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Null)),
+                }
+            ))
+        );
+
+        test_from_expr!(
+            sql_subquery,
+            expected = air::Expression::Subquery(air::Subquery {
+                let_bindings: vec![air::LetVariable {
+                    name: "z".to_string(),
+                    expr: air::Expression::Literal(air::LiteralValue::Integer(42)).into()
+                },],
+                output_path: vec!["x".to_string()],
+                pipeline: air::Stage::Project(air::Project {
+                    source: air::Stage::Documents(air::Documents { array: vec![] }).into(),
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "x".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+                    }
+                })
+                .into()
+            }),
+            input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::Subquery(
+                agg_ast::Subquery {
+                    db: Some("foo".to_string()),
+                    collection: Some("bar".to_string()),
+                    let_bindings: Some(map! {
+                        "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
+                    }),
+                    output_path: Some(vec!["x".to_string()]),
+                    pipeline: vec![
+                        agg_ast::Stage::Documents(vec![]),
+                        agg_ast::Stage::Project(
+                            map! {"x".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))}
+                        )
+                    ]
+                }
+            ))
+        );
+        test_from_expr!(
+            sql_subquery_rootless,
+            expected = air::Expression::Subquery(air::Subquery {
+                let_bindings: vec![air::LetVariable {
+                    name: "z".to_string(),
+                    expr: air::Expression::Literal(air::LiteralValue::Integer(42)).into()
+                },],
+                output_path: vec!["x".to_string()],
+                pipeline: air::Stage::Project(air::Project {
+                    source: air::Stage::Collection(air::Collection {
+                        db: "foo".to_string(),
+                        collection: "bar".to_string()
+                    })
+                    .into(),
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "x".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+                    }
+                })
+                .into()
+            }),
+            input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::Subquery(
+                agg_ast::Subquery {
+                    db: Some("foo".to_string()),
+                    collection: Some("bar".to_string()),
+                    let_bindings: Some(map! {
+                        "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
+                    }),
+                    output_path: Some(vec!["x".to_string()]),
+                    pipeline: vec![agg_ast::Stage::Project(
+                        map! {"x".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))}
+                    )]
+                }
+            ))
+        );
+
+        test_from_expr!(
+            sql_subquery_comparison,
+            expected = air::Expression::SubqueryComparison(
+                air::SubqueryComparison {
+                    op: air::SubqueryComparisonOp::Eq,
+                    modifier: air::SubqueryModifier::All,
+                    arg: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+                    subquery: air::Subquery {
+                        let_bindings: vec![air::LetVariable {
+                            name: "z".to_string(),
+                            expr: air::Expression::Literal(air::LiteralValue::Integer(42)).into()
+                        },],
+                        output_path: vec!["x".to_string()],
+                        pipeline: air::Stage::Project(air::Project {
+                            source: air::Stage::Documents(air::Documents { array: vec![] }).into(),
+                            specifications: unchecked_unique_linked_hash_map! {
+                                "x".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+                            }
+                        }).into()
+                    }.into()
+                }),
+            input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SubqueryComparison(
+                   agg_ast::SubqueryComparison {
+                       op: "eq".to_string(),
+                       modifier: "all".to_string(),
+                       arg: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))),
+                       subquery: agg_ast::Subquery {
+                           db: Some("foo".to_string()),
+                           collection: Some("bar".to_string()),
+                           let_bindings: Some(map! {
+                               "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
+                           }),
+                           output_path: Some(vec!["x".to_string()]),
+                           pipeline: vec![
+                               agg_ast::Stage::Documents(vec![]),
+                               agg_ast::Stage::Project(
+                                   map! {"x".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))}
+                               )
+                           ]
+                       }.into()
+                   }
+               ))
+        );
+        test_from_expr!(
+            sql_subquery_comparison_rootless,
+            expected = air::Expression::SubqueryComparison(
+                air::SubqueryComparison {
+                    op: air::SubqueryComparisonOp::Neq,
+                    modifier: air::SubqueryModifier::Any,
+                    arg: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+                    subquery: air::Subquery {
+                        let_bindings: vec![air::LetVariable {
+                            name: "z".to_string(),
+                            expr: air::Expression::Literal(air::LiteralValue::Integer(42)).into()
+                        },],
+                        output_path: vec!["x".to_string()],
+                        pipeline: air::Stage::Project(air::Project {
+                            source: air::Stage::Collection(air::Collection { db: "foo".to_string(), collection: "bar2".to_string() }).into(),
+                            specifications: unchecked_unique_linked_hash_map! {
+                                "x".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+                            }
+                        }).into()
+                    }.into()
+                }),
+            input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SubqueryComparison(
+                   agg_ast::SubqueryComparison {
+                       op: "ne".to_string(),
+                       modifier: "any".to_string(),
+                       arg: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))),
+                       subquery: agg_ast::Subquery {
+                           db: Some("foo".to_string()),
+                           collection: Some("bar2".to_string()),
+                           let_bindings: Some(map! {
+                               "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
+                           }),
+                           output_path: Some(vec!["x".to_string()]),
+                           pipeline: vec![
+                               agg_ast::Stage::Project(
+                                   map! {"x".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))}
+                               )
+                           ]
+                       }.into()
+                   }
+               ))
+        );
+
+        test_from_expr!(
+            sql_subquery_exists,
+            expected = air::Expression::SubqueryExists(air::SubqueryExists {
+                let_bindings: vec![air::LetVariable {
+                    name: "z".to_string(),
+                    expr: air::Expression::Literal(air::LiteralValue::Integer(42)).into()
+                },],
+                pipeline: air::Stage::Project(air::Project {
+                    source: air::Stage::Documents(air::Documents { array: vec![] }).into(),
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "x".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+                    }
+                })
+                .into()
+            }),
+            input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SubqueryExists(
+                agg_ast::SubqueryExists {
+                    db: Some("foo".to_string()),
+                    collection: Some("bar".to_string()),
+                    let_bindings: Some(map! {
+                        "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
+                    }),
+                    pipeline: vec![
+                        agg_ast::Stage::Documents(vec![]),
+                        agg_ast::Stage::Project(
+                            map! {"x".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))}
+                        )
+                    ]
+                }
+            ))
+        );
+        test_from_expr!(
+            sql_subquery_exists_rootless,
+            expected = air::Expression::SubqueryExists(air::SubqueryExists {
+                let_bindings: vec![air::LetVariable {
+                    name: "z".to_string(),
+                    expr: air::Expression::Literal(air::LiteralValue::Integer(42)).into()
+                },],
+                pipeline: air::Stage::Project(air::Project {
+                    source: air::Stage::Collection(air::Collection {
+                        db: "foo2".to_string(),
+                        collection: "bar2".to_string()
+                    })
+                    .into(),
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "x".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+                    }
+                })
+                .into()
+            }),
+            input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SubqueryExists(
+                agg_ast::SubqueryExists {
+                    db: Some("foo2".to_string()),
+                    collection: Some("bar2".to_string()),
+                    let_bindings: Some(map! {
+                        "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
+                    }),
+                    pipeline: vec![agg_ast::Stage::Project(
+                        map! {"x".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))}
+                    )]
                 }
             ))
         );
