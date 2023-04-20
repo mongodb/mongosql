@@ -115,6 +115,7 @@ impl From<mir::DateFunction> for air::DateFunction {
 enum ScalarFunctionType {
     Sql(air::SQLOperator),
     Mql(air::MQLOperator),
+    Trim(air::TrimOperator),
 }
 
 #[derive(Clone)]
@@ -897,9 +898,9 @@ impl MqlTranslator {
             Substring => ScalarFunctionType::Sql(air::SQLOperator::SubstrCP),
             Upper => ScalarFunctionType::Sql(air::SQLOperator::ToUpper),
             Lower => ScalarFunctionType::Sql(air::SQLOperator::ToLower),
-            BTrim => ScalarFunctionType::Mql(air::MQLOperator::Trim),
-            LTrim => ScalarFunctionType::Mql(air::MQLOperator::LTrim),
-            RTrim => ScalarFunctionType::Mql(air::MQLOperator::RTrim),
+            BTrim => ScalarFunctionType::Trim(air::TrimOperator::Trim),
+            LTrim => ScalarFunctionType::Trim(air::TrimOperator::LTrim),
+            RTrim => ScalarFunctionType::Trim(air::TrimOperator::RTrim),
             Split => ScalarFunctionType::Sql(air::SQLOperator::Split),
 
             // Datetime value scalar function
@@ -928,9 +929,14 @@ impl MqlTranslator {
             .args
             .into_iter()
             .map(|x| self.translate_expression(x))
-            .collect::<Result<_>>()?;
+            .collect::<Result<Vec<air::Expression>>>()?;
         let op = Self::to_air_op(scalar_func.function);
         match op {
+            ScalarFunctionType::Trim(op) => Ok(air::Expression::Trim(air::Trim {
+                op,
+                input: Box::new(args[1].clone()),
+                chars: Box::new(args[0].clone()),
+            })),
             ScalarFunctionType::Sql(op) => Ok(air::Expression::SQLSemanticOperator(
                 air::SQLSemanticOperator { op, args },
             )),

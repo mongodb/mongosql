@@ -1172,15 +1172,13 @@ mod scalar_function_expression {
 
     test_translate_expression!(
         trim,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Trim,
-                args: vec![
-                    air::Expression::Literal(air::LiteralValue::Null),
-                    air::Expression::Literal(air::LiteralValue::String("h".into())),
-                ],
-            }
-        )),
+        expected = Ok(air::Expression::Trim(air::Trim {
+            op: air::TrimOperator::Trim,
+            input: Box::new(air::Expression::Literal(air::LiteralValue::String(
+                "h".into()
+            ))),
+            chars: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
+        })),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::BTrim,
             args: vec![
@@ -1193,15 +1191,13 @@ mod scalar_function_expression {
 
     test_translate_expression!(
         ltrim,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::LTrim,
-                args: vec![
-                    air::Expression::Literal(air::LiteralValue::Null),
-                    air::Expression::Literal(air::LiteralValue::String("h".into())),
-                ],
-            }
-        )),
+        expected = Ok(air::Expression::Trim(air::Trim {
+            op: air::TrimOperator::LTrim,
+            input: Box::new(air::Expression::Literal(air::LiteralValue::String(
+                "h".into()
+            ))),
+            chars: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
+        })),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::LTrim,
             args: vec![
@@ -1214,15 +1210,13 @@ mod scalar_function_expression {
 
     test_translate_expression!(
         rtrim,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::RTrim,
-                args: vec![
-                    air::Expression::Literal(air::LiteralValue::Null),
-                    air::Expression::Literal(air::LiteralValue::String("h".into())),
-                ],
-            }
-        )),
+        expected = Ok(air::Expression::Trim(air::Trim {
+            op: air::TrimOperator::RTrim,
+            input: Box::new(air::Expression::Literal(air::LiteralValue::String(
+                "h".into()
+            ))),
+            chars: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
+        })),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::RTrim,
             args: vec![

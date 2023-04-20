@@ -92,9 +92,6 @@ impl MqlCodeGenerator {
             SubstrBytes => "$substrBytes",
             ToUpper => "$toUpper",
             ToLower => "$toLower",
-            Trim => "$trim",
-            LTrim => "$ltrim",
-            RTrim => "$rtrim",
             Split => "$split",
 
             // Datetime value scalar function

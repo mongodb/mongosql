@@ -130,6 +130,45 @@ mod literal {
     );
 }
 
+mod trim {
+
+    use crate::air::{Expression::*, LiteralValue::*, Trim, TrimOperator};
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        trim,
+        expected =
+            Ok(bson!({ "$trim": { "input": {"$literal": "foo"}, "chars": {"$literal": null }}})),
+        input = Trim(Trim {
+            op: TrimOperator::Trim,
+            input: Box::new(Literal(String("foo".to_string()))),
+            chars: Box::new(Literal(Null)),
+        })
+    );
+
+    test_codegen_air_expr!(
+        ltrim,
+        expected =
+            Ok(bson!({ "$ltrim": {"input": { "$literal": "foo"}, "chars": {"$literal": null }}})),
+        input = Trim(Trim {
+            op: TrimOperator::LTrim,
+            input: Box::new(Literal(String("foo".to_string()))),
+            chars: Box::new(Literal(Null)),
+        })
+    );
+
+    test_codegen_air_expr!(
+        rtrim,
+        expected =
+            Ok(bson!({ "$rtrim": {"input": { "$literal": "foo"}, "chars": {"$literal": null }}})),
+        input = Trim(Trim {
+            op: TrimOperator::RTrim,
+            input: Box::new(Literal(String("foo".to_string()))),
+            chars: Box::new(Literal(Null)),
+        })
+    );
+}
+
 mod mql_semantic_operator {
     use crate::air::{Expression::*, LiteralValue::*, MQLOperator::*, MQLSemanticOperator};
     use bson::bson;
@@ -505,33 +544,6 @@ mod mql_semantic_operator {
         expected = Ok(bson!({ "$toLower": [{ "$literal": "foo"}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
             op: ToLower,
-            args: vec![Literal(String("foo".to_string())),],
-        })
-    );
-
-    test_codegen_air_expr!(
-        trim,
-        expected = Ok(bson!({ "$trim": [{ "$literal": "foo"}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
-            op: Trim,
-            args: vec![Literal(String("foo".to_string())),],
-        })
-    );
-
-    test_codegen_air_expr!(
-        ltrim,
-        expected = Ok(bson!({ "$ltrim": [{ "$literal": "foo"}]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
-            op: LTrim,
-            args: vec![Literal(String("foo".to_string())),],
-        })
-    );
-
-    test_codegen_air_expr!(
-        rtrim,
-        expected = Ok(bson!({ "$rtrim": [{ "$literal": "foo" }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
-            op: RTrim,
             args: vec![Literal(String("foo".to_string())),],
         })
     );

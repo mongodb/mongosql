@@ -212,6 +212,12 @@ pub(crate) enum TaggedOperator {
     Like(Like),
     #[serde(rename = "$sqlDivide")]
     SqlDivide(SqlDivide),
+    #[serde(rename = "$trim")]
+    Trim(Trim),
+    #[serde(rename = "$ltrim")]
+    LTrim(Trim),
+    #[serde(rename = "$rtrim")]
+    RTrim(Trim),
     #[serde(rename = "$subquery")]
     Subquery(Subquery),
     #[serde(rename = "$subqueryComparison")]
@@ -289,6 +295,12 @@ pub(crate) struct SqlDivide {
     pub(crate) dividend: Box<Expression>,
     pub(crate) divisor: Box<Expression>,
     pub(crate) on_error: Box<Expression>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+pub(crate) struct Trim {
+    pub(crate) input: Box<Expression>,
+    pub(crate) chars: Box<Expression>,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -639,6 +651,21 @@ impl From<TaggedOperator> for air::Expression {
                     args: vec![(*d.dividend).into(), (*d.divisor).into()],
                 })
             }
+            TaggedOperator::Trim(t) => air::Expression::Trim(air::Trim {
+                op: air::TrimOperator::Trim,
+                input: t.input.into(),
+                chars: t.chars.into(),
+            }),
+            TaggedOperator::LTrim(lt) => air::Expression::Trim(air::Trim {
+                op: air::TrimOperator::LTrim,
+                input: lt.input.into(),
+                chars: lt.chars.into(),
+            }),
+            TaggedOperator::RTrim(rt) => air::Expression::Trim(air::Trim {
+                op: air::TrimOperator::RTrim,
+                input: rt.input.into(),
+                chars: rt.chars.into(),
+            }),
             // TODO: SQL-1319 finish implementing expressions
             TaggedOperator::Subquery(_) => todo!(),
             TaggedOperator::SubqueryComparison(_) => todo!(),
@@ -793,9 +820,6 @@ impl From<UntaggedOperator> for air::Expression {
                 "$substrBytes" => air::MQLOperator::SubstrBytes,
                 "$toUpper" => air::MQLOperator::ToUpper,
                 "$toLower" => air::MQLOperator::ToLower,
-                "$trim" => air::MQLOperator::Trim,
-                "$ltrim" => air::MQLOperator::LTrim,
-                "$rtrim" => air::MQLOperator::RTrim,
                 "$split" => air::MQLOperator::Split,
                 "$year" => air::MQLOperator::Year,
                 "$month" => air::MQLOperator::Month,

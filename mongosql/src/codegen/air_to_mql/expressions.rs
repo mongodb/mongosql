@@ -1,5 +1,5 @@
 use super::{Error, MqlCodeGenerator, Result};
-use crate::air::{self, SQLOperator};
+use crate::air::{self, SQLOperator, TrimOperator};
 use bson::{bson, doc, Bson};
 use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
 
@@ -22,6 +22,7 @@ impl MqlCodeGenerator {
             Like(like) => self.codegen_like(like),
             Is(is) => self.codegen_is(is),
             DateFunction(_) => Err(Error::UnimplementedAIR),
+            Trim(trim) => self.codegen_trim(trim),
             Subquery(s) => self.codegen_subquery_expr(s),
             SubqueryComparison(_) => Err(Error::UnimplementedAIR),
             SubqueryExists(_) => Err(Error::UnimplementedAIR),
@@ -296,6 +297,18 @@ impl MqlCodeGenerator {
                     .map(|(k, v)| Ok((k, self.codegen_air_expression(v)?)))
                     .collect::<Result<bson::Document>>()?
             }
+        }))
+    }
+
+    fn codegen_trim(&self, trim: air::Trim) -> Result<Bson> {
+        let op = match trim.op {
+            TrimOperator::Trim => "$trim",
+            TrimOperator::LTrim => "$ltrim",
+            TrimOperator::RTrim => "$rtrim",
+        };
+        Ok(Bson::Document(doc! {
+            op: {"input": self.codegen_air_expression(*trim.input)?,
+                "chars": self.codegen_air_expression(*trim.chars)?}
         }))
     }
 }

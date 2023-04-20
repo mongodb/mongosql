@@ -175,6 +175,7 @@ pub enum Expression {
     Like(Like),
     Is(Is),
     DateFunction(DateFunctionApplication),
+    Trim(Trim),
     Subquery(Subquery),
     SubqueryComparison(SubqueryComparison),
     SubqueryExists(SubqueryExists),
@@ -238,9 +239,6 @@ pub enum MQLOperator {
     SubstrBytes,
     ToUpper,
     ToLower,
-    Trim,
-    LTrim,
-    RTrim,
     Split,
 
     // Datetime value scalar function
@@ -571,5 +569,21 @@ pub struct DateFunctionApplication{
     pub unit: DatePart,
     pub args: Vec<Expression>,
 }
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum TrimOperator {
+    Trim,
+    LTrim,
+    RTrim,
+}
+
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Trim{
+    pub op: TrimOperator,
+    pub input: Box<Expression>,
+    pub chars: Box<Expression>,
+}
+
 
 } // end of generate_visitors! block
