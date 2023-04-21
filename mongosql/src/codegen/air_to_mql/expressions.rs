@@ -27,7 +27,7 @@ impl MqlCodeGenerator {
             Trim(trim) => self.codegen_trim(trim),
             Subquery(s) => self.codegen_subquery_expr(s),
             SubqueryComparison(_) => Err(Error::UnimplementedAIR),
-            SubqueryExists(_) => Err(Error::UnimplementedAIR),
+            SubqueryExists(se) => self.codegen_subquery_exists(se),
             Array(array) => self.codegen_array(array),
             Document(document) => self.codegen_document(document),
         }
@@ -263,9 +263,26 @@ impl MqlCodeGenerator {
     }
 
     fn codegen_subquery_expr(&self, subquery: air::Subquery) -> Result<Bson> {
+        Ok(
+            bson!({ "$subquery": self.codegen_subquery(*subquery.pipeline, subquery.let_bindings, Some(subquery.output_path))? }),
+        )
+    }
+
+    fn codegen_subquery_exists(&self, subquery_exists: air::SubqueryExists) -> Result<Bson> {
+        Ok(
+            bson!({ "$subqueryExists": self.codegen_subquery(*subquery_exists.pipeline, subquery_exists.let_bindings, None)? }),
+        )
+    }
+
+    fn codegen_subquery(
+        &self,
+        pipeline: air::Stage,
+        let_bindings: Vec<air::LetVariable>,
+        output_path: Option<Vec<String>>,
+    ) -> Result<Bson> {
         let mut subquery_body = doc! {};
 
-        let pipeline_translation = self.codegen_air_stage(*subquery.pipeline)?;
+        let pipeline_translation = self.codegen_air_stage(pipeline)?;
 
         if let Some(db) = pipeline_translation.database {
             subquery_body.insert("db", db);
@@ -275,17 +292,20 @@ impl MqlCodeGenerator {
             subquery_body.insert("collection", collection);
         }
 
-        let let_bindings = subquery
-            .let_bindings
+        let let_bindings = let_bindings
             .into_iter()
             .map(|v| Ok((v.name.clone(), self.codegen_air_expression(*v.expr)?)))
             .collect::<Result<bson::Document>>()?;
 
         subquery_body.insert("let", let_bindings);
-        subquery_body.insert("outputPath", subquery.output_path);
+
+        if let Some(out_path) = output_path {
+            subquery_body.insert("outputPath", out_path);
+        }
+
         subquery_body.insert("pipeline", pipeline_translation.pipeline);
 
-        Ok(bson!({ "$subquery": subquery_body }))
+        Ok(bson!(subquery_body))
     }
 
     fn codegen_array(&self, array: Vec<air::Expression>) -> Result<Bson> {

@@ -1732,6 +1732,89 @@ mod regex_match_expr {
     );
 }
 
+mod subquery_exists {
+    use crate::{
+        air::{
+            Collection, Expression::*, FieldRef, LetVariable, Project, Stage::*, SubqueryExists,
+            Variable,
+        },
+        unchecked_unique_linked_hash_map,
+    };
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        subquery_exists_uncorrelated,
+        expected = Ok(bson!({
+            "$subqueryExists": {
+                "db": "test",
+                "collection": "foo",
+                "let": {},
+                "pipeline": [
+                    {"$project": {"_id": 0, "foo": "$$ROOT"}}
+                ]
+            }
+        })),
+        input = SubqueryExists(SubqueryExists {
+            let_bindings: vec![],
+            pipeline: Box::new(Project(Project {
+                source: Box::new(Collection(Collection {
+                    db: "test".to_string(),
+                    collection: "foo".to_string(),
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "foo".to_string() => Variable(Variable{parent: None, name: "ROOT".to_string()}),
+                },
+            })),
+        })
+    );
+
+    test_codegen_air_expr!(
+        subquery_exists_correlated,
+        expected = Ok(bson::bson!(
+            {"$subqueryExists": {
+                "db": "test",
+                "collection": "bar",
+                "let": {"vfoo_0": "$foo"},
+                "pipeline": [
+                    {"$project": {"_id": 0,"bar": "$$ROOT"}},
+                    {"$project": {"_id": 0,"__bot": {"a": "$$vfoo_0.a"}}}
+                ]
+            }}
+        )),
+        input = SubqueryExists(SubqueryExists {
+            let_bindings: vec![LetVariable {
+                name: "vfoo_0".to_string(),
+                expr: Box::new(FieldRef(FieldRef {
+                    parent: None,
+                    name: "foo".to_string(),
+                })),
+            },],
+            pipeline: Box::new(Project(Project {
+                source: Box::new(Project(Project {
+                    source: Box::new(Collection(Collection {
+                        db: "test".to_string(),
+                        collection: "bar".to_string(),
+                    })),
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "bar".to_string() => Variable(Variable{parent: None, name: "ROOT".to_string()}),
+                    },
+                })),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "__bot".to_string() => Document(unchecked_unique_linked_hash_map! {
+                        "a".to_string() => Variable(Variable {
+                            parent: Some(Box::new(Variable {
+                                parent: None,
+                                name: "vfoo_0".to_string(),
+                            })),
+                            name: "a".to_string()
+                        })
+                    }),
+                },
+            })),
+        })
+    );
+}
+
 mod subquery {
     use crate::{
         air::{
