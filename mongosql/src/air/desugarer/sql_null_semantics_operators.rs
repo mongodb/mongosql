@@ -55,7 +55,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
 
         for (let_vars_idx, expr) in sql_operator.args.into_iter().enumerate() {
             let let_var = LetVariable {
-                name: format!("desugared_sqlAnd_input{}", let_vars_idx),
+                name: format!("desugared_sqlAnd_input{let_vars_idx}"),
                 expr: Box::new(expr),
             };
             let_vars.push(let_var.clone());
@@ -105,7 +105,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
 
         for (let_vars_idx, expr) in sql_operator.args.into_iter().enumerate() {
             let let_var = LetVariable {
-                name: format!("desugared_sqlOr_input{}", let_vars_idx),
+                name: format!("desugared_sqlOr_input{let_vars_idx}"),
                 expr: Box::new(expr),
             };
             let_vars.push(let_var.clone());
@@ -157,7 +157,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
 
         for (let_vars_idx, expr) in sql_operator.args.clone().into_iter().enumerate() {
             let let_var = LetVariable {
-                name: format!("desugared_{}_input{}", op_name, let_vars_idx),
+                name: format!("desugared_{op_name}_input{let_vars_idx}"),
                 expr: Box::new(expr),
             };
             let_vars.push(let_var.clone());

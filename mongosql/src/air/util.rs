@@ -1,4 +1,5 @@
 use crate::air::{FieldRef, LiteralValue, MQLOperator, SQLOperator, Variable};
+use std::fmt;
 
 impl FieldRef {
     pub(crate) fn root_parent(&self) -> String {
@@ -6,6 +7,22 @@ impl FieldRef {
             Some(parent) => parent.root_parent(),
             None => self.name.clone(),
         }
+    }
+}
+
+impl fmt::Display for FieldRef {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.parent {
+            Some(parent) => write!(f, "{}.{}", parent, self.name),
+            None => write!(f, "{}", self.name),
+        }
+    }
+}
+
+pub fn match_sql_to_mql_op(sql_op: SQLOperator) -> Option<MQLOperator> {
+    match sql_op {
+        SQLOperator::And | SQLOperator::Or => None,
+        _ => sql_op_to_mql_op(sql_op),
     }
 }
 
@@ -131,4 +148,48 @@ mod variable_from_string_tests {
         },
         input = "a.b.c".to_string()
     );
+}
+
+#[cfg(test)]
+mod field_ref_fmt {
+    use super::*;
+
+    #[test]
+    fn no_parent() {
+        let field_ref = FieldRef {
+            parent: None,
+            name: "field".to_string(),
+        };
+        assert_eq!(format!("{field_ref}"), "field");
+    }
+
+    #[test]
+    fn one_parent() {
+        let parent = Box::new(FieldRef {
+            parent: None,
+            name: "parent".to_string(),
+        });
+        let field_ref = FieldRef {
+            parent: Some(parent),
+            name: "field".to_string(),
+        };
+        assert_eq!(format!("{field_ref}"), "parent.field");
+    }
+
+    #[test]
+    fn two_level_parent() {
+        let root = Box::new(FieldRef {
+            parent: None,
+            name: "root".to_string(),
+        });
+        let parent = Box::new(FieldRef {
+            parent: Some(root),
+            name: "parent".to_string(),
+        });
+        let field_ref = FieldRef {
+            parent: Some(parent),
+            name: "field".to_string(),
+        };
+        assert_eq!(format!("{field_ref}"), "root.parent.field");
+    }
 }

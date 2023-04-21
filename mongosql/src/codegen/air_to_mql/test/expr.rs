@@ -822,6 +822,15 @@ mod mql_semantic_operator {
             ],
         })
     );
+
+    test_codegen_air_expr!(
+        exists,
+        expected = Ok(bson!({ "$exists": [{ "$literal": false }]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: Exists,
+            args: vec![Literal(Boolean(false))],
+        })
+    );
 }
 
 mod sql_semantic_operator {

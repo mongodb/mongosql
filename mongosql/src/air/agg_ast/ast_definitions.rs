@@ -1040,6 +1040,7 @@ impl From<UntaggedOperator> for air::Expression {
             air::Expression::SQLSemanticOperator(air::SQLSemanticOperator { op, args })
         } else {
             let op = match ast_op.op.as_str() {
+                "$exists" => air::MQLOperator::Exists,
                 "$concat" => air::MQLOperator::Concat,
                 "$cond" => air::MQLOperator::Cond,
                 "$ifNull" => air::MQLOperator::IfNull,

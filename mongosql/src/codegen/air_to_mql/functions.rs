@@ -134,6 +134,7 @@ impl MqlCodeGenerator {
             Type => "$type",
             IsArray => "$isArray",
             IsNumber => "$isNumber",
+            Exists => "$exists",
         }
     }
 
