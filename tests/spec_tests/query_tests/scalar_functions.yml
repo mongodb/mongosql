@@ -1438,7 +1438,7 @@ tests:
     translation:
       - { $project: { _id: 0, dates: "$$ROOT" } }
       - { $project: { _id: 0, d: "$dates" } }
-      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'year'}, 'amount': '$d.interval' } }, datepart: { '$year': '$d.date1' }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'year'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'year'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
+      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'year'}, 'amount': '$d.interval' } }, datepart: { '$year': ['$d.date1'] }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'year'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'year'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         } } } }
@@ -1454,7 +1454,7 @@ tests:
     translation:
       - { $project: { _id: 0, dates: "$$ROOT" } }
       - { $project: { _id: 0, d: "$dates" } }
-      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'month'}, 'amount': '$d.interval' } }, datepart: { '$month': '$d.date1' }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'month'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'month'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
+      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'month'}, 'amount': '$d.interval' } }, datepart: { '$month': ['$d.date1'] }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'month'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'month'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         } } } }
@@ -1470,7 +1470,7 @@ tests:
     translation:
       - { $project: { _id: 0, dates: "$$ROOT" } }
       - { $project: { _id: 0, d: "$dates" } }
-      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'day'}, 'amount': '$d.interval' } }, datepart: { '$dayOfMonth': '$d.date1' }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'day'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'day'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
+      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'day'}, 'amount': '$d.interval' } }, datepart: { '$dayOfMonth': ['$d.date1'] }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'day'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'day'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         } } } }
@@ -1486,7 +1486,7 @@ tests:
     translation:
       - { $project: { _id: 0, dates: "$$ROOT" } }
       - { $project: { _id: 0, d: "$dates" } }
-      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'hour'}, 'amount': '$d.interval' } }, datepart: { '$hour': '$d.date1' }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'hour'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'hour'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
+      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'hour'}, 'amount': '$d.interval' } }, datepart: { '$hour': ['$d.date1'] }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'hour'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'hour'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         } } } }
@@ -1502,7 +1502,7 @@ tests:
     translation:
       - { $project: { _id: 0, dates: "$$ROOT" } }
       - { $project: { _id: 0, d: "$dates" } }
-      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'minute'}, 'amount': '$d.interval' } }, datepart: { '$minute': '$d.date1' }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'minute'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'minute'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
+      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'minute'}, 'amount': '$d.interval' } }, datepart: { '$minute': ['$d.date1'] }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'minute'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'minute'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         } } } }
@@ -1518,7 +1518,7 @@ tests:
     translation:
       - { $project: { _id: 0, dates: "$$ROOT" } }
       - { $project: { _id: 0, d: "$dates" } }
-      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'second'}, 'amount': '$d.interval' } }, datepart: { '$second': '$d.date1' }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'second'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'second'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
+      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'second'}, 'amount': '$d.interval' } }, datepart: { '$second': ['$d.date1'] }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'second'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'second'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         } } } }
@@ -1550,7 +1550,7 @@ tests:
     translation:
       - { $project: { _id: 0, dates: "$$ROOT" } }
       - { $project: { _id: 0, d: "$dates" } }
-      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'week'}, 'amount': '$d.interval' } }, datepart: { '$week': '$d.date1' }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'week'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'week'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
+      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'week'}, 'amount': '$d.interval' } }, datepart: { '$week': ['$d.date1'] }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'week'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'week'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
       - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
         } } } }

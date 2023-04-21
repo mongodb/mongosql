@@ -1,5 +1,5 @@
 use super::MqlCodeGenerator;
-use crate::air::{AggregationFunction, MQLOperator, SQLOperator};
+use crate::air::{AggregationFunction, DatePart, MQLOperator, SQLOperator};
 
 impl MqlCodeGenerator {
     pub(crate) fn agg_func_to_mql_op(mqla: AggregationFunction) -> &'static str {
@@ -34,6 +34,20 @@ impl MqlCodeGenerator {
             StddevSamp => "$sqlStdDevSamp",
             Sum => "$sqlSum",
         }
+    }
+
+    pub(crate) fn date_part_to_mql_unit(unit: DatePart) -> bson::Bson {
+        use DatePart::*;
+        bson::bson! {{"$literal": match unit {
+            Year => "year",
+            Month => "month",
+            Day => "day",
+            Hour => "hour",
+            Minute => "minute",
+            Second => "second",
+            Week => "week",
+            Quarter => "quarter",
+        }}}
     }
 
     pub(crate) fn to_mql_op(mqlo: MQLOperator) -> &'static str {

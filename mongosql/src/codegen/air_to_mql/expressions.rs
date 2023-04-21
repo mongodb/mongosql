@@ -21,7 +21,7 @@ impl MqlCodeGenerator {
             Convert(c) => self.codegen_convert(c),
             Like(like) => self.codegen_like(like),
             Is(is) => self.codegen_is(is),
-            DateFunction(_) => Err(Error::UnimplementedAIR),
+            DateFunction(df) => self.codegen_date_function(df),
             RegexMatch(r) => self.codegen_regex_match(r),
             SqlDivide(sd) => self.codegen_sql_divide(sd),
             Trim(trim) => self.codegen_trim(trim),
@@ -242,6 +242,35 @@ impl MqlCodeGenerator {
         let expr = self.codegen_air_expression(*is.expr).unwrap();
         let target_type = is.target_type.to_str();
         Ok(bson ! ({"$sqlIs": [expr, {"$literal": target_type}]}))
+    }
+
+    fn codegen_date_function(&self, date_func_app: air::DateFunctionApplication) -> Result<Bson> {
+        use air::DateFunction::*;
+
+        Ok(match date_func_app.function {
+            Add => {
+                bson::bson!({"$dateAdd" : {
+                    "startDate": self.codegen_air_expression(date_func_app.args[1].clone())?,
+                    "unit": Self::date_part_to_mql_unit(date_func_app.unit),
+                    "amount": self.codegen_air_expression(date_func_app.args[0].clone())?,
+                }})
+            }
+            Diff => {
+                bson::bson!({"$dateDiff" : {
+                    "startDate": self.codegen_air_expression(date_func_app.args[0].clone())?,
+                    "endDate": self.codegen_air_expression(date_func_app.args[1].clone())?,
+                    "unit": Self::date_part_to_mql_unit(date_func_app.unit),
+                    "startOfWeek": self.codegen_air_expression(date_func_app.args[2].clone())?,
+                }})
+            }
+            Trunc => {
+                bson::bson!({"$dateTrunc" : {
+                    "date": self.codegen_air_expression(date_func_app.args[0].clone())?,
+                    "unit": Self::date_part_to_mql_unit(date_func_app.unit),
+                    "startOfWeek": self.codegen_air_expression(date_func_app.args[1].clone())?,
+                }})
+            }
+        })
     }
 
     fn codegen_regex_match(&self, regex_match: air::RegexMatch) -> Result<Bson> {

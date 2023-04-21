@@ -12,6 +12,72 @@ macro_rules! test_codegen_air_expr {
     };
 }
 
+mod date_function {
+    use crate::air::{
+        DateFunction::*, DateFunctionApplication, DatePart::*, Expression::*, LiteralValue::*,
+        SQLOperator::*, SQLSemanticOperator,
+    };
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        dateadd,
+        expected = Ok(
+            bson!({"$dateAdd": {"startDate": "$$NOW", "unit": {"$literal": "year"}, "amount": {"$literal": 5}}})
+        ),
+        input = DateFunction(DateFunctionApplication {
+            function: Add,
+            unit: Year,
+            args: vec![
+                Literal(Integer(5)),
+                SQLSemanticOperator(SQLSemanticOperator {
+                    op: CurrentTimestamp,
+                    args: vec![],
+                }),
+            ],
+        })
+    );
+
+    test_codegen_air_expr!(
+        datediff,
+        expected = Ok(
+            bson!({"$dateDiff": {"startDate": "$$NOW", "endDate": "$$NOW", "unit": {"$literal": "year"}, "startOfWeek": {"$literal": "sunday"}}})
+        ),
+        input = DateFunction(DateFunctionApplication {
+            function: Diff,
+            unit: Year,
+            args: vec![
+                SQLSemanticOperator(SQLSemanticOperator {
+                    op: CurrentTimestamp,
+                    args: vec![],
+                }),
+                SQLSemanticOperator(SQLSemanticOperator {
+                    op: CurrentTimestamp,
+                    args: vec![],
+                }),
+                Literal(String("sunday".to_string())),
+            ],
+        })
+    );
+
+    test_codegen_air_expr!(
+        datetrunc,
+        expected = Ok(
+            bson!({"$dateTrunc": {"date": "$$NOW", "unit": {"$literal": "year"}, "startOfWeek": {"$literal": "sunday"}}})
+        ),
+        input = DateFunction(DateFunctionApplication {
+            function: Trunc,
+            unit: Year,
+            args: vec![
+                SQLSemanticOperator(SQLSemanticOperator {
+                    op: CurrentTimestamp,
+                    args: vec![],
+                }),
+                Literal(String("sunday".to_string())),
+            ],
+        })
+    );
+}
+
 mod switch {
     use crate::air::{
         Expression::*, LiteralValue::*, MQLOperator::*, MQLSemanticOperator, Switch, SwitchCase,
