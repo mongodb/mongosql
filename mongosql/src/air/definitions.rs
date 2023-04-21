@@ -51,6 +51,7 @@ pub struct AccumulatorExpr {
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum AggregationFunction {
     AddToArray,
+    AddToSet,
     Avg,
     Count,
     First,

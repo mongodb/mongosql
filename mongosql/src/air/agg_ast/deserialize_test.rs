@@ -225,6 +225,219 @@ mod stage_test {
             input = r#"stage: {"$sort": {"a": 1, "b": -1}}"#
         );
     }
+
+    mod lookup_test {
+        use crate::{
+            air::agg_ast::ast_definitions::{
+                Expression, LiteralValue, Lookup, LookupFrom, MatchExpr, MatchExpression,
+                Namespace, Stage, StringOrRef, UntaggedOperator,
+            },
+            map,
+        };
+
+        test_deserialize_stage!(
+            lookup_with_no_optional_fields,
+            expected = Stage::Lookup(Lookup {
+                from: None,
+                let_body: None,
+                pipeline: vec![],
+                as_var: "as_var".to_string()
+            }),
+            input = r#"stage: {"$lookup": {"pipeline": [], "as": "as_var"}}"#
+        );
+        test_deserialize_stage!(
+            lookup_from_collection,
+            expected = Stage::Lookup(Lookup {
+                from: Some(LookupFrom::Collection("from_coll".to_string())),
+                let_body: None,
+                pipeline: vec![],
+                as_var: "as_var".to_string()
+            }),
+            input = r#"stage: {"$lookup": {"from": "from_coll", "pipeline": [], "as": "as_var"}}"#
+        );
+        test_deserialize_stage!(
+            lookup_from_namespace,
+            expected = Stage::Lookup(Lookup {
+                from: Some(LookupFrom::Namespace(Namespace {
+                    db: "from_db".to_string(),
+                    coll: "from_coll".to_string()
+                })),
+                let_body: None,
+                pipeline: vec![],
+                as_var: "as_var".to_string()
+            }),
+            input = r#"stage: {"$lookup": {"from": {"db": "from_db", "coll": "from_coll"}, "pipeline": [], "as": "as_var"}}"#
+        );
+        test_deserialize_stage!(
+            lookup_with_single_let_var,
+            expected = Stage::Lookup(Lookup {
+                from: Some(LookupFrom::Namespace(Namespace {
+                    db: "from_db".to_string(),
+                    coll: "from_coll".to_string()
+                })),
+                let_body: Some(map! {
+                    "x".to_string() => Expression::Literal(LiteralValue::Integer(9))
+                }),
+                pipeline: vec![],
+                as_var: "as_var".to_string()
+            }),
+            input = r#"stage: {"$lookup": {
+                "from": {"db": "from_db", "coll": "from_coll"},
+                "let": {"x": 9},
+                "pipeline": [], 
+                "as": "as_var"
+            }}"#
+        );
+        test_deserialize_stage!(
+            lookup_with_multiple_let_vars,
+            expected = Stage::Lookup(Lookup {
+                from: Some(LookupFrom::Namespace(Namespace {
+                    db: "from_db".to_string(),
+                    coll: "from_coll".to_string()
+                })),
+                let_body: Some(map! {
+                    "x".to_string() => Expression::Literal(LiteralValue::Integer(9)),
+                    "y".to_string() => Expression::StringOrRef(StringOrRef::FieldRef("z".to_string())),
+                }),
+                pipeline: vec![],
+                as_var: "as_var".to_string()
+            }),
+            input = r#"stage: {"$lookup": {
+                "from": {"db": "from_db", "coll": "from_coll"},
+                "let": {
+                    "x": 9,
+                    "y": "$z"
+                },
+                "pipeline": [], 
+                "as": "as_var"
+            }}"#
+        );
+
+        test_deserialize_stage!(
+            lookup_with_pipeline,
+            expected = Stage::Lookup(Lookup {
+                from: Some(LookupFrom::Namespace(Namespace {
+                    db: "db".to_string(),
+                    coll: "bar".to_string()
+                })),
+                let_body: Some(map! {
+                    "foo_b_0".to_string() => Expression::StringOrRef(StringOrRef::FieldRef("b".to_string())),
+                }),
+                pipeline: vec![
+                    Stage::Match(MatchExpression::Expr(MatchExpr {
+                        expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
+                            op: "$eq".to_string(),
+                            args: vec![
+                                Expression::StringOrRef(StringOrRef::Variable(
+                                    "foo_b_0".to_string()
+                                )),
+                                Expression::StringOrRef(StringOrRef::FieldRef("b".to_string()))
+                            ]
+                        }))
+                    })),
+                    Stage::Project(map! {
+                        "_id".to_string() => Expression::Literal(LiteralValue::Integer(0)),
+                        "a".to_string() => Expression::Literal(LiteralValue::Integer(1))
+                    })
+                ],
+                as_var: "__subquery_result_0".to_string()
+            }),
+            input = r#"stage: {
+                "$lookup":
+                  {
+                    "from": { "db": "db", "coll": "bar" },
+                    "let": { "foo_b_0": "$b" },
+                    "pipeline":
+                      [
+                        { "$match": { "$expr": { "$eq": ["$$foo_b_0", "$b"] } } },
+                        { "$project": { "_id": 0, "a": 1 } },
+                      ],
+                    "as": "__subquery_result_0"
+              }}"#
+        );
+    }
+
+    mod group_test {
+        use crate::{
+            air::agg_ast::ast_definitions::{
+                Expression, Group, GroupAccumulator, GroupAccumulatorExpr, LiteralValue, Stage,
+                StringOrRef,
+            },
+            map,
+        };
+
+        test_deserialize_stage!(
+            group_null_id_no_acc,
+            expected = Stage::Group(Group {
+                keys: Expression::Literal(LiteralValue::Null),
+                aggregations: map! {}
+            }),
+            input = r#"stage: {"$group": {
+                "_id": null,
+            }}"#
+        );
+
+        test_deserialize_stage!(
+            group_with_single_acc,
+            expected = Stage::Group(Group {
+                keys: Expression::Literal(LiteralValue::Null),
+                aggregations: map! {
+                    "acc".to_string() => GroupAccumulator {
+                        function: "$sqlSum".to_string(),
+                        expr: GroupAccumulatorExpr::SqlAccumulator { distinct: true, var: Box::new(Expression::StringOrRef(StringOrRef::FieldRef("a".to_string()))) }
+                    }
+                }
+            }),
+            input = r#"stage: {
+                "$group":
+                  {
+                    "_id": null,
+                    "acc": { "$sqlSum": { "var": "$a", "distinct": true } },
+                  }
+              }"#
+        );
+
+        test_deserialize_stage!(
+            group_with_keys_and_multiple_acc,
+            expected = Stage::Group(Group {
+                keys: Expression::Document(map! {
+                    "a".to_string() => Expression::StringOrRef(StringOrRef::FieldRef("a".to_string()))
+                },),
+                aggregations: map! {
+                    "acc_one".to_string() => GroupAccumulator {
+                        function: "$sqlSum".to_string(),
+                        expr: GroupAccumulatorExpr::SqlAccumulator { distinct: true, var: Box::new(Expression::StringOrRef(StringOrRef::FieldRef("a".to_string()))) },
+                    },
+                    "acc_two".to_string() => GroupAccumulator {
+                        function: "$sqlAvg".to_string(),
+                        expr: GroupAccumulatorExpr::SqlAccumulator { distinct: true, var: Box::new(Expression::StringOrRef(StringOrRef::FieldRef("b".to_string()))) },
+                    },
+                }
+            }),
+            input = r#"stage: {
+                "$group":
+                {
+                    "_id": {"a": "$a"},
+                    "acc_one": { "$sqlSum": { "var": "$a", "distinct": true } },
+                    "acc_two": { "$sqlAvg": { "var": "$b", "distinct": true } },
+                }
+            }"#
+        );
+
+        test_deserialize_stage!(
+            group_with_non_sql_acc,
+            expected = Stage::Group(Group {
+                keys: Expression::Literal(LiteralValue::Null),
+                aggregations: map! {
+                    "acc".to_string() => GroupAccumulator {
+                        function: "$addToSet".to_string(),
+                        expr: GroupAccumulatorExpr::NonSqlAccumulator(Expression::StringOrRef(StringOrRef::FieldRef("a".to_string()))),
+                    }
+                }
+            }),
+            input = r#"stage: { "$group": { "_id": null, "acc": { "$addToSet": "$a" } } }"#
+        );
+    }
 }
 
 mod expression_test {

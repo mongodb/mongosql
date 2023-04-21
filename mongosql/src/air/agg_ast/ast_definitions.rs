@@ -67,16 +67,25 @@ pub(crate) struct MatchExpr {
 #[derive(Debug, PartialEq, Deserialize)]
 pub(crate) struct Group {
     #[serde(rename = "_id")]
-    pub(crate) keys: HashMap<String, Expression>,
+    pub(crate) keys: Expression,
     #[serde(flatten)]
-    pub(crate) aggregations: HashMap<String, AccumulatorExpr>,
+    pub(crate) aggregations: HashMap<String, GroupAccumulator>,
+}
+
+#[derive(Debug, PartialEq)]
+pub(crate) struct GroupAccumulator {
+    pub(crate) function: String,
+    pub(crate) expr: GroupAccumulatorExpr,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
-pub(crate) struct AccumulatorExpr {
-    pub(crate) function: String,
-    pub(crate) distinct: bool,
-    pub(crate) arg: Box<Expression>,
+#[serde(untagged)]
+pub(crate) enum GroupAccumulatorExpr {
+    SqlAccumulator {
+        distinct: bool,
+        var: Box<Expression>,
+    },
+    NonSqlAccumulator(Expression),
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -414,6 +423,53 @@ where
     deserializer.deserialize_map(UntaggedOperatorVisitor::new())
 }
 
+impl<'de> Deserialize<'de> for GroupAccumulator {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        /// Custom map visitor for identifying and deserializing Accumulators.
+        struct AccumulatorVisitor;
+
+        impl<'de> Visitor<'de> for AccumulatorVisitor {
+            type Value = GroupAccumulator;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("{\"$op\": <expression or struct>}")
+            }
+
+            fn visit_map<M>(self, mut access: M) -> Result<Self::Value, M::Error>
+            where
+                M: MapAccess<'de>,
+            {
+                let kv = access.next_entry::<String, GroupAccumulatorExpr>()?;
+                if let Some((key, value)) = kv {
+                    // If the key does not start with a "$", then it is not an accumulator function.
+                    // Ignore this map and stop attempting to deserialize with this function.
+                    if !key.starts_with('$') {
+                        return Err(serde_err::custom("ignoring key that does not start with $"));
+                    }
+
+                    // Immediately return when we see one key that starts with a "$".
+                    // In a general environment, this would be very brittle, however in this
+                    // controlled test environment, we safely make the assumption that
+                    // a single key that starts with a "$" is present and indicates an operator.
+                    // let value = value.get_as_vec();
+                    return Ok(GroupAccumulator {
+                        function: key,
+                        expr: value,
+                    });
+                }
+
+                Err(serde_err::custom("no accumulator could be parsed"))
+            }
+        }
+
+        const FIELDS: &[&str] = &["function", "expr"];
+        deserializer.deserialize_struct("GroupAccumulator", FIELDS, AccumulatorVisitor)
+    }
+}
+
 /// Custom deserialization function for string constants in agg pipelines.
 fn deserialize_string_or_ref<'de, D>(deserializer: D) -> Result<StringOrRef, D::Error>
 where
@@ -496,7 +552,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                         } else if v <= -1 {
                             air::SortSpecification::Desc(k)
                         } else {
-                            panic!("sort spec cannot be 0 but was for '{}'", k)
+                            panic!("sort spec cannot be 0 but was for '{k}'")
                         }
                     })
                     .collect::<Vec<air::SortSpecification>>();
@@ -507,10 +563,92 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                 })
             }
             // TODO: SQL-1318 finish implementing stages
-            Stage::Group(_) => todo!(),
+            Stage::Group(g) => {
+                let keys = match g.keys {
+                    // keys of form: _id: { name_1: expr_1, ... name_n, expr_n}
+                    Expression::Document(d) => d
+                        .into_iter()
+                        .map(|(k, v)| air::NameExprPair {
+                            name: k,
+                            expr: v.into(),
+                        })
+                        .collect(),
+                    // keys of form: _id: null
+                    Expression::Literal(LiteralValue::Null) => vec![],
+                    _ => panic!(),
+                };
+                let aggregations = g
+                    .aggregations
+                    .into_iter()
+                    .sorted_by(|a, b| Ord::cmp(&a.0, &b.0))
+                    .map(|(key, accumulator_expr)| match accumulator_expr.expr {
+                        // accumulators of form: $<acc>: {"var": <expr>, "distinct": <bool>}
+                        GroupAccumulatorExpr::SqlAccumulator { distinct, var } => {
+                            air::AccumulatorExpr {
+                                alias: key,
+                                function: accumulator_expr.function.into(),
+                                distinct,
+                                arg: Box::new(air::Expression::from(*var)),
+                            }
+                        }
+                        // accumulators of form: $<acc>: <expr>
+                        GroupAccumulatorExpr::NonSqlAccumulator(expr) => {
+                            // $addToSet is used when desugaring distinct sqlOperators
+                            let distinct = accumulator_expr.function == "$addToSet";
+                            air::AccumulatorExpr {
+                                alias: key,
+                                function: accumulator_expr.function.into(),
+                                distinct,
+                                arg: Box::new(expr.into()),
+                            }
+                        }
+                    })
+                    .collect();
+                air::Stage::Group(air::Group {
+                    source: Box::new(source.expect("$group without valid source stage")),
+                    keys,
+                    aggregations,
+                })
+            }
             Stage::Join(_) => todo!(),
             Stage::Unwind(_) => todo!(),
-            Stage::Lookup(_) => todo!(),
+            Stage::Lookup(l) => {
+                let (from_db, from_coll) = match l.from {
+                    Some(LookupFrom::Collection(c)) => (None, Some(c)),
+                    Some(LookupFrom::Namespace(n)) => (Some(n.db), Some(n.coll)),
+                    None => (None, None),
+                };
+                let let_vars = l.let_body.map(|let_body| {
+                    let_body
+                        .into_iter()
+                        // sorted for testing purposes
+                        .sorted_by(|a, b| Ord::cmp(&a.0, &b.0))
+                        .map(|(k, v)| air::LetVariable {
+                            name: k,
+                            expr: Box::new(v.into()),
+                        })
+                        .collect::<Vec<air::LetVariable>>()
+                });
+
+                let source_collection =
+                    make_optional_collection_stage(from_db.clone(), from_coll.clone());
+                let pipeline = l
+                    .pipeline
+                    .into_iter()
+                    .fold(source_collection, |acc, cur| {
+                        Some(air::Stage::from((acc, cur)))
+                    })
+                    .unwrap();
+
+                air::Stage::Lookup(air::Lookup {
+                    source: Box::new(source.expect("$lookup without valid source stage")),
+                    from_db,
+                    from_coll,
+                    let_vars,
+                    pipeline: Box::new(pipeline),
+                    as_var: l.as_var,
+                })
+            }
         }
     }
 }
@@ -805,7 +943,7 @@ fn str_to_air_type(t: String) -> air::Type {
         "symbol" => air::Type::Symbol,
         "timestamp" => air::Type::Timestamp,
         "undefined" => air::Type::Undefined,
-        _ => panic!("invalid $convert or $is target type '{}'", t),
+        _ => panic!("invalid $convert or $is target type '{t}'"),
     }
 }
 
@@ -973,5 +1111,25 @@ fn to_type_or_missing(s: String) -> air::TypeOrMissing {
         "missing" => air::TypeOrMissing::Missing,
         "number" => air::TypeOrMissing::Number,
         _ => air::TypeOrMissing::Type(str_to_air_type(s)),
+    }
+}
+
+impl From<String> for air::AggregationFunction {
+    fn from(s: String) -> Self {
+        match s.as_str() {
+            "$addToSet" => air::AggregationFunction::AddToSet,
+            "$push" | "$sqlPush" => air::AggregationFunction::AddToArray,
+            "$avg" | "$sqlAvg" => air::AggregationFunction::Avg,
+            "$sqlCount" => air::AggregationFunction::Count,
+            "$first" | "$sqlFirst" => air::AggregationFunction::First,
+            "$last" | "$sqlLast" => air::AggregationFunction::Last,
+            "$max" | "$sqlMax" => air::AggregationFunction::Max,
+            "$mergeObjects" | "$sqlMergeObjects" => air::AggregationFunction::MergeDocuments,
+            "$min" | "$sqlMin" => air::AggregationFunction::Min,
+            "$stdDevPop" | "$sqlStdDevPop" => air::AggregationFunction::StddevPop,
+            "$stdDevSamp" | "$sqlStdDevSamp" => air::AggregationFunction::StddevSamp,
+            "$sum" | "$sqlSum" => air::AggregationFunction::Sum,
+            _ => panic!("Recieved invalid Group aggregation function: {s}"),
+        }
     }
 }

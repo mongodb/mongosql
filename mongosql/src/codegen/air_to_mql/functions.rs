@@ -6,6 +6,7 @@ impl MqlCodeGenerator {
         use AggregationFunction::*;
         match mqla {
             AddToArray => "$push",
+            AddToSet => "$addToSet",
             Avg => "$avg",
             Count => unreachable!(),
             First => "$first",
@@ -23,6 +24,7 @@ impl MqlCodeGenerator {
         use AggregationFunction::*;
         match mqla {
             AddToArray => "$sqlPush",
+            AddToSet => unreachable!(),
             Avg => "$sqlAvg",
             Count => "$sqlCount",
             First => "$sqlFirst",

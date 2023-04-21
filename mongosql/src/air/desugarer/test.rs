@@ -56,16 +56,15 @@ struct TestCase {
     expected: Vec<agg_ast::Stage>,
 }
 
-// TODO: SQL-1318 uncomment when agg_ast::Stage::Group is implemented
-// mod accumulators {
-//     use super::*;
-//     use crate::air::desugarer::accumulators::AccumulatorsDesugarerPass;
-//
-//     test_desugarer!(
-//         file = "desugar_accumulators.yml",
-//         desugarer = AccumulatorsDesugarerPass
-//     );
-// }
+mod accumulators {
+    use super::*;
+    use crate::air::desugarer::accumulators::AccumulatorsDesugarerPass;
+
+    test_desugarer!(
+        file = "desugar_accumulators.yml",
+        desugarer = AccumulatorsDesugarerPass
+    );
+}
 
 // TODO: SQL-1318 uncomment when agg_ast::Stage::Join and agg_ast::Unwind is implemented
 // mod joins {

@@ -284,6 +284,354 @@ mod stage {
             })
         );
     }
+
+    mod lookup {
+        use crate::{
+            air::{
+                self,
+                agg_ast::{ast_definitions as agg_ast, from_test::default_source},
+            },
+            unchecked_unique_linked_hash_map,
+        };
+
+        test_from_stage!(
+            empty,
+            expected = air::Stage::Lookup(air::Lookup {
+                source: Box::new(default_source()),
+                from_db: None,
+                from_coll: None,
+                let_vars: None,
+                pipeline: Box::new(default_source()),
+                as_var: "simple".to_string()
+            }),
+            input = agg_ast::Stage::Lookup(agg_ast::Lookup {
+                from: None,
+                let_body: None,
+                pipeline: vec![],
+                as_var: "simple".to_string()
+            })
+        );
+
+        test_from_stage!(
+            lookup_from_collection,
+            expected = air::Stage::Lookup(air::Lookup {
+                source: Box::new(default_source()),
+                from_db: None,
+                from_coll: Some("coll".to_string()),
+                let_vars: None,
+                pipeline: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test".to_string(),
+                    collection: "coll".to_string()
+                })),
+                as_var: "collection".to_string(),
+            }),
+            input = agg_ast::Stage::Lookup(agg_ast::Lookup {
+                from: Some(agg_ast::LookupFrom::Collection("coll".to_string())),
+                let_body: None,
+                pipeline: vec![],
+                as_var: "collection".to_string()
+            })
+        );
+
+        test_from_stage!(
+            lookup_from_namespace,
+            expected = air::Stage::Lookup(air::Lookup {
+                source: Box::new(default_source()),
+                from_db: Some("db".to_string()),
+                from_coll: Some("coll".to_string()),
+                let_vars: None,
+                pipeline: Box::new(air::Stage::Collection(air::Collection {
+                    db: "db".to_string(),
+                    collection: "coll".to_string()
+                })),
+                as_var: "namespace".to_string(),
+            }),
+            input = agg_ast::Stage::Lookup(agg_ast::Lookup {
+                from: Some(agg_ast::LookupFrom::Namespace(agg_ast::Namespace {
+                    db: "db".to_string(),
+                    coll: "coll".to_string()
+                })),
+                let_body: None,
+                pipeline: vec![],
+                as_var: "namespace".to_string()
+            })
+        );
+
+        test_from_stage!(
+            lookup_with_let_vars,
+            expected = air::Stage::Lookup(air::Lookup {
+                source: Box::new(default_source()),
+                from_db: None,
+                from_coll: None,
+                let_vars: Some(vec![
+                    air::LetVariable {
+                        name: "vfoo_a".to_string(),
+                        expr: Box::new(air::Expression::FieldRef(air::FieldRef {
+                            parent: None,
+                            name: "foo_a".to_string()
+                        }))
+                    },
+                    air::LetVariable {
+                        name: "vfoo_b".to_string(),
+                        expr: Box::new(air::Expression::FieldRef(air::FieldRef {
+                            parent: None,
+                            name: "foo_b".to_string()
+                        }))
+                    }
+                ]),
+                pipeline: Box::new(default_source()),
+                as_var: "simple".to_string(),
+            }),
+            input = agg_ast::Stage::Lookup(agg_ast::Lookup {
+                from: None,
+                let_body: Some(
+                    vec![
+                        (
+                            "vfoo_a".to_string(),
+                            agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
+                                "foo_a".to_string()
+                            ))
+                        ),
+                        (
+                            "vfoo_b".to_string(),
+                            agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
+                                "foo_b".to_string()
+                            ))
+                        )
+                    ]
+                    .into_iter()
+                    .collect()
+                ),
+                pipeline: vec![],
+                as_var: "simple".to_string()
+            })
+        );
+
+        test_from_stage!(
+            lookup_with_pipeline,
+            expected = air::Stage::Lookup(air::Lookup {
+                source: Box::new(default_source()),
+                from_db: None,
+                from_coll: None,
+                let_vars: None,
+                pipeline: Box::new(air::Stage::Skip(air::Skip {
+                    source: Box::new(air::Stage::Project(air::Project {
+                        source: Box::new(air::Stage::Project(air::Project {
+                            source: Box::new(air::Stage::Project(air::Project {
+                                source: Box::new(default_source()),
+                                specifications: unchecked_unique_linked_hash_map! {
+                                    "_id".to_string() => air::Expression::Literal(air::LiteralValue::Integer(0)),
+                                    "baz".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                                }
+                            })),
+                            specifications: unchecked_unique_linked_hash_map! {
+                                "_id".to_string() => air::Expression::Literal(air::LiteralValue::Integer(0)),
+                                "baz".to_string() => air::Expression::FieldRef(air::FieldRef{parent: None, name: "baz".to_string()}),
+                            }
+                        })),
+                        specifications: unchecked_unique_linked_hash_map! {
+                            "__bot.a".to_string() => air::Expression::FieldRef(air::FieldRef {
+                                parent: Some(Box::new(air::FieldRef{parent: None, name: "baz".to_string()})),
+                                name: "a".to_string(),
+                            }),
+                            "_id".to_string() => air::Expression::Literal(air::LiteralValue::Integer(0)),
+                        }
+                    })),
+                    skip: 1
+                })),
+                as_var: "simple".to_string(),
+            }),
+            input = agg_ast::Stage::Lookup(agg_ast::Lookup {
+                from: None,
+                let_body: None,
+                pipeline: vec![
+                    agg_ast::Stage::Project(
+                        vec![
+                            (
+                                "_id".to_string(),
+                                agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(0))
+                            ),
+                            (
+                                "baz".to_string(),
+                                agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::Variable(
+                                    "ROOT".to_string()
+                                ))
+                            ),
+                        ]
+                        .into_iter()
+                        .collect()
+                    ),
+                    agg_ast::Stage::Project(
+                        vec![
+                            (
+                                "_id".to_string(),
+                                agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(0))
+                            ),
+                            (
+                                "baz".to_string(),
+                                agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
+                                    "baz".to_string()
+                                ))
+                            ),
+                        ]
+                        .into_iter()
+                        .collect()
+                    ),
+                    agg_ast::Stage::Project(
+                        vec![
+                            (
+                                "_id".to_string(),
+                                agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(0))
+                            ),
+                            (
+                                "__bot.a".to_string(),
+                                agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
+                                    "baz.a".to_string()
+                                ))
+                            ),
+                        ]
+                        .into_iter()
+                        .collect()
+                    ),
+                    agg_ast::Stage::Skip(1)
+                ],
+                as_var: "simple".to_string()
+            })
+        );
+    }
+
+    mod group {
+        use crate::{
+            air::{
+                self,
+                agg_ast::{ast_definitions as agg_ast, from_test::default_source},
+            },
+            map,
+        };
+
+        test_from_stage!(
+            group_null_id_no_acc,
+            expected = air::Stage::Group(air::Group {
+                source: Box::new(default_source()),
+                keys: vec![],
+                aggregations: vec![]
+            }),
+            input = agg_ast::Stage::Group(agg_ast::Group {
+                keys: agg_ast::Expression::Literal(agg_ast::LiteralValue::Null),
+                aggregations: map! {}
+            })
+        );
+
+        test_from_stage!(
+            group_with_single_acc,
+            expected = air::Stage::Group(air::Group {
+                source: Box::new(default_source()),
+                keys: vec![],
+                aggregations: vec![air::AccumulatorExpr {
+                    alias: "acc".to_string(),
+                    function: air::AggregationFunction::Sum,
+                    distinct: true,
+                    arg: Box::new(air::Expression::FieldRef(air::FieldRef {
+                        parent: None,
+                        name: "a".to_string()
+                    }))
+                }]
+            }),
+            input = agg_ast::Stage::Group(agg_ast::Group {
+                keys: agg_ast::Expression::Literal(agg_ast::LiteralValue::Null),
+                aggregations: map! {
+                    "acc".to_string() => agg_ast::GroupAccumulator {
+                        function: "$sqlSum".to_string(),
+                        expr: agg_ast::GroupAccumulatorExpr::SqlAccumulator {
+                            distinct: true,
+                            var: Box::new(agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("a".to_string())))
+                        }
+                    }
+                }
+            })
+        );
+
+        test_from_stage!(
+            group_with_keys_and_multiple_acc,
+            expected = air::Stage::Group(air::Group {
+                source: Box::new(default_source()),
+                keys: vec![air::NameExprPair {
+                    name: "a".to_string(),
+                    expr: air::Expression::FieldRef(air::FieldRef {
+                        parent: None,
+                        name: "a".to_string()
+                    })
+                }],
+                aggregations: vec![
+                    air::AccumulatorExpr {
+                        alias: "acc_one".to_string(),
+                        function: air::AggregationFunction::Sum,
+                        distinct: true,
+                        arg: Box::new(air::Expression::FieldRef(air::FieldRef {
+                            parent: None,
+                            name: "a".to_string()
+                        }))
+                    },
+                    air::AccumulatorExpr {
+                        alias: "acc_two".to_string(),
+                        function: air::AggregationFunction::Avg,
+                        distinct: true,
+                        arg: Box::new(air::Expression::FieldRef(air::FieldRef {
+                            parent: None,
+                            name: "b".to_string()
+                        }))
+                    },
+                ]
+            }),
+            input = agg_ast::Stage::Group(agg_ast::Group {
+                keys: agg_ast::Expression::Document(map! {
+                    "a".to_string() => agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("a".to_string()))
+                },),
+                aggregations: map! {
+                    "acc_one".to_string() => agg_ast::GroupAccumulator {
+                        function: "$sqlSum".to_string(),
+                        expr: agg_ast::GroupAccumulatorExpr::SqlAccumulator {
+                            distinct: true,
+                            var: Box::new(agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("a".to_string())))
+                        },
+                    },
+                    "acc_two".to_string() => agg_ast::GroupAccumulator {
+                        function: "$sqlAvg".to_string(),
+                        expr: agg_ast::GroupAccumulatorExpr::SqlAccumulator {
+                            distinct: true,
+                            var: Box::new(agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("b".to_string())))
+                        },
+                    },
+                }
+            })
+        );
+
+        test_from_stage!(
+            group_with_non_sql_acc,
+            expected = air::Stage::Group(air::Group {
+                source: Box::new(default_source()),
+                keys: vec![],
+                aggregations: vec![air::AccumulatorExpr {
+                    alias: "acc".to_string(),
+                    function: air::AggregationFunction::AddToSet,
+                    distinct: true,
+                    arg: Box::new(air::Expression::FieldRef(air::FieldRef {
+                        parent: None,
+                        name: "a".to_string()
+                    }))
+                }]
+            }),
+            input = agg_ast::Stage::Group(agg_ast::Group {
+                keys: agg_ast::Expression::Literal(agg_ast::LiteralValue::Null),
+                aggregations: map! {
+                    "acc".to_string() => agg_ast::GroupAccumulator {
+                        function: "$addToSet".to_string(),
+                        expr: agg_ast::GroupAccumulatorExpr::NonSqlAccumulator(agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("a".to_string()))),
+                    }
+                }
+            })
+        );
+    }
 }
 
 mod expression {
