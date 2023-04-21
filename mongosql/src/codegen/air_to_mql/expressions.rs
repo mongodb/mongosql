@@ -26,7 +26,7 @@ impl MqlCodeGenerator {
             SqlDivide(sd) => self.codegen_sql_divide(sd),
             Trim(trim) => self.codegen_trim(trim),
             Subquery(s) => self.codegen_subquery_expr(s),
-            SubqueryComparison(_) => Err(Error::UnimplementedAIR),
+            SubqueryComparison(sc) => self.codegen_subquery_comparison(sc),
             SubqueryExists(se) => self.codegen_subquery_exists(se),
             Array(array) => self.codegen_array(array),
             Document(document) => self.codegen_document(document),
@@ -291,16 +291,16 @@ impl MqlCodeGenerator {
         Ok(bson!({"$sqlDivide": {"dividend": dividend, "divisor": divisor, "onError": on_error}}))
     }
 
-    fn codegen_subquery_expr(&self, subquery: air::Subquery) -> Result<Bson> {
-        Ok(
-            bson!({ "$subquery": self.codegen_subquery(*subquery.pipeline, subquery.let_bindings, Some(subquery.output_path))? }),
-        )
-    }
-
-    fn codegen_subquery_exists(&self, subquery_exists: air::SubqueryExists) -> Result<Bson> {
-        Ok(
-            bson!({ "$subqueryExists": self.codegen_subquery(*subquery_exists.pipeline, subquery_exists.let_bindings, None)? }),
-        )
+    fn codegen_trim(&self, trim: air::Trim) -> Result<Bson> {
+        let op = match trim.op {
+            TrimOperator::Trim => "$trim",
+            TrimOperator::LTrim => "$ltrim",
+            TrimOperator::RTrim => "$rtrim",
+        };
+        Ok(Bson::Document(doc! {
+            op: {"input": self.codegen_air_expression(*trim.input)?,
+                "chars": self.codegen_air_expression(*trim.chars)?}
+        }))
     }
 
     fn codegen_subquery(
@@ -328,13 +328,58 @@ impl MqlCodeGenerator {
 
         subquery_body.insert("let", let_bindings);
 
-        if let Some(out_path) = output_path {
-            subquery_body.insert("outputPath", out_path);
+        if let Some(output_path) = output_path {
+            subquery_body.insert("outputPath", output_path);
         }
 
         subquery_body.insert("pipeline", pipeline_translation.pipeline);
 
         Ok(bson!(subquery_body))
+    }
+
+    fn codegen_subquery_expr(&self, subquery: air::Subquery) -> Result<Bson> {
+        Ok(
+            bson!({ "$subquery": self.codegen_subquery(*subquery.pipeline, subquery.let_bindings, Some(subquery.output_path))? }),
+        )
+    }
+
+    fn codegen_subquery_comparison(&self, sc: air::SubqueryComparison) -> Result<Bson> {
+        use air::{SubqueryComparisonOp::*, SubqueryModifier::*};
+
+        let op = match sc.op {
+            Lt => "lt",
+            Lte => "lte",
+            Neq => "ne",
+            Eq => "eq",
+            Gt => "gt",
+            Gte => "gte",
+        };
+
+        let modifier = match sc.modifier {
+            Any => "any",
+            All => "all",
+        };
+
+        let arg = self.codegen_air_expression(*sc.arg)?;
+
+        let subquery = self.codegen_subquery(
+            *sc.subquery.pipeline,
+            sc.subquery.let_bindings,
+            Some(sc.subquery.output_path),
+        )?;
+
+        Ok(bson!({"$subqueryComparison": {
+            "op": op,
+            "modifier": modifier,
+            "arg": arg,
+            "subquery": subquery
+        }}))
+    }
+
+    fn codegen_subquery_exists(&self, subquery_exists: air::SubqueryExists) -> Result<Bson> {
+        Ok(
+            bson!({ "$subqueryExists": self.codegen_subquery(*subquery_exists.pipeline, subquery_exists.let_bindings, None)? }),
+        )
     }
 
     fn codegen_array(&self, array: Vec<air::Expression>) -> Result<Bson> {
@@ -359,18 +404,6 @@ impl MqlCodeGenerator {
                     .map(|(k, v)| Ok((k, self.codegen_air_expression(v)?)))
                     .collect::<Result<bson::Document>>()?
             }
-        }))
-    }
-
-    fn codegen_trim(&self, trim: air::Trim) -> Result<Bson> {
-        let op = match trim.op {
-            TrimOperator::Trim => "$trim",
-            TrimOperator::LTrim => "$ltrim",
-            TrimOperator::RTrim => "$rtrim",
-        };
-        Ok(Bson::Document(doc! {
-            op: {"input": self.codegen_air_expression(*trim.input)?,
-                "chars": self.codegen_air_expression(*trim.chars)?}
         }))
     }
 }
