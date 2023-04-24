@@ -66,16 +66,12 @@ mod accumulators {
     );
 }
 
-// TODO: SQL-1318 uncomment when agg_ast::Stage::Join and agg_ast::Unwind is implemented
-// mod joins {
-//     use super::*;
-//     use crate::air::desugarer::join::JoinDesugarerPass;
-//
-//     test_desugarer!(
-//         file = "desugar_joins.yml",
-//         desugarer = JoinDesugarerPass
-//     );
-// }
+mod joins {
+    use super::*;
+    use crate::air::desugarer::join::JoinDesugarerPass;
+
+    test_desugarer!(file = "desugar_joins.yml", desugarer = JoinDesugarerPass);
+}
 
 mod lookups {
     use super::*;

@@ -101,15 +101,23 @@ pub(crate) struct Join {
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub(crate) enum JoinType {
     Inner,
     Left,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
+#[serde(untagged)]
+pub(crate) enum Unwind {
+    Document(UnwindExpr),
+    FieldPath(Expression),
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub(crate) struct Unwind {
-    pub(crate) path: String,
+pub(crate) struct UnwindExpr {
+    pub(crate) path: Box<Expression>,
     pub(crate) include_array_index: Option<String>,
     pub(crate) preserve_null_and_empty_arrays: Option<bool>,
 }
@@ -562,7 +570,6 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                     specs,
                 })
             }
-            // TODO: SQL-1318 finish implementing stages
             Stage::Group(g) => {
                 let keys = match g.keys {
                     // keys of form: _id: { name_1: expr_1, ... name_n, expr_n}
@@ -610,8 +617,62 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                     aggregations,
                 })
             }
-            Stage::Join(_) => todo!(),
-            Stage::Unwind(_) => todo!(),
+            Stage::Join(j) => {
+                let join_type = match j.join_type {
+                    JoinType::Inner => air::JoinType::Inner,
+                    JoinType::Left => air::JoinType::Left,
+                };
+                let let_vars = j.let_body.map(|body| {
+                    body.into_iter()
+                        .map(|(k, v)| air::LetVariable {
+                            name: k,
+                            expr: Box::new(v.into()),
+                        })
+                        .collect()
+                });
+
+                // seed the right pipeline with the collection. If the db and/or collection aren't specified, use defaults
+                let source_collection = make_optional_collection_stage(j.database, j.collection);
+
+                // right source is the join pipeline
+                let right = j
+                    .pipeline
+                    .into_iter()
+                    .fold(source_collection, |air_stage, agg_ast_stage| {
+                        Some(air::Stage::from((air_stage, agg_ast_stage)))
+                    });
+
+                // assert condition stage is a match, and parse the expr
+                let condition = j.condition.map(|stage| match stage {
+                    Stage::Match(m) => match m {
+                        MatchExpression::Expr(e) => air::Expression::from(*e.expr),
+                        MatchExpression::NonExpr(e) => e.into(),
+                    },
+                    _ => panic!("$join condition should be $match stage"),
+                });
+
+                air::Stage::Join(air::Join {
+                    join_type,
+                    left: Box::new(source.expect("$join without valid source stage")),
+                    right: Box::new(right.unwrap()),
+                    let_vars,
+                    condition,
+                })
+            }
+            Stage::Unwind(u) => match u {
+                Unwind::FieldPath(path) => air::Stage::Unwind(air::Unwind {
+                    source: Box::new(source.expect("$unwind without valid source stage")),
+                    path: Box::new(path.into()),
+                    index: None,
+                    outer: false,
+                }),
+                Unwind::Document(d) => air::Stage::Unwind(air::Unwind {
+                    source: Box::new(source.expect("$unwind without valid source stage")),
+                    path: d.path.into(),
+                    index: d.include_array_index,
+                    outer: d.preserve_null_and_empty_arrays.unwrap_or(false),
+                }),
+            },
             Stage::Lookup(l) => {
                 let (from_db, from_coll) = match l.from {
                     Some(LookupFrom::Collection(c)) => (None, Some(c)),

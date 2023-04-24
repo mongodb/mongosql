@@ -758,7 +758,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "Preserve _id when desugaring subquery expression nested in a group"
-    skip_reason: "SQL-1318"
+    skip_reason: "SQL-1255"
     input:
       - {
         "$group": {

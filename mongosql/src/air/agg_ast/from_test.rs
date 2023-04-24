@@ -285,6 +285,280 @@ mod stage {
         );
     }
 
+    mod unwind {
+        use crate::air::{
+            self,
+            agg_ast::{ast_definitions as agg_ast, from_test::default_source},
+        };
+
+        test_from_stage!(
+            unwind_field_path,
+            expected = air::Stage::Unwind(air::Unwind {
+                source: Box::new(default_source()),
+                path: Box::new(air::Expression::FieldRef(air::FieldRef {
+                    parent: None,
+                    name: "eca58228-b657-498a-b76e-f48a9161a404".to_string()
+                })),
+                index: None,
+                outer: false
+            }),
+            input = agg_ast::Stage::Unwind(agg_ast::Unwind::FieldPath(
+                agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
+                    "eca58228-b657-498a-b76e-f48a9161a404".to_string()
+                ))
+            ))
+        );
+
+        test_from_stage!(
+            unwind_document_no_options,
+            expected = air::Stage::Unwind(air::Unwind {
+                source: Box::new(default_source()),
+                path: Box::new(air::Expression::FieldRef(air::FieldRef {
+                    parent: None,
+                    name: "array".to_string()
+                })),
+                index: None,
+                outer: false
+            }),
+            input = agg_ast::Stage::Unwind(agg_ast::Unwind::Document(agg_ast::UnwindExpr {
+                path: Box::new(agg_ast::Expression::StringOrRef(
+                    agg_ast::StringOrRef::FieldRef("array".to_string())
+                )),
+                include_array_index: None,
+                preserve_null_and_empty_arrays: None
+            }))
+        );
+
+        test_from_stage!(
+            unwind_document_all_options,
+            expected = air::Stage::Unwind(air::Unwind {
+                source: Box::new(default_source()),
+                path: Box::new(air::Expression::FieldRef(air::FieldRef {
+                    parent: None,
+                    name: "array".to_string()
+                })),
+                index: Some("i".to_string()),
+                outer: true
+            }),
+            input = agg_ast::Stage::Unwind(agg_ast::Unwind::Document(agg_ast::UnwindExpr {
+                path: Box::new(agg_ast::Expression::StringOrRef(
+                    agg_ast::StringOrRef::FieldRef("array".to_string())
+                )),
+                include_array_index: Some("i".to_string()),
+                preserve_null_and_empty_arrays: Some(true)
+            }))
+        );
+    }
+
+    mod join {
+        use crate::{
+            air::{
+                self,
+                agg_ast::{ast_definitions as agg_ast, from_test::default_source},
+            },
+            map, unchecked_unique_linked_hash_map,
+        };
+
+        test_from_stage!(
+            inner_join,
+            expected = air::Stage::Join(air::Join {
+                join_type: air::JoinType::Inner,
+                left: Box::new(default_source()),
+                right: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test".to_string(),
+                    collection: "bar".to_string()
+                })),
+                let_vars: None,
+                condition: None
+            }),
+            input = agg_ast::Stage::Join(Box::new(agg_ast::Join {
+                database: None,
+                collection: Some("bar".to_string()),
+                let_body: None,
+                join_type: agg_ast::JoinType::Inner,
+                pipeline: vec![],
+                condition: None
+            }))
+        );
+
+        test_from_stage!(
+            left_join_with_db,
+            expected = air::Stage::Join(air::Join {
+                join_type: air::JoinType::Left,
+                left: Box::new(default_source()),
+                right: Box::new(air::Stage::Collection(air::Collection {
+                    db: "db".to_string(),
+                    collection: "bar".to_string()
+                })),
+                let_vars: None,
+                condition: None
+            }),
+            input = agg_ast::Stage::Join(Box::new(agg_ast::Join {
+                database: Some("db".to_string()),
+                collection: Some("bar".to_string()),
+                let_body: None,
+                join_type: agg_ast::JoinType::Left,
+                pipeline: vec![],
+                condition: None
+            }))
+        );
+
+        test_from_stage!(
+            join_with_no_collection_and_pipeline,
+            expected = air::Stage::Join(air::Join {
+                join_type: air::JoinType::Inner,
+                left: Box::new(default_source()),
+                right: Box::new(air::Stage::Documents(air::Documents {
+                    array: vec![
+                        air::Expression::Document(unchecked_unique_linked_hash_map! {
+                            "a".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+                        }),
+                        air::Expression::Document(unchecked_unique_linked_hash_map! {
+                            "a".to_string() => air::Expression::Literal(air::LiteralValue::Integer(2))
+                        }),
+                        air::Expression::Document(unchecked_unique_linked_hash_map! {
+                            "a".to_string() => air::Expression::Literal(air::LiteralValue::Integer(3))
+                        }),
+                    ],
+                })),
+                let_vars: None,
+                condition: None
+            }),
+            input = agg_ast::Stage::Join(Box::new(agg_ast::Join {
+                database: None,
+                collection: None,
+                let_body: None,
+                join_type: agg_ast::JoinType::Inner,
+                pipeline: vec![agg_ast::Stage::Documents(vec![
+                    map! {"a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1)) },
+                    map! {"a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(2)) },
+                    map! {"a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(3)) },
+                ])],
+                condition: None
+            }))
+        );
+
+        test_from_stage!(
+            join_with_let_vars_and_condition,
+            expected = air::Stage::Join(air::Join {
+                join_type: air::JoinType::Inner,
+                left: Box::new(default_source()),
+                right: Box::new(air::Stage::Project(air::Project {
+                    source: Box::new(air::Stage::Collection(air::Collection {
+                        db: "test".to_string(),
+                        collection: "bar".to_string()
+                    })),
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "_id".to_string() => air::Expression::Literal(air::LiteralValue::Integer(0)),
+                        "x".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1)),
+                    }
+                })),
+                let_vars: Some(vec![air::LetVariable {
+                    name: "x".to_string(),
+                    expr: Box::new(air::Expression::FieldRef(air::FieldRef {
+                        parent: None,
+                        name: "x".to_string()
+                    }))
+                }]),
+                condition: Some(air::Expression::SQLSemanticOperator(
+                    air::SQLSemanticOperator {
+                        op: air::SQLOperator::Eq,
+                        args: vec![
+                            air::Expression::Variable("x".to_string().into()),
+                            air::Expression::FieldRef(air::FieldRef {
+                                parent: None,
+                                name: "x".to_string()
+                            })
+                        ]
+                    }
+                ))
+            }),
+            input = agg_ast::Stage::Join(Box::new(agg_ast::Join {
+                database: None,
+                collection: Some("bar".to_string()),
+                let_body: Some(map! {
+                    "x".to_string() => agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("x".to_string()))
+                }),
+                join_type: agg_ast::JoinType::Inner,
+                pipeline: vec![agg_ast::Stage::Project(map! {
+                    "_id".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(0)),
+                    "x".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1)),
+                })],
+                condition: Some(agg_ast::Stage::Match(agg_ast::MatchExpression::Expr(
+                    agg_ast::MatchExpr {
+                        expr: Box::new(agg_ast::Expression::UntaggedOperator(
+                            agg_ast::UntaggedOperator {
+                                op: "$sqlEq".to_string(),
+                                args: vec![
+                                    agg_ast::Expression::StringOrRef(
+                                        agg_ast::StringOrRef::Variable("x".to_string())
+                                    ),
+                                    agg_ast::Expression::StringOrRef(
+                                        agg_ast::StringOrRef::FieldRef("x".to_string())
+                                    ),
+                                ]
+                            }
+                        ))
+                    }
+                )))
+            }))
+        );
+
+        test_from_stage!(
+            nested_join,
+            expected = air::Stage::Join(air::Join {
+                join_type: air::JoinType::Inner,
+                left: Box::new(default_source()),
+                right: Box::new(air::Stage::Join(air::Join {
+                    join_type: air::JoinType::Inner,
+                    left: Box::new(air::Stage::Collection(air::Collection {
+                        db: "test".to_string(),
+                        collection: "bar".to_string()
+                    })),
+                    right: Box::new(air::Stage::Join(air::Join {
+                        join_type: air::JoinType::Inner,
+                        left: Box::new(air::Stage::Collection(air::Collection {
+                            db: "test".to_string(),
+                            collection: "baz".to_string(),
+                        })),
+                        right: Box::new(air::Stage::Collection(air::Collection {
+                            db: "test".to_string(),
+                            collection: "car".to_string()
+                        })),
+                        let_vars: None,
+                        condition: None
+                    })),
+                    let_vars: None,
+                    condition: None
+                })),
+                let_vars: None,
+                condition: None
+            }),
+            input = agg_ast::Stage::Join(Box::new(agg_ast::Join {
+                database: None,
+                collection: Some("bar".to_string()),
+                let_body: None,
+                join_type: agg_ast::JoinType::Inner,
+                pipeline: vec![agg_ast::Stage::Join(Box::new(agg_ast::Join {
+                    database: None,
+                    collection: Some("baz".to_string()),
+                    join_type: agg_ast::JoinType::Inner,
+                    let_body: None,
+                    pipeline: vec![agg_ast::Stage::Join(Box::new(agg_ast::Join {
+                        database: None,
+                        collection: Some("car".to_string()),
+                        join_type: agg_ast::JoinType::Inner,
+                        let_body: None,
+                        pipeline: vec![],
+                        condition: None
+                    }))],
+                    condition: None
+                }))],
+                condition: None
+            }))
+        );
+    }
+
     mod lookup {
         use crate::{
             air::{

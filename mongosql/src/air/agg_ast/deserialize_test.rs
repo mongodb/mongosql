@@ -226,6 +226,202 @@ mod stage_test {
         );
     }
 
+    mod unwind {
+        use crate::air::agg_ast::ast_definitions::{
+            Expression, Stage, StringOrRef, Unwind, UnwindExpr,
+        };
+
+        test_deserialize_stage!(
+            unwind_field_ref,
+            expected = Stage::Unwind(Unwind::FieldPath(Expression::StringOrRef(
+                StringOrRef::FieldRef("eca58228-b657-498a-b76e-f48a9161a404".to_string())
+            ))),
+            input = r#"stage: { "$unwind": "$eca58228-b657-498a-b76e-f48a9161a404" }"#
+        );
+
+        test_deserialize_stage!(
+            unwind_document_no_options,
+            expected = Stage::Unwind(Unwind::Document(UnwindExpr {
+                path: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "array".to_string()
+                ))),
+                include_array_index: None,
+                preserve_null_and_empty_arrays: None
+            })),
+            input = r#"stage: {"$unwind": {"path": "$array"}}"#
+        );
+
+        test_deserialize_stage!(
+            unwind_document_all_options,
+            expected = Stage::Unwind(Unwind::Document(UnwindExpr {
+                path: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "array".to_string()
+                ))),
+                include_array_index: Some("i".to_string()),
+                preserve_null_and_empty_arrays: Some(true)
+            })),
+            input = r#"stage: {"$unwind": {"path": "$array", "includeArrayIndex": "i", "preserveNullAndEmptyArrays": true }}"#
+        );
+    }
+
+    mod join {
+        use crate::{
+            air::agg_ast::ast_definitions::{
+                Expression, Join, JoinType, LiteralValue, MatchExpr, MatchExpression, Stage,
+                StringOrRef, UntaggedOperator,
+            },
+            map,
+        };
+
+        test_deserialize_stage!(
+            inner_join,
+            expected = Stage::Join(Box::new(Join {
+                database: None,
+                collection: Some("bar".to_string()),
+                let_body: None,
+                join_type: JoinType::Inner,
+                pipeline: vec![],
+                condition: None
+            })),
+            input =
+                r#"stage: {"$join": {"collection": "bar", "joinType": "inner", "pipeline": [] }}"#
+        );
+
+        test_deserialize_stage!(
+            left_join_with_db,
+            expected = Stage::Join(Box::new(Join {
+                database: Some("db".to_string()),
+                collection: Some("bar".to_string()),
+                let_body: None,
+                join_type: JoinType::Left,
+                pipeline: vec![],
+                condition: None
+            })),
+            input = r#"stage: { "$join":
+                  {
+                    "database": "db",
+                    "collection": "bar",
+                    "joinType": "left",
+                    "pipeline": [],
+                  },
+              }"#
+        );
+
+        test_deserialize_stage!(
+            join_with_no_collection_and_pipeline,
+            expected = Stage::Join(Box::new(Join {
+                database: None,
+                collection: None,
+                let_body: None,
+                join_type: JoinType::Inner,
+                pipeline: vec![Stage::Documents(vec![
+                    map! {"a".to_string() => Expression::Literal(LiteralValue::Integer(1)) },
+                    map! {"a".to_string() => Expression::Literal(LiteralValue::Integer(2)) },
+                    map! {"a".to_string() => Expression::Literal(LiteralValue::Integer(3)) },
+                ])],
+                condition: None
+            })),
+            input = r#"stage: {
+                "$join":
+                  {
+                    "joinType": "inner",
+                    "pipeline":
+                      [{ "$documents": [{ "a": 1 }, { "a": 2 }, { "a": 3 }] }],
+                  },
+              }"#
+        );
+
+        test_deserialize_stage!(
+            join_with_let_vars_and_condition,
+            expected = Stage::Join(Box::new(Join {
+                database: None,
+                collection: Some("bar".to_string()),
+                let_body: Some(map! {
+                    "x".to_string() => Expression::StringOrRef(StringOrRef::FieldRef("x".to_string()))
+                }),
+                join_type: JoinType::Inner,
+                pipeline: vec![Stage::Project(map! {
+                    "_id".to_string() => Expression::Literal(LiteralValue::Integer(0)),
+                    "x".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+                })],
+                condition: Some(Stage::Match(MatchExpression::Expr(MatchExpr {
+                    expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
+                        op: "$sqlEq".to_string(),
+                        args: vec![
+                            Expression::StringOrRef(StringOrRef::Variable("x".to_string())),
+                            Expression::StringOrRef(StringOrRef::FieldRef("x".to_string())),
+                        ]
+                    }))
+                })))
+            })),
+            input = r#"stage: {
+                "$join":
+                  {
+                    "collection": "bar",
+                    "joinType": "inner",
+                    "let": { "x": "$x" },
+                    "pipeline": [{ "$project": { "_id": 0, "x": 1 } }],
+                    "condition":
+                      { "$match": { "$expr": { "$sqlEq": ["$$x", "$x"] } } },
+                  },
+              }"#
+        );
+
+        test_deserialize_stage!(
+            nested_join,
+            expected = Stage::Join(Box::new(Join {
+                database: None,
+                collection: Some("bar".to_string()),
+                let_body: None,
+                join_type: JoinType::Inner,
+                pipeline: vec![Stage::Join(Box::new(Join {
+                    database: None,
+                    collection: Some("baz".to_string()),
+                    join_type: JoinType::Inner,
+                    let_body: None,
+                    pipeline: vec![Stage::Join(Box::new(Join {
+                        database: None,
+                        collection: Some("car".to_string()),
+                        join_type: JoinType::Inner,
+                        let_body: None,
+                        pipeline: vec![],
+                        condition: None
+                    }))],
+                    condition: None
+                }))],
+                condition: None
+            })),
+            input = r#"stage: {
+                "$join":
+                  {
+                    "collection": "bar",
+                    "joinType": "inner",
+                    "pipeline":
+                      [
+                        {
+                          "$join":
+                            {
+                              "collection": "baz",
+                              "joinType": "inner",
+                              "pipeline":
+                                [
+                                  {
+                                    "$join":
+                                      {
+                                        "collection": "car",
+                                        "joinType": "inner",
+                                        "pipeline": [],
+                                      },
+                                  },
+                                ],
+                            },
+                        },
+                      ],
+                  },
+              }"#
+        );
+    }
+
     mod lookup_test {
         use crate::{
             air::agg_ast::ast_definitions::{
