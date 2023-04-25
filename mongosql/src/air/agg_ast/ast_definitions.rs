@@ -702,8 +702,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                         .collect::<Vec<air::LetVariable>>()
                 });
 
-                let source_collection =
-                    make_optional_collection_stage(from_db.clone(), from_coll.clone());
+                let source_collection = make_optional_collection_stage(from_db, from_coll);
                 let pipeline = l
                     .pipeline
                     .into_iter()
@@ -714,8 +713,6 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
 
                 air::Stage::Lookup(air::Lookup {
                     source: Box::new(source.expect("$lookup without valid source stage")),
-                    from_db,
-                    from_coll,
                     let_vars,
                     pipeline: Box::new(pipeline),
                     as_var: l.as_var,

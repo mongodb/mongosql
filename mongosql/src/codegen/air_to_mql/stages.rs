@@ -114,20 +114,19 @@ impl MqlCodeGenerator {
     }
 
     fn codegen_lookup(&self, air_lookup: air::Lookup) -> Result<MqlTranslation> {
-        let lookup_pipeline_translation = self.codegen_air_stage(*air_lookup.pipeline)?.pipeline;
+        let lookup_pipeline_translation = self.codegen_air_stage(*air_lookup.pipeline)?;
         let source_translation = self.codegen_air_stage(*air_lookup.source)?;
         let mut pipeline = source_translation.pipeline;
-        let mut lookup_doc = doc! {
-            "as": air_lookup.as_var,
-            "pipeline": lookup_pipeline_translation,
-        };
-        match (air_lookup.from_db, air_lookup.from_coll) {
-            (None, Some(from_coll)) => lookup_doc.extend(doc! {"from": from_coll}),
+        let mut lookup_doc = match (
+            lookup_pipeline_translation.database,
+            lookup_pipeline_translation.collection,
+        ) {
+            (None, Some(from_coll)) => doc! {"from": from_coll},
             (Some(from_db), Some(from_coll)) => {
-                lookup_doc.extend(doc! {"from": {"db": from_db, "coll": from_coll}})
+                doc! {"from": {"db": from_db, "coll": from_coll}}
             }
-            _ => {}
-        }
+            _ => doc! {},
+        };
         if let Some(let_vars) = air_lookup.let_vars {
             lookup_doc.extend(doc! { "let":
                 let_vars
@@ -136,6 +135,10 @@ impl MqlCodeGenerator {
                     .collect::<Result<bson::Document>>()?
             });
         }
+        lookup_doc.extend(doc! {
+            "pipeline": lookup_pipeline_translation.pipeline,
+            "as": air_lookup.as_var,
+        });
         pipeline.push(doc! {"$lookup": lookup_doc});
         Ok(MqlTranslation {
             database: source_translation.database,

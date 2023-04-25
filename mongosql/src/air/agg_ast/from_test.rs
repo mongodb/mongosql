@@ -572,8 +572,6 @@ mod stage {
             empty,
             expected = air::Stage::Lookup(air::Lookup {
                 source: Box::new(default_source()),
-                from_db: None,
-                from_coll: None,
                 let_vars: None,
                 pipeline: Box::new(default_source()),
                 as_var: "simple".to_string()
@@ -590,8 +588,6 @@ mod stage {
             lookup_from_collection,
             expected = air::Stage::Lookup(air::Lookup {
                 source: Box::new(default_source()),
-                from_db: None,
-                from_coll: Some("coll".to_string()),
                 let_vars: None,
                 pipeline: Box::new(air::Stage::Collection(air::Collection {
                     db: "test".to_string(),
@@ -611,8 +607,6 @@ mod stage {
             lookup_from_namespace,
             expected = air::Stage::Lookup(air::Lookup {
                 source: Box::new(default_source()),
-                from_db: Some("db".to_string()),
-                from_coll: Some("coll".to_string()),
                 let_vars: None,
                 pipeline: Box::new(air::Stage::Collection(air::Collection {
                     db: "db".to_string(),
@@ -635,8 +629,6 @@ mod stage {
             lookup_with_let_vars,
             expected = air::Stage::Lookup(air::Lookup {
                 source: Box::new(default_source()),
-                from_db: None,
-                from_coll: None,
                 let_vars: Some(vec![
                     air::LetVariable {
                         name: "vfoo_a".to_string(),
@@ -685,8 +677,6 @@ mod stage {
             lookup_with_pipeline,
             expected = air::Stage::Lookup(air::Lookup {
                 source: Box::new(default_source()),
-                from_db: None,
-                from_coll: None,
                 let_vars: None,
                 pipeline: Box::new(air::Stage::Skip(air::Skip {
                     source: Box::new(air::Stage::Project(air::Project {

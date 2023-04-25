@@ -707,14 +707,12 @@ mod lookup {
     use crate::air::*;
 
     macro_rules! test_input {
-        ($from_coll:expr, $from_db:expr, $let_vars:expr) => {
+        ($let_vars:expr) => {
             Stage::Lookup(Lookup {
                 source: Box::new(Stage::Collection(Collection {
                     db: "mydb".to_string(),
                     collection: "col".to_string(),
                 })),
-                from_db: $from_db,
-                from_coll: $from_coll,
                 let_vars: $let_vars,
                 pipeline: Box::new(Stage::Collection(Collection {
                     db: "mydb".to_string(),
@@ -726,47 +724,47 @@ mod lookup {
     }
 
     test_codegen_air_stage!(
-        lookup_with_no_optional_fields,
+        with_no_from,
         expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
-                bson::doc! {"$lookup": {"pipeline": [], "as": "as_var"}},
+                bson::doc! {"$lookup": {"pipeline": [{"$documents": []}], "as": "as_var"}},
             ],
         }),
-        input = test_input!(None, None, None),
+        input = Stage::Lookup(Lookup {
+            source: Box::new(Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            })),
+            let_vars: None,
+            pipeline: Box::new(Stage::Documents(Documents {
+                array: vec![],
+            })),
+            as_var: "as_var".to_string()
+        }),
     );
 
     test_codegen_air_stage!(
-        lookup_with_from_coll,
+        with_no_let_vars,
         expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
-                bson::doc! {"$lookup": {"from": "from_coll", "pipeline": [], "as": "as_var"}},
+                bson::doc! {"$lookup": {"from": {"db": "mydb", "coll": "col"}, "pipeline": [], "as": "as_var"}},
             ],
         }),
-        input = test_input!(Some("from_coll".to_string()), None, None),
+        input = test_input!(None),
     );
+
     test_codegen_air_stage!(
-        lookup_with_from_db,
-        expected = Ok({
-            database: Some("mydb".to_string()),
-            collection: Some("col".to_string()),
-            pipeline: vec![
-                bson::doc! {"$lookup": {"from": {"db": "from_db", "coll": "from_coll"}, "pipeline": [], "as": "as_var"}},
-            ],
-        }),
-        input = test_input!(Some("from_coll".to_string()), Some("from_db".to_string()), None),
-    );
-    test_codegen_air_stage!(
-        lookup_with_single_let_var,
+        with_single_let_var,
         expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
                 bson::doc! {"$lookup": {
-                    "from": {"db": "from_db", "coll": "from_coll"},
+                    "from": {"db": "mydb", "coll": "col"},
                     "let": {"x": {"$literal": 9}},
                     "pipeline": [],
                     "as": "as_var"
@@ -774,19 +772,18 @@ mod lookup {
             ],
         }),
         input = test_input!(
-            Some("from_coll".to_string()),
-            Some("from_db".to_string()),
             Some(vec![LetVariable{name: "x".to_string(), expr: Box::new(Expression::Literal(LiteralValue::Integer(9)))}])
         ),
     );
+
     test_codegen_air_stage!(
-        lookup_with_multiple_let_vars,
+        with_multiple_let_vars,
         expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
                 bson::doc! {"$lookup": {
-                    "from": {"db": "from_db", "coll": "from_coll"},
+                    "from": {"db": "mydb", "coll": "col"},
                     "let": {
                         "x": {"$literal": 9},
                         "y": "$a"
@@ -797,8 +794,6 @@ mod lookup {
             ],
         }),
         input = test_input!(
-            Some("from_coll".to_string()),
-            Some("from_db".to_string()),
             Some(vec![
                 LetVariable{name: "x".to_string(), expr: Box::new(Expression::Literal(LiteralValue::Integer(9)))},
                 LetVariable{name: "y".to_string(), expr: Box::new(Expression::FieldRef(FieldRef {

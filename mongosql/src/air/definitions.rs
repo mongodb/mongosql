@@ -116,8 +116,6 @@ pub struct Unwind {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Lookup {
     pub source: Box<Stage>,
-    pub from_db: Option<String>,
-    pub from_coll: Option<String>,
     pub let_vars: Option<Vec<LetVariable>>,
     pub pipeline: Box<Stage>,
     pub as_var: String,
