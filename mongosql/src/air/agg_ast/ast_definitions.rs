@@ -237,6 +237,8 @@ pub(crate) enum TaggedOperator {
     LTrim(Trim),
     #[serde(rename = "$rtrim")]
     RTrim(Trim),
+    #[serde(rename = "$reduce")]
+    Reduce(Reduce),
     #[serde(rename = "$subquery")]
     Subquery(Subquery),
     #[serde(rename = "$subqueryComparison")]
@@ -327,6 +329,15 @@ pub(crate) struct SqlDivide {
 pub(crate) struct Trim {
     pub(crate) input: Box<Expression>,
     pub(crate) chars: Box<Expression>,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct Reduce {
+    pub(crate) input: Box<Expression>,
+    pub(crate) initial_value: Box<Expression>,
+    #[serde(rename = "in")]
+    pub(crate) inside: Box<Expression>,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -955,6 +966,11 @@ impl From<TaggedOperator> for air::Expression {
                 op: air::TrimOperator::RTrim,
                 input: rt.input.into(),
                 chars: rt.chars.into(),
+            }),
+            TaggedOperator::Reduce(r) => air::Expression::Reduce(air::Reduce {
+                input: r.input.into(),
+                init_value: r.initial_value.into(),
+                inside: r.inside.into(),
             }),
         }
     }

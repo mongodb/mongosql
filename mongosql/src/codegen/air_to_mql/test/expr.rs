@@ -1807,6 +1807,23 @@ mod regex_match_expr {
     );
 }
 
+mod reduce {
+    use crate::air::{Expression::*, LiteralValue, Reduce};
+    use bson::bson;
+
+    test_codegen_air_expr!(
+        simple,
+        expected = Ok(
+            bson!({ "$reduce": {"input": {"$literal": "input"}, "initialValue": {"$literal": "init"}, "in": {"$literal": "inside"}}})
+        ),
+        input = Reduce(Reduce {
+            input: Box::new(Literal(LiteralValue::String("input".to_string()))),
+            init_value: Box::new(Literal(LiteralValue::String("init".to_string()))),
+            inside: Box::new(Literal(LiteralValue::String("inside".to_string()))),
+        })
+    );
+}
+
 mod subquery_exists {
     use crate::{
         air::{

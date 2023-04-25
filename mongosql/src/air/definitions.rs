@@ -179,6 +179,7 @@ pub enum Expression {
     RegexMatch(RegexMatch),
     SqlDivide(SqlDivide),
     Trim(Trim),
+    Reduce(Reduce),
     Subquery(Subquery),
     SubqueryComparison(SubqueryComparison),
     SubqueryExists(SubqueryExists),
@@ -603,10 +604,17 @@ pub enum TrimOperator {
 
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct Trim{
+pub struct Trim {
     pub op: TrimOperator,
     pub input: Box<Expression>,
     pub chars: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Reduce {
+    pub input: Box<Expression>,
+    pub init_value: Box<Expression>,
+    pub inside: Box<Expression>,
 }
 
 

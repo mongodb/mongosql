@@ -4,7 +4,7 @@ use bson::{bson, doc, Bson};
 use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
 
 impl MqlCodeGenerator {
-    pub fn codegen_air_expression(&self, expr: air::Expression) -> Result<bson::Bson> {
+    pub fn codegen_air_expression(&self, expr: air::Expression) -> Result<Bson> {
         use air::Expression::*;
         match expr {
             MQLSemanticOperator(mql_op) => self.codegen_mql_semantic_operator(mql_op),
@@ -25,6 +25,7 @@ impl MqlCodeGenerator {
             RegexMatch(r) => self.codegen_regex_match(r),
             SqlDivide(sd) => self.codegen_sql_divide(sd),
             Trim(trim) => self.codegen_trim(trim),
+            Reduce(r) => self.codegen_reduce(r),
             Subquery(s) => self.codegen_subquery_expr(s),
             SubqueryComparison(sc) => self.codegen_subquery_comparison(sc),
             SubqueryExists(se) => self.codegen_subquery_exists(se),
@@ -301,6 +302,13 @@ impl MqlCodeGenerator {
             op: {"input": self.codegen_air_expression(*trim.input)?,
                 "chars": self.codegen_air_expression(*trim.chars)?}
         }))
+    }
+
+    fn codegen_reduce(&self, reduce: air::Reduce) -> Result<Bson> {
+        let input = self.codegen_air_expression(*reduce.input)?;
+        let init_value = self.codegen_air_expression(*reduce.init_value)?;
+        let inside = self.codegen_air_expression(*reduce.inside)?;
+        Ok(bson!({"$reduce": {"input": input, "initialValue": init_value, "in": inside}}))
     }
 
     fn codegen_subquery(

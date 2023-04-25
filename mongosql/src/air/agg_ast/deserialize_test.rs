@@ -790,9 +790,9 @@ mod expression_test {
     mod tagged_operators {
         use crate::{
             air::agg_ast::ast_definitions::{
-                Convert, Expression, GetField, Let, Like, LiteralValue, SetField, SqlConvert,
-                SqlDivide, Stage, StringOrRef, Subquery, SubqueryComparison, SubqueryExists,
-                Switch, SwitchCase, TaggedOperator, UnsetField,
+                Convert, Expression, GetField, Let, Like, LiteralValue, Reduce, SetField,
+                SqlConvert, SqlDivide, Stage, StringOrRef, Subquery, SubqueryComparison,
+                SubqueryExists, Switch, SwitchCase, TaggedOperator, UnsetField,
             },
             map,
         };
@@ -962,6 +962,22 @@ mod expression_test {
                                 "dividend": "$a",
                                 "divisor": 2,
                                 "onError": null
+            }}"#
+        );
+
+        test_deserialize_expr!(
+            reduce,
+            expected = Expression::TaggedOperator(TaggedOperator::Reduce(Reduce {
+                input: Box::new(Expression::StringOrRef(StringOrRef::FieldRef(
+                    "a".to_string()
+                ))),
+                initial_value: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                inside: Box::new(Expression::Literal(LiteralValue::Null)),
+            })),
+            input = r#"expr: {"$reduce": {
+                                "input": "$a",
+                                "initialValue": 2,
+                                "in": null
             }}"#
         );
 

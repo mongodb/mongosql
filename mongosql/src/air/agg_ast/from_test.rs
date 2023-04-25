@@ -1343,6 +1343,32 @@ mod expression {
         );
 
         test_from_expr!(
+            reduce,
+            expected = air::Expression::Reduce(air::Reduce {
+                input: Box::new(air::Expression::FieldRef(air::FieldRef {
+                    parent: None,
+                    name: "a".to_string()
+                })),
+                init_value: Box::new(air::Expression::FieldRef(air::FieldRef {
+                    parent: None,
+                    name: "b".to_string()
+                })),
+                inside: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
+            }),
+            input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::Reduce(
+                agg_ast::Reduce {
+                    input: Box::new(agg_ast::Expression::StringOrRef(
+                        agg_ast::StringOrRef::FieldRef("a".to_string())
+                    )),
+                    initial_value: Box::new(agg_ast::Expression::StringOrRef(
+                        agg_ast::StringOrRef::FieldRef("b".to_string())
+                    )),
+                    inside: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Null)),
+                }
+            ))
+        );
+
+        test_from_expr!(
             sql_subquery,
             expected = air::Expression::Subquery(air::Subquery {
                 let_bindings: vec![air::LetVariable {
