@@ -1,11 +1,13 @@
 tests:
   - name: "nothing to desugar"
+    skip_reason: "SQL-1284"
     input:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
     expected:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
 
   - name: "join nested in subquery pipeline"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$project":
@@ -91,6 +93,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "inner join with variable reference in $sql null semantic operator"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$join":
@@ -120,11 +123,11 @@ tests:
               [
                 {
                   "$project":
-                    { "_id": { "$numberInt": "0" }, "coll": "$$ROOT" },
+                    { "_id": 0, "coll": "$$ROOT" },
                 },
                 {
                   "$project":
-                    { "_id": { "$numberInt": "0" }, "coll": "$coll" },
+                    { "_id": 0, "coll": "$coll" },
                 },
                 {
                   "$match":
@@ -155,12 +158,13 @@ tests:
       - {
         "$project":
           {
-            "_id": { "$numberInt": "0" },
-            "eca58228-b657-498a-b76e-f48a9161a404": { "$numberInt": "0" },
+            "_id": 0,
+            "eca58228-b657-498a-b76e-f48a9161a404": 0,
           },
       }
 
   - name: "multiple levels of new expressions that contain pipelines: join nested in subquery nested in join nested in subquery"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$project":
@@ -343,6 +347,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "group nested in join pipeline"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$join":
@@ -391,6 +396,7 @@ tests:
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "group nested in subquery pipeline"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$project":
@@ -455,6 +461,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "subquery nested in join pipeline"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$join":
@@ -539,6 +546,7 @@ tests:
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "subquery nested in join match condition"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$join":
@@ -620,6 +628,7 @@ tests:
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "subquery nested in join let"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$join":
@@ -691,6 +700,7 @@ tests:
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "subquery nested in group accumulator as arg"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$group":
@@ -748,6 +758,7 @@ tests:
       - { "$project": { "acc": { "$avg": "$acc" } } }
 
   - name: "subquery nested in unsupported op as arg"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$project":
@@ -818,6 +829,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "subquery nested in null semantic op as arg"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$project":
@@ -891,6 +903,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "unsupported ops nested in join"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$join":
@@ -1021,6 +1034,7 @@ tests:
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "unsupported op nested in group accumulator as arg"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$group":
@@ -1066,6 +1080,7 @@ tests:
       - { "$project": { "acc": { "$avg": "$acc" } } }
 
   - name: "unsupported ops nested in subquery"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$project":
@@ -1182,6 +1197,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "unsupported op nested in null semantic op as arg"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$project":
@@ -1220,6 +1236,7 @@ tests:
       }
 
   - name: "null semantic ops nested in join"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$join":
@@ -1328,6 +1345,7 @@ tests:
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "null semantic op nested in group accumulator as arg"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$group":
@@ -1373,6 +1391,7 @@ tests:
       - { "$project": { "acc": { "$avg": "$acc" } } }
 
   - name: "null semantic ops nested in subquery"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$project":
@@ -1505,6 +1524,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "null semantic op nested in unsupported op as arg"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$project":
@@ -1599,6 +1619,7 @@ tests:
       }
 
   - name: "all present together in one pipeline"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$project":
@@ -1742,6 +1763,7 @@ tests:
       - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
 
   - name: "subqueryComparison is not match optimized"
+    skip_reason: "SQL-1284"
     input:
       - {
         "$match":
@@ -1785,17 +1807,17 @@ tests:
               [
                 {
                   "$project":
-                    { "_id": { "$numberInt": "0" }, "baz": "$$ROOT" },
+                    { "_id": 0, "baz": "$$ROOT" },
                 },
                 {
-                  "$project": { "_id": { "$numberInt": "0" }, "baz": "$baz" },
+                  "$project": { "_id": 0, "baz": "$baz" },
                 },
                 {
                   "$project":
-                    { "_id": { "$numberInt": "0" }, "__bot.a": "$baz.a" },
+                    { "_id": 0, "__bot.a": "$baz.a" },
                 },
-                { "$sort": { "__bot.a": { "$numberInt": "1" } } },
-                { "$skip": { "$numberLong": "1" } },
+                { "$sort": { "__bot.a": 1 } },
+                { "$skip": 1 },
               ],
             "as": "__subquery_result_0",
           },
@@ -1927,7 +1949,7 @@ tests:
       - {
         "$project":
           {
-            "_id": { "$numberInt": "0" },
-            "__subquery_result_0": { "$numberInt": "0" },
+            "_id": 0,
+            "__subquery_result_0": 0,
           },
       }

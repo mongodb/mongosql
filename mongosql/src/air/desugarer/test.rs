@@ -123,6 +123,33 @@ mod unsupported_operators {
     );
 }
 
+mod all_desugarer_passes {
+    use super::*;
+    use crate::air::desugarer::desugar_pipeline;
+
+    #[test]
+    fn test() -> Result<(), Error> {
+        let file_path = "src/air/desugarer/testdata/desugar_all.yml";
+
+        let test_file = parse_test_yaml(file_path)?;
+
+        for test in test_file.tests {
+            if test.skip_reason.is_some() {
+                continue;
+            }
+
+            let input_air_pipeline = to_air_pipeline(test.input);
+            let expected_air_pipeline = to_air_pipeline(test.expected);
+
+            let actual = desugar_pipeline(input_air_pipeline).map_err(Error::CannotDesugar)?;
+
+            assert_eq!(expected_air_pipeline, actual)
+        }
+
+        Ok(())
+    }
+}
+
 fn parse_test_yaml(path: &str) -> Result<TestFile, Error> {
     let mut f =
         fs::File::open(path).map_err(|e| Error::InvalidFile(path.to_string(), format!("{e:?}")))?;
