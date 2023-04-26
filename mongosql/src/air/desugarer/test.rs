@@ -73,16 +73,6 @@ mod joins {
     test_desugarer!(file = "desugar_joins.yml", desugarer = JoinDesugarerPass);
 }
 
-mod lookups {
-    use super::*;
-    use crate::air::desugarer::lookup::LookupDesugarerPass;
-
-    test_desugarer!(
-        file = "desugar_lookups.yml",
-        desugarer = LookupDesugarerPass
-    );
-}
-
 mod sql_match_null_semantics {
     use super::*;
     use crate::air::desugarer::match_null_semantics::MatchDesugarerPass;

@@ -746,15 +746,38 @@ mod lookup {
     );
 
     test_codegen_air_stage!(
-        with_no_let_vars,
+        with_from_same_database,
         expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
-                bson::doc! {"$lookup": {"from": {"db": "mydb", "coll": "col"}, "pipeline": [], "as": "as_var"}},
+                bson::doc! {"$lookup": {"from": "col", "pipeline": [], "as": "as_var"}},
             ],
         }),
         input = test_input!(None),
+    );
+
+    test_codegen_air_stage!(
+        with_from_clause_different_database,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![
+                bson::doc! {"$lookup": {"from": {"db": "mydb2", "coll": "col2"}, "pipeline": [], "as": "as_var"}},
+            ],
+        }),
+        input = Stage::Lookup(Lookup {
+            source: Box::new(Stage::Collection(Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
+            })),
+            let_vars: None,
+            pipeline: Box::new(Stage::Collection(Collection {
+                db: "mydb2".to_string(),
+                collection: "col2".to_string()
+            })),
+            as_var: "as_var".to_string()
+        }),
     );
 
     test_codegen_air_stage!(
@@ -764,7 +787,7 @@ mod lookup {
             collection: Some("col".to_string()),
             pipeline: vec![
                 bson::doc! {"$lookup": {
-                    "from": {"db": "mydb", "coll": "col"},
+                    "from": "col",
                     "let": {"x": {"$literal": 9}},
                     "pipeline": [],
                     "as": "as_var"
@@ -783,7 +806,7 @@ mod lookup {
             collection: Some("col".to_string()),
             pipeline: vec![
                 bson::doc! {"$lookup": {
-                    "from": {"db": "mydb", "coll": "col"},
+                    "from": "col",
                     "let": {
                         "x": {"$literal": 9},
                         "y": "$a"

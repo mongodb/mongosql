@@ -121,9 +121,12 @@ impl MqlCodeGenerator {
             lookup_pipeline_translation.database,
             lookup_pipeline_translation.collection,
         ) {
-            (None, Some(from_coll)) => doc! {"from": from_coll},
             (Some(from_db), Some(from_coll)) => {
-                doc! {"from": {"db": from_db, "coll": from_coll}}
+                if Some(from_db.clone()) == source_translation.database {
+                    doc! {"from": from_coll}
+                } else {
+                    doc! {"from": {"db": from_db, "coll": from_coll}}
+                }
             }
             _ => doc! {},
         };
