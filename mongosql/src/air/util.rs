@@ -1,5 +1,43 @@
-use crate::air::{FieldRef, LiteralValue, MQLOperator, SQLOperator, Variable};
+use crate::air::{FieldRef, LiteralValue, MQLOperator, SQLOperator, Stage, Variable};
 use std::fmt;
+
+impl Stage {
+    pub(crate) fn get_source(&self) -> Box<Stage> {
+        match self {
+            Stage::Project(p) => p.source.clone(),
+            Stage::Group(g) => g.source.clone(),
+            Stage::Limit(l) => l.source.clone(),
+            Stage::Sort(s) => s.source.clone(),
+            Stage::Collection(_) => Box::new(self.clone()),
+            Stage::Join(j) => j.left.clone(),
+            Stage::Unwind(u) => u.source.clone(),
+            Stage::Lookup(l) => l.source.clone(),
+            Stage::ReplaceWith(r) => r.source.clone(),
+            Stage::Match(m) => m.source.clone(),
+            Stage::UnionWith(u) => u.source.clone(),
+            Stage::Skip(s) => s.source.clone(),
+            Stage::Documents(_) => Box::new(self.clone()),
+        }
+    }
+
+    pub(crate) fn set_source(&mut self, new_source: Box<Stage>) {
+        match self {
+            Stage::Project(p) => p.source = new_source,
+            Stage::Group(g) => g.source = new_source,
+            Stage::Limit(l) => l.source = new_source,
+            Stage::Sort(s) => s.source = new_source,
+            Stage::Collection(_) => {}
+            Stage::Join(j) => j.left = new_source,
+            Stage::Unwind(u) => u.source = new_source,
+            Stage::Lookup(l) => l.source = new_source,
+            Stage::ReplaceWith(r) => r.source = new_source,
+            Stage::Match(m) => m.source = new_source,
+            Stage::UnionWith(u) => u.source = new_source,
+            Stage::Skip(s) => s.source = new_source,
+            Stage::Documents(_) => {}
+        }
+    }
+}
 
 impl FieldRef {
     pub(crate) fn root_parent(&self) -> String {
@@ -100,6 +138,23 @@ impl From<String> for Variable {
     }
 }
 
+impl From<String> for FieldRef {
+    fn from(s: String) -> FieldRef {
+        let mut split_string = s.split('.');
+        let mut fr = FieldRef {
+            parent: None,
+            name: split_string.next().unwrap().to_string(),
+        };
+        for name in split_string {
+            fr = FieldRef {
+                parent: Some(Box::new(fr)),
+                name: name.to_string(),
+            };
+        }
+        fr
+    }
+}
+
 #[cfg(test)]
 mod variable_from_string_tests {
     use super::*;
@@ -139,6 +194,56 @@ mod variable_from_string_tests {
         expected = Variable {
             parent: Some(Box::new(Variable {
                 parent: Some(Box::new(Variable {
+                    parent: None,
+                    name: "a".to_string(),
+                })),
+                name: "b".to_string()
+            })),
+            name: "c".to_string()
+        },
+        input = "a.b.c".to_string()
+    );
+}
+
+#[cfg(test)]
+mod field_ref_from_string_tests {
+    use super::*;
+
+    macro_rules! test_field_ref_from_string {
+        ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+            #[test]
+            fn $func_name() {
+                #[allow(unused_imports)]
+                let actual = FieldRef::from($input);
+                let expected = $expected;
+                assert_eq!(expected, actual);
+            }
+        };
+    }
+
+    test_field_ref_from_string!(
+        empty_string,
+        expected = FieldRef {
+            parent: None,
+            name: "".to_string()
+        },
+        input = "".to_string()
+    );
+
+    test_field_ref_from_string!(
+        no_nesting,
+        expected = FieldRef {
+            parent: None,
+            name: "a".to_string()
+        },
+        input = "a".to_string()
+    );
+
+    test_field_ref_from_string!(
+        nesting,
+        expected = FieldRef {
+            parent: Some(Box::new(FieldRef {
+                parent: Some(Box::new(FieldRef {
                     parent: None,
                     name: "a".to_string(),
                 })),

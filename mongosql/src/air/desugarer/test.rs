@@ -23,7 +23,7 @@ macro_rules! test_desugarer {
                     .apply(input_air_pipeline)
                     .map_err(Error::CannotDesugar)?;
 
-                assert_eq!(expected_air_pipeline, actual)
+                assert_eq!(expected_air_pipeline, actual, "{}", test.name)
             }
 
             Ok(())

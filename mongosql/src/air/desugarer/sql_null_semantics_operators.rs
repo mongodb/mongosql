@@ -30,13 +30,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
             .map(|let_var| {
                 MQLSemanticOperator(air::MQLSemanticOperator {
                     op: MQLOperator::Lte,
-                    args: vec![
-                        Variable(air::Variable {
-                            parent: None,
-                            name: let_var.name,
-                        }),
-                        Literal(LiteralValue::Null),
-                    ],
+                    args: vec![Variable(let_var.name.into()), Literal(LiteralValue::Null)],
                 })
             })
             .collect::<Vec<Expression>>();
@@ -62,10 +56,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
             sql_operator_args_eq_false_check.push(MQLSemanticOperator(air::MQLSemanticOperator {
                 op: MQLOperator::Eq,
                 args: vec![
-                    Variable(air::Variable {
-                        parent: None,
-                        name: let_var.name,
-                    }),
+                    Variable(let_var.name.into()),
                     Literal(LiteralValue::Boolean(false)),
                 ],
             }));
@@ -112,10 +103,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
             sql_operator_args_eq_true_check.push(MQLSemanticOperator(air::MQLSemanticOperator {
                 op: MQLOperator::Eq,
                 args: vec![
-                    Variable(air::Variable {
-                        parent: None,
-                        name: let_var.name,
-                    }),
+                    Variable(let_var.name.into()),
                     Literal(LiteralValue::Boolean(true)),
                 ],
             }));
@@ -161,10 +149,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
                 expr: Box::new(expr),
             };
             let_vars.push(let_var.clone());
-            mql_operator_args.push(Variable(air::Variable {
-                parent: None,
-                name: let_var.name,
-            }));
+            mql_operator_args.push(Variable(let_var.name.into()));
         }
 
         let let_inside = MQLSemanticOperator(air::MQLSemanticOperator {

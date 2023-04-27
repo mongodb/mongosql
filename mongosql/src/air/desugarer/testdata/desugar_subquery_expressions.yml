@@ -1,13 +1,11 @@
 tests:
   - name: "nothing to desugar"
-    skip_reason: "SQL-1255"
     input:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
     expected:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
 
   - name: "desugar $subquery expression with only coll"
-    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -51,10 +49,9 @@ tests:
               },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
+      - { "$project": { "_id": "$$REMOVE", "__subquery_result_0": "$$REMOVE" } }
 
   - name: "desugar $subquery expression with no source"
-    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -96,10 +93,9 @@ tests:
               },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
+      - { "$project": { "_id": "$$REMOVE", "__subquery_result_0": "$$REMOVE" } }
 
   - name: "desugar fully specified $subquery expression"
-    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -141,7 +137,6 @@ tests:
                     { "_id": 0, "sum": { "$add": ["$$foo_a_0", "$a"] } },
                 },
                 { "$limit": 1 },
-                { "$limit": 1 },
               ],
             "as": "__subquery_result_0",
           },
@@ -164,10 +159,9 @@ tests:
               },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
+      - { "$project": { "_id": "$$REMOVE", "__subquery_result_0": "$$REMOVE" } }
 
   - name: "nested subquery expression is desugared in nested pipeline"
-    skip_reason: "SQL-1255"
     input:
       - {
         "$lookup":
@@ -216,7 +210,6 @@ tests:
                         [
                           { "$project": { "_id": 0, "p_1": { "p_2": 1 } } },
                           { "$limit": 1 },
-                          { "$limit": 1 },
                         ],
                       "as": "__subquery_result_0",
                     },
@@ -242,14 +235,13 @@ tests:
                         },
                     },
                 },
-                { "$project": { "_id": 0, "__subquery_result_0": 0 } },
+                { "$project": { "_id": "$$REMOVE", "__subquery_result_0": "$$REMOVE" } },
               ],
             "as": "out",
           },
       }
 
   - name: "desugar stage with multiple subquery expressions"
-    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -310,7 +302,6 @@ tests:
               [
                 { "$project": { "_id": 0, "x": 1 } },
                 { "$limit": 1 },
-                { "$limit": 1 },
               ],
             "as": "__subquery_result_0",
           },
@@ -322,7 +313,6 @@ tests:
             "pipeline":
               [
                 { "$project": { "_id": 0, "y": 1 } },
-                { "$limit": 1 },
                 { "$limit": 1 },
               ],
             "as": "__subquery_result_1",
@@ -395,16 +385,15 @@ tests:
       - {
         "$project":
           {
-            "_id": 0,
-            "__subquery_result_0": 0,
-            "__subquery_result_1": 0,
-            "__subquery_result_2": 0,
-            "__subquery_result_3": 0,
+            "_id": "$$REMOVE",
+            "__subquery_result_0": "$$REMOVE",
+            "__subquery_result_1": "$$REMOVE",
+            "__subquery_result_2": "$$REMOVE",
+            "__subquery_result_3": "$$REMOVE",
           },
       }
 
   - name: "desugar $subqueryExists expression with only coll"
-    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -430,10 +419,9 @@ tests:
             "expr": { "$gt": [{ "$size": "$__subquery_result_0" }, 0] },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
+      - { "$project": { "_id": "$$REMOVE", "__subquery_result_0": "$$REMOVE" } }
 
   - name: "desugar $subqueryExists expression with no source"
-    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -464,10 +452,9 @@ tests:
             "expr": { "$gt": [{ "$size": "$__subquery_result_0" }, 0] },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
+      - { "$project": { "_id": "$$REMOVE", "__subquery_result_0": "$$REMOVE" } }
 
   - name: "desugar fully specified $subqueryExists expression"
-    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -512,10 +499,9 @@ tests:
             "expr": { "$gt": [{ "$size": "$__subquery_result_0" }, 0] },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
+      - { "$project": { "_id": "$$REMOVE", "__subquery_result_0": "$$REMOVE" } }
 
   - name: "desugar $subqueryComparison expression with only coll"
-    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -566,10 +552,9 @@ tests:
               },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
+      - { "$project": { "_id": "$$REMOVE", "__subquery_result_0": "$$REMOVE" } }
 
   - name: "desugar $subqueryComparison expression with no source"
-    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -619,10 +604,9 @@ tests:
               },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
+      - { "$project": { "_id": "$$REMOVE", "__subquery_result_0": "$$REMOVE" } }
 
   - name: "desugar fully specified $subqueryComparison expression"
-    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -687,10 +671,9 @@ tests:
               },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
+      - { "$project": { "_id": "$$REMOVE", "__subquery_result_0": "$$REMOVE" } }
 
   - name: "desugar $subqueryComparison expression with ALL modifier"
-    skip_reason: "SQL-1255"
     input:
       - {
         "$project":
@@ -755,10 +738,9 @@ tests:
               },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
+      - { "$project": { "_id": "$$REMOVE", "__subquery_result_0": "$$REMOVE" } }
 
   - name: "Preserve _id when desugaring subquery expression nested in a group"
-    skip_reason: "SQL-1255"
     input:
       - {
         "$group": {
@@ -801,5 +783,5 @@ tests:
           }
         }
       }
-      - { "$project": { "__subquery_result_0": 0 } }
-      - { "$project": { "_id": 0, "__bot.a": "$_id.a" } }
+      - { "$project": { "_id": "$_id", "__subquery_result_0": "$$REMOVE" } }
+      - { "$project": { "_id": 0, "__bot": { "a": "$_id.a" } } }

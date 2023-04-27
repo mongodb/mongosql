@@ -291,9 +291,7 @@ mod project {
                 }),
             ),
             specifications: unchecked_unique_linked_hash_map! {
-                "foo".to_string() => Expression::FieldRef(
-                    FieldRef { parent: None,  name: "col".to_string() }
-                ),
+                "foo".to_string() => Expression::FieldRef("col".to_string().into()),
                 "bar".to_string() => Expression::Literal(LiteralValue::Integer(19)),
             },
         }),
@@ -314,9 +312,7 @@ mod project {
                 }),
             ),
             specifications: unchecked_unique_linked_hash_map! {
-                "_id".to_string() => Expression::FieldRef(
-                    FieldRef { parent: None,  name: "col".to_string() }
-                ),
+                "_id".to_string() => Expression::FieldRef("col".to_string().into()),
                 "bar".to_string() => Expression::Literal(LiteralValue::Integer(19)),
             },
         }),
@@ -349,20 +345,14 @@ mod group {
             keys: vec![
                 NameExprPair {
                     name: "foo".into(),
-                    expr: Expression::FieldRef(FieldRef {
-                        parent: None,
-                        name: "foo".into(),
-                    })
+                    expr: Expression::FieldRef("foo".to_string().into())
                 },
                 NameExprPair {
                     name: "bar".into(),
                     expr: Expression::MQLSemanticOperator( MQLSemanticOperator {
                         op: MQLOperator::Add,
                         args: vec![
-                            Expression::FieldRef(FieldRef {
-                                parent: None,
-                                name: "bar".into(),
-                            }),
+                            Expression::FieldRef("bar".to_string().into()),
                             Expression::Literal(LiteralValue::Integer(1))
                         ],
                     })
@@ -373,10 +363,7 @@ mod group {
                     alias: "x".into(),
                     function: AggregationFunction::Min,
                     distinct: false,
-                    arg: Expression::FieldRef(FieldRef {
-                        parent: None,
-                        name: "x".into(),
-                    }).into(),
+                    arg: Expression::FieldRef("x".to_string().into()).into(),
                 },
                 AccumulatorExpr {
                     alias: "y".into(),
@@ -385,10 +372,7 @@ mod group {
                     arg: Expression::MQLSemanticOperator(MQLSemanticOperator {
                         op: MQLOperator::Mod,
                         args: vec![
-                            Expression::FieldRef(FieldRef {
-                                parent: None,
-                                name: "x".into(),
-                            }),
+                            Expression::FieldRef("x".to_string().into()),
                             Expression::Literal(LiteralValue::Integer(1i32))
                         ],
                     }).into(),
@@ -418,10 +402,7 @@ mod group {
             keys: vec![
                 NameExprPair {
                     name: "foo".into(),
-                    expr: Expression::FieldRef(FieldRef {
-                        parent: None,
-                        name: "foo".into(),
-                    })
+                    expr: Expression::FieldRef("foo".to_string().into())
                 },
             ],
             aggregations: vec![
@@ -429,10 +410,7 @@ mod group {
                     alias: "x".into(),
                     function: AggregationFunction::Min,
                     distinct: true,
-                    arg: Expression::FieldRef(FieldRef {
-                        parent: None,
-                        name: "x".into(),
-                    }).into(),
+                    arg: Expression::FieldRef("x".to_string().into()).into(),
                 },
             ],
         }),
@@ -459,10 +437,7 @@ mod group {
             keys: vec![
                 NameExprPair {
                     name: "foo".into(),
-                    expr: Expression::FieldRef(FieldRef {
-                        parent: None,
-                        name: "foo".into(),
-                    })
+                    expr: Expression::FieldRef("foo".to_string().into())
                 },
             ],
             aggregations: vec![
@@ -470,10 +445,7 @@ mod group {
                     alias: "x".into(),
                     function: AggregationFunction::Count,
                     distinct: false,
-                    arg: Expression::FieldRef(FieldRef {
-                        parent: None,
-                        name: "x".into(),
-                    }).into(),
+                    arg: Expression::FieldRef("x".to_string().into()).into(),
                 },
             ],
         }),
@@ -498,10 +470,7 @@ mod unwind {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
             })),
-            path: Expression::FieldRef(FieldRef {
-                parent: None,
-                name: "array".into(),
-            }).into(),
+            path: Expression::FieldRef("array".to_string().into()).into(),
             index: None,
             outer: false
         }),
@@ -521,10 +490,7 @@ mod unwind {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
             })),
-            path: Expression::FieldRef(FieldRef {
-                parent: None,
-                name: "array".into(),
-            }).into(),
+            path: Expression::FieldRef("array".to_string().into()).into(),
             index: Some("i".into()),
             outer: false
         }),
@@ -544,10 +510,7 @@ mod unwind {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
             })),
-            path: Expression::FieldRef(FieldRef {
-                parent: None,
-                name: "array".into(),
-            }).into(),
+            path: Expression::FieldRef("array".to_string().into()).into(),
             index: None,
             outer: true
         }),
@@ -566,10 +529,7 @@ mod unwind {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
             })),
-            path: Expression::FieldRef(FieldRef {
-                parent: None,
-                name: "array".into(),
-            }).into(),
+            path: Expression::FieldRef("array".to_string().into()).into(),
             index: Some("i".into()),
             outer: true
         }),
@@ -591,20 +551,10 @@ mod unwind {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                "foo".to_string() => Expression::FieldRef(
-                    FieldRef { parent: None,  name: "col".to_string() }
-                )}
+                    "foo".to_string() => Expression::FieldRef("col".to_string().into())
+                },
             })),
-            path: Expression::FieldRef(FieldRef {
-                parent:Some(FieldRef {
-                    parent: Some(FieldRef {
-                        parent: None,
-                        name: "foo".into(),
-                    }.into()),
-                    name: "a".into(),
-                }.into()),
-                name: "b".into(),
-            }).into(),
+            path: Expression::FieldRef("foo.a.b".to_string().into()).into(),
             index: Some("i".into()),
             outer: true,
         }),
@@ -819,10 +769,7 @@ mod lookup {
         input = test_input!(
             Some(vec![
                 LetVariable{name: "x".to_string(), expr: Box::new(Expression::Literal(LiteralValue::Integer(9)))},
-                LetVariable{name: "y".to_string(), expr: Box::new(Expression::FieldRef(FieldRef {
-                    parent: None,
-                    name: "a".into(),
-                }))},
+                LetVariable{name: "y".to_string(), expr: Box::new(Expression::FieldRef("a".to_string().into()))},
             ])
         ),
     );
@@ -978,7 +925,7 @@ mod join {
                     "col2".to_string() => Expression::Variable("ROOT".to_string().into())
                 )
             })),
-            let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef(FieldRef{parent: None, name: "col".to_string()}))}]),
+            let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef("col".to_string().into()))}]),
             join_type: JoinType::Left,
         }),
     );
@@ -1003,7 +950,7 @@ mod join {
                 op: SQLOperator::Eq,
                 args: vec![
                     Expression::Variable("vcol_0".to_string().into()),
-                    Expression::FieldRef(FieldRef{parent: None, name: "col2".to_string()}),
+                    Expression::FieldRef("col2".to_string().into()),
                 ]
             })),
             left: Box::new(Stage::Project(Project {
@@ -1024,7 +971,7 @@ mod join {
                     "col2".to_string() => Expression::Variable("ROOT".to_string().into())
                 )
             })),
-            let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef(FieldRef{parent: None, name: "col".to_string()}))}]),
+            let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef("col".to_string().into()))}]),
             join_type: JoinType::Left,
         }),
     );

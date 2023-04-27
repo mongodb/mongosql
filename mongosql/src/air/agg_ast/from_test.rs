@@ -295,10 +295,9 @@ mod stage {
             unwind_field_path,
             expected = air::Stage::Unwind(air::Unwind {
                 source: Box::new(default_source()),
-                path: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "eca58228-b657-498a-b76e-f48a9161a404".to_string()
-                })),
+                path: Box::new(air::Expression::FieldRef(
+                    "eca58228-b657-498a-b76e-f48a9161a404".to_string().into()
+                )),
                 index: None,
                 outer: false
             }),
@@ -313,10 +312,7 @@ mod stage {
             unwind_document_no_options,
             expected = air::Stage::Unwind(air::Unwind {
                 source: Box::new(default_source()),
-                path: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "array".to_string()
-                })),
+                path: Box::new(air::Expression::FieldRef("array".to_string().into())),
                 index: None,
                 outer: false
             }),
@@ -333,10 +329,7 @@ mod stage {
             unwind_document_all_options,
             expected = air::Stage::Unwind(air::Unwind {
                 source: Box::new(default_source()),
-                path: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "array".to_string()
-                })),
+                path: Box::new(air::Expression::FieldRef("array".to_string().into())),
                 index: Some("i".to_string()),
                 outer: true
             }),
@@ -455,20 +448,14 @@ mod stage {
                 })),
                 let_vars: Some(vec![air::LetVariable {
                     name: "x".to_string(),
-                    expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "x".to_string()
-                    }))
+                    expr: Box::new(air::Expression::FieldRef("x".to_string().into()))
                 }]),
                 condition: Some(air::Expression::SQLSemanticOperator(
                     air::SQLSemanticOperator {
                         op: air::SQLOperator::Eq,
                         args: vec![
                             air::Expression::Variable("x".to_string().into()),
-                            air::Expression::FieldRef(air::FieldRef {
-                                parent: None,
-                                name: "x".to_string()
-                            })
+                            air::Expression::FieldRef("x".to_string().into())
                         ]
                     }
                 ))
@@ -632,17 +619,11 @@ mod stage {
                 let_vars: Some(vec![
                     air::LetVariable {
                         name: "vfoo_a".to_string(),
-                        expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                            parent: None,
-                            name: "foo_a".to_string()
-                        }))
+                        expr: Box::new(air::Expression::FieldRef("foo_a".to_string().into()))
                     },
                     air::LetVariable {
                         name: "vfoo_b".to_string(),
-                        expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                            parent: None,
-                            name: "foo_b".to_string()
-                        }))
+                        expr: Box::new(air::Expression::FieldRef("foo_b".to_string().into()))
                     }
                 ]),
                 pipeline: Box::new(default_source()),
@@ -685,19 +666,16 @@ mod stage {
                                 source: Box::new(default_source()),
                                 specifications: unchecked_unique_linked_hash_map! {
                                     "_id".to_string() => air::Expression::Literal(air::LiteralValue::Integer(0)),
-                                    "baz".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                                    "baz".to_string() => air::Expression::Variable("ROOT".to_string().into()),
                                 }
                             })),
                             specifications: unchecked_unique_linked_hash_map! {
                                 "_id".to_string() => air::Expression::Literal(air::LiteralValue::Integer(0)),
-                                "baz".to_string() => air::Expression::FieldRef(air::FieldRef{parent: None, name: "baz".to_string()}),
+                                "baz".to_string() => air::Expression::FieldRef("baz".to_string().into()),
                             }
                         })),
                         specifications: unchecked_unique_linked_hash_map! {
-                            "__bot.a".to_string() => air::Expression::FieldRef(air::FieldRef {
-                                parent: Some(Box::new(air::FieldRef{parent: None, name: "baz".to_string()})),
-                                name: "a".to_string(),
-                            }),
+                            "__bot.a".to_string() => air::Expression::FieldRef("baz.a".to_string().into()),
                             "_id".to_string() => air::Expression::Literal(air::LiteralValue::Integer(0)),
                         }
                     })),
@@ -795,10 +773,7 @@ mod stage {
                     alias: "acc".to_string(),
                     function: air::AggregationFunction::Sum,
                     distinct: true,
-                    arg: Box::new(air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "a".to_string()
-                    }))
+                    arg: Box::new(air::Expression::FieldRef("a".to_string().into()))
                 }]
             }),
             input = agg_ast::Stage::Group(agg_ast::Group {
@@ -821,29 +796,20 @@ mod stage {
                 source: Box::new(default_source()),
                 keys: vec![air::NameExprPair {
                     name: "a".to_string(),
-                    expr: air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "a".to_string()
-                    })
+                    expr: air::Expression::FieldRef("a".to_string().into())
                 }],
                 aggregations: vec![
                     air::AccumulatorExpr {
                         alias: "acc_one".to_string(),
                         function: air::AggregationFunction::Sum,
                         distinct: true,
-                        arg: Box::new(air::Expression::FieldRef(air::FieldRef {
-                            parent: None,
-                            name: "a".to_string()
-                        }))
+                        arg: Box::new(air::Expression::FieldRef("a".to_string().into()))
                     },
                     air::AccumulatorExpr {
                         alias: "acc_two".to_string(),
                         function: air::AggregationFunction::Avg,
                         distinct: true,
-                        arg: Box::new(air::Expression::FieldRef(air::FieldRef {
-                            parent: None,
-                            name: "b".to_string()
-                        }))
+                        arg: Box::new(air::Expression::FieldRef("b".to_string().into()))
                     },
                 ]
             }),
@@ -879,10 +845,7 @@ mod stage {
                     alias: "acc".to_string(),
                     function: air::AggregationFunction::AddToSet,
                     distinct: true,
-                    arg: Box::new(air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "a".to_string()
-                    }))
+                    arg: Box::new(air::Expression::FieldRef("a".to_string().into()))
                 }]
             }),
             input = agg_ast::Stage::Group(agg_ast::Group {
@@ -944,36 +907,21 @@ mod expression {
 
         test_from_expr!(
             empty_field_ref,
-            expected = air::Expression::FieldRef(air::FieldRef {
-                parent: None,
-                name: "".to_string(),
-            }),
+            expected = air::Expression::FieldRef("".to_string().into()),
             input =
                 agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("".to_string()))
         );
 
         test_from_expr!(
             simple_field_ref,
-            expected = air::Expression::FieldRef(air::FieldRef {
-                parent: None,
-                name: "a".to_string(),
-            }),
+            expected = air::Expression::FieldRef("a".to_string().into()),
             input =
                 agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef("a".to_string()))
         );
 
         test_from_expr!(
             nested_field_ref,
-            expected = air::Expression::FieldRef(air::FieldRef {
-                parent: Some(Box::new(air::FieldRef {
-                    parent: Some(Box::new(air::FieldRef {
-                        parent: None,
-                        name: "a".to_string(),
-                    })),
-                    name: "b".to_string(),
-                })),
-                name: "c".to_string(),
-            }),
+            expected = air::Expression::FieldRef("a.b.c".to_string().into()),
             input = agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
                 "a.b.c".to_string()
             ))
@@ -981,26 +929,14 @@ mod expression {
 
         test_from_expr!(
             simple_variable,
-            expected = air::Expression::Variable(air::Variable {
-                parent: None,
-                name: "v".to_string()
-            }),
+            expected = air::Expression::Variable("v".to_string().into()),
             input =
                 agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::Variable("v".to_string()))
         );
 
         test_from_expr!(
             nested_variable,
-            expected = air::Expression::Variable(air::Variable {
-                parent: Some(Box::new(air::Variable {
-                    parent: Some(Box::new(air::Variable {
-                        parent: None,
-                        name: "x".to_string()
-                    })),
-                    name: "y".to_string()
-                })),
-                name: "z".to_string()
-            }),
+            expected = air::Expression::Variable("x.y.z".to_string().into()),
             input = agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::Variable(
                 "x.y.z".to_string()
             ))
@@ -1087,10 +1023,7 @@ mod expression {
             get_field,
             expected = air::Expression::GetField(air::GetField {
                 field: "a".to_string(),
-                input: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "d".to_string()
-                }))
+                input: Box::new(air::Expression::FieldRef("d".to_string().into()))
             }),
             input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::GetField(
                 agg_ast::GetField {
@@ -1106,10 +1039,7 @@ mod expression {
             set_field,
             expected = air::Expression::SetField(air::SetField {
                 field: "a".to_string(),
-                input: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "d".to_string(),
-                })),
+                input: Box::new(air::Expression::FieldRef("d".to_string().into())),
                 value: Box::new(air::Expression::Literal(air::LiteralValue::Null))
             }),
             input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SetField(
@@ -1127,10 +1057,7 @@ mod expression {
             unset_field,
             expected = air::Expression::UnsetField(air::UnsetField {
                 field: "a".to_string(),
-                input: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "d".to_string()
-                }))
+                input: Box::new(air::Expression::FieldRef("d".to_string().into()))
             }),
             input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::UnsetField(
                 agg_ast::UnsetField {
@@ -1147,17 +1074,11 @@ mod expression {
             expected = air::Expression::Switch(air::Switch {
                 branches: vec![
                     air::SwitchCase {
-                        case: Box::new(air::Expression::FieldRef(air::FieldRef {
-                            parent: None,
-                            name: "a".to_string(),
-                        })),
+                        case: Box::new(air::Expression::FieldRef("a".to_string().into())),
                         then: Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
                     },
                     air::SwitchCase {
-                        case: Box::new(air::Expression::FieldRef(air::FieldRef {
-                            parent: None,
-                            name: "b".to_string(),
-                        })),
+                        case: Box::new(air::Expression::FieldRef("b".to_string().into())),
                         then: Box::new(air::Expression::Literal(air::LiteralValue::Integer(2))),
                     },
                 ],
@@ -1195,10 +1116,7 @@ mod expression {
             expected = air::Expression::Let(air::Let {
                 vars: vec![air::LetVariable {
                     name: "v".to_string(),
-                    expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "a".to_string()
-                    })),
+                    expr: Box::new(air::Expression::FieldRef("a".to_string().into())),
                 },],
                 inside: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
             }),
@@ -1215,10 +1133,7 @@ mod expression {
         test_from_expr!(
             convert,
             expected = air::Expression::Convert(air::Convert {
-                input: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "a".to_string(),
-                })),
+                input: Box::new(air::Expression::FieldRef("a".to_string().into())),
                 to: air::Type::Int32,
                 on_null: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
                 on_error: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
@@ -1238,10 +1153,7 @@ mod expression {
         test_from_expr!(
             sql_convert,
             expected = air::Expression::SqlConvert(air::SqlConvert {
-                input: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "a".to_string(),
-                })),
+                input: Box::new(air::Expression::FieldRef("a".to_string().into())),
                 to: air::SqlConvertTargetType::Array,
                 on_null: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
                 on_error: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
@@ -1261,10 +1173,7 @@ mod expression {
         test_from_expr!(
             like_with_escape,
             expected = air::Expression::Like(air::Like {
-                expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "s".to_string(),
-                })),
+                expr: Box::new(air::Expression::FieldRef("s".to_string().into())),
                 pattern: Box::new(air::Expression::Literal(air::LiteralValue::String(
                     "pat".to_string()
                 ))),
@@ -1285,10 +1194,7 @@ mod expression {
         test_from_expr!(
             like_without_escape,
             expected = air::Expression::Like(air::Like {
-                expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "s".to_string(),
-                })),
+                expr: Box::new(air::Expression::FieldRef("s".to_string().into())),
                 pattern: Box::new(air::Expression::Literal(air::LiteralValue::String(
                     "pat".to_string()
                 ))),
@@ -1309,14 +1215,8 @@ mod expression {
         test_from_expr!(
             sql_divide,
             expected = air::Expression::SqlDivide(air::SqlDivide {
-                dividend: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "a".to_string()
-                })),
-                divisor: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "b".to_string()
-                })),
+                dividend: Box::new(air::Expression::FieldRef("a".to_string().into())),
+                divisor: Box::new(air::Expression::FieldRef("b".to_string().into())),
                 on_error: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
             }),
             input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SqlDivide(
@@ -1335,14 +1235,8 @@ mod expression {
         test_from_expr!(
             reduce,
             expected = air::Expression::Reduce(air::Reduce {
-                input: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "a".to_string()
-                })),
-                init_value: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "b".to_string()
-                })),
+                input: Box::new(air::Expression::FieldRef("a".to_string().into())),
+                init_value: Box::new(air::Expression::FieldRef("b".to_string().into())),
                 inside: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
             }),
             input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::Reduce(
@@ -1584,10 +1478,7 @@ mod expression {
             sql_op_one_arg,
             expected = air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
                 op: air::SQLOperator::Pos,
-                args: vec![air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "a".to_string()
-                })]
+                args: vec![air::Expression::FieldRef("a".to_string().into())]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
                 op: "$sqlPos".to_string(),
@@ -1602,14 +1493,8 @@ mod expression {
             expected = air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
                 op: air::SQLOperator::Eq,
                 args: vec![
-                    air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "a".to_string()
-                    }),
-                    air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "b".to_string()
-                    }),
+                    air::Expression::FieldRef("a".to_string().into()),
+                    air::Expression::FieldRef("b".to_string().into()),
                 ]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
@@ -1629,10 +1514,7 @@ mod expression {
             mql_op_one_arg,
             expected = air::Expression::MQLSemanticOperator(air::MQLSemanticOperator {
                 op: air::MQLOperator::Size,
-                args: vec![air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "a".to_string()
-                })]
+                args: vec![air::Expression::FieldRef("a".to_string().into())]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
                 op: "$size".to_string(),
@@ -1647,14 +1529,8 @@ mod expression {
             expected = air::Expression::MQLSemanticOperator(air::MQLSemanticOperator {
                 op: air::MQLOperator::Lte,
                 args: vec![
-                    air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "a".to_string()
-                    }),
-                    air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "b".to_string()
-                    }),
+                    air::Expression::FieldRef("a".to_string().into()),
+                    air::Expression::FieldRef("b".to_string().into()),
                 ]
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
@@ -1695,10 +1571,7 @@ mod expression {
         test_from_expr!(
             dollar_sqlis_becomes_is,
             expected = air::Expression::Is(air::Is {
-                expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "a".to_string(),
-                })),
+                expr: Box::new(air::Expression::FieldRef("a".to_string().into())),
                 target_type: air::TypeOrMissing::Type(air::Type::Int32),
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
@@ -1717,10 +1590,7 @@ mod expression {
         test_from_expr!(
             dollar_is_becomes_is,
             expected = air::Expression::Is(air::Is {
-                expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "a".to_string(),
-                })),
+                expr: Box::new(air::Expression::FieldRef("a".to_string().into())),
                 target_type: air::TypeOrMissing::Missing,
             }),
             input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {

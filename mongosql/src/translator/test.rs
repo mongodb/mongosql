@@ -66,7 +66,7 @@ mod subquery_exists_expression {
                     collection: "foo".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                    "foo".to_string() => air::Expression::Variable("ROOT".to_string().into()),
                 },
             })),
         })),
@@ -84,10 +84,7 @@ mod subquery_exists_expression {
         expected = Ok(air::Expression::SubqueryExists(air::SubqueryExists {
             let_bindings: vec![air::LetVariable {
                 name: "vfoo_0".to_string(),
-                expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "foo".to_string(),
-                })),
+                expr: Box::new(air::Expression::FieldRef("foo".to_string().into())),
             },],
             pipeline: Box::new(air::Stage::Project(air::Project {
                 source: Box::new(air::Stage::Project(air::Project {
@@ -96,18 +93,12 @@ mod subquery_exists_expression {
                         collection: "bar".to_string(),
                     })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "bar".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                        "bar".to_string() => air::Expression::Variable("ROOT".to_string().into()),
                     },
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
                     "__bot".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map! {
-                        "a".to_string() => air::Expression::Variable(air::Variable {
-                            parent: Some(Box::new(air::Variable {
-                                parent: None,
-                                name: "vfoo_0".to_string(),
-                            })),
-                            name: "a".to_string()
-                        })
+                        "a".to_string() => air::Expression::Variable("vfoo_0.a".to_string().into())
                     }),
                 },
             })),
@@ -1542,10 +1533,7 @@ mod reference_expression {
 
     test_translate_expression!(
         found_field_ref,
-        expected = Ok(air::Expression::FieldRef(air::FieldRef {
-            parent: None,
-            name: "f".to_string()
-        })),
+        expected = Ok(air::Expression::FieldRef("f".to_string().into())),
         input = mir::Expression::Reference(("f", 0u16).into()),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1559,10 +1547,7 @@ mod reference_expression {
 
     test_translate_expression!(
         found_variable,
-        expected = Ok(air::Expression::Variable(air::Variable {
-            parent: None,
-            name: "f".to_string()
-        })),
+        expected = Ok(air::Expression::Variable("f".to_string().into())),
         input = mir::Expression::Reference(("f", 0u16).into()),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -1584,14 +1569,8 @@ mod like_expression {
     test_translate_expression!(
         like_expr,
         expected = Ok(air::Expression::Like(air::Like {
-            expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                name: "input".to_string(),
-                parent: None
-            })),
-            pattern: Box::new(air::Expression::FieldRef(air::FieldRef {
-                name: "pattern".to_string(),
-                parent: None
-            })),
+            expr: Box::new(air::Expression::FieldRef("input".to_string().into())),
+            pattern: Box::new(air::Expression::FieldRef("pattern".to_string().into())),
             escape: Some("escape".to_string())
         })),
         input = mir::Expression::Like(mir::LikeExpr {
@@ -1624,13 +1603,7 @@ mod field_access_expression {
 
     test_translate_expression!(
         from_reference,
-        expected = Ok(air::Expression::FieldRef(air::FieldRef {
-            name: "sub".to_string(),
-            parent: Some(Box::new(air::FieldRef {
-                name: "f".to_string(),
-                parent: None
-            }))
-        })),
+        expected = Ok(air::Expression::FieldRef("f.sub".to_string().into())),
         input = mir::Expression::FieldAccess(mir::FieldAccess {
             expr: mir::Expression::Reference(("f", 0u16).into()).into(),
             field: "sub".to_string(),
@@ -1647,16 +1620,7 @@ mod field_access_expression {
     );
     test_translate_expression!(
         from_field_access,
-        expected = Ok(air::Expression::FieldRef(air::FieldRef {
-            name: "sub2".to_string(),
-            parent: Some(Box::new(air::FieldRef {
-                name: "sub1".to_string(),
-                parent: Some(Box::new(air::FieldRef {
-                    name: "f".to_string(),
-                    parent: None
-                }))
-            }))
-        })),
+        expected = Ok(air::Expression::FieldRef("f.sub1.sub2".to_string().into())),
         input = mir::Expression::FieldAccess(mir::FieldAccess {
             field: "sub2".to_string(),
             expr: mir::Expression::FieldAccess(mir::FieldAccess {
@@ -1713,10 +1677,7 @@ mod field_access_expression {
         dollar_prefixed_field,
         expected = Ok(air::Expression::GetField(air::GetField {
             field: "$sub".to_string(),
-            input: Box::new(air::Expression::FieldRef(air::FieldRef {
-                name: "f".to_string(),
-                parent: None,
-            })),
+            input: Box::new(air::Expression::FieldRef("f".to_string().into())),
         })),
         input = mir::Expression::FieldAccess(mir::FieldAccess {
             expr: mir::Expression::Reference(("f", 0u16).into()).into(),
@@ -1734,13 +1695,7 @@ mod field_access_expression {
     );
     test_translate_expression!(
         field_contains_dollar,
-        expected = Ok(air::Expression::FieldRef(air::FieldRef {
-            name: "s$ub".to_string(),
-            parent: Some(Box::new(air::FieldRef {
-                name: "f".to_string(),
-                parent: None
-            }))
-        })),
+        expected = Ok(air::Expression::FieldRef("f.s$ub".to_string().into())),
         input = mir::Expression::FieldAccess(mir::FieldAccess {
             expr: mir::Expression::Reference(("f", 0u16).into()).into(),
             field: "s$ub".to_string(),
@@ -1759,10 +1714,7 @@ mod field_access_expression {
         field_contains_dot,
         expected = Ok(air::Expression::GetField(air::GetField {
             field: "s.ub".to_string(),
-            input: Box::new(air::Expression::FieldRef(air::FieldRef {
-                parent: None,
-                name: "f".to_string()
-            }))
+            input: Box::new(air::Expression::FieldRef("f".to_string().into()))
         })),
         input = mir::Expression::FieldAccess(mir::FieldAccess {
             expr: mir::Expression::Reference(("f", 0u16).into()).into(),
@@ -1782,10 +1734,7 @@ mod field_access_expression {
         empty_field_in_field_access,
         expected = Ok(air::Expression::GetField(air::GetField {
             field: "".to_string(),
-            input: Box::new(air::Expression::FieldRef(air::FieldRef {
-                parent: None,
-                name: "f".to_string()
-            }))
+            input: Box::new(air::Expression::FieldRef("f".to_string().into()))
         })),
         input = mir::Expression::FieldAccess(mir::FieldAccess {
             expr: mir::Expression::Reference(("f", 0u16).into()).into(),
@@ -1820,10 +1769,7 @@ mod simple_case_expression {
                             air::SQLSemanticOperator {
                                 op: air::SQLOperator::Eq,
                                 args: vec![
-                                    air::Expression::Variable(air::Variable {
-                                        parent: None,
-                                        name: "target".to_string()
-                                    }),
+                                    air::Expression::Variable("target".to_string().into()),
                                     air::Expression::Literal(air::LiteralValue::Integer(4))
                                 ]
                             }
@@ -1835,10 +1781,7 @@ mod simple_case_expression {
                             air::SQLSemanticOperator {
                                 op: air::SQLOperator::Eq,
                                 args: vec![
-                                    air::Expression::Variable(air::Variable {
-                                        parent: None,
-                                        name: "target".to_string()
-                                    }),
+                                    air::Expression::Variable("target".to_string().into()),
                                     air::Expression::Literal(air::LiteralValue::Integer(5))
                                 ]
                             }
@@ -2029,7 +1972,7 @@ mod subquery_expression {
                     collection: "foo".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                    "foo".to_string() => air::Expression::Variable("ROOT".to_string().into()),
                 },
             })),
         })),
@@ -2049,10 +1992,7 @@ mod subquery_expression {
         expected = Ok(air::Expression::Subquery(air::Subquery {
             let_bindings: vec![air::LetVariable {
                 name: "vfoo_0".to_string(),
-                expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "foo".to_string(),
-                })),
+                expr: Box::new(air::Expression::FieldRef("foo".to_string().into())),
             },],
             output_path: vec!["__bot".to_string(), "a".to_string()],
             pipeline: Box::new(air::Stage::Project(air::Project {
@@ -2062,18 +2002,12 @@ mod subquery_expression {
                         collection: "bar".to_string(),
                     })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "bar".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                        "bar".to_string() => air::Expression::Variable("ROOT".to_string().into()),
                     },
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
                     "__bot".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map! {
-                        "a".to_string() => air::Expression::Variable(air::Variable {
-                            parent: Some(Box::new(air::Variable {
-                                parent: None,
-                                name: "vfoo_0".to_string(),
-                            })),
-                            name: "a".to_string()
-                        })
+                        "a".to_string() => air::Expression::Variable("vfoo_0.a".to_string().into())
                     }),
                 },
             })),
@@ -2126,11 +2060,11 @@ mod subquery_expression {
                         collection: "schema_coll".to_string(),
                     })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "schema_coll".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                        "schema_coll".to_string() => air::Expression::Variable("ROOT".to_string().into()),
                     },
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "q".to_string() => air::Expression::FieldRef(air::FieldRef{parent: None, name: "schema_coll".to_string()}),
+                    "q".to_string() => air::Expression::FieldRef("schema_coll".to_string().into()),
                 },
             })),
             specifications: unchecked_unique_linked_hash_map! {
@@ -2138,10 +2072,7 @@ mod subquery_expression {
                     "bar".to_string() => air::Expression::Subquery(air::Subquery {
                         let_bindings: vec![air::LetVariable {
                             name: "vq_0".to_string(),
-                            expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                                parent: None,
-                                name: "q".to_string(),
-                            })),
+                            expr: Box::new(air::Expression::FieldRef("q".to_string().into())),
                         },],
                         output_path: vec!["__bot".to_string(), "bar".to_string()],
                         pipeline: Box::new(air::Stage::Limit(air::Limit {
@@ -2153,22 +2084,16 @@ mod subquery_expression {
                                             collection: "schema_foo".to_string(),
                                         })),
                                         specifications: unchecked_unique_linked_hash_map! {
-                                            "schema_foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                                            "schema_foo".to_string() => air::Expression::Variable("ROOT".to_string().into()),
                                         },
                                     })),
                                     specifications: unchecked_unique_linked_hash_map! {
-                                        "q".to_string() => air::Expression::FieldRef(air::FieldRef {parent: None, name: "schema_foo".to_string()}),
+                                        "q".to_string() => air::Expression::FieldRef("schema_foo".to_string().into()),
                                     },
                                 })),
                                 specifications: unchecked_unique_linked_hash_map! {
                                     "__bot".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map! {
-                                        "bar".to_string() => air::Expression::Variable(air::Variable {
-                                            parent: Some(Box::new(air::Variable {
-                                                parent: None,
-                                                name: "vq_0".to_string(),
-                                            })),
-                                            name: "bar".to_string()
-                                        })
+                                        "bar".to_string() => air::Expression::Variable("vq_0.bar".to_string().into())
                                     }),
                                 },
                             })),
@@ -2245,17 +2170,11 @@ mod subquery_expression {
             let_bindings: vec![
                 air::LetVariable {
                     name: "vfoo_coll_ß_0".to_string(),
-                    expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "Foo coll-ß".to_string(),
-                    })),
+                    expr: Box::new(air::Expression::FieldRef("Foo coll-ß".to_string().into())),
                 },
                 air::LetVariable {
                     name: "vfoo_coll_ß_0_".to_string(),
-                    expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "foo_coll_ß".to_string(),
-                    })),
+                    expr: Box::new(air::Expression::FieldRef("foo_coll_ß".to_string().into())),
                 },
             ],
             output_path: vec!["__bot".to_string(), "a".to_string()],
@@ -2266,7 +2185,7 @@ mod subquery_expression {
                         collection: "bar".to_string(),
                     })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "bar".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                        "bar".to_string() => air::Expression::Variable("ROOT".to_string().into()),
                     },
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
@@ -2274,20 +2193,8 @@ mod subquery_expression {
                         "a".to_string() => air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
                             op: air::SQLOperator::Eq,
                             args: vec![
-                                air::Expression::Variable(air::Variable {
-                                    parent: Some(Box::new(air::Variable {
-                                        parent: None,
-                                        name: "vfoo_coll_ß_0".to_string()
-                                    })),
-                                    name: "a".to_string(),
-                                }),
-                                air::Expression::Variable(air::Variable {
-                                    parent: Some(Box::new(air::Variable {
-                                        parent: None,
-                                        name: "vfoo_coll_ß_0_".to_string()
-                                    })),
-                                    name: "a".to_string(),
-                                }),
+                                air::Expression::Variable("vfoo_coll_ß_0.a".to_string().into()),
+                                air::Expression::Variable("vfoo_coll_ß_0_.a".to_string().into()),
                             ],
                         }),
                     }),
@@ -2364,11 +2271,11 @@ mod subquery_expression {
                         collection: "__bot".to_string(),
                     })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "__bot".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                        "__bot".to_string() => air::Expression::Variable("ROOT".to_string().into()),
                     },
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "___bot".to_string() => air::Expression::FieldRef(air::FieldRef{parent: None, name: "__bot".to_string()}),
+                    "___bot".to_string() => air::Expression::FieldRef("__bot".to_string().into()),
                     "__bot".to_string() => air::Expression::Literal(air::LiteralValue::Integer(42)),
                 }
             })),
@@ -2402,7 +2309,7 @@ mod subquery_expression {
                     collection: "foo".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                    "foo".to_string() => air::Expression::Variable("ROOT".to_string().into()),
                 },
             })),
         })),
@@ -2463,7 +2370,7 @@ mod subquery_comparison_expression {
                             collection: "foo".to_string(),
                         })),
                         specifications: unchecked_unique_linked_hash_map! {
-                            "foo".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                            "foo".to_string() => air::Expression::Variable("ROOT".to_string().into()),
                         },
                     })),
                 }),
@@ -2494,25 +2401,16 @@ mod subquery_comparison_expression {
             air::SubqueryComparison {
                 op: air::SubqueryComparisonOp::Gt,
                 modifier: air::SubqueryModifier::All,
-                arg: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "x".to_string()
-                })),
+                arg: Box::new(air::Expression::FieldRef("x".to_string().into())),
                 subquery: Box::new(air::Subquery {
                     let_bindings: vec![
                         air::LetVariable {
                             name: "vfoo_0".to_string(),
-                            expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                                parent: None,
-                                name: "foo".to_string(),
-                            })),
+                            expr: Box::new(air::Expression::FieldRef("foo".to_string().into())),
                         },
                         air::LetVariable {
                             name: "vx_0".to_string(),
-                            expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                                parent: None,
-                                name: "x".to_string(),
-                            })),
+                            expr: Box::new(air::Expression::FieldRef("x".to_string().into())),
                         },
                     ],
                     output_path: vec!["__bot".to_string(), "a".to_string()],
@@ -2523,18 +2421,12 @@ mod subquery_comparison_expression {
                                 collection: "bar".to_string(),
                             })),
                             specifications: unchecked_unique_linked_hash_map! {
-                                "bar".to_string() => air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()}),
+                                "bar".to_string() => air::Expression::Variable("ROOT".to_string().into()),
                             },
                         })),
                         specifications: unchecked_unique_linked_hash_map! {
                             "__bot".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map! {
-                                "a".to_string() => air::Expression::Variable(air::Variable {
-                                    parent: Some(Box::new(air::Variable {
-                                        parent: None,
-                                        name: "vfoo_0".to_string(),
-                                    })),
-                                    name: "a".to_string()
-                                })
+                                "a".to_string() => air::Expression::Variable("vfoo_0.a".to_string().into())
                             }),
                         },
                     })),
@@ -2733,15 +2625,11 @@ mod derived_stage {
                     collection: "foo".to_string()
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() =>  air::Expression::Variable(air::Variable{parent: None, name: "ROOT".to_string()})
+                    "foo".to_string() =>  air::Expression::Variable("ROOT".to_string().into())
                 }
             })),
             specifications: unchecked_unique_linked_hash_map! {
-                "__bot".to_string() => air::Expression::FieldRef(
-                    air::FieldRef {
-                        parent: None,
-                        name: "foo".to_string()
-                    }),
+                "__bot".to_string() => air::Expression::FieldRef("foo".to_string().into()),
                 "bar".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
             }
         })),
@@ -2780,11 +2668,7 @@ mod projection_stage {
                 }
             })),
             specifications: unchecked_unique_linked_hash_map! {
-                "__bot".to_string() => air::Expression::FieldRef(
-                    air::FieldRef {
-                        parent: None,
-                        name: "foo".to_string()
-                    }),
+                "__bot".to_string() => air::Expression::FieldRef("foo".to_string().into()),
                 "bar".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
             }
         })),
@@ -2815,11 +2699,7 @@ mod projection_stage {
                 }
             })),
             specifications: unchecked_unique_linked_hash_map! {
-                "___bot".to_string() => air::Expression::FieldRef(
-                    air::FieldRef {
-                        parent: None,
-                        name: "foo".to_string()
-                    }),
+                "___bot".to_string() => air::Expression::FieldRef("foo".to_string().into()),
                 // reordered because BindingTuple uses BTreeMap
                 "____bot".to_string() => air::Expression::Literal(air::LiteralValue::Integer(4)),
                 "__bot".to_string() => air::Expression::Literal(air::LiteralValue::Integer(2)),
@@ -2858,10 +2738,7 @@ mod unwind_stage {
                     "foo".to_string() => air::Expression::Variable("ROOT".to_string().into()),
                 }
             })),
-            path: Box::new(air::Expression::FieldRef(air::FieldRef {
-                parent: None,
-                name: "foo".to_string()
-            })),
+            path: Box::new(air::Expression::FieldRef("foo".to_string().into())),
             index: None,
             outer: false,
         })),
@@ -2890,13 +2767,7 @@ mod unwind_stage {
                     "foo".to_string() => air::Expression::Variable("ROOT".to_string().into()),
                 }
             })),
-            path: Box::new(air::Expression::FieldRef(air::FieldRef {
-                parent: Some(Box::new(air::FieldRef {
-                    parent: None,
-                    name: "foo".to_string()
-                })),
-                name: "bar".to_string()
-            })),
+            path: Box::new(air::Expression::FieldRef("foo.bar".to_string().into())),
             index: None,
             outer: true,
         })),
@@ -2928,13 +2799,7 @@ mod unwind_stage {
                     "foo".to_string() => air::Expression::Variable("ROOT".to_string().into()),
                 }
             })),
-            path: Box::new(air::Expression::FieldRef(air::FieldRef {
-                parent: Some(Box::new(air::FieldRef {
-                    parent: None,
-                    name: "foo".to_string()
-                })),
-                name: "bar".to_string()
-            })),
+            path: Box::new(air::Expression::FieldRef("foo.bar".to_string().into())),
             index: Some("i".to_string()),
             outer: true,
         })),
@@ -2977,10 +2842,7 @@ mod group_stage {
                 .into(),
                 keys: vec![air::NameExprPair {
                     name: "x_key".into(),
-                    expr: air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "foo".to_string()
-                    })
+                    expr: air::Expression::FieldRef("foo".to_string().into())
                 },],
                 aggregations: vec![
                     // Count(*) is traslated as Count(1).
@@ -3001,18 +2863,9 @@ mod group_stage {
             .into(),
             specifications: unchecked_unique_linked_hash_map! {
                 "__bot".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map!{
-                    "x_key".to_string() => air::Expression::FieldRef(air::FieldRef {
-                        parent: Some(air::FieldRef { parent: None, name: "_id".into() }.into()),
-                        name: "x_key".into()
-                    }),
-                    "c_distinct".to_string() => air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "c_distinct".into()
-                    }),
-                    "c_nondistinct".to_string() => air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "c_nondistinct".into()
-                    })
+                    "x_key".to_string() => air::Expression::FieldRef("_id.x_key".to_string().into()),
+                    "c_distinct".to_string() => air::Expression::FieldRef("c_distinct".to_string().into()),
+                    "c_nondistinct".to_string() => air::Expression::FieldRef("c_nondistinct".to_string().into())
                 }),
             }
         })),
@@ -3060,49 +2913,29 @@ mod group_stage {
                 .into(),
                 keys: vec![air::NameExprPair {
                     name: "x_key".into(),
-                    expr: air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "foo".to_string()
-                    })
+                    expr: air::Expression::FieldRef("foo".to_string().into())
                 },],
                 aggregations: vec![
                     air::AccumulatorExpr {
                         alias: "max_distinct".into(),
                         function: air::AggregationFunction::Max,
                         distinct: true,
-                        arg: air::Expression::FieldRef(air::FieldRef {
-                            parent: None,
-                            name: "foo".into(),
-                        })
-                        .into()
+                        arg: air::Expression::FieldRef("foo".to_string().into()).into()
                     },
                     air::AccumulatorExpr {
                         alias: "min_nondistinct".into(),
                         function: air::AggregationFunction::Min,
                         distinct: false,
-                        arg: air::Expression::FieldRef(air::FieldRef {
-                            parent: None,
-                            name: "foo".into(),
-                        })
-                        .into()
+                        arg: air::Expression::FieldRef("foo".to_string().into()).into()
                     }
                 ]
             })
             .into(),
             specifications: unchecked_unique_linked_hash_map! {
                 "__bot".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map!{
-                    "x_key".to_string() => air::Expression::FieldRef(air::FieldRef {
-                        parent: Some(air::FieldRef { parent: None, name: "_id".into() }.into()),
-                        name: "x_key".into()
-                    }),
-                    "max_distinct".to_string() => air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "max_distinct".into()
-                    }),
-                    "min_nondistinct".to_string() => air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "min_nondistinct".into()
-                    })
+                    "x_key".to_string() => air::Expression::FieldRef("_id.x_key".to_string().into()),
+                    "max_distinct".to_string() => air::Expression::FieldRef("max_distinct".to_string().into()),
+                    "min_nondistinct".to_string() => air::Expression::FieldRef("min_nondistinct".to_string().into())
                 }),
             }
         })),
@@ -3167,23 +3000,11 @@ mod group_stage {
                 keys: vec![
                     air::NameExprPair {
                         name: "__unaliasedKey2".into(),
-                        expr: air::Expression::FieldRef(air::FieldRef {
-                            parent: None,
-                            name: "foo".to_string()
-                        })
+                        expr: air::Expression::FieldRef("foo".to_string().into())
                     },
                     air::NameExprPair {
                         name: "___unaliasedKey2".into(),
-                        expr: air::Expression::FieldRef(air::FieldRef {
-                            parent: Some(
-                                air::FieldRef {
-                                    parent: None,
-                                    name: "foo".into(),
-                                }
-                                .into()
-                            ),
-                            name: "x".into(),
-                        })
+                        expr: air::Expression::FieldRef("foo.x".to_string().into())
                     },
                 ],
                 aggregations: vec![]
@@ -3191,18 +3012,10 @@ mod group_stage {
             .into(),
             specifications: unchecked_unique_linked_hash_map! {
                 "foo".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map!{
-                    "x".to_string() => air::Expression::FieldRef(
-                        air::FieldRef {
-                            parent: Some(air::FieldRef { parent: None, name: "_id".into() }.into()),
-                            name: "___unaliasedKey2".to_string()
-                        }
-                    )
+                    "x".to_string() => air::Expression::FieldRef("_id.___unaliasedKey2".to_string().into())
                 }),
                 "__bot".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map!{
-                    "__unaliasedKey2".to_string() => air::Expression::FieldRef(air::FieldRef {
-                        parent: Some(air::FieldRef { parent: None, name: "_id".into() }.into()),
-                        name: "__unaliasedKey2".into()
-                    })
+                    "__unaliasedKey2".to_string() => air::Expression::FieldRef("_id.__unaliasedKey2".to_string().into())
                 }),
             }
         })),
@@ -3254,23 +3067,11 @@ mod group_stage {
                 keys: vec![
                     air::NameExprPair {
                         name: "__unaliasedKey2".into(),
-                        expr: air::Expression::FieldRef(air::FieldRef {
-                            parent: None,
-                            name: "foo".to_string()
-                        })
+                        expr: air::Expression::FieldRef("foo".to_string().into())
                     },
                     air::NameExprPair {
                         name: "___unaliasedKey2".into(),
-                        expr: air::Expression::FieldRef(air::FieldRef {
-                            parent: Some(
-                                air::FieldRef {
-                                    parent: None,
-                                    name: "foo".into(),
-                                }
-                                .into()
-                            ),
-                            name: "x".into(),
-                        })
+                        expr: air::Expression::FieldRef("foo.x".to_string().into())
                     },
                 ],
                 aggregations: vec![air::AccumulatorExpr {
@@ -3283,22 +3084,11 @@ mod group_stage {
             .into(),
             specifications: unchecked_unique_linked_hash_map! {
                 "foo".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map!{
-                    "x".to_string() => air::Expression::FieldRef(
-                        air::FieldRef {
-                            parent: Some(air::FieldRef { parent: None, name: "_id".into() }.into()),
-                            name: "___unaliasedKey2".to_string()
-                        }
-                    )
+                    "x".to_string() => air::Expression::FieldRef("_id.___unaliasedKey2".to_string().into())
                 }),
                 "__bot".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map!{
-                    "__unaliasedKey2".to_string() => air::Expression::FieldRef(air::FieldRef {
-                        parent: Some(air::FieldRef { parent: None, name: "_id".into() }.into()),
-                        name: "__unaliasedKey2".into()
-                    }),
-                    "_id".to_string() => air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "__id".into()
-                    })
+                    "__unaliasedKey2".to_string() => air::Expression::FieldRef("_id.__unaliasedKey2".to_string().into()),
+                    "_id".to_string() => air::Expression::FieldRef("__id".to_string().into())
                 }),
             }
         })),
@@ -3405,20 +3195,14 @@ mod join_stage {
             right: transformed_collection("bar"),
             let_vars: Some(vec![air::LetVariable {
                 name: "vfoo_0".to_string(),
-                expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: "foo".to_string()
-                })),
+                expr: Box::new(air::Expression::FieldRef("foo".to_string().into())),
             }]),
             condition: Some(air::Expression::SQLSemanticOperator(
                 air::SQLSemanticOperator {
                     op: air::SQLOperator::Eq,
                     args: vec![
                         air::Expression::Variable("vfoo_0".to_string().into()),
-                        air::Expression::FieldRef(air::FieldRef {
-                            parent: None,
-                            name: "bar".to_string()
-                        }),
+                        air::Expression::FieldRef("bar".to_string().into()),
                     ]
                 }
             ))
@@ -3456,17 +3240,11 @@ mod join_stage {
             let_vars: Some(vec![
                 air::LetVariable {
                     name: "vfoo_0".to_string(),
-                    expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "Foo".to_string()
-                    })),
+                    expr: Box::new(air::Expression::FieldRef("Foo".to_string().into())),
                 },
                 air::LetVariable {
                     name: "vfoo_0_".to_string(),
-                    expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                        parent: None,
-                        name: "foo".to_string()
-                    })),
+                    expr: Box::new(air::Expression::FieldRef("foo".to_string().into())),
                 }
             ]),
             condition: Some(air::Expression::Literal(air::LiteralValue::Boolean(true))),
@@ -3573,7 +3351,7 @@ mod sort_stage {
                         }
                     }).into(),
                     specifications: unchecked_unique_linked_hash_map!{
-                        "__bot".to_string() => air::Expression::FieldRef(air::FieldRef{ parent: None, name: "foo".to_string()}),
+                        "__bot".to_string() => air::Expression::FieldRef("foo".to_string().into()),
                         "bar".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1)),
                         "baz".to_string() => air::Expression::Literal(air::LiteralValue::Integer(2)),
                     }
@@ -3779,7 +3557,7 @@ mod translate_plan {
                         }
                     }).into(),
                     specifications: unchecked_unique_linked_hash_map!{
-                        "___bot".to_string() => air::Expression::FieldRef(air::FieldRef{ parent: None, name: "foo".to_string()}),
+                        "___bot".to_string() => air::Expression::FieldRef("foo".to_string().into()),
                         "____bot".to_string() => air::Expression::Literal(air::LiteralValue::Integer(4)),
                         "__bot".to_string() => air::Expression::Literal(air::LiteralValue::Integer(2)),
                         "_bot".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1)),
@@ -3790,7 +3568,7 @@ mod translate_plan {
                     input: air::Expression::SetField(air::SetField {
                         field: "".to_string(),
                         input: air::Expression::Variable("ROOT".to_string().into()).into(),
-                        value: air::Expression::FieldRef(air::FieldRef { parent: None, name: "___bot".to_string() }).into(),
+                        value: air::Expression::FieldRef("___bot".to_string().into()).into(),
                     }).into()
                 }).into()
             })),

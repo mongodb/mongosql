@@ -1209,71 +1209,41 @@ mod array {
 }
 
 mod variable {
-    use crate::air::{Expression::*, Variable};
+    use crate::air::Expression::*;
     use bson::{bson, Bson};
 
     test_codegen_air_expr!(
         simple,
         expected = Ok(bson!(Bson::String("$$foo".to_string()))),
-        input = Variable(Variable {
-            parent: None,
-            name: "foo".to_string()
-        })
+        input = Variable("foo".to_string().into())
     );
 
     test_codegen_air_expr!(
         nested,
         expected = Ok(bson!(Bson::String("$$x.y.z".to_string()))),
-        input = Variable(Variable {
-            parent: Some(Box::new(Variable {
-                parent: Some(Box::new(Variable {
-                    parent: None,
-                    name: "x".to_string()
-                })),
-                name: "y".to_string(),
-            })),
-            name: "z".to_string()
-        })
+        input = Variable("x.y.z".to_string().into())
     );
 }
 
 mod field_ref {
-    use crate::air::{self, Expression::FieldRef};
+    use crate::air::Expression::FieldRef;
     use bson::{bson, Bson};
 
     test_codegen_air_expr!(
         no_parent,
         expected = Ok(bson!(Bson::String("$foo".to_string()))),
-        input = FieldRef(air::FieldRef {
-            parent: None,
-            name: "foo".to_string()
-        })
+        input = FieldRef("foo".to_string().into())
     );
     test_codegen_air_expr!(
         parent,
         expected = Ok(bson!(Bson::String("$bar.foo".to_string()))),
-        input = FieldRef(air::FieldRef {
-            parent: Some(Box::new(air::FieldRef {
-                parent: None,
-                name: "bar".to_string()
-            })),
-            name: "foo".to_string()
-        })
+        input = FieldRef("bar.foo".to_string().into())
     );
 
     test_codegen_air_expr!(
         grandparent,
         expected = Ok(bson!(Bson::String("$baz.bar.foo".to_string()))),
-        input = FieldRef(air::FieldRef {
-            parent: Some(Box::new(air::FieldRef {
-                parent: Some(Box::new(air::FieldRef {
-                    parent: None,
-                    name: "baz".to_string()
-                })),
-                name: "bar".to_string()
-            })),
-            name: "foo".to_string()
-        })
+        input = FieldRef("baz.bar.foo".to_string().into())
     );
 }
 
@@ -1289,14 +1259,8 @@ mod like {
             "escape": "escape",
         }})),
         input = Expression::Like(air::Like {
-            expr: Box::new(Expression::FieldRef(air::FieldRef {
-                parent: None,
-                name: "input".to_string()
-            })),
-            pattern: Box::new(Expression::FieldRef(air::FieldRef {
-                parent: None,
-                name: "pattern".to_string()
-            })),
+            expr: Box::new(Expression::FieldRef("input".to_string().into())),
+            pattern: Box::new(Expression::FieldRef("pattern".to_string().into())),
             escape: Some("escape".to_string()),
         })
     );
@@ -1308,31 +1272,22 @@ mod like {
             "pattern": "$pattern",
         }})),
         input = Expression::Like(air::Like {
-            expr: Box::new(Expression::FieldRef(air::FieldRef {
-                parent: None,
-                name: "input".to_string()
-            })),
-            pattern: Box::new(Expression::FieldRef(air::FieldRef {
-                parent: None,
-                name: "pattern".to_string()
-            })),
+            expr: Box::new(Expression::FieldRef("input".to_string().into())),
+            pattern: Box::new(Expression::FieldRef("pattern".to_string().into())),
             escape: None,
         })
     );
 }
 
 mod is {
-    use crate::air::{Expression::*, FieldRef, Is, Type, TypeOrMissing};
+    use crate::air::{Expression::*, Is, Type, TypeOrMissing};
     use bson::bson;
 
     test_codegen_air_expr!(
         target_type_missing,
         expected = Ok(bson!({"$sqlIs": ["$x", {"$literal": "missing"}]})),
         input = Is(Is {
-            expr: Box::new(FieldRef(FieldRef {
-                parent: None,
-                name: "x".into(),
-            })),
+            expr: Box::new(FieldRef("x".to_string().into())),
             target_type: TypeOrMissing::Missing,
         })
     );
@@ -1341,10 +1296,7 @@ mod is {
         target_type_number,
         expected = Ok(bson!({"$sqlIs": ["$x", {"$literal": "number"}]})),
         input = Is(Is {
-            expr: Box::new(FieldRef(FieldRef {
-                parent: None,
-                name: "x".into(),
-            })),
+            expr: Box::new(FieldRef("x".to_string().into())),
             target_type: TypeOrMissing::Number,
         })
     );
@@ -1353,10 +1305,7 @@ mod is {
         target_type_type,
         expected = Ok(bson!({"$sqlIs": ["$x", {"$literal": "object"}]})),
         input = Is(Is {
-            expr: Box::new(FieldRef(FieldRef {
-                parent: None,
-                name: "x".into(),
-            })),
+            expr: Box::new(FieldRef("x".to_string().into())),
             target_type: TypeOrMissing::Type(Type::Document),
         })
     );
@@ -1401,7 +1350,7 @@ mod get_field {
 }
 
 mod set_field {
-    use crate::air::{Expression::*, FieldRef, SetField, Variable};
+    use crate::air::{Expression::*, SetField};
     use bson::bson;
 
     test_codegen_air_expr!(
@@ -1409,14 +1358,8 @@ mod set_field {
         expected = Ok(bson!({"$setField": {"field": "", "input": "$$ROOT", "value": "$__bot"}})),
         input = SetField(SetField {
             field: "".into(),
-            input: Box::new(Variable(Variable {
-                parent: None,
-                name: "ROOT".into()
-            })),
-            value: Box::new(FieldRef(FieldRef {
-                parent: None,
-                name: "__bot".into(),
-            }))
+            input: Box::new(Variable("ROOT".to_string().into())),
+            value: Box::new(FieldRef("__bot".to_string().into()))
         })
     );
 
@@ -1427,20 +1370,14 @@ mod set_field {
         ),
         input = SetField(SetField {
             field: "$x_val".into(),
-            input: Box::new(Variable(Variable {
-                parent: None,
-                name: "ROOT".into()
-            })),
-            value: Box::new(FieldRef(FieldRef {
-                parent: None,
-                name: "x".into(),
-            }))
+            input: Box::new(Variable("ROOT".to_string().into())),
+            value: Box::new(FieldRef("x".to_string().into()))
         })
     );
 }
 
 mod unset_field {
-    use crate::air::{Expression::*, FieldRef, UnsetField};
+    use crate::air::{Expression::*, UnsetField};
     use bson::bson;
 
     test_codegen_air_expr!(
@@ -1448,10 +1385,7 @@ mod unset_field {
         expected = Ok(bson!({"$unsetField": {"field": "__bot", "input": "$doc"}})),
         input = UnsetField(UnsetField {
             field: "__bot".into(),
-            input: Box::new(FieldRef(FieldRef {
-                parent: None,
-                name: "doc".into(),
-            }))
+            input: Box::new(FieldRef("doc".to_string().into()))
         })
     );
 
@@ -1460,10 +1394,7 @@ mod unset_field {
         expected = Ok(bson!({"$unsetField": {"field": {"$literal": "$x"}, "input": "$doc"}})),
         input = UnsetField(UnsetField {
             field: "$x".into(),
-            input: Box::new(FieldRef(FieldRef {
-                parent: None,
-                name: "doc".into(),
-            }))
+            input: Box::new(FieldRef("doc".to_string().into()))
         })
     );
 }
@@ -1648,9 +1579,7 @@ mod convert {
 }
 
 mod let_expr {
-    use crate::air::{
-        Expression::*, FieldRef, Let, LetVariable, MQLOperator, MQLSemanticOperator, Variable,
-    };
+    use crate::air::{Expression::*, Let, LetVariable, MQLOperator, MQLSemanticOperator};
     use bson::bson;
 
     test_codegen_air_expr!(
@@ -1668,14 +1597,8 @@ mod let_expr {
             inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
                 op: MQLOperator::Add,
                 args: vec![
-                    FieldRef(FieldRef {
-                        parent: None,
-                        name: "x".to_string(),
-                    }),
-                    FieldRef(FieldRef {
-                        parent: None,
-                        name: "y".to_string(),
-                    }),
+                    FieldRef("x".to_string().into()),
+                    FieldRef("y".to_string().into()),
                 ],
             })),
         })
@@ -1696,22 +1619,13 @@ mod let_expr {
         input = Let(Let {
             vars: vec![LetVariable {
                 name: "v_x".to_string(),
-                expr: Box::new(FieldRef(FieldRef {
-                    parent: None,
-                    name: "x".to_string(),
-                })),
+                expr: Box::new(FieldRef("x".to_string().into())),
             }],
             inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
                 op: MQLOperator::Add,
                 args: vec![
-                    Variable(Variable {
-                        parent: None,
-                        name: "v_x".to_string()
-                    }),
-                    FieldRef(FieldRef {
-                        parent: None,
-                        name: "y".to_string(),
-                    }),
+                    Variable("v_x".to_string().into()),
+                    FieldRef("y".to_string().into()),
                 ],
             })),
         })
@@ -1735,41 +1649,23 @@ mod let_expr {
             vars: vec![
                 LetVariable {
                     name: "v_x".to_string(),
-                    expr: Box::new(FieldRef(FieldRef {
-                        parent: None,
-                        name: "x".to_string(),
-                    })),
+                    expr: Box::new(FieldRef("x".to_string().into())),
                 },
                 LetVariable {
                     name: "v_y".to_string(),
-                    expr: Box::new(FieldRef(FieldRef {
-                        parent: None,
-                        name: "y".to_string(),
-                    })),
+                    expr: Box::new(FieldRef("y".to_string().into())),
                 },
                 LetVariable {
                     name: "v_z".to_string(),
-                    expr: Box::new(FieldRef(FieldRef {
-                        parent: None,
-                        name: "z".to_string(),
-                    })),
+                    expr: Box::new(FieldRef("z".to_string().into())),
                 },
             ],
             inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
                 op: MQLOperator::Add,
                 args: vec![
-                    Variable(Variable {
-                        parent: None,
-                        name: "v_x".to_string()
-                    }),
-                    Variable(Variable {
-                        parent: None,
-                        name: "v_y".to_string()
-                    }),
-                    Variable(Variable {
-                        parent: None,
-                        name: "v_z".to_string()
-                    }),
+                    Variable("v_x".to_string().into()),
+                    Variable("v_y".to_string().into()),
+                    Variable("v_z".to_string().into()),
                 ],
             })),
         })
@@ -1826,10 +1722,7 @@ mod reduce {
 
 mod subquery_exists {
     use crate::{
-        air::{
-            Collection, Expression::*, FieldRef, LetVariable, Project, Stage::*, SubqueryExists,
-            Variable,
-        },
+        air::{Collection, Expression::*, LetVariable, Project, Stage::*, SubqueryExists},
         unchecked_unique_linked_hash_map,
     };
     use bson::bson;
@@ -1854,7 +1747,7 @@ mod subquery_exists {
                     collection: "foo".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => Variable(Variable{parent: None, name: "ROOT".to_string()}),
+                    "foo".to_string() => Variable("ROOT".to_string().into()),
                 },
             })),
         })
@@ -1876,10 +1769,7 @@ mod subquery_exists {
         input = SubqueryExists(SubqueryExists {
             let_bindings: vec![LetVariable {
                 name: "vfoo_0".to_string(),
-                expr: Box::new(FieldRef(FieldRef {
-                    parent: None,
-                    name: "foo".to_string(),
-                })),
+                expr: Box::new(FieldRef("foo".to_string().into())),
             },],
             pipeline: Box::new(Project(Project {
                 source: Box::new(Project(Project {
@@ -1888,18 +1778,12 @@ mod subquery_exists {
                         collection: "bar".to_string(),
                     })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "bar".to_string() => Variable(Variable{parent: None, name: "ROOT".to_string()}),
+                        "bar".to_string() => Variable("ROOT".to_string().into()),
                     },
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
                     "__bot".to_string() => Document(unchecked_unique_linked_hash_map! {
-                        "a".to_string() => Variable(Variable {
-                            parent: Some(Box::new(Variable {
-                                parent: None,
-                                name: "vfoo_0".to_string(),
-                            })),
-                            name: "a".to_string()
-                        })
+                        "a".to_string() => Variable("vfoo_0.a".to_string().into())
                     }),
                 },
             })),
@@ -1909,10 +1793,7 @@ mod subquery_exists {
 
 mod subquery {
     use crate::{
-        air::{
-            Collection, Documents, Expression::*, FieldRef, LetVariable, Project, Stage::*,
-            Subquery, Variable,
-        },
+        air::{Collection, Documents, Expression::*, LetVariable, Project, Stage::*, Subquery},
         unchecked_unique_linked_hash_map,
     };
     use bson::bson;
@@ -1935,7 +1816,7 @@ mod subquery {
             pipeline: Box::new(Project(Project {
                 source: Box::new(Documents(Documents { array: vec![] })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "arr".to_string() => Variable(Variable{parent: None, name: "ROOT".to_string()}),
+                    "arr".to_string() => Variable("ROOT".to_string().into()),
                 }
             })),
         })
@@ -1962,17 +1843,11 @@ mod subquery {
             let_bindings: vec![
                 LetVariable {
                     name: "vfoo_0".to_string(),
-                    expr: Box::new(FieldRef(FieldRef {
-                        parent: None,
-                        name: "foo".to_string()
-                    })),
+                    expr: Box::new(FieldRef("foo".to_string().into())),
                 },
                 LetVariable {
                     name: "vbaz_0".to_string(),
-                    expr: Box::new(FieldRef(FieldRef {
-                        parent: None,
-                        name: "baz".to_string()
-                    })),
+                    expr: Box::new(FieldRef("baz".to_string().into())),
                 },
             ],
             output_path: vec!["__bot".to_string(), "a".to_string()],
@@ -1983,15 +1858,12 @@ mod subquery {
                         collection: "bar".to_string(),
                     })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "bar".to_string() => Variable(Variable{parent: None, name: "ROOT".to_string()}),
+                        "bar".to_string() => Variable("ROOT".to_string().into()),
                     }
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
                     "__bot".to_string() => Document(unchecked_unique_linked_hash_map! {
-                        "a".to_string() => Variable(Variable{
-                            parent: Some(Box::new(Variable{parent: None, name: "vfoo_0".to_string()})),
-                            name: "a".to_string(),
-                        }),
+                        "a".to_string() => Variable("vfoo_0.a".to_string().into()),
                     }),
                 }
             })),
@@ -2002,8 +1874,8 @@ mod subquery {
 mod subquery_comparison {
     use crate::{
         air::{
-            Collection, Documents, Expression::*, FieldRef, LetVariable, Project, Stage::*,
-            Subquery, SubqueryComparison, SubqueryComparisonOp, SubqueryModifier, Variable,
+            Collection, Documents, Expression::*, LetVariable, Project, Stage::*, Subquery,
+            SubqueryComparison, SubqueryComparisonOp, SubqueryModifier,
         },
         unchecked_unique_linked_hash_map,
     };
@@ -2029,17 +1901,14 @@ mod subquery_comparison {
         input = SubqueryComparison(SubqueryComparison {
             op: SubqueryComparisonOp::Eq,
             modifier: SubqueryModifier::Any,
-            arg: Box::new(FieldRef(FieldRef {
-                parent: None,
-                name: "x".to_string(),
-            })),
+            arg: Box::new(FieldRef("x".to_string().into())),
             subquery: Box::new(Subquery {
                 let_bindings: vec![],
                 output_path: vec!["arr".to_string()],
                 pipeline: Box::new(Project(Project {
                     source: Box::new(Documents(Documents { array: vec![] })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "arr".to_string() => Variable(Variable{parent: None, name: "ROOT".to_string()}),
+                        "arr".to_string() => Variable("ROOT".to_string().into()),
                     }
                 })),
             }),
@@ -2071,25 +1940,16 @@ mod subquery_comparison {
         input = SubqueryComparison(SubqueryComparison {
             op: SubqueryComparisonOp::Gt,
             modifier: SubqueryModifier::All,
-            arg: Box::new(FieldRef(FieldRef {
-                parent: None,
-                name: "x".to_string(),
-            })),
+            arg: Box::new(FieldRef("x".to_string().into())),
             subquery: Box::new(Subquery {
                 let_bindings: vec![
                     LetVariable {
                         name: "vfoo_0".to_string(),
-                        expr: Box::new(FieldRef(FieldRef {
-                            parent: None,
-                            name: "foo".to_string()
-                        })),
+                        expr: Box::new(FieldRef("foo".to_string().into())),
                     },
                     LetVariable {
                         name: "vbaz_0".to_string(),
-                        expr: Box::new(FieldRef(FieldRef {
-                            parent: None,
-                            name: "baz".to_string()
-                        })),
+                        expr: Box::new(FieldRef("baz".to_string().into())),
                     },
                 ],
                 output_path: vec!["__bot".to_string(), "a".to_string()],
@@ -2100,15 +1960,12 @@ mod subquery_comparison {
                             collection: "bar".to_string(),
                         })),
                         specifications: unchecked_unique_linked_hash_map! {
-                            "bar".to_string() => Variable(Variable{parent: None, name: "ROOT".to_string()}),
+                            "bar".to_string() => Variable("ROOT".to_string().into()),
                         }
                     })),
                     specifications: unchecked_unique_linked_hash_map! {
                         "__bot".to_string() => Document(unchecked_unique_linked_hash_map! {
-                            "a".to_string() => Variable(Variable{
-                                parent: Some(Box::new(Variable{parent: None, name: "vfoo_0".to_string()})),
-                                name: "a".to_string(),
-                            }),
+                            "a".to_string() => Variable("vfoo_0.a".to_string().into()),
                         }),
                     }
                 })),

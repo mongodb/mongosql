@@ -191,10 +191,7 @@ impl MqlTranslator {
                         input: Box::new(air::Expression::SetField(air::SetField {
                             field: "".to_string(),
                             input: Box::new(ROOT.clone()),
-                            value: Box::new(air::Expression::FieldRef(air::FieldRef {
-                                parent: None,
-                                name: registry_value.name,
-                            })),
+                            value: Box::new(air::Expression::FieldRef(registry_value.name.into())),
                         })),
                     })),
                 })
@@ -422,15 +419,7 @@ impl MqlTranslator {
 
         let mut translated_keys = Vec::new();
 
-        let make_key_ref = |name| {
-            air::Expression::FieldRef(air::FieldRef {
-                parent: Some(Box::new(air::FieldRef {
-                    parent: None,
-                    name: "_id".to_string(),
-                })),
-                name,
-            })
-        };
+        let make_key_ref = |name| air::Expression::FieldRef(format!("_id.{}", name).into());
         for (i, k) in keys.into_iter().enumerate() {
             match k {
                 mir::OptionallyAliasedExpr::Aliased(ae) => {
@@ -515,10 +504,7 @@ impl MqlTranslator {
             };
             bot_body.insert(
                 alias.clone(),
-                air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: unique_alias.clone(),
-                }),
+                air::Expression::FieldRef(unique_alias.clone().into()),
             )?;
             translated_aggregations.push(air::AccumulatorExpr {
                 alias: unique_alias,
@@ -612,10 +598,7 @@ impl MqlTranslator {
                     }
                     let_bindings.push(air::LetVariable {
                         name: generated_name.clone(),
-                        expr: Box::new(air::Expression::FieldRef(air::FieldRef {
-                            parent: None,
-                            name: value.name,
-                        })),
+                        expr: Box::new(air::Expression::FieldRef(value.name.into())),
                     });
                     (
                         key,
@@ -792,10 +775,7 @@ impl MqlTranslator {
             .get(&key)
             .ok_or(Error::ReferenceNotFound(key))
             .map(|s| match s.ref_type {
-                MqlReferenceType::FieldRef => air::Expression::FieldRef(air::FieldRef {
-                    parent: None,
-                    name: s.name.clone(),
-                }),
+                MqlReferenceType::FieldRef => air::Expression::FieldRef(s.name.clone().into()),
                 MqlReferenceType::Variable => air::Expression::Variable(s.name.to_string().into()),
             })
     }
