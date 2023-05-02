@@ -568,6 +568,60 @@ mod mql_semantic_operator {
     );
 
     test_codegen_air_expr!(
+        avg,
+        expected = Ok(bson!({ "$avg": ["$foo"]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: Avg,
+            args: vec![FieldRef("foo".to_string().into()),],
+        })
+    );
+
+    test_codegen_air_expr!(
+        max,
+        expected = Ok(bson!({ "$max": ["$foo"]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: Max,
+            args: vec![FieldRef("foo".to_string().into()),],
+        })
+    );
+
+    test_codegen_air_expr!(
+        min,
+        expected = Ok(bson!({ "$min": ["$foo"]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: Min,
+            args: vec![FieldRef("foo".to_string().into()),],
+        })
+    );
+
+    test_codegen_air_expr!(
+        sum,
+        expected = Ok(bson!({ "$sum": ["$foo"]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: Sum,
+            args: vec![FieldRef("foo".to_string().into()),],
+        })
+    );
+
+    test_codegen_air_expr!(
+        stddev_pop,
+        expected = Ok(bson!({ "$stdDevPop": ["$foo"]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: StddevPop,
+            args: vec![FieldRef("foo".to_string().into()),],
+        })
+    );
+
+    test_codegen_air_expr!(
+        stddev_samp,
+        expected = Ok(bson!({ "$stdDevSamp": ["$foo"]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: StddevSamp,
+            args: vec![FieldRef("foo".to_string().into()),],
+        })
+    );
+
+    test_codegen_air_expr!(
         substr_cp,
         expected =
             Ok(bson!({ "$substrCP": [{ "$literal": "foo"}, { "$literal": 1 }, { "$literal": 2 }]})),
@@ -805,6 +859,36 @@ mod mql_semantic_operator {
                 ]),
                 Literal(Integer(1)),
             ],
+        })
+    );
+
+    test_codegen_air_expr!(
+        in_op,
+        expected = Ok(bson!({ "$in": [{ "$literal": 1}, [{ "$literal": 1 }, { "$literal": 2 }]]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: In,
+            args: vec![
+                Literal(Integer(1)),
+                Array(vec![Literal(Integer(1)), Literal(Integer(2))]),
+            ],
+        })
+    );
+
+    test_codegen_air_expr!(
+        first,
+        expected = Ok(bson!({ "$first": ["$foo"]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: First,
+            args: vec![FieldRef("foo".to_string().into())],
+        })
+    );
+
+    test_codegen_air_expr!(
+        last,
+        expected = Ok(bson!({ "$last": ["$foo"]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: Last,
+            args: vec![FieldRef("foo".to_string().into())],
         })
     );
 

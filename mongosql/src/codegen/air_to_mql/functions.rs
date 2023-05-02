@@ -23,7 +23,7 @@ impl MqlCodeGenerator {
     pub(crate) fn agg_func_to_sql_op(mqla: AggregationFunction) -> &'static str {
         use AggregationFunction::*;
         match mqla {
-            AddToArray => "$sqlPush",
+            AddToArray => unreachable!(),
             AddToSet => unreachable!(),
             Avg => "$sqlAvg",
             Count => "$sqlCount",
@@ -85,6 +85,9 @@ impl MqlCodeGenerator {
             Slice => "$slice",
             Size => "$size",
             ElemAt => "$arrayElemAt",
+            In => "$in",
+            First => "$first",
+            Last => "$last",
 
             // Numeric value scalar functions
             IndexOfCP => "$indexOfCP",
@@ -104,6 +107,12 @@ impl MqlCodeGenerator {
             Sin => "$sin",
             Tan => "$tan",
             Sqrt => "$sqrt",
+            Avg => "$avg",
+            Max => "$max",
+            Min => "$min",
+            Sum => "$sum",
+            StddevPop => "$stdDevPop",
+            StddevSamp => "$stdDevSamp",
 
             // String value scalar functions
             SubstrCP => "$substrCP",

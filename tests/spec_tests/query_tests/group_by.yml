@@ -637,7 +637,6 @@ tests:
 
   - description: correctness test for DISTINCT and non-DISTINCT aggregation over same field
     query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS dsuma, SUM(a) AS suma"
-    skip_reason: "SQL-1254: Rewrite desugarAccumulators"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
@@ -649,7 +648,7 @@ tests:
             {
               "_id": { "n": { "$literal": null } },
               "dsuma": { "$sqlSum": { "var": "$bar.a", "distinct": true } },
-              "suma": { "$sqlSum": { "var": "$bar.a", "distinct": false } },
+              "suma": { "$sum": "$bar.a"},
             },
         }
       - {
@@ -738,7 +737,6 @@ tests:
 
   - description: multi-item group key correctness test
     query: "SELECT * FROM foo.multi AS multi GROUP BY a AS a, b AS b AGGREGATE SUM(c) AS sumc"
-    skip_reason: "SQL-1254: Rewrite desugarAccumulators"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: multi
@@ -749,7 +747,7 @@ tests:
           "$group":
             {
               "_id": { "a": "$multi.a", "b": "$multi.b" },
-              "sumc": { $sqlSum: { "var": "$multi.c", "distinct": false } },
+              "sumc": { "$sum": "$multi.c" },
             },
         }
       - {
@@ -1141,7 +1139,6 @@ tests:
 
   - description: AVG correctness test
     query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE AVG(a.b) AS gavg"
-    skip_reason: "SQL-1254: Rewrite desugarAccumulators"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: baz
@@ -1152,7 +1149,7 @@ tests:
           "$group":
             {
               "_id": { "a": "$arr.a.a" },
-              "gavg": { "$sqlAvg": { "var": "$arr.a.b", "distinct": false } },
+              "gavg": { "$avg": "$arr.a.b"  },
             },
         }
       - {
@@ -1598,7 +1595,6 @@ tests:
 
   - description: STDDEV_POP correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_POP(b) AS gstdp"
-    skip_reason: "SQL-1254: Rewrite desugarAccumulators"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
@@ -1610,7 +1606,7 @@ tests:
             {
               "_id": { "a": "$arr.a" },
               "gstdp":
-                { "$sqlStdDevPop": { "var": "$arr.b", "distinct": false } },
+                { "$stdDevPop": "$arr.b" },
             },
         }
       - {
@@ -1660,7 +1656,6 @@ tests:
 
   - description: STDDEV_SAMP correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_SAMP(b) as gstds"
-    skip_reason: "SQL-1254: Rewrite desugarAccumulators"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
@@ -1672,7 +1667,7 @@ tests:
             {
               "_id": { "a": "$arr.a" },
               "gstds":
-                { "$sqlStdDevSamp": { "var": "$arr.b", "distinct": false } },
+                { "$stdDevSamp":"$arr.b" },
             },
         }
       - {
@@ -1716,7 +1711,6 @@ tests:
 
   - description: SUM correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE SUM(b) AS gsum"
-    skip_reason: "SQL-1254: Rewrite desugarAccumulators"
     current_db: foo
     translation_target_db: foo
     translation_target_coll: bar
@@ -1727,7 +1721,7 @@ tests:
           "$group":
             {
               "_id": { "a": "$arr.a" },
-              "gsum": { "$sqlSum": { "var": "$arr.b", "distinct": false } },
+              "gsum": { "$sum": "$arr.b" },
             },
         }
       - {

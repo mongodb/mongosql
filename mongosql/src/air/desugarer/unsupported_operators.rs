@@ -9,6 +9,8 @@ use crate::air::{
     SQLOperator, SQLSemanticOperator, SqlConvert, SqlDivide, Stage, Switch, SwitchCase, Type,
 };
 
+use crate::make_cond_expr;
+
 /// Desugars any SQL operators that do not exist in MQL (e.g. Between, Like,
 /// etc.) or that do not have the same semantics in MQL (e.g. Cos, Sin, Tan,
 /// etc.) into appropriate, equivalent MQL operators.
@@ -40,15 +42,6 @@ const ZERO_LITERAL: Expression = Expression::Literal(LiteralValue::Integer(0));
 const ONE_LITERAL: Expression = Expression::Literal(LiteralValue::Integer(1));
 const EIGHT_LITERAL: Expression = Expression::Literal(LiteralValue::Integer(8));
 const ONE_HUNDRED_LITERAL: Expression = Expression::Literal(LiteralValue::Integer(100));
-
-macro_rules! make_cond_expr {
-    ($if:expr, $then:expr, $else:expr) => {
-        Expression::MQLSemanticOperator(MQLSemanticOperator {
-            op: MQLOperator::Cond,
-            args: vec![$if, $then, $else],
-        })
-    };
-}
 
 impl UnsupportedOperatorsDesugarerVisitor {
     fn convert_sql_pattern(pattern: String, escape: String) -> String {
@@ -123,7 +116,7 @@ impl UnsupportedOperatorsDesugarerVisitor {
                 }
             }
             _ => {
-                self.error = Some(Error::InvalidLikePatternError);
+                self.error = Some(Error::InvalidLikePattern);
                 return air::Expression::Like(like);
             }
         };

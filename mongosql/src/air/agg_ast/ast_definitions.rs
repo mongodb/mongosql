@@ -610,16 +610,12 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                             }
                         }
                         // accumulators of form: $<acc>: <expr>
-                        GroupAccumulatorExpr::NonSqlAccumulator(expr) => {
-                            // $addToSet is used when desugaring distinct sqlOperators
-                            let distinct = accumulator_expr.function == "$addToSet";
-                            air::AccumulatorExpr {
-                                alias: key,
-                                function: accumulator_expr.function.into(),
-                                distinct,
-                                arg: Box::new(expr.into()),
-                            }
-                        }
+                        GroupAccumulatorExpr::NonSqlAccumulator(expr) => air::AccumulatorExpr {
+                            alias: key,
+                            function: accumulator_expr.function.into(),
+                            distinct: false,
+                            arg: Box::new(expr.into()),
+                        },
                     })
                     .collect();
                 air::Stage::Group(air::Group {
@@ -1106,6 +1102,9 @@ impl From<UntaggedOperator> for air::Expression {
                 "$slice" => air::MQLOperator::Slice,
                 "$size" => air::MQLOperator::Size,
                 "$arrayElemAt" => air::MQLOperator::ElemAt,
+                "$in" => air::MQLOperator::In,
+                "$first" => air::MQLOperator::First,
+                "$last" => air::MQLOperator::Last,
                 "$indexOfCP" => air::MQLOperator::IndexOfCP,
                 "$indexOfBytes" => air::MQLOperator::IndexOfBytes,
                 "$strLenCP" => air::MQLOperator::StrLenCP,
@@ -1123,6 +1122,12 @@ impl From<UntaggedOperator> for air::Expression {
                 "$sin" => air::MQLOperator::Sin,
                 "$tan" => air::MQLOperator::Tan,
                 "$sqrt" => air::MQLOperator::Sqrt,
+                "$avg" => air::MQLOperator::Avg,
+                "$max" => air::MQLOperator::Max,
+                "$min" => air::MQLOperator::Min,
+                "$sum" => air::MQLOperator::Sum,
+                "$stdDevPop" => air::MQLOperator::StddevPop,
+                "$stdDevSamp" => air::MQLOperator::StddevSamp,
                 "$substrCP" => air::MQLOperator::SubstrCP,
                 "$substrBytes" => air::MQLOperator::SubstrBytes,
                 "$toUpper" => air::MQLOperator::ToUpper,
@@ -1165,7 +1170,7 @@ impl From<String> for air::AggregationFunction {
     fn from(s: String) -> Self {
         match s.as_str() {
             "$addToSet" => air::AggregationFunction::AddToSet,
-            "$push" | "$sqlPush" => air::AggregationFunction::AddToArray,
+            "$push" => air::AggregationFunction::AddToArray,
             "$avg" | "$sqlAvg" => air::AggregationFunction::Avg,
             "$sqlCount" => air::AggregationFunction::Count,
             "$first" | "$sqlFirst" => air::AggregationFunction::First,

@@ -218,6 +218,9 @@ pub enum MQLOperator {
     Slice,
     Size,
     ElemAt,
+    In,
+    First,
+    Last,
 
     // Numeric value scalar functions
     IndexOfCP,
@@ -237,6 +240,12 @@ pub enum MQLOperator {
     Sin,
     Tan,
     Sqrt,
+    Avg,
+    Max,
+    Min,
+    Sum,
+    StddevPop,
+    StddevSamp,
 
     // String value scalar functions
     SubstrCP,

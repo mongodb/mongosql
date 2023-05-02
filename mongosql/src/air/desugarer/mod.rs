@@ -15,6 +15,7 @@ mod unsupported_operators;
 
 #[cfg(test)]
 mod test;
+mod util;
 
 use crate::air::desugarer::unsupported_operators::UnsupportedOperatorsDesugarerPass;
 
@@ -25,9 +26,9 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[allow(dead_code)]
     #[error("TODO replace error when passes are implemented")]
-    TodoError,
+    Todo,
     #[error("pattern for $like must be literal")]
-    InvalidLikePatternError,
+    InvalidLikePattern,
 }
 
 /// A fallible transformation that can be applied to a pipeline

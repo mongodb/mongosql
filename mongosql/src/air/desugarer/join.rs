@@ -10,6 +10,6 @@ pub struct JoinDesugarerPass;
 
 impl Pass for JoinDesugarerPass {
     fn apply(&self, _pipeline: air::Stage) -> Result<air::Stage> {
-        Err(Error::TodoError)
+        Err(Error::Todo)
     }
 }

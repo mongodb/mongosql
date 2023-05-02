@@ -844,7 +844,7 @@ mod stage {
                 aggregations: vec![air::AccumulatorExpr {
                     alias: "acc".to_string(),
                     function: air::AggregationFunction::AddToSet,
-                    distinct: true,
+                    distinct: false,
                     arg: Box::new(air::Expression::FieldRef("a".to_string().into()))
                 }]
             }),
