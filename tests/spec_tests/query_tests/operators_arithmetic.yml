@@ -159,15 +159,6 @@ tests:
     current_db: foo
     query: "SELECT VALUE {'a': a, '+a': +a} FROM unary AS unary"
     skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
-    translation_target_db: foo
-    translation_target_coll: unary
-    translation:
-      - {'$project': {'_id': 0, 'unary': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'unary': '$unary'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', '+a': {'$sqlPos': ['$unary.a']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'a': {'$numberInt': '1'}, '+a': {'$numberInt': '1'}}}
       - {'': {'a': {'$numberInt': '-1'}, '+a': {'$numberInt': '-1'}}}
@@ -187,15 +178,6 @@ tests:
     current_db: foo
     query: "SELECT VALUE {'a': a, '-a': -a} FROM unary AS unary"
     skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
-    translation_target_db: foo
-    translation_target_coll: unary
-    translation:
-      - {'$project': {'_id': 0, 'unary': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'unary': '$unary'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', '-a': {'$sqlNeg': ['$unary.a']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'a': {'$numberInt': '1'}, '-a': {'$numberInt': '-1'}}}
       - {'': {'a': {'$numberInt': '-1'}, '-a': {'$numberInt': '1'}}}
@@ -214,15 +196,6 @@ tests:
   - description: Addition correctness tests
     current_db: foo
     query: "SELECT VALUE {'a': a, 'b': b, 'a+b': a + b} FROM binary AS binary"
-    translation_target_db: foo
-    translation_target_coll: binary
-    translation:
-      - {'$project': {'_id': 0, 'binary': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'binary': '$binary'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$binary.a', 'b': '$binary.b', 'a+b': {'$add': ['$binary.a', '$binary.b']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberInt': '2'}, 'a+b': {'$numberInt': '8'}}}
       - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberLong': '2'}, 'a+b': {'$numberLong': '8'}}}
@@ -283,15 +256,6 @@ tests:
   - description: Subtraction correctness tests
     current_db: foo
     query: "SELECT VALUE {'a': a, 'b': b, 'a-b': a - b} FROM binary AS binary"
-    translation_target_db: foo
-    translation_target_coll: binary
-    translation:
-      - {'$project': {'_id': 0, 'binary': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'binary': '$binary'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$binary.a', 'b': '$binary.b', 'a-b': {'$subtract': ['$binary.a', '$binary.b']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberInt': '2'}, 'a-b': {'$numberInt': '4'}}}
       - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberLong': '2'}, 'a-b': {'$numberLong': '4'}}}
@@ -353,15 +317,6 @@ tests:
   - description: Multiplication correctness tests
     current_db: foo
     query: "SELECT VALUE {'a': a, 'b': b, 'a*b': a * b} FROM binary AS binary"
-    translation_target_db: foo
-    translation_target_coll: binary
-    translation:
-      - {'$project': {'_id': 0, 'binary': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'binary': '$binary'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$binary.a', 'b': '$binary.b', 'a*b': {'$multiply': ['$binary.a', '$binary.b']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberInt': '2'}, 'a*b': {'$numberInt': '12'}}}
       - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberLong': '2'}, 'a*b': {'$numberLong': '12'}}}
@@ -423,15 +378,6 @@ tests:
     current_db: foo
     query: "SELECT VALUE {'a': a, 'b': b, 'a/b': a / b} FROM binary AS binary"
     skip_reason: "SQL-362: Truncate division between ints/longs"
-    translation_target_db: foo
-    translation_target_coll: binary
-    translation:
-      - {'$project': {'_id': 0, 'binary': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'binary': '$binary'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$binary.a', 'b': '$binary.b', 'a/b': {'$sqlDivide': {'dividend': '$binary.a', 'divisor': '$binary.b', 'onError': {'$literal': null}}}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberInt': '3'}}}
       - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberLong': '2'}, 'a/b': {'$numberLong': '3'}}}
@@ -492,15 +438,6 @@ tests:
   - description: Division by zero results in NULL
     current_db: foo
     query: "SELECT VALUE {'a': a, 'n': a / 0} FROM unary AS unary"
-    translation_target_db: foo
-    translation_target_coll: unary
-    translation:
-      - {'$project': {'_id': 0, 'unary': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'unary': '$unary'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$unary.a', 'n': {'$literal': null}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'a': {'$numberInt': '1'}, 'n': null}}
       - {'': {'a': {'$numberInt': '-1'}, 'n': null}}
@@ -520,15 +457,6 @@ tests:
     current_db: foo
     query: "SELECT VALUE {'a': a, 'b': b, 'n': a / b} FROM integer_division AS i"
     skip_reason: "SQL-362: Truncate division between ints/longs"
-    translation_target_db: foo
-    translation_target_coll: integer_division
-    translation:
-      - {'$project': {'_id': 0, 'integer_division': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'i': '$integer_division'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$i.a', 'b': '$i.b', 'n': {'$sqlDivide': {'dividend': '$i.a', 'divisor': '$i.b', 'onError': {'$literal': null}}}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'a': {'$numberInt': '5'}, 'b': {'$numberInt': '2'}, 'n': {'$numberInt': '2'}}}
       - {'': {'a': {'$numberInt': '5'}, 'b': {'$numberLong': '2'}, 'n': {'$numberLong': '2'}}}

@@ -63,20 +63,9 @@ catalog_schema:
   }
 
 tests:
-
   - description: ascending-sort correctness test
     current_db: mydb
     query: "SELECT VALUE {'a': a::!INT} FROM foo AS foo ORDER BY a ASC"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'foo': '$foo'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
-      - {'$sort': {'__bot.a': 1}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     ordered: true
     result:
       - {'': {'a': 1}}
@@ -86,16 +75,6 @@ tests:
   - description: descending-sort correctness test
     current_db: mydb
     query: "SELECT VALUE {'a': a::!INT} FROM foo AS foo ORDER BY a DESC"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': "$$ROOT"}}
-      - {'$project': {'_id': 0, 'foo': "$foo"}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
-      - {'$sort': {'__bot.a': -1}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     ordered: true
     result:
       - {'': {'a': 2}}
@@ -105,16 +84,6 @@ tests:
   - description: multiple-sort-key correctness test
     current_db: mydb
     query: "SELECT VALUE {'a': a::!INT, 'b': b::!STRING} FROM foo AS foo ORDER BY a ASC, b ASC"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': "$$ROOT"}}
-      - {'$project': {'_id': 0, 'foo': "$foo"}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$foo.a', 'b': '$foo.b'}}}
-      - {'$sort': {'__bot.a': 1, '__bot.b': 1}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     ordered: true
     result:
       - {'': {'a': 1, 'b': 'abc'}}
@@ -124,12 +93,6 @@ tests:
   - description: missing sorts before null
     current_db: mydb
     query: "SELECT * FROM nullAndMissing AS nullAndMissing ORDER BY a ASC"
-    translation_target_db: mydb
-    translation_target_coll: nullAndMissing
-    translation:
-      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'nullAndMissing': '$nullAndMissing'}}
-      - {'$sort': {'nullAndMissing.a': 1}}
     ordered: true
     result:
       - {'nullAndMissing': {'_id': 0, 'a': null}}
@@ -139,16 +102,6 @@ tests:
   - description: null sorts before non-null values
     current_db: mydb
     query: "SELECT VALUE {'a': a::!INT} FROM nullAndNonNull AS nullAndNonNull ORDER BY a ASC"
-    translation_target_db: mydb
-    translation_target_coll: nullAndNonNull
-    translation:
-      - {'$project': {'_id': 0, 'nullAndNonNull': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'nullAndNonNull': '$nullAndNonNull'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$nullAndNonNull.a'}}}
-      - {'$sort': {'__bot.a': 1}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     ordered: true
     result:
       - {'': {'a': null}}
@@ -164,12 +117,6 @@ tests:
   - description: column references in sort keys can be qualified with table name after select star
     current_db: mydb
     query: "SELECT * FROM bar AS bar ORDER BY bar.a ASC"
-    translation_target_db: mydb
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$sort': {'bar.a': 1}}
     ordered: true
     result:
       - {'bar': {'_id': 2, 'a': 1, 'b': {'c': 2}}}
@@ -179,13 +126,6 @@ tests:
   - description: column references in sort keys can be qualified with table name after select substar
     current_db: mydb
     query: "SELECT VALUE bar.* FROM bar AS bar ORDER BY bar.a ASC"
-    translation_target_db: mydb
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$sort': {'bar.a': 1}}
     ordered: true
     result:
       - {'bar': {'_id': 2, 'a': 1, 'b': {'c': 2}}}
@@ -195,16 +135,6 @@ tests:
   - description: column references in sort keys can be compound identifiers referencing document subfields
     current_db: mydb
     query: "SELECT VALUE {'b': b} FROM bar AS bar ORDER BY b.c ASC"
-    translation_target_db: mydb
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'b': '$bar.b'}}}
-      - {'$sort': {'__bot.b.c': 1}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     ordered: true
     result:
       - {'': {'b': {'c': 1}}}
@@ -214,12 +144,6 @@ tests:
   - description: column references in sort keys can be compound identifiers referencing document subfields and be qualified with table name
     current_db: mydb
     query: "SELECT * FROM bar AS bar ORDER BY bar.b.c ASC"
-    translation_target_db: mydb
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$sort': {'bar.b.c': 1}}
     ordered: true
     result:
       - {'bar': {'_id': 0, 'a': 3, 'b': {'c': 1}}}

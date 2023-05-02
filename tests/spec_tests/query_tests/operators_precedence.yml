@@ -81,18 +81,6 @@ tests:
   - description: AND binds tighter than OR
     current_db: db
     query: "SELECT VALUE {'a': a, 'b': b, 'c': c, 'v': a AND b OR c, 'alt': a AND (b OR c)} FROM and_or_tier AS coll"
-    translation_target_db: db
-    translation_target_coll: and_or_tier
-    translation:
-      - {'$project': {'_id': 0, 'and_or_tier': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'coll': '$and_or_tier'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$coll.a', 'b': '$coll.b', 'c': '$coll.c',
-                                          'v': {'$sqlOr': [{'$sqlAnd': ['$coll.a', '$coll.b']}, '$coll.c']},
-                                          'alt': {'$sqlAnd': ['$coll.a', {'$sqlOr': ['$coll.b', '$coll.c']}]},
-      }}}
-      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
-            {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
-        }}}
     result:
       - {'': {'a': false, 'b': true, 'c': true, 'v': true, 'alt': false}}
       - {'': {'a': false, 'b': false, 'c': true, 'v': true, 'alt': false}}
@@ -111,18 +99,6 @@ tests:
   - description: NOT binds tighter than AND
     current_db: db
     query: "SELECT VALUE {'a': a, 'b': b, 'v': NOT a AND b, 'alt': NOT (a AND b)} FROM not_and_tier AS coll"
-    translation_target_db: db
-    translation_target_coll: not_and_tier
-    translation:
-      - {'$project': {'_id': 0, 'not_and_tier': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'coll': '$not_and_tier'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$coll.a', 'b': '$coll.b',
-                                          'v': {'$sqlAnd': [{'$sqlNot': ['$coll.a']}, '$coll.b']},
-                                          'alt': {'$sqlNot': [{'$sqlAnd': ['$coll.a', '$coll.b']}]}
-      }}}
-      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
-            {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
-        }}}
     result:
       - {'': {'a': true, 'b': false, 'v': false, 'alt': true}}
       - {'': {'a': true, 'b': null, 'v': false, 'alt': null}}
@@ -143,17 +119,6 @@ tests:
     current_db: db
     query: "SELECT VALUE {'a': a, 'v': NOT a IS BOOL, 'alt': (NOT a) IS BOOL} FROM [{'a': true}, {'a': null}] AS arr"
     skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
-    translation_target_db: db
-    translation:
-      - {'$documents': [{'a': {'$literal': true}}, {'a': {'$literal': null}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a',
-                                          'v': {'$sqlNot': [{'$sqlIs': ['$arr.a', {'$literal': 'bool'}]}]},
-                                          'alt': {'$sqlIs': [{'$sqlNot': ['$arr.a']}, {'$literal': 'bool'}]}
-      }}}
-      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
-        {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
-      }}}
     result:
       - {'': {'a': true, 'v': false, 'alt': true}}
       - {'': {'a': null, 'v': true, 'alt': false}}
@@ -173,14 +138,6 @@ tests:
     current_db: db
     query: "SELECT VALUE {'a': a, 'b': b, 'v': a LIKE b IS NULL} FROM [{'a': 'str', 'b': 'str'}, {'a': 'str', 'b': null}] AS arr"
     skip_reason: "SQL-330: Update $like desugarer to work for non-literal patterns, SQL-1257: Rewrite desugarUnsupportedOperators"
-    translation_target_db: db
-    translation:
-      - {'$documents': [{'a': {'$literal': true}, 'b': {'$literal': 1}}, {'a': {'$literal': true}, 'b': {'$literal': null}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'b': '$arr.b', 'v': {'$sqlIs': [{'$like': {'input': '$arr.a', 'pattern': '$arr.b'}}, {'$literal': 'null'}]}}}}
-      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
-        {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
-      }}}
     result:
       - {'': {'a': 'str', 'b': 'str', 'v': false}}
       - {'': {'a': 'str', 'b': null, 'v': true}}
@@ -225,27 +182,6 @@ tests:
   - description: BETWEEN binds tighter than IN
     current_db: db
     query: "SELECT VALUE {'a': a, 'v': a BETWEEN 0 AND 2 IN (true)} FROM [{'a': 1}, {'a': 3}] AS arr"
-    translation_target_db: db
-    translation:
-      - {'$documents': [{'a': {'$literal': 1}}, {'a': {'$literal': 3}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'v': {'$subqueryComparison': {
-                                                                  'op': 'eq',
-                                                                  'modifier': 'any',
-                                                                  'arg': {'$sqlBetween': ['$arr.a', {'$literal': 0}, {'$literal': 2}]},
-                                                                  'subquery': {
-                                                                    'let': {'varr_0': '$arr'},
-                                                                    'outputPath': ['__bot', '_1'],
-                                                                    'pipeline': [
-                                                                      {'$documents': [{'_1': {'$literal': true}}]},
-                                                                      {'$project': {'_id': 0, '_arr': '$$ROOT'}},
-                                                                      {'$project': {'_id': 0, '__bot': {'_1': '$_arr._1'}}}
-                                                                    ]
-                                                                  }}}
-      }}}
-      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
-        {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
-      }}}
     result:
       - {'': {'a': 1, 'v': true}}
       - {'': {'a': 3, 'v': false}}
@@ -280,14 +216,6 @@ tests:
   - description: "|| binds tighter than comparison ops"
     current_db: db
     query: "SELECT VALUE {'a': a, 'b': b, 'c': c, 'v': a || b = c} FROM [{'a': 'a', 'b': 'b', 'c': 'ab'}] AS arr"
-    translation_target_db: db
-    translation:
-      - {'$documents': [{'a': {'$literal': 'a'}, 'b': {'$literal': 'b'}, 'c': {'$literal': 'ab'}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'b': '$arr.b', 'c': '$arr.c', 'v': {'$sqlEq': [{'$concat': ['$arr.a', '$arr.b']}, '$arr.c']}}}}
-      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
-        {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
-      }}}
     result:
       - {'': {'a': 'a', 'b': 'b', 'c': 'ab', 'v': true}}
 
@@ -322,18 +250,6 @@ tests:
   - description: mul/div bind tighter than add/sub
     current_db: db
     query: "SELECT VALUE {'a': a, 'b': b, 'c': c, 'v': a * b + c, 'alt': a * (b + c)} FROM mul_add_tier AS coll"
-    translation_target_db: db
-    translation_target_coll: mul_add_tier
-    translation:
-      - {'$project': {'_id': 0, 'mul_add_tier': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'coll': '$mul_add_tier'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$coll.a', 'b': '$coll.b', 'c': '$coll.c',
-                                          'v': {'$add': [{'$multiply': ['$coll.a', '$coll.b']}, '$coll.c']},
-                                          'alt': {'$multiply': ["$coll.a", {'$add': ['$coll.b', '$coll.c']}]},
-      }}}
-      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
-        {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
-      }}}
     result:
       - {'': {'a': 1, 'b': 1, 'c': 1, 'v': 2, 'alt': 2}}
       - {'': {'a': 6, 'b': 3, 'c': 3, 'v': 21, 'alt': 36}}
@@ -353,17 +269,6 @@ tests:
     current_db: db
     query: "SELECT VALUE {'a': a, 'b': b, 'v': - a * b, 'alt': - (a * b)} FROM [{'a': -1, 'b': 1}] AS arr"
     skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
-    translation_target_db: db
-    translation:
-      - {'$documents': [{'a': {'$literal': -1}, 'b': {'$literal': 1}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a', 'b': '$arr.b',
-                                          'v': {'$multiply': [{'$multiply': ['$arr.a', {'$literal': -1}]}, '$arr.b']},
-                                          'alt': {'$multiply': [{'$multiply': ['$arr.a', '$arr.b']}, {'$literal': -1}]}
-      }}}
-      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
-        {'$setField': {'field': '', 'input': '$$ROOT', 'value': '$__bot'}}
-      }}}
     result:
       - {'': {'a': -1, 'b': 1, 'v': 1, 'alt': 1}}
 
@@ -407,14 +312,5 @@ tests:
   - description: subpath op binds tighter than type ops
     current_db: db
     query: "SELECT VALUE {'a': a, 'v': a.b::INT} FROM subpath_type_tier AS coll"
-    translation_target_db: db
-    translation_target_coll: subpath_type_tier
-    translation:
-      - {'$project': {'_id': 0, 'subpath_type_tier': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'coll': '$subpath_type_tier'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$coll.a', 'v': {'$convert': {'input': '$coll.a.b', 'to': 'int', 'onNull': {$literal : null}, 'onError': {$literal : null}}}}}}
-      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
-        {'$setField': {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}}
-      }}}
     result:
       - {'': {'a': {'b': true, 'c': 1}, 'v': 1}}

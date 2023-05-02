@@ -35,26 +35,12 @@ tests:
   - description: Simple select with limit clause
     current_db: foo
     query: "SELECT * FROM bar AS bar ORDER BY a LIMIT 1"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - { "$sort": { "bar.a": 1 } }
-      - { "$limit": 1 }
     result:
       - { "bar": { "_id": 0, "a": 1 } }
 
   - description: Simple select with offset clause
     current_db: foo
     query: "SELECT * FROM bar AS bar ORDER BY a OFFSET 1"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - { "$sort": { "bar.a": 1 } }
-      - { "$skip": 1 }
     result:
       - { "bar": { "_id": 1, "a": 2 } }
       - { "bar": { "_id": 2, "a": 3 } }
@@ -86,14 +72,6 @@ tests:
   - description: Select with limit and offset
     current_db: foo
     query: "SELECT * FROM bar AS bar ORDER BY a LIMIT 1 OFFSET 1"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - { "$sort": { "bar.a": 1 } }
-      - { "$skip": 1 }
-      - { "$limit": 1 }
     result:
       - { "bar": { "_id": 1, "a": 2 } }
 
@@ -101,71 +79,12 @@ tests:
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY a LIMIT 1)"
     skip_reason: "SQL-502"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - {
-          "$match":
-            {
-              "$expr":
-                {
-                  "$subqueryComparison":
-                    {
-                      "op": "eq",
-                      "modifier": "any",
-                      "arg": "$bar.a",
-                      "subquery":
-                        {
-                          "collection": "baz",
-                          "let": {},
-                          "outputPath": ["__bot", "a"],
-                          "pipeline":
-                            [
-                              { "$project": { "_id": 0, "baz": "$$ROOT" } },
-                              { "$project": { "_id": 0, "baz": "$baz" } },
-                              {
-                                "$project":
-                                  { "_id": 0, "__bot": { "a": "$baz.a" } },
-                              },
-                              { "$sort": { "__bot.a": 1 } },
-                              { "$limit": 1 },
-                            ],
-                        },
-                    },
-                },
-            },
-        }
     result:
       - { "bar": { "a": 1 } }
 
   - description: Offset in subquery
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY a OFFSET 1)"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$match': {'$expr': {'$subqueryComparison': {
-                                                       'op': 'eq',
-                                                       'modifier': 'any',
-                                                       'arg': '$bar.a',
-                                                       'subquery': {
-                                                                     'db': 'foo',
-                                                                     'collection': 'baz',
-                                                                     'let': {'vbar_0': '$bar'},
-                                                                     'outputPath': ['__bot', 'a'],
-                                                                     'pipeline': [
-                                                                                   {'$project': {'_id': 0, 'baz': '$$ROOT'}},
-                                                                                   {'$project': {'_id': 0, 'baz': '$baz'}},
-                                                                                   {'$project': {'_id': 0, '__bot': {'a': '$baz.a'}}},
-                                                                                   {'$sort': {'__bot.a': 1}},
-                                                                                   {'$skip': 1}
-                                                                     ]
-                                                       }
-      }}}}
     result:
       - { "bar": { "_id": 1, "a": 2 } }
 
@@ -173,42 +92,5 @@ tests:
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY a LIMIT 1 OFFSET 1)"
     skip_reason: "SQL-502"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - {
-          "$match":
-            {
-              "$expr":
-                {
-                  "$subqueryComparison":
-                    {
-                      "op": "eq",
-                      "modifier": "any",
-                      "arg": "$bar.a",
-                      "subquery":
-                        {
-                          "collection": "baz",
-                          "let": {},
-                          "outputPath": ["__bot", "a"],
-                          "pipeline":
-                            [
-                              { "$project": { "_id": 0, "baz": "$$ROOT" } },
-                              { "$project": { "_id": 0, "baz": "$baz" } },
-                              {
-                                "$project":
-                                  { "_id": 0, "__bot": { "a": "$baz.a" } },
-                              },
-                              { "$sort": { "__bot.a": 1 } },
-                              { "$skip": 1 },
-                              { "$limit": 1 },
-                            ],
-                        },
-                    },
-                },
-            },
-        }
     result:
       - { "bar": { "a": 2 } }

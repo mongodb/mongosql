@@ -113,12 +113,6 @@ tests:
   - description: basic correctness test
     current_db: test
     query: "SELECT * FROM UNWIND(foo WITH PATH => arr)"
-    translation_target_db: test
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'foo': '$foo'}}
-      - {'$unwind': {'path': '$foo.arr'}}
     result:
       - {'foo': {'_id': 0, 'arr': 1}}
       - {'foo': {'_id': 0, 'arr': 2}}
@@ -130,12 +124,6 @@ tests:
   - description: basic correctness test for explicitly aliased datasource
     current_db: test
     query: "SELECT * FROM UNWIND(foo AS f WITH PATH => arr)"
-    translation_target_db: test
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'f': '$foo'}}
-      - {'$unwind': {'path': '$f.arr'}}
     result:
       - {'f': {'_id': 0, 'arr': 1}}
       - {'f': {'_id': 0, 'arr': 2}}
@@ -147,12 +135,6 @@ tests:
   - description: basic correctness test for index option
     current_db: test
     query: "SELECT * FROM UNWIND(foo WITH PATH => arr, INDEX => i)"
-    translation_target_db: test
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'foo': '$foo'}}
-      - {'$unwind': {'path': '$foo.arr', 'includeArrayIndex': 'foo.i'}}
     result:
       - {'foo': {'_id': 0, 'arr': 1, 'i': {"$numberLong": "0"}}}
       - {'foo': {'_id': 0, 'arr': 2, 'i': {"$numberLong": "1"}}}
@@ -164,12 +146,6 @@ tests:
   - description: there are no type constraints on the field referenced by PATH, and non-array fields are not unwound
     current_db: test
     query: "SELECT * FROM UNWIND(non_arrays WITH PATH => arr, INDEX => i)"
-    translation_target_db: test
-    translation_target_coll: non_arrays
-    translation:
-      - {'$project': {'_id': 0, 'non_arrays': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'non_arrays': '$non_arrays'}}
-      - {'$unwind': {'path': '$non_arrays.arr', 'includeArrayIndex': 'non_arrays.i'}}
     result:
       - {'non_arrays': {'_id': 0, 'arr': 1, 'comment': "array", 'i': {"$numberLong": "0"}}}
       - {'non_arrays': {'_id': 0, 'arr': 2, 'comment': "array", 'i': {"$numberLong": "1"}}}
@@ -179,12 +155,6 @@ tests:
   - description: unwinding a nested array puts the unwound value at the same nested path
     current_db: test
     query: "SELECT * FROM UNWIND(nested WITH PATH => a.b.c, INDEX => i)"
-    translation_target_db: test
-    translation_target_coll: nested
-    translation:
-      - {'$project': {'_id': 0, 'nested': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'nested': '$nested'}}
-      - {'$unwind': {'path': '$nested.a.b.c', 'includeArrayIndex': 'nested.i'}}
     result:
       - {'nested': {'_id': 0, 'a': {'b': {'c': 1, 'x': 30}, 'y': 20}, 'z': 10, 'i': {"$numberLong": "0"}}}
       - {'nested': {'_id': 0, 'a': {'b': {'c': 2, 'x': 30}, 'y': 20}, 'z': 10, 'i': {"$numberLong": "1"}}}
@@ -196,13 +166,6 @@ tests:
   - description: unwind datasources can be unwound
     current_db: test
     query: "SELECT * FROM UNWIND(UNWIND(two_d WITH PATH => arr) WITH PATH => arr)"
-    translation_target_db: test
-    translation_target_coll: two_d
-    translation:
-      - {'$project': {'_id': 0, 'two_d': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'two_d': '$two_d'}}
-      - {'$unwind': {'path': '$two_d.arr'}}
-      - {'$unwind': {'path': '$two_d.arr'}}
     result:
       - {'two_d': {'_id': 0, 'arr': 1}}
       - {'two_d': {'_id': 0, 'arr': 2}}
@@ -216,20 +179,6 @@ tests:
   - description: join datasources can be unwound, unwound field is nested under correct namespace (left)
     current_db: test
     query: "SELECT * FROM UNWIND(foo JOIN bar WITH PATH => foo.arr)"
-    translation_target_db: test
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'foo': '$foo'}}
-      - {'$join': {
-        'collection': 'bar',
-        'joinType': 'inner',
-        'pipeline': [
-          {'$project': {'_id': 0, 'bar': '$$ROOT'}},
-          {'$project': {'_id': 0, 'bar': '$bar'}},
-        ],
-        }}
-      - {'$unwind': {'path': "$foo.arr"}}
     result:
       - {'foo': {'_id': 0, 'arr': 1}, 'bar': {'_id': 0, 'arr': [10, 20, 30]}}
       - {'foo': {'_id': 0, 'arr': 2}, 'bar': {'_id': 0, 'arr': [10, 20, 30]}}
@@ -247,20 +196,6 @@ tests:
   - description: join datasources can be unwound, unwound field is nested under correct namespace (right)
     current_db: test
     query: "SELECT * FROM UNWIND(foo JOIN bar WITH PATH => bar.arr)"
-    translation_target_db: test
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'foo': '$foo'}}
-      - {'$join': {
-        'collection': 'bar',
-        'joinType': 'inner',
-        'pipeline': [
-          {'$project': {'_id': 0, 'bar': '$$ROOT'}},
-          {'$project': {'_id': 0, 'bar': '$bar'}},
-        ],
-        }}
-      - {'$unwind': {'path': "$bar.arr"}}
     result:
       - {'foo': {'_id': 0, 'arr': [1, 2, 3]}, 'bar': {'_id': 0, 'arr': 10}}
       - {'foo': {'_id': 0, 'arr': [1, 2, 3]}, 'bar': {'_id': 0, 'arr': 20}}
@@ -278,12 +213,6 @@ tests:
   - description: documents containing empty array, null, or missing values are omitted if OUTER => false (default)
     current_db: test
     query: "SELECT * FROM UNWIND(empty_null_and_missing AS c WITH PATH => arr, INDEX => i)"
-    translation_target_db: test
-    translation_target_coll: empty_null_and_missing
-    translation:
-      - {'$project': {'_id': 0, 'empty_null_and_missing': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$empty_null_and_missing'}}
-      - {'$unwind': {'path': '$c.arr', 'includeArrayIndex': 'c.i'}}
     result:
       - {'c': {'_id': 1, 'arr': 1, 'comment': "non-empty", 'i': {"$numberLong": "0"}}}
       - {'c': {'_id': 1, 'arr': 2, 'comment': "non-empty", 'i': {"$numberLong": "1"}}}
@@ -291,12 +220,6 @@ tests:
   - description: documents containing empty array, null, or missing values are retained if OUTER => true
     current_db: test
     query: "SELECT * FROM UNWIND(empty_null_and_missing AS c WITH PATH => arr, INDEX => i, OUTER => true)"
-    translation_target_db: test
-    translation_target_coll: empty_null_and_missing
-    translation:
-      - {'$project': {'_id': 0, 'empty_null_and_missing': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$empty_null_and_missing'}}
-      - {'$unwind': {'path': '$c.arr', 'includeArrayIndex': 'c.i', 'preserveNullAndEmptyArrays': true}}
     result:
       - {'c': {'_id': 0, 'comment': "empty", 'i': null}}
       - {'c': {'_id': 1, 'arr': 1, 'comment': "non-empty", 'i': {"$numberLong": "0"}}}

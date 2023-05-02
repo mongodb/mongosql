@@ -119,15 +119,6 @@ tests:
   - description: correctness test for string concatentation
     current_db: foo
     query: "SELECT VALUE {'s1': s1, 's2': s2, 's': s1 || s2} FROM concat AS c"
-    translation_target_db: foo
-    translation_target_coll: concat
-    translation:
-      - {'$project': {'_id': 0, 'concat': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$concat'}}
-      - {'$project': {'_id': 0, '__bot': {'s1': '$c.s1', 's2': '$c.s2', 's': {'$concat': ['$c.s1', '$c.s2']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'s1': 'ab', 's2': 'c', 's': 'abc'}}
       - {'': {'s1': 'ab', 's2': null, 's': null}}
@@ -153,15 +144,6 @@ tests:
     current_db: foo
     query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p} FROM nullAndMissing AS n"
     skip_reason: "SQL-330: Update $like desugarer to work for non-literal patterns"
-    translation_target_db: foo
-    translation_target_coll: nullAndMissing
-    translation:
-      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'n': '$nullAndMissing'}}
-      - {'$project': {'_id': 0, '__bot': {'s': '$n.s', 'p': '$n.p', 'r': {'$like': {'input': '$n.s', 'pattern': '$n.p'}}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'s': null, 'p': 'abc', 'r': null}}
       - {'': {'p': 'abc', 'r': null}}
@@ -172,15 +154,6 @@ tests:
     current_db: foo
     query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p} FROM `like` AS l"
     skip_reason: "SQL-330: Update $like desugarer to work for non-literal patterns"
-    translation_target_db: foo
-    translation_target_coll: like
-    translation:
-      - {'$project': {'_id': 0, 'like': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'l': '$like'}}
-      - {'$project': {'_id': 0, '__bot': {'s': '$l.s', 'p': '$l.p', 'r': {'$like': {'input': '$l.s', 'pattern': '$l.p'}}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'s': 'abc', 'p': 'abc', 'r': true}}
       - {'': {'s': 'abc', 'p': 'a_c', 'r': true}}
@@ -195,15 +168,6 @@ tests:
     current_db: foo
     query: "SELECT VALUE {'s': s, 'p': p, 'r': s LIKE p ESCAPE '$'} FROM `escape` AS e"
     skip_reason: "SQL-521: wrap '$' in $literal document"
-    translation_target_db: foo
-    translation_target_coll: escape
-    translation:
-      - {'$project': {'_id': 0, 'escape': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'e': '$escape'}}
-      - {'$project': {'_id': 0, '__bot': {'s': '$e.s', 'p': '$e.p', 'r': {'$like': {'input': '$e.s', 'pattern': '$e.p', 'escape': {'$literal': '$'}}}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'s': 'abc', 'p': 'abc', 'r': true}}
       - {'': {'s': 'abc', 'p': 'a$_c', 'r': false}}

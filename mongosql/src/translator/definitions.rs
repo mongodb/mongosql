@@ -596,9 +596,13 @@ impl MqlTranslator {
                     while let_bindings.iter().any(|x| x.name == generated_name) {
                         generated_name.push('_');
                     }
+                    let expr = match value.ref_type {
+                        MqlReferenceType::FieldRef => air::Expression::FieldRef(value.name.into()),
+                        MqlReferenceType::Variable => air::Expression::Variable(value.name.into()),
+                    };
                     let_bindings.push(air::LetVariable {
                         name: generated_name.clone(),
-                        expr: Box::new(air::Expression::FieldRef(value.name.into())),
+                        expr: Box::new(expr),
                     });
                     (
                         key,

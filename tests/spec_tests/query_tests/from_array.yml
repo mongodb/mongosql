@@ -17,64 +17,35 @@ tests:
   - description: basic array datasource correctness test
     query: "SELECT * FROM [{'a': 1, 'b': 1}] AS arr"
     current_db: test
-    translation_target_db: test
-    translation:
-      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
     result:
       - {'arr': {'a': 1, 'b': 1}}
 
   - description: unqualified reference to field from array datasource
     query: "SELECT VALUE {'a': a} FROM [{'a': 1, 'b': 1}] AS arr"
     current_db: test
-    translation_target_db: test
-    translation:
-      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'a': 1}}
 
   - description: qualified reference to field from array datasource
     query: "SELECT VALUE {'a': arr.a} FROM [{'a': 1, 'b': 1}] AS arr"
     current_db: test
-    translation_target_db: test
-    translation:
-      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$arr.a'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'a': 1}}
 
   - description: array datasource must have alias
     query: "SELECT * FROM [{'a': 1}]"
     current_db: test
-    translation_target_db: test
     should_compile: false
     parse_error: "array datasources must have aliases"
 
   - description: empty array datasource is allowed
     query: "SELECT * FROM [] AS arr"
     current_db: test
-    translation_target_db: test
-    translation:
-      - {'$documents': []}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
     result: []
 
   - description: array datasource with single empty document is allowed
     query: "SELECT * FROM [{}] AS _dual"
     current_db: test
-    translation_target_db: test
-    translation:
-      - {'$documents': [{'$literal': {}}]}
-      - {'$project': {'_id': 0, '_dual': '$$ROOT'}}
     result:
       - {'_dual': {}}
 

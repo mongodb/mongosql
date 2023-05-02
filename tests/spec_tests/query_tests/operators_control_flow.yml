@@ -29,147 +29,45 @@ catalog_schema:
   }
 
 tests:
-  - description: Simple CASE expression - No WHEN comparison evalutes to TRUE, return ELSE result
+  - description: Simple CASE expression - No WHEN comparison evaluates to TRUE, return ELSE result
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' WHEN c THEN 'c' ELSE 'none' END } FROM bar AS bar"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$bar.a', 'b': '$bar.b', 'c': '$bar.c',
-                                          'r': {'$let': {
-                                            'vars': {'target': { $literal: 1 }},
-                                            'in':
-                                              {"$switch": {
-                                                "branches": [
-                                                {"case": { "$sqlEq": [ '$$target', "$bar.a" ] }, "then": {'$literal': 'a'} },
-                                                {"case": { "$sqlEq": [ '$$target', "$bar.b" ] }, "then": {'$literal': 'b'} },
-                                                {"case": { "$sqlEq": [ '$$target', "$bar.c" ] }, "then": {'$literal': 'c'} }
-                                                ],
-                                                "default": {'$literal': 'none'}
-                                              }}}}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": 2, "b": null, "c": 3, "r": "none" } }
 
-  - description: Simple CASE expression - One WHEN comparison evalutes to TRUE, return corresponding THEN result
+  - description: Simple CASE expression - One WHEN comparison evaluates to TRUE, return corresponding THEN result
     query: "SELECT VALUE { 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' ELSE 'none' END } FROM [{'a': 2, 'b': 1}] AS arr"
     current_db: test
-    translation_target_db: test
-    translation:
-      - {'$documents': [{'a': {'$literal': 2}, 'b': {'$literal': 1}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'r': {'$let': {
-        'vars': {'target': { $literal: 1 }},
-        'in':
-          {"$switch": {
-            "branches": [
-            {"case": { "$sqlEq": [ '$$target', "$arr.a" ] }, "then": {'$literal': 'a'} },
-            {"case": { "$sqlEq": [ '$$target', "$arr.b" ] }, "then": {'$literal': 'b'} },
-            ],
-            "default": {'$literal': 'none'}
-          }}}}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "r": "b" } }
 
-  - description: Simple CASE expression - Multiple WHEN comparison evalutes to TRUE, return first corresponding THEN result
+  - description: Simple CASE expression - Multiple WHEN comparison evaluates to TRUE, return first corresponding THEN result
     query: "SELECT VALUE { 'r': CASE 1 WHEN a THEN 'a' WHEN b THEN 'b' ELSE 'none' END } FROM [{'a': 1, 'b': 1}] AS arr"
     current_db: test
-    translation_target_db: test
-    translation:
-      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'r': {'$let': {
-        'vars': {'target': { $literal: 1 }},
-        'in':
-          {"$switch": {
-            "branches": [
-            {"case": { "$sqlEq": [ '$$target', "$arr.a" ] }, "then": {'$literal': 'a'} },
-            {"case": { "$sqlEq": [ '$$target', "$arr.b" ] }, "then": {'$literal': 'b'} },
-            ],
-            "default": {'$literal': 'none'}
-          }}}}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "r": "a" } }
 
   - description: Simple CASE expression - Static type mismatch for case operand and when operand
     query: "SELECT VALUE { 'r': CASE 1 WHEN '2' THEN '2' ELSE NULL END } FROM [{}] AS _dual"
     current_db: test
-    translation_target_db: test
     should_compile: false
     algebrize_error: "invalid comparison for SimpleCase: Atomic(Integer) cannot be compared to Atomic(String)"
 
-  - description: Searched CASE expression - No WHEN condition evalutes to TRUE, return ELSE result
+  - description: Searched CASE expression - No WHEN condition evaluates to TRUE, return ELSE result
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' WHEN c = 1 THEN 'c' ELSE 'none' END } FROM bar AS bar"
-    skip_reason: "SQL-495: wrap literals in $literal document"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$bar.a', 'b': '$bar.b', c': '$bar.c',
-                                          'r': {"$switch": {
-                                            "branches": [
-                                            {"case": { "$sqlEq": [ "$bar.a", { $literal: 1 } ] }, "then": 'a' },
-                                            {"case": { "$sqlEq": [ "$bar.b", { $literal: 1 } ] }, "then": 'b' },
-                                            {"case": { "$sqlNe": [ "$bar.c", { $literal: 0 } ] }, "then": 'c' }
-                                            ],
-                                            "default": {'$literal': 'none'}
-                                          }}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
-      - {'': { "a": 2, "b": null, "r": "a" } }
+      - {'': { "a": 2, "b": null, "c": 3, "r": "none" } }
 
-  - description: Searched CASE expression - One WHEN condition evalutes to TRUE, return corresponding THEN result
-    skip_reason: 'SQL-719: disable constant folding for translation tests'
+  - description: Searched CASE expression - One WHEN condition evaluates to TRUE, return corresponding THEN result
     current_db: foo
     query: "SELECT VALUE { 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' ELSE 'none' END } FROM [{'a': 2, 'b': 1}] AS arr"
-    translation_target_db: foo
-    translation:
-      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'r': {"$switch": {
-                                            "branches": [
-                                            {"case": { "$sqlEq": [ "$arr.a", { $literal: 1 } ] }, "then": {'$literal': 'a'} },
-                                            {"case": { "$sqlEq": [ "$arr.b", { $literal: 1 } ] }, "then": {'$literal': 'b'} },
-                                            ],
-                                            "default": {'$literal': 'none'}
-                                          }}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "r": "b" } }
 
-  - description: Searched CASE expression - Multiple WHEN conditions evalutes to TRUE, return first corresponding THEN result
+  - description: Searched CASE expression - Multiple WHEN conditions evaluates to TRUE, return first corresponding THEN result
     current_db: foo
     query: "SELECT VALUE { 'r': CASE WHEN a = 1 THEN 'a' WHEN b = 1 THEN 'b' ELSE 'none' END } FROM [{'a': 1, 'b': 1}] AS arr"
-    translation_target_db: foo
-    translation:
-      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'r': {"$switch": {
-                                            "branches": [
-                                            {"case": { "$sqlEq": [ "$arr.a", { $literal: 1 } ] }, "then": {'$literal': 'a'} },
-                                            {"case": { "$sqlEq": [ "$arr.b", { $literal: 1 } ] }, "then": {'$literal': 'b'} },
-                                            ],
-                                            "default": {'$literal': 'none'}
-                                          }}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "r": "a" } }
 

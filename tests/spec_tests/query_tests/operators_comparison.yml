@@ -307,15 +307,6 @@ tests:
   - description: correctness test for lt for numeric types
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM numbers AS numbers"
-    translation_target_db: foo
-    translation_target_coll: numbers
-    translation:
-      - {'$project': {'_id': 0, 'numbers': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'numbers': '$numbers'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$numbers.a', 'b': '$numbers.b', 'c': {"$sqlLt": [ "$numbers.a", "$numbers.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": true } }
       - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": false } }
@@ -331,15 +322,6 @@ tests:
   - description: correctness test for lte for numeric types
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM numbers AS numbers"
-    translation_target_db: foo
-    translation_target_coll: numbers
-    translation:
-      - {'$project': {'_id': 0, 'numbers': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'numbers': '$numbers'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$numbers.a', 'b': '$numbers.b', 'c': {"$sqlLte": [ "$numbers.a", "$numbers.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": true } }
       - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": true } }
@@ -354,15 +336,6 @@ tests:
   - description: correctness test for neq for numeric types
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM numbers AS numbers"
-    translation_target_db: foo
-    translation_target_coll: numbers
-    translation:
-      - {'$project': {'_id': 0, 'numbers': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'numbers': '$numbers'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$numbers.a', 'b': '$numbers.b', 'c': {"$sqlNe": [ "$numbers.a", "$numbers.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": true } }
       - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": false } }
@@ -377,15 +350,6 @@ tests:
   - description: correctness test for eq for numeric types
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM numbers AS numbers"
-    translation_target_db: foo
-    translation_target_coll: numbers
-    translation:
-      - {'$project': {'_id': 0, 'numbers': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'numbers': '$numbers'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$numbers.a', 'b': '$numbers.b', 'c': {"$sqlEq": [ "$numbers.a", "$numbers.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": false } }
       - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": true } }
@@ -400,15 +364,6 @@ tests:
   - description: correctness test for gt for numeric types
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM numbers AS numbers"
-    translation_target_db: foo
-    translation_target_coll: numbers
-    translation:
-      - {'$project': {'_id': 0, 'numbers': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'numbers': '$numbers'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$numbers.a', 'b': '$numbers.b', 'c': {"$sqlGt": [ "$numbers.a", "$numbers.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": false } }
       - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": false } }
@@ -423,15 +378,6 @@ tests:
   - description: correctness test for gte for numeric types
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM numbers AS numbers"
-    translation_target_db: foo
-    translation_target_coll: numbers
-    translation:
-      - {'$project': {'_id': 0, 'numbers': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'numbers': '$numbers'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$numbers.a', 'b': '$numbers.b', 'c': {"$sqlGte": [ "$numbers.a", "$numbers.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$numberInt": "2" }, "b": { "$numberDouble": "4.5" }, "c": false } }
       - {'': { "a": { "$numberLong": "2" }, "b": { "$numberInt": "2" }, "c": true } }
@@ -446,15 +392,6 @@ tests:
   - description: correctness test for lt for NaN
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM nan AS nan"
-    translation_target_db: foo
-    translation_target_coll: nan
-    translation:
-      - {'$project': {'_id': 0, 'nan': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'nan': '$nan'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$nan.a', 'b': '$nan.b', 'c': {"$sqlLt": [ "$nan.a", "$nan.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$numberDecimal": "NaN" }, "b": { "$numberDecimal": "NaN" }, "c": false } }
 
@@ -462,15 +399,6 @@ tests:
   - description: correctness test for lte for NaN
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM nan AS nan"
-    translation_target_db: foo
-    translation_target_coll: nan
-    translation:
-      - {'$project': {'_id': 0, 'nan': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'nan': '$nan'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$nan.a', 'b': '$nan.b', 'c': {"$sqlLte": [ "$nan.a", "$nan.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$numberDecimal": "NaN" }, "b": { "$numberDecimal": "NaN" }, "c": true } }
 
@@ -478,30 +406,12 @@ tests:
   - description: correctness test for eq for NaN
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM nan AS nan"
-    translation_target_db: foo
-    translation_target_coll: nan
-    translation:
-      - {'$project': {'_id': 0, 'nan': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'nan': '$nan'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$nan.a', 'b': '$nan.b', 'c': {"$sqlEq": [ "$nan.a", "$nan.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$numberDecimal": "NaN" }, "b": { "$numberDecimal": "NaN" }, "c": true } }
 
   - description: correctness test for gt for NaN
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM nan AS nan"
-    translation_target_db: foo
-    translation_target_coll: nan
-    translation:
-      - {'$project': {'_id': 0, 'nan': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'nan': '$nan'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$nan.a', 'b': '$nan.b', 'c': {"$sqlGt": [ "$nan.a", "$nan.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$numberDecimal": "NaN" }, "b": { "$numberDecimal": "NaN" }, "c": false } }
 
@@ -509,15 +419,6 @@ tests:
   - description: correctness test for gte for NaN
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM nan AS nan"
-    translation_target_db: foo
-    translation_target_coll: nan
-    translation:
-      - {'$project': {'_id': 0, 'nan': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'nan': '$nan'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$nan.a', 'b': '$nan.b', 'c': {"$sqlGte": [ "$nan.a", "$nan.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$numberDecimal": "NaN" }, "b": { "$numberDecimal": "NaN" }, "c": true } }
 
@@ -525,15 +426,6 @@ tests:
   - description: correctness test for lt for strings
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM strings AS strings"
-    translation_target_db: foo
-    translation_target_coll: strings
-    translation:
-      - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'strings': '$strings'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$strings.a', 'b': '$strings.b', 'c': {"$sqlLt": [ "$strings.a", "$strings.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": "abc", "b": "def", "c": true } }
       - {'': { "a": "xyz", "b": "xyz", "c": false } }
@@ -546,15 +438,6 @@ tests:
   - description: correctness test for lte for strings
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM strings AS strings"
-    translation_target_db: foo
-    translation_target_coll: strings
-    translation:
-      - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'strings': '$strings'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$strings.a', 'b': '$strings.b', 'c': {"$sqlLte": [ "$strings.a", "$strings.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": "abc", "b": "def", "c": true } }
       - {'': { "a": "xyz", "b": "xyz", "c": true } }
@@ -567,15 +450,6 @@ tests:
   - description: correctness test for neq for strings
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM strings AS strings"
-    translation_target_db: foo
-    translation_target_coll: strings
-    translation:
-      - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'strings': '$strings'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$strings.a', 'b': '$strings.b', 'c': {"$sqlNe": [ "$strings.a", "$strings.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": "abc", "b": "def", "c": true } }
       - {'': { "a": "xyz", "b": "xyz", "c": false } }
@@ -588,15 +462,6 @@ tests:
   - description: correctness test for eq for strings
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM strings AS strings"
-    translation_target_db: foo
-    translation_target_coll: strings
-    translation:
-      - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'strings': '$strings'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$strings.a', 'b': '$strings.b', 'c': {"$sqlEq": [ "$strings.a", "$strings.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": "abc", "b": "def", "c": false } }
       - {'': { "a": "xyz", "b": "xyz", "c": true } }
@@ -609,15 +474,6 @@ tests:
   - description: correctness test for gt for strings
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM strings AS strings"
-    translation_target_db: foo
-    translation_target_coll: strings
-    translation:
-      - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'strings': '$strings'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$strings.a', 'b': '$strings.b', 'c': {"$sqlGt": [ "$strings.a", "$strings.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": "abc", "b": "def", "c": false } }
       - {'': { "a": "xyz", "b": "xyz", "c": false } }
@@ -630,15 +486,6 @@ tests:
   - description: correctness test for gte for strings
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM strings AS strings"
-    translation_target_db: foo
-    translation_target_coll: strings
-    translation:
-      - {'$project': {'_id': 0, 'strings': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'strings': '$strings'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$strings.a', 'b': '$strings.b', 'c': {"$sqlGte": [ "$strings.a", "$strings.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": "abc", "b": "def", "c": false } }
       - {'': { "a": "xyz", "b": "xyz", "c": true } }
@@ -651,15 +498,6 @@ tests:
   - description: correctness test for lt for bools
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM bools AS bools"
-    translation_target_db: foo
-    translation_target_coll: bools
-    translation:
-      - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bools': '$bools'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$bools.a', 'b': '$bools.b', 'c': {"$sqlLt": [ "$bools.a", "$bools.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": false, "b": true, "c": true } }
       - {'': { "a": true, "b": true, "c": false } }
@@ -672,15 +510,6 @@ tests:
   - description: correctness test for lte for bools
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM bools AS bools"
-    translation_target_db: foo
-    translation_target_coll: bools
-    translation:
-      - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bools': '$bools'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$bools.a', 'b': '$bools.b', 'c': {"$sqlLte": [ "$bools.a", "$bools.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": false, "b": true, "c": true } }
       - {'': { "a": true, "b": true, "c": true } }
@@ -693,15 +522,6 @@ tests:
   - description: correctness test for neq for bools
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM bools AS bools"
-    translation_target_db: foo
-    translation_target_coll: bools
-    translation:
-      - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bools': '$bools'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$bools.a', 'b': '$bools.b', 'c': {"$sqlNe": [ "$bools.a", "$bools.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": false, "b": true, "c": true } }
       - {'': { "a": true, "b": true, "c": false } }
@@ -714,15 +534,6 @@ tests:
   - description: correctness test for eq for bools
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM bools AS bools"
-    translation_target_db: foo
-    translation_target_coll: bools
-    translation:
-      - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bools': '$bools'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$bools.a', 'b': '$bools.b', 'c': {"$sqlEq": [ "$bools.a", "$bools.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": false, "b": true, "c": false } }
       - {'': { "a": true, "b": true, "c": true } }
@@ -735,15 +546,6 @@ tests:
   - description: correctness test for gt for bools
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM bools AS bools"
-    translation_target_db: foo
-    translation_target_coll: bools
-    translation:
-      - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bools': '$bools'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$bools.a', 'b': '$bools.b', 'c': {"$sqlGt": [ "$bools.a", "$bools.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": false, "b": true, "c": false } }
       - {'': { "a": true, "b": true, "c": false } }
@@ -756,15 +558,6 @@ tests:
   - description: correctness test for gte for bools
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM bools AS bools"
-    translation_target_db: foo
-    translation_target_coll: bools
-    translation:
-      - {'$project': {'_id': 0, 'bools': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bools': '$bools'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$bools.a', 'b': '$bools.b', 'c': {"$sqlGte": [ "$bools.a", "$bools.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": false, "b": true, "c": false } }
       - {'': { "a": true, "b": true, "c": true } }
@@ -777,15 +570,6 @@ tests:
   - description: correctness test for lt for dates
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM dates AS dates"
-    translation_target_db: foo
-    translation_target_coll: dates
-    translation:
-      - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'dates': '$dates'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlLt": [ "$dates.a", "$dates.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": true } }
       - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": false } }
@@ -798,15 +582,6 @@ tests:
   - description: correctness test for lte for dates
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM dates AS dates"
-    translation_target_db: foo
-    translation_target_coll: dates
-    translation:
-      - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'dates': '$dates'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlLte": [ "$dates.a", "$dates.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": true } }
       - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": true } }
@@ -819,15 +594,6 @@ tests:
   - description: correctness test for neq for dates
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM dates AS dates"
-    translation_target_db: foo
-    translation_target_coll: dates
-    translation:
-      - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'dates': '$dates'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlNe": [ "$dates.a", "$dates.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": true } }
       - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": false } }
@@ -840,15 +606,6 @@ tests:
   - description: correctness test for eq for dates
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM dates AS dates"
-    translation_target_db: foo
-    translation_target_coll: dates
-    translation:
-      - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'dates': '$dates'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlEq": [ "$dates.a", "$dates.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": false } }
       - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": true } }
@@ -861,15 +618,6 @@ tests:
   - description: correctness test for gt for dates
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM dates AS dates"
-    translation_target_db: foo
-    translation_target_coll: dates
-    translation:
-      - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'dates': '$dates'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlGt": [ "$dates.a", "$dates.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": false } }
       - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": false } }
@@ -882,15 +630,6 @@ tests:
   - description: correctness test for gte for dates
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM dates AS dates"
-    translation_target_db: foo
-    translation_target_coll: dates
-    translation:
-      - {'$project': {'_id': 0, 'dates': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'dates': '$dates'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$dates.a', 'b': '$dates.b', 'c': {"$sqlGte": [ "$dates.a", "$dates.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402399999999" } }, "c": false } }
       - {'': { "a": { "$date": { "$numberLong": "253402300799999" } }, "b": { "$date": { "$numberLong": "253402300799999" } }, "c": true } }
@@ -904,15 +643,6 @@ tests:
   - description: correctness test for lt for null and missing
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a < b } FROM nullAndMissing AS nullAndMissing"
-    translation_target_db: foo
-    translation_target_coll: nullAndMissing
-    translation:
-      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'nullAndMissing': '$nullAndMissing'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$nullAndMissing.a', 'b': '$nullAndMissing.b', 'c': {"$sqlLt": [ "$nullAndMissing.a", "$nullAndMissing.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": null, "b": null, "c": null } }
       - {'': { "a": null, "c": null } }
@@ -922,15 +652,6 @@ tests:
   - description: correctness test for lte for null and missing
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <= b } FROM nullAndMissing AS nullAndMissing"
-    translation_target_db: foo
-    translation_target_coll: nullAndMissing
-    translation:
-      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'nullAndMissing': '$nullAndMissing'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$nullAndMissing.a', 'b': '$nullAndMissing.b', 'c': {"$sqlLte": [ "$nullAndMissing.a", "$nullAndMissing.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": null, "b": null, "c": null } }
       - {'': { "a": null, "c": null } }
@@ -940,15 +661,6 @@ tests:
   - description: correctness test for neq for null and missing
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a <> b } FROM nullAndMissing AS nullAndMissing"
-    translation_target_db: foo
-    translation_target_coll: nullAndMissing
-    translation:
-      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'nullAndMissing': '$nullAndMissing'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$nullAndMissing.a', 'b': '$nullAndMissing.b', 'c': {"$sqlNe": [ "$nullAndMissing.a", "$nullAndMissing.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": null, "b": null, "c": null } }
       - {'': { "a": null, "c": null } }
@@ -958,15 +670,6 @@ tests:
   - description: correctness test for eq for null and missing
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a = b } FROM nullAndMissing AS nullAndMissing"
-    translation_target_db: foo
-    translation_target_coll: nullAndMissing
-    translation:
-      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'nullAndMissing': '$nullAndMissing'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$nullAndMissing.a', 'b': '$nullAndMissing.b', 'c': {"$sqlEq": [ "$nullAndMissing.a", "$nullAndMissing.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": null, "b": null, "c": null } }
       - {'': { "a": null, "c": null } }
@@ -976,15 +679,6 @@ tests:
   - description: correctness test for gt for null and missing
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a > b } FROM nullAndMissing AS nullAndMissing"
-    translation_target_db: foo
-    translation_target_coll: nullAndMissing
-    translation:
-      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'nullAndMissing': '$nullAndMissing'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$nullAndMissing.a', 'b': '$nullAndMissing.b', 'c': {"$sqlGt": [ "$nullAndMissing.a", "$nullAndMissing.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": null, "b": null, "c": null } }
       - {'': { "a": null, "c": null } }
@@ -994,15 +688,6 @@ tests:
   - description: correctness test for gte for null and missing
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': a >= b } FROM nullAndMissing AS nullAndMissing"
-    translation_target_db: foo
-    translation_target_coll: nullAndMissing
-    translation:
-      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'nullAndMissing': '$nullAndMissing'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$nullAndMissing.a', 'b': '$nullAndMissing.b', 'c': {"$sqlGte": [ "$nullAndMissing.a", "$nullAndMissing.b" ]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": null, "b": null, "c": null } }
       - {'': { "a": null, "c": null } }
@@ -1012,15 +697,6 @@ tests:
   - description: correctness test for BETWEEN for numeric types
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': a BETWEEN b AND c } FROM betweenNumeric AS betweenNumeric"
-    translation_target_db: foo
-    translation_target_coll: betweenNumeric
-    translation:
-      - {'$project': {'_id': 0, 'betweenNumeric': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'betweenNumeric': '$betweenNumeric'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$betweenNumeric.a', 'b': '$betweenNumeric.b', 'c': '$betweenNumeric.c', 'r': {'$sqlBetween': ["$betweenNumeric.a", "$betweenNumeric.b", "$betweenNumeric.c"]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$numberInt": "2" }, "b": { "$numberLong": "1" }, "c": { "$numberDouble": "3.1" }, "r": true } }
       - {'': { "a": { "$numberInt": "1" }, "b": { "$numberLong": "1" }, "c": { "$numberDecimal": "3.1" }, "r": true } }
@@ -1037,15 +713,6 @@ tests:
   - description: correctness test for BETWEEN for strings
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': a BETWEEN b AND c } FROM betweenStrings AS betweenStrings"
-    translation_target_db: foo
-    translation_target_coll: betweenStrings
-    translation:
-      - {'$project': {'_id': 0, 'betweenStrings': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'betweenStrings': '$betweenStrings'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$betweenStrings.a', 'b': '$betweenStrings.b', 'c': '$betweenStrings.c', 'r': {'$sqlBetween': ["$betweenStrings.a", "$betweenStrings.b", "$betweenStrings.c"]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": "y", "b": "x", "c": "z", "r": true } }
       - {'': { "a": "x", "b": "x", "c": "z", "r": true } }
@@ -1062,15 +729,6 @@ tests:
   - description: correctness test for BETWEEN for dates
     current_db: foo
     query: "SELECT VALUE { 'a': a, 'b': b, 'c': c, 'r': a BETWEEN b AND c } FROM betweenDates AS betweenDates"
-    translation_target_db: foo
-    translation_target_coll: betweenDates
-    translation:
-      - {'$project': {'_id': 0, 'betweenDates': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'betweenDates': '$betweenDates'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$betweenDates.a', 'b': '$betweenDates.b', 'c': '$betweenDates.c', 'r': {'$sqlBetween': ["$betweenDates.a", "$betweenDates.b", "$betweenDates.c"]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { "a": { "$date": { "$numberLong": "10" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": true } }
       - {'': { "a": { "$date": { "$numberLong": "5" } }, "b": { "$date": { "$numberLong": "5" } }, "c": { "$date": { "$numberLong": "15" } }, "r": true } }

@@ -26,28 +26,12 @@ tests:
   - description: SELECT empty array literal
     query: "SELECT VALUE {'_1': []} FROM [{}] AS _dual"
     current_db: test
-    translation_target_db: test
-    translation:
-      - {'$documents': [{'$literal': {}}]}
-      - {'$project': {'_id': 0, '_dual': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'_1': []}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'_1': []}}
 
   - description: SELECT non-empty array literal
     query: "SELECT VALUE {'_1': [1, true, 'yes', {'a': 'b'}, [1.0, false]]} FROM [{}] AS _dual"
     current_db: test
-    translation_target_db: test
-    translation:
-      - {'$documents': [{'$literal': {}}]}
-      - {'$project': {'_id': 0, '_dual': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'_1': [{'$literal': 1}, {'$literal': true}, {'$literal': 'yes'}, {'a': {'$literal': 'b'}}, [{'$literal': 1.0}, {'$literal': false}]]}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'_1': [1, true, 'yes', {'a': 'b'}, [1.0, false]]}}
 

@@ -104,84 +104,42 @@ tests:
   - description: basic correctness test
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo)"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, 'foo': { '_id': "$foo._id", 'a_b_c': '$foo.a.b.c' } } }
     result:
       - { 'foo': { '_id': 0, 'a_b_c': 1 } }
 
   - description: datasource argument can optionally include an alias
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo as f)"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'f': '$foo' } }
-      - { '$project': { '_id': 0, 'f': { '_id': "$f._id", 'a_b_c': '$f.a.b.c' } } }
     result:
       - { 'f': { '_id': 0, 'a_b_c': 1 } }
 
   - description: basic correctness test for user-specified separator
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH separator => ':') "
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, 'foo': { '_id': "$foo._id", 'a:b:c': '$foo.a.b.c' } } }
     result:
       - { 'foo': { '_id': 0, 'a:b:c': 1 } }
 
   - description: user-specified separator with length less than one is allowed
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH separator => '') "
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, 'foo': { '_id': "$foo._id", 'abc': '$foo.a.b.c' } } }
     result:
       - { 'foo': { '_id': 0, 'abc': 1 } }
 
   - description: user-specified separator with length greater than one is allowed
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH separator => '_DOT_') "
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, 'foo': { '_id': "$foo._id", 'a_DOT_b_DOT_c': '$foo.a.b.c' } } }
     result:
       - { 'foo': { '_id': 0, 'a_DOT_b_DOT_c': 1 } }
 
   - description: a user-specified depth greater than max nesting depth causes all documents to be flattened
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH depth => 5)"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, 'foo': { '_id': "$foo._id", 'a_b_c': '$foo.a.b.c' } } }
     result:
       - { 'foo': { '_id': 0, 'a_b_c': 1 } }
 
   - description: a user-specified depth less than max nesting depth causes more deeply nested documents to remain unflattened
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH depth => 1)"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, 'foo': { '_id': "$foo._id", 'a_b': '$foo.a.b' } } }
     result:
       - { 'foo': { '_id': 0, 'a_b': { 'c': 1 } } }
 
@@ -228,13 +186,6 @@ tests:
   - description: FLATTENing a FLATTENed datasource is allowed
     current_db: mydb
     query: "SELECT * FROM FLATTEN(FLATTEN(foo))"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, 'foo': { '_id': "$foo._id", 'a_b_c': '$foo.a.b.c' } } }
-      - { '$project': { '_id': 0, 'foo': { '_id': "$foo._id", 'a_b_c': '$foo.a_b_c' } } }
     result:
       - { 'foo': { '_id': 0, 'a_b_c': 1 } }
 

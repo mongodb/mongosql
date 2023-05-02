@@ -78,11 +78,6 @@ tests:
   - description: compound collection references are fully qualified
     current_db: 'foo'
     query: "SELECT * FROM foo.coll AS coll"
-    translation_target_db: foo
-    translation_target_coll: coll
-    translation:
-      - { '$project': { '_id': 0, 'coll': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'coll': '$coll' } }
     result:
       - {'coll': {'_id': 1, 'bar': 11, 'car': 12}}
       - {'coll': {'_id': 2, 'bar': -11, 'car': -12}}
@@ -91,15 +86,6 @@ tests:
   - description: equivalent qualified and unqualified references to the same field
     current_db: 'foo'
     query: "SELECT VALUE {'ubar': bar, 'qbar': coll.bar} FROM foo.coll AS coll"
-    translation_target_db: foo
-    translation_target_coll: coll
-    translation:
-      - {'$project': {'_id': 0, 'coll': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'coll': '$coll'}}
-      - {'$project': {'_id': 0, '__bot': {'ubar': '$coll.bar', 'qbar': '$coll.bar'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'ubar': 11, 'qbar': 11}}
       - {'': {'ubar': -11, 'qbar': -11}}
@@ -108,45 +94,18 @@ tests:
   - description: compound field references prefer qualified names to field references
     current_db: 'foo'
     query: "SELECT VALUE {'a': n.a} FROM nested AS n"
-    translation_target_db: foo
-    translation_target_coll: nested
-    translation:
-      - { '$project': { '_id': 0, 'nested': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'n': '$nested' } }
-      - { '$project': { '_id': 0, '__bot': { 'a': '$n.a'} } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {}}
 
   - description: compound field reference is treated as unqualified if no datasource name matches first identifier
     current_db: 'foo'
     query: "SELECT VALUE {'a': n.a} FROM nested AS nested"
-    translation_target_db: foo
-    translation_target_coll: nested
-    translation:
-      - { '$project': { '_id': 0, 'nested': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'nested': '$nested' } }
-      - { '$project': { '_id': 0, '__bot': { 'a': '$nested.n.a' } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'a': 1}}
 
   - description: field references never resolve to the catalog environment
     current_db: 'foo'
     query: "SELECT VALUE {'a': foo.coll} FROM foo.coll AS coll"
-    translation_target_db: foo
-    translation_target_coll: coll
-    translation:
-      - { '$project': { '_id': 0, 'coll': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'coll': '$coll' } }
-      - { '$project': { '_id': 0, '__bot': { 'a': '$coll.foo.coll' } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {}}
       - {'': {}}
@@ -161,23 +120,6 @@ tests:
   - description: qualified reference is not ambiguous with multiple datasources
     current_db: 'foo'
     query: "SELECT VALUE {'a': coll.bar} FROM foo.coll AS coll JOIN foo.nested AS nested"
-    translation_target_db: foo
-    translation_target_coll: coll
-    translation:
-      - {'$project': {'_id': 0, 'coll': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'coll': '$coll'}}
-      - {'$join': {
-        'collection': 'nested',
-        'joinType': 'inner',
-        'pipeline': [
-          {'$project': {'_id': 0, 'nested': '$$ROOT'}},
-          {'$project': {'_id': 0, 'nested': '$nested'}},
-        ],
-      }}
-      - {'$project': {'_id': 0, '__bot': {'a': '$coll.bar'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'a': 11}}
       - {'': {'a': -11}}
@@ -186,23 +128,6 @@ tests:
   - description: unqualified references are not ambiguous when there are multiple datasources with schema that disambiguates
     current_db: 'foo'
     query: "SELECT VALUE {'a': bar} FROM foo.schema_coll AS coll JOIN foo.schema_foo AS coll2"
-    translation_target_db: foo
-    translation_target_coll: schema_coll
-    translation:
-      - { '$project': { '_id': 0, 'schema_coll': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'coll': '$schema_coll' } }
-      - { '$join': {
-        'collection': 'schema_foo',
-        'joinType': 'inner',
-        'pipeline': [
-          { '$project': { '_id': 0, 'schema_foo': '$$ROOT' } },
-          { '$project': { '_id': 0, 'coll2': '$schema_foo' } },
-        ],
-      } }
-      - { '$project': { '_id': 0, '__bot': { 'a': '$coll.bar' } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'a': 11}}
       - {'': {'a': -11}}
@@ -211,11 +136,6 @@ tests:
   - description: unqualified collection reference refers to current database
     current_db: 'foo2'
     query: "SELECT * FROM coll AS coll"
-    translation_target_db: foo2
-    translation_target_coll: coll
-    translation:
-      - {'$project': {'_id': 0, 'coll': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'coll': '$coll'}}
     result:
       - {'coll': {'_id': 1, 'a': 1, 'b': 2}}
 
@@ -268,29 +188,6 @@ tests:
     current_db: 'foo'
     query: "SELECT * FROM bar AS c WHERE c.a IN (SELECT c.a FROM baz AS c)"
     skip_reason: "SQL-502, SQL-514"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$bar'}}
-      - {'$match': {'$expr': { '$subqueryComparison': {
-        'op': 'eq',
-        'modifier': 'all',
-        'arg': '$c.a',
-        'subquery': {
-          'collection': 'target',
-          'let': { 'vbar_0': '$bar' },
-          'outputPath': [ '__bot', 'a' ],
-          'pipeline': [
-            { '$project': { '_id': 0, 'baz': '$$ROOT' } },
-            { '$project': { '_id': 0, 'c': '$baz' } },
-            { '$project': { '_id': 0, '__bot': { 'a': '$c.a' } } }
-          ]
-        }
-      } } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'_id': 1, 'a': 1}}
 
@@ -303,28 +200,6 @@ tests:
   - description: if an unqualified reference CANNOT be from subquery's datasource and MUST be from outer query's datasource, use outer query's datasource
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_foo AS q LIMIT 1)} FROM schema_coll AS q"
-    translation_target_db: foo
-    translation_target_coll: schema_coll
-    translation:
-      - {'$project': {'_id': 0, 'schema_coll': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'q': '$schema_coll'}}
-      - { '$project': { '_id': 0, '__bot': {
-        'bar': { '$subquery': {
-          'db': 'foo',
-          'collection': 'schema_foo',
-          'let': { 'vq_0': '$q' },
-          'outputPath': [ '__bot', 'bar' ],
-          'pipeline': [
-            { '$project': { '_id': 0, 'schema_foo': '$$ROOT' } },
-            { '$project': { '_id': 0, 'q': '$schema_foo' } },
-            { '$project': { '_id': 0, '__bot': { 'bar': '$$vq_0.bar' } } },
-            { '$limit': 1 }
-          ]
-        } }
-      } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'bar': 11}}
       - {'': {'bar': -11}}
@@ -333,28 +208,6 @@ tests:
   - description: if an unqualified reference CANNOT be from subquery's datasource and MAY be from outer query's datasource, use outer query's datasource
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_foo AS q LIMIT 1)} FROM coll AS q"
-    translation_target_db: foo
-    translation_target_coll: coll
-    translation:
-      - { '$project': { '_id': 0, 'coll': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'q': '$coll' } }
-      - { '$project': { '_id': 0, '__bot': {
-        'bar': { '$subquery': {
-          'db': 'foo',
-          'collection': 'schema_foo',
-          'let': { 'vq_0': '$q' },
-          'outputPath': [ '__bot', 'bar' ],
-          'pipeline': [
-            { '$project': { '_id': 0, 'schema_foo': '$$ROOT' } },
-            { '$project': { '_id': 0, 'q': '$schema_foo' } },
-            { '$project': { '_id': 0, '__bot': { 'bar': '$$vq_0.bar' } } },
-            { '$limit': 1 }
-          ]
-        } }
-      } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'bar': 11}}
       - {'': {'bar': -11}}
@@ -381,55 +234,11 @@ tests:
   - description: if an unqualified reference MAY be from subquery's datasource and CANNOT be from outer query's datasource, use subquery's datasource
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM baz AS q LIMIT 1)} FROM schema_foo AS q"
-    translation_target_db: foo
-    translation_target_coll: schema_foo
-    translation:
-      - { '$project': { '_id': 0, 'schema_foo': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'q': '$schema_foo' } }
-      - { '$project': { '_id': 0, '__bot': {
-        'bar': { '$subquery': {
-          'db': 'foo',
-          'collection': 'baz',
-          'let': { 'vq_0': '$q' },
-          'outputPath': [ '__bot', 'bar' ],
-          'pipeline': [
-            { '$project': { '_id': 0, 'baz': '$$ROOT' } },
-            { '$project': { '_id': 0, 'q': '$baz' } },
-            { '$project': { '_id': 0, '__bot': { 'bar': '$q.bar' } } },
-            { '$limit': 1 }
-          ]
-        } }
-      } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {}}
   - description: if an unqualified reference MUST be from subquery's datasource and MUST be from outer query's datasource, the highest scope number is chosen
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q LIMIT 1)} FROM schema_coll AS q"
-    translation_target_db: foo
-    translation_target_coll: schema_coll
-    translation:
-      - { '$project': { '_id': 0, 'schema_coll': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'q': '$schema_coll' } }
-      - { '$project': { '_id': 0, '__bot': {
-        'bar': { '$subquery': {
-          'db': 'foo',
-          'collection': 'schema_coll',
-          'let': { 'vq_0': '$q' },
-          'outputPath': [ '__bot', 'bar' ],
-          'pipeline': [
-            { '$project': { '_id': 0, 'schema_coll': '$$ROOT' } },
-            { '$project': { '_id': 0, 'q': '$schema_coll' } },
-            { '$project': { '_id': 0, '__bot': { 'bar': '$q.bar' } } },
-            { '$limit': 1 }
-          ]
-        } }
-      } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'bar': 11}}
       - {'': {'bar': 11}}
@@ -438,28 +247,6 @@ tests:
   - description: if an unqualified reference MUST be from subquery's datasource and MAY be from outer query's datasource, use subquery's datasource
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q LIMIT 1)} FROM coll AS q"
-    translation_target_db: foo
-    translation_target_coll: coll
-    translation:
-      - { '$project': { '_id': 0, 'coll': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'q': '$coll' } }
-      - { '$project': { '_id': 0, '__bot': {
-        'bar': { '$subquery': {
-          'db': 'foo',
-          'collection': 'schema_coll',
-          'let': { 'vq_0': '$q' },
-          'outputPath': [ '__bot', 'bar' ],
-          'pipeline': [
-            { '$project': { '_id': 0, 'schema_coll': '$$ROOT' } },
-            { '$project': { '_id': 0, 'q': '$schema_coll' } },
-            { '$project': { '_id': 0, '__bot': { 'bar': '$q.bar' } } },
-            { '$limit': 1 }
-          ]
-        } }
-      } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'bar': 11}}
       - {'': {'bar': 11}}
@@ -468,27 +255,5 @@ tests:
   - description: if an unqualified reference MUST be from subquery's datasource and CANNOT be from outer query's datasource, use subquery's datasource
     current_db: foo
     query: "SELECT VALUE{'bar': (SELECT bar FROM schema_coll AS q LIMIT 1)} FROM schema_foo AS q"
-    translation_target_db: foo
-    translation_target_coll: schema_foo
-    translation:
-      - { '$project': { '_id': 0, 'schema_foo': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'q': '$schema_foo' } }
-      - { '$project': { '_id': 0, '__bot': {
-        'bar': { '$subquery': {
-          'db': 'foo',
-          'collection': 'schema_coll',
-          'let': { 'vq_0': '$q' },
-          'outputPath': [ '__bot', 'bar' ],
-          'pipeline': [
-            { '$project': { '_id': 0, 'schema_coll': '$$ROOT' } },
-            { '$project': { '_id': 0, 'q': '$schema_coll' } },
-            { '$project': { '_id': 0, '__bot': { 'bar': '$q.bar' } } },
-            { '$limit': 1 }
-          ]
-        } }
-      } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'bar': 11}}

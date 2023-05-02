@@ -61,23 +61,6 @@ tests:
   - description: cross join correctness test
     current_db: mydb
     query: "SELECT * FROM bar AS bar CROSS JOIN coll AS coll"
-    translation_target_db: mydb
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - {
-          "$join":
-            {
-              "collection": "coll",
-              "joinType": "inner",
-              "pipeline":
-                [
-                  { "$project": { "_id": 0, "coll": "$$ROOT" } },
-                  { "$project": { "_id": 0, "coll": "$coll" } },
-                ],
-            },
-        }
     result:
       - {
           "bar": { "_id": 0, "foo": 1 },
@@ -91,21 +74,6 @@ tests:
   - description: inner join correctness test
     current_db: mydb
     query: "SELECT * FROM bar AS bar INNER JOIN coll AS coll ON bar.foo = coll.car"
-    translation_target_db: mydb
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$join': {
-        'collection': 'coll',
-        'joinType': 'inner',
-        'let': {'vbar_0': '$bar'},
-        'pipeline': [
-          {'$project': {'_id': 0, 'coll': '$$ROOT'}},
-          {'$project': {'_id': 0, 'coll': '$coll'}},
-        ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$vbar_0.foo', '$coll.car']}}},
-      }}
     result:
       - {
           "bar": { "_id": 1, "foo": 42 },
@@ -115,21 +83,6 @@ tests:
   - description: left join correctness test
     current_db: mydb
     query: "SELECT * from bar2 AS bar2 LEFT JOIN bar AS bar on bar2.foo = bar.foo"
-    translation_target_db: mydb
-    translation_target_coll: bar2
-    translation:
-      - {'$project': {'_id': 0, 'bar2': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar2': '$bar2'}}
-      - {'$join': {
-        'collection': 'bar',
-        'joinType': 'left',
-        'let': {'vbar2_0': '$bar2'},
-        'pipeline': [
-          {'$project': {'_id': 0, 'bar': '$$ROOT'}},
-          {'$project': {'_id': 0, 'bar': '$bar'}},
-        ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$vbar2_0.foo', '$bar.foo']}}},
-      }}
     result:
       - {
           "bar2": { "_id": 0, "foo": 42, "baz": 63 },
@@ -140,21 +93,6 @@ tests:
   - description: right join correctness test
     current_db: mydb
     query: "SELECT * from bar2 AS bar2 RIGHT JOIN bar as bar ON bar2.foo = bar.foo"
-    translation_target_db: mydb
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$join': {
-        'collection': 'bar2',
-        'joinType': 'left',
-        'let': {'vbar_0': '$bar'},
-        'pipeline': [
-          {'$project': {'_id': 0, 'bar2': '$$ROOT'}},
-          {'$project': {'_id': 0, 'bar2': '$bar2'}},
-        ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$bar2.foo', '$$vbar_0.foo']}}},
-      }}
     result:
       - {
           "bar": { "_id": 1, "foo": 42 },
@@ -177,21 +115,6 @@ tests:
   - description: join predicates can contain complex expressions
     current_db: mydb
     query: "SELECT * FROM bar AS bar INNER JOIN bar2 AS bar2 ON bar.foo + 50 > bar2.baz"
-    translation_target_db: mydb
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$join': {
-        'collection': 'bar2',
-        'joinType': 'inner',
-        'let': {'vbar_0': '$bar'},
-        'pipeline': [
-          {'$project': {'_id': 0, 'bar2': '$$ROOT'}},
-          {'$project': {'_id': 0, 'bar2': '$bar2'}},
-        ],
-        'condition': {'$match': {'$expr': {'$sqlGt': [{'$add': [{'$literal': 50}, '$$vbar_0.foo']}, '$bar2.baz']}}}
-      }}
     result:
       - {
           "bar": { "_id": 1, "foo": 42 },
@@ -201,28 +124,12 @@ tests:
   - description: join predicates can only reference datasource names from their own join
     query: "SELECT * FROM [{'v': 1}] AS a INNER JOIN [{'v': 1}] AS b ON b.v = c.v INNER JOIN [{'v': 1}] AS c"
     current_db: test
-    translation_target_db: test
     should_compile: false
     algebrize_error: "field `c` cannot be resolved to any datasource"
 
   - description: join predicates can reference columns by table-qualified names
     current_db: mydb
     query: "SELECT * FROM bar AS bar INNER JOIN coll AS coll ON bar.foo = coll.car"
-    translation_target_db: mydb
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$join': {
-        'collection': 'coll',
-        'joinType': 'inner',
-        'let': {'vbar_0': '$bar'},
-        'pipeline': [
-          {'$project': {'_id': 0, 'coll': '$$ROOT'}},
-          {'$project': {'_id': 0, 'coll': '$coll'}},
-        ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$vbar_0.foo', '$coll.car']}}},
-      }}
     result:
       - {
           "bar": { "_id": 1, "foo": 42 },
@@ -232,21 +139,6 @@ tests:
   - description: join predicates can reference columns by unambiguous unqualified names
     current_db: mydb
     query: "SELECT * FROM bar AS bar INNER JOIN coll AS coll ON foo = car"
-    translation_target_db: mydb
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$join': {
-        'collection': 'coll',
-        'joinType': 'inner',
-        'let': {'vbar_0': '$bar'},
-        'pipeline': [
-          {'$project': {'_id': 0, 'coll': '$$ROOT'}},
-          {'$project': {'_id': 0, 'coll': '$coll'}},
-        ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$vbar_0.foo', '$coll.car']}}}
-      }}
     result:
       - {
           "bar": { "_id": 1, "foo": 42 },
@@ -262,29 +154,6 @@ tests:
   - description: joins are left-associative
     current_db: mydb
     query: "SELECT * FROM bar AS a CROSS JOIN bar AS b LEFT JOIN bar AS c ON a.foo = c.foo"
-    translation_target_db: mydb
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'a': '$bar'}}
-      - {'$join': {
-        'collection': 'bar',
-        'joinType': 'inner',
-        'pipeline': [
-          {'$project': {'_id': 0, 'bar': '$$ROOT'}},
-          {'$project': {'_id': 0, 'b': '$bar'}},
-        ],
-      }}
-      - {'$join': {
-        'collection': 'bar',
-        'joinType': 'left',
-        'let': {'va_0': '$a', 'vb_0': '$b'},
-        'pipeline': [
-          {'$project': {'_id': 0, 'bar': '$$ROOT'}},
-          {'$project': {'_id': 0, 'c': '$bar'}},
-        ],
-        'condition': {'$match': {'$expr': {'$sqlEq': ['$$va_0.foo', '$c.foo']}}}
-      }}
     result:
       - {
           "a": { "_id": 0, "foo": 1 },
@@ -317,24 +186,6 @@ tests:
     current_db: mydb
     query: "SELECT * FROM coll AS coll CROSS JOIN db2.foo AS foo"
     skip_reason: "SQL-540: cross-database lookups are not supported"
-    translation_target_db: mydb
-    translation_target_coll: coll
-    translation:
-      - { "$project": { "_id": 0, "coll": "$$ROOT" } }
-      - { "$project": { "_id": 0, "coll": "$coll" } }
-      - {
-          "$join":
-            {
-              "database": "db2",
-              "collection": "foo",
-              "joinType": "inner",
-              "pipeline":
-                [
-                  { "$project": { "_id": 0, "foo": "$$ROOT" } },
-                  { "$project": { "_id": 0, "foo": "$foo" } },
-                ],
-            },
-        }
     result:
       - {
           "coll": { "_id": 0, "bar": 53, "car": 42 },

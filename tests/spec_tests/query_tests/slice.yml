@@ -53,15 +53,6 @@ tests:
   - description: SLICE without start argument correctness test
     current_db: foo
     query: "SELECT VALUE {'arr': arr, 'len': len, 'slice': SLICE(arr::!ARRAY, len::!INT)} FROM no_start AS ns"
-    translation_target_db: foo
-    translation_target_coll: no_start
-    translation:
-      - {'$project': {'_id': 0, 'no_start': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'ns': '$no_start'}}
-      - {'$project': {'_id': 0, '__bot': {'arr': '$ns.arr', 'len': '$ns.len', 'slice': {'$sqlSlice': ['$ns.arr', '$ns.len']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '-1'}, 'slice': [3]}}
       - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'slice': []}}
@@ -76,15 +67,6 @@ tests:
   - description: SLICE with start argument correctness test
     current_db: foo
     query: "SELECT VALUE {'arr': arr, 'len': len, 'start': start, 'slice': SLICE(arr::!ARRAY, start::!INT, len::!INT)} FROM start AS s"
-    translation_target_db: foo
-    translation_target_coll: start
-    translation:
-      - {'$project': {'_id': 0, 'start': '$$ROOT'}}
-      - {'$project': {'_id': 0, 's': '$start'}}
-      - {'$project': {'_id': 0, '__bot': {'arr': '$s.arr', 'len': '$s.len', 'start': '$s.start', 'slice': {'$sqlSlice': ['$s.arr', '$s.start', '$s.len']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '-1'}, 'slice': null}}
       - {'': {'arr': [1, 2, 3], 'len': {'$numberInt': '0'}, 'start': {'$numberInt': '0'}, 'slice': null}}

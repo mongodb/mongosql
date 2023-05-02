@@ -43,15 +43,6 @@ tests:
   - description: Normal non-missing reference
     current_db: 'foo'
     query: "SELECT a FROM bar"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { '$project': { '_id': 0, 'bar': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'bar': '$bar' } }
-      - { '$project': { '_id': 0, '__bot': { 'a': '$bar.a' } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
         - {'': {'a': 42}}
         - {'': {'a': 52}}
@@ -59,15 +50,6 @@ tests:
   - description: NULL vs MISSING in direct field ref
     current_db: 'foo'
     query: "SELECT b FROM bar"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { '$project': { '_id': 0, 'bar': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'bar': '$bar' } }
-      - { '$project': { '_id': 0, '__bot': { 'b': '$bar.b' } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
         - {'': {'b': null}}
         - {'': {}}
@@ -75,15 +57,6 @@ tests:
   - description: Normal field access
     current_db: 'foo'
     query: "SELECT c.d FROM bar"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { '$project': { '_id': 0, 'bar': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'bar': '$bar' } }
-      - { '$project': { '_id': 0, '__bot': { 'd': '$bar.c.d' } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
         - {'': {'d': 'hello'}}
         - {'': {'d': 'world'}}
@@ -91,15 +64,6 @@ tests:
   - description: Scalar vs missing field ref
     current_db: 'foo'
     query: "SELECT c.e FROM bar"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'e': '$bar.c.e'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
         - {'': {'e': 142}}
         - {'': {}}
@@ -107,15 +71,6 @@ tests:
   - description: Scalar vs missing field ref- the field ref is upgraded to NULL because of plus sign
     current_db: 'foo'
     query: "SELECT a, c.e, a + c.e FROM bar"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$bar.a', 'e': '$bar.c.e', '_3': {'$add': ['$bar.a', '$bar.c.e']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
         - {'': {'a': 42, 'e': 142, '_3': 184}}
         - {'': {'a': 52, '_3': null}}
@@ -123,15 +78,6 @@ tests:
   - description: MISSING upgraded to NULL due to plus sign
     current_db: 'foo'
     query: "SELECT b, c.e, b + c.e FROM bar"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'b': '$bar.b', 'e': '$bar.c.e', '_3': {'$add': ['$bar.b', '$bar.c.e']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
         - {'': {'b': null, 'e': 142, '_3': null}}
         - {'': {'_3': null}}
@@ -139,15 +85,6 @@ tests:
   - description: MISSING fields in arrays are upgrade to NULLS
     current_db: 'foo'
     query: "SELECT [b, 2, c.e] AS arr FROM bar"
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'bar': '$bar'}}
-      - {'$project': {'_id': 0, '__bot': {'arr': ['$bar.b', {'$literal': 2}, '$bar.c.e']}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
         - {'': {'arr': [null, 2, 142]}}
         - {'': {'arr': [null, 2, null]}}

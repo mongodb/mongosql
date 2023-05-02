@@ -653,15 +653,6 @@ tests:
   - description: NULLIF correctness test
     current_db: foo
     query: "SELECT VALUE {'v1': v1, 'v2': v2, 'v': NULLIF(v1, v2)} FROM nullif AS c"
-    translation_target_db: foo
-    translation_target_coll: nullif
-    translation:
-      - {'$project': {'_id': 0, 'nullif': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$nullif'}}
-      - {'$project': {'_id': 0, '__bot': {'v1': '$c.v1', 'v2': '$c.v2', 'v': {'$nullIf': ['$c.v1', '$c.v2']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'v1': 'a', 'v2': 'a', 'v': null}}
       - {'': {'v1': 'a', 'v2': 'b', 'v': 'a'}}
@@ -674,15 +665,6 @@ tests:
   - description: COALESCE(v1, v2) correctness tests
     current_db: foo
     query: "SELECT VALUE {'v1': v1, 'v2': v2, 'v': COALESCE(v1, v2)} FROM twoArgCoalesce AS c"
-    translation_target_db: foo
-    translation_target_coll: twoArgCoalesce
-    translation:
-      - {'$project': {'_id': 0, 'twoArgCoalesce': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$twoArgCoalesce'}}
-      - {'$project': {'_id': 0, '__bot': {'v1': '$c.v1', 'v2': '$c.v2', 'v': {'$coalesce': ['$c.v1', '$c.v2']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'v1': 123, 'v2': 456, 'v': 123}}
       - {'': {'v1': null, 'v2': 456, 'v': 456}}
@@ -691,15 +673,6 @@ tests:
   - description: COALESCE(v1, ..., vn) correctness tests
     current_db: foo
     query: "SELECT VALUE {'v1': v1, 'v2': v2, 'v3': v3, 'v4': v4, 'v5': v5, 'v': COALESCE(v1, v2, v3, v4, v5)} FROM multiArgCoalesce AS c"
-    translation_target_db: foo
-    translation_target_coll: multiArgCoalesce
-    translation:
-      - {'$project': {'_id': 0, 'multiArgCoalesce': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$multiArgCoalesce'}}
-      - {'$project': {'_id': 0, '__bot': {'v1': '$c.v1', 'v2': '$c.v2', 'v3': '$c.v3', 'v4': '$c.v4', 'v5': '$c.v5', 'v': {'$coalesce': ['$c.v1', '$c.v2', '$c.v3', '$c.v4', '$c.v5']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'v1': 123, 'v2': null, 'v4': 789, 'v5': null, 'v': 123}}
       - {'': {'v1': null, 'v3': 456, 'v4': 789, 'v': 456}}
@@ -709,15 +682,6 @@ tests:
   - description: SIZE correctness tests
     current_db: foo
     query: "SELECT VALUE {'a': a, 's': SIZE(a)} FROM size AS c"
-    translation_target_db: foo
-    translation_target_coll: size
-    translation:
-      - {'$project': {'_id': 0, 'size': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$size'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$c.a', 's': {'$sqlSize': '$c.a'}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'a': [], 's': 0}}
       - {'': {'a': [1], 's': 1}}
@@ -728,15 +692,6 @@ tests:
   - description: POSITION correctness tests
     current_db: foo
     query: "SELECT VALUE {'s1': s1, 's2': s2, 'p': POSITION(s1 IN s2)} FROM `position` AS c"
-    translation_target_db: foo
-    translation_target_coll: position
-    translation:
-      - {'$project': {'_id': 0, 'position': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$position'}}
-      - {'$project': {'_id': 0, '__bot': {'s1': '$c.s1', 's2': '$c.s2', 'p': {'$sqlIndexOfCP': ['$c.s2', '$c.s1']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'s1': '', 's2': 'abc', 'p': 0}}
       - {'': {'s1': 'a', 's2': 'abc', 'p': 0}}
@@ -752,15 +707,6 @@ tests:
   - description: CHAR_LENGTH correctness tests
     current_db: foo
     query: "SELECT VALUE {'s': s, 'len': CHAR_LENGTH(s), 'comment': comment} FROM length AS c"
-    translation_target_db: foo
-    translation_target_coll: length
-    translation:
-      - {'$project': {'_id': 0, 'length': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$length'}}
-      - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$sqlStrLenCP': '$c.s'}, 'comment': '$c.comment'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'s': '', 'len': 0}}
       - {'': {'s': 'a', 'len': 1}}
@@ -774,15 +720,6 @@ tests:
   - description: OCTET_LENGTH correctness tests
     current_db: foo
     query: "SELECT VALUE {'s': s, 'len': OCTET_LENGTH(s), 'comment': comment} FROM length AS c"
-    translation_target_db: foo
-    translation_target_coll: length
-    translation:
-      - {'$project': {'_id': 0, 'length': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$length'}}
-      - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$sqlStrLenBytes': '$c.s'}, 'comment': '$c.comment'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'s': '', 'len': 0}}
       - {'': {'s': 'a', 'len': 1}}
@@ -797,15 +734,6 @@ tests:
     current_db: foo
     query: "SELECT VALUE {'s': s, 'len': BIT_LENGTH(s), 'comment': comment} FROM length AS c"
     skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
-    translation_target_db: foo
-    translation_target_coll: length
-    translation:
-      - {'$project': {'_id': 0, 'length': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$length'}}
-      - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'len': {'$sqlBitLength': ['$c.s']}, 'comment': '$c.comment'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'s': '', 'len': 0}}
       - {'': {'s': 'a', 'len': 8}}
@@ -819,15 +747,6 @@ tests:
   - description: EXTRACT FROM NULL and MISSING correctness test
     current_db: foo
     query: "SELECT VALUE {'d': d, 'v': EXTRACT(YEAR FROM d)} FROM nullAndMissing AS c"
-    translation_target_db: foo
-    translation_target_coll: nullAndMissing
-    translation:
-      - {'$project': {'_id': 0, 'nullAndMissing': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$nullAndMissing'}}
-      - {'$project': {'_id': 0, '__bot': {'d': '$c.d', 'v': {'$year': ['$c.d']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'d': null, 'v': null}}
       - {'': {'v': null}}
@@ -836,15 +755,6 @@ tests:
     current_db: foo
     query: "SELECT VALUE {'str': str, 'start': start, 'length': length, 'substr': SUBSTRING(str FROM start FOR length)} FROM `substring` AS c"
     skip_reason: "SQL-428: negative length in $substrCP"
-    translation_target_db: foo
-    translation_target_coll: substring
-    translation:
-      - {'$project': {'_id': 0, 'substring': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$substring'}}
-      - {'$project': {'_id': 0, '__bot': {'str': '$c.str', 'start': '$c.start', 'length': '$c.length', 'substr': {'$sqlSubstrCP': ['$c.str', '$c.start', '$c.length']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'str': '', 'start': {'$numberInt': '0'}, 'length': {'$numberInt': '1'}, 'substr': ''}}
       - {'': {'str': '', 'start': {'$numberInt': '1'}, 'length': {'$numberInt': '1'}, 'substr': ''}}
@@ -866,15 +776,6 @@ tests:
   - description: UPPER correctness test
     current_db: foo
     query: "SELECT VALUE {'s': s, 'v': UPPER(s)} FROM `fold` AS c"
-    translation_target_db: foo
-    translation_target_coll: fold
-    translation:
-      - {'$project': {'_id': 0, 'fold': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$fold'}}
-      - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'v': {'$sqlToUpper': '$c.s'}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'s': '', 'v': ''}}
       - {'': {'s': 'abcd', 'v': 'ABCD'}}
@@ -886,15 +787,6 @@ tests:
   - description: LOWER correctness test
     current_db: foo
     query: "SELECT VALUE {'s': s, 'v': LOWER(s)} FROM `fold` AS c"
-    translation_target_db: foo
-    translation_target_coll: fold
-    translation:
-      - {'$project': {'_id': 0, 'fold': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$fold'}}
-      - {'$project': {'_id': 0, '__bot': {'s': '$c.s', 'v': {'$sqlToLower': '$c.s'}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'s': '', 'v': ''}}
       - {'': {'s': 'abcd', 'v': 'abcd'}}
@@ -906,15 +798,6 @@ tests:
   - description: TRIM(BOTH substr FROM str) correctness test
     current_db: foo
     query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(BOTH substr FROM str)} FROM `trim` AS c"
-    translation_target_db: foo
-    translation_target_coll: trim
-    translation:
-      - {'$project': {'_id': 0, 'trim': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$trim'}}
-      - {'$project': {'_id': 0, '__bot': {'substr': '$c.substr', 'str': '$c.str', 'v': {'$trim': {'input': '$c.str', 'chars': '$c.substr'}}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'substr': '', 'str': '', 'v': ''}}
       - {'': {'substr': ' ', 'str': '', 'v': ''}}
@@ -931,15 +814,6 @@ tests:
   - description: TRIM(LEADING substr FROM str) correctness test
     current_db: foo
     query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(LEADING substr FROM str)} FROM `trim` AS c"
-    translation_target_db: foo
-    translation_target_coll: trim
-    translation:
-      - {'$project': {'_id': 0, 'trim': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$trim'}}
-      - {'$project': {'_id': 0, '__bot': {'substr': '$c.substr', 'str': '$c.str', 'v': {'$ltrim': {'input': '$c.str', 'chars': '$c.substr'}}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'substr': '', 'str': '', 'v': ''}}
       - {'': {'substr': ' ', 'str': '', 'v': ''}}
@@ -956,15 +830,6 @@ tests:
   - description: TRIM(TRAILING substr FROM str) correctness test
     current_db: foo
     query: "SELECT VALUE {'substr': substr, 'str': str, 'v': TRIM(TRAILING substr FROM str)} FROM `trim` AS c"
-    translation_target_db: foo
-    translation_target_coll: trim
-    translation:
-      - {'$project': {'_id': 0, 'trim': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'c': '$trim'}}
-      - {'$project': {'_id': 0, '__bot': {'substr': '$c.substr', 'str': '$c.str', 'v': {'$rtrim': {'input': '$c.str', 'chars': '$c.substr'}}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'substr': '', 'str': '', 'v': ''}}
       - {'': {'substr': ' ', 'str': '', 'v': ''}}
@@ -981,43 +846,18 @@ tests:
   - description: CURRENT_TIMESTAMP(p) correctness test
     current_db: foo
     query: "SELECT VALUE {'v': CURRENT_TIMESTAMP(1) > '2021-01-08T12:00:00Z'::TIMESTAMP} FROM [{}] AS _dual"
-    translation_target_db: foo
-    translation:
-      - {'$documents': [{"$literal": {}}]}
-      - {'$project': {'_id': 0, '_dual': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'v': {'$sqlGt': ['$$NOW', {'$convert': {'input': {'$literal': '2021-01-08T12:00:00Z'}, 'to': 'date', 'onNull': {'$literal': null}, 'onError': {'$literal': null}}}]}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'v': true}}
 
   - description: Multiple CURRENT_TIMESTAMPs are equal across a query
     current_db: foo
     query: "SELECT VALUE {'v': CURRENT_TIMESTAMP(6) = CURRENT_TIMESTAMP(6)} FROM [{}] AS _dual"
-    translation_target_db: foo
-    translation:
-      - {'$documents': [{'$literal': {}}]}
-      - {'$project': {'_id': 0, '_dual': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'v': {'$sqlEq': ['$$NOW', '$$NOW']}}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'v': true}}
 
   - description: ABS correctness tests
     current_db: foo
     query: "SELECT VALUE {'v': v, 'n': ABS(v)} FROM abs AS c"
-    translation_target_db: foo
-    translation_target_coll: abs
-    translation:
-      - { '$project': { '_id': 0, 'abs': '$$ROOT' }}
-      - { '$project': { '_id': 0, 'c': '$abs' }}
-      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'n': { '$abs': ['$c.v'] }}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'v': { "$numberInt": "1" }, 'n': { "$numberInt": "1" }}}
       - {'': {'v': { "$numberLong": "-1" }, 'n': { "$numberLong": "1" }}}
@@ -1032,15 +872,6 @@ tests:
   - description: CEIL correctness tests
     current_db: foo
     query: "SELECT VALUE {'v': v, 'n': CEIL(v)} FROM ceilAndFloor AS c"
-    translation_target_db: foo
-    translation_target_coll: ceilAndFloor
-    translation:
-      - { '$project': { '_id': 0, 'ceilAndFloor': '$$ROOT' }}
-      - { '$project': { '_id': 0, 'c': '$ceilAndFloor' }}
-      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'n': { '$ceil': ['$c.v'] }}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'v': { "$numberInt": "7" }, 'n': { "$numberInt": "7" }}}
       - {'': {'v': { "$numberLong": "7" }, 'n': { "$numberLong": "7" }}}
@@ -1055,15 +886,6 @@ tests:
   - description: COS correctness tests
     current_db: foo
     query: "SELECT VALUE {'radians': radians, 'n': COS(radians)} FROM trigonometry AS c"
-    translation_target_db: foo
-    translation_target_coll: trigonometry
-    translation:
-      - { '$project': { '_id': 0, 'trigonometry': '$$ROOT' }}
-      - { '$project': { '_id': 0, 'c': '$trigonometry' }}
-      - { '$project': { '_id': 0, '__bot': { 'radians': '$c.radians', 'n': { '$sqlCos': [ '$c.radians' ] }}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "0.5403023058681398" }}}
       - {'': {'radians': { "$numberLong": "-1" }, 'n': { "$numberDouble": "0.5403023058681398" }}}
@@ -1078,15 +900,6 @@ tests:
   - description: DEGREES correctness tests
     current_db: foo
     query: "SELECT VALUE {'radians': radians, 'n': DEGREES(radians)} FROM trigonometry AS c"
-    translation_target_db: foo
-    translation_target_coll: trigonometry
-    translation:
-      - { '$project': { '_id': 0, 'trigonometry': '$$ROOT' }}
-      - { '$project': { '_id': 0, 'c': '$trigonometry' }}
-      - { '$project': { '_id': 0, '__bot': { 'radians': '$c.radians', 'n': { '$radiansToDegrees': ['$c.radians'] }}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "57.29577951308232" }}}
       - {'': {'radians': { "$numberLong": "-1" }, 'n': { "$numberDouble": "-57.29577951308232" }}}
@@ -1101,15 +914,6 @@ tests:
   - description: FLOOR correctness tests
     current_db: foo
     query: "SELECT VALUE {'v': v, 'n': FLOOR(v)} FROM ceilAndFloor AS c"
-    translation_target_db: foo
-    translation_target_coll: ceilAndFloor
-    translation:
-      - { '$project': { '_id': 0, 'ceilAndFloor': '$$ROOT' }}
-      - { '$project': { '_id': 0, 'c': '$ceilAndFloor' }}
-      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'n': { '$floor': ['$c.v'] }}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'v': { "$numberInt": "7" }, 'n': { "$numberInt": "7" }}}
       - {'': {'v': { "$numberLong": "7" }, 'n': { "$numberLong": "7" }}}
@@ -1124,15 +928,6 @@ tests:
   - description: LOG correctness tests
     current_db: foo
     query: "SELECT VALUE {'v': v, 'base': base, 'n': LOG(v, base)} FROM log AS c"
-    translation_target_db: foo
-    translation_target_coll: log
-    translation:
-      - { '$project': { '_id': 0, 'log': '$$ROOT' }}
-      - { '$project': { '_id': 0, 'c': '$log' }}
-      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'base': '$c.base',  'n': { '$sqlLog': [ '$c.v', '$c.base' ] }}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'v': { "$numberInt": "-100" }, 'base': { "$numberInt": "10" }, 'n': null }}
       - {'': {'v': { "$numberInt": "0" }, 'base': { "$numberLong": "10" }, 'n': null }}
@@ -1172,15 +967,6 @@ tests:
   - description: MOD correctness tests
     current_db: foo
     query: "SELECT VALUE {'v': v, 'divisor': divisor, 'n': MOD(v, divisor)} FROM mod AS c"
-    translation_target_db: foo
-    translation_target_coll: mod
-    translation:
-      - { '$project': { '_id': 0, 'mod': '$$ROOT' }}
-      - { '$project': { '_id': 0, 'c': '$mod' }}
-      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'divisor': '$c.divisor',  'n': { '$sqlMod': [ '$c.v', '$c.divisor' ] }}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'v': { "$numberInt": "-80" }, 'divisor': { "$numberInt": "7" }, 'n': { "$numberInt": "-3" }}}
       - {'': {'v': { "$numberInt": "0" }, 'divisor': { "$numberLong": "7" }, 'n': { "$numberLong": "0" }}}
@@ -1220,15 +1006,6 @@ tests:
   - description: POW correctness tests
     current_db: foo
     query: "SELECT VALUE {'v': v, 'exponent': exponent, 'n': POW(v, exponent)} FROM pow AS c"
-    translation_target_db: foo
-    translation_target_coll: pow
-    translation:
-      - { '$project': { '_id': 0, 'pow': '$$ROOT' }}
-      - { '$project': { '_id': 0, 'c': '$pow' }}
-      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'exponent': '$c.exponent',  'n': { '$pow': [ '$c.v', '$c.exponent' ] }}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'v': { "$numberInt": "-5" }, 'exponent': { "$numberInt": "2" }, 'n': { "$numberInt": "25" }}}
       - {'': {'v': { "$numberInt": "0" }, 'exponent': { "$numberLong": "2" }, 'n': { "$numberLong": "0" }}}
@@ -1268,15 +1045,6 @@ tests:
   - description: RADIANS correctness tests
     current_db: foo
     query: "SELECT VALUE {'degrees': degrees, 'n': RADIANS(degrees)} FROM radians AS c"
-    translation_target_db: foo
-    translation_target_coll: radians
-    translation:
-      - { '$project': { '_id': 0, 'radians': '$$ROOT' }}
-      - { '$project': { '_id': 0, 'c': '$radians' }}
-      - { '$project': { '_id': 0, '__bot': { 'degrees': '$c.degrees', 'n': { '$degreesToRadians': ['$c.degrees'] }}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'degrees': { "$numberInt": "90" }, 'n': { "$numberDouble": "1.5707963267948966" }}}
       - {'': {'degrees': { "$numberLong": "-90" }, 'n': { "$numberDouble": "-1.5707963267948966" }}}
@@ -1291,15 +1059,6 @@ tests:
   - description: ROUND correctness tests
     current_db: foo
     query: "SELECT VALUE {'v': v, 'place': place, 'n': ROUND(v, place)} FROM round AS c"
-    translation_target_db: foo
-    translation_target_coll: round
-    translation:
-      - { '$project': { '_id': 0, 'round': '$$ROOT' }}
-      - { '$project': { '_id': 0, 'c': '$round' }}
-      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'place': '$c.place',  'n': { '$sqlRound': [ '$c.v', '$c.place' ] }}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': { 'v': { "$numberInt": "-1234" }, 'place': { "$numberInt": "-2" }, 'n': { "$numberInt": "-1200" }}}
       - {'': { 'v': { "$numberInt": "0" }, 'place': { "$numberLong": "-2" }, 'n': { "$numberInt": "0" }}}
@@ -1330,15 +1089,6 @@ tests:
   - description: SIN correctness tests
     current_db: foo
     query: "SELECT VALUE {'radians': radians, 'n': SIN(radians)} FROM trigonometry AS c"
-    translation_target_db: foo
-    translation_target_coll: trigonometry
-    translation:
-      - { '$project': { '_id': 0, 'trigonometry': '$$ROOT' }}
-      - { '$project': { '_id': 0, 'c': '$trigonometry' }}
-      - { '$project': { '_id': 0, '__bot': { 'radians': '$c.radians', 'n': { '$sqlSin': [ '$c.radians' ] }}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "0.8414709848078965" }}}
       - {'': {'radians': { "$numberLong": "-1" }, 'n': { "$numberDouble": "-0.8414709848078965" }}}
@@ -1353,15 +1103,6 @@ tests:
   - description: SQRT correctness tests
     current_db: foo
     query: "SELECT VALUE {'v': v, 'n': SQRT(v)} FROM sqrt AS c"
-    translation_target_db: foo
-    translation_target_coll: sqrt
-    translation:
-      - { '$project': { '_id': 0, 'sqrt': '$$ROOT' }}
-      - { '$project': { '_id': 0, 'c': '$sqrt' }}
-      - { '$project': { '_id': 0, '__bot': { 'v': '$c.v', 'n': { '$sqlSqrt': [ '$c.v' ] }}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'v': { "$numberInt": "16" }, 'n': { "$numberDouble": "4" }}}
       - {'': {'v': { "$numberLong": "-16" }, 'n': null }}
@@ -1376,15 +1117,6 @@ tests:
   - description: TAN correctness tests
     current_db: foo
     query: "SELECT VALUE {'radians': radians, 'n': TAN(radians)} FROM trigonometry AS c"
-    translation_target_db: foo
-    translation_target_coll: trigonometry
-    translation:
-      - { '$project': { '_id': 0, 'trigonometry': '$$ROOT' }}
-      - { '$project': { '_id': 0, 'c': '$trigonometry' }}
-      - { '$project': { '_id': 0, '__bot': { 'radians': '$c.radians', 'n': { '$sqlTan': [ '$c.radians' ] }}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'radians': { "$numberInt": "1" }, 'n': { "$numberDouble": "1.5574077246549023" }}}
       - {'': {'radians': { "$numberLong": "-1" }, 'n': { "$numberDouble": "-1.5574077246549023" }}}
@@ -1399,15 +1131,6 @@ tests:
   - description: SPLIT correctness tests
     current_db: foo
     query: "SELECT VALUE {'str': str, 'delim': delim, 'tokenNum': tokenNum, 'v': SPLIT(str, delim, tokenNum)} FROM split AS c"
-    translation_target_db: foo
-    translation_target_coll: split
-    translation:
-      - { $project: { _id: 0, split: "$$ROOT" } }
-      - { $project: { _id: 0, c: "$split" } }
-      - { $project: { _id: 0, __bot: { str: "$c.str", delim: "$c.delim", tokenNum: "$c.tokenNum", v: { $sqlSplit: [ "$c.str", "$c.delim", "$c.tokenNum" ] }}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          {'$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'str': '', 'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': ''}}
       - {'': {'str': 'abcd', 'delim': '-', 'tokenNum': {'$numberInt': '0'}, 'v': 'abcd'}}
@@ -1432,204 +1155,87 @@ tests:
 
   - description: YEAR correctness tests
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: dates
     query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(YEAR, interval, date1), 'datepart': EXTRACT(YEAR FROM date1), 'datediff': DATEDIFF(YEAR, date1, date2), 'datetrunc': DATETRUNC(YEAR, date1)} FROM dates AS d"
-    translation:
-      - { $project: { _id: 0, dates: "$$ROOT" } }
-      - { $project: { _id: 0, d: "$dates" } }
-      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'year'}, 'amount': '$d.interval' } }, datepart: { '$year': ['$d.date1'] }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'year'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'year'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { "$date": { '$numberLong': '1748836513000' } }, 'datepart': { '$numberInt': '2022' }, 'datediff': { '$numberLong': '2' }, 'datetrunc': { "$date": { '$numberLong': '1640995200000' } } } }
       - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { "$date": { '$numberLong': '1559447713000' } }, 'datepart': { '$numberInt': '2022' }, 'datediff': { '$numberLong': '-3' }, 'datetrunc': { "$date": { '$numberLong': '1640995200000' } } } }
 
   - description: MONTH correctness tests
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: dates
     query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(MONTH, interval, date1), 'datepart': EXTRACT(MONTH FROM date1), 'datediff': DATEDIFF(MONTH, date1, date2), 'datetrunc': DATETRUNC(MONTH, date1)} FROM dates AS d"
-    translation:
-      - { $project: { _id: 0, dates: "$$ROOT" } }
-      - { $project: { _id: 0, d: "$dates" } }
-      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'month'}, 'amount': '$d.interval' } }, datepart: { '$month': ['$d.date1'] }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'month'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'month'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1662090913000' } }, 'datepart': { '$numberInt': '6' }, 'datediff': { '$numberLong': '26' }, 'datetrunc': { '$date': { '$numberLong': '1654041600000' } } } }
       - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1646193313000' } }, 'datepart': { '$numberInt': '6' }, 'datediff': { '$numberLong': '-39' }, 'datetrunc': { '$date': { '$numberLong': '1654041600000' } } } }
 
   - description: DAY correctness tests
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: dates
     query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(DAY, interval, date1), 'datepart': EXTRACT(DAY FROM date1), 'datediff': DATEDIFF(DAY, date1, date2), 'datetrunc': DATETRUNC(DAY, date1)} FROM dates AS d"
-    translation:
-      - { $project: { _id: 0, dates: "$$ROOT" } }
-      - { $project: { _id: 0, d: "$dates" } }
-      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'day'}, 'amount': '$d.interval' } }, datepart: { '$dayOfMonth': ['$d.date1'] }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'day'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'day'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1654401313000' } }, 'datepart': { '$numberInt': '2' }, 'datediff': { '$numberLong': '800' }, 'datetrunc': { '$date': { '$numberLong': '1654128000000' } } } }
       - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1653882913000' } }, 'datepart': { '$numberInt': '2' }, 'datediff': { '$numberLong': '-1189' }, 'datetrunc': { '$date': { '$numberLong': '1654128000000' } } } }
 
   - description: HOUR correctness tests
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: dates
     query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(HOUR, interval, date1), 'datepart': EXTRACT(HOUR FROM date1), 'datediff': DATEDIFF(HOUR, date1, date2), 'datetrunc': DATETRUNC(HOUR, date1)} FROM dates AS d"
-    translation:
-      - { $project: { _id: 0, dates: "$$ROOT" } }
-      - { $project: { _id: 0, d: "$dates" } }
-      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'hour'}, 'amount': '$d.interval' } }, datepart: { '$hour': ['$d.date1'] }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'hour'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'hour'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1654152913000' } }, 'datepart': { '$numberInt': '3' }, 'datediff': { '$numberLong': '19202' }, 'datetrunc': { '$date': { '$numberLong': '1654138800000' } } } }
       - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1654131313000' } }, 'datepart': { '$numberInt': '3' }, 'datediff': { '$numberLong': '-28537' }, 'datetrunc': { '$date': { '$numberLong': '1654138800000' } } } }
 
   - description: MINUTE correctness tests
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: dates
     query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(MINUTE, interval, date1), 'datepart': EXTRACT(MINUTE FROM date1), 'datediff': DATEDIFF(MINUTE, date1, date2), 'datetrunc': DATETRUNC(MINUTE, date1)} FROM dates AS d"
-    translation:
-      - { $project: { _id: 0, dates: "$$ROOT" } }
-      - { $project: { _id: 0, d: "$dates" } }
-      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'minute'}, 'amount': '$d.interval' } }, datepart: { '$minute': ['$d.date1'] }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'minute'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'minute'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1654142293000' } }, 'datepart': { '$numberInt': '55' }, 'datediff': { '$numberLong': '1152123' }, 'datetrunc': { '$date': { '$numberLong': '1654142100000' } } } }
       - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1654141933000' } }, 'datepart': { '$numberInt': '55' }, 'datediff': { '$numberLong': '-1712240' }, 'datetrunc': { '$date': { '$numberLong': '1654142100000' } } } }
 
   - description: SECOND correctness tests
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: dates
     query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(SECOND, interval, date1), 'datepart': EXTRACT(SECOND FROM date1), 'datediff': DATEDIFF(SECOND, date1, date2), 'datetrunc': DATETRUNC(SECOND, date1)} FROM dates AS d"
-    translation:
-      - { $project: { _id: 0, dates: "$$ROOT" } }
-      - { $project: { _id: 0, d: "$dates" } }
-      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'second'}, 'amount': '$d.interval' } }, datepart: { '$second': ['$d.date1'] }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'second'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'second'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1654142116000' } }, 'datepart': { '$numberInt': '13' }, 'datediff': { '$numberLong': '69127386' }, 'datetrunc': { '$date': { '$numberLong': '1654142113000' } } } }
       - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1654142110000' } }, 'datepart': { '$numberInt': '13' }, 'datediff': { '$numberLong': '-102734405' }, 'datetrunc': { '$date': { '$numberLong': '1654142113000' } } } }
 
   - description: QUARTER correctness tests
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: dates
     query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(QUARTER, interval, date1), 'datediff': DATEDIFF(QUARTER, date1, date2), 'datetrunc': DATETRUNC(QUARTER, date1)} FROM dates AS d"
-    translation:
-      - { $project: { _id: 0, dates: "$$ROOT" } }
-      - { $project: { _id: 0, d: "$dates" } }
-      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'quarter'}, 'amount': '$d.interval' } }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'quarter'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'quarter'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1677729313000' } }, 'datediff': { '$numberLong': '9' }, 'datetrunc': { '$date': { '$numberLong': '1648771200000' } } } }
       - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1630554913000' } }, 'datediff': { '$numberLong': '-13' }, 'datetrunc': { '$date': { '$numberLong': '1648771200000' } } } }
 
   - description: WEEK correctness tests
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: dates
     query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(WEEK, interval, date1), 'datepart': EXTRACT(WEEK FROM date1), 'datediff': DATEDIFF(WEEK, date1, date2), 'datetrunc': DATETRUNC(WEEK, date1)} FROM dates AS d"
-    translation:
-      - { $project: { _id: 0, dates: "$$ROOT" } }
-      - { $project: { _id: 0, d: "$dates" } }
-      - { $project: { _id: 0, __bot: { interval: "$d.interval", dateadd: { '$dateAdd': { 'startDate': '$d.date1', 'unit': {'$literal': 'week'}, 'amount': '$d.interval' } }, datepart: { '$week': ['$d.date1'] }, datediff: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'week'}, 'startOfWeek': { '$literal': 'sunday' } } }, datetrunc: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'week'}, 'startOfWeek': { '$literal': 'sunday' } } } } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1655956513000' } }, 'datepart': { '$numberInt': '22' }, 'datediff': { '$numberLong': '114' }, 'datetrunc': { '$date': { '$numberLong': '1653782400000' } } } }
       - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1652327713000' } }, 'datepart': { '$numberInt': '22' }, 'datediff': { '$numberLong': '-170' }, 'datetrunc': { '$date': { '$numberLong': '1653782400000' } } } }
 
   - description: DAY_OF_YEAR correctness tests
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: datepart
     query: "SELECT VALUE {'datepart': EXTRACT(DAY_OF_YEAR FROM date1)} FROM datepart AS d"
-    translation:
-      - { $project: { _id: 0, datepart: "$$ROOT" } }
-      - { $project: { _id: 0, d: "$datepart" } }
-      - { $project: { _id: 0, __bot: { datepart: { '$dayOfYear': ['$d.date1'] } } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - { '': { 'datepart': { '$numberInt': '153' } } }
 
   - description: ISO_WEEK correctness tests
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: datepart
     query: "SELECT VALUE {'datepart': EXTRACT(ISO_WEEK FROM date1)} FROM datepart AS d"
-    translation:
-      - { $project: { _id: 0, datepart: "$$ROOT" } }
-      - { $project: { _id: 0, d: "$datepart" } }
-      - { $project: { _id: 0, __bot: { datepart: { '$isoWeek': ['$d.date1'] } } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - { '': { 'datepart': { '$numberInt': '22' } } }
 
   - description: ISO_WEEKDAY correctness tests
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: datepart
     query: "SELECT VALUE {'datepart': EXTRACT(ISO_WEEKDAY FROM date1)} FROM datepart AS d"
-    translation:
-      - { $project: { _id: 0, datepart: "$$ROOT" } }
-      - { $project: { _id: 0, d: "$datepart" } }
-      - { $project: { _id: 0, __bot: { datepart: { '$isoDayOfWeek': ['$d.date1'] } } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - { '': { 'datepart': { '$numberInt': '4' } } }
 
   - description: DATEDIFF startOfWeek correctness tests
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: dates
     query: "SELECT VALUE {'sunday': DATEDIFF(WEEK, date1, date2, 'sunday'), 'friday': DATEDIFF(WEEK, date1, date2, 'friday')} FROM dates AS d"
-    translation:
-      - { $project: { _id: 0, dates: "$$ROOT" } }
-      - { $project: { _id: 0, d: "$dates" } }
-      - { $project: { _id: 0, __bot: { sunday: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'week'}, 'startOfWeek': { '$literal': 'sunday' } } }, friday: { '$dateDiff': { 'startDate': '$d.date1', 'endDate': '$d.date2', 'unit': {'$literal': 'week'}, 'startOfWeek': { '$literal': 'friday' } } } } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - { '': { 'sunday': { '$numberLong': '114' }, 'friday': { '$numberLong': '115' } } }
       - { '': { 'sunday': { '$numberLong': '-170' }, 'friday': { '$numberLong': '-169' } } }
 
   - description: DATETRUNC startOfWeek correctness tests
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: datepart
     query: "SELECT VALUE {'sunday': DATETRUNC(WEEK, date1, 'sunday'), 'friday': DATETRUNC(WEEK, date1, 'friday')} FROM datepart AS d"
-    translation:
-      - { $project: { _id: 0, datepart: "$$ROOT" } }
-      - { $project: { _id: 0, d: "$datepart" } }
-      - { $project: { _id: 0, __bot: { sunday: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'week'}, 'startOfWeek': { '$literal': 'sunday' } } }, friday: { $dateTrunc: { 'date': '$d.date1', 'unit': {'$literal': 'week'}, 'startOfWeek': { '$literal': 'friday' } } } } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - { '': { 'sunday': { '$date': { '$numberLong': '1653782400000' } }, 'friday': { '$date': { '$numberLong': '1653609600000' } } } }

@@ -26,15 +26,6 @@ tests:
     current_db: mydb
     query: "SELECT * FROM foo AS foo UNION ALL SELECT * FROM bar AS bar"
     ordered: false
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'foo': '$foo'}}
-      - {'$unionWith': {'coll': 'bar', 'pipeline': [
-            {'$project': {'_id': 0, 'bar': '$$ROOT'}},
-            {'$project': {'_id': 0, 'bar': '$bar'}},
-        ]}}
     result:
       - {'foo': {'_id': 0, 'a': 1}}
       - {'foo': {'_id': 1, 'a': 2}}
@@ -46,8 +37,6 @@ tests:
     query: "SELECT VALUE {'a': a} FROM foo AS foo UNION SELECT VALUE {'b': b, 'c': c} FROM bar AS bar"
     ordered: false
     skip_reason: "distinct UNION not currently supported"
-    translation_target_db: mydb
-    translation_target_coll: foo
     result:
       - {'': {'a': 1}}
       - {'': {'a': 2}}
@@ -58,7 +47,6 @@ tests:
     query: "SELECT VALUE {'a': a} FROM foo UNION SELECT VALUE {'a': a} FROM foo"
     ordered: false
     skip_reason: "distinct UNION not currently supported"
-    translation_target_coll: foo
     result:
       - {'': {'a': 1}}
       - {'': {'a': 2}}
@@ -67,20 +55,6 @@ tests:
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo UNION ALL SELECT VALUE {'a': a} FROM foo"
     ordered: false
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'foo': '$foo'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
-      - {'$unionWith': {'coll': 'foo', 'pipeline': [
-          {'$project': {'_id': 0, 'foo': '$$ROOT'}},
-          {'$project': {'_id': 0, 'foo': '$foo'}},
-          {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}},
-        ]}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'a': 1}}
       - {'': {'a': 1}}
@@ -94,8 +68,6 @@ tests:
     query: "SELECT VALUE {'a': a} FROM foo UNION ALL SELECT VALUE {'a': a} FROM foo UNION SELECT VALUE {'a': a} FROM foo"
     ordered: false
     skip_reason: "distinct UNION not currently supported"
-    translation_target_db: mydb
-    translation_target_coll: foo
     result:
       - {'': {'a': 1}}
       - {'': {'a': 2}}
@@ -104,19 +76,6 @@ tests:
     current_db: mydb
     query: "SELECT VALUE {'a': a} FROM foo AS foo UNION ALL SELECT * FROM [{'b': 1}, {'b': 2}] AS arr"
     ordered: false
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'foo': '$foo'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$foo.a'}}}
-      - {'$unionWith': {'pipeline': [
-          {'$documents': [{'b': {'$literal': 1}}, {'b': {'$literal': 2}}]},
-          {'$project': {'_id': 0, 'arr': '$$ROOT'}},
-        ]}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'a': 1}}
       - {'': {'a': 2}}

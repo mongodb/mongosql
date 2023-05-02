@@ -23,44 +23,30 @@ tests:
   - description: both unqualified and qualified references to derived table datasource fields are allowed
     query: "SELECT VALUE {'asub': asub, 'bsub': derived.bsub} FROM (SELECT VALUE {'asub': a, 'bsub': b} FROM [{'a': 1, 'b': 1}] AS arr) AS derived"
     current_db: test
-    translation_target_db: test
-    translation:
-      - {'$documents': [{'a': {'$literal': 1}, 'b': {'$literal': 1}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'asub': '$arr.a', 'bsub': '$arr.b'}}}
-      - {'$project': {'_id': 0, 'derived': {'$mergeObjects': ['$__bot']}}}
-      - {'$project': {'_id': 0, '__bot': {'asub': '$derived.asub', 'bsub': '$derived.bsub'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-           { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        }}}}
     result:
       - {'': {'asub': 1, 'bsub': 1}}
 
   - description: derived table cannot reference other datasources in same FROM clause
     query: "SELECT * FROM [{'x': 1}] AS foo CROSS JOIN (SELECT * FROM [{'x': 1}] AS bar WHERE foo.x = bar.x) AS derived"
     current_db: test
-    translation_target_db: test
     should_compile: false
     algebrize_error: "field `foo` cannot be resolved to any datasource"
 
   - description: derived table must have alias
     query: "SELECT * FROM (SELECT * FROM [{'a': 1}] AS arr)"
     current_db: test
-    translation_target_db: test
     should_compile: false
     parse_error: "derived query datasources must have aliases"
 
   - description: datasource names in derived table are not visible outside of derived table query
     query: "SELECT derived.foo.x FROM (SELECT * FROM [{'x': 1}] AS foo, [{'a': 1}] AS bar) AS derived"
     current_db: test
-    translation_target_db: test
     should_compile: false
     algebrize_error: "cannot access field foo because it does not exist"
 
   - description: derived table query with datasources that statically have ambiguous field must report a static error
     query: "SELECT * FROM (SELECT * FROM [{'x': 1, 'y': 2}] AS foo, [{'a': 1, 'x': 3}] AS bar) AS derived"
     current_db: test
-    translation_target_db: test
     should_compile: false
     algebrize_error: 'derived table datasources Must have overlapping keys, schemata: Document(Document { keys: {"a": Atomic(Integer), "x": Atomic(Integer)}, required: {"a", "x"}, additional_properties: false }) and Document(Document { keys: {"x": Atomic(Integer), "y": Atomic(Integer)}, required: {"x", "y"}, additional_properties: false })'
 
@@ -73,27 +59,11 @@ tests:
   - description: there is no ambiguity with one schema-less datasource in a derived table
     current_db: test
     query: "SELECT * FROM (SELECT * FROM foo AS foo) AS derived"
-    translation_target_db: test
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'foo': '$foo'}}
-      - {'$project': {'_id': 0, 'derived': {'$mergeObjects': ['$foo']}}}
     result:
       - {'derived': {'_id': {'$numberInt': "0"}, 'x': 11, 'y': 12}}
 
   - description: derived table merges namespaces under alias namespace
     query: "SELECT * FROM (SELECT foo.*, bar.* FROM [{'a': 1}] foo JOIN [{'b': 2}] bar) AS derived"
     current_db: test
-    translation_target_db: test
-    translation:
-      - {'$documents': [{'a': {'$literal': 1}}]}
-      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$join': {
-        'joinType': 'inner',
-        'pipeline': [{'$documents': [{'b': {'$literal': 2}}]}, {'$project': {'_id': 0, 'bar': '$$ROOT'}}],
-        }}
-      - {'$project': {'_id': 0, 'bar': '$bar', 'foo': '$foo'}}
-      - {'$project': {'_id': 0, 'derived': {'$mergeObjects': ['$bar', '$foo']}}}
     result:
       - {'derived': {'b': 2, 'a': 1}}

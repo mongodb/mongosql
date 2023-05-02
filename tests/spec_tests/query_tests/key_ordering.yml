@@ -25,15 +25,6 @@ tests:
   - description: document literal key ordering is not guaranteed to be preserved
     current_db: mydb
     query: "SELECT VALUE {'b': _id, 'c': a} FROM foo AS f"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'f': '$foo'}}
-      - {'$project': {'_id': 0, '__bot': { 'b': '$f._id', 'c': '$f.a'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-         { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-      }}}}
     result:
       - {'': {'b': 0, 'c': 1}}
       - {'': {'b': 1, 'c': 2}}
@@ -41,11 +32,6 @@ tests:
   - description: key ordering from docs in collections is not guaranteed to be preserved
     current_db: mydb
     query: "SELECT * FROM foo AS f"
-    translation_target_db: mydb
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'f': '$foo'}}
     result:
       - {'f': {'_id': 0, 'a': 1}}
       - {'f': {'_id': 1, 'a': 2}}
@@ -53,11 +39,6 @@ tests:
   - description: subdocument key ordering is not guaranteed to be preserved
     current_db: mydb
     query: "SELECT * FROM bar AS b"
-    translation_target_db: mydb
-    translation_target_coll: bar
-    translation:
-      - {'$project': {'_id': 0, 'bar': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'b': '$bar'}}
     result:
       - {'b': {'_id': 0, 'sub': {'a': 1, 'b': 1}}}
       - {'b': {'_id': 1, 'sub': {'a': 2, 'b': 2}}}

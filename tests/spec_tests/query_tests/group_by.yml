@@ -261,135 +261,29 @@ tests:
   - description: GROUP BY with empty input outputs empty
     query: "SELECT * FROM [] AS arr GROUP BY NULL AS n"
     current_db: test
-    translation_target_db: test
-    translation:
-      - { "$documents": [] }
-      - { "$project": { "_id": 0, "arr": "$$ROOT" } }
-      - { "$group": { "_id": { "n": { "$literal": null } } } }
-      - { "$project": { "_id": 0, "__bot": { "n": "$_id.n" } } }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result: []
 
   - description: GROUP BY NULL creates only one group
     query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n"
-    skip_reason: "SQL-495: wrap literals in $literal document"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - { "$group": { "_id": { "n": { "$literal": null } } } }
-      - { "$project": { "_id": 0, "__bot": { "n": "$_id.n" } } }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "n": null } }
 
   - description: GROUP BY 1 creates only one group
     query: "SELECT * FROM foo.bar AS bar GROUP BY 1 AS n"
-    skip_reason: "SQL-495: wrap literals in $literal document"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - { "$group": { "_id": { "n": 1 } } }
-      - { "$project": { "_id": 0, "__bot": { "n": "$_id.n" } } }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "n": { "$numberInt": "1" } } }
 
   - description: GROUP BY hello creates only one group
     query: "SELECT * FROM foo.bar AS bar GROUP BY 'hello' AS n"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - { "$group": { "_id": { "n": { "$literal": "hello" } } } }
-      - { "$project": { "_id": 0, "__bot": { "n": "$_id.n" } } }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "n": "hello" } }
 
   - description: GROUP BY MISSING converts MISSING to NULL; NULL is not DISTINCT from NULL, but is distinct from non-null values
     query: "SELECT * FROM foo.nullAndMissing AS a GROUP BY a.n AS n"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: nullAndMissing
-    translation:
-      - { "$project": { "_id": 0, "nullAndMissing": "$$ROOT" } }
-      - { "$project": { "_id": 0, "a": "$nullAndMissing" } }
-      - { "$group": { "_id": { "n": "$a.n" } } }
-      - { "$project": { "_id": 0, "__bot": { "n": "$_id.n" } } }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "n": null } }
       - { "": { "n": { "$numberInt": "1" } } }
@@ -402,27 +296,6 @@ tests:
   - description: GROUP BY keys may be table-qualified
     query: "SELECT * FROM foo.baz AS a GROUP by a.a.a AS a"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: baz
-    translation:
-      - { "$project": { "_id": 0, "baz": "$$ROOT" } }
-      - { "$project": { "_id": 0, "a": "$baz" } }
-      - { "$group": { "_id": { "a": "$a.a.a" } } }
-      - { "$project": { "_id": 0, "__bot": { "a": "$_id.a" } } }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "a": { "$numberInt": "1" } } }
       - { "": { "a": { "$numberInt": "2" } } }
@@ -431,28 +304,6 @@ tests:
   - description: qualified top-level field reference keys can be referenced by qualified name
     query: "SELECT VALUE {'a': bar.a} FROM foo.bar AS bar GROUP BY bar.a"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - { "$group": { "_id": { "__unaliasedKey1": "$bar.a" } } }
-      - { "$project": { "_id": 0, "bar": { "a": "$_id.__unaliasedKey1" } } }
-      - { "$project": { "_id": 0, "__bot": { "a": "$bar.a" } } }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "a": { "$numberInt": "1" } } }
       - { "": { "a": { "$numberInt": "11" } } }
@@ -461,28 +312,6 @@ tests:
   - description: qualified top-level field reference keys can be referenced by unqualified name
     query: "SELECT VALUE {'a': a} FROM foo.bar AS bar GROUP BY bar.a"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - { "$group": { "_id": { "__unaliasedKey1": "$bar.a" } } }
-      - { "$project": { "_id": 0, "bar": { "a": "$_id.__unaliasedKey1" } } }
-      - { "$project": { "_id": 0, "__bot": { "a": "$bar.a" } } }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "a": { "$numberInt": "1" } } }
       - { "": { "a": { "$numberInt": "11" } } }
@@ -491,28 +320,6 @@ tests:
   - description: unqualified top-level field reference keys can be referenced by qualified name
     query: "SELECT VALUE{'a': bar.a} FROM foo.bar AS bar GROUP BY a"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - { "$group": { "_id": { "__unaliasedKey1": "$bar.a" } } }
-      - { "$project": { "_id": 0, "bar": { "a": "$_id.__unaliasedKey1" } } }
-      - { "$project": { "_id": 0, "__bot": { "a": "$bar.a" } } }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "a": { "$numberInt": "1" } } }
       - { "": { "a": { "$numberInt": "11" } } }
@@ -521,28 +328,6 @@ tests:
   - description: unqualified top-level field reference keys can be referenced by unqualified name
     query: "SELECT VALUE {'a': a} FROM foo.bar AS bar GROUP BY a"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - { "$group": { "_id": { "__unaliasedKey1": "$bar.a" } } }
-      - { "$project": { "_id": 0, "bar": { "a": "$_id.__unaliasedKey1" } } }
-      - { "$project": { "_id": 0, "__bot": { "a": "$bar.a" } } }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "a": { "$numberInt": "1" } } }
       - { "": { "a": { "$numberInt": "11" } } }
@@ -556,30 +341,6 @@ tests:
   - description: GROUP BY arbitrary expression
     query: "SELECT * FROM foo.bar AS bar GROUP BY a + 2 AS ap2"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - {
-          "$group":
-            { "_id": { "ap2": { "$add": [{ "$literal": 2 }, "$bar.a"] } } },
-        }
-      - { "$project": { "_id": 0, "__bot": { "ap2": "$_id.ap2" } } }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "ap2": { "$numberInt": "3" } } }
       - { "": { "ap2": { "$numberInt": "13" } } }
@@ -588,35 +349,6 @@ tests:
   - description: single DISTINCT aggregation function correctness test
     query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS suma"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - {
-          "$group":
-            {
-              "_id": { "n": { "$literal": null } },
-              "suma": { "$sqlSum": { "var": "$bar.a", "distinct": true } },
-            },
-        }
-      - {
-          "$project": { "_id": 0, "__bot": { "n": "$_id.n", "suma": "$suma" } },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "n": null, "suma": { "$numberInt": "123" } } }
 
@@ -638,40 +370,6 @@ tests:
   - description: correctness test for DISTINCT and non-DISTINCT aggregation over same field
     query: "SELECT * FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS dsuma, SUM(a) AS suma"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - {
-          "$group":
-            {
-              "_id": { "n": { "$literal": null } },
-              "dsuma": { "$sqlSum": { "var": "$bar.a", "distinct": true } },
-              "suma": { "$sum": "$bar.a"},
-            },
-        }
-      - {
-          "$project":
-            {
-              "_id": 0,
-              "__bot": { "n": "$_id.n", "dsuma": "$dsuma", "suma": "$suma" },
-            },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - {
           "":
@@ -685,47 +383,6 @@ tests:
   - description: multi-DISTINCT aggregation function correctness test
     query: "SELECT VALUE {'suma': suma, 'countc': countc} FROM foo.bar AS bar GROUP BY NULL AS n AGGREGATE SUM(DISTINCT a) AS suma, COUNT(DISTINCT c) AS countc"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - {
-          "$group":
-            {
-              "_id": { "n": { "$literal": null } },
-              "suma": { "$sqlSum": { "var": "$bar.a", "distinct": true } },
-              "countc": { "$sqlCount": { "var": "$bar.c", "distinct": true } },
-            },
-        }
-      - {
-          "$project":
-            {
-              "_id": 0,
-              "__bot": { "n": "$_id.n", "suma": "$suma", "countc": "$countc" },
-            },
-        }
-      - {
-          "$project":
-            {
-              "_id": 0,
-              "__bot": { "suma": "$__bot.suma", "countc": "$__bot.countc" },
-            },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - {
           "":
@@ -738,39 +395,6 @@ tests:
   - description: multi-item group key correctness test
     query: "SELECT * FROM foo.multi AS multi GROUP BY a AS a, b AS b AGGREGATE SUM(c) AS sumc"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: multi
-    translation:
-      - { "$project": { "_id": 0, "multi": "$$ROOT" } }
-      - { "$project": { "_id": 0, "multi": "$multi" } }
-      - {
-          "$group":
-            {
-              "_id": { "a": "$multi.a", "b": "$multi.b" },
-              "sumc": { "$sum": "$multi.c" },
-            },
-        }
-      - {
-          "$project":
-            {
-              "_id": 0,
-              "__bot": { "a": "$_id.a", "b": "$_id.b", "sumc": "$sumc" },
-            },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - {
           "":
@@ -800,52 +424,6 @@ tests:
   - description: multi-item group key with HAVING correctness test
     query: "SELECT * FROM foo.multi AS multi GROUP BY a AS a, b AS b AGGREGATE SUM(c) AS sumc HAVING a != 1 AND sumc != 4"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: multi
-    translation:
-      - { "$project": { "_id": 0, "multi": "$$ROOT" } }
-      - { "$project": { "_id": 0, "multi": "$multi" } }
-      - {
-          "$group":
-            {
-              "_id": { "a": "$multi.a", "b": "$multi.b" },
-              "sumc": { "$sum":  "$multi.c" },
-            },
-        }
-      - {
-          "$project":
-            {
-              "_id": 0,
-              "__bot": { "a": "$_id.a", "b": "$_id.b", "sumc": "$sumc" },
-            },
-        }
-      - {
-          "$match":
-            {
-              $expr:
-                {
-                  "$sqlAnd":
-                    [
-                      { "$sqlNe": ["$__bot.a", { "$literal": 1 }] },
-                      { "$sqlNe": ["$__bot.sumc", { "$literal": 4 }] },
-                    ],
-                },
-            },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - {
           "":
@@ -879,13 +457,6 @@ tests:
   - description: HAVING without GROUP BY works as a WHERE clause but happens after the WHERE clause
     query: "SELECT * FROM foo.bar AS bar WHERE a < 15 HAVING a > 5"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - { "$match": { "$expr": { "$sqlLt": ["$bar.a", { "$literal": 15 }] } } }
-      - { "$match": { "$expr": { "$sqlGt": ["$bar.a", { "$literal": 5 }] } } }
     result:
       - {
           "bar":
@@ -900,40 +471,6 @@ tests:
   - description: ADD_TO_ARRAY correctness test
     query: "SELECT * FROM (SELECT _id, a, b FROM foo.bar AS bar ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE ADD_TO_ARRAY(arr.b) AS garr"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - {
-          "$project":
-            {
-              "_id": 0,
-              "__bot": { "_id": "$bar._id", "a": "$bar.a", "b": "$bar.b" },
-            },
-        }
-      - { "$sort": { "__bot._id": 1 } }
-      - { "$project": { "_id": 0, "arr": { "$mergeObjects": ["$__bot"] } } }
-      - {
-          "$group": { "_id": { "a": "$arr.a" }, "garr": { "$push": "$arr.b" } },
-        }
-      - {
-          "$project": { "_id": 0, "__bot": { "a": "$_id.a", "garr": "$garr" } },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - {
           "":
@@ -958,38 +495,6 @@ tests:
   - description: ADD_TO_ARRAY DISTINCT correctness test (equivalent to ADD_TO_SET)
     query: "SELECT * FROM (SELECT _id, a FROM foo.bar AS bar ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE ADD_TO_ARRAY(DISTINCT a) AS garr"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - {
-          "$project":
-            { "_id": 0, "__bot": { "_id": "$bar._id", "a": "$bar.a" } },
-        }
-      - { "$sort": { "__bot._id": 1 } }
-      - { "$project": { "_id": 0, "arr": { "$mergeObjects": ["$__bot"] } } }
-      - {
-          "$group":
-            { "_id": { "a": "$arr.a" }, "garr": { "$addToSet": "$arr.a" } },
-        }
-      - {
-          "$project": { "_id": 0, "__bot": { "a": "$_id.a", "garr": "$garr" } },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "a": { "$numberInt": "1" }, "garr": [{ "$numberInt": "1" }] } }
       - {
@@ -1008,82 +513,12 @@ tests:
   - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in DECIMAL)
     query: "SELECT VALUE {'gset' : gset} FROM (SELECT * FROM foo.numerics AS numerics ORDER BY _id ASC) AS _numeric GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: numerics
-    translation:
-      - { "$project": { "_id": 0, "numerics": "$$ROOT" } }
-      - { "$project": { "_id": 0, "numerics": "$numerics" } }
-      - { "$sort": { "numerics._id": 1 } }
-      - {
-          "$project":
-            { "_id": 0, "_numeric": { "$mergeObjects": ["$numerics"] } },
-        }
-      - {
-          "$group":
-            {
-              "_id": { "_": { "$literal": null } },
-              "gset": { "$addToSet": "$_numeric.a" },
-            },
-        }
-      - {
-          "$project": { "_id": 0, "__bot": { "_": "$_id._", "gset": "$gset" } },
-        }
-      - { "$project": { "_id": 0, "__bot": { "gset": "$__bot.gset" } } }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "gset": [{ "$numberDecimal": "3.0" }] } }
 
   - description: ADD_TO_SET keeps first element seen of a duplicate group (resulting in INT)
     query: "SELECT VALUE {'gset': gset} FROM (SELECT * FROM foo.numerics AS numerics ORDER BY _id DESC) AS `numeric` GROUP BY NULL AS _ AGGREGATE ADD_TO_SET(a) AS gset"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: numerics
-    translation:
-      - { "$project": { "_id": 0, "numerics": "$$ROOT" } }
-      - { "$project": { "_id": 0, "numerics": "$numerics" } }
-      - { "$sort": { "numerics._id": -1 } }
-      - {
-          "$project":
-            { "_id": 0, "numeric": { "$mergeObjects": ["$numerics"] } },
-        }
-      - {
-          "$group":
-            {
-              "_id": { "_": { "$literal": null } },
-              "gset": { "$addToSet": "$numeric.a" },
-            },
-        }
-      - {
-          "$project": { "_id": 0, "__bot": { "_": "$_id._", "gset": "$gset" } },
-        }
-      - { "$project": { "_id": 0, "__bot": { "gset": "$__bot.gset" } } }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "gset": [{ "$numberInt": "3" }] } }
 
@@ -1100,38 +535,6 @@ tests:
   - description: ADD_TO_SET correctness test
     query: "SELECT * FROM (SELECT _id, a FROM foo.baz AS baz ORDER BY _id) AS arr GROUP BY a.a AS a AGGREGATE ADD_TO_SET(a.a) AS gset"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: baz
-    translation:
-      - { "$project": { "_id": 0, "baz": "$$ROOT" } }
-      - { "$project": { "_id": 0, "baz": "$baz" } }
-      - {
-          "$project":
-            { "_id": 0, "__bot": { "_id": "$baz._id", "a": "$baz.a" } },
-        }
-      - { "$sort": { "__bot._id": 1 } }
-      - { "$project": { "_id": 0, "arr": { "$mergeObjects": ["$__bot"] } } }
-      - {
-          "$group":
-            { "_id": { "a": "$arr.a.a" }, "gset": { "$addToSet": "$arr.a.a" } },
-        }
-      - {
-          "$project": { "_id": 0, "__bot": { "a": "$_id.a", "gset": "$gset" } },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "a": { "$numberInt": "1" }, "gset": [{ "$numberInt": "1" }] } }
       - { "": { "a": { "$numberInt": "2" }, "gset": [{ "$numberInt": "2" }] } }
@@ -1140,35 +543,6 @@ tests:
   - description: AVG correctness test
     query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE AVG(a.b) AS gavg"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: baz
-    translation:
-      - { "$project": { "_id": 0, "baz": "$$ROOT" } }
-      - { "$project": { "_id": 0, "arr": "$baz" } }
-      - {
-          "$group":
-            {
-              "_id": { "a": "$arr.a.a" },
-              "gavg": { "$avg": "$arr.a.b"  },
-            },
-        }
-      - {
-          "$project": { "_id": 0, "__bot": { "a": "$_id.a", "gavg": "$gavg" } },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "a": { "$numberInt": "1" }, "gavg": { "$numberDouble": "2" } } }
       - {
@@ -1190,37 +564,6 @@ tests:
   - description: COUNT correctness test
     query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE COUNT(a.a) AS gcount"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: baz
-    translation:
-      - { "$project": { "_id": 0, "baz": "$$ROOT" } }
-      - { "$project": { "_id": 0, "arr": "$baz" } }
-      - {
-          "$group":
-            {
-              "_id": { "a": "$arr.a.a" },
-              "gcount":
-                { "$sqlCount": { "var": "$arr.a.a", "distinct": false } },
-            },
-        }
-      - {
-          "$project":
-            { "_id": 0, "__bot": { "a": "$_id.a", "gcount": "$gcount" } },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "a": { "$numberInt": "1" }, "gcount": { "$numberInt": "1" } } }
       - { "": { "a": { "$numberInt": "2" }, "gcount": { "$numberInt": "2" } } }
@@ -1229,46 +572,6 @@ tests:
   - description: COUNT(MISSING) and COUNT(NULL) skip MISSING and NULL values
     query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE COUNT(a.a) AS gcounta, COUNT(NULL) AS gcountn"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: baz
-    translation:
-      - { "$project": { "_id": 0, "baz": "$$ROOT" } }
-      - { "$project": { "_id": 0, "arr": "$baz" } }
-      - {
-          "$group":
-            {
-              "_id": { "a": "$arr.a.a" },
-              "gcounta":
-                { "$sqlCount": { "var": "$arr.a.a", "distinct": false } },
-              "gcountn":
-                {
-                  "$sqlCount":
-                    { "var": { "$literal": null }, "distinct": false },
-                },
-            },
-        }
-      - {
-          "$project":
-            {
-              "_id": 0,
-              "__bot":
-                { "a": "$_id.a", "gcounta": "$gcounta", "gcountn": "$gcountn" },
-            },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - {
           "":
@@ -1298,42 +601,6 @@ tests:
   - description: FIRST correctness test
     query: "SELECT * FROM (SELECT _id, a, b FROM foo.bar AS bar ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE FIRST(arr.b) AS gfirst"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - {
-          "$project":
-            {
-              "_id": 0,
-              "__bot": { "_id": "$bar._id", "a": "$bar.a", "b": "$bar.b" },
-            },
-        }
-      - { "$sort": { "__bot._id": 1 } }
-      - { "$project": { "_id": 0, "arr": { "$mergeObjects": ["$__bot"] } } }
-      - {
-          "$group":
-            { "_id": { "a": "$arr.a" }, "gfirst": { "$first": "$arr.b" } },
-        }
-      - {
-          "$project":
-            { "_id": 0, "__bot": { "a": "$_id.a", "gfirst": "$gfirst" } },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "a": { "$numberInt": "1" }, "gfirst": { "$numberInt": "2" } } }
       - {
@@ -1352,45 +619,6 @@ tests:
   - description: LAST correctness test
     query: "SELECT * FROM (SELECT _id, a, b FROM foo.bar AS bar ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE LAST(arr.b) AS glast"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "bar": "$bar" } }
-      - {
-          "$project":
-            {
-              "_id": 0,
-              "__bot": { "_id": "$bar._id", "a": "$bar.a", "b": "$bar.b" },
-            },
-        }
-      - { "$sort": { "__bot._id": 1 } }
-      - { "$project": { "_id": 0, "arr": { "$mergeObjects": ["$__bot"] } } }
-      - {
-          "$group":
-            {
-              "_id": { "a": "$arr.a" },
-              "glast": { "$last": "$arr.b" },
-            },
-        }
-      - {
-          "$project":
-            { "_id": 0, "__bot": { "a": "$_id.a", "glast": "$glast" } },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "a": { "$numberInt": "1" }, "glast": { "$numberInt": "42" } } }
       - { "": { "a": { "$numberInt": "11" }, "glast": { "$numberInt": "22" } } }
@@ -1402,43 +630,6 @@ tests:
     query: "SELECT glast FROM (SELECT _id, a FROM foo.dupes AS dupes ORDER BY _id) AS arr GROUP BY NULL AS _ AGGREGATE LAST(DISTINCT arr.a) AS glast"
     skip_reason: "SQL-621"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: dupes
-    translation:
-      - { "$project": { "_id": 0, "dupes": "$$ROOT" } }
-      - { "$project": { "_id": 0, "dupes": "$dupes" } }
-      - {
-          "$project":
-            { "_id": 0, "__bot": { "_id": "$dupes._id", "a": "$dupes.a" } },
-        }
-      - { "$sort": { "__bot._id": 1 } }
-      - { "$project": { "_id": 0, "arr": { "$mergeObjects": ["$__bot"] } } }
-      - {
-          "$group":
-            {
-              "_id": { "_": { "$literal": null } },
-              "glast": { "$sqlLast": { "var": "$arr.a", "distinct": true } },
-            },
-        }
-      - {
-          "$project":
-            { "_id": 0, "__bot": { "_": "$_id._", "glast": "$glast" } },
-        }
-      - { "$project": { "_id": 0, "__bot": { "glast": "$__bot.glast" } } }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "glast": { "$numberInt": "2" } } }
 
@@ -1450,29 +641,6 @@ tests:
   - description: MAX correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MAX(b) AS gmax"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "arr": "$bar" } }
-      - { "$group": { "_id": { "a": "$arr.a" }, "gmax": { "$max": "$arr.b" } } }
-      - {
-          "$project": { "_id": 0, "__bot": { "a": "$_id.a", "gmax": "$gmax" } },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "a": { "$numberInt": "1" }, "gmax": { "$numberInt": "42" } } }
       - { "": { "a": { "$numberInt": "11" }, "gmax": { "$numberInt": "22" } } }
@@ -1493,49 +661,6 @@ tests:
   - description: MERGE_DOCUMENTS correctness test
     query: "SELECT * FROM (SELECT _id, a, doc FROM foo.baz2 AS baz2 ORDER BY _id) AS arr GROUP BY a AS a AGGREGATE MERGE_DOCUMENTS(doc) AS gmerge"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: baz2
-    translation:
-      - { "$project": { "_id": 0, "baz2": "$$ROOT" } }
-      - { "$project": { "_id": 0, "baz2": "$baz2" } }
-      - {
-          "$project":
-            {
-              "_id": 0,
-              "__bot":
-                { "_id": "$baz2._id", "a": "$baz2.a", "doc": "$baz2.doc" },
-            },
-        }
-      - { "$sort": { "__bot._id": 1 } }
-      - { "$project": { "_id": 0, "arr": { "$mergeObjects": ["$__bot"] } } }
-      - {
-          "$group":
-            {
-              "_id": { "a": "$arr.a" },
-              "gmerge":
-                {
-                  "$mergeObjects": "$arr.doc"
-                },
-            },
-        }
-      - {
-          "$project":
-            { "_id": 0, "__bot": { "a": "$_id.a", "gmerge": "$gmerge" } },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "a": { "$numberInt": "1" }, "gmerge": { "a": "a", "b": "b" } } }
       - { "": { "a": { "$numberInt": "2" }, "gmerge": { "a": "d" } } }
@@ -1553,29 +678,6 @@ tests:
   - description: MIN correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE MIN(b) AS gmin"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "arr": "$bar" } }
-      - { "$group": { "_id": { "a": "$arr.a" }, "gmin": { "$min": "$arr.b" } } }
-      - {
-          "$project": { "_id": 0, "__bot": { "a": "$_id.a", "gmin": "$gmin" } },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "a": { "$numberInt": "1" }, "gmin": { "$numberInt": "2" } } }
       - { "": { "a": { "$numberInt": "11" }, "gmin": { "$numberInt": "22" } } }
@@ -1596,37 +698,6 @@ tests:
   - description: STDDEV_POP correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_POP(b) AS gstdp"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "arr": "$bar" } }
-      - {
-          "$group":
-            {
-              "_id": { "a": "$arr.a" },
-              "gstdp":
-                { "$stdDevPop": "$arr.b" },
-            },
-        }
-      - {
-          "$project":
-            { "_id": 0, "__bot": { "a": "$_id.a", "gstdp": "$gstdp" } },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - {
           "":
@@ -1657,37 +728,6 @@ tests:
   - description: STDDEV_SAMP correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE STDDEV_SAMP(b) as gstds"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "arr": "$bar" } }
-      - {
-          "$group":
-            {
-              "_id": { "a": "$arr.a" },
-              "gstds":
-                { "$stdDevSamp":"$arr.b" },
-            },
-        }
-      - {
-          "$project":
-            { "_id": 0, "__bot": { "a": "$_id.a", "gstds": "$gstds" } },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - {
           "":
@@ -1712,35 +752,6 @@ tests:
   - description: SUM correctness test
     query: "SELECT * FROM foo.bar AS arr GROUP BY a AS a AGGREGATE SUM(b) AS gsum"
     current_db: foo
-    translation_target_db: foo
-    translation_target_coll: bar
-    translation:
-      - { "$project": { "_id": 0, "bar": "$$ROOT" } }
-      - { "$project": { "_id": 0, "arr": "$bar" } }
-      - {
-          "$group":
-            {
-              "_id": { "a": "$arr.a" },
-              "gsum": { "$sum": "$arr.b" },
-            },
-        }
-      - {
-          "$project": { "_id": 0, "__bot": { "a": "$_id.a", "gsum": "$gsum" } },
-        }
-      - {
-          "$replaceWith":
-            {
-              "$unsetField":
-                {
-                  "field": "__bot",
-                  "input":
-                    {
-                      "$setField":
-                        { "field": "", "input": "$$ROOT", "value": "$__bot" },
-                    },
-                },
-            },
-        }
     result:
       - { "": { "a": { "$numberInt": "1" }, "gsum": { "$numberInt": "56" } } }
       - { "": { "a": { "$numberInt": "11" }, "gsum": { "$numberInt": "22" } } }

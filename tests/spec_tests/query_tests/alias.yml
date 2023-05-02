@@ -59,24 +59,12 @@ tests:
   - description: Can use different aliases for same field
     query: "SELECT VALUE {'a1': a, 'a2': a} FROM [{'a': 1}] arr"
     current_db: test
-    translation_target_db: test
-    translation:
-      - {'$documents': [{'a': {'$literal': 1}}]}
-      - {'$project': {'_id': 0, 'arr': '$$ROOT'}}
-      - {'$project': {'_id': 0, '__bot': {'a1': '$arr.a', 'a2': '$arr.a'}}}
-      - {'$replaceWith' : {'$unsetField' : {'field' : '__bot', 'input' :
-           {'$setField' :  {'field' : '' , 'input' : '$$ROOT', 'value' : '$__bot'}
-           }}}}
     result:
       - {'': {'a1': 1, 'a2': 1}}
 
   - description: _id is a valid alias for datasources
     query: "SELECT * FROM [{'a': 1}] _id"
     current_db: test
-    translation_target_db: test
-    translation:
-      - {'$documents': [{'a': {'$literal': 1}}]}
-      - {'$project': {'_id': '$$ROOT'}}
     result:
       - {'_id': {'a': 1}}
 
@@ -96,39 +84,12 @@ tests:
     current_db: db
     query: "SELECT * FROM foo AS foo1, foo AS foo2"
     skip_reason: "SQL-498: incorrect algebrizer state"
-    translation_target_db: db
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'foo1': '$foo'}}
-      - {'$join': {
-        'collection': 'foo',
-        'joinType': 'inner',
-        'pipeline': [
-          {'$project': {'_id': 0, 'foo': '$$ROOT'}},
-          {'$project': {'_id': 0, 'foo2': '$foo'}},
-        ],
-      }}
     result:
       - {"foo1": {'_id': 0, "a": 1, "b": 2}, "foo2": {'_id': 0, "a": 1, "b": 2}}
 
   - description: Can use duplicate aliases on both sides of UNION
     current_db: db
     query: "SELECT VALUE {'a': a, 'c': b} FROM foo AS alias UNION ALL SELECT VALUE {'a': a, 'c': b} FROM foo AS alias"
-    translation_target_db: db
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'alias': '$foo'}}
-      - {'$project': {'_id': 0, '__bot': {'a': '$alias.a', 'c': '$alias.b'}}}
-      - {'$unionWith': {'coll': 'foo', 'pipeline': [
-          {'$project': {'_id': 0, 'foo': '$$ROOT'}},
-          {'$project': {'_id': 0, 'alias': '$foo'}},
-          {'$project': {'_id': 0, '__bot': {'a': '$alias.a', 'c': '$alias.b'}}},
-        ]}}
-      - {'$replaceWith': {'$unsetField': {'field': '__bot', 'input':
-           {'$setField':  {'field': '' , 'input': '$$ROOT', 'value': '$__bot'}
-           }}}}
     result:
       - {'': {'a': 1, 'c': 2}}
       - {'': {'a': 1, 'c': 2}}

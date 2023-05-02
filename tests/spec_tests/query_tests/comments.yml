@@ -17,15 +17,6 @@ tests:
   - description: Standard embedded comment
     current_db: 'db'
     query: 'SELECT a FROM foo -- This is a standard comment'
-    translation_target_db: db
-    translation_target_coll: foo
-    translation:
-      - {'$project': {'_id': 0, 'foo': '$$ROOT'}}
-      - {'$project': {'_id': 0, 'foo': '$foo'}}
-      - {'$project': {'_id': 0, '__bot': { 'a': '$foo.a'}}}
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - {'': {'a': 1}}
 
@@ -34,30 +25,12 @@ tests:
     query: '-- This is a standard single line comment
 
     SELECT a FROM foo'
-    translation_target_db: db
-    translation_target_coll: foo
-    translation:
-      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, '__bot': { 'a': '$foo.a' } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - {'': {'a': 1}}
 
   - description: Inline comment
     current_db: 'db'
     query: 'SELECT a /* This is an inline comment */ FROM foo'
-    translation_target_db: db
-    translation_target_coll: foo
-    translation:
-      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, '__bot': { 'a': '$foo.a' } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - {'': {'a': 1}}
 
@@ -68,15 +41,6 @@ tests:
     This is a multiline comment */
 
     SELECT a FROM foo'
-    translation_target_db: db
-    translation_target_coll: foo
-    translation:
-      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, '__bot': { 'a': '$foo.a' } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - {'': {'a': 1}}
 
@@ -85,15 +49,6 @@ tests:
     query: 'SELECT a /* This is an inline
 
     comment */ FROM foo'
-    translation_target_db: db
-    translation_target_coll: foo
-    translation:
-      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, '__bot': { 'a': '$foo.a' } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - {'': {'a': 1}}
 
@@ -107,14 +62,5 @@ tests:
     */
 
     SELECT a FROM foo'
-    translation_target_db: db
-    translation_target_coll: foo
-    translation:
-      - { '$project': { '_id': 0, 'foo': '$$ROOT' } }
-      - { '$project': { '_id': 0, 'foo': '$foo' } }
-      - { '$project': { '_id': 0, '__bot': { 'a': '$foo.a' } } }
-      - { '$replaceWith': { '$unsetField': { 'field': '__bot', 'input':
-          { '$setField': { 'field': '' , 'input': '$$ROOT', 'value': '$__bot' }
-        } } } }
     result:
       - {'': {'a': 1}}

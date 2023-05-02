@@ -10,11 +10,9 @@ import (
 	"os"
 	"reflect"
 	"sort"
-	"strings"
 	"testing"
 
 	"github.com/10gen/candiedyaml"
-	"github.com/10gen/mongosql-rs/go/internal/desugarer"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
@@ -24,22 +22,18 @@ import (
 )
 
 const queryTestsDir = "../../tests/spec_tests/query_tests"
-const translationTestsDir = "../../tests/translation_tests"
 
 type YamlTest struct {
 	// Tests holds testing information for each test in a given YAML file.
 	Tests []struct {
-		Description     string   `yaml:"description"`
-		CurrentDb       string   `yaml:"current_db"`
-		TranslationDB   string   `yaml:"translation_target_db"`
-		TranslationColl string   `yaml:"translation_target_coll"`
-		Query           string   `yaml:"query"`
-		AlgebrizeError  string   `yaml:"algebrize_error"`
-		ParseError      string   `yaml:"parse_error"`
-		SkipReason      string   `yaml:"skip_reason"`
-		Ordered         bool     `yaml:"ordered"`
-		Translation     []bson.D `yaml:"translation"`
-		Result          []bson.D `yaml:"result"`
+		Description    string   `yaml:"description"`
+		CurrentDb      string   `yaml:"current_db"`
+		Query          string   `yaml:"query"`
+		AlgebrizeError string   `yaml:"algebrize_error"`
+		ParseError     string   `yaml:"parse_error"`
+		SkipReason     string   `yaml:"skip_reason"`
+		Ordered        bool     `yaml:"ordered"`
+		Result         []bson.D `yaml:"result"`
 	} `yaml:"tests"`
 	// CatalogData maps namespaces to slices containing collection documents.
 	CatalogData map[string]map[string][]bson.D `yaml:"catalog_data"`
@@ -215,118 +209,6 @@ func toCoreDocument(catalogSchema map[string]map[string]bson.D) (map[string]map[
 	return out, nil
 }
 
-func TestSpecTranslations(t *testing.T) {
-	cwd, err := os.Getwd()
-	assert.NoError(t, err)
-
-	type testDir = struct {
-		name string
-		path string
-	}
-	testDirs := []testDir{
-		{name: "query", path: queryTestsDir},
-		{name: "translation", path: translationTestsDir},
-	}
-
-	for _, dir := range testDirs {
-		t.Run(dir.name, func(t *testing.T) {
-			path := cwd + "/" + dir.path
-			tests, err := ioutil.ReadDir(path)
-			if err != nil {
-				t.Fatalf("directory does not exist: '%s'", path)
-			}
-
-			for _, testFile := range tests {
-				if !strings.HasSuffix(testFile.Name(), ".yml") {
-					continue
-				}
-				t.Run(testFile.Name(), func(t *testing.T) {
-					yaml, err := readYamlFile(path + "/" + testFile.Name())
-					assert.NoError(t, err)
-
-					for _, testCase := range yaml.Tests {
-						t.Run(testCase.Description, func(t *testing.T) {
-							if testCase.SkipReason != "" {
-								t.Skip(testCase.SkipReason)
-							}
-
-							catalogSchema, err := toCoreDocument(yaml.CatalogSchema)
-							assert.NoError(t, err)
-
-							args := TranslationArgs{
-								DB:             testCase.CurrentDb,
-								SQL:            testCase.Query,
-								CatalogSchema:  catalogSchema,
-								skipDesugaring: true,
-							}
-
-							translation, err := Translate(args)
-							if testCase.AlgebrizeError != "" {
-								if err == nil {
-									t.Fatal("expected an algebrize error, but algebrization succeeded")
-								}
-								assert.Contains(t, err.Error(), "algebrize error: "+testCase.AlgebrizeError)
-							} else if testCase.ParseError != "" {
-								if err == nil {
-									t.Fatal("expected a parse error")
-								}
-								assert.Contains(t, err.Error(), "parse error: "+testCase.ParseError)
-							} else {
-								if err == nil {
-									// Check that translation database and collection are correct
-									if testCase.TranslationDB != translation.TargetDB {
-										t.Fatalf("actual translation db does not match expected translation db:\n\texpected: %v\n\t  actual: %v",
-											testCase.TranslationDB, translation.TargetDB)
-									}
-									if testCase.TranslationColl != translation.TargetCollection {
-										t.Fatalf("actual translation collection does not match expected translation collection:\n\texpected: %v\n\t  actual: %v",
-											testCase.TranslationColl, translation.TargetCollection)
-									}
-
-									_, err = desugarer.Desugar(translation.Pipeline, translation.TargetDB)
-									if err != nil {
-										t.Fatalf("unexpected error when desugaring pipeline: %v", err)
-									}
-
-									var actualPipeline []bson.D
-									val := bson.RawValue{
-										Type:  bsontype.Array,
-										Value: translation.Pipeline,
-									}
-									// Candiedyaml's unmarshaller uses int64, while the BSON unmarshaller uses int32.
-									// This registry forces the BSON unmarshaller to use int64.
-									registry := bson.NewRegistryBuilder().
-										RegisterTypeMapEntry(bsontype.Int32, reflect.TypeOf(int64(0))).
-										Build()
-									err := val.UnmarshalWithRegistry(registry, &actualPipeline)
-
-									// We have to marshal and then unmarshal the expected pipeline
-									// because candiedyaml will convert an array that's inside a bson.D
-									// into an []interface{}, instead of a bson.A{}.
-									var expectedPipeline []bson.D
-									_, expectedBytes, err := bson.MarshalValue(testCase.Translation)
-									assert.NoError(t, err)
-									v := bson.RawValue{
-										Type:  bsontype.Array,
-										Value: expectedBytes,
-									}
-									err = v.Unmarshal(&expectedPipeline)
-									assert.NoError(t, err)
-									if !reflect.DeepEqual(expectedPipeline, actualPipeline) {
-										t.Fatalf("expected translations to be equal, but they weren't:\nexpected:%v\nactual:%v\n", expectedPipeline, actualPipeline)
-									}
-								} else {
-									t.Fatalf("translation unexpectedly failed: %v", err.Error())
-								}
-							}
-						})
-					}
-				})
-			}
-		})
-	}
-}
-
 func TestSpecResultSets(t *testing.T) {
 	cwd, err := os.Getwd()
 	assert.NoError(t, err)
@@ -387,11 +269,11 @@ func TestSpecResultSets(t *testing.T) {
 							var actualResultSet []bson.D
 							var actualCursor *mongo.Cursor
 							if translation.TargetCollection == "" {
-								actualCursor, err = client.Database(testCase.TranslationDB).
+								actualCursor, err = client.Database(translation.TargetDB).
 									Aggregate(context.Background(), pipelineBsonD)
 							} else {
-								actualCursor, err = client.Database(testCase.TranslationDB).
-									Collection(testCase.TranslationColl).
+								actualCursor, err = client.Database(translation.TargetDB).
+									Collection(translation.TargetCollection).
 									Aggregate(context.Background(), pipelineBsonD)
 							}
 							assert.NoError(t, err)
