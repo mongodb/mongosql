@@ -45,6 +45,19 @@ macro_rules! test_constant_fold {
     };
 }
 
+macro_rules! test_match_splitting {
+    ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
+        #[test]
+        fn $func_name() {
+            use crate::mir::{match_splitting::*, *};
+            let input = $input;
+            let expected = $expected;
+            let actual = split_matches(input);
+            assert_eq!(actual, expected);
+        }
+    };
+}
+
 macro_rules! test_flatten_variadic_functions {
     ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
         #[test]
@@ -80,6 +93,96 @@ macro_rules! test_max_numeric {
             assert_eq!(actual, expected);
         }
     };
+}
+
+mod match_splitting {
+    use crate::mir::{
+        self, schema::SchemaCache, Expression::*, LiteralValue::*, ScalarFunction::*,
+    };
+
+    test_match_splitting!(
+        simple_filter_no_split,
+        expected = Stage::Filter(mir::Filter {
+            source: Box::new(Stage::Array(ArraySource {
+                array: vec![],
+                alias: "foo".into(),
+                cache: SchemaCache::new()
+            })),
+            condition: Literal(Integer(42).into()),
+            cache: SchemaCache::new(),
+        }),
+        input = Stage::Filter(mir::Filter {
+            source: Box::new(Stage::Array(ArraySource {
+                array: vec![],
+                alias: "foo".into(),
+                cache: SchemaCache::new()
+            })),
+            condition: Literal(Integer(42).into()),
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    test_match_splitting!(
+        conjunctive_filter,
+        expected = Stage::Filter(mir::Filter {
+            source: Box::new(Stage::Filter(mir::Filter {
+                source: Box::new(Stage::Filter(mir::Filter {
+                    source: Box::new(Stage::Array(ArraySource {
+                        array: vec![],
+                        alias: "foo".into(),
+                        cache: SchemaCache::new(),
+                    })),
+                    condition: ScalarFunction(ScalarFunctionApplication {
+                        function: Eq,
+                        args: vec![Literal(Integer(1).into()), Literal(Integer(1).into())],
+                        cache: SchemaCache::new(),
+                    }),
+                    cache: SchemaCache::new(),
+                })),
+                condition: ScalarFunction(ScalarFunctionApplication {
+                    function: Eq,
+                    args: vec![Literal(Integer(2).into()), Literal(Integer(2).into())],
+                    cache: SchemaCache::new(),
+                }),
+                cache: SchemaCache::new(),
+            })),
+            condition: ScalarFunction(ScalarFunctionApplication {
+                function: Eq,
+                args: vec![Literal(Integer(3).into()), Literal(Integer(3).into())],
+                cache: SchemaCache::new(),
+            }),
+            cache: SchemaCache::new(),
+        }),
+        input = Stage::Filter(mir::Filter {
+            source: Box::new(Stage::Array(ArraySource {
+                array: vec![],
+                alias: "foo".into(),
+                cache: SchemaCache::new(),
+            })),
+            condition: ScalarFunction(ScalarFunctionApplication {
+                function: And,
+                args: vec![
+                    ScalarFunction(ScalarFunctionApplication {
+                        function: Eq,
+                        args: vec![Literal(Integer(1).into()), Literal(Integer(1).into())],
+                        cache: SchemaCache::new(),
+                    }),
+                    ScalarFunction(ScalarFunctionApplication {
+                        function: Eq,
+                        args: vec![Literal(Integer(2).into()), Literal(Integer(2).into())],
+                        cache: SchemaCache::new(),
+                    }),
+                    ScalarFunction(ScalarFunctionApplication {
+                        function: Eq,
+                        args: vec![Literal(Integer(3).into()), Literal(Integer(3).into())],
+                        cache: SchemaCache::new(),
+                    })
+                ],
+                cache: SchemaCache::new(),
+            }),
+            cache: SchemaCache::new(),
+        }),
+    );
 }
 
 mod schema {

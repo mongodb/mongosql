@@ -59,6 +59,9 @@ pub fn translate_sql(
     // constant fold stages
     let plan = mir::constant_folding::fold_constants(plan, schema_checking_mode);
 
+    // split match stages
+    let plan = mir::match_splitting::split_matches(plan);
+
     // get the schema_env for the plan
     let schema_env = plan
         .schema(&algebrizer.schema_inference_state())?
