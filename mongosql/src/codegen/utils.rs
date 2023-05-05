@@ -1,5 +1,7 @@
-use super::{Error, MqlCodeGenerator, Result};
-use crate::air::{self};
+use crate::{
+    air,
+    codegen::{Error, MqlCodeGenerator, Result},
+};
 use bson::{bson, Bson};
 
 impl MqlCodeGenerator {

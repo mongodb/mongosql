@@ -18,7 +18,7 @@ import (
 
 // version returns the version of the underlying c translation
 // library. The consumer of this library should ensure that the
-// version of the the go library matches that of the c library.
+// version of the go library matches that of the c library.
 func version() string {
 	cVersion := C.version()
 	version := C.GoString(cVersion)

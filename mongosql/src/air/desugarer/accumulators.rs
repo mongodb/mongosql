@@ -1,16 +1,15 @@
-use crate::air::{
-    desugarer::{Pass, Result},
-    visitor::Visitor,
-    AccumulatorExpr, AggregationFunction, Expression,
-    Expression::*,
-    Group,
-    LiteralValue::*,
-    MQLOperator, MQLSemanticOperator, Project, Reduce, Stage,
-    Stage::*,
+use crate::{
+    air::{
+        desugarer::{Pass, Result},
+        visitor::Visitor,
+        AccumulatorExpr, AggregationFunction, Expression,
+        Expression::*,
+        Group, LiteralValue, MQLOperator, MQLSemanticOperator, Project, ProjectItem, Reduce, Stage,
+        Stage::*,
+    },
+    make_cond_expr, map,
 };
-use crate::make_cond_expr;
 use linked_hash_map::LinkedHashMap;
-use std::string::String;
 
 /// Desugars any aggregations in Group stages into appropriate, equivalent
 /// expressions and/or stages. Specifically, aggregations with distinct: true
@@ -41,22 +40,22 @@ impl AccumulatorsDesugarerVisitor {
                     args: vec![arg],
                 }),
                 Array(vec![
-                    Literal(String("missing".to_string())),
-                    Literal(String("null".to_string())),
+                    Literal(LiteralValue::String("missing".to_string())),
+                    Literal(LiteralValue::String("null".to_string())),
                 ]),
             ],
         });
         make_cond_expr!(
             arg_is_missing_or_null_check,
-            Literal(Integer(0)),
-            Literal(Integer(1))
+            Literal(LiteralValue::Integer(0)),
+            Literal(LiteralValue::Integer(1))
         )
     }
 
     fn create_distinct_count_project_expression(alias: String) -> Expression {
         Reduce(Reduce {
             input: Box::new(FieldRef(alias.into())),
-            init_value: Box::new(Literal(Integer(0))),
+            init_value: Box::new(Literal(LiteralValue::Integer(0))),
             inside: Box::new(MQLSemanticOperator(MQLSemanticOperator {
                 op: MQLOperator::Add,
                 args: vec![
@@ -103,10 +102,12 @@ impl Visitor for AccumulatorsDesugarerVisitor {
         match node {
             Group(group) => {
                 let mut new_aggregations: Vec<AccumulatorExpr> = Vec::new();
-                let mut project_specs: LinkedHashMap<String, Expression> = LinkedHashMap::new();
+                let mut project_specs: LinkedHashMap<String, ProjectItem> = map! {
+                    "_id".into() => ProjectItem::Inclusion
+                };
                 let mut needs_project = false;
                 for agg in group.aggregations.clone().into_iter() {
-                    let (new_aggregation, project_expr) = if agg.distinct {
+                    let (new_aggregation, project_item) = if agg.distinct {
                         needs_project = true;
                         let new_aggregation = AccumulatorExpr {
                             alias: agg.alias.clone(),
@@ -115,14 +116,16 @@ impl Visitor for AccumulatorsDesugarerVisitor {
                             arg: Box::new(*agg.arg.clone()),
                         };
 
-                        let project_expr = if agg.function == AggregationFunction::Count {
-                            // distinct count
-                            Self::create_distinct_count_project_expression(agg.alias.clone())
-                        } else {
-                            // distinct non-count
-                            Self::create_distinct_non_count_project_expression(agg.clone())
-                        };
-                        (new_aggregation, project_expr)
+                        let project_item = ProjectItem::Assignment(
+                            if agg.function == AggregationFunction::Count {
+                                // distinct count
+                                Self::create_distinct_count_project_expression(agg.alias.clone())
+                            } else {
+                                // distinct non-count
+                                Self::create_distinct_non_count_project_expression(agg.clone())
+                            },
+                        );
+                        (new_aggregation, project_item)
                     } else {
                         let new_aggregation = if agg.function == AggregationFunction::Count {
                             // non-distinct count
@@ -131,11 +134,11 @@ impl Visitor for AccumulatorsDesugarerVisitor {
                             // non-distinct non-count
                             agg.clone()
                         };
-                        let project_expr = FieldRef(agg.alias.clone().into());
-                        (new_aggregation, project_expr)
+                        let project_item = ProjectItem::Inclusion;
+                        (new_aggregation, project_item)
                     };
                     new_aggregations.push(new_aggregation);
-                    project_specs.insert(agg.alias.clone(), project_expr);
+                    project_specs.insert(agg.alias.clone(), project_item);
                 }
 
                 let new_group = Group(Group {

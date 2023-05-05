@@ -1,24 +1,39 @@
-pub(crate) mod air_to_mql;
-pub(crate) mod mir_to_mql;
+use crate::air;
 pub use crate::mapping_registry::MqlMappingRegistry;
+use thiserror::Error;
 
-use crate::{air, mir};
+#[cfg(test)]
+mod test;
 
-pub fn generate_mql_from_air(
-    plan: air::Stage,
-) -> Result<air_to_mql::MqlTranslation, air_to_mql::Error> {
-    let cg = air_to_mql::MqlCodeGenerator {};
+mod expressions;
+mod functions;
+mod stages;
+mod utils;
 
-    cg.codegen_air_stage(plan)
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug, Error, PartialEq, Eq)]
+pub enum Error {
+    #[error("cannot generate MQL for {0:?} operator")]
+    UnsupportedOperator(air::SQLOperator),
+    #[error("cannot $convert to document")]
+    ConvertToDocument,
+    #[error("cannot $convert to array")]
+    ConvertToArray,
 }
 
-pub fn generate_mql_from_mir(
-    plan: mir::Stage,
-) -> Result<mir_to_mql::MqlTranslation, mir_to_mql::Error> {
-    let cg = mir_to_mql::MqlCodeGenerator {
-        mapping_registry: MqlMappingRegistry::new(),
-        scope_level: 0u16,
-    };
+#[derive(PartialEq, Debug)]
+pub struct MqlTranslation {
+    pub database: Option<String>,
+    pub collection: Option<String>,
+    pub pipeline: Vec<bson::Document>,
+}
 
-    cg.codegen_stage(plan).map(|mql| mql.replace_bot())
+#[derive(Clone, Debug)]
+pub struct MqlCodeGenerator {}
+
+pub fn generate_mql(plan: air::Stage) -> Result<MqlTranslation> {
+    let cg = MqlCodeGenerator {};
+
+    cg.codegen_stage(plan)
 }

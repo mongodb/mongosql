@@ -28,7 +28,7 @@ tests:
       }
     expected:
       - { "$group": { "_id": null, "acc": { "$addToSet": "$a" } } }
-      - { "$project": { "acc": { "$avg": "$acc" } } }
+      - { "$project": { "_id": 1, "acc": { "$avg": "$acc" } } }
 
   - name: "desugar non-distinct $sqlCount"
     input:
@@ -73,6 +73,7 @@ tests:
       - {
         "$project":
           {
+            "_id": 1,
             "acc":
               {
                 "$reduce":
@@ -128,7 +129,7 @@ tests:
       }
     expected:
       - { "$group": { "_id": null, "acc": { "$addToSet": "$a" } } }
-      - { "$project": { "acc": { "$last": "$acc" } } }
+      - { "$project": { "_id": 1, "acc": { "$last": "$acc" } } }
 
   - name: "desugar non-distinct $sqlMergeObjects"
     input:
@@ -153,7 +154,7 @@ tests:
       }
     expected:
       - { "$group": { "_id": null, "acc": { "$addToSet": "$a" } } }
-      - { "$project": { "acc": { "$mergeObjects": "$acc" } } }
+      - { "$project": { "_id": 1, "acc": { "$mergeObjects": "$acc" } } }
 
   - name: "desugar non-distinct $sqlStdDevPop"
     input:
@@ -178,7 +179,7 @@ tests:
       }
     expected:
       - { "$group": { "_id": null, "acc": { "$addToSet": "$a" } } }
-      - { "$project": { "acc": { "$stdDevPop": "$acc" } } }
+      - { "$project": { "_id": 1, "acc": { "$stdDevPop": "$acc" } } }
 
   - name: "desugar non-distinct $sqlStdDevSamp"
     input:
@@ -203,7 +204,7 @@ tests:
       }
     expected:
       - { "$group": { "_id": null, "acc": { "$addToSet": "$a" } } }
-      - { "$project": { "acc": { "$stdDevSamp": "$acc" } } }
+      - { "$project": { "_id": 1, "acc": { "$stdDevSamp": "$acc" } } }
 
   - name: "desugar non-distinct $sqlSum"
     input:
@@ -228,7 +229,7 @@ tests:
       }
     expected:
       - { "$group": { "_id": null, "acc": { "$addToSet": "$a" } } }
-      - { "$project": { "acc": { "$sum": "$acc" } } }
+      - { "$project": { "_id": 1, "acc": { "$sum": "$acc" } } }
 
   - name: "desugar mix of distinct $sql, non-distinct $sql, and non-$sql accumulators"
     input:
@@ -254,8 +255,9 @@ tests:
       - {
         "$project":
           {
-            "nonDistinct": "$nonDistinct",
+            "_id": 1,
+            "nonDistinct": 1,
             "distinct": { "$last": "$distinct" },
-            "nonSQL": "$nonSQL",
+            "nonSQL": 1,
           },
       }

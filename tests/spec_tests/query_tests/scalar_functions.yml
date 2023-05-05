@@ -733,7 +733,6 @@ tests:
   - description: BIT_LENGTH correctness tests
     current_db: foo
     query: "SELECT VALUE {'s': s, 'len': BIT_LENGTH(s), 'comment': comment} FROM length AS c"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'': {'s': '', 'len': 0}}
       - {'': {'s': 'a', 'len': 8}}

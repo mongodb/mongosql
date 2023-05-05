@@ -23,7 +23,14 @@ pub enum Stage {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Project {
     pub source: Box<Stage>,
-    pub specifications: UniqueLinkedHashMap<String, Expression>,
+    pub specifications: UniqueLinkedHashMap<String, ProjectItem>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum ProjectItem {
+    Exclusion,
+    Inclusion,
+    Assignment(Expression)
 }
 
 #[derive(PartialEq, Debug, Clone)]

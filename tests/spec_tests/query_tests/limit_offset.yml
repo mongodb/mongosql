@@ -78,9 +78,8 @@ tests:
   - description: Limit in subquery
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY a LIMIT 1)"
-    skip_reason: "SQL-502"
     result:
-      - { "bar": { "a": 1 } }
+      - { "bar": { "_id": 0, "a": 1 } }
 
   - description: Offset in subquery
     current_db: foo
@@ -91,6 +90,5 @@ tests:
   - description: Limit and offset in subquery
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE a = ANY (SELECT a FROM baz AS baz ORDER BY a LIMIT 1 OFFSET 1)"
-    skip_reason: "SQL-502"
     result:
-      - { "bar": { "a": 2 } }
+      - { "bar": { "_id": 1, "a": 2 } }

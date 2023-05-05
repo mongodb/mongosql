@@ -1,5 +1,7 @@
-use super::MqlCodeGenerator;
-use crate::air::{AggregationFunction, DatePart, MQLOperator, SQLOperator};
+use crate::{
+    air::{AggregationFunction, DatePart, MQLOperator, SQLOperator},
+    codegen::MqlCodeGenerator,
+};
 
 impl MqlCodeGenerator {
     pub(crate) fn agg_func_to_mql_op(mqla: AggregationFunction) -> &'static str {

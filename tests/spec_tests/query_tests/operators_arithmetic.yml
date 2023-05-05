@@ -158,7 +158,6 @@ tests:
   - description: Unary plus correctness tests
     current_db: foo
     query: "SELECT VALUE {'a': a, '+a': +a} FROM unary AS unary"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'': {'a': {'$numberInt': '1'}, '+a': {'$numberInt': '1'}}}
       - {'': {'a': {'$numberInt': '-1'}, '+a': {'$numberInt': '-1'}}}
@@ -177,7 +176,6 @@ tests:
   - description: Unary minus correctness tests
     current_db: foo
     query: "SELECT VALUE {'a': a, '-a': -a} FROM unary AS unary"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'': {'a': {'$numberInt': '1'}, '-a': {'$numberInt': '-1'}}}
       - {'': {'a': {'$numberInt': '-1'}, '-a': {'$numberInt': '1'}}}

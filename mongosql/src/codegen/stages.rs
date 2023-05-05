@@ -1,9 +1,11 @@
-use super::{MqlCodeGenerator, MqlTranslation, Result};
-use crate::air::{self, AggregationFunction};
+use crate::{
+    air::{self, AggregationFunction, ProjectItem},
+    codegen::{MqlCodeGenerator, MqlTranslation, Result},
+};
 use bson::{bson, doc, Bson};
 
 impl MqlCodeGenerator {
-    pub fn codegen_air_stage(&self, stage: air::Stage) -> Result<MqlTranslation> {
+    pub fn codegen_stage(&self, stage: air::Stage) -> Result<MqlTranslation> {
         match stage {
             air::Stage::Project(p) => self.codegen_project(p),
             air::Stage::Group(g) => self.codegen_group(g),
@@ -22,10 +24,10 @@ impl MqlCodeGenerator {
     }
 
     fn codegen_union_with(&self, air_union_with: air::UnionWith) -> Result<MqlTranslation> {
-        let source_translation = self.codegen_air_stage(*air_union_with.source)?;
+        let source_translation = self.codegen_stage(*air_union_with.source)?;
         let mut pipeline = source_translation.pipeline;
 
-        let pipeline_translation = self.codegen_air_stage(*air_union_with.pipeline)?;
+        let pipeline_translation = self.codegen_stage(*air_union_with.pipeline)?;
 
         let mut union_body = doc! {};
         if let Some(collection) = pipeline_translation.collection {
@@ -44,7 +46,7 @@ impl MqlCodeGenerator {
     fn codegen_sort(&self, air_sort: air::Sort) -> Result<MqlTranslation> {
         use air::SortSpecification::*;
 
-        let source_translation = self.codegen_air_stage(*air_sort.source)?;
+        let source_translation = self.codegen_stage(*air_sort.source)?;
         let mut pipeline = source_translation.pipeline;
         let sort_specs = air_sort
             .specs
@@ -67,9 +69,9 @@ impl MqlCodeGenerator {
     }
 
     fn codegen_match(&self, air_match: air::Match) -> Result<MqlTranslation> {
-        let source_translation = self.codegen_air_stage(*air_match.source)?;
+        let source_translation = self.codegen_stage(*air_match.source)?;
         let mut pipeline = source_translation.pipeline;
-        let expr = bson!({ "$expr": self.codegen_air_expression(*air_match.expr)?});
+        let expr = bson!({ "$expr": self.codegen_expression(*air_match.expr)?});
 
         pipeline.push(doc! {"$match": expr});
         Ok(MqlTranslation {
@@ -80,9 +82,9 @@ impl MqlCodeGenerator {
     }
 
     fn codegen_replace_with(&self, air_replace_with: air::ReplaceWith) -> Result<MqlTranslation> {
-        let source_translation = self.codegen_air_stage(*air_replace_with.source)?;
+        let source_translation = self.codegen_stage(*air_replace_with.source)?;
         let mut pipeline = source_translation.pipeline;
-        let expr = self.codegen_air_expression(*air_replace_with.new_root)?;
+        let expr = self.codegen_expression(*air_replace_with.new_root)?;
 
         pipeline.push(doc! {"$replaceWith": expr});
         Ok(MqlTranslation {
@@ -96,7 +98,7 @@ impl MqlCodeGenerator {
         let docs = air_docs
             .array
             .into_iter()
-            .map(|e| self.codegen_air_expression(e))
+            .map(|e| self.codegen_expression(e))
             .collect::<Result<Vec<Bson>>>()?;
         Ok(MqlTranslation {
             database: None,
@@ -114,8 +116,8 @@ impl MqlCodeGenerator {
     }
 
     fn codegen_lookup(&self, air_lookup: air::Lookup) -> Result<MqlTranslation> {
-        let lookup_pipeline_translation = self.codegen_air_stage(*air_lookup.pipeline)?;
-        let source_translation = self.codegen_air_stage(*air_lookup.source)?;
+        let lookup_pipeline_translation = self.codegen_stage(*air_lookup.pipeline)?;
+        let source_translation = self.codegen_stage(*air_lookup.source)?;
         let mut pipeline = source_translation.pipeline;
         let mut lookup_doc = match (
             lookup_pipeline_translation.database,
@@ -134,7 +136,7 @@ impl MqlCodeGenerator {
             lookup_doc.extend(doc! { "let":
                 let_vars
                     .into_iter()
-                    .map(|v| Ok((v.name, self.codegen_air_expression(*v.expr)?)))
+                    .map(|v| Ok((v.name, self.codegen_expression(*v.expr)?)))
                     .collect::<Result<bson::Document>>()?
             });
         }
@@ -151,12 +153,12 @@ impl MqlCodeGenerator {
     }
 
     fn codegen_project(&self, air_project: air::Project) -> Result<MqlTranslation> {
-        let source_translation = self.codegen_air_stage(*air_project.source)?;
+        let source_translation = self.codegen_stage(*air_project.source)?;
         let mut pipeline = source_translation.pipeline;
         let mut project_doc = air_project
             .specifications
             .into_iter()
-            .map(|(k, v)| Ok((k, self.codegen_air_expression(v)?)))
+            .map(|(k, v)| Ok((k, self.codegen_project_item(v)?)))
             .collect::<Result<bson::Document>>()?;
         if !project_doc.contains_key("_id") {
             // we create a temporary so that _id: 0 will always be the first element
@@ -174,13 +176,21 @@ impl MqlCodeGenerator {
         })
     }
 
+    fn codegen_project_item(&self, air_project_item: air::ProjectItem) -> Result<Bson> {
+        match air_project_item {
+            ProjectItem::Exclusion => Ok(Bson::Int32(0)),
+            ProjectItem::Inclusion => Ok(Bson::Int32(1)),
+            ProjectItem::Assignment(e) => self.codegen_expression(e),
+        }
+    }
+
     fn codegen_group(&self, air_group: air::Group) -> Result<MqlTranslation> {
-        let source_translation = self.codegen_air_stage(*air_group.source)?;
+        let source_translation = self.codegen_stage(*air_group.source)?;
         let mut pipeline = source_translation.pipeline;
         let id_doc = air_group
             .keys
             .into_iter()
-            .map(|air::NameExprPair { name: k, expr: v }| Ok((k, self.codegen_air_expression(v)?)))
+            .map(|air::NameExprPair { name: k, expr: v }| Ok((k, self.codegen_expression(v)?)))
             .collect::<Result<bson::Document>>()?;
         let mut group_doc = doc! {"_id": id_doc};
         let aggs = air_group
@@ -195,16 +205,16 @@ impl MqlCodeGenerator {
                  }| {
                     Ok(if function == AggregationFunction::AddToArray {
                         if distinct {
-                            (alias, bson!({ "$addToSet": self.codegen_air_expression(*arg)? }))
+                            (alias, bson!({ "$addToSet": self.codegen_expression(*arg)? }))
                         }
                         else{
-                            (alias, bson!({ "$push": self.codegen_air_expression(*arg)? }))
+                            (alias, bson!({ "$push": self.codegen_expression(*arg)? }))
                         }
                     }
                     else if distinct || function == AggregationFunction::Count {
-                        (alias, bson!({ Self::agg_func_to_sql_op(function): {"var": self.codegen_air_expression(*arg)?, "distinct": distinct }}))
+                        (alias, bson!({ Self::agg_func_to_sql_op(function): {"var": self.codegen_expression(*arg)?, "distinct": distinct }}))
                     } else {
-                        (alias, bson!({ Self::agg_func_to_mql_op(function): self.codegen_air_expression(*arg)? }))
+                        (alias, bson!({ Self::agg_func_to_mql_op(function): self.codegen_expression(*arg)? }))
                     })
                 },
             )
@@ -219,7 +229,7 @@ impl MqlCodeGenerator {
     }
 
     fn codegen_unwind(&self, air_unwind: air::Unwind) -> Result<MqlTranslation> {
-        let source_translation = self.codegen_air_stage(*air_unwind.source)?;
+        let source_translation = self.codegen_stage(*air_unwind.source)?;
         let mut pipeline = source_translation.pipeline;
         let mut include_array_index = air_unwind.index;
         // If the `path` field_ref has a parent, we need to crawl up the parent chain
@@ -240,7 +250,7 @@ impl MqlCodeGenerator {
                 }
             }
         }
-        let path = self.codegen_air_expression(*air_unwind.path)?;
+        let path = self.codegen_expression(*air_unwind.path)?;
         let preserve_null_and_empty_arrays = air_unwind.outer;
 
         let unwind_body = match (
@@ -267,7 +277,7 @@ impl MqlCodeGenerator {
     }
 
     fn codegen_skip(&self, air_skip: air::Skip) -> Result<MqlTranslation> {
-        let source_translation = self.codegen_air_stage(*air_skip.source)?;
+        let source_translation = self.codegen_stage(*air_skip.source)?;
         let mut pipeline = source_translation.pipeline;
         pipeline.push(doc! {"$skip": Bson::Int64(air_skip.skip)});
         Ok(MqlTranslation {
@@ -278,7 +288,7 @@ impl MqlCodeGenerator {
     }
 
     fn codegen_limit(&self, air_limit: air::Limit) -> Result<MqlTranslation> {
-        let source_translation = self.codegen_air_stage(*air_limit.source)?;
+        let source_translation = self.codegen_stage(*air_limit.source)?;
         let mut pipeline = source_translation.pipeline;
         pipeline.push(doc! {"$limit": Bson::Int64(air_limit.limit)});
         Ok(MqlTranslation {
@@ -289,8 +299,8 @@ impl MqlCodeGenerator {
     }
 
     fn codegen_join(&self, air_join: air::Join) -> Result<MqlTranslation> {
-        let mut left_translation = self.codegen_air_stage(*air_join.left)?;
-        let right_translation = self.codegen_air_stage(*air_join.right)?;
+        let mut left_translation = self.codegen_stage(*air_join.left)?;
+        let right_translation = self.codegen_stage(*air_join.right)?;
         let join_type = match air_join.join_type {
             air::JoinType::Inner => "inner",
             air::JoinType::Left => "left",
@@ -315,19 +325,14 @@ impl MqlCodeGenerator {
                     .let_vars
                     .unwrap()
                     .iter()
-                    .map(|v| {
-                        Ok((
-                            v.name.clone(),
-                            self.codegen_air_expression(*v.expr.clone())?,
-                        ))
-                    })
+                    .map(|v| Ok((v.name.clone(), self.codegen_expression(*v.expr.clone())?)))
                     .collect::<Result<bson::Document>>()?,
             );
         }
 
         join_doc.insert("pipeline", right_translation.pipeline);
         if air_join.condition.is_some() {
-            let cond = self.codegen_air_expression(air_join.condition.unwrap())?;
+            let cond = self.codegen_expression(air_join.condition.unwrap())?;
             join_doc.insert("condition", doc! {"$match": {"$expr": cond}});
         }
 

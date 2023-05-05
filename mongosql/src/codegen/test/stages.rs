@@ -1,4 +1,4 @@
-macro_rules! test_codegen_air_stage {
+macro_rules! test_codegen_stage {
     (
 		$func_name:ident,
 		expected = Ok({
@@ -10,7 +10,7 @@ macro_rules! test_codegen_air_stage {
 	) => {
         #[test]
         fn $func_name() {
-            use crate::codegen::{air_to_mql::MqlTranslation, generate_mql_from_air};
+            use crate::codegen::{generate_mql, MqlTranslation};
 
             let input = $input;
             let expected_db = $expected_db;
@@ -21,7 +21,7 @@ macro_rules! test_codegen_air_stage {
                 database: db,
                 collection: col,
                 pipeline: pipeline,
-            } = generate_mql_from_air(input).expect("codegen failed");
+            } = generate_mql(input).expect("codegen failed");
 
             assert_eq!(expected_db, db);
             assert_eq!(expected_collection, col);
@@ -32,12 +32,12 @@ macro_rules! test_codegen_air_stage {
     ($func_name:ident, expected = Err($expected_err:expr), input = $input:expr,) => {
         #[test]
         fn $func_name() {
-            use crate::codegen::generate_mql_from_air;
+            use crate::codegen::generate_mql;
 
             let input = $input;
             let expected = Err($expected_err);
 
-            assert_eq!(expected, generate_mql_from_air(input));
+            assert_eq!(expected, generate_mql(input));
         }
     };
 }
@@ -46,7 +46,7 @@ mod union_with {
     use crate::air::*;
     use bson::doc;
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         collection_union_with_collection,
         expected = Ok({
             database: Some("foo".to_string()),
@@ -65,7 +65,7 @@ mod union_with {
             }).into(),
         }),
     );
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         array_union_with_array,
         expected = Ok({
             database: None,
@@ -85,7 +85,7 @@ mod union_with {
             }).into(),
         }),
     );
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         array_union_with_collection,
         expected = Ok({
             database: None,
@@ -104,7 +104,7 @@ mod union_with {
             }).into(),
         }),
     );
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         collection_union_with_array,
         expected = Ok({
             database: Some("foo".to_string()),
@@ -124,7 +124,7 @@ mod union_with {
             }).into(),
         }),
     );
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         collection_union_with_nested_union_with,
         expected = Ok({
             database: Some("foo".to_string()),
@@ -162,7 +162,7 @@ mod sort {
     };
     use bson::bson;
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         empty,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -182,7 +182,7 @@ mod sort {
         }),
     );
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         single_spec,
         expected = Ok({
             database: None,
@@ -203,7 +203,7 @@ mod sort {
         }),
     );
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         multi_spec,
         expected = Ok({
             database: None,
@@ -231,7 +231,7 @@ mod match_stage {
 
     use bson::doc;
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         simple,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -258,7 +258,7 @@ mod match_stage {
 mod collection {
     use crate::air::*;
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         simple,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -276,8 +276,8 @@ mod project {
     use crate::{air::*, unchecked_unique_linked_hash_map};
     use bson::doc;
 
-    test_codegen_air_stage!(
-        simple,
+    test_codegen_stage!(
+        assignments,
         expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
@@ -291,13 +291,34 @@ mod project {
                 }),
             ),
             specifications: unchecked_unique_linked_hash_map! {
-                "foo".to_string() => Expression::FieldRef("col".to_string().into()),
-                "bar".to_string() => Expression::Literal(LiteralValue::Integer(19)),
+                "foo".to_string() => ProjectItem::Assignment(Expression::FieldRef("col".to_string().into())),
+                "bar".to_string() => ProjectItem::Assignment(Expression::Literal(LiteralValue::Integer(19))),
             },
         }),
     );
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
+        inclusion_and_exclusion,
+        expected = Ok({
+            database: Some("mydb".to_string()),
+            collection: Some("col".to_string()),
+            pipeline: vec![doc!{"$project": {"_id": 0, "include": 1, "exclude": 0}}],
+        }),
+        input = Stage::Project(Project {
+            source: Box::new(
+                Stage::Collection( Collection {
+                    db: "mydb".to_string(),
+                    collection: "col".to_string(),
+                }),
+            ),
+            specifications: unchecked_unique_linked_hash_map! {
+                "include".to_string() => ProjectItem::Inclusion,
+                "exclude".to_string() => ProjectItem::Exclusion,
+            },
+        }),
+    );
+
+    test_codegen_stage!(
         project_of_id_overwritten,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -312,8 +333,8 @@ mod project {
                 }),
             ),
             specifications: unchecked_unique_linked_hash_map! {
-                "_id".to_string() => Expression::FieldRef("col".to_string().into()),
-                "bar".to_string() => Expression::Literal(LiteralValue::Integer(19)),
+                "_id".to_string() => ProjectItem::Assignment(Expression::FieldRef("col".to_string().into())),
+                "bar".to_string() => ProjectItem::Assignment(Expression::Literal(LiteralValue::Integer(19))),
             },
         }),
     );
@@ -323,7 +344,7 @@ mod group {
     use crate::air::*;
     use bson::doc;
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         simple,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -381,7 +402,7 @@ mod group {
         }),
     );
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         distinct_ops_are_sql_ops,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -416,7 +437,7 @@ mod group {
         }),
     );
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         count_is_always_a_sql_op,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -456,7 +477,7 @@ mod unwind {
     use crate::{air::*, unchecked_unique_linked_hash_map};
     use bson::doc;
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         unwind_with_only_path,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -476,7 +497,7 @@ mod unwind {
         }),
     );
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         unwind_with_index_string,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -496,7 +517,7 @@ mod unwind {
         }),
     );
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         unwind_with_preserve_null_and_empty_arrays,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -515,7 +536,7 @@ mod unwind {
             outer: true
         }),
     );
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         unwind_with_all_args,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -534,7 +555,7 @@ mod unwind {
             outer: true
         }),
     );
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         unwind_proper_field_paths,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -551,7 +572,7 @@ mod unwind {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => Expression::FieldRef("col".to_string().into())
+                    "foo".to_string() => ProjectItem::Assignment(Expression::FieldRef("col".to_string().into())),
                 },
             })),
             path: Expression::FieldRef("foo.a.b".to_string().into()).into(),
@@ -564,7 +585,7 @@ mod unwind {
 mod documents {
     use crate::air::*;
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         empty,
         expected = Ok({
             database: None,
@@ -577,7 +598,7 @@ mod documents {
             array: vec![],
         }),
     );
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         non_empty,
         expected = Ok({
             database: None,
@@ -595,7 +616,7 @@ mod documents {
 mod replace_with {
     use crate::{air::*, unchecked_unique_linked_hash_map};
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         simple,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -614,7 +635,7 @@ mod replace_with {
             new_root: Box::new(Expression::Literal(LiteralValue::String("$name".to_string()))),
         }),
     );
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         document,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -673,7 +694,7 @@ mod lookup {
         };
     }
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         with_no_from,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -695,7 +716,7 @@ mod lookup {
         }),
     );
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         with_from_same_database,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -707,7 +728,7 @@ mod lookup {
         input = test_input!(None),
     );
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         with_from_clause_different_database,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -730,7 +751,7 @@ mod lookup {
         }),
     );
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         with_single_let_var,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -749,7 +770,7 @@ mod lookup {
         ),
     );
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         with_multiple_let_vars,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -779,7 +800,7 @@ mod skip {
     use crate::air::*;
     use bson::Bson;
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         skip,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -802,7 +823,7 @@ mod limit {
     use crate::air::*;
     use bson::Bson;
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         limit,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -824,7 +845,7 @@ mod limit {
 mod join {
     use crate::{air::*, unchecked_unique_linked_hash_map};
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         simple_inner_join,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -840,7 +861,7 @@ mod join {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => Expression::Variable("ROOT".to_string().into())
+                    "col".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into())),
                 )
             })),
             right: Box::new(Stage::Project(Project {
@@ -849,7 +870,7 @@ mod join {
                     collection: "col2".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col2".to_string() =>Expression::Variable("ROOT".to_string().into())
+                    "col2".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into())),
                 )
             })),
             let_vars: None,
@@ -857,7 +878,7 @@ mod join {
         }),
     );
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         left_join_different_databases,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -873,7 +894,7 @@ mod join {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => Expression::Variable("ROOT".to_string().into())
+                    "col".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into())),
                 )
             })),
             right: Box::new(Stage::Project(Project {
@@ -882,7 +903,7 @@ mod join {
                     collection: "col2".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col2".to_string() => Expression::Variable("ROOT".to_string().into())
+                    "col2".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into())),
                 )
             })),
             let_vars: None,
@@ -890,7 +911,7 @@ mod join {
         }),
     );
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         left_join_different_databases_with_condition,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -913,7 +934,7 @@ mod join {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => Expression::Variable("ROOT".to_string().into())
+                    "col".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into())),
                 )
             })),
             right: Box::new(Stage::Project(Project {
@@ -922,7 +943,7 @@ mod join {
                     collection: "col2".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col2".to_string() => Expression::Variable("ROOT".to_string().into())
+                    "col2".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into())),
                 )
             })),
             let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef("col".to_string().into()))}]),
@@ -930,7 +951,7 @@ mod join {
         }),
     );
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         join_references_left_and_right,
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -959,7 +980,7 @@ mod join {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => Expression::Variable("ROOT".to_string().into())
+                    "col".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into()))
                 )
             })),
             right: Box::new(Stage::Project(Project {
@@ -968,7 +989,7 @@ mod join {
                     collection: "col2".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col2".to_string() => Expression::Variable("ROOT".to_string().into())
+                    "col2".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into()))
                 )
             })),
             let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef("col".to_string().into()))}]),
@@ -976,7 +997,7 @@ mod join {
         }),
     );
 
-    test_codegen_air_stage!(
+    test_codegen_stage!(
         join_with_array, // array sources require no collection or database in the $join
         expected = Ok({
             database: Some("mydb".to_string()),
@@ -998,7 +1019,7 @@ mod join {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => Expression::Variable("ROOT".to_string().into())
+                    "col".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into()))
                 )
             })),
             right: Box::new(Stage::Project(Project {
@@ -1006,7 +1027,7 @@ mod join {
                     array: vec![Expression::Literal(LiteralValue::Integer(1)), Expression::Literal(LiteralValue::Integer(1))]
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "arr".to_string() => Expression::Variable("ROOT".to_string().into())
+                    "arr".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into()))
                 )
             })),
             let_vars: None,

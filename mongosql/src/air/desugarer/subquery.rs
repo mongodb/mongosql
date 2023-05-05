@@ -4,7 +4,7 @@ use crate::air::{
     Expression,
     Expression::*,
     Let, LetVariable, Limit, LiteralValue, Lookup, MQLOperator, MQLSemanticOperator, Project,
-    Reduce, SQLOperator, SQLSemanticOperator, Stage,
+    ProjectItem, Reduce, SQLOperator, SQLSemanticOperator, Stage,
     Stage::*,
     Subquery, SubqueryComparison, SubqueryComparisonOp, SubqueryExists, SubqueryModifier,
 };
@@ -295,17 +295,17 @@ impl Visitor for SubqueryExprDesugarerPassVisitor {
                 .as_names
                 .clone()
                 .into_iter()
-                .map(|name| (name, Variable("REMOVE".to_string().into())))
-                .collect::<LinkedHashMap<String, Expression>>();
+                .map(|name| (name, ProjectItem::Exclusion))
+                .collect::<LinkedHashMap<String, ProjectItem>>();
 
             // If this stage is a Group, we must ensure we do not exclude _id.
-            let id_expr = if matches!(stage, Stage::Group(_)) {
-                FieldRef("_id".to_string().into())
+            let id_project_item = if matches!(stage, Stage::Group(_)) {
+                ProjectItem::Inclusion
             } else {
-                Variable("REMOVE".to_string().into())
+                ProjectItem::Exclusion
             };
 
-            specs.insert("_id".to_string(), id_expr);
+            specs.insert("_id".to_string(), id_project_item);
 
             Stage::Project(Project {
                 source: Box::new(stage),

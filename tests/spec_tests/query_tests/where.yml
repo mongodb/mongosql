@@ -47,7 +47,6 @@ tests:
 
   - description: WHERE with CASE that must return BOOLEAN
     query: "SELECT * FROM [{'a': false}, {'a': true}] AS arr WHERE CASE WHEN a IS BOOLEAN THEN a ELSE false END"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     current_db: test
     result:
       - {'arr': {'a': true}}

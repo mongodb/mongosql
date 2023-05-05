@@ -85,7 +85,7 @@ mod stage_test {
     mod project {
         use crate::{
             air::agg_ast::ast_definitions::{
-                Expression, LiteralValue, Stage, StringOrRef, UntaggedOperator,
+                Expression, LiteralValue, ProjectItem, Stage, StringOrRef, UntaggedOperator,
             },
             map,
         };
@@ -97,32 +97,58 @@ mod stage_test {
         );
 
         test_deserialize_stage!(
-            singleton,
-            expected = Stage::Project(
-                map! { "_id".to_string() => Expression::Literal(LiteralValue::Integer(0)) }
-            ),
+            singleton_exclusion,
+            expected = Stage::Project(map! { "_id".to_string() => ProjectItem::Exclusion }),
             input = r#"stage: {"$project": {"_id": 0}}"#
+        );
+
+        test_deserialize_stage!(
+            singleton_inclusion,
+            expected = Stage::Project(map! { "_id".to_string() => ProjectItem::Inclusion }),
+            input = r#"stage: {"$project": {"_id": 1}}"#
+        );
+
+        test_deserialize_stage!(
+            singleton_assignment,
+            expected = Stage::Project(
+                map! { "_id".to_string() => ProjectItem::Assignment(Expression::Literal(LiteralValue::Integer(42))) }
+            ),
+            input = r#"stage: {"$project": {"_id": 42}}"#
         );
 
         test_deserialize_stage!(
             multiple_elements,
             expected = Stage::Project(map! {
-                "_id".to_string() => Expression::Literal(LiteralValue::Integer(0)),
-                "foo".to_string() => Expression::StringOrRef(StringOrRef::Variable("ROOT".to_string())),
-                "bar".to_string() => Expression::StringOrRef(StringOrRef::FieldRef("bar".to_string())),
-                "a".to_string() => Expression::UntaggedOperator(UntaggedOperator {
+                "_id".to_string() => ProjectItem::Exclusion,
+                "foo".to_string() => ProjectItem::Assignment(Expression::StringOrRef(StringOrRef::Variable("ROOT".to_string()))),
+                "bar".to_string() => ProjectItem::Assignment(Expression::StringOrRef(StringOrRef::FieldRef("bar".to_string()))),
+                "a".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
                     op: "$add".to_string(),
                     args: vec![
                         Expression::Literal(LiteralValue::Integer(1)),
                         Expression::Literal(LiteralValue::Integer(2)),
                     ]
-                }),
+                })),
+                "x".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
+                    op: "$literal".to_string(),
+                    args: vec![
+                        Expression::Literal(LiteralValue::Integer(0)),
+                    ]
+                })),
+                "y".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
+                    op: "$literal".to_string(),
+                    args: vec![
+                        Expression::Literal(LiteralValue::Integer(1)),
+                    ]
+                })),
             }),
             input = r#"stage: {"$project": {
                                 "_id": 0,
                                 "foo": "$$ROOT",
                                 "bar": "$bar",
                                 "a": {"$add": [1, 2]},
+                                "x": { "$literal": 0 },
+                                "y": { "$literal": 1 },
             }}"#
         );
     }
@@ -267,8 +293,8 @@ mod stage_test {
     mod join {
         use crate::{
             air::agg_ast::ast_definitions::{
-                Expression, Join, JoinType, LiteralValue, MatchExpr, MatchExpression, Stage,
-                StringOrRef, UntaggedOperator,
+                Expression, Join, JoinType, LiteralValue, MatchExpr, MatchExpression, ProjectItem,
+                Stage, StringOrRef, UntaggedOperator,
             },
             map,
         };
@@ -341,8 +367,8 @@ mod stage_test {
                 }),
                 join_type: JoinType::Inner,
                 pipeline: vec![Stage::Project(map! {
-                    "_id".to_string() => Expression::Literal(LiteralValue::Integer(0)),
-                    "x".to_string() => Expression::Literal(LiteralValue::Integer(1)),
+                    "_id".to_string() => ProjectItem::Exclusion,
+                    "x".to_string() => ProjectItem::Inclusion,
                 })],
                 condition: Some(Stage::Match(MatchExpression::Expr(MatchExpr {
                     expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
@@ -426,7 +452,7 @@ mod stage_test {
         use crate::{
             air::agg_ast::ast_definitions::{
                 Expression, LiteralValue, Lookup, LookupFrom, MatchExpr, MatchExpression,
-                Namespace, Stage, StringOrRef, UntaggedOperator,
+                Namespace, ProjectItem, Stage, StringOrRef, UntaggedOperator,
             },
             map,
         };
@@ -532,8 +558,8 @@ mod stage_test {
                         }))
                     })),
                     Stage::Project(map! {
-                        "_id".to_string() => Expression::Literal(LiteralValue::Integer(0)),
-                        "a".to_string() => Expression::Literal(LiteralValue::Integer(1))
+                        "_id".to_string() => ProjectItem::Exclusion,
+                        "a".to_string() => ProjectItem::Inclusion,
                     })
                 ],
                 as_var: "__subquery_result_0".to_string()
@@ -790,8 +816,8 @@ mod expression_test {
     mod tagged_operators {
         use crate::{
             air::agg_ast::ast_definitions::{
-                Convert, Expression, GetField, Let, Like, LiteralValue, Reduce, SetField,
-                SqlConvert, SqlDivide, Stage, StringOrRef, Subquery, SubqueryComparison,
+                Convert, Expression, GetField, Let, Like, LiteralValue, ProjectItem, Reduce,
+                SetField, SqlConvert, SqlDivide, Stage, StringOrRef, Subquery, SubqueryComparison,
                 SubqueryExists, Switch, SwitchCase, TaggedOperator, UnsetField,
             },
             map,
@@ -989,7 +1015,7 @@ mod expression_test {
                 let_bindings: None,
                 output_path: Some(vec!["x".to_string()]),
                 pipeline: vec![Stage::Project(
-                    map! {"x".to_string() => Expression::Literal(LiteralValue::Integer(1))}
+                    map! {"x".to_string() => ProjectItem::Inclusion}
                 )]
             })),
             input = r#"expr: {"$subquery": {
@@ -1020,11 +1046,10 @@ mod expression_test {
                         output_path: Some(vec!["x".to_string()]),
                         pipeline: vec![
                             Stage::Documents(vec![]),
-                            Stage::Project(
-                                map! {"x".to_string() => Expression::Literal(LiteralValue::Integer(1))}
-                            )
+                            Stage::Project(map! {"x".to_string() => ProjectItem::Inclusion})
                         ]
-                    }.into()
+                    }
+                    .into()
                 }
             )),
             input = r#"expr: {"$subqueryComparison": {
@@ -1053,7 +1078,7 @@ mod expression_test {
                 collection: Some("bar".to_string()),
                 let_bindings: None,
                 pipeline: vec![Stage::Project(
-                    map! {"x".to_string() => Expression::Literal(LiteralValue::Integer(1))}
+                    map! {"x".to_string() => ProjectItem::Inclusion}
                 )]
             })),
             input = r#"expr: {"$subqueryExists": {
@@ -1071,7 +1096,9 @@ mod expression_test {
     }
 
     mod untagged_operators {
-        use crate::air::agg_ast::ast_definitions::{Expression, StringOrRef, UntaggedOperator};
+        use crate::air::agg_ast::ast_definitions::{
+            Expression, LiteralValue, StringOrRef, UntaggedOperator,
+        };
 
         test_deserialize_expr!(
             one_argument_non_array,
@@ -1106,6 +1133,15 @@ mod expression_test {
                 ]
             }),
             input = r#"expr: {"$add": ["$x", "$y", "$z"]}"#
+        );
+
+        test_deserialize_expr!(
+            literal,
+            expected = Expression::UntaggedOperator(UntaggedOperator {
+                op: "$literal".to_string(),
+                args: vec![Expression::Literal(LiteralValue::Integer(1))]
+            }),
+            input = r#"expr: {"$literal": 1}"#
         );
     }
 }

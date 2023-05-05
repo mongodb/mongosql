@@ -33,7 +33,7 @@ tests:
               ["$$ROOT", "$eca58228-b657-498a-b76e-f48a9161a404"],
           },
       }
-      - { "$project": { "_id": "$$REMOVE", "eca58228-b657-498a-b76e-f48a9161a404": "$$REMOVE" } }
+      - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "desugar left join"
     input:
@@ -61,7 +61,7 @@ tests:
               ["$$ROOT", "$eca58228-b657-498a-b76e-f48a9161a404"],
           },
       }
-      - { "$project": { "_id": "$$REMOVE", "eca58228-b657-498a-b76e-f48a9161a404": "$$REMOVE" } }
+      - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "desugar join with db specified"
     input:
@@ -97,7 +97,7 @@ tests:
               ["$$ROOT", "$eca58228-b657-498a-b76e-f48a9161a404"],
           },
       }
-      - { "$project": { "_id": "$$REMOVE", "eca58228-b657-498a-b76e-f48a9161a404": "$$REMOVE" } }
+      - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "desugar join with no collection and non-empty pipeline"
     input:
@@ -132,7 +132,7 @@ tests:
               ["$$ROOT", "$eca58228-b657-498a-b76e-f48a9161a404"],
           },
       }
-      - { "$project": { "_id": "$$REMOVE", "eca58228-b657-498a-b76e-f48a9161a404": "$$REMOVE" } }
+      - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "desugar join non-empty let and match"
     input:
@@ -175,7 +175,7 @@ tests:
               ["$$ROOT", "$eca58228-b657-498a-b76e-f48a9161a404"],
           },
       }
-      - { "$project": { "_id": "$$REMOVE", "eca58228-b657-498a-b76e-f48a9161a404": "$$REMOVE" } }
+      - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "desugar when join is not first in pipeline"
     input:
@@ -220,7 +220,7 @@ tests:
               ["$$ROOT", "$eca58228-b657-498a-b76e-f48a9161a404"],
           },
       }
-      - { "$project": { "_id": "$$REMOVE", "eca58228-b657-498a-b76e-f48a9161a404": "$$REMOVE" } }
+      - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "desugar multiple joins"
     input:
@@ -276,7 +276,7 @@ tests:
               ["$$ROOT", "$eca58228-b657-498a-b76e-f48a9161a404"],
           },
       }
-      - { "$project": { "_id": "$$REMOVE", "eca58228-b657-498a-b76e-f48a9161a404": "$$REMOVE" } }
+      - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
       - {
         "$lookup":
           {
@@ -304,7 +304,7 @@ tests:
               ["$$ROOT", "$eca58228-b657-498a-b76e-f48a9161a404"],
           },
       }
-      - { "$project": { "_id": "$$REMOVE", "eca58228-b657-498a-b76e-f48a9161a404": "$$REMOVE" } }
+      - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "nested join"
     input:
@@ -377,8 +377,8 @@ tests:
                           {
                             "$project":
                               {
-                                "_id": "$$REMOVE",
-                                "eca58228-b657-498a-b76e-f48a9161a404": "$$REMOVE",
+                                "_id": 0,
+                                "eca58228-b657-498a-b76e-f48a9161a404": 0,
                               },
                           },
                         ],
@@ -401,7 +401,7 @@ tests:
                 },
                 {
                   "$project":
-                    { "_id": "$$REMOVE", "eca58228-b657-498a-b76e-f48a9161a404": "$$REMOVE" },
+                    { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 },
                 },
               ],
             "as": "eca58228-b657-498a-b76e-f48a9161a404",
@@ -421,4 +421,4 @@ tests:
               ["$$ROOT", "$eca58228-b657-498a-b76e-f48a9161a404"],
           },
       }
-      - { "$project": { "_id": "$$REMOVE", "eca58228-b657-498a-b76e-f48a9161a404": "$$REMOVE" } }
+      - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }

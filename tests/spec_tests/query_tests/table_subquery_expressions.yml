@@ -54,7 +54,6 @@ tests:
   - description: correctness test for eq ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v = ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'bar': {'_id': 2, 'v': 2}}
       - {'bar': {'_id': 3, 'v': 3}}
@@ -69,7 +68,6 @@ tests:
   - description: correctness test for neq ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <> ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
       - {'bar': {'_id': 2, 'v': 2}}
@@ -88,7 +86,6 @@ tests:
   - description: correctness test for lt ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v < ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
       - {'bar': {'_id': 2, 'v': 2}}
@@ -103,7 +100,6 @@ tests:
   - description: correctness test for lte ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <= ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
       - {'bar': {'_id': 2, 'v': 2}}
@@ -120,7 +116,6 @@ tests:
   - description: correctness test for gt ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v > ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'bar': {'_id': 3, 'v': 3}}
       - {'bar': {'_id': 4, 'v': 4}}
@@ -135,7 +130,6 @@ tests:
   - description: correctness test for gte ANY Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v >= ANY(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'bar': {'_id': 2, 'v': 2}}
       - {'bar': {'_id': 3, 'v': 3}}
@@ -152,7 +146,6 @@ tests:
   - description: correctness test for eq ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v = ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result: []
 
   - description: correctness test for eq ALL Operator with NULL in subquery result
@@ -185,7 +178,6 @@ tests:
   - description: correctness test for neq ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <> ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
       - {'bar': {'_id': 4, 'v': 4}}
@@ -198,7 +190,6 @@ tests:
   - description: correctness test for lt ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v < ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
 
@@ -210,7 +201,6 @@ tests:
   - description: correctness test for lte ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v <= ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'bar': {'_id': 1, 'v': 1}}
       - {'bar': {'_id': 2, 'v': 2}}
@@ -223,7 +213,6 @@ tests:
   - description: correctness test for gt ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v > ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'bar': {'_id': 4, 'v': 4}}
 
@@ -235,7 +224,6 @@ tests:
   - description: correctness test for gte ALL Operator without NULL in subquery result
     current_db: foo
     query: "SELECT * FROM bar AS bar WHERE v >= ALL(SELECT a FROM target AS target WHERE NOT(a IS NULL))"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'bar': {'_id': 3, 'v': 3}}
       - {'bar': {'_id': 4, 'v': 4}}
@@ -260,7 +248,6 @@ tests:
   - description: ALL subquery comparison in SELECT clause
     current_db: foo
     query: "SELECT VALUE {'v': v, 'x': bar.v = ALL (SELECT a FROM target AS target WHERE NOT(a IS NULL))} FROM bar AS bar"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'': {'v': 1, 'x': false}}
       - {'': {'v': 2, 'x': false}}

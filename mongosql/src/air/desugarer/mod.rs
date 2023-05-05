@@ -12,21 +12,17 @@ use crate::air::desugarer::sql_null_semantics_operators::SQLNullSemanticsOperato
 mod subquery;
 use crate::air::desugarer::subquery::SubqueryExprDesugarerPass;
 mod unsupported_operators;
+use crate::air::desugarer::unsupported_operators::UnsupportedOperatorsDesugarerPass;
 
 #[cfg(test)]
 mod test;
 mod util;
-
-use crate::air::desugarer::unsupported_operators::UnsupportedOperatorsDesugarerPass;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// Errors that can occur during desugarer passes
 #[derive(Clone, Debug, Error, PartialEq, Eq)]
 pub enum Error {
-    #[allow(dead_code)]
-    #[error("TODO replace error when passes are implemented")]
-    Todo,
     #[error("pattern for $like must be literal")]
     InvalidLikePattern,
 }
@@ -37,13 +33,15 @@ pub trait Pass {
 }
 
 /// Desugar the provided pipeline by applying desugarer passes.
-#[allow(dead_code)]
 pub fn desugar_pipeline(pipeline: air::Stage) -> Result<air::Stage> {
+    // The order of these passes matters. Specifically, SQL null semantic
+    // operators must be desugared last since other passes may create SQL
+    // null semantic operators.
     let passes: Vec<&dyn Pass> = vec![
         &JoinDesugarerPass,
         &AccumulatorsDesugarerPass,
-        &SubqueryExprDesugarerPass,
         &MatchDesugarerPass,
+        &SubqueryExprDesugarerPass,
         &UnsupportedOperatorsDesugarerPass,
         &SQLNullSemanticsOperatorsDesugarerPass,
     ];

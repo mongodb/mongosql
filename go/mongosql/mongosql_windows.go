@@ -55,7 +55,7 @@ func stringToUnsafePointer(s string) unsafe.Pointer {
 
 // version returns the version of the underlying c translation
 // library. The consumer of this library should ensure that the
-// version of the the go library matches that of the c library.
+// version of the go library matches that of the c library.
 func version() string {
 	ret1, _, _ := versionProc.Call()
 	goRetVal := uintptrToString(ret1)

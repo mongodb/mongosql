@@ -1,7 +1,6 @@
 use crate::air;
 use itertools::Itertools;
 use linked_hash_map::LinkedHashMap;
-use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
 use serde::{
     de::{Error as serde_err, MapAccess, Visitor},
     Deserialize, Deserializer,
@@ -24,7 +23,7 @@ pub(crate) enum Stage {
     #[serde(rename = "$documents")]
     Documents(Vec<HashMap<String, Expression>>),
     #[serde(rename = "$project")]
-    Project(HashMap<String, Expression>),
+    Project(HashMap<String, ProjectItem>),
     #[serde(rename = "$replaceWith")]
     ReplaceWith(Expression),
     #[serde(rename = "$match")]
@@ -49,6 +48,14 @@ pub(crate) enum Stage {
 pub(crate) struct Collection {
     pub(crate) db: String,
     pub(crate) collection: String,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(from = "Expression")]
+pub(crate) enum ProjectItem {
+    Exclusion,
+    Inclusion,
+    Assignment(Expression),
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -514,6 +521,16 @@ fn translate_pipeline(root: Option<air::Stage>, pipeline: Vec<Stage>) -> Option<
         .fold(root, |acc, curr| Some((acc, curr).into()))
 }
 
+impl From<Expression> for ProjectItem {
+    fn from(e: Expression) -> Self {
+        match e {
+            Expression::Literal(LiteralValue::Integer(0)) => ProjectItem::Exclusion,
+            Expression::Literal(LiteralValue::Integer(1)) => ProjectItem::Inclusion,
+            _ => ProjectItem::Assignment(e),
+        }
+    }
+}
+
 impl From<(Option<air::Stage>, Stage)> for air::Stage {
     fn from((source, ast_stage): (Option<air::Stage>, Stage)) -> Self {
         match ast_stage {
@@ -530,11 +547,16 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                 air::Stage::Documents(air::Documents { array })
             }
             Stage::Project(p) => {
-                let specs = to_unique_linked_hash_map_of_air_exprs(p);
+                let specs: LinkedHashMap<String, air::ProjectItem> = p
+                    .into_iter()
+                    // sort alphabetically for testing purposes
+                    .sorted_by(|a, b| Ord::cmp(&a.0, &b.0))
+                    .map(|(k, v)| (k, air::ProjectItem::from(v)))
+                    .collect::<_>();
 
                 air::Stage::Project(air::Project {
                     source: Box::new(source.expect("$project without valid source stage")),
-                    specifications: specs,
+                    specifications: specs.into(),
                 })
             }
             Stage::ReplaceWith(r) => air::Stage::ReplaceWith(air::ReplaceWith {
@@ -718,18 +740,14 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
     }
 }
 
-fn to_unique_linked_hash_map_of_air_exprs(
-    hm: HashMap<String, Expression>,
-) -> UniqueLinkedHashMap<String, air::Expression> {
-    let lhm: LinkedHashMap<String, air::Expression> = hm
-        .into_iter()
-        // sort alphabetically for testing purposes
-        .sorted_by(|a, b| Ord::cmp(&a.0, &b.0))
-        .map(|(k, v)| (k, air::Expression::from(v)))
-        .collect::<_>();
-
-    // We do not worry about DuplicateKeyErrors in this controlled test environment.
-    UniqueLinkedHashMap::from(lhm)
+impl From<ProjectItem> for air::ProjectItem {
+    fn from(ast_project_item: ProjectItem) -> Self {
+        match ast_project_item {
+            ProjectItem::Exclusion => air::ProjectItem::Exclusion,
+            ProjectItem::Inclusion => air::ProjectItem::Inclusion,
+            ProjectItem::Assignment(ast_expr) => air::ProjectItem::Assignment(ast_expr.into()),
+        }
+    }
 }
 
 impl From<Expression> for air::Expression {
@@ -747,9 +765,14 @@ impl From<Expression> for air::Expression {
                 air::Expression::Array(a.into_iter().map(air::Expression::from).collect::<Vec<_>>())
             }
             Expression::Document(m) => {
-                let ulhm = to_unique_linked_hash_map_of_air_exprs(m);
+                let lhm: LinkedHashMap<String, air::Expression> = m
+                    .into_iter()
+                    // sort alphabetically for testing purposes
+                    .sorted_by(|a, b| Ord::cmp(&a.0, &b.0))
+                    .map(|(k, v)| (k, air::Expression::from(v)))
+                    .collect::<_>();
 
-                air::Expression::Document(ulhm)
+                air::Expression::Document(lhm.into())
             }
         }
     }

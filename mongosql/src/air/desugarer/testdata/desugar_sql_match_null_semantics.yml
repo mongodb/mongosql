@@ -12,13 +12,14 @@ tests:
       - {
         "$match":
           {
-            "$and":
-              [
-                { "a": { "$exists": true } },
-                { "a": { "$not": { "$type": "null" } } },
-                { "b": { "$exists": true } },
-                { "b": { "$not": { "$type": "null" } } },
-              ],
+            "$expr":
+              {
+                "$and":
+                  [
+                    { "$gt": ["$a", null] },
+                    { "$gt": ["$b", null] },
+                  ]
+              }
           },
       }
       - { "$match": { "$expr": { "$eq": ["$a", "$b"] } } }
@@ -30,13 +31,14 @@ tests:
       - {
         "$match":
           {
-            "$and":
-              [
-                { "a.b": { "$exists": true } },
-                { "a.b": { "$not": { "$type": "null" } } },
-                { "b.a": { "$exists": true } },
-                { "b.a": { "$not": { "$type": "null" } } },
-              ],
+            "$expr":
+              {
+                "$and":
+                  [
+                    { "$gt": ["$a.b", null] },
+                    { "$gt": ["$b.a", null] },
+                  ]
+              }
           },
       }
       - { "$match": { "$expr": { "$eq": ["$a.b", "$b.a"] } } }
@@ -45,16 +47,7 @@ tests:
     input:
       - { "$match": { "$expr": { "$sqlEq": ["$a", 10] } } }
     expected:
-      - {
-        "$match":
-          {
-            "$and":
-              [
-                { "a": { "$exists": true } },
-                { "a": { "$not": { "$type": "null" } } },
-              ],
-          },
-      }
+      - { "$match": { "$gt": ["$a", null] } }
       - { "$match": { "$expr": { "$eq": ["$a", 10] } } }
 
   - name: "nested $sql null semantic operators"
@@ -70,13 +63,14 @@ tests:
       - {
         "$match":
           {
-            "$and":
-              [
-                { "a": { "$exists": true } },
-                { "a": { "$not": { "$type": "null" } } },
-                { "b": { "$exists": true } },
-                { "b": { "$not": { "$type": "null" } } },
-              ],
+            "$expr":
+              {
+                "$and":
+                  [
+                    { "$gt": ["$a", null] },
+                    { "$gt": ["$b", null] },
+                  ]
+              }
           },
       }
       - {
@@ -97,16 +91,7 @@ tests:
           },
       }
     expected:
-      - {
-        "$match":
-          {
-            "$and":
-              [
-                { "a": { "$exists": true } },
-                { "a": { "$not": { "$type": "null" } } },
-              ],
-          },
-      }
+      - { "$match": { "$gt": ["$a", null] } }
       - {
         "$match":
           {
@@ -128,13 +113,14 @@ tests:
       - {
         "$match":
           {
-            "$and":
-              [
-                { "a.a": { "$exists": true } },
-                { "a.a": { "$not": { "$type": "null" } } },
-                { "b.a": { "$exists": true } },
-                { "b.a": { "$not": { "$type": "null" } } },
-              ],
+            "$expr":
+              {
+                "$and":
+                  [
+                    { "$gt": ["$a.a", null] },
+                    { "$gt": ["$b.a", null] },
+                  ]
+              }
           },
       }
       - { "$match": { "$expr": { "$eq": ["$a.a", "$b.a"] } } }

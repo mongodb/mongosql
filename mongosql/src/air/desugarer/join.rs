@@ -2,10 +2,9 @@ use crate::{
     air::{
         desugarer::{Pass, Result},
         visitor::Visitor,
-        Expression,
         Expression::*,
-        Join, JoinType, Lookup, MQLOperator, MQLSemanticOperator, Match, Project, ReplaceWith,
-        Stage,
+        Join, JoinType, Lookup, MQLOperator, MQLSemanticOperator, Match, Project, ProjectItem,
+        ReplaceWith, Stage,
         Stage::*,
         Unwind,
     },
@@ -105,11 +104,9 @@ impl JoinDesugarerPassVisitor {
             })),
         });
 
-        let remove_var = Variable("REMOVE".to_string().into());
-
-        let specs: LinkedHashMap<String, Expression> = map! {
-            "_id".to_string() => remove_var.clone(),
-            as_var_name => remove_var,
+        let specs: LinkedHashMap<String, ProjectItem> = map! {
+            "_id".to_string() => ProjectItem::Exclusion,
+            as_var_name => ProjectItem::Exclusion,
         };
 
         Project(Project {

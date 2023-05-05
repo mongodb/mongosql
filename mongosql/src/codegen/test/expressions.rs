@@ -1,13 +1,13 @@
-macro_rules! test_codegen_air_expr {
+macro_rules! test_codegen_expression {
     ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
         #[test]
         fn $func_name() {
-            use crate::codegen::air_to_mql::MqlCodeGenerator;
+            use crate::codegen::MqlCodeGenerator;
             let expected = $expected;
             let input = $input;
 
             let gen = MqlCodeGenerator {};
-            assert_eq!(expected, gen.codegen_air_expression(input));
+            assert_eq!(expected, gen.codegen_expression(input));
         }
     };
 }
@@ -19,7 +19,7 @@ mod date_function {
     };
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         dateadd,
         expected = Ok(
             bson!({"$dateAdd": {"startDate": "$$NOW", "unit": {"$literal": "year"}, "amount": {"$literal": 5}}})
@@ -37,7 +37,7 @@ mod date_function {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         datediff,
         expected = Ok(
             bson!({"$dateDiff": {"startDate": "$$NOW", "endDate": "$$NOW", "unit": {"$literal": "year"}, "startOfWeek": {"$literal": "sunday"}}})
@@ -59,7 +59,7 @@ mod date_function {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         datetrunc,
         expected = Ok(
             bson!({"$dateTrunc": {"date": "$$NOW", "unit": {"$literal": "year"}, "startOfWeek": {"$literal": "sunday"}}})
@@ -84,7 +84,7 @@ mod switch {
     };
     use bson::{bson, doc};
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         one_case,
         expected = Ok(bson!({"$switch":
             {
@@ -107,7 +107,7 @@ mod switch {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         multiple_cases,
         expected = Ok(bson!({"$switch":
             {
@@ -159,37 +159,37 @@ mod literal {
     use crate::air::{Expression::*, LiteralValue::*};
     use bson::{bson, Bson};
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         null,
         expected = Ok(bson!({ "$literal": Bson::Null })),
         input = Literal(Null)
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         boolean,
         expected = Ok(bson!({ "$literal": Bson::Boolean(true)})),
         input = Literal(Boolean(true))
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         string,
         expected = Ok(bson!({ "$literal": Bson::String("foo".to_string())})),
         input = Literal(String("foo".to_string()))
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         int,
         expected = Ok(bson!({ "$literal": 1_i32})),
         input = Literal(Integer(1))
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         long,
         expected = Ok(bson!({ "$literal": 2_i64})),
         input = Literal(Long(2))
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         double,
         expected = Ok(bson!({ "$literal": 3.0})),
         input = Literal(Double(3.0))
@@ -201,7 +201,7 @@ mod trim {
     use crate::air::{Expression::*, LiteralValue::*, Trim, TrimOperator};
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         trim,
         expected =
             Ok(bson!({ "$trim": { "input": {"$literal": "foo"}, "chars": {"$literal": null }}})),
@@ -212,7 +212,7 @@ mod trim {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         ltrim,
         expected =
             Ok(bson!({ "$ltrim": {"input": { "$literal": "foo"}, "chars": {"$literal": null }}})),
@@ -223,7 +223,7 @@ mod trim {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         rtrim,
         expected =
             Ok(bson!({ "$rtrim": {"input": { "$literal": "foo"}, "chars": {"$literal": null }}})),
@@ -239,7 +239,7 @@ mod mql_semantic_operator {
     use crate::air::{Expression::*, LiteralValue::*, MQLOperator::*, MQLSemanticOperator};
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         concat,
         expected = Ok(bson!({ "$concat": [{ "$literal": "foo"}, { "$literal": "bar"}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -251,7 +251,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         add,
         expected = Ok(bson!({ "$add": [{ "$literal": 1}, { "$literal": 2}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -260,7 +260,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         subtract,
         expected = Ok(bson!({ "$subtract": [{ "$literal": 1}, { "$literal": 2}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -269,7 +269,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         multiply,
         expected = Ok(bson!({ "$multiply": [{ "$literal": 1}, { "$literal": 2}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -278,7 +278,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         divide,
         expected = Ok(bson!({ "$divide": [{ "$literal": 1}, { "$literal": 2}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -287,7 +287,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         lt,
         expected = Ok(bson!({ "$lt": [{ "$literal": 1}, { "$literal": 2}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -296,7 +296,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         lte,
         expected = Ok(bson!({ "$lte": [{ "$literal": 1}, { "$literal": 2}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -305,7 +305,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         ne,
         expected = Ok(bson!({ "$ne": [{ "$literal": 1}, { "$literal": 2}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -314,7 +314,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         eq,
         expected = Ok(bson!({ "$eq": [{ "$literal": 1}, { "$literal": 2}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -323,7 +323,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         gt,
         expected = Ok(bson!({ "$gt": [{ "$literal": 1}, { "$literal": 2}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -332,7 +332,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         gte,
         expected = Ok(bson!({ "$gte": [{ "$literal": 1}, { "$literal": 2}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -341,7 +341,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         not,
         expected = Ok(bson!({ "$not": [{ "$literal": false}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -350,7 +350,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         and,
         expected = Ok(bson!({ "$and": [{ "$literal": true}, { "$literal": false}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -359,7 +359,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         or,
         expected = Ok(bson!({ "$or": [{ "$literal": true}, { "$literal": false}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -368,7 +368,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         slice,
         expected = Ok(
             bson!({ "$slice": [[{"$literal": 1}, {"$literal": 2}, {"$literal": 3}], {"$literal": 1}, { "$literal": 2}]})
@@ -387,7 +387,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         size,
         expected = Ok(bson!({ "$size": [[{"$literal": 1}, {"$literal": 2}, {"$literal": 3}]]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -400,7 +400,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         index_of_cp,
         expected = Ok(
             bson!({ "$indexOfCP": [{ "$literal": "foo"}, { "$literal": "bar"}, { "$literal": 1}, { "$literal": 2}]})
@@ -416,7 +416,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         index_of_bytes,
         expected = Ok(
             bson!({ "$indexOfBytes": [{ "$literal": "foo"}, { "$literal": "bar"}, { "$literal": 1}, { "$literal": 2}]})
@@ -432,7 +432,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         str_len_cp,
         expected = Ok(bson!({ "$strLenCP": [{ "$literal": "foo"}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -441,7 +441,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         str_len_bytes,
         expected = Ok(bson!({ "$strLenBytes": [{ "$literal": "foo"}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -450,7 +450,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         abs,
         expected = Ok(bson!({ "$abs": [{"$literal": -1}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -459,7 +459,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         ceil,
         expected = Ok(bson!({ "$ceil": [{"$literal": 3.5}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -468,7 +468,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         cos,
         expected = Ok(bson!({ "$cos": [{"$literal": 3.5}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -477,7 +477,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         sin,
         expected = Ok(bson!({ "$sin": [{"$literal": 3.5}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -486,7 +486,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         tan,
         expected = Ok(bson!({ "$tan": [{"$literal": 3.5}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -495,7 +495,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         degrees_to_radians,
         expected = Ok(bson!({ "$degreesToRadians": [{"$literal": 180.0}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -504,7 +504,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         radians_to_degrees,
         expected = Ok(bson!({ "$radiansToDegrees": [{"$literal": 3.5}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -513,7 +513,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         floor,
         expected = Ok(bson!({ "$floor": [{"$literal": 3.5}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -522,7 +522,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         log,
         expected = Ok(bson!({ "$log": [{"$literal": 3.5}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -531,7 +531,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         mod_op,
         expected = Ok(bson!({ "$mod": [{"$literal": 3.5}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -540,7 +540,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         pow,
         expected = Ok(bson!({ "$pow": [{"$literal": 3.5}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -549,7 +549,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         round,
         expected = Ok(bson!({ "$round": [{"$literal": 3.5}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -558,7 +558,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         sqrt,
         expected = Ok(bson!({ "$sqrt": [{"$literal": 3.5}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -567,7 +567,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         avg,
         expected = Ok(bson!({ "$avg": ["$foo"]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -576,7 +576,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         max,
         expected = Ok(bson!({ "$max": ["$foo"]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -585,7 +585,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         min,
         expected = Ok(bson!({ "$min": ["$foo"]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -594,7 +594,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         sum,
         expected = Ok(bson!({ "$sum": ["$foo"]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -603,7 +603,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         stddev_pop,
         expected = Ok(bson!({ "$stdDevPop": ["$foo"]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -612,7 +612,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         stddev_samp,
         expected = Ok(bson!({ "$stdDevSamp": ["$foo"]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -621,7 +621,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         substr_cp,
         expected =
             Ok(bson!({ "$substrCP": [{ "$literal": "foo"}, { "$literal": 1 }, { "$literal": 2 }]})),
@@ -635,7 +635,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         substr_bytes,
         expected = Ok(
             bson!({ "$substrBytes": [{ "$literal": "foo"}, { "$literal": 1 }, { "$literal": 2 }]})
@@ -650,7 +650,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         to_upper,
         expected = Ok(bson!({ "$toUpper": [{ "$literal": "foo"}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -659,7 +659,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         to_lower,
         expected = Ok(bson!({ "$toLower": [{ "$literal": "foo"}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -668,7 +668,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         split,
         expected = Ok(bson!({ "$split": [{ "$literal": "foo" }, { "$literal": "o" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -680,7 +680,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         year,
         expected = Ok(bson!({ "$year": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -689,7 +689,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         month,
         expected = Ok(bson!({ "$month": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -698,7 +698,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         day_of_month,
         expected = Ok(bson!({ "$dayOfMonth": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -707,7 +707,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         hour,
         expected = Ok(bson!({ "$hour": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -716,7 +716,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         minute,
         expected = Ok(bson!({ "$minute": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -725,7 +725,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         second,
         expected = Ok(bson!({ "$second": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -734,7 +734,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         week,
         expected = Ok(bson!({ "$week": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -743,7 +743,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         day_of_year,
         expected = Ok(bson!({ "$dayOfYear": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -752,7 +752,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         iso_week,
         expected = Ok(bson!({ "$isoWeek": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -761,7 +761,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         iso_day_of_week,
         expected = Ok(bson!({ "$isoDayOfWeek": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -770,7 +770,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         date_add,
         expected = Ok(bson!({ "$dateAdd": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -779,7 +779,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         date_diff,
         expected = Ok(bson!({ "$dateDiff": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -788,7 +788,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         date_trunc,
         expected = Ok(bson!({ "$dateTrunc": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -797,7 +797,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         merge_object,
         expected = Ok(bson!({ "$mergeObjects": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -806,7 +806,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         is_number,
         expected = Ok(bson!({ "$isNumber": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -815,7 +815,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         is_array,
         expected = Ok(bson!({ "$isArray": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -824,7 +824,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         if_null,
         expected = Ok(bson!({ "$ifNull": [{ "$literal": "foo" }, { "$literal": "bar" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -836,7 +836,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         type_op,
         expected = Ok(bson!({ "$type": [{ "$literal": "foo" }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -845,7 +845,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         array_elem_at,
         expected = Ok(
             bson!({ "$arrayElemAt": [[{ "$literal": "foo" }, { "$literal": "bar" }], { "$literal": 1} ]})
@@ -862,7 +862,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         in_op,
         expected = Ok(bson!({ "$in": [{ "$literal": 1}, [{ "$literal": 1 }, { "$literal": 2 }]]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -874,7 +874,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         first,
         expected = Ok(bson!({ "$first": ["$foo"]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -883,7 +883,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         last,
         expected = Ok(bson!({ "$last": ["$foo"]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -892,7 +892,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         cond,
         expected = Ok(
             bson!({ "$cond": [{ "$literal": false }, { "$literal": "foo" }, { "$literal": "bar"} ]})
@@ -907,7 +907,7 @@ mod mql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         exists,
         expected = Ok(bson!({ "$exists": [{ "$literal": false }]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -920,11 +920,11 @@ mod mql_semantic_operator {
 mod sql_semantic_operator {
     use crate::{
         air::{Expression::*, LiteralValue::*, SQLOperator::*, SQLSemanticOperator},
-        codegen::air_to_mql::Error,
+        codegen::Error,
     };
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         pos,
         expected = Ok(bson! ({ "$sqlPos": [{ "$literal": 2}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -933,7 +933,7 @@ mod sql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         neg,
         expected = Ok(bson! ({ "$sqlNeg": [{ "$literal": 1}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -942,7 +942,7 @@ mod sql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         lt,
         expected = Ok(bson!({ "$sqlLt": [{ "$literal": 1}, { "$literal": 2}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -951,7 +951,7 @@ mod sql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         lte,
         expected = Ok(bson!({ "$sqlLte": [{ "$literal": 1}, { "$literal": 2}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -960,7 +960,7 @@ mod sql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         ne,
         expected = Ok(bson!({ "$sqlNe": [{ "$literal": 1}, { "$literal": 2}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -969,7 +969,7 @@ mod sql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         eq,
         expected = Ok(bson!({ "$sqlEq": [{ "$literal": 1}, { "$literal": 2}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -978,7 +978,7 @@ mod sql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         gt,
         expected = Ok(bson!({ "$sqlGt": [{ "$literal": 1}, { "$literal": 2}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -986,7 +986,7 @@ mod sql_semantic_operator {
             args: vec![Literal(Integer(1)), Literal(Integer(2))],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         gte,
         expected = Ok(bson!({ "$sqlGte": [{ "$literal": 1}, { "$literal": 2}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -995,7 +995,7 @@ mod sql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         between,
         expected =
             Ok(bson!({ "$sqlBetween": [[{"$literal": 1}, {"$literal": 2}, {"$literal": 3}]]})),
@@ -1009,7 +1009,7 @@ mod sql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         nullif_expr,
         expected = Ok(bson!({ "$nullIf": [{ "$literal": true}, { "$literal": false}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1018,7 +1018,7 @@ mod sql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         coalesce_expr,
         expected = Ok(bson!({ "$coalesce": [{ "$literal": 1}, { "$literal": 2}, {"$literal": 3}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1031,7 +1031,7 @@ mod sql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         not,
         expected = Ok(bson!({ "$sqlNot": [{ "$literal": false}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1040,7 +1040,7 @@ mod sql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         and,
         expected = Ok(bson!({ "$sqlAnd": [{ "$literal": true}, { "$literal": false}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1048,7 +1048,7 @@ mod sql_semantic_operator {
             args: vec![Literal(Boolean(true)), Literal(Boolean(false))],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         or,
         expected = Ok(bson!({ "$sqlOr": [{ "$literal": true}, { "$literal": false}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1056,7 +1056,7 @@ mod sql_semantic_operator {
             args: vec![Literal(Boolean(true)), Literal(Boolean(false))],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         slice,
         expected = Ok(
             bson!({ "$sqlSlice": [[{"$literal": 1}, {"$literal": 2}, {"$literal": 3}], {"$literal": 1}, { "$literal": 2}]})
@@ -1074,7 +1074,7 @@ mod sql_semantic_operator {
             ],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         size,
         expected = Ok(bson!({ "$sqlSize": [{"$literal": 1}, {"$literal": 2}, {"$literal": 3}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1086,10 +1086,10 @@ mod sql_semantic_operator {
             ])],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         index_of_cp,
         expected = Ok(
-            bson!({ "$sqlIndexOfCP": [{ "$literal": 2}, { "$literal": 1}, { "$literal": "bar"}, { "$literal": "foo"}]})
+            bson!({ "$sqlIndexOfCP": [{ "$literal": "foo"}, { "$literal": "bar"}, { "$literal": 1}, { "$literal": 2}]})
         ),
         input = SQLSemanticOperator(SQLSemanticOperator {
             op: IndexOfCP,
@@ -1102,7 +1102,7 @@ mod sql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         str_len_cp,
         expected = Ok(bson!({ "$sqlStrLenCP": { "$literal": "foo"}})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1110,7 +1110,7 @@ mod sql_semantic_operator {
             args: vec![Literal(String("foo".to_string())),],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         str_len_bytes,
         expected = Ok(bson!({ "$sqlStrLenBytes": { "$literal": "foo"}})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1119,7 +1119,7 @@ mod sql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         bit_length,
         expected = Ok(bson!({ "$sqlBitLength": [{ "$literal": "foo"}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1127,7 +1127,7 @@ mod sql_semantic_operator {
             args: vec![Literal(String("foo".to_string())),],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         cos,
         expected = Ok(bson!({ "$sqlCos": [{"$literal": 3.5}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1135,7 +1135,7 @@ mod sql_semantic_operator {
             args: vec![Literal(Double(3.5)),],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         log,
         expected = Ok(bson!({ "$sqlLog": [{"$literal": 3.5}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1143,7 +1143,7 @@ mod sql_semantic_operator {
             args: vec![Literal(Double(3.5)),],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         mod_op,
         expected = Ok(bson!({ "$sqlMod": [{"$literal": 3.5}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1151,7 +1151,7 @@ mod sql_semantic_operator {
             args: vec![Literal(Double(3.5)),],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         round,
         expected = Ok(bson!({ "$sqlRound": [{"$literal": 3.5}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1159,7 +1159,7 @@ mod sql_semantic_operator {
             args: vec![Literal(Double(3.5)),],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         sin,
         expected = Ok(bson!({ "$sqlSin": [{"$literal": 3.5}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1167,7 +1167,7 @@ mod sql_semantic_operator {
             args: vec![Literal(Double(3.5)),],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         sqrt,
         expected = Ok(bson!({ "$sqlSqrt": [{"$literal": 3.5}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1175,7 +1175,7 @@ mod sql_semantic_operator {
             args: vec![Literal(Double(3.5)),],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         tan,
         expected = Ok(bson!({ "$sqlTan": [{"$literal": 3.5}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1183,7 +1183,7 @@ mod sql_semantic_operator {
             args: vec![Literal(Double(3.5)),],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         substr_cp,
         expected = Ok(
             bson!({ "$sqlSubstrCP": [{ "$literal": "foo"}, { "$literal": 1 }, { "$literal": 2 }]})
@@ -1197,7 +1197,7 @@ mod sql_semantic_operator {
             ],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         to_upper,
         expected = Ok(bson!({ "$sqlToUpper": { "$literal": "foo"}})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1206,7 +1206,7 @@ mod sql_semantic_operator {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         to_lower,
         expected = Ok(bson!({ "$sqlToLower": { "$literal": "foo"}})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1214,7 +1214,7 @@ mod sql_semantic_operator {
             args: vec![Literal(String("foo".to_string())),],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         split,
         expected = Ok(bson!({ "$sqlSplit": [{ "$literal": "foo" }, { "$literal": "o" }]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1225,7 +1225,7 @@ mod sql_semantic_operator {
             ],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         current_timestamp,
         expected = Ok(bson!("$$NOW")),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1233,7 +1233,7 @@ mod sql_semantic_operator {
             args: vec![],
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         computed_field_access,
         expected = Err(Error::UnsupportedOperator(ComputedFieldAccess)),
         input = SQLSemanticOperator(SQLSemanticOperator {
@@ -1250,18 +1250,18 @@ mod document {
     };
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         empty,
         expected = Ok(bson!({"$literal": {}})),
         input = Document(unchecked_unique_linked_hash_map! {})
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         non_empty,
         expected = Ok(bson!({"foo": {"$literal": 1}})),
         input =
             Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(1))})
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         nested,
         expected = Ok(bson!({"foo": {"$literal": 1}, "bar": {"baz": {"$literal": 2}}})),
         input = Document(unchecked_unique_linked_hash_map! {
@@ -1277,15 +1277,15 @@ mod array {
     use crate::air::{Expression::*, LiteralValue::*};
     use bson::bson;
 
-    test_codegen_air_expr!(empty, expected = Ok(bson!([])), input = Array(vec![]));
+    test_codegen_expression!(empty, expected = Ok(bson!([])), input = Array(vec![]));
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         non_empty,
         expected = Ok(bson!([{"$literal": "abc"}])),
         input = Array(vec![Literal(String("abc".to_string()))])
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         nested,
         expected = Ok(bson!([{ "$literal": null }, [{ "$literal": null }]])),
         input = Array(vec![Literal(Null), Array(vec![Literal(Null)])])
@@ -1296,13 +1296,13 @@ mod variable {
     use crate::air::Expression::*;
     use bson::{bson, Bson};
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         simple,
         expected = Ok(bson!(Bson::String("$$foo".to_string()))),
         input = Variable("foo".to_string().into())
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         nested,
         expected = Ok(bson!(Bson::String("$$x.y.z".to_string()))),
         input = Variable("x.y.z".to_string().into())
@@ -1313,18 +1313,18 @@ mod field_ref {
     use crate::air::Expression::FieldRef;
     use bson::{bson, Bson};
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         no_parent,
         expected = Ok(bson!(Bson::String("$foo".to_string()))),
         input = FieldRef("foo".to_string().into())
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         parent,
         expected = Ok(bson!(Bson::String("$bar.foo".to_string()))),
         input = FieldRef("bar.foo".to_string().into())
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         grandparent,
         expected = Ok(bson!(Bson::String("$baz.bar.foo".to_string()))),
         input = FieldRef("baz.bar.foo".to_string().into())
@@ -1335,7 +1335,7 @@ mod like {
     use crate::air::{self, Expression};
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         with_escape,
         expected = Ok(bson!({"$like": {
             "input": "$input",
@@ -1349,7 +1349,7 @@ mod like {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         without_escape,
         expected = Ok(bson!({"$like": {
             "input": "$input",
@@ -1367,7 +1367,7 @@ mod is {
     use crate::air::{Expression::*, Is, Type, TypeOrMissing};
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         target_type_missing,
         expected = Ok(bson!({"$sqlIs": ["$x", {"$literal": "missing"}]})),
         input = Is(Is {
@@ -1376,7 +1376,7 @@ mod is {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         target_type_number,
         expected = Ok(bson!({"$sqlIs": ["$x", {"$literal": "number"}]})),
         input = Is(Is {
@@ -1385,7 +1385,7 @@ mod is {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         target_type_type,
         expected = Ok(bson!({"$sqlIs": ["$x", {"$literal": "object"}]})),
         input = Is(Is {
@@ -1406,7 +1406,7 @@ mod get_field {
     };
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         basic,
         expected = Ok(bson!({"$getField": {"field": "x", "input": {"x": {"$literal": 42}}}})),
         input = GetField(air::GetField {
@@ -1418,7 +1418,7 @@ mod get_field {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         with_dollar_sign,
         expected = Ok(
             bson!({"$getField": {"field": { "$literal": "$x"}, "input": {"$x": {"$literal": 42}}}})
@@ -1437,7 +1437,7 @@ mod set_field {
     use crate::air::{Expression::*, SetField};
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         simple,
         expected = Ok(bson!({"$setField": {"field": "", "input": "$$ROOT", "value": "$__bot"}})),
         input = SetField(SetField {
@@ -1447,7 +1447,7 @@ mod set_field {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         use_literal_when_needed,
         expected = Ok(
             bson!({"$setField": {"field": {"$literal": "$x_val"}, "input": "$$ROOT", "value": "$x"}})
@@ -1464,7 +1464,7 @@ mod unset_field {
     use crate::air::{Expression::*, UnsetField};
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         simple,
         expected = Ok(bson!({"$unsetField": {"field": "__bot", "input": "$doc"}})),
         input = UnsetField(UnsetField {
@@ -1473,7 +1473,7 @@ mod unset_field {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         use_literal_when_needed,
         expected = Ok(bson!({"$unsetField": {"field": {"$literal": "$x"}, "input": "$doc"}})),
         input = UnsetField(UnsetField {
@@ -1490,7 +1490,7 @@ mod sql_convert {
     };
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         array,
         expected = Ok(bson!({ "$sqlConvert": {
           "input": [],
@@ -1505,7 +1505,7 @@ mod sql_convert {
             on_error: Box::new(Literal(LiteralValue::Null)),
         })
     );
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         document,
         expected = Ok(bson!({ "$sqlConvert": {
           "input": {"$literal":{}},
@@ -1525,7 +1525,7 @@ mod sql_convert {
 mod sql_divide {
     use crate::air::{Expression::*, LiteralValue, SqlDivide};
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         simple,
         expected = Ok(
             bson::bson! ({"$sqlDivide": {"dividend": {"$literal": 1}, "divisor": {"$literal": 2}, "onError": {"$literal": null}}})
@@ -1547,7 +1547,7 @@ mod convert {
 
     macro_rules! test_codegen_working_convert {
         ($test_name:ident, expected = $expected_ty_str:expr, input = $input:expr) => {
-        test_codegen_air_expr!(
+        test_codegen_expression!(
             $test_name,
             expected = Ok(bson!({ "$convert":
                 {
@@ -1567,9 +1567,9 @@ mod convert {
         };
     }
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         convert_array,
-        expected = Err(codegen::air_to_mql::Error::ConvertToArray),
+        expected = Err(codegen::Error::ConvertToArray),
         input = Expression::Convert(Convert {
             input: Expression::Literal(String("foo".to_string())).into(),
             to: Type::Array,
@@ -1578,9 +1578,9 @@ mod convert {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         convert_document,
-        expected = Err(codegen::air_to_mql::Error::ConvertToDocument),
+        expected = Err(codegen::Error::ConvertToDocument),
         input = Expression::Convert(Convert {
             input: Expression::Literal(String("foo".to_string())).into(),
             to: Type::Document,
@@ -1666,7 +1666,7 @@ mod let_expr {
     use crate::air::{Expression::*, Let, LetVariable, MQLOperator, MQLSemanticOperator};
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         no_variables,
         expected = Ok(bson!({
             "$let": {
@@ -1688,7 +1688,7 @@ mod let_expr {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         one_variable,
         expected = Ok(bson!({
             "$let": {
@@ -1715,7 +1715,7 @@ mod let_expr {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         multiple_variables,
         expected = Ok(bson!({
             "$let": {
@@ -1756,11 +1756,11 @@ mod let_expr {
     );
 }
 
-mod regex_match_expr {
+mod regex_match {
     use crate::air::{Expression::*, LiteralValue, RegexMatch};
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         regex_match_no_options,
         expected = Ok(
             bson!({ "$regexMatch": {"input": {"$literal": "input"}, "regex": {"$literal": "regex"}}})
@@ -1772,7 +1772,7 @@ mod regex_match_expr {
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         regex_match_options,
         expected = Ok(
             bson!({ "$regexMatch": {"input": {"$literal": "input"}, "regex": {"$literal": "regex"}, "options": {"$literal": "options"}}})
@@ -1791,7 +1791,7 @@ mod reduce {
     use crate::air::{Expression::*, LiteralValue, Reduce};
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         simple,
         expected = Ok(
             bson!({ "$reduce": {"input": {"$literal": "input"}, "initialValue": {"$literal": "init"}, "in": {"$literal": "inside"}}})
@@ -1806,12 +1806,14 @@ mod reduce {
 
 mod subquery_exists {
     use crate::{
-        air::{Collection, Expression::*, LetVariable, Project, Stage::*, SubqueryExists},
+        air::{
+            Collection, Expression::*, LetVariable, Project, ProjectItem, Stage::*, SubqueryExists,
+        },
         unchecked_unique_linked_hash_map,
     };
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         subquery_exists_uncorrelated,
         expected = Ok(bson!({
             "$subqueryExists": {
@@ -1831,13 +1833,13 @@ mod subquery_exists {
                     collection: "foo".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => Variable("ROOT".to_string().into()),
+                    "foo".to_string() => ProjectItem::Assignment(Variable("ROOT".to_string().into())),
                 },
             })),
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         subquery_exists_correlated,
         expected = Ok(bson::bson!(
             {"$subqueryExists": {
@@ -1862,13 +1864,13 @@ mod subquery_exists {
                         collection: "bar".to_string(),
                     })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "bar".to_string() => Variable("ROOT".to_string().into()),
+                        "bar".to_string() => ProjectItem::Assignment(Variable("ROOT".to_string().into())),
                     },
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "__bot".to_string() => Document(unchecked_unique_linked_hash_map! {
-                        "a".to_string() => Variable("vfoo_0.a".to_string().into())
-                    }),
+                    "__bot".to_string() => ProjectItem::Assignment(Document(unchecked_unique_linked_hash_map! {
+                        "a".to_string() => Variable("vfoo_0.a".to_string().into()),
+                    })),
                 },
             })),
         })
@@ -1877,12 +1879,15 @@ mod subquery_exists {
 
 mod subquery {
     use crate::{
-        air::{Collection, Documents, Expression::*, LetVariable, Project, Stage::*, Subquery},
+        air::{
+            Collection, Documents, Expression::*, LetVariable, Project, ProjectItem, Stage::*,
+            Subquery,
+        },
         unchecked_unique_linked_hash_map,
     };
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         no_db_or_coll,
         expected = Ok(bson!({
             "$subquery": {
@@ -1900,13 +1905,13 @@ mod subquery {
             pipeline: Box::new(Project(Project {
                 source: Box::new(Documents(Documents { array: vec![] })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "arr".to_string() => Variable("ROOT".to_string().into()),
+                    "arr".to_string() => ProjectItem::Assignment(Variable("ROOT".to_string().into())),
                 }
             })),
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         fully_specified,
         expected = Ok(bson!({
             "$subquery": {
@@ -1942,13 +1947,13 @@ mod subquery {
                         collection: "bar".to_string(),
                     })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "bar".to_string() => Variable("ROOT".to_string().into()),
+                        "bar".to_string() => ProjectItem::Assignment(Variable("ROOT".to_string().into())),
                     }
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "__bot".to_string() => Document(unchecked_unique_linked_hash_map! {
+                    "__bot".to_string() => ProjectItem::Assignment(Document(unchecked_unique_linked_hash_map! {
                         "a".to_string() => Variable("vfoo_0.a".to_string().into()),
-                    }),
+                    })),
                 }
             })),
         })
@@ -1956,6 +1961,7 @@ mod subquery {
 }
 
 mod subquery_comparison {
+    use crate::air::ProjectItem;
     use crate::{
         air::{
             Collection, Documents, Expression::*, LetVariable, Project, Stage::*, Subquery,
@@ -1965,7 +1971,7 @@ mod subquery_comparison {
     };
     use bson::bson;
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         no_db_or_coll,
         expected = Ok(bson!({
             "$subqueryComparison": {
@@ -1992,14 +1998,14 @@ mod subquery_comparison {
                 pipeline: Box::new(Project(Project {
                     source: Box::new(Documents(Documents { array: vec![] })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "arr".to_string() => Variable("ROOT".to_string().into()),
+                        "arr".to_string() => ProjectItem::Assignment(Variable("ROOT".to_string().into())),
                     }
                 })),
             }),
         })
     );
 
-    test_codegen_air_expr!(
+    test_codegen_expression!(
         fully_specified,
         expected = Ok(bson!({
             "$subqueryComparison": {
@@ -2044,13 +2050,13 @@ mod subquery_comparison {
                             collection: "bar".to_string(),
                         })),
                         specifications: unchecked_unique_linked_hash_map! {
-                            "bar".to_string() => Variable("ROOT".to_string().into()),
+                            "bar".to_string() => ProjectItem::Assignment(Variable("ROOT".to_string().into())),
                         }
                     })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "__bot".to_string() => Document(unchecked_unique_linked_hash_map! {
+                        "__bot".to_string() => ProjectItem::Assignment(Document(unchecked_unique_linked_hash_map! {
                             "a".to_string() => Variable("vfoo_0.a".to_string().into()),
-                        }),
+                        })),
                     }
                 })),
             }),

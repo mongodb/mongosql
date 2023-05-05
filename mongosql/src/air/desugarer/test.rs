@@ -133,7 +133,7 @@ mod all_desugarer_passes {
 
             let actual = desugar_pipeline(input_air_pipeline).map_err(Error::CannotDesugar)?;
 
-            assert_eq!(expected_air_pipeline, actual)
+            assert_eq!(expected_air_pipeline, actual, "{}", test.name)
         }
 
         Ok(())
@@ -201,11 +201,11 @@ mod to_air_pipeline_test {
                 collection: "default".to_string()
             })),
             specifications: unchecked_unique_linked_hash_map! {
-                "_id".to_string() => air::Expression::Literal(air::LiteralValue::Integer(0)),
+                "x".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(42))),
             }
         }),
         input = vec![agg_ast::Stage::Project(map! {
-            "_id".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(0))
+            "x".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))),
         }),]
     );
 
@@ -219,8 +219,8 @@ mod to_air_pipeline_test {
                         collection: "default".to_string(),
                     })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "a".to_string() => air::Expression::Literal(air::LiteralValue::Boolean(true)),
-                        "b".to_string() => air::Expression::Literal(air::LiteralValue::Integer(2)),
+                        "a".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Boolean(true))),
+                        "b".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(2))),
                     },
                 })),
                 expr: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
@@ -232,8 +232,8 @@ mod to_air_pipeline_test {
         }),
         input = vec![
             agg_ast::Stage::Project(map! {
-                "a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Boolean(true)),
-                "b".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(2)),
+                "a".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Boolean(true))),
+                "b".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(2))),
             }),
             agg_ast::Stage::Match(agg_ast::MatchExpression::NonExpr(
                 agg_ast::Expression::Literal(agg_ast::LiteralValue::Null),

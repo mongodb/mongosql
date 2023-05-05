@@ -118,7 +118,6 @@ tests:
   - description: IS binds tighter than NOT
     current_db: db
     query: "SELECT VALUE {'a': a, 'v': NOT a IS BOOL, 'alt': (NOT a) IS BOOL} FROM [{'a': true}, {'a': null}] AS arr"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'': {'a': true, 'v': false, 'alt': true}}
       - {'': {'a': null, 'v': true, 'alt': false}}
@@ -137,7 +136,7 @@ tests:
   - description: LIKE binds tighter than IS
     current_db: db
     query: "SELECT VALUE {'a': a, 'b': b, 'v': a LIKE b IS NULL} FROM [{'a': 'str', 'b': 'str'}, {'a': 'str', 'b': null}] AS arr"
-    skip_reason: "SQL-330: Update $like desugarer to work for non-literal patterns, SQL-1257: Rewrite desugarUnsupportedOperators"
+    skip_reason: "SQL-330: Update $like desugarer to work for non-literal patterns"
     result:
       - {'': {'a': 'str', 'b': 'str', 'v': false}}
       - {'': {'a': 'str', 'b': null, 'v': true}}
@@ -268,7 +267,6 @@ tests:
   - description: unary ops bind tighter than mul/div
     current_db: db
     query: "SELECT VALUE {'a': a, 'b': b, 'v': - a * b, 'alt': - (a * b)} FROM [{'a': -1, 'b': 1}] AS arr"
-    skip_reason: "SQL-1257: Rewrite desugarUnsupportedOperators"
     result:
       - {'': {'a': -1, 'b': 1, 'v': 1, 'alt': 1}}
 

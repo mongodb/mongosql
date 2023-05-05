@@ -5,14 +5,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/10gen/mongosql-rs/go/internal/desugarer"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
 
 // Version returns the version of the underlying c translation
 // library. The consumer of this library should ensure that the
-// version of the the go library matches that of the c library.
+// version of the go library matches that of the c library.
 func Version() string {
 	return version()
 }
@@ -26,8 +25,6 @@ type TranslationArgs struct {
 	// CatalogSchema maps namespaces to JSON Schemas that describe the
 	// shape of the documents in the namespace.
 	CatalogSchema map[string]map[string]bsoncore.Document
-	// skipDesugaring skips desugaring the translation pipeline if it's set to true
-	skipDesugaring bool
 	// relaxSchemaChecking relaxes schema checking for comparisons if it's
 	// set to true. This means that schema checking will pass unless a type
 	// constraint has been violated.
@@ -130,13 +127,6 @@ func Translate(args TranslationArgs) (Translation, error) {
 	if typ.String() != "array" {
 		// this should never occur, but is here as a sanity check
 		panic("didn't marshal to array")
-	}
-
-	if !args.skipDesugaring {
-		pipelineBytes, err = desugarer.Desugar(pipelineBytes, translationResult.DB)
-		if err != nil {
-			return Translation{}, NewInternalError(fmt.Errorf("failed to desugar pipeline: %w", err))
-		}
 	}
 
 	return Translation{

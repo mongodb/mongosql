@@ -67,32 +67,17 @@ pub fn translate_sql(
         .schema(&algebrizer.schema_inference_state())?
         .schema_env;
 
+    // construct the translator and use it to build an air plan
     let mut translator = MqlTranslator::new();
-    let agg_plan = translator.translate_plan(plan.clone());
+    let agg_plan = translator.translate_plan(plan)?;
 
-    // TODO SQL-1284:
-    // generate mql from the mir plan
-    let mql_translation = match agg_plan {
-        Err(translator::Error::UnimplementedStruct) => codegen::generate_mql_from_mir(plan)?,
-        Err(err) => return Err(result::Error::Translator(err)),
-        Ok(agg_plan) => {
-            let generated_mql = codegen::generate_mql_from_air(agg_plan);
-            match generated_mql {
-                Err(codegen::air_to_mql::Error::UnimplementedAIR) => {
-                    codegen::generate_mql_from_mir(plan)?
-                }
-                Err(err) => return Err(result::Error::CodegenAIR(err)),
-                Ok(generated_mql) => codegen::mir_to_mql::MqlTranslation {
-                    database: generated_mql.database,
-                    collection: generated_mql.collection,
-                    mapping_registry: translator.mapping_registry,
-                    pipeline: generated_mql.pipeline,
-                },
-            }
-        }
-    };
+    // desugar the air plan
+    let agg_plan = air::desugarer::desugar_pipeline(agg_plan)?;
 
-    // A non-empty database value is needed for mongoast
+    // codegen the plan into MQL
+    let mql_translation = codegen::generate_mql(agg_plan)?;
+
+    // A non-empty database value is needed for ADF
     let target_db = mql_translation
         .database
         .clone()
@@ -108,11 +93,8 @@ pub fn translate_sql(
             .collect(),
     );
 
-    // TODO SQL-1284: When we finish mir_to_air and air codegen, just take the mapping registry from the
-    // translator (&translator.mapping_registry). We can't do that yet since we are still dealing
-    // with situations where we cannot go through air to mql.
     let result_set_schema =
-        mql_schema_env_to_json_schema(schema_env, &mql_translation.mapping_registry)?;
+        mql_schema_env_to_json_schema(schema_env, &translator.mapping_registry)?;
 
     Ok(Translation {
         target_db,
@@ -152,8 +134,8 @@ fn mql_schema_env_to_json_schema(
             let registry_value = mapping_registry.get(&k);
             match registry_value {
                 Some(registry_value) => Ok((registry_value.name.clone(), v)),
-                None => Err(result::Error::CodegenMIR(
-                    codegen::mir_to_mql::Error::ReferenceNotFound(k),
+                None => Err(result::Error::Translator(
+                    translator::Error::ReferenceNotFound(k),
                 )),
             }
         })

@@ -134,15 +134,41 @@ mod stage {
         );
 
         test_from_stage!(
-            singleton,
+            singleton_exclusion,
             expected = air::Stage::Project(air::Project {
                 source: Box::new(default_source()),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "a".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1)),
+                    "a".to_string() => air::ProjectItem::Exclusion,
                 },
             }),
             input = agg_ast::Stage::Project(map! {
-                "a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1)),
+                "a".to_string() => agg_ast::ProjectItem::Exclusion,
+            })
+        );
+
+        test_from_stage!(
+            singleton_inclusion,
+            expected = air::Stage::Project(air::Project {
+                source: Box::new(default_source()),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "a".to_string() => air::ProjectItem::Inclusion,
+                },
+            }),
+            input = agg_ast::Stage::Project(map! {
+                "a".to_string() => agg_ast::ProjectItem::Inclusion,
+            })
+        );
+
+        test_from_stage!(
+            singleton_assignment,
+            expected = air::Stage::Project(air::Project {
+                source: Box::new(default_source()),
+                specifications: unchecked_unique_linked_hash_map! {
+                    "a".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(1))),
+                },
+            }),
+            input = agg_ast::Stage::Project(map! {
+                "a".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))),
             })
         );
 
@@ -151,15 +177,15 @@ mod stage {
             expected = air::Stage::Project(air::Project {
                 source: Box::new(default_source()),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "a".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1)),
-                    "b".to_string() => air::Expression::Literal(air::LiteralValue::Long(2)),
-                    "c".to_string() => air::Expression::Literal(air::LiteralValue::Boolean(true)),
+                    "a".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(1))),
+                    "b".to_string() => air::ProjectItem::Exclusion,
+                    "c".to_string() => air::ProjectItem::Inclusion,
                 },
             }),
             input = agg_ast::Stage::Project(map! {
-                "a".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1)),
-                "b".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Long(2)),
-                "c".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Boolean(true)),
+                "a".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))),
+                "b".to_string() => agg_ast::ProjectItem::Exclusion,
+                "c".to_string() => agg_ast::ProjectItem::Inclusion,
             })
         );
     }
@@ -442,8 +468,8 @@ mod stage {
                         collection: "bar".to_string()
                     })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "_id".to_string() => air::Expression::Literal(air::LiteralValue::Integer(0)),
-                        "x".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1)),
+                        "_id".to_string() => air::ProjectItem::Exclusion,
+                        "x".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(1))),
                     }
                 })),
                 let_vars: Some(vec![air::LetVariable {
@@ -468,8 +494,8 @@ mod stage {
                 }),
                 join_type: agg_ast::JoinType::Inner,
                 pipeline: vec![agg_ast::Stage::Project(map! {
-                    "_id".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(0)),
-                    "x".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1)),
+                    "_id".to_string() => agg_ast::ProjectItem::Exclusion,
+                    "x".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))),
                 })],
                 condition: Some(agg_ast::Stage::Match(agg_ast::MatchExpression::Expr(
                     agg_ast::MatchExpr {
@@ -665,18 +691,18 @@ mod stage {
                             source: Box::new(air::Stage::Project(air::Project {
                                 source: Box::new(default_source()),
                                 specifications: unchecked_unique_linked_hash_map! {
-                                    "_id".to_string() => air::Expression::Literal(air::LiteralValue::Integer(0)),
-                                    "baz".to_string() => air::Expression::Variable("ROOT".to_string().into()),
+                                    "_id".to_string() => air::ProjectItem::Exclusion,
+                                    "baz".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
                                 }
                             })),
                             specifications: unchecked_unique_linked_hash_map! {
-                                "_id".to_string() => air::Expression::Literal(air::LiteralValue::Integer(0)),
-                                "baz".to_string() => air::Expression::FieldRef("baz".to_string().into()),
+                                "_id".to_string() => air::ProjectItem::Exclusion,
+                                "baz".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("baz".to_string().into())),
                             }
                         })),
                         specifications: unchecked_unique_linked_hash_map! {
-                            "__bot.a".to_string() => air::Expression::FieldRef("baz.a".to_string().into()),
-                            "_id".to_string() => air::Expression::Literal(air::LiteralValue::Integer(0)),
+                            "__bot.a".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("baz.a".to_string().into())),
+                            "_id".to_string() => air::ProjectItem::Exclusion,
                         }
                     })),
                     skip: 1
@@ -689,14 +715,11 @@ mod stage {
                 pipeline: vec![
                     agg_ast::Stage::Project(
                         vec![
-                            (
-                                "_id".to_string(),
-                                agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(0))
-                            ),
+                            ("_id".to_string(), agg_ast::ProjectItem::Exclusion),
                             (
                                 "baz".to_string(),
-                                agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::Variable(
-                                    "ROOT".to_string()
+                                agg_ast::ProjectItem::Assignment(agg_ast::Expression::StringOrRef(
+                                    agg_ast::StringOrRef::Variable("ROOT".to_string())
                                 ))
                             ),
                         ]
@@ -705,14 +728,11 @@ mod stage {
                     ),
                     agg_ast::Stage::Project(
                         vec![
-                            (
-                                "_id".to_string(),
-                                agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(0))
-                            ),
+                            ("_id".to_string(), agg_ast::ProjectItem::Exclusion),
                             (
                                 "baz".to_string(),
-                                agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                                    "baz".to_string()
+                                agg_ast::ProjectItem::Assignment(agg_ast::Expression::StringOrRef(
+                                    agg_ast::StringOrRef::FieldRef("baz".to_string())
                                 ))
                             ),
                         ]
@@ -721,14 +741,11 @@ mod stage {
                     ),
                     agg_ast::Stage::Project(
                         vec![
-                            (
-                                "_id".to_string(),
-                                agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(0))
-                            ),
+                            ("_id".to_string(), agg_ast::ProjectItem::Exclusion),
                             (
                                 "__bot.a".to_string(),
-                                agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
-                                    "baz.a".to_string()
+                                agg_ast::ProjectItem::Assignment(agg_ast::Expression::StringOrRef(
+                                    agg_ast::StringOrRef::FieldRef("baz.a".to_string())
                                 ))
                             ),
                         ]
@@ -1263,7 +1280,7 @@ mod expression {
                 pipeline: air::Stage::Project(air::Project {
                     source: air::Stage::Documents(air::Documents { array: vec![] }).into(),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "x".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+                        "x".to_string() => air::ProjectItem::Inclusion,
                     }
                 })
                 .into()
@@ -1279,7 +1296,7 @@ mod expression {
                     pipeline: vec![
                         agg_ast::Stage::Documents(vec![]),
                         agg_ast::Stage::Project(
-                            map! {"x".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))}
+                            map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
                         )
                     ]
                 }
@@ -1300,7 +1317,7 @@ mod expression {
                     })
                     .into(),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "x".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+                        "x".to_string() => air::ProjectItem::Inclusion,
                     }
                 })
                 .into()
@@ -1314,7 +1331,7 @@ mod expression {
                     }),
                     output_path: Some(vec!["x".to_string()]),
                     pipeline: vec![agg_ast::Stage::Project(
-                        map! {"x".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))}
+                        map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
                     )]
                 }
             ))
@@ -1336,7 +1353,7 @@ mod expression {
                         pipeline: air::Stage::Project(air::Project {
                             source: air::Stage::Documents(air::Documents { array: vec![] }).into(),
                             specifications: unchecked_unique_linked_hash_map! {
-                                "x".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+                                "x".to_string() => air::ProjectItem::Inclusion,
                             }
                         }).into()
                     }.into()
@@ -1356,7 +1373,7 @@ mod expression {
                            pipeline: vec![
                                agg_ast::Stage::Documents(vec![]),
                                agg_ast::Stage::Project(
-                                   map! {"x".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))}
+                                   map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
                                )
                            ]
                        }.into()
@@ -1379,7 +1396,7 @@ mod expression {
                         pipeline: air::Stage::Project(air::Project {
                             source: air::Stage::Collection(air::Collection { db: "foo".to_string(), collection: "bar2".to_string() }).into(),
                             specifications: unchecked_unique_linked_hash_map! {
-                                "x".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+                                "x".to_string() => air::ProjectItem::Inclusion,
                             }
                         }).into()
                     }.into()
@@ -1398,7 +1415,7 @@ mod expression {
                            output_path: Some(vec!["x".to_string()]),
                            pipeline: vec![
                                agg_ast::Stage::Project(
-                                   map! {"x".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))}
+                                   map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
                                )
                            ]
                        }.into()
@@ -1416,7 +1433,7 @@ mod expression {
                 pipeline: air::Stage::Project(air::Project {
                     source: air::Stage::Documents(air::Documents { array: vec![] }).into(),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "x".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+                        "x".to_string() => air::ProjectItem::Inclusion,
                     }
                 })
                 .into()
@@ -1431,7 +1448,7 @@ mod expression {
                     pipeline: vec![
                         agg_ast::Stage::Documents(vec![]),
                         agg_ast::Stage::Project(
-                            map! {"x".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))}
+                            map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
                         )
                     ]
                 }
@@ -1451,7 +1468,7 @@ mod expression {
                     })
                     .into(),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "x".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))
+                        "x".to_string() => air::ProjectItem::Inclusion
                     }
                 })
                 .into()
@@ -1464,7 +1481,7 @@ mod expression {
                         "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
                     }),
                     pipeline: vec![agg_ast::Stage::Project(
-                        map! {"x".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))}
+                        map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
                     )]
                 }
             ))

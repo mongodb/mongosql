@@ -1,10 +1,12 @@
-use super::{Error, MqlCodeGenerator, Result};
-use crate::air::{self, SQLOperator, TrimOperator};
+use crate::{
+    air::{self, SQLOperator, TrimOperator},
+    codegen::{Error, MqlCodeGenerator, Result},
+};
 use bson::{bson, doc, Bson};
 use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
 
 impl MqlCodeGenerator {
-    pub fn codegen_air_expression(&self, expr: air::Expression) -> Result<Bson> {
+    pub fn codegen_expression(&self, expr: air::Expression) -> Result<Bson> {
         use air::Expression::*;
         match expr {
             MQLSemanticOperator(mql_op) => self.codegen_mql_semantic_operator(mql_op),
@@ -38,7 +40,7 @@ impl MqlCodeGenerator {
         let ops = mql_op
             .args
             .into_iter()
-            .map(|x| self.codegen_air_expression(x))
+            .map(|x| self.codegen_expression(x))
             .collect::<Result<Vec<_>>>()?;
         let operator = Self::to_mql_op(mql_op.op);
         Ok(bson::bson!({ operator: Bson::Array(ops) }))
@@ -51,7 +53,7 @@ impl MqlCodeGenerator {
             | SQLOperator::StrLenBytes
             | SQLOperator::ToUpper
             | SQLOperator::ToLower => {
-                bson::bson!({ Self::to_sql_op(sql_op.op).unwrap(): self.codegen_air_expression(sql_op.args[0].clone())?})
+                bson::bson!({ Self::to_sql_op(sql_op.op).unwrap(): self.codegen_expression(sql_op.args[0].clone())?})
             }
             SQLOperator::And
             | SQLOperator::Between
@@ -61,6 +63,7 @@ impl MqlCodeGenerator {
             | SQLOperator::Eq
             | SQLOperator::Gt
             | SQLOperator::Gte
+            | SQLOperator::IndexOfCP
             | SQLOperator::Log
             | SQLOperator::Lt
             | SQLOperator::Lte
@@ -81,7 +84,7 @@ impl MqlCodeGenerator {
                 let ops = sql_op
                     .args
                     .into_iter()
-                    .map(|x| self.codegen_air_expression(x))
+                    .map(|x| self.codegen_expression(x))
                     .collect::<Result<Vec<_>>>()?;
                 bson::bson!({ Self::to_sql_op(sql_op.op).unwrap(): Bson::Array(ops) })
             }
@@ -90,18 +93,6 @@ impl MqlCodeGenerator {
                 return Err(Error::UnsupportedOperator(SQLOperator::ComputedFieldAccess));
             }
             SQLOperator::CurrentTimestamp => Bson::String("$$NOW".to_string()),
-            // operators that reverse argument order
-            SQLOperator::IndexOfCP => {
-                let args = Bson::Array(
-                    sql_op
-                        .args
-                        .into_iter()
-                        .rev()
-                        .map(|e| self.codegen_air_expression(e))
-                        .collect::<Result<Vec<Bson>>>()?,
-                );
-                Bson::Document(bson::doc! { Self::to_sql_op(sql_op.op).unwrap(): args})
-            }
         })
     }
 
@@ -137,7 +128,7 @@ impl MqlCodeGenerator {
 
     fn codegen_get_field(&self, gf: air::GetField) -> Result<Bson> {
         Ok({
-            let input = self.codegen_air_expression(*gf.input)?;
+            let input = self.codegen_expression(*gf.input)?;
             let field = Self::wrap_in_literal_if(gf.field, |s| s.starts_with('$'));
             bson!({
                 "$getField": {
@@ -150,8 +141,8 @@ impl MqlCodeGenerator {
 
     fn codegen_set_field(&self, sf: air::SetField) -> Result<Bson> {
         let field = Self::wrap_in_literal_if(sf.field, |s| s.starts_with('$'));
-        let input = self.codegen_air_expression(*sf.input)?;
-        let value = self.codegen_air_expression(*sf.value)?;
+        let input = self.codegen_expression(*sf.input)?;
+        let value = self.codegen_expression(*sf.value)?;
         Ok(bson!({"$setField": {
             "field": field,
             "input": input,
@@ -161,7 +152,7 @@ impl MqlCodeGenerator {
 
     fn codegen_unset_field(&self, uf: air::UnsetField) -> Result<Bson> {
         let field = Self::wrap_in_literal_if(uf.field, |s| s.starts_with('$'));
-        let input = self.codegen_air_expression(*uf.input)?;
+        let input = self.codegen_expression(*uf.input)?;
         Ok(bson!({"$unsetField": {"field": field, "input": input}}))
     }
 
@@ -170,11 +161,11 @@ impl MqlCodeGenerator {
             .branches
             .into_iter()
             .map(|sw| {
-                Ok(doc! {"case": self.codegen_air_expression(*sw.case)?,
-                "then": self.codegen_air_expression(*sw.then)?})
+                Ok(doc! {"case": self.codegen_expression(*sw.case)?,
+                "then": self.codegen_expression(*sw.then)?})
             })
             .collect::<Result<Vec<bson::Document>>>()?;
-        let default = self.codegen_air_expression(*switch.default)?;
+        let default = self.codegen_expression(*switch.default)?;
 
         Ok(bson!({
             "$switch": {
@@ -188,19 +179,19 @@ impl MqlCodeGenerator {
         let vars = let_expr
             .vars
             .into_iter()
-            .map(|v| Ok((v.name, self.codegen_air_expression(*v.expr)?)))
+            .map(|v| Ok((v.name, self.codegen_expression(*v.expr)?)))
             .collect::<Result<bson::Document>>()?;
 
-        let inside = self.codegen_air_expression(*let_expr.inside)?;
+        let inside = self.codegen_expression(*let_expr.inside)?;
 
         Ok(bson!({"$let": {"vars": vars, "in": inside}}))
     }
 
     fn codegen_sql_convert(&self, sql_convert: air::SqlConvert) -> Result<Bson> {
         Ok({
-            let input = self.codegen_air_expression(*sql_convert.input)?;
-            let on_error = self.codegen_air_expression(*sql_convert.on_error)?;
-            let on_null = self.codegen_air_expression(*sql_convert.on_null)?;
+            let input = self.codegen_expression(*sql_convert.input)?;
+            let on_error = self.codegen_expression(*sql_convert.on_error)?;
+            let on_null = self.codegen_expression(*sql_convert.on_null)?;
             bson!({
                 "$sqlConvert": {
                     "input": input,
@@ -214,9 +205,9 @@ impl MqlCodeGenerator {
 
     fn codegen_convert(&self, convert: air::Convert) -> Result<Bson> {
         Ok({
-            let input = self.codegen_air_expression(*convert.input)?;
-            let on_error = self.codegen_air_expression(*convert.on_error)?;
-            let on_null = self.codegen_air_expression(*convert.on_null)?;
+            let input = self.codegen_expression(*convert.input)?;
+            let on_error = self.codegen_expression(*convert.on_error)?;
+            let on_null = self.codegen_expression(*convert.on_null)?;
             bson!({
                 "$convert": {
                     "input": input,
@@ -230,8 +221,8 @@ impl MqlCodeGenerator {
 
     fn codegen_like(&self, like: air::Like) -> Result<Bson> {
         let mut like_doc = doc! {
-            "input": self.codegen_air_expression(*like.expr)?,
-            "pattern": self.codegen_air_expression(*like.pattern)?,
+            "input": self.codegen_expression(*like.expr)?,
+            "pattern": self.codegen_expression(*like.pattern)?,
         };
         if like.escape.is_some() {
             like_doc.insert("escape", like.escape.unwrap());
@@ -240,7 +231,7 @@ impl MqlCodeGenerator {
     }
 
     fn codegen_is(&self, is: air::Is) -> Result<Bson> {
-        let expr = self.codegen_air_expression(*is.expr).unwrap();
+        let expr = self.codegen_expression(*is.expr).unwrap();
         let target_type = is.target_type.to_str();
         Ok(bson ! ({"$sqlIs": [expr, {"$literal": target_type}]}))
     }
@@ -251,44 +242,44 @@ impl MqlCodeGenerator {
         Ok(match date_func_app.function {
             Add => {
                 bson::bson!({"$dateAdd" : {
-                    "startDate": self.codegen_air_expression(date_func_app.args[1].clone())?,
+                    "startDate": self.codegen_expression(date_func_app.args[1].clone())?,
                     "unit": Self::date_part_to_mql_unit(date_func_app.unit),
-                    "amount": self.codegen_air_expression(date_func_app.args[0].clone())?,
+                    "amount": self.codegen_expression(date_func_app.args[0].clone())?,
                 }})
             }
             Diff => {
                 bson::bson!({"$dateDiff" : {
-                    "startDate": self.codegen_air_expression(date_func_app.args[0].clone())?,
-                    "endDate": self.codegen_air_expression(date_func_app.args[1].clone())?,
+                    "startDate": self.codegen_expression(date_func_app.args[0].clone())?,
+                    "endDate": self.codegen_expression(date_func_app.args[1].clone())?,
                     "unit": Self::date_part_to_mql_unit(date_func_app.unit),
-                    "startOfWeek": self.codegen_air_expression(date_func_app.args[2].clone())?,
+                    "startOfWeek": self.codegen_expression(date_func_app.args[2].clone())?,
                 }})
             }
             Trunc => {
                 bson::bson!({"$dateTrunc" : {
-                    "date": self.codegen_air_expression(date_func_app.args[0].clone())?,
+                    "date": self.codegen_expression(date_func_app.args[0].clone())?,
                     "unit": Self::date_part_to_mql_unit(date_func_app.unit),
-                    "startOfWeek": self.codegen_air_expression(date_func_app.args[1].clone())?,
+                    "startOfWeek": self.codegen_expression(date_func_app.args[1].clone())?,
                 }})
             }
         })
     }
 
     fn codegen_regex_match(&self, regex_match: air::RegexMatch) -> Result<Bson> {
-        let input = self.codegen_air_expression(*regex_match.input)?;
-        let regex = self.codegen_air_expression(*regex_match.regex)?;
+        let input = self.codegen_expression(*regex_match.input)?;
+        let regex = self.codegen_expression(*regex_match.regex)?;
         Ok(match regex_match.options {
             Some(opts) => {
-                bson!({"$regexMatch": {"input": input, "regex": regex, "options": self.codegen_air_expression(*opts)?}})
+                bson!({"$regexMatch": {"input": input, "regex": regex, "options": self.codegen_expression(*opts)?}})
             }
             None => bson!({"$regexMatch": {"input": input, "regex": regex}}),
         })
     }
 
     fn codegen_sql_divide(&self, sql_divide: air::SqlDivide) -> Result<Bson> {
-        let dividend = self.codegen_air_expression(*sql_divide.dividend)?;
-        let divisor = self.codegen_air_expression(*sql_divide.divisor)?;
-        let on_error = self.codegen_air_expression(*sql_divide.on_error)?;
+        let dividend = self.codegen_expression(*sql_divide.dividend)?;
+        let divisor = self.codegen_expression(*sql_divide.divisor)?;
+        let on_error = self.codegen_expression(*sql_divide.on_error)?;
         Ok(bson!({"$sqlDivide": {"dividend": dividend, "divisor": divisor, "onError": on_error}}))
     }
 
@@ -299,15 +290,15 @@ impl MqlCodeGenerator {
             TrimOperator::RTrim => "$rtrim",
         };
         Ok(Bson::Document(doc! {
-            op: {"input": self.codegen_air_expression(*trim.input)?,
-                "chars": self.codegen_air_expression(*trim.chars)?}
+            op: {"input": self.codegen_expression(*trim.input)?,
+                "chars": self.codegen_expression(*trim.chars)?}
         }))
     }
 
     fn codegen_reduce(&self, reduce: air::Reduce) -> Result<Bson> {
-        let input = self.codegen_air_expression(*reduce.input)?;
-        let init_value = self.codegen_air_expression(*reduce.init_value)?;
-        let inside = self.codegen_air_expression(*reduce.inside)?;
+        let input = self.codegen_expression(*reduce.input)?;
+        let init_value = self.codegen_expression(*reduce.init_value)?;
+        let inside = self.codegen_expression(*reduce.inside)?;
         Ok(bson!({"$reduce": {"input": input, "initialValue": init_value, "in": inside}}))
     }
 
@@ -319,7 +310,7 @@ impl MqlCodeGenerator {
     ) -> Result<Bson> {
         let mut subquery_body = doc! {};
 
-        let pipeline_translation = self.codegen_air_stage(pipeline)?;
+        let pipeline_translation = self.codegen_stage(pipeline)?;
 
         if let Some(db) = pipeline_translation.database {
             subquery_body.insert("db", db);
@@ -331,7 +322,7 @@ impl MqlCodeGenerator {
 
         let let_bindings = let_bindings
             .into_iter()
-            .map(|v| Ok((v.name.clone(), self.codegen_air_expression(*v.expr)?)))
+            .map(|v| Ok((v.name.clone(), self.codegen_expression(*v.expr)?)))
             .collect::<Result<bson::Document>>()?;
 
         subquery_body.insert("let", let_bindings);
@@ -368,7 +359,7 @@ impl MqlCodeGenerator {
             All => "all",
         };
 
-        let arg = self.codegen_air_expression(*sc.arg)?;
+        let arg = self.codegen_expression(*sc.arg)?;
 
         let subquery = self.codegen_subquery(
             *sc.subquery.pipeline,
@@ -394,7 +385,7 @@ impl MqlCodeGenerator {
         Ok(Bson::Array(
             array
                 .into_iter()
-                .map(|e| self.codegen_air_expression(e))
+                .map(|e| self.codegen_expression(e))
                 .collect::<Result<Vec<Bson>>>()?,
         ))
     }
@@ -409,7 +400,7 @@ impl MqlCodeGenerator {
             } else {
                 document
                     .into_iter()
-                    .map(|(k, v)| Ok((k, self.codegen_air_expression(v)?)))
+                    .map(|(k, v)| Ok((k, self.codegen_expression(v)?)))
                     .collect::<Result<bson::Document>>()?
             }
         }))

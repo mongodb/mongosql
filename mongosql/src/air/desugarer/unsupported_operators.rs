@@ -3,10 +3,9 @@ use crate::air::{
     desugarer::{Error, Pass, Result},
     util::sql_op_to_mql_op,
     visitor::Visitor,
-    Expression,
-    Expression::*,
-    Is, Let, LetVariable, Like, LiteralValue, MQLOperator, MQLSemanticOperator, RegexMatch,
-    SQLOperator, SQLSemanticOperator, SqlConvert, SqlDivide, Stage, Switch, SwitchCase, Type,
+    Expression, Is, Let, LetVariable, Like, LiteralValue, MQLOperator, MQLSemanticOperator,
+    RegexMatch, SQLOperator, SQLSemanticOperator, SqlConvert, SqlDivide, Stage, Switch, SwitchCase,
+    Type,
 };
 
 use crate::make_cond_expr;
@@ -108,7 +107,7 @@ impl UnsupportedOperatorsDesugarerVisitor {
 
     fn desugar_like(&mut self, like: Like) -> Expression {
         let pattern = match *like.pattern {
-            Literal(LiteralValue::String(l)) => {
+            Expression::Literal(LiteralValue::String(l)) => {
                 if let Some(e) = like.escape {
                     Self::convert_sql_pattern(l, e)
                 } else {
@@ -117,7 +116,7 @@ impl UnsupportedOperatorsDesugarerVisitor {
             }
             _ => {
                 self.error = Some(Error::InvalidLikePattern);
-                return air::Expression::Like(like);
+                return Expression::Like(like);
             }
         };
         Expression::RegexMatch(RegexMatch {
@@ -139,10 +138,10 @@ impl UnsupportedOperatorsDesugarerVisitor {
                 Expression::MQLSemanticOperator(MQLSemanticOperator {
                     op: MQLOperator::Or,
                     args: vec![
-                        MQLSemanticOperator(MQLSemanticOperator {
+                        Expression::MQLSemanticOperator(MQLSemanticOperator {
                             op: MQLOperator::Eq,
                             args: vec![
-                                MQLSemanticOperator(MQLSemanticOperator {
+                                Expression::MQLSemanticOperator(MQLSemanticOperator {
                                     op: MQLOperator::Type,
                                     args: vec![*is.expr.clone()],
                                 }),
@@ -623,6 +622,7 @@ impl UnsupportedOperatorsDesugarerVisitor {
 
 impl Visitor for UnsupportedOperatorsDesugarerVisitor {
     fn visit_expression(&mut self, node: Expression) -> Expression {
+        use Expression::*;
         let node = match node {
             Like(l) => self.desugar_like(l),
             Is(i) => self.desugar_is(i),
