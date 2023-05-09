@@ -26,18 +26,10 @@ macro_rules! test_translate_plan {
 }
 
 mod filter {
-    use crate::unchecked_unique_linked_hash_map;
-
     test_translate_stage!(
         basic,
         expected = Ok(air::Stage::Match(air::Match {
-            source: air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Documents(air::Documents { array: vec![] })),
-                specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                },
-            })
-            .into(),
+            source: Box::new(air::Stage::Documents(air::Documents { array: vec![] })),
             expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
         })),
         input = mir::Stage::Filter(mir::Filter {
@@ -53,23 +45,18 @@ mod filter {
 }
 
 mod project {
-    use crate::{map, unchecked_unique_linked_hash_map};
+    use crate::{map, translator::utils::ROOT, unchecked_unique_linked_hash_map};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
     test_translate_stage!(
         project,
         expected = Ok(air::Stage::Project(air::Project {
-            source: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Collection(air::Collection {
-                    db: "test_db".to_string(),
-                    collection: "foo".to_string()
-                })),
-                specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                }
+            source: Box::new(air::Stage::Collection(air::Collection {
+                db: "test_db".to_string(),
+                collection: "foo".to_string()
             })),
             specifications: unchecked_unique_linked_hash_map! {
-                "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("foo".to_string().into())),
+                "__bot".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                 "bar".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(1)))
             }
         })),
@@ -90,17 +77,12 @@ mod project {
     test_translate_stage!(
         project_with_user_bot_conflict,
         expected = Ok(air::Stage::Project(air::Project {
-            source: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Collection(air::Collection {
-                    db: "test_db".to_string(),
-                    collection: "foo".to_string()
-                })),
-                specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                }
+            source: Box::new(air::Stage::Collection(air::Collection {
+                db: "test_db".to_string(),
+                collection: "foo".to_string()
             })),
             specifications: unchecked_unique_linked_hash_map! {
-                "___bot".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("foo".to_string().into())),
+                "___bot".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                 // reordered because BindingTuple uses BTreeMap
                 "____bot".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(4))),
                 "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(2))),
@@ -125,27 +107,24 @@ mod project {
 }
 
 mod group {
-    use crate::{translator::Error, unchecked_unique_linked_hash_map};
+    use crate::{
+        map,
+        translator::{utils::ROOT, Error},
+        unchecked_unique_linked_hash_map,
+    };
     use mongosql_datastructures::binding_tuple::Key;
 
     test_translate_stage!(
         group_count_star,
         expected = Ok(air::Stage::Project(air::Project {
             source: air::Stage::Group(air::Group {
-                source: air::Stage::Project(air::Project {
-                    source: air::Stage::Collection(air::Collection {
-                        db: "test_db".into(),
-                        collection: "foo".into()
-                    })
-                    .into(),
-                    specifications: unchecked_unique_linked_hash_map! {
-                        "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                    }
-                })
-                .into(),
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test_db".into(),
+                    collection: "foo".into()
+                })),
                 keys: vec![air::NameExprPair {
                     name: "x_key".into(),
-                    expr: air::Expression::FieldRef("foo".to_string().into())
+                    expr: ROOT.clone()
                 },],
                 aggregations: vec![
                     // Count(*) is traslated as Count(1).
@@ -203,33 +182,26 @@ mod group {
         group_normal_operators,
         expected = Ok(air::Stage::Project(air::Project {
             source: air::Stage::Group(air::Group {
-                source: air::Stage::Project(air::Project {
-                    source: air::Stage::Collection(air::Collection {
-                        db: "test_db".into(),
-                        collection: "foo".into()
-                    })
-                    .into(),
-                    specifications: unchecked_unique_linked_hash_map! {
-                        "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                    }
-                })
-                .into(),
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test_db".into(),
+                    collection: "foo".into()
+                })),
                 keys: vec![air::NameExprPair {
                     name: "x_key".into(),
-                    expr: air::Expression::FieldRef("foo".to_string().into())
+                    expr: ROOT.clone()
                 },],
                 aggregations: vec![
                     air::AccumulatorExpr {
                         alias: "max_distinct".into(),
                         function: air::AggregationFunction::Max,
                         distinct: true,
-                        arg: air::Expression::FieldRef("foo".to_string().into()).into()
+                        arg: Box::new(ROOT.clone()),
                     },
                     air::AccumulatorExpr {
                         alias: "min_nondistinct".into(),
                         function: air::AggregationFunction::Min,
                         distinct: false,
-                        arg: air::Expression::FieldRef("foo".to_string().into()).into()
+                        arg: Box::new(ROOT.clone()),
                     }
                 ]
             })
@@ -289,25 +261,23 @@ mod group {
         group_key_conflict,
         expected = Ok(air::Stage::Project(air::Project {
             source: air::Stage::Group(air::Group {
-                source: air::Stage::Project(air::Project {
-                    source: air::Stage::Collection(air::Collection {
+                source: Box::new(air::Stage::Project(air::Project {
+                    source: Box::new(air::Stage::Collection(air::Collection {
                         db: "test_db".into(),
                         collection: "foo".into()
-                    })
-                    .into(),
+                    })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                    }
-                })
-                .into(),
+                        "foo".to_string() => air::ProjectItem::Assignment(ROOT.clone())
+                    },
+                })),
                 keys: vec![
                     air::NameExprPair {
                         name: "__unaliasedKey2".into(),
-                        expr: air::Expression::FieldRef("foo".to_string().into())
+                        expr: air::Expression::FieldRef("foo".to_string().into()),
                     },
                     air::NameExprPair {
                         name: "___unaliasedKey2".into(),
-                        expr: air::Expression::FieldRef("foo.x".to_string().into())
+                        expr: air::Expression::FieldRef("foo.x".to_string().into()),
                     },
                 ],
                 aggregations: vec![]
@@ -323,9 +293,15 @@ mod group {
             }
         })),
         input = mir::Stage::Group(mir::Group {
-            source: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test_db".into(),
-                collection: "foo".into(),
+            source: Box::new(mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Collection(mir::Collection {
+                    db: "test_db".into(),
+                    collection: "foo".into(),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                expression: map! {
+                    ("foo", 0u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
+                },
                 cache: mir::schema::SchemaCache::new(),
             })),
             keys: vec![
@@ -356,21 +332,19 @@ mod group {
         aggregation_alias_id_conflict,
         expected = Ok(air::Stage::Project(air::Project {
             source: air::Stage::Group(air::Group {
-                source: air::Stage::Project(air::Project {
-                    source: air::Stage::Collection(air::Collection {
+                source: Box::new(air::Stage::Project(air::Project {
+                    source: Box::new(air::Stage::Collection(air::Collection {
                         db: "test_db".into(),
                         collection: "foo".into()
-                    })
-                    .into(),
+                    })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                    }
-                })
-                .into(),
+                        "foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
+                    },
+                })),
                 keys: vec![
                     air::NameExprPair {
                         name: "__unaliasedKey2".into(),
-                        expr: air::Expression::FieldRef("foo".to_string().into())
+                        expr: air::Expression::FieldRef("foo".to_string().into()),
                     },
                     air::NameExprPair {
                         name: "___unaliasedKey2".into(),
@@ -396,9 +370,15 @@ mod group {
             }
         })),
         input = mir::Stage::Group(mir::Group {
-            source: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test_db".into(),
-                collection: "foo".into(),
+            source: Box::new(mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Collection(mir::Collection {
+                    db: "test_db".into(),
+                    collection: "foo".into(),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                expression: map! {
+                    ("foo", 0u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
+                },
                 cache: mir::schema::SchemaCache::new(),
             })),
             keys: vec![
@@ -450,20 +430,15 @@ mod group {
 }
 
 mod limit {
-    use crate::{translator, unchecked_unique_linked_hash_map};
+    use crate::translator;
     use translator::Error;
 
     test_translate_stage!(
         simple,
         expected = Ok(air::Stage::Limit(air::Limit {
-            source: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Collection(air::Collection {
-                    db: "test_db".into(),
-                    collection: "col".into(),
-                })),
-                specifications: unchecked_unique_linked_hash_map! {
-                    "col".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                },
+            source: Box::new(air::Stage::Collection(air::Collection {
+                db: "test_db".into(),
+                collection: "col".into(),
             })),
             limit: 1i64,
         })),
@@ -493,19 +468,12 @@ mod limit {
 }
 
 mod offset {
-    use crate::unchecked_unique_linked_hash_map;
-
     test_translate_stage!(
         simple,
         expected = Ok(air::Stage::Skip(air::Skip {
-            source: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Collection(air::Collection {
-                    db: "test_db".to_string(),
-                    collection: "foo".to_string()
-                })),
-                specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                }
+            source: Box::new(air::Stage::Collection(air::Collection {
+                db: "test_db".to_string(),
+                collection: "foo".to_string()
             })),
             skip: 10,
         })),
@@ -522,25 +490,19 @@ mod offset {
 }
 
 mod sort {
+    use crate::{map, translator::utils::ROOT, unchecked_unique_linked_hash_map};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
-
-    use crate::{map, unchecked_unique_linked_hash_map};
 
     test_translate_stage!(
         sort_stage_multi_key_reference,
         expected = Ok(air::Stage::Sort(air::Sort {
                 source: air::Stage::Project(air::Project {
-                    source: air::Stage::Project(air::Project {
-                        source: air::Stage::Collection(air::Collection {
-                            db: "test_db".to_string(),
-                            collection: "foo".to_string(),
-                        }).into(),
-                        specifications: unchecked_unique_linked_hash_map!{
-                            "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                        }
-                    }).into(),
+                    source: Box::new(air::Stage::Collection(air::Collection {
+                        db: "test_db".to_string(),
+                        collection: "foo".to_string(),
+                    })),
                     specifications: unchecked_unique_linked_hash_map!{
-                        "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("foo".to_string().into())),
+                        "__bot".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                         "bar".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(1))),
                         "baz".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(2))),
                     }
@@ -605,9 +567,15 @@ mod sort {
             ],
         })),
         input = mir::Stage::Sort(mir::Sort {
-            source: mir::Stage::Collection(mir::Collection {
-                db: "test_db".into(),
-                collection: "foo".into(),
+            source: mir::Stage::Project(mir::Project {
+                source: mir::Stage::Collection(mir::Collection {
+                    db: "test_db".into(),
+                    collection: "foo".into(),
+                    cache: mir::schema::SchemaCache::new(),
+                }).into(),
+                expression: map! {
+                    ("foo", 0u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
+                },
                 cache: mir::schema::SchemaCache::new(),
             })
             .into(),
@@ -647,16 +615,21 @@ mod sort {
                 }
             })
             .into(),
-
             specs: vec![
                 air::SortSpecification::Desc("foo.bar.quz".to_string()),
                 air::SortSpecification::Asc("foo.baz.fizzle.bazzle".to_string())
             ],
         })),
         input = mir::Stage::Sort(mir::Sort {
-            source: mir::Stage::Collection(mir::Collection {
-                db: "test_db".into(),
-                collection: "foo".into(),
+            source: mir::Stage::Project(mir::Project {
+                source: mir::Stage::Collection(mir::Collection {
+                    db: "test_db".into(),
+                    collection: "foo".into(),
+                    cache: mir::schema::SchemaCache::new(),
+                }).into(),
+                expression: map! {
+                    ("foo", 0u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
+                },
                 cache: mir::schema::SchemaCache::new(),
             })
             .into(),
@@ -699,18 +672,11 @@ mod sort {
 }
 
 mod collection {
-    use crate::unchecked_unique_linked_hash_map;
-
     test_translate_stage!(
         collection,
-        expected = Ok(air::Stage::Project(air::Project {
-            source: Box::new(air::Stage::Collection(air::Collection {
-                db: "test_db".into(),
-                collection: "foo".into(),
-            })),
-            specifications: unchecked_unique_linked_hash_map! {
-                "foo".to_string() => air::ProjectItem::Assignment(translator::ROOT.clone()),
-            },
+        expected = Ok(air::Stage::Collection(air::Collection {
+            db: "test_db".into(),
+            collection: "foo".into(),
         })),
         input = mir::Stage::Collection(mir::Collection {
             db: "test_db".into(),
@@ -721,17 +687,10 @@ mod collection {
 }
 
 mod array {
-    use crate::unchecked_unique_linked_hash_map;
-
     test_translate_stage!(
         non_empty,
-        expected = Ok(air::Stage::Project(air::Project {
-            source: Box::new(air::Stage::Documents(air::Documents {
-                array: vec![air::Expression::Literal(air::LiteralValue::Boolean(false))],
-            })),
-            specifications: unchecked_unique_linked_hash_map! {
-                "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-            },
+        expected = Ok(air::Stage::Documents(air::Documents {
+            array: vec![air::Expression::Literal(air::LiteralValue::Boolean(false))],
         })),
         input = mir::Stage::Array(mir::ArraySource {
             array: vec![mir::Expression::Literal(
@@ -744,12 +703,7 @@ mod array {
 
     test_translate_stage!(
         empty,
-        expected = Ok(air::Stage::Project(air::Project {
-            source: Box::new(air::Stage::Documents(air::Documents { array: vec![] })),
-            specifications: unchecked_unique_linked_hash_map! {
-                "foo".to_string() => air::ProjectItem::Assignment(translator::ROOT.clone()),
-            },
-        })),
+        expected = Ok(air::Stage::Documents(air::Documents { array: vec![] })),
         input = mir::Stage::Array(mir::ArraySource {
             array: vec![],
             alias: "foo".into(),
@@ -759,7 +713,7 @@ mod array {
 }
 
 mod join {
-    use crate::{air, mir, unchecked_unique_linked_hash_map};
+    use crate::{air, map, mir, translator::utils::ROOT, unchecked_unique_linked_hash_map};
 
     fn input_collection(collection_name: &str) -> Box<mir::Stage> {
         Box::new(mir::Stage::Collection(mir::Collection {
@@ -770,14 +724,9 @@ mod join {
     }
 
     fn transformed_collection(collection_name: &str) -> Box<air::Stage> {
-        Box::new(air::Stage::Project(air::Project {
-            source: Box::new(air::Stage::Collection(air::Collection {
-                db: "test_db".into(),
-                collection: collection_name.into(),
-            })),
-            specifications: unchecked_unique_linked_hash_map! {
-                collection_name.to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-            },
+        Box::new(air::Stage::Collection(air::Collection {
+            db: "test_db".into(),
+            collection: collection_name.into(),
         }))
     }
 
@@ -807,14 +756,14 @@ mod join {
             right: transformed_collection("bar"),
             let_vars: Some(vec![air::LetVariable {
                 name: "vfoo_0".to_string(),
-                expr: Box::new(air::Expression::FieldRef("foo".to_string().into())),
+                expr: Box::new(ROOT.clone()),
             }]),
             condition: Some(air::Expression::SQLSemanticOperator(
                 air::SQLSemanticOperator {
                     op: air::SQLOperator::Eq,
                     args: vec![
                         air::Expression::Variable("vfoo_0".to_string().into()),
-                        air::Expression::FieldRef("bar".to_string().into()),
+                        ROOT.clone(),
                     ]
                 }
             ))
@@ -843,8 +792,18 @@ mod join {
             join_type: air::JoinType::Inner,
             left: Box::new(air::Stage::Join(air::Join {
                 join_type: air::JoinType::Inner,
-                left: transformed_collection("Foo"),
-                right: transformed_collection("foo"),
+                left: Box::new(air::Stage::Project(air::Project {
+                    source: transformed_collection("Foo"),
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "Foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
+                    },
+                })),
+                right: Box::new(air::Stage::Project(air::Project {
+                    source: transformed_collection("foo"),
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
+                    },
+                })),
                 condition: None,
                 let_vars: None,
             })),
@@ -867,18 +826,28 @@ mod join {
             )),
             left: mir::Stage::Join(mir::Join {
                 condition: None,
-                left: mir::Stage::Collection(mir::Collection {
-                    db: "test_db".to_string(),
-                    collection: "Foo".to_string(),
+                left: Box::new(mir::Stage::Project(mir::Project {
+                    source: Box::new(mir::Stage::Collection(mir::Collection {
+                        db: "test_db".to_string(),
+                        collection: "Foo".to_string(),
+                        cache: mir::schema::SchemaCache::new(),
+                    })),
+                    expression: map! {
+                        ("Foo", 0u16).into() => mir::Expression::Reference(("Foo", 0u16).into()),
+                    },
                     cache: mir::schema::SchemaCache::new(),
-                })
-                .into(),
-                right: mir::Stage::Collection(mir::Collection {
-                    db: "test_db".to_string(),
-                    collection: "foo".to_string(),
+                })),
+                right: Box::new(mir::Stage::Project(mir::Project {
+                    source: Box::new(mir::Stage::Collection(mir::Collection {
+                        db: "test_db".to_string(),
+                        collection: "foo".to_string(),
+                        cache: mir::schema::SchemaCache::new(),
+                    })),
+                    expression: map! {
+                        ("foo", 0u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
+                    },
                     cache: mir::schema::SchemaCache::new(),
-                })
-                .into(),
+                })),
                 join_type: mir::JoinType::Inner,
                 cache: mir::schema::SchemaCache::new(),
             })
@@ -898,25 +867,15 @@ mod join {
         test_translate_array,
         expected = Ok(air::Stage::Join(air::Join {
             condition: None,
-            left: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Collection(air::Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
-                specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                )
+            left: Box::new(air::Stage::Collection(air::Collection {
+                db: "mydb".to_string(),
+                collection: "col".to_string(),
             })),
-            right: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Documents(air::Documents {
-                    array: vec![
-                        air::Expression::Literal(air::LiteralValue::Integer(1)),
-                        air::Expression::Literal(air::LiteralValue::Integer(1))
-                    ]
-                })),
-                specifications: unchecked_unique_linked_hash_map!(
-                    "arr".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                )
+            right: Box::new(air::Stage::Documents(air::Documents {
+                array: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(1)),
+                    air::Expression::Literal(air::LiteralValue::Integer(1))
+                ]
             })),
             let_vars: None,
             join_type: air::JoinType::Left,
@@ -945,28 +904,16 @@ mod join {
 }
 
 mod set {
-    use crate::unchecked_unique_linked_hash_map;
-
     test_translate_stage!(
         simple,
         expected = Ok(air::Stage::UnionWith(air::UnionWith {
-            source: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Collection(air::Collection {
-                    db: "foo".into(),
-                    collection: "a".into(),
-                })),
-                specifications: unchecked_unique_linked_hash_map! {
-                    "a".to_string() => air::ProjectItem::Assignment(translator::ROOT.clone()),
-                },
+            source: Box::new(air::Stage::Collection(air::Collection {
+                db: "foo".into(),
+                collection: "a".into(),
             })),
-            pipeline: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Collection(air::Collection {
-                    db: "bar".into(),
-                    collection: "b".into(),
-                })),
-                specifications: unchecked_unique_linked_hash_map! {
-                    "b".to_string() => air::ProjectItem::Assignment(translator::ROOT.clone()),
-                },
+            pipeline: Box::new(air::Stage::Collection(air::Collection {
+                db: "bar".into(),
+                collection: "b".into(),
             })),
         })),
         input = mir::Stage::Set(mir::Set {
@@ -989,23 +936,18 @@ mod set {
 }
 
 mod derived {
-    use crate::{map, unchecked_unique_linked_hash_map};
+    use crate::{map, translator::utils::ROOT, unchecked_unique_linked_hash_map};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
     test_translate_stage!(
         derived,
         expected = Ok(air::Stage::Project(air::Project {
-            source: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Collection(air::Collection {
-                    db: "test_db".to_string(),
-                    collection: "foo".to_string()
-                })),
-                specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into()))
-                }
+            source: Box::new(air::Stage::Collection(air::Collection {
+                db: "test_db".to_string(),
+                collection: "foo".to_string()
             })),
             specifications: unchecked_unique_linked_hash_map! {
-                "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("foo".to_string().into())),
+                "__bot".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                 "bar".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(1)))
             }
         })),
@@ -1028,21 +970,16 @@ mod derived {
 }
 
 mod unwind {
-    use crate::unchecked_unique_linked_hash_map;
+    use crate::translator::utils::ROOT;
 
     test_translate_stage! {
         unwind,
         expected = Ok(air::Stage::Unwind(air::Unwind {
-            source: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Collection(air::Collection {
-                    db: "test_db".to_string(),
-                    collection: "foo".to_string()
-                })),
-                specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                }
+            source: Box::new(air::Stage::Collection(air::Collection {
+                db: "test_db".to_string(),
+                collection: "foo".to_string()
             })),
-            path: Box::new(air::Expression::FieldRef("foo".to_string().into())),
+            path: Box::new(ROOT.clone()),
             index: None,
             outer: false,
         })),
@@ -1062,16 +999,11 @@ mod unwind {
     test_translate_stage! {
         unwind_outer,
         expected = Ok(air::Stage::Unwind(air::Unwind {
-            source: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Collection(air::Collection {
-                    db: "test_db".to_string(),
-                    collection: "foo".to_string()
-                })),
-                specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                }
+            source: Box::new(air::Stage::Collection(air::Collection {
+                db: "test_db".to_string(),
+                collection: "foo".to_string()
             })),
-            path: Box::new(air::Expression::FieldRef("foo.bar".to_string().into())),
+            path: Box::new(air::Expression::Variable("ROOT.bar".to_string().into())),
             index: None,
             outer: true,
         })),
@@ -1094,16 +1026,11 @@ mod unwind {
     test_translate_stage! {
         unwind_index,
         expected = Ok(air::Stage::Unwind(air::Unwind {
-            source: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Collection(air::Collection {
-                    db: "test_db".to_string(),
-                    collection: "foo".to_string()
-                })),
-                specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                }
+            source: Box::new(air::Stage::Collection(air::Collection {
+                db: "test_db".to_string(),
+                collection: "foo".to_string()
             })),
-            path: Box::new(air::Expression::FieldRef("foo.bar".to_string().into())),
+            path: Box::new(air::Expression::Variable("ROOT.bar".to_string().into())),
             index: Some("i".to_string()),
             outer: true,
         })),
@@ -1126,7 +1053,7 @@ mod unwind {
 }
 
 mod translate_plan {
-    use crate::{map, unchecked_unique_linked_hash_map};
+    use crate::{map, translator::utils::ROOT, unchecked_unique_linked_hash_map};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
     test_translate_plan!(
@@ -1134,17 +1061,12 @@ mod translate_plan {
         expected = Ok(
             air::Stage::ReplaceWith(air::ReplaceWith {
                 source: air::Stage::Project(air::Project {
-                    source: air::Stage::Project(air::Project {
-                        source: air::Stage::Collection(air::Collection {
-                            db: "test_db".to_string(),
-                            collection: "foo".to_string(),
-                        }).into(),
-                        specifications: unchecked_unique_linked_hash_map!{
-                            "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                        }
-                    }).into(),
+                    source: Box::new(air::Stage::Collection(air::Collection {
+                        db: "test_db".to_string(),
+                        collection: "foo".to_string(),
+                    })),
                     specifications: unchecked_unique_linked_hash_map!{
-                        "___bot".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("foo".to_string().into())),
+                        "___bot".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                         "____bot".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(4))),
                         "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(2))),
                         "_bot".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(1))),
@@ -1178,24 +1100,20 @@ mod translate_plan {
 
 mod subquery_expr {
     use crate::{
-        map, mir::binding_tuple::DatasourceName::Bottom, unchecked_unique_linked_hash_map,
+        map, mir::binding_tuple::DatasourceName::Bottom, translator::utils::ROOT,
+        unchecked_unique_linked_hash_map,
     };
 
     test_translate_stage!(
         unqualified_correlated_reference,
         expected = Ok(air::Stage::Project(air::Project {
             source: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Project(air::Project {
-                    source: Box::new(air::Stage::Collection(air::Collection {
-                        db: "foo".to_string(),
-                        collection: "schema_coll".to_string(),
-                    })),
-                    specifications: unchecked_unique_linked_hash_map! {
-                        "schema_coll".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                    },
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "foo".to_string(),
+                    collection: "schema_coll".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "q".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("schema_coll".to_string().into())),
+                    "q".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                 },
             })),
             specifications: unchecked_unique_linked_hash_map! {
@@ -1209,17 +1127,12 @@ mod subquery_expr {
                         pipeline: Box::new(air::Stage::Limit(air::Limit {
                             source: Box::new(air::Stage::Project(air::Project {
                                 source: Box::new(air::Stage::Project(air::Project {
-                                    source: Box::new(air::Stage::Project(air::Project {
-                                        source: Box::new(air::Stage::Collection(air::Collection {
-                                            db: "foo".to_string(),
-                                            collection: "schema_foo".to_string(),
-                                        })),
-                                        specifications: unchecked_unique_linked_hash_map! {
-                                            "schema_foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                                        },
+                                    source: Box::new(air::Stage::Collection(air::Collection {
+                                        db: "foo".to_string(),
+                                        collection: "schema_foo".to_string(),
                                     })),
                                     specifications: unchecked_unique_linked_hash_map! {
-                                        "q".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("schema_foo".to_string().into())),
+                                        "q".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                                     },
                                 })),
                                 specifications: unchecked_unique_linked_hash_map! {

@@ -84,8 +84,8 @@ func TestTranslate(t *testing.T) {
 		t.Fatalf("expected pipeline to unmarshal into []bson.D, but failed: %s", err)
 	}
 
-	if len(pipeline) != 2 {
-		t.Fatalf("expected pipeline to have two stages, but found %d", len(pipeline))
+	if len(pipeline) != 1 {
+		t.Fatalf("expected pipeline to have one stage, but found %d", len(pipeline))
 	}
 
 	expectedStage0 := bson.D{
@@ -96,15 +96,6 @@ func TestTranslate(t *testing.T) {
 	}
 	if !reflect.DeepEqual(expectedStage0, pipeline[0]) {
 		t.Fatalf("expected stages to be equal, but they weren't:\n%s\nand\n%s", expectedStage0, pipeline[0])
-	}
-	expectedStage1 := bson.D{
-		{"$project", bson.D{
-			{"_id", int32(0)},
-			{"foo", "$foo"},
-		}},
-	}
-	if !reflect.DeepEqual(expectedStage1, pipeline[1]) {
-		t.Fatalf("expected stages to be equal, but they weren't:\n%s\nand\n%s", expectedStage1, pipeline[1])
 	}
 
 	expectedResultSetSchema := bson.D{

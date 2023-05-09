@@ -2135,6 +2135,7 @@ mod subquery {
         air, map,
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{self, binding_tuple::DatasourceName::Bottom},
+        translator::utils::ROOT,
         unchecked_unique_linked_hash_map,
     };
 
@@ -2149,15 +2150,21 @@ mod subquery {
                     collection: "foo".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
+                    "foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                 },
             })),
         })),
         input = mir::Expression::Subquery(mir::SubqueryExpr {
             output_expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
-            subquery: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test".to_string(),
-                collection: "foo".to_string(),
+            subquery: Box::new(mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Collection(mir::Collection {
+                    db: "test".to_string(),
+                    collection: "foo".to_string(),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                expression: map! {
+                    ("foo", 1u16).into() => mir::Expression::Reference(("foo", 1u16).into()),
+                },
                 cache: mir::schema::SchemaCache::new(),
             })),
             cache: mir::schema::SchemaCache::new(),
@@ -2173,14 +2180,9 @@ mod subquery {
             },],
             output_path: vec!["__bot".to_string(), "a".to_string()],
             pipeline: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Project(air::Project {
-                    source: Box::new(air::Stage::Collection(air::Collection {
-                        db: "test".to_string(),
-                        collection: "bar".to_string(),
-                    })),
-                    specifications: unchecked_unique_linked_hash_map! {
-                        "bar".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                    },
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test".to_string(),
+                    collection: "bar".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
                     "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::Document(unchecked_unique_linked_hash_map! {
@@ -2242,14 +2244,9 @@ mod subquery {
             ],
             output_path: vec!["__bot".to_string(), "a".to_string()],
             pipeline: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Project(air::Project {
-                    source: Box::new(air::Stage::Collection(air::Collection {
-                        db: "test".to_string(),
-                        collection: "bar".to_string(),
-                    })),
-                    specifications: unchecked_unique_linked_hash_map! {
-                        "bar".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                    },
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test".to_string(),
+                    collection: "bar".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
                     "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::Document(unchecked_unique_linked_hash_map! {
@@ -2328,17 +2325,12 @@ mod subquery {
             let_bindings: vec![],
             output_path: vec!["___bot".to_string()],
             pipeline: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Project(air::Project {
-                    source: Box::new(air::Stage::Collection(air::Collection {
-                        db: "test".to_string(),
-                        collection: "__bot".to_string(),
-                    })),
-                    specifications: unchecked_unique_linked_hash_map! {
-                        "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                    },
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test".to_string(),
+                    collection: "__bot".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "___bot".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("__bot".to_string().into())),
+                    "___bot".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                     "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(42))),
                 }
             })),
@@ -2372,7 +2364,7 @@ mod subquery {
                     collection: "foo".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
+                    "foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                 },
             })),
         })),
@@ -2382,9 +2374,15 @@ mod subquery {
                 field: "a.b".to_string(),
                 cache: mir::schema::SchemaCache::new(),
             })),
-            subquery: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test".to_string(),
-                collection: "foo".to_string(),
+            subquery: Box::new(mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Collection(mir::Collection {
+                    db: "test".to_string(),
+                    collection: "foo".to_string(),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                expression: map! {
+                    ("foo", 1u16).into() => mir::Expression::Reference(("foo", 1u16).into()),
+                },
                 cache: mir::schema::SchemaCache::new(),
             })),
             cache: mir::schema::SchemaCache::new(),
@@ -2414,6 +2412,7 @@ mod subquery_comparison {
         air, map,
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{self, binding_tuple::DatasourceName::Bottom},
+        translator::utils::ROOT,
         unchecked_unique_linked_hash_map,
     };
 
@@ -2433,7 +2432,7 @@ mod subquery_comparison {
                             collection: "foo".to_string(),
                         })),
                         specifications: unchecked_unique_linked_hash_map! {
-                            "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
+                            "foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                         },
                     })),
                 }),
@@ -2447,9 +2446,15 @@ mod subquery_comparison {
             )),
             subquery_expr: mir::SubqueryExpr {
                 output_expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
-                subquery: Box::new(mir::Stage::Collection(mir::Collection {
-                    db: "test".to_string(),
-                    collection: "foo".to_string(),
+                subquery: Box::new(mir::Stage::Project(mir::Project {
+                    source: Box::new(mir::Stage::Collection(mir::Collection {
+                        db: "test".to_string(),
+                        collection: "foo".to_string(),
+                        cache: mir::schema::SchemaCache::new(),
+                    })),
+                    expression: map! {
+                        ("foo", 1u16).into() => mir::Expression::Reference(("foo", 1u16).into()),
+                    },
                     cache: mir::schema::SchemaCache::new(),
                 })),
                 cache: mir::schema::SchemaCache::new(),
@@ -2478,14 +2483,9 @@ mod subquery_comparison {
                     ],
                     output_path: vec!["__bot".to_string(), "a".to_string()],
                     pipeline: Box::new(air::Stage::Project(air::Project {
-                        source: Box::new(air::Stage::Project(air::Project {
-                            source: Box::new(air::Stage::Collection(air::Collection {
-                                db: "test".to_string(),
-                                collection: "bar".to_string(),
-                            })),
-                            specifications: unchecked_unique_linked_hash_map! {
-                                "bar".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                            },
+                        source: Box::new(air::Stage::Collection(air::Collection {
+                            db: "test".to_string(),
+                            collection: "bar".to_string(),
                         })),
                         specifications: unchecked_unique_linked_hash_map! {
                             "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::Document(unchecked_unique_linked_hash_map! {
@@ -2550,6 +2550,7 @@ mod subquery_exists {
         air, map,
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{self, binding_tuple::DatasourceName::Bottom},
+        translator::utils::ROOT,
         unchecked_unique_linked_hash_map,
     };
 
@@ -2563,14 +2564,20 @@ mod subquery_exists {
                     collection: "foo".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
+                    "foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                 },
             })),
         })),
         input = mir::Expression::Exists(
-            Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test".into(),
-                collection: "foo".into(),
+            Box::new(mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Collection(mir::Collection {
+                    db: "test".into(),
+                    collection: "foo".into(),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                expression: map! {
+                    ("foo", 1u16).into() => mir::Expression::Reference(("foo", 1u16).into()),
+                },
                 cache: mir::schema::SchemaCache::new(),
             }))
             .into()
@@ -2584,14 +2591,9 @@ mod subquery_exists {
                 expr: Box::new(air::Expression::FieldRef("foo".to_string().into())),
             },],
             pipeline: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Project(air::Project {
-                    source: Box::new(air::Stage::Collection(air::Collection {
-                        db: "test".to_string(),
-                        collection: "bar".to_string(),
-                    })),
-                    specifications: unchecked_unique_linked_hash_map! {
-                        "bar".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
-                    },
+                source: Box::new(air::Stage::Collection(air::Collection {
+                    db: "test".to_string(),
+                    collection: "bar".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
                     "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::Document(unchecked_unique_linked_hash_map! {

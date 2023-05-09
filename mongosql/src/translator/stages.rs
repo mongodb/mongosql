@@ -2,7 +2,7 @@ use crate::{
     air,
     mapping_registry::{Key, MqlMappingRegistry, MqlMappingRegistryValue, MqlReferenceType},
     mir,
-    translator::{utils::ROOT, Error, MqlTranslator, Result},
+    translator::{utils::ROOT_NAME, Error, MqlTranslator, Result},
 };
 use mongosql_datastructures::{
     unique_linked_hash_map, unique_linked_hash_map::UniqueLinkedHashMap,
@@ -197,45 +197,29 @@ impl MqlTranslator {
     }
 
     fn translate_collection(&mut self, mir_collection: mir::Collection) -> Result<air::Stage> {
-        let coll_stage = air::Stage::Collection(air::Collection {
-            db: mir_collection.db,
-            collection: mir_collection.collection.clone(),
-        });
-
         self.mapping_registry.insert(
             Key::named(&mir_collection.collection, self.scope_level),
-            MqlMappingRegistryValue::new(
-                mir_collection.collection.clone(),
-                MqlReferenceType::FieldRef,
-            ),
+            MqlMappingRegistryValue::new(ROOT_NAME.clone(), MqlReferenceType::Variable),
         );
-        Ok(air::Stage::Project(air::Project {
-            source: Box::new(coll_stage),
-            specifications: unique_linked_hash_map! {
-                mir_collection.collection => air::ProjectItem::Assignment(ROOT.clone()),
-            },
+
+        Ok(air::Stage::Collection(air::Collection {
+            db: mir_collection.db,
+            collection: mir_collection.collection,
         }))
     }
 
     fn translate_array_stage(&mut self, mir_arr: mir::ArraySource) -> Result<air::Stage> {
-        let doc_stage = air::Stage::Documents(air::Documents {
+        self.mapping_registry.insert(
+            Key::named(&mir_arr.alias, self.scope_level),
+            MqlMappingRegistryValue::new(ROOT_NAME.clone(), MqlReferenceType::Variable),
+        );
+
+        Ok(air::Stage::Documents(air::Documents {
             array: mir_arr
                 .array
                 .iter()
                 .map(|mir_expr| self.translate_expression(mir_expr.clone()))
                 .collect::<Result<Vec<air::Expression>>>()?,
-        });
-
-        self.mapping_registry.insert(
-            Key::named(&mir_arr.alias, self.scope_level),
-            MqlMappingRegistryValue::new(mir_arr.alias.clone(), MqlReferenceType::FieldRef),
-        );
-
-        Ok(air::Stage::Project(air::Project {
-            source: Box::new(doc_stage),
-            specifications: unique_linked_hash_map! {
-                mir_arr.alias => air::ProjectItem::Assignment(ROOT.clone()),
-            },
         }))
     }
 
