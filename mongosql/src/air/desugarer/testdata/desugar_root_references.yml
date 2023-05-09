@@ -1,0 +1,102 @@
+tests:
+  - name: "nothing to desugar"
+    input:
+      - { "$project": { "_id": 0, "expr": 1 } }
+    expected:
+      - { "$project": { "_id": 0, "expr": 1 } }
+
+  - name: "ROOT reference with no children not rewritten"
+    input:
+      - { "$project": { "_id": 0, "foo": "$$ROOT" } }
+    expected:
+      - { "$project": { "_id": 0, "foo": "$$ROOT" } }
+
+  - name: "ROOT reference with one level of nesting rewritten"
+    input:
+      - { "$project": { "_id": 0, "foo": "$$ROOT.foo" } }
+    expected:
+      - { "$project": { "_id": 0, "foo": "$foo" } }
+
+  - name: "ROOT reference with multiple levels of nesting rewritten"
+    input:
+      - { "$project": { "_id": 0, "foo": "$$ROOT.foo.bar.baz" } }
+    expected:
+      - { "$project": { "_id": 0, "foo": "$foo.bar.baz" } }
+
+  - name: "multiple ROOT references rewritten"
+    input:
+      - { "$project": { "_id": 0, "foo": "$$ROOT.foo", "bar": "$$ROOT.baz.bar" } }
+    expected:
+      - { "$project": { "_id": 0, "foo": "$foo", "bar": "$baz.bar" } }
+
+  - name: "nested variable component called ROOT is not rewritten"
+    input:
+      - {
+        "$project":
+          {
+            "_id": 0,
+            "foo":
+              {
+                "$let":
+                  {
+                    "vars": { "a": "$bar" },
+                    "in": { "$add": ["$$a.ROOT.b", 1] }
+                  }
+              }
+          }
+      }
+    expected:
+      - {
+        "$project":
+          {
+            "_id": 0,
+            "foo":
+              {
+                "$let":
+                  {
+                    "vars": { "a": "$bar" },
+                    "in": { "$add": ["$$a.ROOT.b", 1] }
+                  }
+              }
+          }
+      }
+
+  - name: "non-ROOT variables not rewritten"
+    input:
+      - {
+        "$project":
+          {
+            "_id": 0,
+            "foo":
+              {
+                "$let":
+                  {
+                    "vars":
+                      {
+                        "a": 1,
+                        "b": "$bar"
+                      },
+                    "in": { "$add": ["$$a", "$$b.c"] }
+                  }
+              }
+          }
+      }
+    expected:
+      - {
+        "$project":
+          {
+            "_id": 0,
+            "foo":
+              {
+                "$let":
+                  {
+                    "vars":
+                      {
+                        "a": 1,
+                        "b": "$bar"
+                      },
+                    "in": { "$add": ["$$a", "$$b.c"] }
+                  }
+              }
+          }
+      }

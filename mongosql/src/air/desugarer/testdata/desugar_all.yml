@@ -1547,7 +1547,7 @@ tests:
                               "condition":
                                 {
                                   "$match":
-                                    { "$expr": { "$sqlNot": ["$b"] } },
+                                    { "$expr": { "$sqlNot": ["$$ROOT.b"] } },
                                 },
                             },
                         },

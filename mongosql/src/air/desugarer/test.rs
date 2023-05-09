@@ -73,6 +73,16 @@ mod joins {
     test_desugarer!(file = "desugar_joins.yml", desugarer = JoinDesugarerPass);
 }
 
+mod root_references {
+    use super::*;
+    use crate::air::desugarer::root_references::RootReferenceDesugarerPass;
+
+    test_desugarer!(
+        file = "desugar_root_references.yml",
+        desugarer = RootReferenceDesugarerPass
+    );
+}
+
 mod sql_match_null_semantics {
     use super::*;
     use crate::air::desugarer::match_null_semantics::MatchDesugarerPass;

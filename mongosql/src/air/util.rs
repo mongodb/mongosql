@@ -57,6 +57,15 @@ impl fmt::Display for FieldRef {
     }
 }
 
+impl fmt::Display for Variable {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.parent {
+            Some(parent) => write!(f, "{}.{}", parent, self.name),
+            None => write!(f, "{}", self.name),
+        }
+    }
+}
+
 pub fn match_sql_to_mql_op(sql_op: SQLOperator) -> Option<MQLOperator> {
     match sql_op {
         SQLOperator::And | SQLOperator::Or => None,
@@ -296,5 +305,49 @@ mod field_ref_fmt {
             name: "field".to_string(),
         };
         assert_eq!(format!("{field_ref}"), "root.parent.field");
+    }
+}
+
+#[cfg(test)]
+mod variable_fmt {
+    use super::*;
+
+    #[test]
+    fn no_parent() {
+        let variable = Variable {
+            parent: None,
+            name: "field".to_string(),
+        };
+        assert_eq!(format!("{variable}"), "field");
+    }
+
+    #[test]
+    fn one_parent() {
+        let parent = Box::new(Variable {
+            parent: None,
+            name: "parent".to_string(),
+        });
+        let variable = Variable {
+            parent: Some(parent),
+            name: "field".to_string(),
+        };
+        assert_eq!(format!("{variable}"), "parent.field");
+    }
+
+    #[test]
+    fn two_level_parent() {
+        let root = Box::new(Variable {
+            parent: None,
+            name: "root".to_string(),
+        });
+        let parent = Box::new(Variable {
+            parent: Some(root),
+            name: "parent".to_string(),
+        });
+        let variable = Variable {
+            parent: Some(parent),
+            name: "field".to_string(),
+        };
+        assert_eq!(format!("{variable}"), "root.parent.field");
     }
 }
