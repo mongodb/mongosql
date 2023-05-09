@@ -429,17 +429,26 @@ impl<'a> Algebrizer<'a> {
     }
 
     fn algebrize_array_datasource(&self, a: ast::ArraySource) -> Result<mir::Stage> {
-        let (ve, alias) = (a.array, a.alias);
+        let (ve, alias) = (a.array, a.alias.clone());
         let (ve, array_is_literal) = ast::visitors::are_literal(ve);
         if !array_is_literal {
             return Err(Error::ArrayDatasourceMustBeLiteral);
         }
-        let stage = mir::Stage::Array(mir::ArraySource {
+        let src = mir::Stage::Array(mir::ArraySource {
             array: ve
                 .into_iter()
                 .map(|e| self.algebrize_expression(e))
                 .collect::<Result<_>>()?,
             alias,
+            cache: SchemaCache::new(),
+        });
+        let expr_map = map! {
+            (a.alias.clone(), self.scope_level).into() =>
+                mir::Expression::Reference((a.alias, self.scope_level).into())
+        };
+        let stage = mir::Stage::Project(mir::Project {
+            source: Box::new(src),
+            expression: expr_map,
             cache: SchemaCache::new(),
         });
         stage.schema(&self.schema_inference_state())?;

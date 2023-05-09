@@ -2653,20 +2653,26 @@ mod from_clause {
     };
 
     fn mir_array_source() -> mir::Stage {
-        mir::Stage::Array(mir::ArraySource {
-            array: vec![mir::Expression::Document(mir::DocumentExpr {
-                document: unchecked_unique_linked_hash_map! {"a".to_string() => mir::Expression::Document(mir::DocumentExpr {
-                    document: unchecked_unique_linked_hash_map!{
-                        "b".to_string() => mir::Expression::Literal(mir::LiteralExpr {
-                            value: mir::LiteralValue::Integer(5),
-                            cache: SchemaCache::new()
-                        })
-                    },
-                    cache: SchemaCache::new()
-                })},
+        mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::Array(mir::ArraySource {
+                array: vec![mir::Expression::Document(mir::DocumentExpr {
+                    document: unchecked_unique_linked_hash_map! {"a".to_string() => mir::Expression::Document(mir::DocumentExpr {
+                        document: unchecked_unique_linked_hash_map!{
+                            "b".to_string() => mir::Expression::Literal(mir::LiteralExpr {
+                                value: mir::LiteralValue::Integer(5),
+                                cache: SchemaCache::new()
+                            })
+                        },
+                        cache: SchemaCache::new()
+                    })},
+                    cache: SchemaCache::new(),
+                })],
+                alias: "arr".to_string(),
                 cache: SchemaCache::new(),
-            })],
-            alias: "arr".to_string(),
+            })),
+            expression: map! {
+                ("arr", 0u16).into() => mir::Expression::Reference(("arr", 0u16).into()),
+            },
             cache: SchemaCache::new(),
         })
     }
@@ -2745,11 +2751,17 @@ mod from_clause {
     test_algebrize!(
         empty_array,
         method = algebrize_from_clause,
-        expected = Ok(mir::Stage::Array(mir::ArraySource {
-            array: vec![],
-            alias: "bar".into(),
+        expected = Ok(mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::Array(mir::ArraySource {
+                array: vec![],
+                alias: "bar".into(),
+                cache: SchemaCache::new(),
+            })),
+            expression: map! {
+                ("bar", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+            },
             cache: SchemaCache::new(),
-        }),),
+        })),
         input = Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![],
             alias: "bar".into(),
@@ -2758,13 +2770,19 @@ mod from_clause {
     test_algebrize!(
         dual,
         method = algebrize_from_clause,
-        expected = Ok(mir::Stage::Array(mir::ArraySource {
-            array: vec![mir::Expression::Document(
-                unchecked_unique_linked_hash_map! {}.into()
-            )],
-            alias: "_dual".into(),
+        expected = Ok(mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::Array(mir::ArraySource {
+                array: vec![mir::Expression::Document(
+                    unchecked_unique_linked_hash_map! {}.into()
+                )],
+                alias: "_dual".into(),
+                cache: SchemaCache::new(),
+            })),
+            expression: map! {
+                ("_dual", 0u16).into() => mir::Expression::Reference(("_dual", 0u16).into()),
+            },
             cache: SchemaCache::new(),
-        }),),
+        })),
         input = Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Document(multimap! {},)],
             alias: "_dual".into(),
@@ -2811,17 +2829,23 @@ mod from_clause {
     test_algebrize!(
         single_document_array,
         method = algebrize_from_clause,
-        expected = Ok(mir::Stage::Array(mir::ArraySource {
-            array: vec![mir::Expression::Document(
-                unchecked_unique_linked_hash_map! {
-                    "foo".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
-                    "bar".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())
-                }
-                .into()
-            )],
-            alias: "bar".into(),
+        expected = Ok(mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::Array(mir::ArraySource {
+                array: vec![mir::Expression::Document(
+                    unchecked_unique_linked_hash_map! {
+                        "foo".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                        "bar".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())
+                    }
+                    .into()
+                )],
+                alias: "bar".into(),
+                cache: SchemaCache::new(),
+            })),
+            expression: map! {
+                ("bar", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+            },
             cache: SchemaCache::new(),
-        }),),
+        })),
         input = Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Document(multimap! {
                 "foo".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
@@ -2833,20 +2857,26 @@ mod from_clause {
     test_algebrize!(
         two_document_array,
         method = algebrize_from_clause,
-        expected = Ok(mir::Stage::Array(mir::ArraySource {
-            array: vec![
-                mir::Expression::Document(unchecked_unique_linked_hash_map! {
-                    "foo".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
-                    "bar".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())
-                }.into()),
-                mir::Expression::Document(unchecked_unique_linked_hash_map! {
-                    "foo2".into() => mir::Expression::Literal(mir::LiteralValue::Integer(41).into()),
-                    "bar2".into() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into())
-                }.into())
-            ],
-            alias: "bar".into(),
+        expected = Ok(mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::Array(mir::ArraySource {
+                array: vec![
+                    mir::Expression::Document(unchecked_unique_linked_hash_map! {
+                        "foo".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                        "bar".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())
+                    }.into()),
+                    mir::Expression::Document(unchecked_unique_linked_hash_map! {
+                        "foo2".into() => mir::Expression::Literal(mir::LiteralValue::Integer(41).into()),
+                        "bar2".into() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into())
+                    }.into())
+                ],
+                alias: "bar".into(),
+                cache: SchemaCache::new(),
+            })),
+            expression: map! {
+                ("bar", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+            },
             cache: SchemaCache::new(),
-        }),),
+        })),
         input = Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![
                 ast::Expression::Document(multimap! {
@@ -2864,22 +2894,28 @@ mod from_clause {
     test_algebrize!(
         two_document_with_nested_document_array,
         method = algebrize_from_clause,
-        expected = Ok(mir::Stage::Array(mir::ArraySource {
-            array: vec![
-                mir::Expression::Document(unchecked_unique_linked_hash_map! {
-                    "foo".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
-                    "bar".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())
-                }.into()),
-                mir::Expression::Document(unchecked_unique_linked_hash_map! {
-                    "foo2".into() => mir::Expression::Document(
-                        unchecked_unique_linked_hash_map!{"nested".into() => mir::Expression::Literal(mir::LiteralValue::Integer(52).into())}
-                    .into()),
-                    "bar2".into() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into())
-                }.into())
-            ],
-            alias: "bar".into(),
+        expected = Ok(mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::Array(mir::ArraySource {
+                array: vec![
+                    mir::Expression::Document(unchecked_unique_linked_hash_map! {
+                        "foo".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                        "bar".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())
+                    }.into()),
+                    mir::Expression::Document(unchecked_unique_linked_hash_map! {
+                        "foo2".into() => mir::Expression::Document(
+                            unchecked_unique_linked_hash_map!{"nested".into() => mir::Expression::Literal(mir::LiteralValue::Integer(52).into())}
+                        .into()),
+                        "bar2".into() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into())
+                    }.into())
+                ],
+                alias: "bar".into(),
+                cache: SchemaCache::new(),
+            })),
+            expression: map! {
+                ("bar", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+            },
             cache: SchemaCache::new(),
-        }),),
+        })),
         input = Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![
                 ast::Expression::Document(multimap! {
@@ -3022,13 +3058,20 @@ mod from_clause {
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Derived(mir::Derived {
             source: Box::new(mir::Stage::Project(mir::Project {
-                source: Box::new(mir::Stage::Array(mir::ArraySource {
-                    array: vec![mir::Expression::Document(
-                        unchecked_unique_linked_hash_map! {"foo".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
-                             "bar".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())
-                        }
-                    .into())],
-                    alias: "bar".into(),
+                source: Box::new(mir::Stage::Project(mir::Project {
+                    source: Box::new(mir::Stage::Array(mir::ArraySource {
+                        array: vec![mir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
+                                "foo".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                                "bar".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                            }
+                        .into())],
+                        alias: "bar".into(),
+                        cache: SchemaCache::new(),
+                    })),
+                    expression: map! {
+                        ("bar", 1u16).into() => mir::Expression::Reference(("bar", 1u16).into()),
+                    },
                     cache: SchemaCache::new(),
                 })),
                 expression: map! {("d", 0u16).into() =>
@@ -3074,17 +3117,20 @@ mod from_clause {
         expected = Ok(mir::Stage::Derived(mir::Derived {
             source: Box::new(mir::Stage::Project(mir::Project {
                 source: Box::new(mir::Stage::Project(mir::Project {
-                    source: Box::new(mir::Stage::Array(mir::ArraySource {
-                        array: vec![mir::Expression::Document(
-                            unchecked_unique_linked_hash_map! {"foo".into() => mir::Expression::Literal(
-                                mir::LiteralValue::Integer(1).into()
-                                ),
-                                "bar".into() => mir::Expression::Literal(
-                                    mir::LiteralValue::Integer(1).into())
-                            }
-                            .into()
-                        )],
-                        alias: "bar".into(),
+                    source: Box::new(mir::Stage::Project(mir::Project {
+                        source: Box::new(mir::Stage::Array(mir::ArraySource {
+                            array: vec![mir::Expression::Document(
+                                unchecked_unique_linked_hash_map! {
+                                    "foo".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                                    "bar".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                                }
+                            .into())],
+                            alias: "bar".into(),
+                            cache: SchemaCache::new(),
+                        })),
+                        expression: map! {
+                            ("bar", 1u16).into() => mir::Expression::Reference(("bar", 1u16).into()),
+                        },
                         cache: SchemaCache::new(),
                     })),
                     expression: map! {
@@ -3150,25 +3196,37 @@ mod from_clause {
             source: Box::new(mir::Stage::Project(mir::Project {
                 source: mir::Stage::Join(mir::Join {
                     join_type: mir::JoinType::Inner,
-                    left: mir::Stage::Array(mir::ArraySource {
-                        array: vec![mir::Expression::Document(
-                            unchecked_unique_linked_hash_map! {
-                            "foo1".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
-                            "bar1".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())
-                                                        }
-                        .into())],
-                        alias: "bar1".into(),
+                    left: mir::Stage::Project(mir::Project {
+                        source: Box::new(mir::Stage::Array(mir::ArraySource {
+                            array: vec![mir::Expression::Document(
+                                unchecked_unique_linked_hash_map! {
+                                "foo1".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                                "bar1".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())
+                                                            }
+                            .into())],
+                            alias: "bar1".into(),
+                            cache: SchemaCache::new(),
+                        })),
+                        expression: map! {
+                            ("bar1", 1u16).into() => mir::Expression::Reference(("bar1", 1u16).into()),
+                        },
                         cache: SchemaCache::new(),
                     })
                     .into(),
-                    right: mir::Stage::Array(mir::ArraySource {
-                        array: vec![mir::Expression::Document(
-                            unchecked_unique_linked_hash_map! {
-                            "foo2".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
-                            "bar2".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())
-                                                        }
-                        .into())],
-                        alias: "bar2".into(),
+                    right: mir::Stage::Project(mir::Project {
+                        source: Box::new(mir::Stage::Array(mir::ArraySource {
+                            array: vec![mir::Expression::Document(
+                                unchecked_unique_linked_hash_map! {
+                                "foo2".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                                "bar2".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())
+                                                            }
+                            .into())],
+                            alias: "bar2".into(),
+                            cache: SchemaCache::new(),
+                        })),
+                        expression: map! {
+                            ("bar2", 1u16).into() => mir::Expression::Reference(("bar2", 1u16).into()),
+                        },
                         cache: SchemaCache::new(),
                     })
                     .into(),
@@ -3231,18 +3289,30 @@ mod from_clause {
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Join(mir::Join {
             join_type: mir::JoinType::Left,
-            left: Box::new(mir::Stage::Array(mir::ArraySource {
-                array: vec![mir::Expression::Document(
-                    unchecked_unique_linked_hash_map! {"a".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())}
-                .into())],
-                alias: "foo".to_string(),
+            left: Box::new(mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Array(mir::ArraySource {
+                    array: vec![mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {"a".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())}
+                    .into())],
+                    alias: "foo".to_string(),
+                    cache: SchemaCache::new(),
+                })),
+                expression: map! {
+                    ("foo", 0u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
+                },
                 cache: SchemaCache::new(),
             })),
-            right: Box::new(mir::Stage::Array(mir::ArraySource {
-                array: vec![mir::Expression::Document(
-                    unchecked_unique_linked_hash_map! {"b".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(4).into())}
-                .into())],
-                alias: "bar".to_string(),
+            right: Box::new(mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Array(mir::ArraySource {
+                    array: vec![mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {"b".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(4).into())}
+                    .into())],
+                    alias: "bar".to_string(),
+                    cache: SchemaCache::new(),
+                })),
+                expression: map! {
+                    ("bar", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
+                },
                 cache: SchemaCache::new(),
             })),
             condition: Some(mir::Expression::ScalarFunction(
@@ -3381,32 +3451,38 @@ mod from_clause {
         flatten_array_source_multiple_docs,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
-            source: Box::new(mir::Stage::Array(mir::ArraySource {
-                array: vec![mir::Expression::Document(mir::DocumentExpr {
-                    document: unchecked_unique_linked_hash_map! {
-                        "a".to_string() => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map!{
-                                "b".to_string() => mir::Expression::Literal(mir::LiteralExpr {
-                                    value: mir::LiteralValue::Integer(5),
-                                    cache: SchemaCache::new()
-                                })
-                            },
-                            cache: SchemaCache::new()
-                        }),
-                        "x".to_string() => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map! {
-                                "y".to_string() => mir::Expression::Literal(mir::LiteralExpr {
-                                    value: mir::LiteralValue::Integer(8),
-                                    cache: SchemaCache::new()
-                                })
-                            },
-                            cache: SchemaCache::new()
-                        })
-                    },
+            source: Box::new(mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Array(mir::ArraySource {
+                    array: vec![mir::Expression::Document(mir::DocumentExpr {
+                        document: unchecked_unique_linked_hash_map! {
+                            "a".to_string() => mir::Expression::Document(mir::DocumentExpr {
+                                document: unchecked_unique_linked_hash_map!{
+                                    "b".to_string() => mir::Expression::Literal(mir::LiteralExpr {
+                                        value: mir::LiteralValue::Integer(5),
+                                        cache: SchemaCache::new()
+                                    })
+                                },
+                                cache: SchemaCache::new()
+                            }),
+                            "x".to_string() => mir::Expression::Document(mir::DocumentExpr {
+                                document: unchecked_unique_linked_hash_map! {
+                                    "y".to_string() => mir::Expression::Literal(mir::LiteralExpr {
+                                        value: mir::LiteralValue::Integer(8),
+                                        cache: SchemaCache::new()
+                                    })
+                                },
+                                cache: SchemaCache::new()
+                            })
+                        },
+                        cache: SchemaCache::new()
+                    })],
+                    alias: "arr".to_string(),
                     cache: SchemaCache::new()
-                })],
-                alias: "arr".to_string(),
-                cache: SchemaCache::new()
+                })),
+                expression: map! {
+                    ("arr", 0u16).into() => mir::Expression::Reference(("arr", 0u16).into()),
+                },
+                cache: SchemaCache::new(),
             })),
             expression: map! {
                 ("arr", 0u16).into() => mir::Expression::Document(mir::DocumentExpr {
@@ -3469,43 +3545,49 @@ mod from_clause {
         flatten_polymorphic_non_document_schema_array_source,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Project(mir::Project {
-            source: Box::new(mir::Stage::Array(mir::ArraySource {
-                array: vec![
-                    mir::Expression::Document(mir::DocumentExpr {
-                        document: unchecked_unique_linked_hash_map! {
-                        "a".to_string() => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map!{
-                                "b".to_string() => mir::Expression::Document(mir::DocumentExpr {
-                                    document: unchecked_unique_linked_hash_map!{
-                                        "c".to_string() => mir::Expression::Literal(mir::LiteralExpr {
-                                            value: mir::LiteralValue::Integer(5),
-                                            cache: SchemaCache::new()
-                                        })},
-                                    cache: SchemaCache::new()
-                                })},
+            source: Box::new(mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Array(mir::ArraySource {
+                    array: vec![
+                        mir::Expression::Document(mir::DocumentExpr {
+                            document: unchecked_unique_linked_hash_map! {
+                            "a".to_string() => mir::Expression::Document(mir::DocumentExpr {
+                                document: unchecked_unique_linked_hash_map!{
+                                    "b".to_string() => mir::Expression::Document(mir::DocumentExpr {
+                                        document: unchecked_unique_linked_hash_map!{
+                                            "c".to_string() => mir::Expression::Literal(mir::LiteralExpr {
+                                                value: mir::LiteralValue::Integer(5),
+                                                cache: SchemaCache::new()
+                                            })},
+                                        cache: SchemaCache::new()
+                                    })},
+                                cache: SchemaCache::new()
+                            })},
                             cache: SchemaCache::new()
-                        })},
-                        cache: SchemaCache::new()
-                    }),
-                    mir::Expression::Document(mir::DocumentExpr {
-                        document: unchecked_unique_linked_hash_map! {
-                        "a".to_string() => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map!{
-                                "b".to_string() => mir::Expression::Document(mir::DocumentExpr {
-                                    document: unchecked_unique_linked_hash_map!{
-                                        "c".to_string() => mir::Expression::Literal(mir::LiteralExpr {
-                                            value: mir::LiteralValue::String("hello".to_string()),
-                                            cache: SchemaCache::new()
-                                        })},
-                                    cache: SchemaCache::new()
-                                })},
+                        }),
+                        mir::Expression::Document(mir::DocumentExpr {
+                            document: unchecked_unique_linked_hash_map! {
+                            "a".to_string() => mir::Expression::Document(mir::DocumentExpr {
+                                document: unchecked_unique_linked_hash_map!{
+                                    "b".to_string() => mir::Expression::Document(mir::DocumentExpr {
+                                        document: unchecked_unique_linked_hash_map!{
+                                            "c".to_string() => mir::Expression::Literal(mir::LiteralExpr {
+                                                value: mir::LiteralValue::String("hello".to_string()),
+                                                cache: SchemaCache::new()
+                                            })},
+                                        cache: SchemaCache::new()
+                                    })},
+                                cache: SchemaCache::new()
+                            })},
                             cache: SchemaCache::new()
-                        })},
-                        cache: SchemaCache::new()
-                    })
-                ],
-                alias: "arr".to_string(),
-                cache: SchemaCache::new()
+                        })
+                    ],
+                    alias: "arr".to_string(),
+                    cache: SchemaCache::new()
+                })),
+                expression: map! {
+                    ("arr", 0u16).into() => mir::Expression::Reference(("arr", 0u16).into()),
+                },
+                cache: SchemaCache::new(),
             })),
             expression: map! {
             ("arr", 0u16).into() => mir::Expression::Document(mir::DocumentExpr {
@@ -4292,15 +4374,21 @@ mod subquery {
     };
     use lazy_static::lazy_static;
 
-    fn mir_array() -> Stage {
-        Stage::Array(ArraySource {
-            array: vec![Expression::Document(
-                unchecked_unique_linked_hash_map! {
-                    "a".into() => Expression::Literal(LiteralValue::Integer(1).into())
-                }
-                .into(),
-            )],
-            alias: "arr".into(),
+    fn mir_array(scope: u16) -> Stage {
+        Stage::Project(Project {
+            source: Box::new(Stage::Array(ArraySource {
+                array: vec![Expression::Document(
+                    unchecked_unique_linked_hash_map! {
+                        "a".into() => Expression::Literal(LiteralValue::Integer(1).into())
+                    }
+                    .into(),
+                )],
+                alias: "arr".into(),
+                cache: SchemaCache::new(),
+            })),
+            expression: map! {
+                ("arr", scope).into() => Expression::Reference(("arr", scope).into()),
+            },
             cache: SchemaCache::new(),
         })
     }
@@ -4316,7 +4404,7 @@ mod subquery {
         uncorrelated_exists,
         method = algebrize_expression,
         expected = Ok(Expression::Exists(Box::new(Stage::Project(Project {
-            source: Box::new(mir_array()),
+            source: Box::new(mir_array(1u16)),
             expression: map! {
                 (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
                     "a".into() => Expression::Literal(LiteralValue::Integer(1).into())
@@ -4346,7 +4434,7 @@ mod subquery {
         correlated_exists,
         method = algebrize_expression,
         expected = Ok(Expression::Exists(Box::new(Stage::Project(Project {
-            source: Box::new(mir_array()),
+            source: Box::new(mir_array(2u16)),
             expression: map! {
                 (DatasourceName::Bottom, 2u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
                     "b_0".into() => Expression::FieldAccess(FieldAccess {
@@ -4388,16 +4476,22 @@ mod subquery {
     test_algebrize!(
         exists_cardinality_gt_1,
         method = algebrize_expression,
-        expected = Ok(Expression::Exists(Box::new(Stage::Array(ArraySource {
-            array: vec![
-                Expression::Document(
-                    unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(LiteralValue::Integer(1).into())}
-                .into()),
-                Expression::Document(
-                    unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(LiteralValue::Integer(2).into())}
-                .into())
-            ],
-            alias: "arr".into(),
+        expected = Ok(Expression::Exists(Box::new(Stage::Project(Project {
+            source: Box::new(Stage::Array(ArraySource {
+                array: vec![
+                    Expression::Document(
+                        unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(LiteralValue::Integer(1).into())}
+                    .into()),
+                    Expression::Document(
+                        unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(LiteralValue::Integer(2).into())}
+                    .into())
+                ],
+                alias: "arr".into(),
+                cache: SchemaCache::new(),
+            })),
+            expression: map! {
+                ("arr", 1u16).into() => Expression::Reference(("arr", 1u16).into()),
+            },
             cache: SchemaCache::new(),
         })).into())),
         input = ast::Expression::Exists(Box::new(ast::Query::Select(ast::SelectQuery {
@@ -4428,15 +4522,21 @@ mod subquery {
         exists_degree_gt_1,
         method = algebrize_expression,
         expected = Ok(Expression::Exists(
-            Box::new(Stage::Array(ArraySource {
-                array: vec![Expression::Document(
-                    unchecked_unique_linked_hash_map! {
-                        "a".to_string() => Expression::Literal(LiteralValue::Integer(1).into()),
-                        "b".to_string() => Expression::Literal(LiteralValue::Integer(2).into())
-                    }
-                    .into()
-                )],
-                alias: "arr".to_string(),
+            Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Array(ArraySource {
+                    array: vec![Expression::Document(
+                        unchecked_unique_linked_hash_map! {
+                            "a".to_string() => Expression::Literal(LiteralValue::Integer(1).into()),
+                            "b".to_string() => Expression::Literal(LiteralValue::Integer(2).into())
+                        }
+                        .into()
+                    )],
+                    alias: "arr".to_string(),
+                    cache: SchemaCache::new(),
+                })),
+                expression: map! {
+                    ("arr", 1u16).into() => Expression::Reference(("arr", 1u16).into()),
+                },
                 cache: SchemaCache::new(),
             }))
             .into()
@@ -4471,7 +4571,7 @@ mod subquery {
                 cache: SchemaCache::new(),
             })),
             subquery: Box::new(Stage::Project(Project {
-                source: Box::new(mir_array()),
+                source: Box::new(mir_array(1u16)),
                 expression: map! {
                     (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
                         "a_0".into() => Expression::FieldAccess(FieldAccess {
@@ -4513,7 +4613,7 @@ mod subquery {
                 cache: SchemaCache::new(),
             })),
             subquery: Box::new(Stage::Project(Project {
-                source: Box::new(mir_array()),
+                source: Box::new(mir_array(2u16)),
                 expression: map! {
                     (DatasourceName::Bottom, 2u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
                         "b_0".into() => Expression::FieldAccess(FieldAccess {
@@ -4585,7 +4685,7 @@ mod subquery {
                 cache: SchemaCache::new(),
             })),
             subquery: Box::new(Stage::Project(Project {
-                source: Box::new(mir_array()),
+                source: Box::new(mir_array(1u16)),
                 expression: map! {
                     ("arr", 1u16).into() => Expression::Reference(("arr", 1u16).into())
                 },
@@ -4653,7 +4753,7 @@ mod subquery {
                 field: "a".to_string(),
                 cache: SchemaCache::new(),
             })),
-            subquery: Box::new(mir_array()),
+            subquery: Box::new(mir_array(1u16)),
             cache: SchemaCache::new(),
         })),
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
@@ -4736,7 +4836,7 @@ mod subquery {
                     cache: SchemaCache::new(),
                 })),
                 subquery: Box::new(Stage::Project(Project {
-                    source: Box::new(mir_array()),
+                    source: Box::new(mir_array(1u16)),
                     expression: map! {
                         (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
                             "a_0".into() => Expression::FieldAccess(FieldAccess {
@@ -4789,7 +4889,7 @@ mod subquery {
                     cache: SchemaCache::new(),
                 })),
                 subquery: Box::new(Stage::Project(Project {
-                    source: Box::new(mir_array()),
+                    source: Box::new(mir_array(1u16)),
                     expression: map! {
                         (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
                             "a_0".into() => Expression::FieldAccess(FieldAccess {
@@ -4846,7 +4946,7 @@ mod subquery {
                     cache: SchemaCache::new(),
                 })),
                 subquery: Box::new(Stage::Project(Project {
-                    source: Box::new(mir_array()),
+                    source: Box::new(mir_array(2u16)),
                     expression: map! {
                         (DatasourceName::Bottom, 2u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
                             "a_0".into() => Expression::FieldAccess(FieldAccess {
