@@ -3,8 +3,9 @@
 package mongosql
 
 /*
-#cgo LDFLAGS: -lmongosql -lpthread -ldl -lm
+#cgo LDFLAGS: -lmongosql -lpthread -ldl -lm -framework CoreFoundation
 #include <stdlib.h>
+#include <CoreFoundation/CoreFoundation.h>
 #include "./mongosql.h"
 */
 import "C"

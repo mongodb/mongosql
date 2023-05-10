@@ -5,7 +5,8 @@ authors = ["Ryan Chipman <ryan@ryanchipman.com>", "Patrick Meredith <pmeredit@pr
 edition = "2021"
 
 [dependencies]
-bson = "2"
+bson = {version = "2.6", features = ["chrono-0_4"]}
+chrono = "0.4.24"
 itertools = "0.10.1"
 lalrpop-util = { version = "0.19.9", features = ["lexer"] }
 lazy_static = "1"

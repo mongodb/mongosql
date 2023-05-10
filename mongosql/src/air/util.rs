@@ -125,7 +125,18 @@ impl PartialEq for LiteralValue {
             (LiteralValue::String(a), LiteralValue::String(b)) => a == b,
             (LiteralValue::Integer(a), LiteralValue::Integer(b)) => a == b,
             (LiteralValue::Long(a), LiteralValue::Long(b)) => a == b,
-            _ => false,
+            (LiteralValue::ObjectId(a), LiteralValue::ObjectId(b)) => a == b,
+            (LiteralValue::DateTime(a), LiteralValue::DateTime(b)) => a == b,
+            (LiteralValue::Decimal128(a), LiteralValue::Decimal128(b)) => a == b,
+            (LiteralValue::Null, _) => false,
+            (LiteralValue::Boolean(_), _) => false,
+            (LiteralValue::String(_), _) => false,
+            (LiteralValue::Integer(_), _) => false,
+            (LiteralValue::Long(_), _) => false,
+            (LiteralValue::Double(_), _) => false,
+            (LiteralValue::ObjectId(_), _) => false,
+            (LiteralValue::DateTime(_), _) => false,
+            (LiteralValue::Decimal128(_), _) => false,
         }
     }
 }

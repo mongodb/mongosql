@@ -1,4 +1,5 @@
 use crate::util::unique_linked_hash_map::UniqueLinkedHashMap;
+use bson::{oid::ObjectId, DateTime, Decimal128};
 
 visitgen::generate_visitors! {
 
@@ -431,6 +432,10 @@ pub enum LiteralValue {
     Integer(i32),
     Long(i64),
     Double(f64),
+    // Only derived from folded Converts
+    ObjectId(ObjectId),
+    Decimal128(Decimal128),
+    DateTime(DateTime),
 }
 
 #[derive(PartialEq, Debug, Clone)]

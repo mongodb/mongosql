@@ -106,6 +106,9 @@ impl MqlCodeGenerator {
                 Integer(i) => Bson::Int32(i),
                 Long(l) => Bson::Int64(l),
                 Double(d) => Bson::Double(d),
+                Decimal128(d) => Bson::Decimal128(d),
+                ObjectId(o) => Bson::ObjectId(o),
+                DateTime(d) => Bson::DateTime(d),
             },
         }))
     }

@@ -1,6 +1,13 @@
-use crate::air::{self, agg_ast::ast_definitions as agg_ast, desugarer::Pass};
+use crate::air::{
+    self,
+    agg_ast::ast_definitions as agg_ast,
+    desugarer::{self, Pass},
+    Stage,
+};
+use chrono::prelude::*;
+use lazy_static::lazy_static;
 use serde::Deserialize;
-use std::{fs, io::Read};
+use std::{fs, io::Read, str::FromStr};
 use thiserror::Error;
 
 macro_rules! test_desugarer {
@@ -27,6 +34,21 @@ macro_rules! test_desugarer {
             }
 
             Ok(())
+        }
+    };
+}
+
+macro_rules! test_desugar_manual {
+    (name = $name:ident, desugarer = $desugarer:ident, input = $input:expr, expected = $expected:expr) => {
+        #[test]
+        fn $name() {
+            let input = $input;
+            let expected = $expected;
+
+            let actual: Result<Stage, Error> =
+                $desugarer.apply(input).map_err(Error::CannotDesugar);
+
+            assert_eq!(expected, actual);
         }
     };
 }
@@ -100,6 +122,307 @@ mod sql_null_semantics {
     test_desugarer!(
         file = "desugar_sql_null_semantics.yml",
         desugarer = SQLNullSemanticsOperatorsDesugarerPass
+    );
+}
+
+mod fold_converts {
+    use super::*;
+    use crate::{
+        air::desugarer::fold_converts::FoldConvertsDesugarerPass, unchecked_unique_linked_hash_map,
+    };
+
+    lazy_static! {
+        static ref OID: bson::oid::ObjectId =
+            bson::oid::ObjectId::parse_str("507f1f77bcf86cd799439011").unwrap();
+        static ref DATE: bson::DateTime = {
+            let chrono_dt: chrono::DateTime<Utc> = "2014-01-01T08:15:39.736Z".parse().unwrap();
+            chrono_dt.into()
+        };
+        static ref INT_DEC: bson::Decimal128 = bson::Decimal128::from_str("3").unwrap();
+        static ref DOUBLE_DEC: bson::Decimal128 =
+            bson::Decimal128::from_str(&format!("{}", std::f64::consts::PI)).unwrap();
+        static ref STRING_DEC: bson::Decimal128 = bson::Decimal128::from_str("3.14159265").unwrap();
+    }
+
+    test_desugar_manual!(
+        name = no_convert,
+        desugarer = FoldConvertsDesugarerPass,
+        input = air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::ObjectId(*OID)))}
+        }),
+        expected = Ok::<Stage, desugarer::test::Error>(air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::ObjectId(*OID)))}
+        }))
+    );
+    test_desugar_manual!(
+        name = convert_valid_string_to_date,
+        desugarer = FoldConvertsDesugarerPass,
+        input = air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(
+                air::Expression::Convert(air::Convert {
+                    input: air::Expression::Literal(air::LiteralValue::String("2014-01-01T08:15:39.736Z".into())).into(),
+                    to: air::Type::Datetime,
+                    on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                })
+            )}
+        }),
+        expected = Ok::<Stage, desugarer::test::Error>(air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::DateTime(*DATE)))}
+        }))
+    );
+    test_desugar_manual!(
+        name = convert_invalid_string_to_date,
+        desugarer = FoldConvertsDesugarerPass,
+        input = air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(
+                air::Expression::Convert(air::Convert {
+                    input: air::Expression::Literal(air::LiteralValue::String("2014-01-56T08:15:39.736Z".into())).into(),
+                    to: air::Type::Datetime,
+                    on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                })
+            )}
+        }),
+        expected = Err::<Stage, Error>(Error::CannotDesugar(
+            desugarer::Error::InvalidConstantConvert(air::Type::Datetime)
+        ))
+    );
+    test_desugar_manual!(
+        name = convert_valid_string_to_oid,
+        desugarer = FoldConvertsDesugarerPass,
+        input = air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(
+                air::Expression::Convert(air::Convert {
+                    input: air::Expression::Literal(air::LiteralValue::String("507f1f77bcf86cd799439011".into())).into(),
+                    to: air::Type::ObjectId,
+                    on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                })
+            )}
+        }),
+        expected = Ok::<Stage, desugarer::test::Error>(air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::ObjectId(*OID)))}
+        }))
+    );
+    test_desugar_manual!(
+        name = convert_invalid_string_to_oid,
+        desugarer = FoldConvertsDesugarerPass,
+        input = air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(
+                air::Expression::Convert(air::Convert {
+                    input: air::Expression::Literal(air::LiteralValue::String("57f1f77bcf86cd799439011".into())).into(),
+                    to: air::Type::ObjectId,
+                    on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                })
+            )}
+        }),
+        expected = Err::<Stage, Error>(Error::CannotDesugar(
+            desugarer::Error::InvalidConstantConvert(air::Type::ObjectId)
+        ))
+    );
+    test_desugar_manual!(
+        name = convert_valid_string_to_decimal128,
+        desugarer = FoldConvertsDesugarerPass,
+        input = air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(
+                air::Expression::Convert(air::Convert {
+                    input: air::Expression::Literal(air::LiteralValue::String("3.14159265".into())).into(),
+                    to: air::Type::Decimal128,
+                    on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                })
+            )}
+        }),
+        expected = Ok::<Stage, desugarer::test::Error>(air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Decimal128(*STRING_DEC)))}
+        }))
+    );
+    test_desugar_manual!(
+        name = convert_valid_nested_string_convert_to_decimal128,
+        desugarer = FoldConvertsDesugarerPass,
+        input = air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(
+                air::Expression::Convert(air::Convert {
+                    input: air::Expression::Convert(air::Convert {
+                        input: air::Expression::Literal(air::LiteralValue::String("3.14159265".into())).into(),
+                        to: air::Type::String,
+                        on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                        on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    }).into(),
+                    to: air::Type::Decimal128,
+                    on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    }))
+            }
+        }),
+        expected = Ok::<Stage, desugarer::test::Error>(air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Decimal128(*STRING_DEC)))}
+        }))
+    );
+    test_desugar_manual!(
+        name = convert_invalid_string_to_decimal128,
+        desugarer = FoldConvertsDesugarerPass,
+        input = air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(
+                air::Expression::Convert(air::Convert {
+                    input: air::Expression::Literal(air::LiteralValue::String("hello".into())).into(),
+                    to: air::Type::Decimal128,
+                    on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                })
+            )}
+        }),
+        expected = Err::<Stage, Error>(Error::CannotDesugar(
+            desugarer::Error::InvalidConstantConvert(air::Type::Decimal128)
+        ))
+    );
+    test_desugar_manual!(
+        name = convert_double_to_decimal128,
+        desugarer = FoldConvertsDesugarerPass,
+        input = air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(
+                air::Expression::Convert(air::Convert {
+                    input: air::Expression::Literal(air::LiteralValue::Double(std::f64::consts::PI)).into(),
+                    to: air::Type::Decimal128,
+                    on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                })
+            )}
+        }),
+        expected = Ok::<Stage, desugarer::test::Error>(air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Decimal128(*DOUBLE_DEC)))}
+        }))
+    );
+    test_desugar_manual!(
+        name = convert_int_to_decimal128,
+        desugarer = FoldConvertsDesugarerPass,
+        input = air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(
+                air::Expression::Convert(air::Convert {
+                    input: air::Expression::Literal(air::LiteralValue::Integer(3)).into(),
+                    to: air::Type::Decimal128,
+                    on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                })
+            )}
+        }),
+        expected = Ok::<Stage, desugarer::test::Error>(air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Decimal128(*INT_DEC)))}
+        }))
+    );
+    test_desugar_manual!(
+        name = convert_long_to_decimal128,
+        desugarer = FoldConvertsDesugarerPass,
+        input = air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(
+                air::Expression::Convert(air::Convert {
+                    input: air::Expression::Literal(air::LiteralValue::Long(3)).into(),
+                    to: air::Type::Decimal128,
+                    on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                })
+            )}
+        }),
+        expected = Ok::<Stage, desugarer::test::Error>(air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Decimal128(*INT_DEC)))}
+        }))
     );
 }
 

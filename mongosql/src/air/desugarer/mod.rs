@@ -11,6 +11,8 @@ mod root_references;
 use crate::air::desugarer::root_references::RootReferenceDesugarerPass;
 mod sql_null_semantics_operators;
 use crate::air::desugarer::sql_null_semantics_operators::SQLNullSemanticsOperatorsDesugarerPass;
+mod fold_converts;
+use crate::air::desugarer::fold_converts::FoldConvertsDesugarerPass;
 mod subquery;
 use crate::air::desugarer::subquery::SubqueryExprDesugarerPass;
 mod unsupported_operators;
@@ -27,6 +29,8 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     #[error("pattern for $like must be literal")]
     InvalidLikePattern,
+    #[error("could not statically evaluate constant $convert to Type {0:?}, due to improper constant input value")]
+    InvalidConstantConvert(air::Type),
 }
 
 /// A fallible transformation that can be applied to a pipeline
@@ -47,6 +51,7 @@ pub fn desugar_pipeline(pipeline: air::Stage) -> Result<air::Stage> {
         &SubqueryExprDesugarerPass,
         &UnsupportedOperatorsDesugarerPass,
         &SQLNullSemanticsOperatorsDesugarerPass,
+        &FoldConvertsDesugarerPass,
     ];
 
     let mut desugared = pipeline;
