@@ -53,14 +53,8 @@ pub fn translate_sql(
     let algebrizer = Algebrizer::new(current_db, catalog, 0u16, schema_checking_mode);
     let plan = algebrizer.algebrize_query(ast)?;
 
-    // flatten variadic function
-    let plan = mir::flatten::flatten_variadic_functions(plan);
-
-    // constant fold stages
-    let plan = mir::constant_folding::fold_constants(plan, schema_checking_mode);
-
-    // split match stages
-    let plan = mir::match_splitting::split_matches(plan);
+    // optimizer runs
+    let plan = mir::optimizer::optimize_plan(plan, schema_checking_mode);
 
     // get the schema_env for the plan
     let schema_env = plan

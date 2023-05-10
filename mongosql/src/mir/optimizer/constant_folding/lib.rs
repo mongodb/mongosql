@@ -11,8 +11,8 @@ use crate::{
 use lazy_static::lazy_static;
 
 #[derive(Copy, Clone)]
-struct ConstantFoldExprVisitor {
-    schema_checking_mode: SchemaCheckingMode,
+pub(crate) struct ConstantFoldExprVisitor {
+    pub(crate) schema_checking_mode: SchemaCheckingMode,
 }
 
 lazy_static! {
@@ -1109,11 +1109,4 @@ impl Visitor for ConstantFoldExprVisitor {
             Stage::Unwind(_) => st,
         }
     }
-}
-
-pub fn fold_constants(st: Stage, schema_checking_mode: SchemaCheckingMode) -> Stage {
-    let mut cf = ConstantFoldExprVisitor {
-        schema_checking_mode,
-    };
-    cf.visit_stage(st)
 }
