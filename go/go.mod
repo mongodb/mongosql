@@ -1,6 +1,6 @@
 module github.com/10gen/mongosql-rs/go
 
-go 1.18
+go 1.19
 
 require (
 	github.com/10gen/candiedyaml v0.0.0-20230505173609-3e83ddd1880d
