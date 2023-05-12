@@ -714,6 +714,7 @@ mod array {
 
 mod join {
     use crate::{air, map, mir, translator::utils::ROOT, unchecked_unique_linked_hash_map};
+    use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
     fn input_collection(collection_name: &str) -> Box<mir::Stage> {
         Box::new(mir::Stage::Collection(mir::Collection {
@@ -749,7 +750,7 @@ mod join {
     );
 
     test_translate_stage!(
-        join_with_condition,
+        left_join_with_condition,
         expected = Ok(air::Stage::Join(air::Join {
             join_type: air::JoinType::Left,
             left: transformed_collection("foo"),
@@ -899,6 +900,93 @@ mod join {
             .into(),
             join_type: mir::JoinType::Left,
             cache: mir::schema::SchemaCache::new(),
+        })
+    );
+
+    test_translate_stage!(
+        joins_retain_aliases_for_left_and_right,
+        expected = Ok(air::Stage::Project(air::Project {
+            source: Box::new(air::Stage::Join(air::Join {
+                left: air::Stage::Project(air::Project {
+                    source: Box::new(air::Stage::Collection(
+                        air::Collection{
+                            db:"test_db".to_string(), collection:"foo".to_string()
+                        })),
+                        specifications: unchecked_unique_linked_hash_map!(
+                            "t1".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
+                        )
+                    }).into(),
+                right: air::Stage::Project(air::Project {
+                    source: Box::new(air::Stage::Collection(
+                        air::Collection{
+                            db:"test_db".to_string(), collection:"bar".to_string()
+                        })),
+                        specifications: unchecked_unique_linked_hash_map!(
+                            "t2".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
+                        )
+                    }).into(),
+                join_type: air::JoinType::Inner,
+                let_vars: Some(vec![air::LetVariable {
+                    name: "vt1_0".to_string(),
+                    expr: Box::new(air::Expression::FieldRef("t1".to_string().into())),
+                }]),
+                condition: Some(air::Expression::SQLSemanticOperator(
+                    air::SQLSemanticOperator {
+                        op: air::SQLOperator::Eq,
+                        args: vec![
+                            air::Expression::Variable("vt1_0.a".to_string().into()),
+                            air::Expression::FieldRef("t2.b".to_string().into())
+                        ]
+                    }
+                )),
+            })),
+            specifications: unchecked_unique_linked_hash_map!(
+                "bar".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("t2".to_string().into())),
+                "foo".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("t1".to_string().into())),
+            )
+        })),
+        input = mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::Join(mir::Join {
+                join_type: mir::JoinType::Inner,
+                left: mir::Stage::Project(mir::Project {
+                    source: input_collection("foo"),
+                    expression: map! {
+                        Key::named("t1", 0u16) => mir::Expression::Reference(("foo".to_string(), 0u16).into()),
+                    },
+                    cache: mir::schema::SchemaCache::new(),
+                }).into(),
+                right: mir::Stage::Project(mir::Project {
+                    source: input_collection("bar"),
+                    expression: map! {
+                        Key::named("t2", 0u16) => mir::Expression::Reference(("bar".to_string(), 0u16).into()),
+                    },
+                    cache: mir::schema::SchemaCache::new(),
+                }).into(),
+                condition: Some(mir::Expression::ScalarFunction(
+                    mir::ScalarFunctionApplication {
+                        function: mir::ScalarFunction::Eq,
+                        args: vec![
+                            mir::Expression::FieldAccess(mir::FieldAccess{
+                                expr: mir::Expression::Reference(("t1".to_string(), 0u16).into()).into(),
+                                field: "a".to_string(),
+                                cache: mir::schema::SchemaCache::new(),
+                            }),
+                            mir::Expression::FieldAccess(mir::FieldAccess{
+                                expr: mir::Expression::Reference(("t2".to_string(), 0u16).into()).into(),
+                                field: "b".to_string(),
+                                cache: mir::schema::SchemaCache::new(),
+                            }),
+                        ],
+                        cache: mir::schema::SchemaCache::new(),
+                    }
+                )),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            expression: BindingTuple(map! {
+                Key::named("foo", 0u16) => mir::Expression::Reference(("t1".to_string(), 0u16).into()),
+                Key::named("bar", 0u16) => mir::Expression::Reference(("t2".to_string(), 0u16).into()),
+            }),
+            cache: mir::schema::SchemaCache::new()
         })
     );
 }

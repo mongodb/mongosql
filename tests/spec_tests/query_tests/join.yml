@@ -176,6 +176,20 @@ tests:
           "c": { "_id": 1, "foo": 42 },
         }
 
+  - description: join left and right datasources can be referenced by alias
+    current_db: mydb
+    query: "SELECT t1.*, t2.* FROM bar AS t1 INNER JOIN coll AS t2"
+    result:
+      - {
+          "t1": { "_id": 0, "foo": 1 },
+          "t2": { "_id": 0, "bar": 53, "car": 42 },
+        }
+
+      - {
+          "t1": {"_id": 1, "foo": 42 },
+          "t2": { "_id": 0, "bar": 53, "car": 42 },
+        }
+
   - description: all datasource names in FROM clause must be unique
     current_db: mydb
     query: "SELECT * FROM coll CROSS JOIN coll"

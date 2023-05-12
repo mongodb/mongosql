@@ -12,54 +12,35 @@ use mongosql_datastructures::{
 impl MqlTranslator {
     pub fn translate_expression(&self, mir_expression: mir::Expression) -> Result<air::Expression> {
         match mir_expression {
-            mir::Expression::Literal(lit) => self.translate_literal(lit.value),
-            mir::Expression::Reference(reference) => self.translate_reference(reference.key),
             mir::Expression::Array(expr) => self.translate_array_expression(expr.array),
-            mir::Expression::Document(doc) => self.translate_document(doc.document),
+            mir::Expression::Cast(cast) => self.translate_cast(cast),
             mir::Expression::DateFunction(date_func_app) => {
                 self.translate_date_function(date_func_app)
             }
+            mir::Expression::Document(doc) => self.translate_document(doc.document),
+            mir::Expression::Exists(exists) => self.translate_exists(exists),
+            mir::Expression::FieldAccess(field_access) => self.translate_field_access(field_access),
+            mir::Expression::Is(is) => self.translate_is(is),
+            mir::Expression::Like(like_expr) => self.translate_like(like_expr),
+            mir::Expression::Literal(lit) => self.translate_literal(lit.value),
+            mir::Expression::Reference(reference) => self.translate_reference(reference.key),
+
             mir::Expression::ScalarFunction(scalar_func) => {
                 self.translate_scalar_function(scalar_func)
             }
-            mir::Expression::Cast(cast) => self.translate_cast(cast),
             mir::Expression::SearchedCase(searched_case) => {
                 self.translate_searched_case(searched_case)
             }
             mir::Expression::SimpleCase(simple_case) => self.translate_simple_case(simple_case),
-            mir::Expression::TypeAssertion(ta) => self.translate_expression(*ta.expr),
-            mir::Expression::Is(is) => self.translate_is(is),
-            mir::Expression::Like(like_expr) => self.translate_like(like_expr),
-            mir::Expression::FieldAccess(field_access) => self.translate_field_access(field_access),
             mir::Expression::Subquery(subquery) => self
                 .translate_subquery(subquery)
                 .map(air::Expression::Subquery),
             mir::Expression::SubqueryComparison(subquery_comparison) => {
                 self.translate_subquery_comparison(subquery_comparison)
             }
-            mir::Expression::Exists(exists) => self.translate_exists(exists),
+
+            mir::Expression::TypeAssertion(ta) => self.translate_expression(*ta.expr),
         }
-    }
-
-    fn translate_literal(&self, lit: mir::LiteralValue) -> Result<air::Expression> {
-        Ok(air::Expression::Literal(match lit {
-            mir::LiteralValue::Null => air::LiteralValue::Null,
-            mir::LiteralValue::Boolean(b) => air::LiteralValue::Boolean(b),
-            mir::LiteralValue::String(s) => air::LiteralValue::String(s),
-            mir::LiteralValue::Integer(i) => air::LiteralValue::Integer(i),
-            mir::LiteralValue::Long(l) => air::LiteralValue::Long(l),
-            mir::LiteralValue::Double(d) => air::LiteralValue::Double(d),
-        }))
-    }
-
-    fn translate_reference(&self, key: Key) -> Result<air::Expression> {
-        self.mapping_registry
-            .get(&key)
-            .ok_or(Error::ReferenceNotFound(key))
-            .map(|s| match s.ref_type {
-                MqlReferenceType::FieldRef => air::Expression::FieldRef(s.name.clone().into()),
-                MqlReferenceType::Variable => air::Expression::Variable(s.name.to_string().into()),
-            })
     }
 
     fn translate_array_expression(&self, array: Vec<mir::Expression>) -> Result<air::Expression> {
@@ -68,6 +49,51 @@ impl MqlTranslator {
                 .into_iter()
                 .map(|x| self.translate_expression(x))
                 .collect::<Result<Vec<air::Expression>>>()?,
+        ))
+    }
+
+    fn translate_cast(&self, cast: mir::CastExpr) -> Result<air::Expression> {
+        let input = self.translate_expression(*cast.expr)?.into();
+        let to = cast.to.into();
+        let on_null = self.translate_expression(*cast.on_null)?.into();
+        let on_error = self.translate_expression(*cast.on_error)?.into();
+        Ok(match to {
+            air::Type::Array | air::Type::Document => {
+                let sql_convert_to = match to {
+                    air::Type::Array => air::SqlConvertTargetType::Array,
+                    air::Type::Document => air::SqlConvertTargetType::Document,
+                    _ => return Err(Error::InvalidSqlConvertToType(to)),
+                };
+                air::Expression::SqlConvert(air::SqlConvert {
+                    input,
+                    to: sql_convert_to,
+                    on_null,
+                    on_error,
+                })
+            }
+            _ => air::Expression::Convert(air::Convert {
+                input,
+                to,
+                on_null,
+                on_error,
+            }),
+        })
+    }
+
+    fn translate_date_function(
+        &self,
+        date_func_app: mir::DateFunctionApplication,
+    ) -> Result<air::Expression> {
+        Ok(air::Expression::DateFunction(
+            air::DateFunctionApplication {
+                function: air::DateFunction::from(date_func_app.function),
+                unit: air::DatePart::from(date_func_app.date_part),
+                args: date_func_app
+                    .args
+                    .into_iter()
+                    .map(|expr| self.translate_expression(expr))
+                    .collect::<Result<Vec<air::Expression>>>()?,
+            },
         ))
     }
 
@@ -97,21 +123,81 @@ impl MqlTranslator {
         ))
     }
 
-    fn translate_date_function(
-        &self,
-        date_func_app: mir::DateFunctionApplication,
-    ) -> Result<air::Expression> {
-        Ok(air::Expression::DateFunction(
-            air::DateFunctionApplication {
-                function: air::DateFunction::from(date_func_app.function),
-                unit: air::DatePart::from(date_func_app.date_part),
-                args: date_func_app
-                    .args
-                    .into_iter()
-                    .map(|expr| self.translate_expression(expr))
-                    .collect::<Result<Vec<air::Expression>>>()?,
-            },
-        ))
+    fn translate_exists(&self, exists: mir::ExistsExpr) -> Result<air::Expression> {
+        // Clone self so that we can translate the subquery pipeline
+        // without modifying self's mapping registry or scope.
+        let mut subquery_translator = self.clone();
+
+        let (let_bindings, pipeline) =
+            subquery_translator.translate_subquery_pipeline(*exists.stage)?;
+
+        Ok(air::Expression::SubqueryExists(air::SubqueryExists {
+            let_bindings,
+            pipeline: Box::new(pipeline),
+        }))
+    }
+
+    fn translate_field_access(&self, field_access: mir::FieldAccess) -> Result<air::Expression> {
+        let expr = self.translate_expression(*field_access.expr)?;
+        let field = field_access.field;
+        if let air::Expression::FieldRef(r) = expr.clone() {
+            if !(field.contains('.') || field.starts_with('$') || field.as_str() == "") {
+                return Ok(air::Expression::FieldRef(air::FieldRef {
+                    parent: Some(Box::new(r)),
+                    name: field,
+                }));
+            }
+        }
+        if let air::Expression::Variable(v) = expr.clone() {
+            return Ok(air::Expression::Variable(air::Variable {
+                parent: Some(Box::new(v)),
+                name: field,
+            }));
+        }
+        Ok(air::Expression::GetField(air::GetField {
+            field,
+            input: Box::new(expr),
+        }))
+    }
+
+    fn translate_is(&self, is_expr: mir::IsExpr) -> Result<air::Expression> {
+        let expr = self.translate_expression(*is_expr.expr)?;
+        let target_type = air::TypeOrMissing::from(is_expr.target_type);
+        Ok(air::Expression::Is(air::Is {
+            expr: Box::new(expr),
+            target_type,
+        }))
+    }
+
+    fn translate_like(&self, like_expr: mir::LikeExpr) -> Result<air::Expression> {
+        let expr = self.translate_expression(*like_expr.expr)?.into();
+        let pattern = self.translate_expression(*like_expr.pattern)?.into();
+        Ok(air::Expression::Like(air::Like {
+            expr,
+            pattern,
+            escape: like_expr.escape,
+        }))
+    }
+
+    fn translate_literal(&self, lit: mir::LiteralValue) -> Result<air::Expression> {
+        Ok(air::Expression::Literal(match lit {
+            mir::LiteralValue::Null => air::LiteralValue::Null,
+            mir::LiteralValue::Boolean(b) => air::LiteralValue::Boolean(b),
+            mir::LiteralValue::String(s) => air::LiteralValue::String(s),
+            mir::LiteralValue::Integer(i) => air::LiteralValue::Integer(i),
+            mir::LiteralValue::Long(l) => air::LiteralValue::Long(l),
+            mir::LiteralValue::Double(d) => air::LiteralValue::Double(d),
+        }))
+    }
+
+    fn translate_reference(&self, key: Key) -> Result<air::Expression> {
+        self.mapping_registry
+            .get(&key)
+            .ok_or(Error::ReferenceNotFound(key))
+            .map(|s| match s.ref_type {
+                MqlReferenceType::FieldRef => air::Expression::FieldRef(s.name.clone().into()),
+                MqlReferenceType::Variable => air::Expression::Variable(s.name.to_string().into()),
+            })
     }
 
     fn translate_scalar_function(
@@ -149,34 +235,6 @@ impl MqlTranslator {
                 air::MQLSemanticOperator { op, args },
             )),
         }
-    }
-
-    fn translate_cast(&self, cast: mir::CastExpr) -> Result<air::Expression> {
-        let input = self.translate_expression(*cast.expr)?.into();
-        let to = cast.to.into();
-        let on_null = self.translate_expression(*cast.on_null)?.into();
-        let on_error = self.translate_expression(*cast.on_error)?.into();
-        Ok(match to {
-            air::Type::Array | air::Type::Document => {
-                let sql_convert_to = match to {
-                    air::Type::Array => air::SqlConvertTargetType::Array,
-                    air::Type::Document => air::SqlConvertTargetType::Document,
-                    _ => return Err(Error::InvalidSqlConvertToType(to)),
-                };
-                air::Expression::SqlConvert(air::SqlConvert {
-                    input,
-                    to: sql_convert_to,
-                    on_null,
-                    on_error,
-                })
-            }
-            _ => air::Expression::Convert(air::Convert {
-                input,
-                to,
-                on_null,
-                on_error,
-            }),
-        })
     }
 
     fn translate_searched_case(
@@ -227,48 +285,6 @@ impl MqlTranslator {
                 expr: Box::new(expr),
             }],
             inside: Box::new(switch),
-        }))
-    }
-
-    fn translate_is(&self, is_expr: mir::IsExpr) -> Result<air::Expression> {
-        let expr = self.translate_expression(*is_expr.expr)?;
-        let target_type = air::TypeOrMissing::from(is_expr.target_type);
-        Ok(air::Expression::Is(air::Is {
-            expr: Box::new(expr),
-            target_type,
-        }))
-    }
-
-    fn translate_like(&self, like_expr: mir::LikeExpr) -> Result<air::Expression> {
-        let expr = self.translate_expression(*like_expr.expr)?.into();
-        let pattern = self.translate_expression(*like_expr.pattern)?.into();
-        Ok(air::Expression::Like(air::Like {
-            expr,
-            pattern,
-            escape: like_expr.escape,
-        }))
-    }
-
-    fn translate_field_access(&self, field_access: mir::FieldAccess) -> Result<air::Expression> {
-        let expr = self.translate_expression(*field_access.expr)?;
-        let field = field_access.field;
-        if let air::Expression::FieldRef(r) = expr.clone() {
-            if !(field.contains('.') || field.starts_with('$') || field.as_str() == "") {
-                return Ok(air::Expression::FieldRef(air::FieldRef {
-                    parent: Some(Box::new(r)),
-                    name: field,
-                }));
-            }
-        }
-        if let air::Expression::Variable(v) = expr.clone() {
-            return Ok(air::Expression::Variable(air::Variable {
-                parent: Some(Box::new(v)),
-                name: field,
-            }));
-        }
-        Ok(air::Expression::GetField(air::GetField {
-            field,
-            input: Box::new(expr),
         }))
     }
 
@@ -325,20 +341,6 @@ impl MqlTranslator {
                 subquery: Box::new(subquery),
             },
         ))
-    }
-
-    fn translate_exists(&self, exists: mir::ExistsExpr) -> Result<air::Expression> {
-        // Clone self so that we can translate the subquery pipeline
-        // without modifying self's mapping registry or scope.
-        let mut subquery_translator = self.clone();
-
-        let (let_bindings, pipeline) =
-            subquery_translator.translate_subquery_pipeline(*exists.stage)?;
-
-        Ok(air::Expression::SubqueryExists(air::SubqueryExists {
-            let_bindings,
-            pipeline: Box::new(pipeline),
-        }))
     }
 
     // Utility functions for Subquery* translations

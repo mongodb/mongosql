@@ -239,10 +239,14 @@ impl MqlTranslator {
         let condition = mir_join
             .condition
             .map(|x| {
-                let_vars = Some(self.generate_let_bindings(left_registry));
+                let_vars = Some(self.generate_let_bindings(left_registry.clone()));
                 self.translate_expression(x)
             })
             .transpose()?;
+
+        // Restore the original mappings for the left datasource since they may have been
+        // overwritten to map to Variable references when translating the condition.
+        self.mapping_registry.merge(left_registry);
 
         Ok(air::Stage::Join(air::Join {
             join_type,

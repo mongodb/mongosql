@@ -182,22 +182,22 @@ pub struct Unwind {
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Expression {
-    Literal(LiteralExpr),
-    Reference(ReferenceExpr),
     Array(ArrayExpr),
-    Document(DocumentExpr),
-    DateFunction(DateFunctionApplication),
-    ScalarFunction(ScalarFunctionApplication),
     Cast(CastExpr),
-    SearchedCase(SearchedCaseExpr),
-    SimpleCase(SimpleCaseExpr),
-    TypeAssertion(TypeAssertionExpr),
+    DateFunction(DateFunctionApplication),
+    Document(DocumentExpr),
+    Exists(ExistsExpr),
+    FieldAccess(FieldAccess),
     Is(IsExpr),
     Like(LikeExpr),
-    FieldAccess(FieldAccess),
+    Literal(LiteralExpr),
+    Reference(ReferenceExpr),
+    ScalarFunction(ScalarFunctionApplication),
+    SearchedCase(SearchedCaseExpr),
+    SimpleCase(SimpleCaseExpr),
     Subquery(SubqueryExpr),
     SubqueryComparison(SubqueryComparison),
-    Exists(ExistsExpr),
+    TypeAssertion(TypeAssertionExpr),
 }
 
 #[derive(PartialEq, Debug, Clone)]
