@@ -5,7 +5,7 @@ tests:
 
 - description: IN expression with expression list on rhs rewritten to subquery comparison
   query: "SELECT * FROM table1 AS table1 WHERE col1 IN (1, 2, 3)"
-  result: "SELECT * FROM table1 AS table1 WHERE col1 = ANY(SELECT VALUE {'_1': _1} FROM [{'_1': 1}, {'_1': 2}, {'_1': 3}] AS _arr)"
+  result: "SELECT * FROM table1 AS table1 WHERE col1 = 1 OR col1 = 2 OR col1 = 3"
 
 - description: NOT IN expression with subquery on rhs rewritten to subquery comparison
   query: "SELECT * FROM table1 AS table1 WHERE col1 NOT IN (SELECT col1 FROM table2 AS table2)"
@@ -13,7 +13,7 @@ tests:
 
 - description: NOT IN expression with expression list on rhs rewritten to subquery comparison
   query: "SELECT * FROM table1 AS table1 WHERE col1 NOT IN (1, 2, 3)"
-  result: "SELECT * FROM table1 AS table1 WHERE col1 <> ALL(SELECT VALUE {'_1': _1} FROM [{'_1': 1}, {'_1': 2}, {'_1': 3}] AS _arr)"
+  result: "SELECT * FROM table1 AS table1 WHERE col1 <> 1 AND col1 <> 2 AND col1 <> 3"
 
 - description: SOME quantifier rewritten to ANY
   query: "SELECT * FROM table1 AS table1 WHERE col1 = SOME(SELECT col1 FROM table2 AS table2)"

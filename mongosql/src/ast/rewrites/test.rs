@@ -376,26 +376,64 @@ mod in_tuple {
     test_rewrite!(
         one_element_tuple,
         pass = InTupleRewritePass,
-        expected = Ok("SELECT a IN (SELECT _1 FROM [{'_1': b}] AS _arr)"),
+        expected = Ok("SELECT a = b"),
         input = "SELECT a IN (b)",
     );
     test_rewrite!(
-        two_element_tuple,
+        three_element_tuple,
         pass = InTupleRewritePass,
-        expected = Ok("SELECT a IN (SELECT _1 FROM [{'_1': b}, {'_1': c}] AS _arr)"),
-        input = "SELECT a IN (b, c)",
+        expected = Ok("SELECT a = b OR a = c OR a = d"),
+        input = "SELECT a IN (b, c, d)",
     );
     test_rewrite!(
         one_element_tuple_not_in,
         pass = InTupleRewritePass,
-        expected = Ok("SELECT a NOT IN (SELECT _1 FROM [{'_1': b}] AS _arr)"),
+        expected = Ok("SELECT a <> b"),
         input = "SELECT a NOT IN (b)",
+    );
+    test_rewrite!(
+        three_element_tuple_not_in,
+        pass = InTupleRewritePass,
+        expected = Ok("SELECT a <> b AND a <> c AND a <> d"),
+        input = "SELECT a NOT IN (b, c, d)",
     );
     test_rewrite!(
         nested,
         pass = InTupleRewritePass,
-        expected = Ok("SELECT a IN (SELECT _1 FROM [{'_1': b IN (SELECT _1 FROM [{'_1': c}] AS _arr)}] AS _arr)"),
+        expected = Ok("SELECT a = (b = c)"),
         input = "SELECT a IN (b IN (c))",
+    );
+    test_rewrite!(
+        one_element_tuple_no_simple_field_ref,
+        pass = InTupleRewritePass,
+        expected = Ok("SELECT SUM(a) IN (SELECT _1 FROM [{'_1': b}] AS _arr)"),
+        input = "SELECT SUM(a) IN (b)",
+    );
+    test_rewrite!(
+        one_element_tuple_not_in_no_simple_field_ref,
+        pass = InTupleRewritePass,
+        expected = Ok("SELECT SUM(a) NOT IN (SELECT _1 FROM [{'_1': b}] AS _arr)"),
+        input = "SELECT SUM(a) NOT IN (b)",
+    );
+    test_rewrite!(
+        three_element_tuple_no_simple_field_ref,
+        pass = InTupleRewritePass,
+        expected =
+            Ok("SELECT SUM(a) IN (SELECT _1 FROM [{'_1': b}, {'_1': c}, {'_1': d}] AS _arr)"),
+        input = "SELECT SUM(a) IN (b, c, d)",
+    );
+    test_rewrite!(
+        three_element_tuple_not_in_no_simple_field_ref,
+        pass = InTupleRewritePass,
+        expected =
+            Ok("SELECT SUM(a) NOT IN (SELECT _1 FROM [{'_1': b}, {'_1': c}, {'_1': d}] AS _arr)"),
+        input = "SELECT SUM(a) NOT IN (b, c, d)",
+    );
+    test_rewrite!(
+        nested_no_simple_field_ref,
+        pass = InTupleRewritePass,
+        expected = Ok("SELECT SUM(a) IN (SELECT _1 FROM [{'_1': SUM(b) IN (SELECT _1 FROM [{'_1': c}] AS _arr)}] AS _arr)"),
+        input = "SELECT SUM(a) IN (SUM(b) IN (c))",
     );
     test_rewrite!(
         parenthesized_exprs_not_modified,

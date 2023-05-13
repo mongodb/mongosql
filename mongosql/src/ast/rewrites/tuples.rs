@@ -1,14 +1,18 @@
 use crate::ast::{
-    self,
     rewrites::{Pass, Result},
     visitor::Visitor,
+    *,
 };
 
-/// Finds all expressions of the form `<expr> [NOT] IN (<e1>, <e2>, ...)` and rewrites them to `<expr> [NOT] IN (SELECT _1 FROM [{'_1': <e1>}, {'_1': <e2>}, ...] AS _arr)`.
+/// Finds all expressions of the form `<expr> [NOT] IN (<e1>, <e2>, ...)` and rewrites them to either
+/// `<expr> (<> | =) <e1> [(AND | OR) <expr> (<> | =) <e2>, ...]` or
+/// `<expr> [NOT] IN (SELECT _1 FROM [{'_1': <e1>}, {'_1': <e2>}, ...] AS _arr)`
+/// depending on the type of expression `<expr>` is. For simple field references, we rewrite to the former;
+/// for all other expression types, we rewrite to the latter.
 pub struct InTupleRewritePass;
 
 impl Pass for InTupleRewritePass {
-    fn apply(&self, query: ast::Query) -> Result<ast::Query> {
+    fn apply(&self, query: Query) -> Result<Query> {
         let mut visitor = InTupleRewriteVisitor::default();
         Ok(query.walk(&mut visitor))
     }
@@ -18,32 +22,66 @@ impl Pass for InTupleRewritePass {
 #[derive(Default)]
 struct InTupleRewriteVisitor;
 
-impl Visitor for InTupleRewriteVisitor {
-    fn visit_expression(&mut self, node: ast::Expression) -> ast::Expression {
-        use ast::*;
-
-        // Visit children, rewriting if appropriate.
-        let node = node.walk(self);
-
-        // If `node` is an IN or NOT IN expression, then bind it to `expr`, else return the
-        // original `node` unmodified.
-        let expr = match node {
-            Expression::Binary(ref expr)
-                if expr.op == BinaryOp::In || expr.op == BinaryOp::NotIn =>
-            {
-                expr.clone()
-            }
-            _ => return node,
-        };
-
-        // If the right side of `expr` is a tuple, then bind its elements to `tuple_elems`,
-        // else return the original `node` unmodified.
-        let tuple_elems = if let Expression::Tuple(elems) = *expr.right {
-            elems
+impl InTupleRewriteVisitor {
+    fn create_binary_expr_comparison(
+        left: Expression,
+        right: Expression,
+        tree_op: BinaryOp,
+    ) -> Expression {
+        let comparison_op = if tree_op == BinaryOp::Or {
+            BinaryOp::Comparison(ComparisonOp::Eq)
         } else {
-            return node;
+            BinaryOp::Comparison(ComparisonOp::Neq)
         };
 
+        Expression::Binary(BinaryExpr {
+            left: Box::new(left),
+            op: comparison_op,
+            right: Box::new(right),
+        })
+    }
+
+    fn rewrite_to_comparisons(
+        lhs: Expression,
+        op: BinaryOp,
+        tuple_elems: Vec<Expression>,
+    ) -> Expression {
+        let tree_op = if op == BinaryOp::In {
+            BinaryOp::Or
+        } else {
+            BinaryOp::And
+        };
+
+        tuple_elems
+            .into_iter()
+            .map(|rhs| Self::create_binary_expr_comparison(lhs.clone(), rhs, tree_op)) // this creates a Vec<Expression> where the expressions are the comparisons `lhs (<>|=) rhs`
+            .reduce(|acc, comp| {
+                Expression::Binary(BinaryExpr {
+                    left: Box::new(acc),
+                    op: tree_op,
+                    right: Box::new(comp),
+                })
+            }) // this will reduce the Vec<Expression> into an Expression::Binary that does the ORs or ANDs.
+            .unwrap()
+    }
+
+    fn is_simple_field_ref_expr(lhs: Expression) -> bool {
+        match lhs {
+            Expression::Identifier(_) => true,
+            Expression::Subpath(sp) => Self::is_simple_field_ref_expr(*sp.expr),
+            Expression::Access(ae) => {
+                Self::is_simple_field_ref_expr(*ae.expr)
+                    && matches!(*ae.subfield, Expression::Literal(Literal::String(_)))
+            }
+            _ => false,
+        }
+    }
+
+    fn rewrite_to_subquery(
+        lhs: Expression,
+        op: BinaryOp,
+        tuple_elems: Vec<Expression>,
+    ) -> Expression {
         // Build the AST for a SELECT clause representing `SELECT _1`.
         let select_clause = SelectClause {
             set_quantifier: SetQuantifier::All,
@@ -56,7 +94,7 @@ impl Visitor for InTupleRewriteVisitor {
         let array = tuple_elems
             .into_iter()
             .map(|expr| {
-                Expression::Document(vec![ast::DocumentPair {
+                Expression::Document(vec![DocumentPair {
                     key: "_1".to_string(),
                     value: expr,
                 }])
@@ -82,10 +120,44 @@ impl Visitor for InTupleRewriteVisitor {
         });
 
         Expression::Binary(BinaryExpr {
-            left: expr.left,
-            op: expr.op,
+            left: Box::new(lhs),
+            op,
             right: Box::new(Expression::Subquery(Box::new(subquery))),
         })
+    }
+}
+
+impl Visitor for InTupleRewriteVisitor {
+    fn visit_expression(&mut self, node: Expression) -> Expression {
+        // Visit children, rewriting if appropriate.
+        let node = node.walk(self);
+
+        // If `node` is an IN or NOT IN expression, then bind it to `expr`, else return the
+        // original `node` unmodified.
+        let expr = match node {
+            Expression::Binary(ref expr)
+                if expr.op == BinaryOp::In || expr.op == BinaryOp::NotIn =>
+            {
+                expr.clone()
+            }
+            _ => return node,
+        };
+
+        // If the right side of `expr` is a tuple, then bind its elements to `tuple_elems`,
+        // else return the original `node` unmodified.
+        let tuple_elems = if let Expression::Tuple(elems) = *expr.right {
+            elems
+        } else {
+            return node;
+        };
+
+        // If the left side of `expr` is a simple field ref, then rewrite to the appropriate
+        // boolean/comparison operations. Otherwise, rewrite to a subquery.
+        if Self::is_simple_field_ref_expr(*expr.left.clone()) {
+            Self::rewrite_to_comparisons(*expr.left, expr.op, tuple_elems)
+        } else {
+            Self::rewrite_to_subquery(*expr.left, expr.op, tuple_elems)
+        }
     }
 }
 
@@ -94,7 +166,7 @@ impl Visitor for InTupleRewriteVisitor {
 pub struct SingleTupleRewritePass;
 
 impl Pass for SingleTupleRewritePass {
-    fn apply(&self, query: ast::Query) -> Result<ast::Query> {
+    fn apply(&self, query: Query) -> Result<Query> {
         Ok(query.walk(&mut SingleTupleRewriteVisitor))
     }
 }
@@ -104,11 +176,72 @@ impl Pass for SingleTupleRewritePass {
 pub struct SingleTupleRewriteVisitor;
 
 impl Visitor for SingleTupleRewriteVisitor {
-    fn visit_expression(&mut self, e: ast::Expression) -> ast::Expression {
-        use ast::*;
+    fn visit_expression(&mut self, e: Expression) -> Expression {
         match e {
             Expression::Tuple(mut t) if t.len() == 1 => self.visit_expression(t.pop().unwrap()),
             _ => e.walk(self),
         }
     }
+}
+
+#[cfg(test)]
+mod is_simple_field_ref_expr_test {
+    use crate::ast::rewrites::tuples::InTupleRewriteVisitor;
+    use crate::ast::*;
+
+    macro_rules! test_is_simple_field_ref_expr {
+        ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+            #[test]
+            fn $func_name() {
+                let expected = $expected;
+                let actual = InTupleRewriteVisitor::is_simple_field_ref_expr($input);
+                assert_eq!(expected, actual);
+            }
+        };
+    }
+
+    test_is_simple_field_ref_expr!(
+        simple_field_ref,
+        expected = true,
+        input = Expression::Identifier("foo".to_string())
+    );
+
+    test_is_simple_field_ref_expr!(
+        not_simple_field_ref,
+        expected = false,
+        input = Expression::Literal(Literal::String("foo".to_string()))
+    );
+
+    test_is_simple_field_ref_expr!(
+        simple_field_ref_recursive_check,
+        expected = true,
+        input = Expression::Access(AccessExpr {
+            expr: Box::new(Expression::Subpath(SubpathExpr {
+                expr: Box::new(Expression::Identifier("foo2".to_string())),
+                subpath: "bar".to_string(),
+            })),
+            subfield: Box::new(Expression::Literal(Literal::String("foo1".to_string()))),
+        })
+    );
+
+    test_is_simple_field_ref_expr!(
+        not_simple_field_ref_recursive_check,
+        expected = false,
+        input = Expression::Access(AccessExpr {
+            expr: Box::new(Expression::Subpath(SubpathExpr {
+                expr: Box::new(Expression::Literal(Literal::String("foo1".to_string()))),
+                subpath: "bar".to_string(),
+            })),
+            subfield: Box::new(Expression::Literal(Literal::String("foo1".to_string()))),
+        })
+    );
+
+    test_is_simple_field_ref_expr!(
+        access_subfield_is_not_string,
+        expected = false,
+        input = Expression::Access(AccessExpr {
+            expr: Box::new(Expression::Identifier("foo".to_string())),
+            subfield: Box::new(Expression::Literal(Literal::Integer(32))),
+        })
+    );
 }
