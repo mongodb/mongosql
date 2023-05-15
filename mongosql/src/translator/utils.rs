@@ -1,7 +1,8 @@
 use crate::{
     air::{self, LetVariable, MQLOperator, SQLOperator, TrimOperator},
     mapping_registry::{MqlMappingRegistry, MqlMappingRegistryValue, MqlReferenceType},
-    mir,
+    mir::{self, schema::CachedSchema},
+    schema,
     translator::{Error, MqlTranslator, Result},
 };
 use lazy_static::lazy_static;
@@ -121,6 +122,16 @@ impl MqlTranslator {
         self.mapping_registry.merge(new_mapping_registry);
         let_bindings
     }
+
+    pub(crate) fn schema_is_nullish(expr: mir::Expression) -> bool {
+        match expr.get_cached_schema() {
+            Some(schema_result) => match schema_result {
+                Ok(schema) => schema::NULLISH.satisfies(&schema) != schema::Satisfaction::Not,
+                Err(_) => true,
+            },
+            None => true,
+        }
+    }
 }
 
 impl From<mir::Type> for air::Type {
@@ -182,6 +193,41 @@ impl From<mir::DateFunction> for air::DateFunction {
             mir::DateFunction::Add => air::DateFunction::Add,
             mir::DateFunction::Diff => air::DateFunction::Diff,
             mir::DateFunction::Trunc => air::DateFunction::Trunc,
+        }
+    }
+}
+
+pub(crate) fn scalar_function_to_scalar_function_type(
+    function: mir::ScalarFunction,
+    args: Vec<mir::Expression>,
+) -> ScalarFunctionType {
+    use mir::ScalarFunction;
+
+    let any_arg_may_satisfy_null_or_missing = args
+        .iter()
+        .any(|expr| MqlTranslator::schema_is_nullish(expr.clone()));
+
+    if any_arg_may_satisfy_null_or_missing {
+        ScalarFunctionType::from(function)
+    } else {
+        match function {
+            ScalarFunction::Or => ScalarFunctionType::Mql(MQLOperator::Or),
+            ScalarFunction::And => ScalarFunctionType::Mql(MQLOperator::And),
+            ScalarFunction::Eq => ScalarFunctionType::Mql(MQLOperator::Eq),
+            ScalarFunction::Position => ScalarFunctionType::Mql(MQLOperator::IndexOfCP),
+            ScalarFunction::Lt => ScalarFunctionType::Mql(MQLOperator::Lt),
+            ScalarFunction::Lte => ScalarFunctionType::Mql(MQLOperator::Lte),
+            ScalarFunction::Gt => ScalarFunctionType::Mql(MQLOperator::Gt),
+            ScalarFunction::Gte => ScalarFunctionType::Mql(MQLOperator::Gte),
+            ScalarFunction::Neq => ScalarFunctionType::Mql(MQLOperator::Ne),
+            ScalarFunction::Not => ScalarFunctionType::Mql(MQLOperator::Not),
+            ScalarFunction::Size => ScalarFunctionType::Mql(MQLOperator::Size),
+            ScalarFunction::OctetLength => ScalarFunctionType::Mql(MQLOperator::StrLenBytes),
+            ScalarFunction::CharLength => ScalarFunctionType::Mql(MQLOperator::StrLenCP),
+            ScalarFunction::Substring => ScalarFunctionType::Mql(MQLOperator::SubstrCP),
+            ScalarFunction::Lower => ScalarFunctionType::Mql(MQLOperator::ToLower),
+            ScalarFunction::Upper => ScalarFunctionType::Mql(MQLOperator::ToUpper),
+            _ => ScalarFunctionType::from(function),
         }
     }
 }

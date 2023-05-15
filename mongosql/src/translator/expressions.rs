@@ -1,8 +1,11 @@
 use crate::{
-    air::{self, LetVariable, SQLOperator},
+    air::{self, LetVariable, MQLOperator, SQLOperator},
     mapping_registry::MqlReferenceType,
     mir,
-    translator::{utils::ScalarFunctionType, Error, MqlTranslator, Result},
+    translator::{
+        utils::scalar_function_to_scalar_function_type, utils::ScalarFunctionType, Error,
+        MqlTranslator, Result,
+    },
 };
 use mongosql_datastructures::{
     binding_tuple::Key,
@@ -206,10 +209,13 @@ impl MqlTranslator {
     ) -> Result<air::Expression> {
         let args: Vec<air::Expression> = scalar_func
             .args
+            .clone()
             .into_iter()
             .map(|x| self.translate_expression(x))
             .collect::<Result<Vec<air::Expression>>>()?;
-        let op = ScalarFunctionType::from(scalar_func.function);
+
+        let op = scalar_function_to_scalar_function_type(scalar_func.function, scalar_func.args);
+
         match op {
             ScalarFunctionType::Divide => Ok(air::Expression::SqlDivide(air::SqlDivide {
                 dividend: Box::new(args[0].clone()),
@@ -221,7 +227,7 @@ impl MqlTranslator {
                 input: Box::new(args[1].clone()),
                 chars: Box::new(args[0].clone()),
             })),
-            // SqlOperator::IndexOfCP has reversed arguments
+            // SQLOperator::IndexOfCP has reversed arguments
             ScalarFunctionType::Sql(SQLOperator::IndexOfCP) => Ok(
                 air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
                     op: SQLOperator::IndexOfCP,
@@ -231,6 +237,13 @@ impl MqlTranslator {
             ScalarFunctionType::Sql(op) => Ok(air::Expression::SQLSemanticOperator(
                 air::SQLSemanticOperator { op, args },
             )),
+            // MQLOperator::IndexOfCP has reversed arguments
+            ScalarFunctionType::Mql(MQLOperator::IndexOfCP) => Ok(
+                air::Expression::MQLSemanticOperator(air::MQLSemanticOperator {
+                    op: MQLOperator::IndexOfCP,
+                    args: args.into_iter().rev().collect(),
+                }),
+            ),
             ScalarFunctionType::Mql(op) => Ok(air::Expression::MQLSemanticOperator(
                 air::MQLSemanticOperator { op, args },
             )),
@@ -258,22 +271,34 @@ impl MqlTranslator {
     }
 
     fn translate_simple_case(&self, simple_case: mir::SimpleCaseExpr) -> Result<air::Expression> {
-        let expr = self.translate_expression(*simple_case.expr)?;
+        let expr = self.translate_expression(*simple_case.expr.clone())?;
         let default = self.translate_expression(*simple_case.else_branch)?.into();
+
+        let expr_is_nullish = Self::schema_is_nullish(*simple_case.expr);
         let branches = simple_case
             .when_branch
             .iter()
             .map(|branch| {
+                let case = if expr_is_nullish || Self::schema_is_nullish(*branch.when.clone()) {
+                    air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
+                        op: SQLOperator::Eq,
+                        args: vec![
+                            air::Expression::Variable("target".to_string().into()),
+                            self.translate_expression(*branch.when.clone())?,
+                        ],
+                    })
+                } else {
+                    air::Expression::MQLSemanticOperator(air::MQLSemanticOperator {
+                        op: MQLOperator::Eq,
+                        args: vec![
+                            air::Expression::Variable("target".to_string().into()),
+                            self.translate_expression(*branch.when.clone())?,
+                        ],
+                    })
+                };
+
                 Ok(air::SwitchCase {
-                    case: Box::new(air::Expression::SQLSemanticOperator(
-                        air::SQLSemanticOperator {
-                            op: SQLOperator::Eq,
-                            args: vec![
-                                air::Expression::Variable("target".to_string().into()),
-                                self.translate_expression(*branch.when.clone())?,
-                            ],
-                        },
-                    )),
+                    case: Box::new(case),
                     then: Box::new(self.translate_expression(*branch.then.clone())?),
                 })
             })
