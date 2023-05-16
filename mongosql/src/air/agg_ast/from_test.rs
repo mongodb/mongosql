@@ -497,23 +497,19 @@ mod stage {
                     "_id".to_string() => agg_ast::ProjectItem::Exclusion,
                     "x".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(1))),
                 })],
-                condition: Some(agg_ast::Stage::Match(agg_ast::MatchExpression::Expr(
-                    agg_ast::MatchExpr {
-                        expr: Box::new(agg_ast::Expression::UntaggedOperator(
-                            agg_ast::UntaggedOperator {
-                                op: "$sqlEq".to_string(),
-                                args: vec![
-                                    agg_ast::Expression::StringOrRef(
-                                        agg_ast::StringOrRef::Variable("x".to_string())
-                                    ),
-                                    agg_ast::Expression::StringOrRef(
-                                        agg_ast::StringOrRef::FieldRef("x".to_string())
-                                    ),
-                                ]
-                            }
-                        ))
+                condition: Some(agg_ast::Expression::UntaggedOperator(
+                    agg_ast::UntaggedOperator {
+                        op: "$sqlEq".to_string(),
+                        args: vec![
+                            agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::Variable(
+                                "x".to_string()
+                            )),
+                            agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
+                                "x".to_string()
+                            )),
+                        ]
                     }
-                )))
+                ))
             }))
         );
 

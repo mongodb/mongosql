@@ -143,8 +143,7 @@ tests:
             "joinType": "inner",
             "let": { "x": "$x" },
             "pipeline": [{ "$project": { "_id": 0, "x": 1 } }],
-            "condition":
-              { "$match": { "$expr": { "$sqlEq": ["$$x", "$x"] } } },
+            "condition": { "$sqlEq": ["$$x", "$x"] },
           },
       }
     expected:
@@ -187,8 +186,7 @@ tests:
             "joinType": "inner",
             "let": { "x": "$x" },
             "pipeline": [{ "$project": { "_id": 0, "x": 1 } }],
-            "condition":
-              { "$match": { "$expr": { "$sqlEq": ["$$x", "$x"] } } },
+            "condition": { "$sqlEq": ["$$x", "$x"] },
           },
       }
     expected:
@@ -232,8 +230,7 @@ tests:
             "joinType": "inner",
             "let": { "x": "$x" },
             "pipeline": [{ "$project": { "_id": 0, "x": 1 } }],
-            "condition":
-              { "$match": { "$expr": { "$sqlEq": ["$$x", "$x"] } } },
+            "condition": { "$sqlEq": ["$$x", "$x"] },
           },
       }
       - {
@@ -243,8 +240,7 @@ tests:
             "joinType": "inner",
             "let": { "y": "$y" },
             "pipeline": [{ "$project": { "_id": 0, "y": 1 } }],
-            "condition":
-              { "$match": { "$expr": { "$sqlEq": ["$$y", "$y"] } } },
+            "condition": { "$sqlEq": ["$$y", "$y"] },
           },
       }
     expected:

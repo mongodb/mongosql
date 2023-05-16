@@ -104,7 +104,7 @@ pub(crate) struct Join {
     #[serde(rename = "let")]
     pub(crate) let_body: Option<HashMap<String, Expression>>,
     pub(crate) pipeline: Vec<Stage>,
-    pub(crate) condition: Option<Stage>,
+    pub(crate) condition: Option<Expression>,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -671,21 +671,12 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                         Some(air::Stage::from((air_stage, agg_ast_stage)))
                     });
 
-                // assert condition stage is a match, and parse the expr
-                let condition = j.condition.map(|stage| match stage {
-                    Stage::Match(m) => match m {
-                        MatchExpression::Expr(e) => air::Expression::from(*e.expr),
-                        MatchExpression::NonExpr(e) => e.into(),
-                    },
-                    _ => panic!("$join condition should be $match stage"),
-                });
-
                 air::Stage::Join(air::Join {
                     join_type,
                     left: Box::new(source.expect("$join without valid source stage")),
                     right: Box::new(right.unwrap()),
                     let_vars,
-                    condition,
+                    condition: j.condition.map(|expr| expr.into()),
                 })
             }
             Stage::Unwind(u) => match u {

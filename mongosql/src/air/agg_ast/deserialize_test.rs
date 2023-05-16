@@ -293,8 +293,8 @@ mod stage_test {
     mod join {
         use crate::{
             air::agg_ast::ast_definitions::{
-                Expression, Join, JoinType, LiteralValue, MatchExpr, MatchExpression, ProjectItem,
-                Stage, StringOrRef, UntaggedOperator,
+                Expression, Join, JoinType, LiteralValue, ProjectItem, Stage, StringOrRef,
+                UntaggedOperator,
             },
             map,
         };
@@ -370,15 +370,13 @@ mod stage_test {
                     "_id".to_string() => ProjectItem::Exclusion,
                     "x".to_string() => ProjectItem::Inclusion,
                 })],
-                condition: Some(Stage::Match(MatchExpression::Expr(MatchExpr {
-                    expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
-                        op: "$sqlEq".to_string(),
-                        args: vec![
-                            Expression::StringOrRef(StringOrRef::Variable("x".to_string())),
-                            Expression::StringOrRef(StringOrRef::FieldRef("x".to_string())),
-                        ]
-                    }))
-                })))
+                condition: Some(Expression::UntaggedOperator(UntaggedOperator {
+                    op: "$sqlEq".to_string(),
+                    args: vec![
+                        Expression::StringOrRef(StringOrRef::Variable("x".to_string())),
+                        Expression::StringOrRef(StringOrRef::FieldRef("x".to_string())),
+                    ]
+                })),
             })),
             input = r#"stage: {
                 "$join":
@@ -388,7 +386,7 @@ mod stage_test {
                     "let": { "x": "$x" },
                     "pipeline": [{ "$project": { "_id": 0, "x": 1 } }],
                     "condition":
-                      { "$match": { "$expr": { "$sqlEq": ["$$x", "$x"] } } },
+                      { "$sqlEq": ["$$x", "$x"] },
                   },
               }"#
         );

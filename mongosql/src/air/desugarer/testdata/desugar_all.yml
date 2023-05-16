@@ -103,11 +103,7 @@ tests:
                 { "$project": { "_id": 0, "coll": "$$ROOT" } },
                 { "$project": { "_id": 0, "coll": "$coll" } },
               ],
-            "condition":
-              {
-                "$match":
-                  { "$expr": { "$sqlEq": ["$$bar_0.foo", "$coll.car"] } },
-              },
+            "condition": { "$sqlEq": ["$$bar_0.foo", "$coll.car"] },
           },
       }
     expected:
@@ -118,14 +114,8 @@ tests:
             "let": { "bar_0": "$bar" },
             "pipeline":
               [
-                {
-                  "$project":
-                    { "_id": 0, "coll": "$$ROOT" },
-                },
-                {
-                  "$project":
-                    { "_id": 0, "coll": "$coll" },
-                },
+                { "$project": { "_id": 0, "coll": "$$ROOT" } },
+                { "$project": { "_id": 0, "coll": "$coll" } },
                 { "$match": { "$expr": { "$gt": ["$coll.car", null] } } },
                 {
                   "$match":
@@ -143,13 +133,7 @@ tests:
               ["$$ROOT", "$eca58228-b657-498a-b76e-f48a9161a404"],
           },
       }
-      - {
-        "$project":
-          {
-            "_id": 0,
-            "eca58228-b657-498a-b76e-f48a9161a404": 0,
-          },
-      }
+      - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
   - name: "multiple levels of new expressions that contain pipelines: join nested in subquery nested in join nested in subquery"
     input:
@@ -539,17 +523,11 @@ tests:
             "pipeline": [],
             "condition":
               {
-                "$match":
+                "$subquery":
                   {
-                    "$expr":
-                      {
-                        "$subquery":
-                          {
-                            "collection": "baz",
-                            "outputPath": ["x"],
-                            "pipeline": [],
-                          },
-                      },
+                    "collection": "baz",
+                    "outputPath": ["x"],
+                    "pipeline": [],
                   },
               },
           },
@@ -735,7 +713,7 @@ tests:
               },
           },
       }
-      - { "$project": { "_id": 1, "__subquery_result_0": 0 }}
+      - { "$project": { "_id": 1, "__subquery_result_0": 0 } }
       - { "$project": { "_id": 1, "acc": { "$avg": "$acc" } } }
 
   - name: "subquery nested in unsupported op as arg"
@@ -911,13 +889,7 @@ tests:
                     },
                 },
               ],
-            "condition":
-              {
-                "$match":
-                  {
-                    "$expr": { "$like": { "input": "$a", "pattern": "abc" } },
-                  },
-              },
+            "condition": { "$like": { "input": "$a", "pattern": "abc" } },
           },
       }
     expected:
@@ -1218,7 +1190,7 @@ tests:
             "let": { "x": { "$sqlNot": ["$a"] } },
             "pipeline":
               [{ "$project": { "_id": 0, "expr": { "$sqlNot": ["$$x"] } } }],
-            "condition": { "$match": { "$expr": { "$sqlNot": ["$expr"] } } },
+            "condition": { "$sqlNot": ["$expr"] },
           },
       }
     expected:
@@ -1237,7 +1209,9 @@ tests:
                           {
                             "$cond":
                               [
-                                { "$lte": ["$$desugared_sqlNot_input0", null] },
+                                {
+                                  "$lte": ["$$desugared_sqlNot_input0", null],
+                                },
                                 null,
                                 { "$not": ["$$desugared_sqlNot_input0"] },
                               ],
@@ -1260,9 +1234,14 @@ tests:
                                 {
                                   "$cond":
                                     [
-                                      { "$lte": ["$$desugared_sqlNot_input0", null] },
+                                      {
+                                        "$lte":
+                                          ["$$desugared_sqlNot_input0", null],
+                                      },
                                       null,
-                                      { "$not": ["$$desugared_sqlNot_input0"] },
+                                      {
+                                        "$not": ["$$desugared_sqlNot_input0"],
+                                      },
                                     ],
                                 },
                             },
@@ -1319,7 +1298,10 @@ tests:
                           {
                             "$cond":
                               [
-                                { "$lte": ["$$desugared_sqlSize_input0", null] },
+                                {
+                                  "$lte":
+                                    ["$$desugared_sqlSize_input0", null],
+                                },
                                 null,
                                 { "$size": "$$desugared_sqlSize_input0" },
                               ],
@@ -1371,7 +1353,10 @@ tests:
                           {
                             "$cond":
                               [
-                                { "$lte": ["$$desugared_sqlSize_input0", null] },
+                                {
+                                  "$lte":
+                                    ["$$desugared_sqlSize_input0", null],
+                                },
                                 null,
                                 { "$size": "$$desugared_sqlSize_input0" },
                               ],
@@ -1418,7 +1403,13 @@ tests:
                                           ],
                                       },
                                       null,
-                                      { "$eq": ["$$desugared_sqlEq_input0", "$$desugared_sqlEq_input1"] },
+                                      {
+                                        "$eq":
+                                          [
+                                            "$$desugared_sqlEq_input0",
+                                            "$$desugared_sqlEq_input1",
+                                          ],
+                                      },
                                     ],
                                 },
                             },
@@ -1487,9 +1478,17 @@ tests:
                                   {
                                     "$cond":
                                       [
-                                        { "$lte": ["$$desugared_sqlSize_input0", null] },
+                                        {
+                                          "$lte":
+                                            [
+                                              "$$desugared_sqlSize_input0",
+                                              null,
+                                            ],
+                                        },
                                         null,
-                                        { "$size": "$$desugared_sqlSize_input0" },
+                                        {
+                                          "$size": "$$desugared_sqlSize_input0",
+                                        },
                                       ],
                                   },
                               },
@@ -1510,9 +1509,17 @@ tests:
                                   {
                                     "$cond":
                                       [
-                                        { "$lte": ["$$desugared_sqlSize_input0", null] },
+                                        {
+                                          "$lte":
+                                            [
+                                              "$$desugared_sqlSize_input0",
+                                              null,
+                                            ],
+                                        },
                                         null,
-                                        { "$size": "$$desugared_sqlSize_input0" },
+                                        {
+                                          "$size": "$$desugared_sqlSize_input0",
+                                        },
                                       ],
                                   },
                               },
@@ -1544,11 +1551,7 @@ tests:
                               "collection": "baz",
                               "joinType": "inner",
                               "pipeline": [],
-                              "condition":
-                                {
-                                  "$match":
-                                    { "$expr": { "$sqlNot": ["$$ROOT.b"] } },
-                                },
+                              "condition": { "$sqlNot": ["$$ROOT.b"] },
                             },
                         },
                         {
@@ -1700,17 +1703,9 @@ tests:
             "let": { "bar_0": "$bar" },
             "pipeline":
               [
-                {
-                  "$project":
-                    { "_id": 0, "baz": "$$ROOT" },
-                },
-                {
-                  "$project": { "_id": 0, "baz": "$baz" },
-                },
-                {
-                  "$project":
-                    { "_id": 0, "__bot": { "a": "$baz.a" } },
-                },
+                { "$project": { "_id": 0, "baz": "$$ROOT" } },
+                { "$project": { "_id": 0, "baz": "$baz" } },
+                { "$project": { "_id": 0, "__bot": { "a": "$baz.a" } } },
                 { "$sort": { "__bot.a": 1 } },
                 { "$skip": 1 },
               ],
@@ -1766,7 +1761,13 @@ tests:
                                                     ],
                                                 },
                                                 null,
-                                                { "$eq": ["$$desugared_sqlEq_input0", "$$desugared_sqlEq_input1"] },
+                                                {
+                                                  "$eq":
+                                                    [
+                                                      "$$desugared_sqlEq_input0",
+                                                      "$$desugared_sqlEq_input1",
+                                                    ],
+                                                },
                                               ],
                                           },
                                       },
@@ -1830,10 +1831,4 @@ tests:
               },
           },
       }
-      - {
-        "$project":
-          {
-            "_id": 0,
-            "__subquery_result_0": 0,
-          },
-      }
+      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }

@@ -923,7 +923,7 @@ mod join {
                 "database": "mydb2",
                 "let": {"vcol_0": "$col"},
                 "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}],
-                "condition": {"$match": {"$expr": {"$literal": true}}}
+                "condition": {"$literal": true}
             }}],
         }),
         input = Stage::Join(Join {
@@ -963,7 +963,7 @@ mod join {
                 "database": "mydb2",
                 "let": {"vcol_0": "$col"},
                 "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}],
-                "condition": {"$match": {"$expr": {"$sqlEq": ["$$vcol_0", "$col2"]}}}
+                "condition": {"$sqlEq": ["$$vcol_0", "$col2"]}
             }}],
         }),
         input = Stage::Join(Join {

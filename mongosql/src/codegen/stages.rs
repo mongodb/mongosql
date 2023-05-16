@@ -333,7 +333,7 @@ impl MqlCodeGenerator {
         join_doc.insert("pipeline", right_translation.pipeline);
         if air_join.condition.is_some() {
             let cond = self.codegen_expression(air_join.condition.unwrap())?;
-            join_doc.insert("condition", doc! {"$match": {"$expr": cond}});
+            join_doc.insert("condition", cond);
         }
 
         left_translation.pipeline.push(doc! {"$join": join_doc});
