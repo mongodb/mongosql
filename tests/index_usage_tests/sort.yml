@@ -1,0 +1,37 @@
+catalog_data:
+  test_db:
+    test_coll:
+      - {'_id': 1, 'a': 1}
+      - {'_id': 2, 'a': 2}
+      - {'_id': 3, 'a': 3}
+      - {'_id': 4, 'a': null}
+      - {'_id': 5}
+
+catalog_schema:
+  test_db:
+    test_coll:
+      bsonType: 'object'
+      properties:
+        {
+          '_id': { 'bsonType': 'int' },
+          'a': { 'bsonType': 'int' }
+        }
+      required: ['_id']
+      additionalProperties: true
+
+indexes:
+  test_db:
+    test_coll:
+      - {'key': {'a': 1}}
+
+tests:
+  - description: select with no sort uses collection scan
+    current_db: test_db
+    query: 'SELECT * FROM test_coll'
+    expected_utilization: COLL_SCAN
+
+  - description: select with sort uses index scan
+    skip_reason: "SQL-1378"
+    current_db: test_db
+    query: 'SELECT * FROM test_coll ORDER BY a ASC'
+    expected_utilization: IX_SCAN

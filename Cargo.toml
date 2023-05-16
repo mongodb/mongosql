@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+  "index-usage-test",
   "mongosql-datastructures",
   "mongosql-c",
   "mongosql",

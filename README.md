@@ -19,11 +19,11 @@ the code.
 
 ## Rust testing
 
-There are three types of tests for the Rust code: unit tests, fuzz tests, and spec tests. Each of
-these test types can be run in isolation. Fuzz tests should always exist in (sub)modules named
-`fuzz_test`, so this common name is used as a filter for running the tests. The spec tests are
-ignored by default via the `#[ignore]` directive, but can be run by specifying this directive
-after `cargo test`.
+There are four types of tests for the Rust code: unit tests, fuzz tests, index usage tests, and
+spec tests. Each of these test types can be run in isolation. Fuzz tests should always exist in
+(sub)modules named `fuzz_test`, so this common name is used as a filter for running the tests.
+The index usage and spec tests are ignored by default via the `#[ignore]` directive, but can be
+run by specifying this directive after `cargo test`.
 
 The [Rust handbook](https://doc.rust-lang.org/cargo/commands/cargo-test.html) has full guidelines
 on how to use `cargo test`. Below are suggested ways of running the different sets of tests.
@@ -36,9 +36,13 @@ on how to use `cargo test`. Below are suggested ways of running the different se
 
 `cargo test fuzz_test` from the main directory
 
+### Index Usage testing
+
+`cargo test run_index_usage_tests -- --ignored` from the main directory
+
 ### Spec testing
 
-`cargo test -- --ignored` from the main directory
+`cargo test -- --ignored --skip run_index_usage_tests` from the main directory
 
 ### All testing
 
