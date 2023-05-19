@@ -36,7 +36,7 @@ mod filter {
             source: Box::new(mir::Stage::Array(mir::ArraySource {
                 array: vec![],
                 alias: "foo".into(),
-                cache: mir::schema::SchemaCache::new()
+                cache: mir::schema::SchemaCache::new(),
             })),
             condition: mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
             cache: mir::schema::SchemaCache::new(),
@@ -175,6 +175,7 @@ mod group {
                 },
             ],
             cache: mir::schema::SchemaCache::new(),
+            scope: 0,
         })
     );
 
@@ -254,6 +255,7 @@ mod group {
                 },
             ],
             cache: mir::schema::SchemaCache::new(),
+            scope: 0,
         })
     );
 
@@ -325,6 +327,7 @@ mod group {
             ],
             aggregations: vec![],
             cache: mir::schema::SchemaCache::new(),
+            scope: 0,
         })
     );
 
@@ -405,6 +408,7 @@ mod group {
                 agg_expr: mir::AggregationExpr::CountStar(false),
             },],
             cache: mir::schema::SchemaCache::new(),
+            scope: 0,
         })
     );
 
@@ -425,6 +429,7 @@ mod group {
             ),],
             aggregations: vec![],
             cache: mir::schema::SchemaCache::new(),
+            scope: 0,
         })
     );
 }
@@ -1081,6 +1086,7 @@ mod unwind {
             index: None,
             outer: false,
             cache: mir::schema::SchemaCache::new(),
+            scope: 0,
         })
     }
 
@@ -1109,6 +1115,7 @@ mod unwind {
             index: None,
             outer: true,
             cache: mir::schema::SchemaCache::new(),
+                scope: 0,
         })
     }
     test_translate_stage! {
@@ -1116,7 +1123,7 @@ mod unwind {
         expected = Ok(air::Stage::Unwind(air::Unwind {
             source: Box::new(air::Stage::Collection(air::Collection {
                 db: "test_db".to_string(),
-                collection: "foo".to_string()
+                collection: "foo".to_string(),
             })),
             path: Box::new(air::Expression::Variable("ROOT.bar".to_string().into())),
             index: Some("i".to_string()),
@@ -1136,6 +1143,7 @@ mod unwind {
             index: Some("i".into()),
             outer: true,
             cache: mir::schema::SchemaCache::new(),
+                scope: 0,
         })
     }
 }

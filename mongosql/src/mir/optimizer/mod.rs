@@ -4,6 +4,8 @@ use crate::SchemaCheckingMode;
 mod constant_folding;
 mod flatten_variadics;
 mod match_splitting;
+mod stage_movement;
+mod use_def_analysis;
 
 pub(crate) trait Optimizer {
     fn optimize(&self, st: crate::mir::Stage, sm: SchemaCheckingMode) -> crate::mir::Stage;
@@ -16,6 +18,7 @@ static OPTIMIZERS: fn() -> Vec<Box<dyn Optimizer>> = || {
         Box::new(flatten_variadics::FlattenVariadicFunctionsOptimizer {}),
         Box::new(constant_folding::ConstantFoldingOptimizer {}),
         Box::new(match_splitting::MatchSplittingOptimizer {}),
+        Box::new(stage_movement::StageMovementOptimizer {}),
     ]
 };
 

@@ -46,6 +46,75 @@ pub struct Group {
     pub keys: Vec<OptionallyAliasedExpr>,
     pub aggregations: Vec<AliasedAggregation>,
     pub cache: SchemaCache<ResultSet>,
+    pub scope: u16,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Limit {
+    pub source: Box<Stage>,
+    pub limit: u64,
+    pub cache: SchemaCache<ResultSet>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Offset {
+    pub source: Box<Stage>,
+    pub offset: i64,
+    pub cache: SchemaCache<ResultSet>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Sort {
+    pub source: Box<Stage>,
+    pub specs: Vec<SortSpecification>,
+    pub cache: SchemaCache<ResultSet>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Collection {
+    pub db: String,
+    pub collection: String,
+    pub cache: SchemaCache<ResultSet>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct ArraySource {
+    pub array: Vec<Expression>,
+    pub alias: String,
+    pub cache: SchemaCache<ResultSet>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Join {
+    pub join_type: JoinType,
+    pub left: Box<Stage>,
+    pub right: Box<Stage>,
+    pub condition: Option<Expression>,
+    pub cache: SchemaCache<ResultSet>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Set {
+    pub operation: SetOperation,
+    pub left: Box<Stage>,
+    pub right: Box<Stage>,
+    pub cache: SchemaCache<ResultSet>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Derived {
+    pub source: Box<Stage>,
+    pub cache: SchemaCache<ResultSet>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct Unwind {
+    pub source: Box<Stage>,
+    pub path: Box<Expression>,
+    pub index: Option<String>,
+    pub outer: bool,
+    pub cache: SchemaCache<ResultSet>,
+    pub scope: u16,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -96,53 +165,9 @@ pub struct AggregationFunctionApplication {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct Limit {
-    pub source: Box<Stage>,
-    pub limit: u64,
-    pub cache: SchemaCache<ResultSet>,
-}
-
-#[derive(PartialEq, Debug, Clone)]
-pub struct Offset {
-    pub source: Box<Stage>,
-    pub offset: i64,
-    pub cache: SchemaCache<ResultSet>,
-}
-
-#[derive(PartialEq, Debug, Clone)]
-pub struct Sort {
-    pub source: Box<Stage>,
-    pub specs: Vec<SortSpecification>,
-    pub cache: SchemaCache<ResultSet>,
-}
-
-#[derive(PartialEq, Debug, Clone)]
 pub enum SortSpecification {
     Asc(Box<Expression>),
     Desc(Box<Expression>),
-}
-
-#[derive(PartialEq, Debug, Clone)]
-pub struct Collection {
-    pub db: String,
-    pub collection: String,
-    pub cache: SchemaCache<ResultSet>,
-}
-
-#[derive(PartialEq, Debug, Clone)]
-pub struct ArraySource {
-    pub array: Vec<Expression>,
-    pub alias: String,
-    pub cache: SchemaCache<ResultSet>,
-}
-
-#[derive(PartialEq, Debug, Clone)]
-pub struct Join {
-    pub join_type: JoinType,
-    pub left: Box<Stage>,
-    pub right: Box<Stage>,
-    pub condition: Option<Expression>,
-    pub cache: SchemaCache<ResultSet>,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
@@ -151,33 +176,10 @@ pub enum JoinType {
     Inner,
 }
 
-#[derive(PartialEq, Debug, Clone)]
-pub struct Set {
-    pub operation: SetOperation,
-    pub left: Box<Stage>,
-    pub right: Box<Stage>,
-    pub cache: SchemaCache<ResultSet>,
-}
-
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum SetOperation {
     UnionAll,
     Union,
-}
-
-#[derive(PartialEq, Debug, Clone)]
-pub struct Derived {
-    pub source: Box<Stage>,
-    pub cache: SchemaCache<ResultSet>,
-}
-
-#[derive(PartialEq, Debug, Clone)]
-pub struct Unwind {
-    pub source: Box<Stage>,
-    pub path: Box<Expression>,
-    pub index: Option<String>,
-    pub outer: bool,
-    pub cache: SchemaCache<ResultSet>,
 }
 
 #[derive(PartialEq, Debug, Clone)]

@@ -3678,7 +3678,8 @@ mod from_clause {
                 })),
                 index: None,
                 outer: false,
-                cache: SchemaCache::new()
+                cache: SchemaCache::new(),
+                scope: 0,
             })),
             input = Some(ast::Datasource::Unwind(ast::UnwindSource {
                 datasource: Box::new(AST_SOURCE_FOO.clone()),
@@ -3706,7 +3707,8 @@ mod from_clause {
                 })),
                 index: Some("i".into()),
                 outer: true,
-                cache: SchemaCache::new()
+                cache: SchemaCache::new(),
+                scope: 0,
             })),
             input = Some(ast::Datasource::Unwind(ast::UnwindSource {
                 datasource: Box::new(AST_SOURCE_FOO.clone()),
@@ -3740,7 +3742,8 @@ mod from_clause {
                 })),
                 index: None,
                 outer: false,
-                cache: SchemaCache::new()
+                cache: SchemaCache::new(),
+                scope: 0,
             })),
             input = Some(ast::Datasource::Unwind(ast::UnwindSource {
                 datasource: Box::new(AST_SOURCE_FOO.clone()),
@@ -4243,6 +4246,7 @@ mod group_by_clause {
             keys: vec![mir_field_access()],
             aggregations: vec![mir_agg_1_array(), mir_agg_2()],
             cache: SchemaCache::new(),
+            scope: 0,
         })),
         input = Some(ast::GroupByClause {
             keys: vec![AST_SUBPATH.clone()],
@@ -4260,6 +4264,7 @@ mod group_by_clause {
             keys: vec![mir_literal_key()],
             aggregations: vec![],
             cache: SchemaCache::new(),
+            scope: 0,
         })),
         input = Some(ast::GroupByClause {
             keys: vec![AST_LITERAL_KEY.clone()],
@@ -4277,6 +4282,7 @@ mod group_by_clause {
             keys: vec![mir_field_access_complex_expr()],
             aggregations: vec![],
             cache: SchemaCache::new(),
+            scope: 0,
         })),
         input = Some(ast::GroupByClause {
             keys: vec![AST_SUBPATH_COMPLEX_EXPR.clone()],

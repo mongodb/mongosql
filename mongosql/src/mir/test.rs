@@ -6337,6 +6337,7 @@ mod schema {
                     agg_expr: AggregationExpr::CountStar(false),
                 }],
                 cache: schema::SchemaCache::new(),
+                scope: 0,
             })
         }
         fn group_aliased_ref() -> OptionallyAliasedExpr {
@@ -6423,6 +6424,7 @@ mod schema {
                 keys: vec![group_aliased_ref()],
                 aggregations: vec![],
                 cache: SchemaCache::new(),
+                scope: 0,
             }),
             schema_env = map! {
                 ("foo", 0u16).into() => Schema::Document(Document {
@@ -6461,6 +6463,7 @@ mod schema {
                 keys: vec![group_non_aliased_ref()],
                 aggregations: vec![],
                 cache: SchemaCache::new(),
+                scope: 0,
             }),
             schema_env = map! {
                 ("foo", 0u16).into() => Schema::Document(Document {
@@ -6499,6 +6502,7 @@ mod schema {
                 ],
                 aggregations: vec![],
                 cache: SchemaCache::new(),
+                scope: 0,
             }),
             catalog = Catalog::new(map! {
                 Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
@@ -6526,6 +6530,7 @@ mod schema {
                 ],
                 aggregations: vec![],
                 cache: SchemaCache::new(),
+                scope: 0,
             }),
             schema_env = map! {
                 ("foo", 0u16).into() => Schema::Document(Document {
@@ -6591,6 +6596,7 @@ mod schema {
                     },
                 ],
                 cache: SchemaCache::new(),
+                scope: 0,
             }),
             catalog = Catalog::new(map! {
                 Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
@@ -6628,6 +6634,7 @@ mod schema {
                 index,
                 outer,
                 cache: SchemaCache::new(),
+                scope: 0,
             })
         }
 
@@ -6962,6 +6969,7 @@ mod schema {
                     index: None,
                     outer: false,
                     cache: SchemaCache::new(),
+                    scope: 0,
                 }),
                 schema_env = map! {
                     ("bar", 0u16).into() => Schema::Document(Document {
@@ -7295,6 +7303,7 @@ mod schema {
                     index: Some("idx".into()),
                     outer: false,
                     cache: SchemaCache::new(),
+                    scope: 0,
                 }),
                 catalog = make_catalog(Schema::Document(Document {
                     keys: map! {
@@ -7364,6 +7373,7 @@ mod schema {
                     index: Some("idx".into()),
                     outer: false,
                     cache: SchemaCache::new(),
+                    scope: 0,
                 }),
                 catalog = Catalog::new(map! {
                     Namespace {db: "test".into(), collection: "foo".into()} => Schema::Document(Document {

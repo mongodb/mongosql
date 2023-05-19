@@ -688,6 +688,7 @@ impl<'a> Algebrizer<'a> {
             index,
             outer: outer.unwrap_or(false),
             cache: Default::default(),
+            scope: self.scope_level,
         });
 
         stage.schema(&self.schema_inference_state())?;
@@ -893,6 +894,7 @@ impl<'a> Algebrizer<'a> {
                     keys,
                     aggregations,
                     cache: SchemaCache::new(),
+                    scope: self.scope_level,
                 })
             }
         };
