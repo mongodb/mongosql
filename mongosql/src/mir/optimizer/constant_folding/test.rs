@@ -17,7 +17,8 @@ mod constant_folding {
     };
     }
     use crate::{
-        mir::{definitions::*, schema::SchemaCache},
+        map,
+        mir::{binding_tuple::DatasourceName::Bottom, definitions::*, schema::SchemaCache},
         unchecked_unique_linked_hash_map,
     };
 
@@ -3116,6 +3117,82 @@ mod constant_folding {
         input = Stage::Filter(Filter {
             source: Box::new(test_source()),
             condition: Expression::Reference(("a", 0u16).into()),
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    test_constant_fold!(
+        multi_level_field_access_from_literal_document_is_constant_folded,
+        expected = Stage::Project(Project {
+            source: Box::new(Stage::Array(ArraySource {
+                array: vec![Expression::Document(DocumentExpr {
+                    document: unchecked_unique_linked_hash_map! {},
+                    cache: SchemaCache::new(),
+                })],
+                alias: "_dual".to_string(),
+                cache: SchemaCache::new(),
+            })),
+            expression: map! {
+                (Bottom, 0u16).into() => Expression::Document(DocumentExpr {
+                    document: unchecked_unique_linked_hash_map! {
+                        "c".to_string() =>
+                        Expression::Literal(LiteralExpr {
+                                value: LiteralValue::Integer(1),
+                                cache: SchemaCache::new(),
+                            }),
+                    },
+                    cache: SchemaCache::new(),
+                }),
+            },
+            cache: SchemaCache::new(),
+        }),
+        input = Stage::Project(Project {
+            source: Box::new(Stage::Array(ArraySource {
+                array: vec![Expression::Document(DocumentExpr {
+                    document: unchecked_unique_linked_hash_map! {},
+                    cache: SchemaCache::new(),
+                })],
+                alias: "_dual".to_string(),
+                cache: SchemaCache::new(),
+            })),
+            expression: map! {
+                (Bottom, 0u16).into() => Expression::Document(DocumentExpr {
+                    document: unchecked_unique_linked_hash_map! {
+                        "c".to_string() => Expression::FieldAccess(FieldAccess {
+                            expr: Box::new(Expression::FieldAccess(FieldAccess {
+                                expr: Box::new(Expression::FieldAccess(FieldAccess {
+                                    expr: Box::new(Expression::Document(DocumentExpr {
+                                        document: unchecked_unique_linked_hash_map! {
+                                            "a".to_string() => Expression::Document(DocumentExpr {
+                                                document: unchecked_unique_linked_hash_map! {
+                                                    "b".to_string() => Expression::Document(DocumentExpr {
+                                                        document: unchecked_unique_linked_hash_map! {
+                                                            "c".to_string() => Expression::Literal(LiteralExpr {
+                                                                value: LiteralValue::Integer(1),
+                                                                cache: SchemaCache::new(),
+                                                            }),
+                                                        },
+                                                        cache: SchemaCache::new(),
+                                                    }),
+                                                },
+                                                cache: SchemaCache::new(),
+                                            }),
+                                        },
+                                        cache: SchemaCache::new(),
+                                    })),
+                                    field: "a".to_string(),
+                                    cache: SchemaCache::new(),
+                                })),
+                                field: "b".to_string(),
+                                cache: SchemaCache::new(),
+                            })),
+                            field: "c".to_string(),
+                            cache: SchemaCache::new(),
+                        }),
+                    },
+                    cache: SchemaCache::new(),
+                }),
+            },
             cache: SchemaCache::new(),
         }),
     );

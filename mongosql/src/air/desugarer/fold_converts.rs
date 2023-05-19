@@ -83,7 +83,7 @@ impl FoldConvertsDesugarerVisitor {
     ) -> Option<Result<Expression>> {
         match to {
             Type::Decimal128 => {
-                let dec = Decimal128::from_str(&format!("{}", i)).ok();
+                let dec = Decimal128::from_str(&format!("{i}")).ok();
                 match dec {
                     Some(dec) => Some(Ok(Expression::Literal(LiteralValue::Decimal128(dec)))),
                     None => Some(Err(Error::InvalidConstantConvert(Type::Decimal128))),

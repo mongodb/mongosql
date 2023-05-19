@@ -503,6 +503,28 @@ mod scalar_function {
             cache: mir::schema::SchemaCache::new(),
         }),
     );
+    test_translate_expression!(
+        addition_with_more_than_two_operands,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Add,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(1)),
+                    air::Expression::Literal(air::LiteralValue::Integer(2)),
+                    air::Expression::Literal(air::LiteralValue::Integer(3)),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Add,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(3).into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
 
     test_translate_expression_with_schema_info!(
         sub_nullish,
@@ -545,6 +567,30 @@ mod scalar_function {
             cache: mir::schema::SchemaCache::new(),
         }),
     );
+
+    test_translate_expression!(
+        subtraction_with_more_than_2_operands,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Subtract,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(1)),
+                    air::Expression::Literal(air::LiteralValue::Integer(2)),
+                    air::Expression::Literal(air::LiteralValue::Integer(3)),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Sub,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(3).into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
     test_translate_expression_with_schema_info!(
         mul_nullish,
         expected = Ok(air::Expression::MQLSemanticOperator(
@@ -578,6 +624,29 @@ mod scalar_function {
             args: vec![
                 mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
                 mir::Expression::Literal(mir::LiteralValue::Integer(20).into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression!(
+        multiplication_with_more_than_2_operands,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Multiply,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(1)),
+                    air::Expression::Literal(air::LiteralValue::Integer(2)),
+                    air::Expression::Literal(air::LiteralValue::Integer(3)),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Mul,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(3).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
         }),
@@ -2955,6 +3024,106 @@ mod simple_case {
                 mir::LiteralValue::Integer(7).into()
             )),
             cache: mir::schema::SchemaCache::new(),
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
+        nested_case_expression_translation,
+        expected = Ok(air::Expression::Let(air::Let {
+            vars: vec![air::LetVariable {
+                name: "target".to_string(),
+                expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
+            },],
+            inside: Box::new(air::Expression::Switch(air::Switch {
+                branches: vec![air::SwitchCase {
+                    case: Box::new(air::Expression::MQLSemanticOperator(
+                        air::MQLSemanticOperator {
+                            op: air::MQLOperator::Eq,
+                            args: vec![
+                                air::Expression::Variable(air::Variable {
+                                    parent: None,
+                                    name: "target".to_string(),
+                                }),
+                                air::Expression::Let(air::Let {
+                                    vars: vec![air::LetVariable {
+                                        name: "target".to_string(),
+                                        expr: Box::new(air::Expression::Literal(
+                                            air::LiteralValue::Integer(2)
+                                        )),
+                                    },],
+                                    inside: Box::new(air::Expression::Switch(air::Switch {
+                                        branches: vec![air::SwitchCase {
+                                            case: Box::new(air::Expression::MQLSemanticOperator(
+                                                air::MQLSemanticOperator {
+                                                    op: air::MQLOperator::Eq,
+                                                    args: vec![
+                                                        air::Expression::Variable(air::Variable {
+                                                            parent: None,
+                                                            name: "target".to_string(),
+                                                        }),
+                                                        air::Expression::Literal(
+                                                            air::LiteralValue::Integer(5)
+                                                        ),
+                                                    ],
+                                                },
+                                            )),
+                                            then: Box::new(air::Expression::Literal(
+                                                air::LiteralValue::Integer(2)
+                                            )),
+                                        },],
+                                        default: Box::new(air::Expression::Literal(
+                                            air::LiteralValue::Integer(1)
+                                        )),
+                                    })),
+                                })
+                            ],
+                        }
+                    )),
+                    then: Box::new(air::Expression::Literal(air::LiteralValue::String(
+                        "YES".to_string()
+                    ))),
+                },],
+                default: Box::new(air::Expression::Literal(air::LiteralValue::String(
+                    "NO".to_string()
+                ))),
+            })),
+        })),
+        input = mir::Expression::SimpleCase(mir::SimpleCaseExpr {
+            expr: Box::new(mir::Expression::Literal(mir::LiteralExpr {
+                value: mir::LiteralValue::Integer(1),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            when_branch: vec![mir::WhenBranch {
+                when: Box::new(mir::Expression::SimpleCase(mir::SimpleCaseExpr {
+                    expr: Box::new(mir::Expression::Literal(mir::LiteralExpr {
+                        value: mir::LiteralValue::Integer(2),
+                        cache: mir::schema::SchemaCache::new(),
+                    })),
+                    when_branch: vec![mir::WhenBranch {
+                        when: Box::new(mir::Expression::Literal(
+                            mir::LiteralValue::Integer(5).into()
+                        )),
+                        then: Box::new(mir::Expression::Literal(mir::LiteralExpr {
+                            value: mir::LiteralValue::Integer(2),
+                            cache: mir::schema::SchemaCache::new(),
+                        })),
+                    }],
+                    else_branch: Box::new(mir::Expression::Literal(mir::LiteralExpr {
+                        value: mir::LiteralValue::Integer(1),
+                        cache: mir::schema::SchemaCache::new(),
+                    })),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                then: Box::new(mir::Expression::Literal(mir::LiteralExpr {
+                    value: mir::LiteralValue::String("YES".to_string()),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+            }],
+            else_branch: Box::new(mir::Expression::Literal(mir::LiteralExpr {
+                value: mir::LiteralValue::String("NO".to_string()),
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            cache: mir::schema::SchemaCache::new()
         }),
     );
 }

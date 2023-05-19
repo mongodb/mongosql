@@ -343,7 +343,7 @@ impl MqlTranslator {
 
         let mut translated_keys = Vec::new();
 
-        let make_key_ref = |name| air::Expression::FieldRef(format!("_id.{}", name).into());
+        let make_key_ref = |name| air::Expression::FieldRef(format!("_id.{name}").into());
         for (i, k) in keys.into_iter().enumerate() {
             match k {
                 mir::OptionallyAliasedExpr::Aliased(ae) => {
