@@ -793,6 +793,15 @@ impl ConstantFoldExprVisitor {
         Expression::Document(UniqueLinkedHashMap::from(result_doc).into())
     }
 
+    // Constant folds the position function
+    fn fold_position_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
+        if self.has_null_arg(&sf.args) {
+            Expression::Literal(LiteralValue::Null.into())
+        } else {
+            Expression::ScalarFunction(sf)
+        }
+    }
+
     // Constant folds the slice function
     fn fold_slice_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
         use std::cmp;
@@ -1082,6 +1091,7 @@ impl Visitor for ConstantFoldExprVisitor {
                 ScalarFunction::MergeObjects => self.fold_merge_objects_function(f),
                 ScalarFunction::NullIf => self.fold_null_if_function(f),
                 ScalarFunction::Slice => self.fold_slice_function(f),
+                ScalarFunction::Position => self.fold_position_function(f),
                 _ => Expression::ScalarFunction(f),
             },
             Expression::SearchedCase(case_expr) => self.fold_searched_case_expr(case_expr),

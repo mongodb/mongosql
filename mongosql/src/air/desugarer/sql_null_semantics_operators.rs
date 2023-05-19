@@ -5,9 +5,10 @@ use crate::air::{
     visitor::Visitor,
     Expression,
     Expression::*,
-    LetVariable, LiteralValue, MQLOperator,
+    LetVariable, LiteralValue, MQLOperator, MQLSemanticOperator,
     SQLOperator::*,
 };
+use crate::make_cond_expr;
 
 /// Desugars any SQL operators that require SQL null semantics into their
 /// corresponding MQL operators wrapped in operations to null-check the
@@ -24,13 +25,17 @@ impl Pass for SQLNullSemanticsOperatorsDesugarerPass {
 struct SQLNullSemanticsOperatorsDesugarerVisitor;
 
 impl SQLNullSemanticsOperatorsDesugarerVisitor {
-    fn null_check_cond_if_statement(let_vars: Vec<LetVariable>) -> Expression {
+    fn literal_check_args(
+        let_vars: Vec<LetVariable>,
+        op: MQLOperator,
+        lit_val: LiteralValue,
+    ) -> Expression {
         let args = let_vars
             .into_iter()
             .map(|let_var| {
                 MQLSemanticOperator(air::MQLSemanticOperator {
-                    op: MQLOperator::Lte,
-                    args: vec![Variable(let_var.name.into()), Literal(LiteralValue::Null)],
+                    op: op.clone(),
+                    args: vec![Variable(let_var.name.into()), Literal(lit_val.clone())],
                 })
             })
             .collect::<Vec<Expression>>();
@@ -44,45 +49,42 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
     }
 
     fn desugar_sql_and(&mut self, sql_operator: air::SQLSemanticOperator) -> Expression {
-        let mut sql_operator_args_eq_false_check: Vec<Expression> = Vec::new();
         let mut let_vars: Vec<LetVariable> = Vec::new();
 
+        let mut literal_null_found: Option<Expression> = None;
+
         for (let_vars_idx, expr) in sql_operator.args.into_iter().enumerate() {
-            let let_var = LetVariable {
-                name: format!("desugared_sqlAnd_input{let_vars_idx}"),
-                expr: Box::new(expr),
-            };
-            let_vars.push(let_var.clone());
-            sql_operator_args_eq_false_check.push(MQLSemanticOperator(air::MQLSemanticOperator {
-                op: MQLOperator::Eq,
-                args: vec![
-                    Variable(let_var.name.into()),
-                    Literal(LiteralValue::Boolean(false)),
-                ],
-            }));
+            // Due to constant folding in the mir, Null is the only possible Literal expr can be.
+            if let Literal(LiteralValue::Null) = expr {
+                literal_null_found = Some(Literal(LiteralValue::Null));
+            } else {
+                let_vars.push(LetVariable {
+                    name: format!("desugared_sqlAnd_input{let_vars_idx}"),
+                    expr: Box::new(expr),
+                });
+            }
         }
 
-        // If any of the arguments are false, return false. Otherwise, if any of the arguments are null, return null. Otherwise, return true.
-        let cond = MQLSemanticOperator(air::MQLSemanticOperator {
-            op: MQLOperator::Cond,
-            args: vec![
-                MQLSemanticOperator(air::MQLSemanticOperator {
-                    op: MQLOperator::Or,
-                    args: sql_operator_args_eq_false_check,
-                }),
-                Literal(LiteralValue::Boolean(false)),
-                MQLSemanticOperator(air::MQLSemanticOperator {
-                    op: MQLOperator::Cond,
-                    args: vec![
-                        SQLNullSemanticsOperatorsDesugarerVisitor::null_check_cond_if_statement(
-                            let_vars.clone(),
-                        ),
-                        Literal(LiteralValue::Null),
-                        Literal(LiteralValue::Boolean(true)),
-                    ],
-                }),
-            ],
-        });
+        let false_check_cond_else_statement = literal_null_found.map_or(
+            make_cond_expr!(
+                Self::literal_check_args(let_vars.clone(), MQLOperator::Lte, LiteralValue::Null),
+                Literal(LiteralValue::Null),
+                Literal(LiteralValue::Boolean(true))
+            ),
+            |x| x,
+        );
+
+        // If any of the arguments are false, return false.
+        // Otherwise, if any of the arguments are null, return null. Otherwise, return true.
+        let cond = make_cond_expr!(
+            Self::literal_check_args(
+                let_vars.clone(),
+                MQLOperator::Eq,
+                LiteralValue::Boolean(false)
+            ),
+            Literal(LiteralValue::Boolean(false)),
+            false_check_cond_else_statement
+        );
 
         Let(air::Let {
             vars: let_vars,
@@ -91,45 +93,42 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
     }
 
     fn desugar_sql_or(&mut self, sql_operator: air::SQLSemanticOperator) -> Expression {
-        let mut sql_operator_args_eq_true_check: Vec<Expression> = Vec::new();
         let mut let_vars: Vec<LetVariable> = Vec::new();
 
+        let mut literal_null_found: Option<Expression> = None;
+
         for (let_vars_idx, expr) in sql_operator.args.into_iter().enumerate() {
-            let let_var = LetVariable {
-                name: format!("desugared_sqlOr_input{let_vars_idx}"),
-                expr: Box::new(expr),
-            };
-            let_vars.push(let_var.clone());
-            sql_operator_args_eq_true_check.push(MQLSemanticOperator(air::MQLSemanticOperator {
-                op: MQLOperator::Eq,
-                args: vec![
-                    Variable(let_var.name.into()),
-                    Literal(LiteralValue::Boolean(true)),
-                ],
-            }));
+            // Due to constant folding in the mir, Null is the only possible Literal expr can be.
+            if let Literal(LiteralValue::Null) = expr {
+                literal_null_found = Some(Literal(LiteralValue::Null));
+            } else {
+                let_vars.push(LetVariable {
+                    name: format!("desugared_sqlOr_input{let_vars_idx}"),
+                    expr: Box::new(expr),
+                });
+            }
         }
 
-        // If any of the arguments are true, return true. Otherwise, if any of the arguments are null, return null. Otherwise, return false.
-        let cond = MQLSemanticOperator(air::MQLSemanticOperator {
-            op: MQLOperator::Cond,
-            args: vec![
-                MQLSemanticOperator(air::MQLSemanticOperator {
-                    op: MQLOperator::Or,
-                    args: sql_operator_args_eq_true_check,
-                }),
-                Literal(LiteralValue::Boolean(true)),
-                MQLSemanticOperator(air::MQLSemanticOperator {
-                    op: MQLOperator::Cond,
-                    args: vec![
-                        SQLNullSemanticsOperatorsDesugarerVisitor::null_check_cond_if_statement(
-                            let_vars.clone(),
-                        ),
-                        Literal(LiteralValue::Null),
-                        Literal(LiteralValue::Boolean(false)),
-                    ],
-                }),
-            ],
-        });
+        let true_check_cond_else_statement = literal_null_found.map_or(
+            make_cond_expr!(
+                Self::literal_check_args(let_vars.clone(), MQLOperator::Lte, LiteralValue::Null),
+                Literal(LiteralValue::Null),
+                Literal(LiteralValue::Boolean(false))
+            ),
+            |x| x,
+        );
+
+        // If any of the arguments are true, return true.
+        // Otherwise, if any of the arguments are null, return null. Otherwise, return false.
+        let cond = make_cond_expr!(
+            Self::literal_check_args(
+                let_vars.clone(),
+                MQLOperator::Eq,
+                LiteralValue::Boolean(true)
+            ),
+            Literal(LiteralValue::Boolean(true)),
+            true_check_cond_else_statement
+        );
 
         Let(air::Let {
             vars: let_vars,
@@ -144,32 +143,38 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
         let mut let_vars: Vec<LetVariable> = Vec::new();
 
         for (let_vars_idx, expr) in sql_operator.args.clone().into_iter().enumerate() {
-            let let_var = LetVariable {
-                name: format!("desugared_{op_name}_input{let_vars_idx}"),
-                expr: Box::new(expr),
+            // The mir optimizer ensures we will never have null literals as arguments to
+            // any of these operators.
+            let mql_operator_arg = if matches!(expr, Literal(_)) {
+                expr
+            } else {
+                let let_var = LetVariable {
+                    name: format!("desugared_{op_name}_input{let_vars_idx}"),
+                    expr: Box::new(expr),
+                };
+                let_vars.push(let_var.clone());
+                Variable(let_var.name.into())
             };
-            let_vars.push(let_var.clone());
-            mql_operator_args.push(Variable(let_var.name.into()));
+
+            mql_operator_args.push(mql_operator_arg);
         }
 
-        let let_inside = MQLSemanticOperator(air::MQLSemanticOperator {
-            op: MQLOperator::Cond,
-            args: vec![
-                SQLNullSemanticsOperatorsDesugarerVisitor::null_check_cond_if_statement(
-                    let_vars.clone(),
-                ),
-                Literal(LiteralValue::Null),
-                MQLSemanticOperator(air::MQLSemanticOperator {
-                    op: sql_op_to_mql_op(sql_operator.op).unwrap(),
-                    args: mql_operator_args,
-                }),
-            ],
+        let mql_op = MQLSemanticOperator(air::MQLSemanticOperator {
+            op: sql_op_to_mql_op(sql_operator.op).unwrap(),
+            args: mql_operator_args,
         });
-
-        Let(air::Let {
-            vars: let_vars,
-            inside: Box::new(let_inside),
-        })
+        if let_vars.is_empty() {
+            mql_op
+        } else {
+            Let(air::Let {
+                vars: let_vars.clone(),
+                inside: Box::new(make_cond_expr!(
+                    Self::literal_check_args(let_vars, MQLOperator::Lte, LiteralValue::Null),
+                    Literal(LiteralValue::Null),
+                    mql_op
+                )),
+            })
+        }
     }
 }
 

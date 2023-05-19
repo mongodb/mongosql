@@ -77,8 +77,6 @@ tests:
                       {
                         "desugared_sqlIndexOfCP_input0": "$a",
                         "desugared_sqlIndexOfCP_input1": "$b",
-                        "desugared_sqlIndexOfCP_input2": 0,
-                        "desugared_sqlIndexOfCP_input3": 10,
                       },
                     "in":
                       {
@@ -100,20 +98,6 @@ tests:
                                       { "$literal": null },
                                     ],
                                 },
-                                {
-                                  "$lte":
-                                    [
-                                      "$$desugared_sqlIndexOfCP_input2",
-                                      { "$literal": null },
-                                    ],
-                                },
-                                {
-                                  "$lte":
-                                    [
-                                      "$$desugared_sqlIndexOfCP_input3",
-                                      { "$literal": null },
-                                    ],
-                                },
                               ],
 
                             { "$literal": null },
@@ -122,8 +106,8 @@ tests:
                               [
                                 "$$desugared_sqlIndexOfCP_input0",
                                 "$$desugared_sqlIndexOfCP_input1",
-                                "$$desugared_sqlIndexOfCP_input2",
-                                "$$desugared_sqlIndexOfCP_input3",
+                                0,
+                                10,
                               ],
                           ],
                       },
@@ -197,94 +181,22 @@ tests:
               {
                 "$let":
                   {
-                    "vars":
-                      {
-                        "desugared_sqlLt_input0": "$a",
-                        "desugared_sqlLt_input1": 200,
-                      },
+                    "vars": { "desugared_sqlLt_input0": "$a" },
                     "in":
                       {
                         "$cond":
                           [
-                            "$or":
-                              [
-                                {
-                                  "$lte":
-                                    [
-                                      "$$desugared_sqlLt_input0",
-                                      { "$literal": null },
-                                    ],
-                                },
-                                {
-                                  "$lte":
-                                    [
-                                      "$$desugared_sqlLt_input1",
-                                      { "$literal": null },
-                                    ],
-                                },
-                              ],
-
-                            { "$literal": null },
-
                             {
-                              "$lt":
+                              "$lte":
                                 [
                                   "$$desugared_sqlLt_input0",
-                                  "$$desugared_sqlLt_input1",
+                                  { "$literal": null },
                                 ],
                             },
-                          ],
-                      },
-                  },
-              },
-          },
-      }
 
-  - name: "desugar $sqlLt with null literal"
-    input:
-      - { "$project": { "_id": 0, "expr": { "$sqlLt": ["$a", null] } } }
-    expected:
-      - {
-        "$project":
-          {
-            "_id": 0,
-            "expr":
-              {
-                "$let":
-                  {
-                    "vars":
-                      {
-                        "desugared_sqlLt_input0": "$a",
-                        "desugared_sqlLt_input1": null,
-                      },
-                    "in":
-                      {
-                        "$cond":
-                          [
-                            "$or":
-                              [
-                                {
-                                  "$lte":
-                                    [
-                                      "$$desugared_sqlLt_input0",
-                                      { "$literal": null },
-                                    ],
-                                },
-                                {
-                                  "$lte":
-                                    [
-                                      "$$desugared_sqlLt_input1",
-                                      { "$literal": null },
-                                    ],
-                                },
-                              ],
                             { "$literal": null },
 
-                            "$lt":
-                              [
-                                "$$desugared_sqlLt_input0",
-                                "$$desugared_sqlLt_input1",
-                              ],
+                            { "$lt": ["$$desugared_sqlLt_input0", 200] },
                           ],
                       },
                   },
@@ -557,40 +469,23 @@ tests:
                           {
                             "$let":
                               {
-                                "vars":
-                                  {
-                                    "desugared_sqlGt_input0": "$qty",
-                                    "desugared_sqlGt_input1": 250,
-                                  },
+                                "vars": { "desugared_sqlGt_input0": "$qty" },
                                 "in":
                                   {
                                     "$cond":
                                       [
-                                        "$or":
-                                          [
-                                            {
-                                              "$lte":
-                                                [
-                                                  "$$desugared_sqlGt_input0",
-                                                  { "$literal": null },
-                                                ],
-                                            },
-                                            {
-                                              "$lte":
-                                                [
-                                                  "$$desugared_sqlGt_input1",
-                                                  { "$literal": null },
-                                                ],
-                                            },
-                                          ],
+                                        {
+                                          "$lte":
+                                            [
+                                              "$$desugared_sqlGt_input0",
+                                              { "$literal": null },
+                                            ],
+                                        },
 
                                         { "$literal": null },
 
                                         "$gt":
-                                          [
-                                            "$$desugared_sqlGt_input0",
-                                            "$$desugared_sqlGt_input1",
-                                          ],
+                                          ["$$desugared_sqlGt_input0", 250],
                                       ],
                                   },
                               },
@@ -619,33 +514,7 @@ tests:
     input:
       - { "$project": { "_id": 0, "expr": { "$sqlNot": [false] } } }
     expected:
-      - {
-        "$project":
-          {
-            "_id": 0,
-            "expr":
-              {
-                "$let":
-                  {
-                    "vars": { "desugared_sqlNot_input0": false },
-                    "in":
-                      {
-                        "$cond":
-                          [
-                            "$lte":
-                              [
-                                "$$desugared_sqlNot_input0",
-                                { "$literal": null },
-                              ],
-
-                            { "$literal": null },
-                            { "$not": "$$desugared_sqlNot_input0" },
-                          ],
-                      },
-                  },
-              },
-          },
-      }
+      - { "$project": { "_id": 0, "expr": { "$not": [false] } } }
 
   - name: "desugar $sqlSize"
     input:
@@ -762,50 +631,24 @@ tests:
               {
                 "$let":
                   {
-                    "vars":
-                      {
-                        "desugared_sqlSubstrCP_input0": "$a",
-                        "desugared_sqlSubstrCP_input1": 1,
-                        "desugared_sqlSubstrCP_input2": 2,
-                      },
+                    "vars": { "desugared_sqlSubstrCP_input0": "$a" },
                     "in":
                       {
                         "$cond":
                           [
-                            "$or":
-                              [
-                                {
-                                  "$lte":
-                                    [
-                                      "$$desugared_sqlSubstrCP_input0",
-                                      { "$literal": null },
-                                    ],
-                                },
-                                {
-                                  "$lte":
-                                    [
-                                      "$$desugared_sqlSubstrCP_input1",
-                                      { "$literal": null },
-                                    ],
-                                },
-                                {
-                                  "$lte":
-                                    [
-                                      "$$desugared_sqlSubstrCP_input2",
-                                      { "$literal": null },
-                                    ],
-                                },
-                              ],
+                            {
+                              "$lte":
+                                [
+                                  "$$desugared_sqlSubstrCP_input0",
+                                  { "$literal": null },
+                                ],
+                            },
 
                             { "$literal": null },
 
                             {
                               "$substrCP":
-                                [
-                                  "$$desugared_sqlSubstrCP_input0",
-                                  "$$desugared_sqlSubstrCP_input1",
-                                  "$$desugared_sqlSubstrCP_input2",
-                                ],
+                                ["$$desugared_sqlSubstrCP_input0", 1, 2],
                             },
                           ],
                       },
@@ -951,9 +794,9 @@ tests:
           },
       }
 
-  - name: "desugar $sqlAnd with literal in input"
+  - name: "desugar $sqlAnd with literal null in input"
     input:
-      - { "$project": { "_id": 0, "expr": { "$sqlAnd": ["$a", false] } } }
+      - { "$project": { "_id": 0, "expr": { "$sqlAnd": ["$a", null] } } }
     expected:
       - {
         "$project":
@@ -963,56 +806,23 @@ tests:
               {
                 "$let":
                   {
-                    "vars":
-                      {
-                        "desugared_sqlAnd_input0": "$a",
-                        "desugared_sqlAnd_input1": false,
-                      },
+                    "vars": { "desugared_sqlAnd_input0": "$a" },
                     "in":
                       {
                         "$cond":
                           [
-                            "$or":
-                              [
-                                {
-                                  "$eq":
-                                    [
-                                      "$$desugared_sqlAnd_input0",
-                                      { "$literal": false },
-                                    ],
-                                },
-                                {
-                                  "$eq":
-                                    [
-                                      "$$desugared_sqlAnd_input1",
-                                      { "$literal": false },
-                                    ],
-                                },
-                              ],
-                            { "$literal": false },
-                            "$cond":
-                              [
-                                "$or":
-                                  [
-                                    {
-                                      "$lte":
-                                        [
-                                          "$$desugared_sqlAnd_input0",
-                                          { "$literal": null },
-                                        ],
-                                    },
-                                    {
-                                      "$lte":
-                                        [
-                                          "$$desugared_sqlAnd_input1",
-                                          { "$literal": null },
-                                        ],
-                                    },
-                                  ],
+                            {
+                              "$eq":
+                                [
+                                  "$$desugared_sqlAnd_input0",
+                                  { "$literal": false },
+                                ],
+                            },
 
-                                { "$literal": null },
-                                { "$literal": true },
-                              ],
+
+                            { "$literal": false },
+
+                            { "$literal": null },
                           ],
                       },
                   },
@@ -1090,9 +900,9 @@ tests:
           },
       }
 
-  - name: "desugar $sqlOr with literal in input"
+  - name: "desugar $sqlOr with literal null in input"
     input:
-      - { "$project": { "_id": 0, "expr": { "$sqlOr": ["$a", true] } } }
+      - { "$project": { "_id": 0, "expr": { "$sqlOr": ["$a", null] } } }
     expected:
       - {
         "$project":
@@ -1102,57 +912,22 @@ tests:
               {
                 "$let":
                   {
-                    "vars":
-                      {
-                        "desugared_sqlOr_input0": "$a",
-                        "desugared_sqlOr_input1": true,
-                      },
+                    "vars": { "desugared_sqlOr_input0": "$a" },
                     "in":
                       {
                         "$cond":
                           [
-                            "$or":
-                              [
-                                {
-                                  "$eq":
-                                    [
-                                      "$$desugared_sqlOr_input0",
-                                      { "$literal": true },
-                                    ],
-                                },
-                                {
-                                  "$eq":
-                                    [
-                                      "$$desugared_sqlOr_input1",
-                                      { "$literal": true },
-                                    ],
-                                },
-                              ],
+                            {
+                              "$eq":
+                                [
+                                  "$$desugared_sqlOr_input0",
+                                  { "$literal": true },
+                                ],
+                            },
+
                             { "$literal": true },
 
-                            "$cond":
-                              [
-                                "$or":
-                                  [
-                                    {
-                                      "$lte":
-                                        [
-                                          "$$desugared_sqlOr_input0",
-                                          { "$literal": null },
-                                        ],
-                                    },
-                                    {
-                                      "$lte":
-                                        [
-                                          "$$desugared_sqlOr_input1",
-                                          { "$literal": null },
-                                        ],
-                                    },
-                                  ],
-
-                                { "$literal": null },
-                                { "$literal": false },
-                              ],
+                            { "$literal": null },
                           ],
                       },
                   },
