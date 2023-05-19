@@ -1,11 +1,13 @@
 catalog_data:
   test_db:
     test_coll:
-      - {'_id': 1, 'a': 1}
-      - {'_id': 2, 'a': 2}
-      - {'_id': 3, 'a': 3}
-      - {'_id': 4, 'a': null}
-      - {'_id': 5}
+      - {'_id': 1, 'a': 1, 'b': 4}
+      - {'_id': 2, 'a': 2, 'b': 5}
+      - {'_id': 3, 'a': 3, 'b': 6}
+      - {'_id': 4, 'a': null, 'b': 4}
+      - {'_id': 5, 'a': 5, 'b': null}
+      - {'_id': 6, 'a': null, 'b': null}
+      - {'_id': 7}
 
 catalog_schema:
   test_db:
@@ -14,7 +16,8 @@ catalog_schema:
       properties:
         {
           '_id': { 'bsonType': 'int' },
-          'a': { 'bsonType': 'int' }
+          'a': { 'bsonType': 'int' },
+          'b': { 'bsonType': 'int' }
         }
       required: ['_id']
       additionalProperties: true
@@ -23,6 +26,7 @@ indexes:
   test_db:
     test_coll:
       - {'key': {'a': 1}}
+      - {'key': {'a': 1, 'b': -1}}
 
 tests:
   - description: select with no sort uses collection scan
@@ -30,8 +34,20 @@ tests:
     query: 'SELECT * FROM test_coll'
     expected_utilization: COLL_SCAN
 
-  - description: select with sort uses index scan
-    skip_reason: "SQL-1378"
+  - description: select with single field sort uses index scan
+    skip_reason: 'SQL-1378'
+    current_db: test_db
+    query: 'SELECT a FROM test_coll ORDER BY a ASC'
+    expected_utilization: IX_SCAN
+
+  - description: select with multi-field sort uses index scan
+    skip_reason: 'SQL-1378'
+    current_db: test_db
+    query: 'SELECT a, b FROM test_coll ORDER BY a ASC, b DESC'
+    expected_utilization: IX_SCAN
+
+  - description: select * does not impede index scan
+    skip_reason: 'SQL-1378'
     current_db: test_db
     query: 'SELECT * FROM test_coll ORDER BY a ASC'
     expected_utilization: IX_SCAN
