@@ -220,22 +220,11 @@ mod stage {
                 source: Box::new(default_source()),
                 expr: Box::new(air::Expression::Literal(air::LiteralValue::Boolean(true))),
             }),
-            input = agg_ast::Stage::Match(agg_ast::MatchExpression::Expr(agg_ast::MatchExpr {
+            input = agg_ast::Stage::Match(agg_ast::MatchExpression {
                 expr: Box::new(agg_ast::Expression::Literal(
                     agg_ast::LiteralValue::Boolean(true)
                 )),
-            }))
-        );
-
-        test_from_stage!(
-            non_expr,
-            expected = air::Stage::Match(air::Match {
-                source: Box::new(default_source()),
-                expr: Box::new(air::Expression::Literal(air::LiteralValue::Boolean(false))),
-            }),
-            input = agg_ast::Stage::Match(agg_ast::MatchExpression::NonExpr(
-                agg_ast::Expression::Literal(agg_ast::LiteralValue::Boolean(false))
-            ))
+            })
         );
     }
 
@@ -1644,6 +1633,58 @@ mod expression {
                 args: vec![agg_ast::Expression::Literal(
                     agg_ast::LiteralValue::Integer(1)
                 )]
+            })
+        );
+
+        test_from_expr!(
+            sql_between,
+            expected = air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
+                op: air::SQLOperator::Between,
+                args: vec![
+                    air::Expression::FieldRef("a".to_string().into()),
+                    air::Expression::FieldRef("b".to_string().into()),
+                    air::Expression::FieldRef("c".to_string().into()),
+                ]
+            }),
+            input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
+                op: "$sqlBetween".to_string(),
+                args: vec![
+                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
+                        "a".to_string()
+                    )),
+                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
+                        "b".to_string()
+                    )),
+                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
+                        "c".to_string()
+                    )),
+                ],
+            })
+        );
+
+        test_from_expr!(
+            mql_between,
+            expected = air::Expression::MQLSemanticOperator(air::MQLSemanticOperator {
+                op: air::MQLOperator::Between,
+                args: vec![
+                    air::Expression::FieldRef("a".to_string().into()),
+                    air::Expression::FieldRef("b".to_string().into()),
+                    air::Expression::FieldRef("c".to_string().into()),
+                ]
+            }),
+            input = agg_ast::Expression::UntaggedOperator(agg_ast::UntaggedOperator {
+                op: "$mqlBetween".to_string(),
+                args: vec![
+                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
+                        "a".to_string()
+                    )),
+                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
+                        "b".to_string()
+                    )),
+                    agg_ast::Expression::StringOrRef(agg_ast::StringOrRef::FieldRef(
+                        "c".to_string()
+                    )),
+                ],
             })
         );
     }

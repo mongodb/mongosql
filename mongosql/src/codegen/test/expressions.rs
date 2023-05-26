@@ -342,6 +342,20 @@ mod mql_semantic_operator {
     );
 
     test_codegen_expression!(
+        between,
+        expected =
+            Ok(bson!({ "$mqlBetween": [{ "$literal": 1}, { "$literal": 2}, { "$literal": 3}]})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: Between,
+            args: vec![
+                Literal(Integer(1)),
+                Literal(Integer(2)),
+                Literal(Integer(3))
+            ],
+        })
+    );
+
+    test_codegen_expression!(
         not,
         expected = Ok(bson!({ "$not": [{ "$literal": false}]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
@@ -904,15 +918,6 @@ mod mql_semantic_operator {
                 Literal(String("foo".to_string())),
                 Literal(String("bar".to_string())),
             ],
-        })
-    );
-
-    test_codegen_expression!(
-        exists,
-        expected = Ok(bson!({ "$exists": [{ "$literal": false }]})),
-        input = MQLSemanticOperator(MQLSemanticOperator {
-            op: Exists,
-            args: vec![Literal(Boolean(false))],
         })
     );
 }

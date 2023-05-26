@@ -216,6 +216,7 @@ pub enum MQLOperator {
     Eq,
     Gt,
     Gte,
+    Between,
 
     // Boolean operators
     Not,
@@ -284,7 +285,6 @@ pub enum MQLOperator {
     IsArray,
     IsNumber,
     Type,
-    Exists,
 }
 
 #[allow(dead_code)]

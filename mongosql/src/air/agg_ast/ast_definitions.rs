@@ -59,14 +59,7 @@ pub(crate) enum ProjectItem {
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
-#[serde(untagged)]
-pub(crate) enum MatchExpression {
-    Expr(MatchExpr),
-    NonExpr(Expression),
-}
-
-#[derive(Debug, PartialEq, Deserialize)]
-pub(crate) struct MatchExpr {
+pub(crate) struct MatchExpression {
     #[serde(rename = "$expr")]
     pub(crate) expr: Box<Expression>,
 }
@@ -563,17 +556,10 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                 source: Box::new(source.expect("$replaceWith without valid source stage")),
                 new_root: Box::new(r.into()),
             }),
-            Stage::Match(m) => {
-                let expr = match m {
-                    MatchExpression::Expr(e) => *e.expr,
-                    MatchExpression::NonExpr(e) => e,
-                };
-
-                air::Stage::Match(air::Match {
-                    source: Box::new(source.expect("$match without valid source stage")),
-                    expr: Box::new(expr.into()),
-                })
-            }
+            Stage::Match(m) => air::Stage::Match(air::Match {
+                source: Box::new(source.expect("$match without valid source stage")),
+                expr: Box::new((*m.expr).into()),
+            }),
             Stage::Limit(l) => air::Stage::Limit(air::Limit {
                 source: Box::new(source.expect("$limit without valid source stage")),
                 limit: l,
@@ -1096,7 +1082,6 @@ impl From<UntaggedOperator> for air::Expression {
             air::Expression::SQLSemanticOperator(air::SQLSemanticOperator { op, args })
         } else {
             let op = match ast_op.op.as_str() {
-                "$exists" => air::MQLOperator::Exists,
                 "$concat" => air::MQLOperator::Concat,
                 "$cond" => air::MQLOperator::Cond,
                 "$ifNull" => air::MQLOperator::IfNull,
@@ -1110,6 +1095,7 @@ impl From<UntaggedOperator> for air::Expression {
                 "$eq" => air::MQLOperator::Eq,
                 "$gt" => air::MQLOperator::Gt,
                 "$gte" => air::MQLOperator::Gte,
+                "$mqlBetween" => air::MQLOperator::Between,
                 "$not" => air::MQLOperator::Not,
                 "$and" => air::MQLOperator::And,
                 "$or" => air::MQLOperator::Or,

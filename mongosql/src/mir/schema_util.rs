@@ -1,5 +1,5 @@
 use crate::{
-    mir::{binding_tuple, schema::Error, *},
+    mir::{binding_tuple, schema::Error, visitor::Visitor, *},
     schema::{Document, Satisfaction, Schema, NULLISH},
 };
 
@@ -16,8 +16,8 @@ impl FieldAccess {
     /// Get the field path of a FieldAccess. In the returned path, the
     /// last element is the beginning of the path and the first is the
     /// end of the path.  This method is specifically intended for use
-    /// with Unwind schema checking and is therefore not available
-    /// publicly.
+    /// with set_field_schema (later in the file) and is therefore not
+    /// available publicly.
     pub(super) fn get_field_path(self) -> Result<Vec<String>, Error> {
         fn get_field_path_aux(
             e: Expression,
@@ -36,6 +36,22 @@ impl FieldAccess {
         let mut v = vec![];
         let path = get_field_path_aux(Expression::FieldAccess(self), &mut v)?;
         Ok(path.clone())
+    }
+
+    /// If this FieldAccess is "pure", then return a string representation
+    /// of it. A "pure" FieldAccess consists only of other FieldAccess
+    /// expressions up the expr tree, ending at a Reference.
+    pub(crate) fn to_string_if_pure(&self) -> Option<String> {
+        match &*self.expr {
+            Expression::Reference(r) => Some(format!(
+                "{:?}_{}.{}",
+                r.key.datasource, r.key.scope, self.field
+            )),
+            Expression::FieldAccess(fa) => fa
+                .to_string_if_pure()
+                .map(|s| format!("{s}.{}", self.field)),
+            _ => None,
+        }
     }
 }
 
@@ -88,9 +104,6 @@ pub fn lift_array_schemas(s: Schema, retain_null_and_missing: bool) -> Schema {
 ///     - If the Document does contain this element in its keys map,
 ///       attempt to set the schema of the remaining `field_path` in the
 ///       element's corresponding schema.
-///
-/// This method is specifically intended for use with Unwind schema checking
-/// and is therefore not available publicly.
 pub fn set_field_schema(
     s: Schema,
     field_path: &mut Vec<String>,
@@ -151,5 +164,34 @@ pub fn set_field_schema(
                 additional_properties: d.additional_properties,
             })
         }
+    }
+}
+
+/// get_optimized_field_accesses gets all optimized field accesses
+/// in the provided Filter stage's condition.
+pub fn get_optimized_field_accesses(filter: &Filter) -> Vec<FieldAccess> {
+    let mut visitor = OptimizedMatchExistsFieldAccessGatherer {
+        optimized_field_accesses: vec![],
+    };
+
+    visitor.visit_expression(filter.condition.clone());
+
+    visitor.optimized_field_accesses
+}
+
+struct OptimizedMatchExistsFieldAccessGatherer {
+    optimized_field_accesses: Vec<FieldAccess>,
+}
+
+impl Visitor for OptimizedMatchExistsFieldAccessGatherer {
+    // Do not walk nested stages.
+    fn visit_stage(&mut self, node: Stage) -> Stage {
+        node
+    }
+
+    fn visit_optimized_match_exists(&mut self, node: OptimizedMatchExists) -> OptimizedMatchExists {
+        self.optimized_field_accesses
+            .push(node.field_access.clone());
+        node
     }
 }

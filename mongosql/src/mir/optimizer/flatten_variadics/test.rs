@@ -9,7 +9,7 @@ mod flatten_node {
                 let input = $input;
                 let expected = $expected;
                 let actual = FlattenVariadicFunctionsOptimizer::flatten_variadic_functions(input);
-                assert_eq!(actual, expected);
+                assert_eq!(expected, actual);
             }
         };
     }

@@ -203,6 +203,10 @@ pub enum Expression {
     Subquery(SubqueryExpr),
     SubqueryComparison(SubqueryComparison),
     TypeAssertion(TypeAssertionExpr),
+
+    // Special variants that only exists for optimization purposes;
+    // these do not represent actual MongoSQL constructs.
+    OptimizedMatchExists(OptimizedMatchExists),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -642,6 +646,12 @@ pub enum SubqueryComparisonOp {
 pub enum SubqueryModifier {
     Any,
     All,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct OptimizedMatchExists {
+    pub field_access: FieldAccess,
+    pub cache: SchemaCache<Schema>,
 }
 
 impl From<crate::ast::UnaryOp> for ScalarFunction {

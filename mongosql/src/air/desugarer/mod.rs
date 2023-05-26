@@ -5,8 +5,6 @@ mod accumulators;
 use crate::air::desugarer::accumulators::AccumulatorsDesugarerPass;
 mod join;
 use crate::air::desugarer::join::JoinDesugarerPass;
-mod match_null_semantics;
-use crate::air::desugarer::match_null_semantics::MatchDesugarerPass;
 mod root_references;
 use crate::air::desugarer::root_references::RootReferenceDesugarerPass;
 mod sql_null_semantics_operators;
@@ -49,7 +47,6 @@ pub fn desugar_pipeline(pipeline: air::Stage) -> Result<air::Stage> {
         &RootReferenceDesugarerPass,
         &JoinDesugarerPass,
         &AccumulatorsDesugarerPass,
-        &MatchDesugarerPass,
         &SubqueryExprDesugarerPass,
         &UnsupportedOperatorsDesugarerPass,
         &SQLNullSemanticsOperatorsDesugarerPass,

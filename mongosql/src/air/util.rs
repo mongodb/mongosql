@@ -66,13 +66,6 @@ impl fmt::Display for Variable {
     }
 }
 
-pub fn match_sql_to_mql_op(sql_op: SQLOperator) -> Option<MQLOperator> {
-    match sql_op {
-        SQLOperator::And | SQLOperator::Or => None,
-        _ => sql_op_to_mql_op(sql_op),
-    }
-}
-
 pub fn sql_op_to_mql_op(sql_op: SQLOperator) -> Option<MQLOperator> {
     let mql_op = match sql_op {
         SQLOperator::Eq => MQLOperator::Eq,

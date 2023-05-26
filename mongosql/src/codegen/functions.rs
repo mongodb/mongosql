@@ -77,6 +77,7 @@ impl MqlCodeGenerator {
             Eq => "$eq",
             Gt => "$gt",
             Gte => "$gte",
+            Between => "$mqlBetween",
 
             // Boolean operators
             Not => "$not",
@@ -145,7 +146,6 @@ impl MqlCodeGenerator {
             Type => "$type",
             IsArray => "$isArray",
             IsNumber => "$isNumber",
-            Exists => "$exists",
         }
     }
 

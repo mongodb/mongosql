@@ -205,6 +205,31 @@ impl UnsupportedOperatorsDesugarerVisitor {
         })
     }
 
+    fn desugar_mql_between(&self, between: MQLSemanticOperator) -> Expression {
+        let input_var_name = "desugared_mqlBetween_input".to_string();
+        let input_var_ref = Expression::Variable(input_var_name.clone().into());
+        let let_vars = vec![LetVariable {
+            name: input_var_name,
+            expr: Box::new(between.args[0].clone()),
+        }];
+        Expression::Let(Let {
+            vars: let_vars,
+            inside: Box::new(Expression::MQLSemanticOperator(MQLSemanticOperator {
+                op: MQLOperator::And,
+                args: vec![
+                    Expression::MQLSemanticOperator(MQLSemanticOperator {
+                        op: MQLOperator::Gte,
+                        args: vec![input_var_ref.clone(), between.args[1].clone()],
+                    }),
+                    Expression::MQLSemanticOperator(MQLSemanticOperator {
+                        op: MQLOperator::Lte,
+                        args: vec![input_var_ref, between.args[2].clone()],
+                    }),
+                ],
+            })),
+        })
+    }
+
     fn desugar_sql_bit_length(&self, bit_length: SQLSemanticOperator) -> Expression {
         Expression::MQLSemanticOperator(MQLSemanticOperator {
             op: MQLOperator::Multiply,
@@ -646,6 +671,7 @@ impl Visitor for UnsupportedOperatorsDesugarerVisitor {
                 SQLOperator::Sqrt => self.desugar_sql_sqrt(s),
                 _ => SQLSemanticOperator(s),
             },
+            MQLSemanticOperator(m) if m.op == MQLOperator::Between => self.desugar_mql_between(m),
             _ => node,
         };
         node.walk(self)

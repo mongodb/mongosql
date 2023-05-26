@@ -1099,6 +1099,7 @@ impl Visitor for ConstantFoldExprVisitor {
             Expression::SubqueryComparison(_) => e,
             Expression::Subquery(_) => e,
             Expression::TypeAssertion(_) => e,
+            Expression::OptimizedMatchExists(_) => e,
         }
     }
 

@@ -12,7 +12,7 @@ mod constant_folding {
             $(schema_checking_mode = $schema_checking_mode;)?
 
             let actual = ConstantFoldingOptimizer::fold_constants(input, schema_checking_mode);
-            assert_eq!(actual, expected);
+            assert_eq!(expected, actual);
         }
     };
     }

@@ -103,7 +103,7 @@ const TEST_DIR: &str = "../tests/index_usage_tests";
 lazy_static! {
     static ref MONGODB_URI: String = format!(
         "mongodb://localhost:{}",
-        env::var("MDB_TEST_LOCAL_PORT").unwrap_or("27017".to_string())
+        env::var("MDB_TEST_LOCAL_PORT").unwrap_or_else(|_| "27017".to_string())
     );
 }
 

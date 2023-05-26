@@ -1,9 +1,10 @@
+use crate::mir::schema_util::get_optimized_field_accesses;
 use crate::{
     catalog::*,
     map,
     mir::{
         binding_tuple,
-        unwind_util::{lift_array_schemas, set_field_schema},
+        schema_util::{lift_array_schemas, set_field_schema},
         *,
     },
     schema::{
@@ -279,7 +280,7 @@ impl CachedSchema for Stage {
     fn check_schema(&self, state: &SchemaInferenceState) -> Result<ResultSet, Error> {
         match self {
             Stage::Filter(f) => {
-                let source_result_set = f.source.schema(state)?;
+                let mut source_result_set = f.source.schema(state)?;
                 let state = state.with_merged_schema_env(source_result_set.schema_env.clone())?;
                 let cond_schema = f.condition.schema(&state)?;
                 if !state.check_satisfies(&cond_schema, &BOOLEAN_OR_NULLISH) {
@@ -289,6 +290,34 @@ impl CachedSchema for Stage {
                         found: cond_schema,
                     });
                 }
+
+                // For each OptimizedMatchExists in the condition, we must
+                // update the result set schema to indicate that the optimized
+                // field is never nullish.
+                let optimized_field_accesses = get_optimized_field_accesses(f);
+                for ofa in optimized_field_accesses {
+                    let ofa_schema = Expression::FieldAccess(ofa.clone()).schema(&state)?;
+
+                    let ofa_datasource = ofa.clone().get_root_datasource()?;
+                    let ofa_non_nullish_schema = Schema::simplify(&ofa_schema.subtract_nullish());
+
+                    match source_result_set.schema_env.get(&ofa_datasource.clone()) {
+                        None => unreachable!("optimized fields must always exist in the schema"),
+                        Some(ofa_datasource_schema) => {
+                            let updated_ofa_datasource_schema = set_field_schema(
+                                ofa_datasource_schema.clone(),
+                                &mut ofa.get_field_path()?,
+                                ofa_non_nullish_schema,
+                                true,
+                            );
+
+                            source_result_set
+                                .schema_env
+                                .insert(ofa_datasource, updated_ofa_datasource_schema);
+                        }
+                    }
+                }
+
                 Ok(ResultSet {
                     schema_env: source_result_set.schema_env,
                     min_size: 0,
@@ -1073,6 +1102,7 @@ impl CachedSchema for Expression {
             Expression::Subquery(s) => &s.cache,
             Expression::SubqueryComparison(s) => &s.cache,
             Expression::Exists(s) => &s.cache, // schema is always always boolean after checking the boxed stage, which is cached
+            Expression::OptimizedMatchExists(s) => &s.cache,
         }
     }
 
@@ -1156,6 +1186,7 @@ impl CachedSchema for Expression {
                     Satisfaction::Must => Ok(Schema::Atomic(Atomic::Null)),
                 }
             }
+            Expression::OptimizedMatchExists(_) => Ok(Schema::Atomic(Atomic::Boolean)),
         }
     }
 }

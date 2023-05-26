@@ -107,16 +107,6 @@ mod root_references {
     );
 }
 
-mod sql_match_null_semantics {
-    use super::*;
-    use crate::air::desugarer::match_null_semantics::MatchDesugarerPass;
-
-    test_desugarer!(
-        file = "desugar_sql_match_null_semantics.yml",
-        desugarer = MatchDesugarerPass
-    );
-}
-
 mod sql_null_semantics {
     use super::*;
     use crate::air::desugarer::sql_null_semantics_operators::SQLNullSemanticsOperatorsDesugarerPass;
@@ -592,9 +582,9 @@ mod to_air_pipeline_test {
                 "a".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Boolean(true))),
                 "b".to_string() => agg_ast::ProjectItem::Assignment(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(2))),
             }),
-            agg_ast::Stage::Match(agg_ast::MatchExpression::NonExpr(
-                agg_ast::Expression::Literal(agg_ast::LiteralValue::Null),
-            )),
+            agg_ast::Stage::Match(agg_ast::MatchExpression {
+                expr: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Null)),
+            }),
             agg_ast::Stage::Sort(map! {
                 "a".to_string() => 1,
                 "b".to_string() => -1,

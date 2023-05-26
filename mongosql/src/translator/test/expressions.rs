@@ -923,9 +923,9 @@ mod scalar_function {
 
     test_translate_expression_with_schema_info!(
         between_no_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Between,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Between,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Integer(19)),
                     air::Expression::Literal(air::LiteralValue::Integer(32)),
@@ -4159,6 +4159,43 @@ mod subquery_exists {
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(("foo", 0u16), MqlMappingRegistryValue::new("foo".to_string(), MqlReferenceType::FieldRef));
+            mr
+        },
+    );
+}
+
+mod optimized_match_exists {
+    use crate::{
+        air,
+        mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
+        mir,
+    };
+
+    test_translate_expression!(
+        basic,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Gt,
+                args: vec![
+                    air::Expression::FieldRef("foo.x".to_string().into()),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
+            }
+        )),
+        input = mir::Expression::OptimizedMatchExists(mir::OptimizedMatchExists {
+            field_access: mir::FieldAccess {
+                expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
+                field: "x".to_string(),
+                cache: mir::schema::SchemaCache::new(),
+            },
+            cache: mir::schema::SchemaCache::new(),
+        }),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(
+                ("foo", 0u16),
+                MqlMappingRegistryValue::new("foo".to_string(), MqlReferenceType::FieldRef),
+            );
             mr
         },
     );

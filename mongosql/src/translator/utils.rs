@@ -213,6 +213,7 @@ pub(crate) fn scalar_function_to_scalar_function_type(
         match function {
             ScalarFunction::Or => ScalarFunctionType::Mql(MQLOperator::Or),
             ScalarFunction::And => ScalarFunctionType::Mql(MQLOperator::And),
+            ScalarFunction::Between => ScalarFunctionType::Mql(MQLOperator::Between),
             ScalarFunction::Eq => ScalarFunctionType::Mql(MQLOperator::Eq),
             ScalarFunction::Position => ScalarFunctionType::Mql(MQLOperator::IndexOfCP),
             ScalarFunction::Lt => ScalarFunctionType::Mql(MQLOperator::Lt),

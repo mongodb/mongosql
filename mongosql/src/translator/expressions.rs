@@ -41,8 +41,8 @@ impl MqlTranslator {
             mir::Expression::SubqueryComparison(subquery_comparison) => {
                 self.translate_subquery_comparison(subquery_comparison)
             }
-
             mir::Expression::TypeAssertion(ta) => self.translate_expression(*ta.expr),
+            mir::Expression::OptimizedMatchExists(o) => self.translate_optimized_match_exists(o),
         }
     }
 
@@ -378,6 +378,24 @@ impl MqlTranslator {
                 modifier,
                 arg: Box::new(arg),
                 subquery: Box::new(subquery),
+            },
+        ))
+    }
+
+    /// An OptimizedMatchExists is a special node that represents an existence assertion in
+    /// a Match condition. The goal of this expression is to ensure its argument exists and
+    /// is not null. We achieve this in MQL via { $gt: [ <expr>, null ] }.
+    fn translate_optimized_match_exists(
+        &self,
+        ome: mir::OptimizedMatchExists,
+    ) -> Result<air::Expression> {
+        Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: MQLOperator::Gt,
+                args: vec![
+                    self.translate_field_access(ome.field_access)?,
+                    air::Expression::Literal(air::LiteralValue::Null),
+                ],
             },
         ))
     }

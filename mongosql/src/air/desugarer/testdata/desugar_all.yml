@@ -114,10 +114,51 @@ tests:
               [
                 { "$project": { "coll": "$$ROOT" } },
                 { "$project": { "coll": "$coll" } },
-                { "$match": { "$expr": { "$gt": ["$coll.car", null] } } },
                 {
                   "$match":
-                    { "$expr": { "$eq": ["$$bar_0.foo", "$coll.car"] } },
+                    { "$expr":
+                        {
+                          "$let":
+                            {
+                              "vars":
+                                {
+                                  "desugared_sqlEq_input0": "$$bar_0.foo",
+                                  "desugared_sqlEq_input1": "$coll.car",
+                                },
+                              "in":
+                                {
+                                  "$cond":
+                                    [
+                                      "$or":
+                                        [
+                                          {
+                                            "$lte":
+                                              [
+                                                "$$desugared_sqlEq_input0",
+                                                { "$literal": null },
+                                              ],
+                                          },
+                                          {
+                                            "$lte":
+                                              [
+                                                "$$desugared_sqlEq_input1",
+                                                { "$literal": null },
+                                              ],
+                                          },
+                                        ],
+
+                                      { "$literal": null },
+
+                                      "$eq":
+                                        [
+                                          "$$desugared_sqlEq_input0",
+                                          "$$desugared_sqlEq_input1",
+                                        ],
+                                    ],
+                                },
+                            },
+                        },
+                    }
                 },
               ],
             "as": "eca58228-b657-498a-b76e-f48a9161a404",
@@ -1226,8 +1267,31 @@ tests:
                         },
                     },
                 },
-                { "$match": { "$expr": { "$gt": ["$expr", null] } } },
-                { "$match": { "$expr": { "$not": ["$expr"] } } },
+                {
+                  "$match":
+                    { "$expr":
+                        {
+                          "$let":
+                            {
+                              "vars": { "desugared_sqlNot_input0": "$expr" },
+                              "in":
+                                {
+                                  "$cond":
+                                    [
+                                      "$lte":
+                                        [
+                                          "$$desugared_sqlNot_input0",
+                                          { "$literal": null },
+                                        ],
+
+                                      { "$literal": null },
+                                      { "$not": [ "$$desugared_sqlNot_input0" ] },
+                                    ],
+                                },
+                            },
+                        }
+                    }
+                },
               ],
             "as": "eca58228-b657-498a-b76e-f48a9161a404",
           },
@@ -1567,8 +1631,32 @@ tests:
                       "from": "baz",
                       "pipeline":
                         [
-                          { "$match": { "$expr": { "$gt": ["$b", null] } } },
-                          { "$match": { "$expr": { "$not": ["$b"] } } },
+                          {
+                            "$match":
+                              {
+                                "$expr":
+                                  {
+                                    "$let":
+                                      {
+                                        "vars": { "desugared_sqlNot_input0": "$b" },
+                                        "in":
+                                          {
+                                            "$cond":
+                                              [
+                                                "$lte":
+                                                  [
+                                                    "$$desugared_sqlNot_input0",
+                                                    { "$literal": null },
+                                                  ],
+
+                                                { "$literal": null },
+                                                { "$not": [ "$$desugared_sqlNot_input0" ] },
+                                              ],
+                                          },
+                                      },
+                                  }
+                              }
+                          },
                         ],
                       "as": "eca58228-b657-498a-b76e-f48a9161a404",
                     },

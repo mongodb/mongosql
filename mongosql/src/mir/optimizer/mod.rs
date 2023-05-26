@@ -1,8 +1,11 @@
-use super::Stage;
-use crate::{mir::schema::SchemaInferenceState, SchemaCheckingMode};
+use crate::{
+    mir::{schema::SchemaInferenceState, Stage},
+    SchemaCheckingMode,
+};
 
 mod constant_folding;
 mod flatten_variadics;
+mod match_null_filtering;
 mod match_splitting;
 mod stage_movement;
 mod use_def_analysis;
@@ -10,10 +13,10 @@ mod use_def_analysis;
 pub(crate) trait Optimizer {
     fn optimize(
         &self,
-        st: crate::mir::Stage,
+        st: Stage,
         sm: SchemaCheckingMode,
         schema_env: &SchemaInferenceState,
-    ) -> crate::mir::Stage;
+    ) -> Stage;
 }
 
 // Avoiding lifetime hacking by using a fn
@@ -22,6 +25,7 @@ static OPTIMIZERS: fn() -> Vec<Box<dyn Optimizer>> = || {
     vec![
         Box::new(flatten_variadics::FlattenVariadicFunctionsOptimizer {}),
         Box::new(constant_folding::ConstantFoldingOptimizer {}),
+        Box::new(match_null_filtering::MatchNullFilteringOptimizer {}),
         Box::new(match_splitting::MatchSplittingOptimizer {}),
         Box::new(stage_movement::StageMovementOptimizer {}),
     ]

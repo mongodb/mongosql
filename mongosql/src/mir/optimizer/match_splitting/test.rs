@@ -11,7 +11,7 @@ mod match_splitting_test {
                 let input = $input;
                 let expected = $expected;
                 let actual = MatchSplittingOptimizer::split_matches(input);
-                assert_eq!(actual, expected);
+                assert_eq!(expected, actual);
             }
         };
     }

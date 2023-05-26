@@ -180,28 +180,13 @@ mod stage_test {
     }
 
     mod match_stage {
-        use crate::air::agg_ast::ast_definitions::MatchExpr;
-        use crate::{
-            air::agg_ast::ast_definitions::{
-                Expression, LiteralValue, MatchExpression, Stage, StringOrRef, UntaggedOperator,
-            },
-            map,
+        use crate::air::agg_ast::ast_definitions::{
+            Expression, MatchExpression, Stage, StringOrRef, UntaggedOperator,
         };
 
         test_deserialize_stage!(
-            non_expr,
-            expected = Stage::Match(MatchExpression::NonExpr(Expression::Document(map! {
-                "a".to_string() => Expression::UntaggedOperator(UntaggedOperator {
-                    op: "$exists".to_string(),
-                    args: vec![Expression::Literal(LiteralValue::Boolean(true))]
-                })
-            }))),
-            input = r#"stage: {"$match": {"a": {"$exists": true}}}"#
-        );
-
-        test_deserialize_stage!(
             expr,
-            expected = Stage::Match(MatchExpression::Expr(MatchExpr {
+            expected = Stage::Match(MatchExpression {
                 expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
                     op: "$sqlEq".to_string(),
                     args: vec![
@@ -209,7 +194,7 @@ mod stage_test {
                         Expression::StringOrRef(StringOrRef::FieldRef("b".to_string())),
                     ]
                 }))
-            })),
+            }),
             input = r#"stage: {"$match": {"$expr": {"$sqlEq": ["$a", "$b"]}}}"#
         );
     }
@@ -449,8 +434,8 @@ mod stage_test {
     mod lookup_test {
         use crate::{
             air::agg_ast::ast_definitions::{
-                Expression, LiteralValue, Lookup, LookupFrom, MatchExpr, MatchExpression,
-                Namespace, ProjectItem, Stage, StringOrRef, UntaggedOperator,
+                Expression, LiteralValue, Lookup, LookupFrom, MatchExpression, Namespace,
+                ProjectItem, Stage, StringOrRef, UntaggedOperator,
             },
             map,
         };
@@ -544,7 +529,7 @@ mod stage_test {
                     "foo_b_0".to_string() => Expression::StringOrRef(StringOrRef::FieldRef("b".to_string())),
                 }),
                 pipeline: vec![
-                    Stage::Match(MatchExpression::Expr(MatchExpr {
+                    Stage::Match(MatchExpression {
                         expr: Box::new(Expression::UntaggedOperator(UntaggedOperator {
                             op: "$eq".to_string(),
                             args: vec![
@@ -554,7 +539,7 @@ mod stage_test {
                                 Expression::StringOrRef(StringOrRef::FieldRef("b".to_string()))
                             ]
                         }))
-                    })),
+                    }),
                     Stage::Project(map! {
                         "_id".to_string() => ProjectItem::Exclusion,
                         "a".to_string() => ProjectItem::Inclusion,

@@ -158,7 +158,7 @@ mod test_get_namespaces {
                 let sql = $sql;
                 let actual = get_namespaces(current_db, sql);
                 $(assert!(matches!(actual, $expected_pat));)?
-                $(assert_eq!(actual, $expected);)?
+                $(assert_eq!($expected, actual);)?
             }
         };
     }

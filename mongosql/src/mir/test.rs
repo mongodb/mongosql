@@ -22,7 +22,7 @@ macro_rules! test_schema {
             let actual = input.schema(&state);
 
             $(assert!(matches!(actual, $expected_pat));)?
-            $(assert_eq!(actual, $expected);)?
+            $(assert_eq!($expected, actual);)?
         }
     };
 }
@@ -34,7 +34,7 @@ macro_rules! test_retain {
             use crate::mir::schema::retain;
             let expected = $expected;
             let actual = retain(&$input);
-            assert_eq!(actual, expected);
+            assert_eq!(expected, actual);
         }
     };
 }
@@ -46,7 +46,7 @@ macro_rules! test_max_numeric {
             use crate::mir::schema::max_numeric;
             let expected = $expected;
             let actual = max_numeric(&$input1, &$input2);
-            assert_eq!(actual, expected);
+            assert_eq!(expected, actual);
         }
     };
 }
@@ -478,6 +478,29 @@ mod schema {
             ),
             Schema::Atomic(Atomic::Integer),
         })},
+    );
+
+    // OptimizedMatchExists
+    test_schema!(
+        optimized_match_exists_is_always_boolean,
+        expected = Ok(Schema::Atomic(Atomic::Boolean)),
+        input = Expression::OptimizedMatchExists(OptimizedMatchExists {
+            field_access: FieldAccess {
+                expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                field: "x".to_string(),
+                cache: SchemaCache::new(),
+            },
+            cache: SchemaCache::new()
+        }),
+        schema_env = map! {
+            ("foo", 0u16).into() => Schema::Document(Document {
+                keys: map! {
+                    "x".to_string() => Schema::AnyOf(set! {Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null), Schema::Missing}),
+                },
+                required: set! {},
+                additional_properties: false,
+            })
+        },
     );
 
     // General function schema checking.
@@ -4666,6 +4689,7 @@ mod schema {
     );
 
     mod filter {
+        use crate::schema::Document;
         use crate::{
             catalog::Namespace,
             map,
@@ -4813,6 +4837,62 @@ mod schema {
                     cache: SchemaCache::new(),
                 }).into(),
                 cache: SchemaCache::new(),
+            }),
+        );
+
+        test_schema!(
+            optimized_fields_in_filter_stage_ensure_those_fields_are_non_null_in_the_result_set,
+            expected = Ok(ResultSet {
+                min_size: 0,
+                max_size: None,
+                schema_env: map! {
+                    ("foo", 0u16).into() => Schema::Document(Document {
+                        keys: map! {
+                            "non_nullable".to_string() => Schema::Atomic(Atomic::Integer),
+                            "nullable_a".to_string() => Schema::Atomic(Atomic::Integer),
+                            "nullable_b".to_string() => Schema::Atomic(Atomic::String),
+                        },
+                        required: set! {"non_nullable".to_string(), "nullable_a".to_string(), "nullable_b".to_string()},
+                        additional_properties: false,
+                    })
+                },
+            }),
+            input = Stage::Filter(Filter {
+                source: Box::new(test_source()),
+                condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                    function: ScalarFunction::And,
+                    args: vec![
+                        Expression::OptimizedMatchExists(OptimizedMatchExists {
+                            field_access: FieldAccess {
+                                expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                                field: "nullable_a".to_string(),
+                                cache: SchemaCache::new(),
+                            },
+                            cache: SchemaCache::new(),
+                        }),
+                        Expression::OptimizedMatchExists(OptimizedMatchExists {
+                            field_access: FieldAccess {
+                                expr: Box::new(Expression::Reference(("foo", 0u16).into())),
+                                field: "nullable_b".to_string(),
+                                cache: SchemaCache::new(),
+                            },
+                            cache: SchemaCache::new(),
+                        }),
+                    ],
+                    cache: SchemaCache::new(),
+                }),
+                cache: SchemaCache::new(),
+            }),
+            catalog = Catalog::new(map! {
+                Namespace {db: "test".into(), collection: "foo".into()} => Schema::Document(Document {
+                    keys: map! {
+                        "non_nullable".to_string() => Schema::Atomic(Atomic::Integer),
+                        "nullable_a".to_string() => Schema::Atomic(Atomic::Integer),
+                        "nullable_b".to_string() => Schema::AnyOf(set!{Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)}),
+                    },
+                    required: set! {"non_nullable".to_string()},
+                    additional_properties: false,
+                }),
             }),
         );
     }

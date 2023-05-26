@@ -35,6 +35,36 @@ tests:
           },
       }
 
+  - name: "desugar $mqlBetween"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$mqlBetween": ["$x", 1, 10] } } }
+    expected:
+      - {
+        "$project":
+          {
+            "_id": 0,
+            "expr":
+              {
+                "$let":
+                  {
+                    "vars": { "desugared_mqlBetween_input": "$x" },
+                    "in":
+                      {
+                        "$and":
+                          [
+                            {
+                              "$gte": ["$$desugared_mqlBetween_input", 1],
+                            },
+                            {
+                              "$lte": ["$$desugared_mqlBetween_input", 10],
+                            },
+                          ],
+                      },
+                  },
+              },
+          },
+      }
+
   - name: "desugar nested $sqlBetween"
     input:
       - {
