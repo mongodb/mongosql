@@ -4,7 +4,12 @@ mod test;
 use super::Optimizer;
 use crate::{
     mir::{
-        schema::SchemaCache, visitor::Visitor, Expression::*, Filter, ScalarFunction::*, Stage,
+        schema::{SchemaCache, SchemaInferenceState},
+        visitor::Visitor,
+        Expression::*,
+        Filter,
+        ScalarFunction::*,
+        Stage,
         Stage::*,
     },
     SchemaCheckingMode,
@@ -13,7 +18,7 @@ use crate::{
 pub(crate) struct MatchSplittingOptimizer {}
 
 impl Optimizer for MatchSplittingOptimizer {
-    fn optimize(&self, st: Stage, _sm: SchemaCheckingMode) -> Stage {
+    fn optimize(&self, st: Stage, _sm: SchemaCheckingMode, _: &SchemaInferenceState) -> Stage {
         MatchSplittingOptimizer::split_matches(st)
     }
 }

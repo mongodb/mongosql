@@ -23,6 +23,18 @@ tests:
     expected:
       - { "$project": { "_id": 0, "foo": "$foo.bar.baz" } }
 
+  - name: "ROOT reference with one level of nesting in $sort rewritten"
+    input:
+      - { "$sort": { "ROOT.foo": -1 } }
+    expected:
+      - { "$sort": { "foo": -1 } }
+
+  - name: "ROOT reference with multiple levels of nesting in $sort rewritten"
+    input:
+      - { "$sort": { "ROOT.foo.bar.baz": 1 } }
+    expected:
+      - { "$sort": { "foo.bar.baz": 1 } }
+
   - name: "multiple ROOT references rewritten"
     input:
       - { "$project": { "_id": 0, "foo": "$$ROOT.foo", "bar": "$$ROOT.baz.bar" } }

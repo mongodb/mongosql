@@ -281,7 +281,7 @@ mod project {
         expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
-            pipeline: vec![doc!{"$project": {"_id": 0, "foo": "$col", "bar": {"$literal": 19}}}],
+            pipeline: vec![doc!{"$project": {"foo": "$col", "bar": {"$literal": 19}}}],
         }),
         input = Stage::Project(Project {
             source: Box::new(
@@ -302,7 +302,7 @@ mod project {
         expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
-            pipeline: vec![doc!{"$project": {"_id": 0, "include": 1, "exclude": 0}}],
+            pipeline: vec![doc!{"$project": {"include": 1, "exclude": 0}}],
         }),
         input = Stage::Project(Project {
             source: Box::new(
@@ -561,7 +561,7 @@ mod unwind {
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
             pipeline: vec![
-                doc!{"$project": {"_id": 0, "foo": "$col"}},
+                doc!{"$project": {"foo": "$col"}},
                 doc!{"$unwind": {"path": "$foo.a.b", "includeArrayIndex": "foo.i", "preserveNullAndEmptyArrays": true }}
             ],
         }),
@@ -850,8 +850,8 @@ mod join {
         expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
-            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}},
-            bson::doc!{"$join": {"collection": "col2", "joinType": "inner", "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}]}}],
+            pipeline: vec![bson::doc!{"$project": {"col": "$$ROOT"}},
+            bson::doc!{"$join": {"collection": "col2", "joinType": "inner", "pipeline": [{"$project": {"col2": "$$ROOT"}}]}}],
         }),
         input = Stage::Join(Join {
             condition: None,
@@ -883,8 +883,8 @@ mod join {
         expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
-            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}},
-            bson::doc!{"$join": {"database": "mydb2", "collection": "col2", "joinType": "left", "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}]}}],
+            pipeline: vec![bson::doc!{"$project": {"col": "$$ROOT"}},
+            bson::doc!{"$join": {"database": "mydb2", "collection": "col2", "joinType": "left", "pipeline": [{"$project": {"col2": "$$ROOT"}}]}}],
         }),
         input = Stage::Join(Join {
             condition: None,
@@ -916,13 +916,13 @@ mod join {
         expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
-            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}}, bson::doc!{
+            pipeline: vec![bson::doc!{"$project": {"col": "$$ROOT"}}, bson::doc!{
                 "$join":
                 {"collection": "col2",
                 "joinType":"left",
                 "database": "mydb2",
                 "let": {"vcol_0": "$col"},
-                "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}],
+                "pipeline": [{"$project": {"col2": "$$ROOT"}}],
                 "condition": {"$literal": true}
             }}],
         }),
@@ -956,13 +956,13 @@ mod join {
         expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
-            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}}, bson::doc!{
+            pipeline: vec![bson::doc!{"$project": {"col": "$$ROOT"}}, bson::doc!{
                 "$join":
                 {"collection": "col2",
                 "joinType":"left",
                 "database": "mydb2",
                 "let": {"vcol_0": "$col"},
-                "pipeline": [{"$project": {"_id": 0, "col2": "$$ROOT"}}],
+                "pipeline": [{"$project": {"col2": "$$ROOT"}}],
                 "condition": {"$sqlEq": ["$$vcol_0", "$col2"]}
             }}],
         }),
@@ -1002,12 +1002,12 @@ mod join {
         expected = Ok({
             database: Some("mydb".to_string()),
             collection: Some("col".to_string()),
-            pipeline: vec![bson::doc!{"$project": {"_id" : 0, "col": "$$ROOT"}}, bson::doc!{
+            pipeline: vec![bson::doc!{"$project": {"col": "$$ROOT"}}, bson::doc!{
                 "$join":
                 {"joinType":"left",
                 "pipeline": [
                     {"$documents": [{"$literal": 1}, {"$literal": 1}]},
-                    bson::doc!{"$project": {"_id": 0, "arr": "$$ROOT"}},
+                    bson::doc!{"$project": {"arr": "$$ROOT"}},
                 ],
             }}],
         }),

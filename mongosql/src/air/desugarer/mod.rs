@@ -17,6 +17,8 @@ mod subquery;
 use crate::air::desugarer::subquery::SubqueryExprDesugarerPass;
 mod unsupported_operators;
 use crate::air::desugarer::unsupported_operators::UnsupportedOperatorsDesugarerPass;
+mod remove_id;
+use crate::air::desugarer::remove_id::RemoveIdDesugarerPass;
 
 #[cfg(test)]
 mod test;
@@ -52,6 +54,7 @@ pub fn desugar_pipeline(pipeline: air::Stage) -> Result<air::Stage> {
         &UnsupportedOperatorsDesugarerPass,
         &SQLNullSemanticsOperatorsDesugarerPass,
         &FoldConvertsDesugarerPass,
+        &RemoveIdDesugarerPass,
     ];
 
     let mut desugared = pipeline;

@@ -1,16 +1,14 @@
 tests:
   - name: "nothing to desugar"
     input:
-      - { "$project": { "_id": 0, "foo": "$$ROOT" } }
+      - { "$project": { "foo": "$$ROOT" } }
     expected:
-      - { "$project": { "_id": 0, "foo": "$$ROOT" } }
-
+      - { "$project": { "foo": "$$ROOT" } }
   - name: "desugar $subquery expression with only coll"
     input:
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               {
                 "$subquery":
@@ -34,7 +32,6 @@ tests:
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               {
                 "$let":
@@ -49,14 +46,12 @@ tests:
               },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
-
+      - { "$project": { "__subquery_result_0": 0 } }
   - name: "desugar $subquery expression with no source"
     input:
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               {
                 "$subquery":
@@ -78,7 +73,6 @@ tests:
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               {
                 "$let":
@@ -93,14 +87,12 @@ tests:
               },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
-
+      - { "$project": { "__subquery_result_0": 0 } }
   - name: "desugar fully specified $subquery expression"
     input:
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               {
                 "$subquery":
@@ -114,7 +106,6 @@ tests:
                         {
                           "$project":
                             {
-                              "_id": 0,
                               "sum": { "$add": ["$$foo_a_0", "$a"] },
                             },
                         },
@@ -134,7 +125,7 @@ tests:
               [
                 {
                   "$project":
-                    { "_id": 0, "sum": { "$add": ["$$foo_a_0", "$a"] } },
+                    { "sum": { "$add": ["$$foo_a_0", "$a"] } },
                 },
                 { "$limit": 1 },
               ],
@@ -144,7 +135,6 @@ tests:
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               {
                 "$let":
@@ -159,8 +149,7 @@ tests:
               },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
-
+      - { "$project": { "__subquery_result_0": 0 } }
   - name: "nested subquery expression is desugared in nested pipeline"
     input:
       - {
@@ -172,7 +161,6 @@ tests:
                 {
                   "$project":
                     {
-                      "_id": 0,
                       "expr":
                         {
                           "$subquery":
@@ -183,7 +171,7 @@ tests:
                                 [
                                   {
                                     "$project":
-                                      { "_id": 0, "p_1": { "p_2": 1 } },
+                                      { "p_1": { "p_2": 1 } },
                                   },
                                   { "$limit": 1 },
                                 ],
@@ -208,7 +196,7 @@ tests:
                       "from": "baz",
                       "pipeline":
                         [
-                          { "$project": { "_id": 0, "p_1": { "p_2": 1 } } },
+                          { "$project": { "p_1": { "p_2": 1 } } },
                           { "$limit": 1 },
                         ],
                       "as": "__subquery_result_0",
@@ -217,7 +205,6 @@ tests:
                 {
                   "$project":
                     {
-                      "_id": 0,
                       "expr":
                         {
                           "$let":
@@ -235,18 +222,16 @@ tests:
                         },
                     },
                 },
-                { "$project": { "_id": 0, "__subquery_result_0": 0 } },
+                { "$project": { "__subquery_result_0": 0 } },
               ],
             "as": "out",
           },
       }
-
   - name: "desugar stage with multiple subquery expressions"
     input:
       - {
         "$project":
           {
-            "_id": 0,
             "expr1":
               {
                 "$subquery":
@@ -254,7 +239,7 @@ tests:
                     "collection": "bar",
                     "outputPath": ["x"],
                     "pipeline":
-                      [{ "$project": { "_id": 0, "x": 1 } }, { "$limit": 1 }],
+                      [{ "$project": { "x": 1 } }, { "$limit": 1 }],
                   },
               },
             "expr2":
@@ -264,7 +249,7 @@ tests:
                     "collection": "baz",
                     "outputPath": ["y"],
                     "pipeline":
-                      [{ "$project": { "_id": 0, "y": 1 } }, { "$limit": 1 }],
+                      [{ "$project": { "y": 1 } }, { "$limit": 1 }],
                   },
               },
             "expr3":
@@ -287,7 +272,7 @@ tests:
                       {
                         "collection": "cmp",
                         "outputPath": ["p_1"],
-                        "pipeline": [{ "$project": { "_id": 0, "p_1": 1 } }],
+                        "pipeline": [{ "$project": { "p_1": 1 } }],
                       },
                   },
               },
@@ -300,7 +285,7 @@ tests:
             "from": "bar",
             "pipeline":
               [
-                { "$project": { "_id": 0, "x": 1 } },
+                { "$project": { "x": 1 } },
                 { "$limit": 1 },
               ],
             "as": "__subquery_result_0",
@@ -312,7 +297,7 @@ tests:
             "from": "baz",
             "pipeline":
               [
-                { "$project": { "_id": 0, "y": 1 } },
+                { "$project": { "y": 1 } },
                 { "$limit": 1 },
               ],
             "as": "__subquery_result_1",
@@ -334,14 +319,13 @@ tests:
         "$lookup":
           {
             "from": "cmp",
-            "pipeline": [{ "$project": { "_id": 0, "p_1": 1 } }],
+            "pipeline": [{ "$project": { "p_1": 1 } }],
             "as": "__subquery_result_3",
           },
       }
       - {
         "$project":
           {
-            "_id": 0,
             "expr1":
               {
                 "$let":
@@ -385,20 +369,17 @@ tests:
       - {
         "$project":
           {
-            "_id": 0,
             "__subquery_result_0": 0,
             "__subquery_result_1": 0,
             "__subquery_result_2": 0,
             "__subquery_result_3": 0,
           },
       }
-
   - name: "desugar $subqueryExists expression with only coll"
     input:
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               { "$subqueryExists": { "collection": "bar", "pipeline": [] } },
           },
@@ -415,18 +396,15 @@ tests:
       - {
         "$project":
           {
-            "_id": 0,
             "expr": { "$gt": [{ "$size": "$__subquery_result_0" }, 0] },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
-
+      - { "$project": { "__subquery_result_0": 0 } }
   - name: "desugar $subqueryExists expression with no source"
     input:
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               {
                 "$subqueryExists":
@@ -448,18 +426,15 @@ tests:
       - {
         "$project":
           {
-            "_id": 0,
             "expr": { "$gt": [{ "$size": "$__subquery_result_0" }, 0] },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
-
+      - { "$project": { "__subquery_result_0": 0 } }
   - name: "desugar fully specified $subqueryExists expression"
     input:
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               {
                 "$subqueryExists":
@@ -495,18 +470,15 @@ tests:
       - {
         "$project":
           {
-            "_id": 0,
             "expr": { "$gt": [{ "$size": "$__subquery_result_0" }, 0] },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
-
+      - { "$project": { "__subquery_result_0": 0 } }
   - name: "desugar $subqueryComparison expression with only coll"
     input:
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               {
                 "$subqueryComparison":
@@ -518,7 +490,7 @@ tests:
                       {
                         "collection": "bar",
                         "outputPath": ["a"],
-                        "pipeline": [{ "$project": { "_id": 0, "a": 1 } }],
+                        "pipeline": [{ "$project": { "a": 1 } }],
                       },
                   },
               },
@@ -529,14 +501,13 @@ tests:
         "$lookup":
           {
             "from": "bar",
-            "pipeline": [{ "$project": { "_id": 0, "a": 1 } }],
+            "pipeline": [{ "$project": { "a": 1 } }],
             "as": "__subquery_result_0",
           },
       }
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               {
                 "$reduce":
@@ -552,14 +523,12 @@ tests:
               },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
-
+      - { "$project": { "__subquery_result_0": 0 } }
   - name: "desugar $subqueryComparison expression with no source"
     input:
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               {
                 "$subqueryComparison":
@@ -588,7 +557,6 @@ tests:
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               {
                 "$reduce":
@@ -604,14 +572,12 @@ tests:
               },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
-
+      - { "$project": { "__subquery_result_0": 0 } }
   - name: "desugar fully specified $subqueryComparison expression"
     input:
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               {
                 "$subqueryComparison":
@@ -631,7 +597,7 @@ tests:
                               "$match":
                                 { "$expr": { "$eq": ["$$foo_b_0", "$b"] } },
                             },
-                            { "$project": { "_id": 0, "a": 1 } },
+                            { "$project": { "a": 1 } },
                           ],
                       },
                   },
@@ -647,7 +613,7 @@ tests:
             "pipeline":
               [
                 { "$match": { "$expr": { "$eq": ["$$foo_b_0", "$b"] } } },
-                { "$project": { "_id": 0, "a": 1 } },
+                { "$project": { "a": 1 } },
               ],
             "as": "__subquery_result_0",
           },
@@ -655,7 +621,6 @@ tests:
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               {
                 "$reduce":
@@ -671,14 +636,12 @@ tests:
               },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
-
+      - { "$project": { "__subquery_result_0": 0 } }
   - name: "desugar $subqueryComparison expression with ALL modifier"
     input:
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               {
                 "$subqueryComparison":
@@ -698,7 +661,7 @@ tests:
                               "$match":
                                 { "$expr": { "$eq": ["$$foo_b_0", "$b"] } },
                             },
-                            { "$project": { "_id": 0, "a": 1 } },
+                            { "$project": { "a": 1 } },
                           ],
                       },
                   },
@@ -714,7 +677,7 @@ tests:
             "pipeline":
               [
                 { "$match": { "$expr": { "$eq": ["$$foo_b_0", "$b"] } } },
-                { "$project": { "_id": 0, "a": 1 } },
+                { "$project": { "a": 1 } },
               ],
             "as": "__subquery_result_0",
           },
@@ -722,7 +685,6 @@ tests:
       - {
         "$project":
           {
-            "_id": 0,
             "expr":
               {
                 "$reduce":
@@ -738,8 +700,7 @@ tests:
               },
           },
       }
-      - { "$project": { "_id": 0, "__subquery_result_0": 0 } }
-
+      - { "$project": { "__subquery_result_0": 0 } }
   - name: "Preserve _id when desugaring subquery expression nested in a group"
     input:
       - {
@@ -757,7 +718,6 @@ tests:
       }
       - {
         "$project": {
-          "_id": 0,
           "__bot": {
             "a": "$_id.a"
           }
@@ -783,5 +743,5 @@ tests:
           }
         }
       }
-      - { "$project": { "_id": 1, "__subquery_result_0": 0 } }
-      - { "$project": { "_id": 0, "__bot": { "a": "$_id.a" } } }
+      - { "$project": { "__subquery_result_0": 0 } }
+      - { "$project": { "__bot": { "a": "$_id.a" } } }

@@ -1821,7 +1821,7 @@ mod subquery_exists {
                 "collection": "foo",
                 "let": {},
                 "pipeline": [
-                    {"$project": {"_id": 0, "foo": "$$ROOT"}}
+                    {"$project": {"foo": "$$ROOT"}}
                 ]
             }
         })),
@@ -1847,8 +1847,8 @@ mod subquery_exists {
                 "collection": "bar",
                 "let": {"vfoo_0": "$foo"},
                 "pipeline": [
-                    {"$project": {"_id": 0,"bar": "$$ROOT"}},
-                    {"$project": {"_id": 0,"__bot": {"a": "$$vfoo_0.a"}}}
+                    {"$project": {"bar": "$$ROOT"}},
+                    {"$project": {"__bot": {"a": "$$vfoo_0.a"}}}
                 ]
             }}
         )),
@@ -1895,7 +1895,7 @@ mod subquery {
                 "outputPath": ["arr"],
                 "pipeline": [
                     {"$documents": []},
-                    {"$project": {"_id": 0, "arr": "$$ROOT"}}
+                    {"$project": {"arr": "$$ROOT"}}
                 ]
             }
         })),
@@ -1923,8 +1923,8 @@ mod subquery {
                 },
                 "outputPath": ["__bot", "a"],
                 "pipeline": [
-                    {"$project": {"_id": 0,"bar": "$$ROOT"}},
-                    {"$project": {"_id": 0,"__bot": {"a": "$$vfoo_0.a"}}}
+                    {"$project": {"bar": "$$ROOT"}},
+                    {"$project": {"__bot": {"a": "$$vfoo_0.a"}}}
                 ]
             }
         })),
@@ -1983,7 +1983,7 @@ mod subquery_comparison {
                     "outputPath": ["arr"],
                     "pipeline": [
                         {"$documents": []},
-                        {"$project": {"_id": 0, "arr": "$$ROOT"}}
+                        {"$project": {"arr": "$$ROOT"}}
                     ]
                 }
             }
@@ -2021,8 +2021,8 @@ mod subquery_comparison {
                     },
                     "outputPath": ["__bot", "a"],
                     "pipeline": [
-                        {"$project": {"_id": 0,"bar": "$$ROOT"}},
-                        {"$project": {"_id": 0,"__bot": {"a": "$$vfoo_0.a"}}}
+                        {"$project": {"bar": "$$ROOT"}},
+                        {"$project": {"__bot": {"a": "$$vfoo_0.a"}}}
                     ]
                 }
             }

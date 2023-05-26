@@ -146,6 +146,12 @@ pub struct ResultSet {
     pub max_size: Option<u64>,
 }
 
+impl ResultSet {
+    pub fn has_datasource(&self, datasource: &Key) -> bool {
+        self.schema_env.contains_key(datasource)
+    }
+}
+
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
 pub enum Schema {
     Any,

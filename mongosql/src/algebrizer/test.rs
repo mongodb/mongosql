@@ -3679,7 +3679,6 @@ mod from_clause {
                 index: None,
                 outer: false,
                 cache: SchemaCache::new(),
-                scope: 0,
             })),
             input = Some(ast::Datasource::Unwind(ast::UnwindSource {
                 datasource: Box::new(AST_SOURCE_FOO.clone()),
@@ -3708,7 +3707,6 @@ mod from_clause {
                 index: Some("i".into()),
                 outer: true,
                 cache: SchemaCache::new(),
-                scope: 0,
             })),
             input = Some(ast::Datasource::Unwind(ast::UnwindSource {
                 datasource: Box::new(AST_SOURCE_FOO.clone()),
@@ -3743,7 +3741,6 @@ mod from_clause {
                 index: None,
                 outer: false,
                 cache: SchemaCache::new(),
-                scope: 0,
             })),
             input = Some(ast::Datasource::Unwind(ast::UnwindSource {
                 datasource: Box::new(AST_SOURCE_FOO.clone()),

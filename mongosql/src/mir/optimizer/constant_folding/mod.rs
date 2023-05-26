@@ -4,7 +4,7 @@ mod test;
 mod lib;
 use super::Optimizer;
 use crate::{
-    mir::{visitor::Visitor, Stage},
+    mir::{schema::SchemaInferenceState, visitor::Visitor, Stage},
     SchemaCheckingMode,
 };
 use lib::ConstantFoldExprVisitor;
@@ -12,7 +12,7 @@ use lib::ConstantFoldExprVisitor;
 pub(crate) struct ConstantFoldingOptimizer {}
 
 impl Optimizer for ConstantFoldingOptimizer {
-    fn optimize(&self, st: Stage, sm: SchemaCheckingMode) -> Stage {
+    fn optimize(&self, st: Stage, sm: SchemaCheckingMode, _: &SchemaInferenceState) -> Stage {
         ConstantFoldingOptimizer::fold_constants(st, sm)
     }
 }

@@ -3,25 +3,15 @@ mod test;
 
 use crate::{
     mir::{
-        binding_tuple::Key, visitor::Visitor, Expression, FieldAccess, Filter, Group, Project,
-        ReferenceExpr, Sort, Stage, Unwind,
+        binding_tuple::Key, visitor::Visitor, ExistsExpr, Expression, FieldAccess, Filter, Group,
+        Project, ReferenceExpr, Sort, Stage, SubqueryComparison, SubqueryExpr, Unwind,
     },
     set,
     util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
 use std::collections::{BTreeMap, BTreeSet};
 
-impl Project {
-    #[allow(dead_code)]
-    fn defines(&self) -> BTreeMap<Key, Expression> {
-        self.expression
-            .iter()
-            .map(|(key, e)| (key.clone(), e.clone()))
-            .collect()
-    }
-}
-
-fn find_field_access_root(field_access: &Expression) -> Key {
+pub(crate) fn find_field_access_root(field_access: &Expression) -> Option<Key> {
     // We could use the UseVisitor to find the root of the FieldAccess here, but it would
     // require cloning the FieldAccess, which I wish to avoid, because the UseVisitor needs
     // ownership of the Expression.
@@ -30,16 +20,22 @@ fn find_field_access_root(field_access: &Expression) -> Key {
         root_finder = &**expr;
     }
     if let Expression::Reference(ReferenceExpr { ref key, .. }) = root_finder {
-        return key.clone();
+        return Some(key.clone());
     }
-    // This must only be used on FieldAccesses rooted with ReferenceExpr or ReferenceExpr directly.
-    // Since this is currently only used for the the path argument of Unwind, this is safe.
-    // If this unreachable is triggered, we know why.
-    unreachable!()
+    // If the FieldAccess is not rooted in a Reference, we return None.
+    None
+}
+
+impl Project {
+    fn defines(&self) -> BTreeMap<Key, Expression> {
+        self.expression
+            .iter()
+            .map(|(key, e)| (key.clone(), e.clone()))
+            .collect()
+    }
 }
 
 impl Group {
-    #[allow(dead_code)]
     fn defines(&self) -> BTreeMap<Key, Expression> {
         let mut bot_doc = UniqueLinkedHashMap::new();
         let mut out = BTreeMap::new();
@@ -62,7 +58,6 @@ impl Group {
         out
     }
 
-    #[allow(dead_code)]
     fn opaque_defines(&self) -> BTreeSet<Key> {
         if !self.aggregations.is_empty() {
             set! { Key::bot(self.scope) }
@@ -73,18 +68,37 @@ impl Group {
 }
 
 impl Unwind {
-    #[allow(dead_code)]
     fn opaque_defines(&self) -> BTreeSet<Key> {
-        set! { find_field_access_root(&self.path) }
+        // Since we are checking the root of an Unwind, this unwrap
+        // must be safe.
+        set! { find_field_access_root(&self.path).unwrap() }
+    }
+}
+
+impl Stage {
+    pub fn defines(&self) -> BTreeMap<Key, Expression> {
+        match self {
+            Stage::Group(n) => n.defines(),
+            Stage::Project(n) => n.defines(),
+            _ => BTreeMap::new(),
+        }
+    }
+
+    pub fn opaque_defines(&self) -> BTreeSet<Key> {
+        match self {
+            Stage::Group(n) => n.opaque_defines(),
+            Stage::Unwind(n) => n.opaque_defines(),
+            _ => BTreeSet::new(),
+        }
     }
 }
 
 #[derive(Clone, Debug, Default)]
-struct UseVisitor {
+struct SingleStageUseVisitor {
     uses: BTreeSet<Key>,
 }
 
-impl Visitor for UseVisitor {
+impl Visitor for SingleStageUseVisitor {
     fn visit_stage(&mut self, node: Stage) -> Stage {
         // We only compute uses for Filter and Sort Stages at this time. We need to make sure
         // we do not recurse down the source field.
@@ -124,6 +138,45 @@ impl Visitor for UseVisitor {
         self.uses.insert(node.key.clone());
         node
     }
+
+    fn visit_subquery_expr(&mut self, node: SubqueryExpr) -> SubqueryExpr {
+        // When we visit a SubqueryExpr in a Filter, we need to create a new Visitor that
+        // collects ALL uses from the SubqueryExpr.
+        let mut all_use_visitor = AllUseVisitor::default();
+        let node = node.walk(&mut all_use_visitor);
+        self.uses.extend(all_use_visitor.uses.into_iter());
+        node
+    }
+
+    fn visit_subquery_comparison(&mut self, node: SubqueryComparison) -> SubqueryComparison {
+        // When we visit a SubqueryComparison in a Filter, we need to create a new Visitor that
+        // collects ALL uses from the SubqueryComparison.
+        let mut all_use_visitor = AllUseVisitor::default();
+        let node = node.walk(&mut all_use_visitor);
+        self.uses.extend(all_use_visitor.uses.into_iter());
+        node
+    }
+
+    fn visit_exists_expr(&mut self, node: ExistsExpr) -> ExistsExpr {
+        // When we visit an ExistsExpr in a Filter, we need to create a new Visitor that
+        // collects ALL uses from the SubqueryComparison.
+        let mut all_use_visitor = AllUseVisitor::default();
+        let node = node.walk(&mut all_use_visitor);
+        self.uses.extend(all_use_visitor.uses.into_iter());
+        node
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+struct AllUseVisitor {
+    uses: BTreeSet<Key>,
+}
+
+impl Visitor for AllUseVisitor {
+    fn visit_reference_expr(&mut self, node: ReferenceExpr) -> ReferenceExpr {
+        self.uses.insert(node.key.clone());
+        node
+    }
 }
 
 #[derive(Clone, Debug, Default)]
@@ -146,15 +199,13 @@ impl Visitor for SubstituteVisitor {
 impl Stage {
     // We compute uses so that we can easily check if any opaque_defines are used by a stage.
     // We do not care about normal defines which can be substituted.
-    #[allow(dead_code)]
-    fn uses(self) -> (BTreeSet<Key>, Stage) {
-        let mut visitor = UseVisitor::default();
+    pub fn uses(self) -> (BTreeSet<Key>, Stage) {
+        let mut visitor = SingleStageUseVisitor::default();
         let ret = visitor.visit_stage(self);
         (visitor.uses, ret)
     }
 
-    #[allow(dead_code)]
-    fn substitute(self, theta: BTreeMap<Key, Expression>) -> Self {
+    pub fn substitute(self, theta: BTreeMap<Key, Expression>) -> Self {
         let mut visitor = SubstituteVisitor { theta };
         // We only implement substitute for Stages we intend to move for which substitution makes
         // sense: Filter and Sort. Substitution is unneeded for Limit and Offset. Substitution must

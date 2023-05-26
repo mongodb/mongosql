@@ -233,7 +233,6 @@ test_method!(
         index: Some("foo".to_string()),
         outer: false,
         cache: SchemaCache::new(),
-        scope: 0,
     },
 );
 test_uses!(

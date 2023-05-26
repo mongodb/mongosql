@@ -90,8 +90,8 @@ func TestTranslate(t *testing.T) {
 
 	expectedStage0 := bson.D{
 		{"$project", bson.D{
-			{"_id", int32(0)},
 			{"foo", "$$ROOT"},
+			{"_id", int32(0)},
 		}},
 	}
 	if !reflect.DeepEqual(expectedStage0, pipeline[0]) {

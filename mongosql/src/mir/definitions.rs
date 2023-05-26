@@ -24,6 +24,10 @@ pub enum Stage {
     Set(Set),
     Derived(Derived),
     Unwind(Unwind),
+    // We need this to handle source swapping. It is not a real stage.
+    // We could change source to be Option<Box<Stage>> for all nodes,
+    // but that would be more difficult a refactor.
+    Sentinel,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -114,7 +118,6 @@ pub struct Unwind {
     pub index: Option<String>,
     pub outer: bool,
     pub cache: SchemaCache<ResultSet>,
-    pub scope: u16,
 }
 
 #[derive(PartialEq, Debug, Clone)]

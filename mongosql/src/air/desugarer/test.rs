@@ -2,9 +2,11 @@ use crate::air::{
     self,
     agg_ast::ast_definitions as agg_ast,
     desugarer::{self, Pass},
+    visitor::Visitor,
     Stage,
 };
 use chrono::prelude::*;
+use itertools::Itertools;
 use lazy_static::lazy_static;
 use serde::Deserialize;
 use std::{fs, io::Read, str::FromStr};
@@ -447,8 +449,28 @@ mod unsupported_operators {
 }
 
 mod all_desugarer_passes {
+    use mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap;
+
     use super::*;
-    use crate::air::desugarer::desugar_pipeline;
+    use crate::air::{desugarer::desugar_pipeline, Project};
+
+    struct ProjectKeySortVisitor;
+    impl Visitor for ProjectKeySortVisitor {
+        fn visit_project(&mut self, node: Project) -> Project {
+            let mut node = node.walk(self);
+            let mut new_specs = UniqueLinkedHashMap::new();
+            for (k, v) in node
+                .specifications
+                .into_iter()
+                // sort alphabetically for testing purposes
+                .sorted_by(|a, b| Ord::cmp(&a.0, &b.0))
+            {
+                new_specs.insert(k, v).unwrap();
+            }
+            node.specifications = new_specs;
+            node
+        }
+    }
 
     #[test]
     fn test() -> Result<(), Error> {
@@ -464,7 +486,9 @@ mod all_desugarer_passes {
             let input_air_pipeline = to_air_pipeline(test.input);
             let expected_air_pipeline = to_air_pipeline(test.expected);
 
-            let actual = desugar_pipeline(input_air_pipeline).map_err(Error::CannotDesugar)?;
+            let mut sorter = ProjectKeySortVisitor;
+            let actual = sorter
+                .visit_stage(desugar_pipeline(input_air_pipeline).map_err(Error::CannotDesugar)?);
 
             assert_eq!(expected_air_pipeline, actual, "{}", test.name)
         }

@@ -549,9 +549,9 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
             Stage::Project(p) => {
                 let specs: LinkedHashMap<String, air::ProjectItem> = p
                     .into_iter()
-                    // sort alphabetically for testing purposes
                     .sorted_by(|a, b| Ord::cmp(&a.0, &b.0))
                     .map(|(k, v)| (k, air::ProjectItem::from(v)))
+                    // sort alphabetically for testing purposes
                     .collect::<_>();
 
                 air::Stage::Project(air::Project {

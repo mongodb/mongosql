@@ -265,6 +265,7 @@ impl CachedSchema for Stage {
             Stage::Set(s) => &s.cache,
             Stage::Derived(s) => &s.cache,
             Stage::Unwind(s) => &s.cache,
+            Stage::Sentinel => unreachable!(),
         }
     }
 
@@ -798,6 +799,7 @@ impl CachedSchema for Stage {
                     max_size: source_result_set.max_size,
                 })
             }
+            Stage::Sentinel => unreachable!(),
         }
     }
 }

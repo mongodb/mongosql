@@ -291,21 +291,12 @@ impl Visitor for SubqueryExprDesugarerPassVisitor {
 
             // Create the Project specifications to exclude the Lookup "as"
             // names after this stage.
-            let mut specs = self
+            let specs = self
                 .as_names
                 .clone()
                 .into_iter()
                 .map(|name| (name, ProjectItem::Exclusion))
                 .collect::<LinkedHashMap<String, ProjectItem>>();
-
-            // If this stage is a Group, we must ensure we do not exclude _id.
-            let id_project_item = if matches!(stage, Stage::Group(_)) {
-                ProjectItem::Inclusion
-            } else {
-                ProjectItem::Exclusion
-            };
-
-            specs.insert("_id".to_string(), id_project_item);
 
             Stage::Project(Project {
                 source: Box::new(stage),

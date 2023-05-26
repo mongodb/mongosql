@@ -6634,7 +6634,6 @@ mod schema {
                 index,
                 outer,
                 cache: SchemaCache::new(),
-                scope: 0,
             })
         }
 
@@ -6969,7 +6968,6 @@ mod schema {
                     index: None,
                     outer: false,
                     cache: SchemaCache::new(),
-                    scope: 0,
                 }),
                 schema_env = map! {
                     ("bar", 0u16).into() => Schema::Document(Document {
@@ -7303,7 +7301,6 @@ mod schema {
                     index: Some("idx".into()),
                     outer: false,
                     cache: SchemaCache::new(),
-                    scope: 0,
                 }),
                 catalog = make_catalog(Schema::Document(Document {
                     keys: map! {
@@ -7373,7 +7370,6 @@ mod schema {
                     index: Some("idx".into()),
                     outer: false,
                     cache: SchemaCache::new(),
-                    scope: 0,
                 }),
                 catalog = Catalog::new(map! {
                     Namespace {db: "test".into(), collection: "foo".into()} => Schema::Document(Document {

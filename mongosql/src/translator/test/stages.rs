@@ -1323,7 +1323,6 @@ mod unwind {
             index: None,
             outer: false,
             cache: mir::schema::SchemaCache::new(),
-            scope: 0,
         })
     }
 
@@ -1352,7 +1351,6 @@ mod unwind {
             index: None,
             outer: true,
             cache: mir::schema::SchemaCache::new(),
-                scope: 0,
         })
     }
     test_translate_stage! {
@@ -1380,7 +1378,6 @@ mod unwind {
             index: Some("i".into()),
             outer: true,
             cache: mir::schema::SchemaCache::new(),
-                scope: 0,
         })
     }
 
@@ -1452,7 +1449,6 @@ mod unwind {
                     index: Some("idx".into()),
                     outer: false,
                     cache: mir::schema::SchemaCache::new(),
-                    scope: 0,
                 })),
                 condition: mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Gt,

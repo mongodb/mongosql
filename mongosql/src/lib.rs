@@ -54,7 +54,11 @@ pub fn translate_sql(
     let plan = algebrizer.algebrize_query(ast)?;
 
     // optimizer runs
-    let plan = mir::optimizer::optimize_plan(plan, schema_checking_mode);
+    let plan = mir::optimizer::optimize_plan(
+        plan,
+        schema_checking_mode,
+        &algebrizer.schema_inference_state(),
+    );
 
     // get the schema_env for the plan
     let schema_env = plan

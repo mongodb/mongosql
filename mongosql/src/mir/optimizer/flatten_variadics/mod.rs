@@ -2,7 +2,10 @@
 mod test;
 
 use crate::{
-    mir::{visitor::Visitor, Expression, ScalarFunction, ScalarFunctionApplication, Stage},
+    mir::{
+        schema::SchemaInferenceState, visitor::Visitor, Expression, ScalarFunction,
+        ScalarFunctionApplication, Stage,
+    },
     SchemaCheckingMode,
 };
 
@@ -11,7 +14,7 @@ use super::Optimizer;
 pub(crate) struct FlattenVariadicFunctionsOptimizer {}
 
 impl Optimizer for FlattenVariadicFunctionsOptimizer {
-    fn optimize(&self, st: Stage, _sm: SchemaCheckingMode) -> Stage {
+    fn optimize(&self, st: Stage, _sm: SchemaCheckingMode, _: &SchemaInferenceState) -> Stage {
         FlattenVariadicFunctionsOptimizer::flatten_variadic_functions(st)
     }
 }

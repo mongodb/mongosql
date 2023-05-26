@@ -24,6 +24,7 @@ impl MqlTranslator {
             mir::Stage::Set(s) => self.translate_set(s),
             mir::Stage::Derived(d) => self.translate_derived(d),
             mir::Stage::Unwind(u) => self.translate_unwind(u),
+            mir::Stage::Sentinel => unreachable!(),
         }
     }
 
