@@ -38,6 +38,17 @@ impl FieldAccess {
         Ok(path.clone())
     }
 
+    /// If this FieldAccess is "pure", then return the scope of its root
+    /// Reference. A "pure" FieldAccess consists only of other FieldAccess
+    /// expressions up the expr tree, ending at a Reference.
+    pub(crate) fn scope_if_pure(&self) -> Option<u16> {
+        match &*self.expr {
+            Expression::Reference(r) => Some(r.key.scope),
+            Expression::FieldAccess(fa) => fa.scope_if_pure(),
+            _ => None,
+        }
+    }
+
     /// If this FieldAccess is "pure", then return a string representation
     /// of it. A "pure" FieldAccess consists only of other FieldAccess
     /// expressions up the expr tree, ending at a Reference.

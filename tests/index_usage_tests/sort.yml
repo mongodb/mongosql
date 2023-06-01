@@ -16,8 +16,22 @@ catalog_schema:
       properties:
         {
           '_id': { 'bsonType': 'int' },
-          'a': { 'bsonType': 'int' },
-          'b': { 'bsonType': 'int' }
+          'a':
+            {
+              'anyOf':
+                [
+                  { 'bsonType': 'int' },
+                  { 'bsonType': 'null' },
+                ]
+            },
+          'b':
+            {
+              'anyOf':
+                [
+                  { 'bsonType': 'int' },
+                  { 'bsonType': 'null' },
+                ]
+            },
         }
       required: ['_id']
       additionalProperties: true
@@ -34,20 +48,28 @@ tests:
     query: 'SELECT * FROM test_coll'
     expected_utilization: COLL_SCAN
 
-  - description: select with single field sort uses index scan
-    skip_reason: 'SQL-1378'
+  - description: single field sort uses index scan
+    current_db: test_db
+    query: 'SELECT * FROM test_coll ORDER BY a ASC'
+    expected_utilization: IX_SCAN
+    expected_index_bounds:
+      - {'a': ['[MinKey, MaxKey]']}
+
+  - description: multi-field sort uses index scan
+    current_db: test_db
+    query: 'SELECT * FROM test_coll ORDER BY a ASC, b DESC'
+    expected_utilization: IX_SCAN
+    expected_index_bounds:
+      - {'a': ['[MinKey, MaxKey]'], 'b': ['[MaxKey, MinKey]']}
+
+  - description: SELECT field list does not impede index scan for single field sort
+    skip_reason: 'SQL-1445'
     current_db: test_db
     query: 'SELECT a FROM test_coll ORDER BY a ASC'
     expected_utilization: IX_SCAN
 
-  - description: select with multi-field sort uses index scan
-    skip_reason: 'SQL-1378'
+  - description: SELECT field list does not impede index scan for multi-field sort
+    skip_reason: 'SQL-1445'
     current_db: test_db
     query: 'SELECT a, b FROM test_coll ORDER BY a ASC, b DESC'
-    expected_utilization: IX_SCAN
-
-  - description: select * does not impede index scan
-    skip_reason: 'SQL-1378'
-    current_db: test_db
-    query: 'SELECT * FROM test_coll ORDER BY a ASC'
     expected_utilization: IX_SCAN

@@ -1,21 +1,33 @@
 mod constant_folding {
     macro_rules! test_constant_fold {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr, $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
-        #[test]
-        fn $func_name() {
-            use crate::mir::{optimizer::constant_folding::ConstantFoldingOptimizer, schema::SchemaCheckingMode};
-            let input = $input;
-            let expected = $expected;
+        ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
+            #[test]
+            fn $func_name() {
+                use crate::{
+                    catalog::Catalog,
+                    mir::{
+                        optimizer::constant_folding::ConstantFoldingOptimizer,
+                        schema::{SchemaCheckingMode, SchemaInferenceState},
+                    },
+                    schema::SchemaEnvironment,
+                };
+                let input = $input;
+                let expected = $expected;
 
-            #[allow(unused_mut, unused_assignments)]
-            let mut schema_checking_mode = SchemaCheckingMode::Strict;
-            $(schema_checking_mode = $schema_checking_mode;)?
-
-            let actual = ConstantFoldingOptimizer::fold_constants(input, schema_checking_mode);
-            assert_eq!(expected, actual);
-        }
-    };
+                let actual = ConstantFoldingOptimizer::fold_constants(
+                    input,
+                    &SchemaInferenceState::new(
+                        0,
+                        SchemaEnvironment::default(),
+                        &Catalog::default(),
+                        SchemaCheckingMode::Relaxed,
+                    ),
+                );
+                assert_eq!(expected, actual);
+            }
+        };
     }
+
     use crate::{
         map,
         mir::{binding_tuple::DatasourceName::Bottom, definitions::*, schema::SchemaCache},
@@ -132,8 +144,8 @@ mod constant_folding {
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::And,
                 args: vec![
+                    Expression::Reference(("foo", 1u16).into()),
                     Expression::Literal(LiteralValue::Null.into()),
-                    Expression::Reference(("foo", 1u16).into())
                 ],
                 cache: SchemaCache::new(),
             })],
@@ -162,8 +174,8 @@ mod constant_folding {
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Or,
                 args: vec![
+                    Expression::Reference(("foo", 1u16).into()),
                     Expression::Literal(LiteralValue::Null.into()),
-                    Expression::Reference(("foo", 1u16).into())
                 ],
                 cache: SchemaCache::new(),
             })],

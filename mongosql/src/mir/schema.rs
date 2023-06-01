@@ -1,10 +1,9 @@
-use crate::mir::schema_util::get_optimized_field_accesses;
 use crate::{
     catalog::*,
     map,
     mir::{
         binding_tuple,
-        schema_util::{lift_array_schemas, set_field_schema},
+        schema_util::{get_optimized_field_accesses, lift_array_schemas, set_field_schema},
         *,
     },
     schema::{
@@ -73,24 +72,12 @@ pub enum Error {
 
 #[derive(PartialEq, Clone, Debug)]
 struct SchemaCacheContents<T: Clone> {
-    // SchemaCacheContents stores everything from a SchemaInferenceState but the Catalog reference
-    // in order to avoid specifying a lifetime.
-    env: SchemaEnvironment,
-    scope_level: u16,
     result: T,
 }
 
 impl<T: Clone> SchemaCacheContents<T> {
-    fn new(state: &SchemaInferenceState, result: T) -> SchemaCacheContents<T> {
-        SchemaCacheContents {
-            env: state.env.clone(),
-            scope_level: state.scope_level,
-            result,
-        }
-    }
-    /// Check if the passed-in state will result in a cache hit.
-    fn matches(&self, state: &SchemaInferenceState) -> bool {
-        self.env == state.env && self.scope_level == state.scope_level
+    fn new(result: T) -> SchemaCacheContents<T> {
+        SchemaCacheContents { result }
     }
 }
 
@@ -143,13 +130,18 @@ pub trait CachedSchema {
         // This mutable borrow of the cache will be released when schema() is complete.
         let mut cache = self.get_cache().0.borrow_mut();
         match &*cache {
-            Some(contents) if contents.matches(state) => contents.result.clone(),
+            Some(contents) => contents.result.clone(),
             _ => {
                 let schema_result = self.check_schema(state);
-                cache.replace(SchemaCacheContents::new(state, schema_result.clone()));
+                cache.replace(SchemaCacheContents::new(schema_result.clone()));
                 schema_result
             }
         }
+    }
+
+    /// Invalidate the cache.
+    fn invalidate_cache(&self) {
+        self.get_cache().0.replace(None);
     }
 }
 

@@ -207,27 +207,41 @@ impl UnsupportedOperatorsDesugarerVisitor {
 
     fn desugar_mql_between(&self, between: MQLSemanticOperator) -> Expression {
         let input_var_name = "desugared_mqlBetween_input".to_string();
-        let input_var_ref = Expression::Variable(input_var_name.clone().into());
-        let let_vars = vec![LetVariable {
-            name: input_var_name,
-            expr: Box::new(between.args[0].clone()),
-        }];
-        Expression::Let(Let {
-            vars: let_vars,
-            inside: Box::new(Expression::MQLSemanticOperator(MQLSemanticOperator {
-                op: MQLOperator::And,
-                args: vec![
-                    Expression::MQLSemanticOperator(MQLSemanticOperator {
-                        op: MQLOperator::Gte,
-                        args: vec![input_var_ref.clone(), between.args[1].clone()],
-                    }),
-                    Expression::MQLSemanticOperator(MQLSemanticOperator {
-                        op: MQLOperator::Lte,
-                        args: vec![input_var_ref, between.args[2].clone()],
-                    }),
-                ],
-            })),
-        })
+
+        // If the first argument is a reference, there is no need to bind it
+        // to a LetVariable since that will impede otherwise attainable index
+        // usage.
+        let arg = between.args[0].clone();
+        let (needs_let, arg_ref) = match arg {
+            Expression::FieldRef(_) | Expression::Variable(_) => (false, arg.clone()),
+            _ => (true, Expression::Variable(input_var_name.clone().into())),
+        };
+
+        let and_op = Expression::MQLSemanticOperator(MQLSemanticOperator {
+            op: MQLOperator::And,
+            args: vec![
+                Expression::MQLSemanticOperator(MQLSemanticOperator {
+                    op: MQLOperator::Gte,
+                    args: vec![arg_ref.clone(), between.args[1].clone()],
+                }),
+                Expression::MQLSemanticOperator(MQLSemanticOperator {
+                    op: MQLOperator::Lte,
+                    args: vec![arg_ref, between.args[2].clone()],
+                }),
+            ],
+        });
+
+        if needs_let {
+            Expression::Let(Let {
+                vars: vec![LetVariable {
+                    name: input_var_name,
+                    expr: Box::new(arg),
+                }],
+                inside: Box::new(and_op),
+            })
+        } else {
+            and_op
+        }
     }
 
     fn desugar_sql_bit_length(&self, bit_length: SQLSemanticOperator) -> Expression {

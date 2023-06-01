@@ -35,7 +35,7 @@ tests:
           },
       }
 
-  - name: "desugar $mqlBetween"
+  - name: "desugar $mqlBetween with ref arg"
     input:
       - { "$project": { "_id": 0, "expr": { "$mqlBetween": ["$x", 1, 10] } } }
     expected:
@@ -45,9 +45,32 @@ tests:
             "_id": 0,
             "expr":
               {
+                "$and":
+                  [
+                    {
+                      "$gte": [ "$x", 1 ],
+                    },
+                    {
+                      "$lte": [ "$x", 10 ],
+                    },
+                  ],
+              },
+          },
+      }
+
+  - name: "desugar $mqlBetween with non-ref arg"
+    input:
+      - { "$project": { "_id": 0, "expr": { "$mqlBetween": [{ "$add": ["$x", 2] }, 1, 10] } } }
+    expected:
+      - {
+        "$project":
+          {
+            "_id": 0,
+            "expr":
+              {
                 "$let":
                   {
-                    "vars": { "desugared_mqlBetween_input": "$x" },
+                    "vars": { "desugared_mqlBetween_input": { "$add": ["$x", 2] } },
                     "in":
                       {
                         "$and":

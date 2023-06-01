@@ -6,8 +6,8 @@ use crate::{
     mir::{
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        Expression, FieldAccess, Filter, OptimizedMatchExists, ScalarFunction,
-        ScalarFunctionApplication, Stage,
+        ExistsExpr, Expression, FieldAccess, Filter, OptimizedMatchExists, ScalarFunction,
+        ScalarFunctionApplication, Stage, SubqueryExpr,
     },
     schema::{Satisfaction, NULLISH},
     SchemaCheckingMode,
@@ -36,16 +36,34 @@ impl Optimizer for MatchNullFilteringOptimizer {
         &self,
         st: Stage,
         _sm: SchemaCheckingMode,
-        _schema_env: &SchemaInferenceState,
+        schema_state: &SchemaInferenceState,
     ) -> Stage {
-        let mut v = MatchNullFilteringVisitor;
-        v.visit_stage(st)
+        let mut v = MatchNullFilteringVisitor {
+            schema_state: schema_state.clone(),
+            scope: 0,
+        };
+        let st = v.visit_stage(st);
+
+        // After adding these new Filter stages, we invalidate all of the
+        // schema caches and recalculate. This is necessary since the new
+        // Filter's OptimizedMatchExists expressions alter the schema of
+        // their field references in subsequent stages. We cannot just
+        // call the `schema` method on a per-expression or even per-stage
+        // basis _during_ the walk because that would fail to incorporate
+        // correlated schema information.
+        let mut v = SchemaInvalidator;
+        let st = v.visit_stage(st);
+        let _ = st.schema(schema_state);
+        st
     }
 }
 
-struct MatchNullFilteringVisitor;
+struct MatchNullFilteringVisitor<'a> {
+    schema_state: SchemaInferenceState<'a>,
+    scope: u16,
+}
 
-impl MatchNullFilteringVisitor {
+impl<'a> MatchNullFilteringVisitor<'a> {
     /// create_null_filter_stage attempts to create a Filter stage that ensures
     /// possibly null FieldAccesses in the original_filter exist. If the
     /// original_filter does not contain any null-semantic operators or does
@@ -96,13 +114,15 @@ impl MatchNullFilteringVisitor {
         let mut visitor = NullableFieldAccessGatherer {
             filter_fields: BTreeMap::new(),
             is_collecting: false,
+            state: self.schema_state.clone(),
+            scope: self.scope,
         };
         visitor.visit_expression(condition.clone());
         visitor.filter_fields
     }
 }
 
-impl Visitor for MatchNullFilteringVisitor {
+impl<'a> Visitor for MatchNullFilteringVisitor<'a> {
     fn visit_filter(&mut self, node: Filter) -> Filter {
         let node = node.walk(self);
         match self.create_null_filter_stage(&node) {
@@ -114,14 +134,35 @@ impl Visitor for MatchNullFilteringVisitor {
             },
         }
     }
+
+    fn visit_exists_expr(&mut self, node: ExistsExpr) -> ExistsExpr {
+        self.scope += 1;
+        let node = node.walk(self);
+        self.scope -= 1;
+        node
+    }
+
+    fn visit_subquery_expr(&mut self, node: SubqueryExpr) -> SubqueryExpr {
+        self.scope += 1;
+        let node = SubqueryExpr {
+            // do not walk subquery output_exprs
+            output_expr: node.output_expr,
+            subquery: Box::new(node.subquery.walk(self)),
+            cache: node.cache,
+        };
+        self.scope -= 1;
+        node
+    }
 }
 
-struct NullableFieldAccessGatherer {
+struct NullableFieldAccessGatherer<'a> {
     filter_fields: BTreeMap<String, FieldAccess>,
     is_collecting: bool,
+    state: SchemaInferenceState<'a>,
+    scope: u16,
 }
 
-impl Visitor for NullableFieldAccessGatherer {
+impl<'a> Visitor for NullableFieldAccessGatherer<'a> {
     // Do not walk stages nested within expressions.
     fn visit_stage(&mut self, node: Stage) -> Stage {
         node
@@ -141,7 +182,11 @@ impl Visitor for NullableFieldAccessGatherer {
                 node
             }
             Expression::FieldAccess(fa) => {
-                if self.is_collecting && self.schema_is_nullish(node.clone()) {
+                let scope = fa.scope_if_pure();
+                if self.is_collecting
+                    && scope == Some(self.scope)
+                    && self.schema_is_nullish(node.clone())
+                {
                     // Only store nullable "pure" fields in the map.
                     match fa.to_string_if_pure() {
                         None => (),
@@ -158,7 +203,7 @@ impl Visitor for NullableFieldAccessGatherer {
     }
 }
 
-impl NullableFieldAccessGatherer {
+impl<'a> NullableFieldAccessGatherer<'a> {
     fn is_nullable_function(&self, f: ScalarFunction) -> bool {
         match f {
             ScalarFunction::Lt
@@ -227,17 +272,23 @@ impl NullableFieldAccessGatherer {
     }
 
     fn schema_is_nullish(&self, expr: Expression) -> bool {
-        // We cannot use the SchemaInferenceState provided to the optimize
-        // function here to calculate the schema because the Expression may
-        // include a Reference that is not guaranteed to exist in the state's
-        // SchemaEnvironment. Accessing the the cache is the best way to get
-        // this Expression's schema.
-        match expr.get_cached_schema() {
-            None => true, // assume null in absence of schema
-            Some(schema_result) => match schema_result {
-                Err(_) => true, // assume null in absence of schema
-                Ok(schema) => NULLISH.satisfies(&schema) != Satisfaction::Not,
-            },
+        match expr.schema(&self.state) {
+            Err(_) => true, // assume null in absence of schema
+            Ok(schema) => NULLISH.satisfies(&schema) != Satisfaction::Not,
         }
+    }
+}
+
+struct SchemaInvalidator;
+
+impl Visitor for SchemaInvalidator {
+    fn visit_stage(&mut self, node: Stage) -> Stage {
+        node.invalidate_cache();
+        node.walk(self)
+    }
+
+    fn visit_expression(&mut self, node: Expression) -> Expression {
+        node.invalidate_cache();
+        node.walk(self)
     }
 }

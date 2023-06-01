@@ -31,7 +31,7 @@ struct IndexUsageTest {
     current_db: String,
     query: String,
     expected_utilization: IndexUtilization,
-    expected_index_bounds: Option<Bson>,
+    expected_index_bounds: Option<Vec<Bson>>,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
@@ -42,32 +42,49 @@ enum IndexUtilization {
     IxScan,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct ExplainResult {
     ok: f32,
-    execution_stats: ExecutionStats,
+    execution_stats: Option<ExecutionStats>,
+    stages: Option<Vec<ExplainStage>>,
     // Omitting unused fields
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct ExecutionStats {
     execution_stages: ExecutionStage,
     // Omitting unused fields
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct ExecutionStage {
     stage: String,
     index_bounds: Option<Bson>,
     input_stage: Option<Box<ExecutionStage>>,
+    // If the stage is an OR it will have multiple inputs
+    input_stages: Option<Vec<ExecutionStage>>,
     // Omitting unused fields
 }
 
+#[derive(Debug, Serialize, Deserialize, Clone)]
+struct ExplainStage {
+    #[serde(rename = "$cursor")]
+    cursor: Option<CursorStage>,
+    // omitting unused fields
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct CursorStage {
+    execution_stats: ExecutionStats,
+    // omitting unused fields
+}
+
 #[derive(Debug, Error)]
-pub enum Error {
+enum Error {
     #[error("failed to read directory: {0:?}")]
     InvalidDirectory(io::Error),
     #[error("failed to load file paths: {0:?}")]
@@ -89,13 +106,15 @@ pub enum Error {
     #[error("failed to schema to MongoSQL model: {0:?}")]
     InvalidSchema(mongosql::schema::Error),
     #[error("failed to translate query: {0}")]
-    TranslationError(String),
+    Translation(String),
     #[error("failed to run aggregation: {0:?}")]
     MongoDBAggregation(mongodb::error::Error),
     #[error("failed to deserialize ExplainResult: {0:?}")]
     ExplainDeserialization(mongodb::bson::de::Error),
     #[error("invalid root stage: {0}")]
     InvalidRootStage(String),
+    #[error("no executionStats found: {0:?}")]
+    MissingExecutionStats(ExplainResult),
 }
 
 const TEST_DIR: &str = "../tests/index_usage_tests";
@@ -137,25 +156,37 @@ fn run_index_usage_tests() -> Result<(), Error> {
                 &catalog,
                 mongosql::SchemaCheckingMode::Strict,
             )
-            .map_err(|e| Error::TranslationError(format!("{e:?}")))?;
+            .map_err(|e| Error::Translation(format!("{e:?}")))?;
 
-            let explain_result = get_execution_stats(&client, translation)?;
+            let explain_result = run_explain_aggregate(&client, translation)?;
 
-            let root_execution_stage = explain_result
-                .execution_stats
-                .execution_stages
-                .get_root_stage();
+            let execution_stats = explain_result.get_execution_stats()?;
 
-            let actual_index_utilization =
-                as_index_utilization(root_execution_stage.stage.clone())?;
+            let root_execution_stages = execution_stats.execution_stages.get_root_stages();
+
+            let actual_index_utilizations = root_execution_stages
+                .clone()
+                .into_iter()
+                .map(|root_stage| as_index_utilization(root_stage.stage.clone()))
+                .collect::<Result<Vec<IndexUtilization>, Error>>()?;
+
+            for actual_index_utilization in actual_index_utilizations {
+                assert_eq!(
+                    test.expected_utilization, actual_index_utilization,
+                    "{}: unexpected index utilization",
+                    test.description
+                );
+            }
+
+            let actual_index_bounds = root_execution_stages
+                .into_iter()
+                .map(|root_stage| root_stage.index_bounds.clone())
+                .collect::<Option<Vec<Bson>>>();
 
             assert_eq!(
-                test.expected_utilization, actual_index_utilization,
-                "unexpected index utilization"
-            );
-            assert_eq!(
-                test.expected_index_bounds, root_execution_stage.index_bounds,
-                "unexpected index bounds"
+                test.expected_index_bounds, actual_index_bounds,
+                "{}: unexpected index bounds",
+                test.description
             );
         }
     }
@@ -264,9 +295,12 @@ fn build_catalog(
         .collect()
 }
 
-/// get_execution_stats runs the provided translation's pipeline against the
+/// run_explain_aggregate runs the provided translation's pipeline against the
 /// provided client using an `explain` command that wraps an `aggregate`.
-fn get_execution_stats(client: &Client, translation: Translation) -> Result<ExplainResult, Error> {
+fn run_explain_aggregate(
+    client: &Client,
+    translation: Translation,
+) -> Result<ExplainResult, Error> {
     // Determine if this a db- or collection-level aggregation
     let aggregate = match translation.target_collection {
         None => Bson::Int32(1),
@@ -292,12 +326,37 @@ fn get_execution_stats(client: &Client, translation: Translation) -> Result<Expl
     mongodb::bson::from_document(result).map_err(Error::ExplainDeserialization)
 }
 
+impl ExplainResult {
+    fn get_execution_stats(&self) -> Result<ExecutionStats, Error> {
+        match self.execution_stats.clone() {
+            Some(execution_stats) => Ok(execution_stats),
+            None => match self.stages.clone() {
+                Some(stages) => {
+                    for stage in stages {
+                        if stage.cursor.is_some() {
+                            return Ok(stage.cursor.unwrap().execution_stats);
+                        }
+                    }
+                    Err(Error::MissingExecutionStats(self.clone()))
+                }
+                None => Err(Error::MissingExecutionStats(self.clone())),
+            },
+        }
+    }
+}
+
 /// Implementation for getting the root stage of an ExecutionStage tree.
 impl ExecutionStage {
-    fn get_root_stage(&self) -> &Self {
+    fn get_root_stages(&self) -> Vec<&Self> {
         match &self.input_stage {
-            None => self,
-            Some(input_stage) => input_stage.get_root_stage(),
+            None => match &self.input_stages {
+                None => vec![self],
+                Some(input_stages) => input_stages
+                    .iter()
+                    .flat_map(|input_stage| input_stage.get_root_stages())
+                    .collect(),
+            },
+            Some(input_stage) => input_stage.get_root_stages(),
         }
     }
 }

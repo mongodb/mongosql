@@ -15,7 +15,7 @@ pub(crate) trait Optimizer {
         &self,
         st: Stage,
         sm: SchemaCheckingMode,
-        schema_env: &SchemaInferenceState,
+        schema_state: &SchemaInferenceState,
     ) -> Stage;
 }
 
@@ -36,9 +36,9 @@ static OPTIMIZERS: fn() -> Vec<Box<dyn Optimizer>> = || {
 pub fn optimize_plan(
     st: Stage,
     schema_checking_mode: SchemaCheckingMode,
-    schema_env: &SchemaInferenceState,
+    schema_state: &SchemaInferenceState,
 ) -> crate::mir::Stage {
     OPTIMIZERS().into_iter().fold(st, |acc, opt| {
-        opt.optimize(acc, schema_checking_mode, schema_env)
+        opt.optimize(acc, schema_checking_mode, schema_state)
     })
 }

@@ -1,0 +1,92 @@
+catalog_data:
+  test_db:
+    foo:
+      - {'_id': 1, 'a': 100, 'b': 5050}
+      - {'_id': 2, 'a': 250, 'b': 4132}
+      - {'_id': 3, 'a': 42, 'b': 3456}
+      - {'_id': 4, 'a': null, 'b': 6000}
+      - {'_id': 5, 'a': 321, 'b': 10}
+      - {'_id': 6, 'a': 322}
+      - {'_id': 7, 'b': 5203}
+      - {'_id': 8, 'a': 50, 'b': 50}
+      - {'_id': 9, 'a': null, 'b': 6704}
+      - {'_id': 10, 'a': 263, 'b': 1218}
+    bar:
+      - {'_id': 1, 'a': 42}
+      - {'_id': 2, 'a': 43}
+      - {'_id': 3, 'a': 45}
+      - {'_id': 4, 'a': 100}
+      - {'_id': 5, 'a': null}
+      - {'_id': 6, 'a': 250}
+      - {'_id': 7, 'a': 201}
+      - {'_id': 8}
+      - {'_id': 9, 'a': 322}
+      - {'_id': 10, 'a': null}
+
+catalog_schema:
+  test_db:
+    foo:
+      bsonType: 'object'
+      properties:
+        {
+          '_id': { 'bsonType': 'int' },
+          'a':
+            {
+              'anyOf':
+                [
+                  { 'bsonType': 'int' },
+                  { 'bsonType': 'null' },
+                ]
+            },
+          'b': { 'bsonType': 'int' },
+        }
+      required: ['_id']
+      additionalProperties: false
+    bar:
+      bsonType: 'object'
+      properties:
+        {
+          '_id': { 'bsonType': 'int' },
+          'a':
+            {
+              'anyOf':
+                [
+                  { 'bsonType': 'int' },
+                  { 'bsonType': 'null' },
+                ]
+            },
+          'b': { 'bsonType': 'int' },
+        }
+      required: ['_id']
+      additionalProperties: false
+
+indexes:
+  test_db:
+    foo:
+      - {'key': {'a': 1}}
+      - {'key': {'b': 1}}
+      - {'key': {'a': 1, 'b': 1}}
+    bar:
+      - {'key': {'a': 1}}
+
+tests:
+  - description: combined WHERE and SORT with ascending order utilizes index scan
+    current_db: test_db
+    query: 'SELECT * FROM foo WHERE a = 100 ORDER BY b'
+    expected_utilization: IX_SCAN
+    expected_index_bounds:
+      - {'a': ['[100, 100]'], 'b': ['[MinKey, MaxKey]']}
+
+  - description: combined WHERE and SORT with descending order utilizes index scan
+    current_db: test_db
+    query: 'SELECT * FROM foo WHERE a = 100 ORDER BY b DESC'
+    expected_utilization: IX_SCAN
+    expected_index_bounds:
+      - {'a': ['[100, 100]'], 'b': ['[MaxKey, MinKey]']}
+
+  - description: combined WHERE and SORT with JOIN utilizes index scan
+    current_db: test_db
+    query: 'SELECT * FROM foo JOIN bar ON foo.a = bar.a WHERE foo.a = 100 ORDER BY foo.b'
+    expected_utilization: IX_SCAN
+    expected_index_bounds:
+      - {'a': ['[100, 100]'], 'b': ['[MinKey, MaxKey]']}

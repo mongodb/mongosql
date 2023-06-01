@@ -12,15 +12,15 @@ use lib::ConstantFoldExprVisitor;
 pub(crate) struct ConstantFoldingOptimizer {}
 
 impl Optimizer for ConstantFoldingOptimizer {
-    fn optimize(&self, st: Stage, sm: SchemaCheckingMode, _: &SchemaInferenceState) -> Stage {
-        ConstantFoldingOptimizer::fold_constants(st, sm)
+    fn optimize(&self, st: Stage, _: SchemaCheckingMode, state: &SchemaInferenceState) -> Stage {
+        ConstantFoldingOptimizer::fold_constants(st, state)
     }
 }
 
 impl ConstantFoldingOptimizer {
-    pub(crate) fn fold_constants(st: Stage, schema_checking_mode: SchemaCheckingMode) -> Stage {
+    pub(crate) fn fold_constants(st: Stage, state: &SchemaInferenceState) -> Stage {
         let mut cf = ConstantFoldExprVisitor {
-            schema_checking_mode,
+            state: state.clone(),
         };
         cf.visit_stage(st)
     }
