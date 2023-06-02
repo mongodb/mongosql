@@ -22,3 +22,27 @@ tests:
   - description: Rewrite searched CASE expression to include explicit ELSE NULL
     query: "SELECT CASE WHEN 1 = 2 THEN 1 END"
     result: "SELECT VALUE {'_1': CASE WHEN 1 = 2 THEN 1 ELSE NULL END} FROM [{}] AS _dual"
+
+  - description: Rewrite NOT (equals) as (not equals)
+    query: "SELECT NOT (1 = 2)"
+    result: "SELECT VALUE {'_1': 1 <> 2} FROM [{}] AS _dual"
+
+  - description: Rewrite NOT (not equals) as (equals)
+    query: "SELECT NOT (1 <> 2)"
+    result: "SELECT VALUE {'_1': 1 = 2} FROM [{}] AS _dual"
+
+  - description: Rewrite NOT (greater than) as (less than or equals)
+    query: "SELECT NOT (1 > 2)"
+    result: "SELECT VALUE {'_1': 1 <= 2} FROM [{}] AS _dual"
+
+  - description: Rewrite NOT (greater than or equals) as (less than)
+    query: "SELECT NOT (1 >= 2)"
+    result: "SELECT VALUE {'_1': 1 < 2} FROM [{}] AS _dual"
+
+  - description: Rewrite NOT (less than) as (greater than or equals)
+    query: "SELECT NOT (1 < 2)"
+    result: "SELECT VALUE {'_1': 1 >= 2} FROM [{}] AS _dual"
+
+  - description: Rewrite NOT (less than or equals) as (greater than)
+    query: "SELECT NOT (1 <= 2)"
+    result: "SELECT VALUE {'_1': 1 > 2} FROM [{}] AS _dual"

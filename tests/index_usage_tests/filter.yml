@@ -171,7 +171,6 @@ tests:
       - {'a': ['[100, 300]']}
 
   - description: NOT does not impact index usage when fields are nullable
-    skip_reason: "SQL-1438"
     current_db: test_db
     query: 'SELECT * FROM nullable_fields WHERE NOT a >= 100'
     expected_utilization: IX_SCAN
@@ -180,7 +179,6 @@ tests:
       - {'a': ['(null, 100)']}
 
   - description: NOT does not impact index usage when fields are non-nullable
-    skip_reason: "SQL-1438"
     current_db: test_db
     query: 'SELECT * FROM non_nullable_fields WHERE NOT a >= 100'
     expected_utilization: IX_SCAN
