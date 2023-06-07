@@ -3043,23 +3043,6 @@ TRIM(spec \' \' FROM str)
 
 ##### Additional String Functions
 
-- CONTAINS(`string`, `substring`) => `bool`
-  - Returns `true` if the given `string` contains `substring`.
-- FIND(`string`, `substring`, \[`start`\]) => `int`
-  - Returns the index position of `substring` in `string`, or 0 if the
-  `substring` isn't found. If `start` is specified, characters before `start`
-  are ignored for matching evaulation. The first character in `string` is
-  position 1.
-- LEFT(`string`, `number`) => `string`
-  - Returns the left-most `number` of characters in `string`.
-- MID(`string`, `start`, \[`length`\]) => `string`
-  - Returns the string starting at the index position `start`. The first character
-  in the `string` is position 1. If the optional argument `length` is specified,
-  the returned string includes only that number of characters.
-- RIGHT(`string`, `number`) => `string`
-  - Returns the right-most `number` of characters in `string`.
-- SPACE(`number`) => `string`
-  - Returns a string that is composed of the specified number of repeated spaces.
 - SPLIT(`string`, `delimiter`, `token number`) => `string`
   - Returns a substring from a `string`, using a `delimiter` character to divide the string into a sequence of tokens.
 
@@ -3071,15 +3054,11 @@ TRIM(spec \' \' FROM str)
   counted starting from the right.
 
   If `token number` is greater than the number of tokens, the result is an empty string.
-- STARTSWITH(`string`, `substring`) => `string`
-  - Returns `true` if `string` starts with `substring`. Leading whitespaces are ignored.
-- ENDSWITH(`string`, `substring`) => `string`
-  - Returns `true` if `string` end with `substring`. Trailing whitespaces are ignored.
 
-The `string` and `substring` arguments must statically have type STRING or NULL, and
-may evaluate to MISSING. `number` and `token number` must statically have type INT or NULL,
-and may evaluate to MISSING. If any argument is NULL or MISSING, or a `delimiter` evaluates
-to an empty string, the result is NULL.
+  The `string` argument must statically have type STRING or NULL, and
+  may evaluate to MISSING. `token number` must statically have type INT or NULL,
+  and may evaluate to MISSING. If any argument is NULL or MISSING, or a `delimiter` evaluates
+  to an empty string, the result is NULL.
 
 ##### Datetime Value Scalar Functions
 
@@ -3111,8 +3090,6 @@ is implementation-dependent._
   - Returns the specified `date` with the specified number of `interval` added to the specified `date_part` of that `date`.
 - DATEDIFF(`date_part`, `date1`, `date2`, \[`start_of_week`\]) => `int`
   - Returns the difference between `date1` and `date2` expressed in units of `date_part`.
-- DATEPART(`date_part`, `date`) => `int`
-  - Returns `date_part` of `date` as an `int`.
 - DATETRUNC(`date_part`, `date`, \[`start_of_week`]) => `datetime`
   - Truncates the specified `date` to the accuracy specified by `date_part`, and returns a new `date`.
 
@@ -3177,23 +3154,7 @@ See query tests, rewrite tests, and type constraint tests
 
 \<current timestamp function\> ::= CURRENT_TIMESTAMP (\"(\" [\<expression\>](#expressions) \")\")?
 
-\<contains function\> ::= CONTAINS "(" \<[expression](#expressions)\> "," \<[expression](#expressions)\> ")"
-
-\<find function\> ::= FIND "(" \<[expression](#expressions)\> "," \<[expression](#expressions)\> "," \<[expression](#expressions)\>? ")"
-
-\<left function\> ::= LEFT "(" \<[expression](#expressions)\> "," \<[expression](#expressions)\> ")"
-
-\<right function\> ::= RIGHT "(" \<[expression](#expressions)\> "," \<[expression](#expressions)\> ")"
-
-\<mid function\> ::= MID "(" \<[expression](#expressions)\> "," \<[expression](#expressions)\> "," \<[expression](#expressions)\>? ")"
-
 \<split function\> ::= SPLIT "(" \<[expression](#expressions)\> "," \<[expression](#expressions)\> "," \<[expression](#expressions)\> ")"
-
-\<startswith function\> ::= STARTSWITH "(" \<[expression](#expressions)\> "," \<[expression](#expressions)\> ")"
-
-\<endswith function\> ::= ENDSWITH "(" \<[expression](#expressions)\> "," \<[expression](#expressions)\> ")"
-
-< space function > ::= SPACE "(" \<[expression](#expressions)\> ")"
 
 < abs function > ::= ABS "(" \<[expression](#expressions)\> ")"
 
