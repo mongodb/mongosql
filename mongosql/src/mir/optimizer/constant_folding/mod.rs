@@ -7,7 +7,7 @@ use crate::{
     mir::{schema::SchemaInferenceState, visitor::Visitor, Stage},
     SchemaCheckingMode,
 };
-use lib::ConstantFoldExprVisitor;
+pub(crate) use lib::ConstantFoldExprVisitor;
 
 pub(crate) struct ConstantFoldingOptimizer {}
 

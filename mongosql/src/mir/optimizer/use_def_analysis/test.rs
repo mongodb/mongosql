@@ -90,6 +90,38 @@ macro_rules! test_substitute {
     };
 }
 
+macro_rules! test_attempt_substitute {
+    ($func_name:ident, expected = $expected:expr, stage = $input:expr, theta = $theta:expr, condition = $condition:expr,) => {
+        #[test]
+        fn $func_name() {
+            #[allow(unused)]
+            use crate::{
+                map,
+                mir::{
+                    self,
+                    binding_tuple::Key,
+                    schema::SchemaCache,
+                    Collection,
+                    Expression::{self, *},
+                    Filter, Group, LiteralExpr,
+                    LiteralValue::*,
+                    ReferenceExpr, ScalarFunction, ScalarFunctionApplication, Sort,
+                    SortSpecification, Stage,
+                },
+                set, unchecked_unique_linked_hash_map,
+            };
+            #[allow(unused)]
+            use std::collections::{BTreeMap, BTreeSet};
+            let input = $input;
+            let expected = $expected;
+            let theta = $theta;
+            let condition = $condition;
+            let actual = input.attempt_substitute(theta, condition);
+            assert_eq!(expected, actual);
+        }
+    };
+}
+
 fn mir_collection_stage() -> Box<mir::Stage> {
     mir::Stage::Collection(mir::Collection {
         db: "foo".into(),
@@ -130,6 +162,14 @@ fn mir_count_agg(alias: &str) -> mir::AliasedAggregation {
 fn mir_reference(name: &str) -> mir::Expression {
     mir::Expression::Reference(mir::ReferenceExpr {
         key: mir::binding_tuple::Key::named(name, 0),
+        cache: mir::schema::SchemaCache::new(),
+    })
+}
+
+fn mir_field_access(ref_name: &str, field_name: &str) -> mir::Expression {
+    mir::Expression::FieldAccess(mir::FieldAccess {
+        expr: Box::new(mir_reference(ref_name)),
+        field: field_name.to_string(),
         cache: mir::schema::SchemaCache::new(),
     })
 }
@@ -322,4 +362,78 @@ test_substitute!(
         Key::named("x",0) => mir_int_expr(42),
         Key::named("y",0) => mir_int_expr(55),
     },
+);
+
+test_attempt_substitute!(
+    sort_attempt_substitute_succeeds,
+    expected = Some(Stage::Sort(Sort {
+        source: mir_collection_stage(),
+        specs: vec![
+            SortSpecification::Asc(mir_field_access("y", "a").into()),
+            SortSpecification::Desc(mir_field_access("y", "b").into()),
+        ],
+        cache: SchemaCache::new(),
+    })),
+    stage = Stage::Sort(Sort {
+        source: mir_collection_stage(),
+        specs: vec![
+            SortSpecification::Asc(mir_field_access("x", "a").into()),
+            SortSpecification::Desc(mir_field_access("x", "b").into()),
+        ],
+        cache: SchemaCache::new(),
+    }),
+    theta = map! {
+        Key::named("x",0) => mir::Expression::Document(unchecked_unique_linked_hash_map! {
+            "a".to_string() => mir_field_access("y", "a"),
+            "b".to_string() => mir_field_access("y", "b"),
+        }.into()),
+    },
+    condition = |_| true,
+);
+
+test_attempt_substitute!(
+    sort_attempt_substitute_fails,
+    expected = None,
+    stage = Stage::Sort(Sort {
+        source: mir_collection_stage(),
+        specs: vec![
+            SortSpecification::Asc(mir_field_access("x", "a").into()),
+            SortSpecification::Desc(mir_field_access("x", "b").into()),
+        ],
+        cache: SchemaCache::new(),
+    }),
+    theta = map! {
+        Key::named("x",0) => mir::Expression::Document(unchecked_unique_linked_hash_map! {
+            "a".to_string() => mir_field_access("y", "a"),
+            "b".to_string() => mir_field_access("y", "b"),
+        }.into()),
+    },
+    condition = |_| false,
+);
+
+test_attempt_substitute!(
+    non_sort_attempt_substitute_trivially_succeeds,
+    expected = Some(Stage::Filter(Filter {
+        source: mir_collection_stage(),
+        condition: Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Eq,
+            args: vec![mir_int_expr(42), mir_int_expr(55),],
+            cache: SchemaCache::new(),
+        }),
+        cache: SchemaCache::new(),
+    })),
+    stage = Stage::Filter(Filter {
+        source: mir_collection_stage(),
+        condition: Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Eq,
+            args: vec![mir_reference("x"), mir_reference("y"),],
+            cache: SchemaCache::new(),
+        }),
+        cache: SchemaCache::new(),
+    }),
+    theta = map! {
+        Key::named("x",0) => mir_int_expr(42),
+        Key::named("y",0) => mir_int_expr(55),
+    },
+    condition = |_| false,
 );

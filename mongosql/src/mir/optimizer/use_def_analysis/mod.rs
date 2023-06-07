@@ -2,12 +2,17 @@
 mod test;
 
 use crate::{
+    catalog::Catalog,
     mir::{
-        binding_tuple::Key, visitor::Visitor, ExistsExpr, Expression, FieldAccess, Filter, Group,
-        Project, ReferenceExpr, Sort, Stage, SubqueryComparison, SubqueryExpr, Unwind,
+        binding_tuple::Key, optimizer::constant_folding::ConstantFoldExprVisitor,
+        schema::SchemaInferenceState, visitor::Visitor, ExistsExpr, Expression, FieldAccess,
+        Filter, Group, Project, ReferenceExpr, Sort, SortSpecification, Stage, SubqueryComparison,
+        SubqueryExpr, Unwind,
     },
+    schema::SchemaEnvironment,
     set,
     util::unique_linked_hash_map::UniqueLinkedHashMap,
+    SchemaCheckingMode,
 };
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -240,6 +245,72 @@ impl Stage {
             // We could add no-ops for Limit and Offset, but it's better to just not call
             // substitute while we move them!
             _ => unimplemented!(),
+        }
+    }
+
+    /// attempt_substitute attempts to substitute theta into self, but will only
+    /// succeed if all substituted expressions pass the provided condition. None
+    /// is returned otherwise.
+    pub fn attempt_substitute<F>(
+        self,
+        theta: BTreeMap<Key, Expression>,
+        condition: F,
+    ) -> Option<Self>
+    where
+        F: Fn(Box<Expression>) -> bool,
+    {
+        // Substitute theta
+        let substituted = self.substitute(theta);
+
+        match substituted {
+            Stage::Sort(Sort {
+                source,
+                specs,
+                cache,
+            }) => {
+                // Create a constant folding visitor that uses empty SchemaInferenceState.
+                // The state is irrelevant since we are only constant-folding so that
+                // FieldAccesses that are rooted at Document expressions are simplified.
+                let c = &Catalog::default();
+                let empty_state = SchemaInferenceState::new(
+                    0,
+                    SchemaEnvironment::default(),
+                    c,
+                    SchemaCheckingMode::Relaxed,
+                );
+                let mut visitor = ConstantFoldExprVisitor { state: empty_state };
+
+                let mut folded_specs = vec![];
+                for spec in specs {
+                    // Attempt to constant fold each sort spec
+                    let folded_spec = visitor.visit_sort_specification(spec);
+
+                    // If the result meets the provided condition, retain it.
+                    if condition(folded_spec.clone().get_expr()) {
+                        folded_specs.push(folded_spec)
+                    } else {
+                        // Otherwise, substitution is not possible so return None.
+                        return None;
+                    }
+                }
+
+                Some(Stage::Sort(Sort {
+                    source,
+                    specs: folded_specs,
+                    cache,
+                }))
+            }
+            // Anything other than Sort is safe
+            _ => Some(substituted),
+        }
+    }
+}
+
+impl SortSpecification {
+    fn get_expr(self) -> Box<Expression> {
+        match self {
+            SortSpecification::Asc(e) => e,
+            SortSpecification::Desc(e) => e,
         }
     }
 }

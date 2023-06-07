@@ -372,7 +372,7 @@ test_move_stage!(
 );
 
 test_move_stage!(
-    do_not_move_sort_above_project_when_complex_expression_is_used,
+    do_not_move_sort_above_project_when_nonsubstitutable_complex_expression_is_used,
     expected = Stage::Limit(Limit {
         source: Stage::Sort(Sort {
             source: Stage::Project(Project {
@@ -442,6 +442,86 @@ test_move_stage!(
            ],
            cache: SchemaCache::new(),
         }).into(),
+        limit: 10,
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage!(
+    move_sort_above_project_when_substitutable_complex_expression_is_used,
+    expected = Stage::Limit(Limit {
+        source: Stage::Project(Project {
+            source: Stage::Sort(Sort {
+                source: Stage::Collection(Collection {
+                    db: "foo".to_string(),
+                    collection: "bar".to_string(),
+                    cache: SchemaCache::new(),
+                })
+                .into(),
+                specs: vec![SortSpecification::Asc(
+                    mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: mir::Expression::Reference(("bar", 0u16).into()).into(),
+                        field: "y".to_string(),
+                        cache: SchemaCache::new(),
+                    })
+                    .into(),
+                ),],
+                cache: SchemaCache::new(),
+            })
+            .into(),
+            expression: BindingTuple(map! {
+                Key::bot(0u16) => mir::Expression::Document(mir::DocumentExpr {
+                    document: unchecked_unique_linked_hash_map! {
+                        "y".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
+                            expr: Box::new(mir::Expression::Reference(("bar", 0u16).into())),
+                            field: "y".to_string(),
+                            cache: SchemaCache::new(),
+                        }),
+                    },
+                    cache: SchemaCache::new(),
+                }),
+            }),
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        limit: 10,
+        cache: SchemaCache::new(),
+    }),
+    input = Stage::Limit(Limit {
+        source: Stage::Sort(Sort {
+            source: Stage::Project(Project {
+                source: Stage::Collection(Collection {
+                    db: "foo".to_string(),
+                    collection: "bar".to_string(),
+                    cache: SchemaCache::new(),
+                })
+                .into(),
+                expression: BindingTuple(map! {
+                     Key::bot(0u16) => mir::Expression::Document(mir::DocumentExpr {
+                         document: unchecked_unique_linked_hash_map! {
+                             "y".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
+                                 expr: Box::new(mir::Expression::Reference(("bar", 0u16).into())),
+                                 field: "y".to_string(),
+                                 cache: SchemaCache::new(),
+                             }),
+                        },
+                        cache: SchemaCache::new(),
+                    }),
+                }),
+                cache: SchemaCache::new(),
+            })
+            .into(),
+            specs: vec![SortSpecification::Asc(
+                mir::Expression::FieldAccess(mir::FieldAccess {
+                    expr: mir::Expression::Reference(Key::bot(0u16).into()).into(),
+                    field: "y".to_string(),
+                    cache: SchemaCache::new(),
+                })
+                .into(),
+            ),],
+            cache: SchemaCache::new(),
+        })
+        .into(),
         limit: 10,
         cache: SchemaCache::new(),
     }),

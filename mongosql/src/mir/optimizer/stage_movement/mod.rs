@@ -200,6 +200,13 @@ enum BubbleUpSide {
     Both,
 }
 
+#[derive(Debug, Clone, PartialEq)]
+enum SubstitutionPossibility {
+    Always,
+    Maybe,
+    Never,
+}
+
 #[derive(Clone)]
 struct StageMovementVisitor<'a> {
     schema_state: SchemaInferenceState<'a>,
@@ -315,17 +322,25 @@ impl<'a> StageMovementVisitor<'a> {
                     node
                 } else {
                     let theta = source.defines();
-                    if is_sort && Self::uses_complex_define(&theta, &uses) {
-                        node
+                    let subbed = if is_sort {
+                        match Self::is_sort_substitution_possible(&theta, &uses) {
+                            SubstitutionPossibility::Always => node.substitute(theta),
+                            SubstitutionPossibility::Never => return node,
+                            SubstitutionPossibility::Maybe => {
+                                match node.clone().attempt_substitute(theta, |e| {
+                                    find_field_access_root(&e).is_some()
+                                }) {
+                                    None => return node,
+                                    Some(subbed) => subbed,
+                                }
+                            }
+                        }
                     } else {
-                        // The source here is not a Set or a Join so the BubbleUpSide does not actually
-                        // matter, we use Both as a place holder.
-                        self.bubble_up(
-                            Self::handle_def_user,
-                            node.substitute(theta),
-                            BubbleUpSide::Both,
-                        )
-                    }
+                        node.substitute(theta)
+                    };
+                    // The source here is not a Set or a Join so the BubbleUpSide does not actually
+                    // matter, we use Both as a place holder.
+                    self.bubble_up(Self::handle_def_user, subbed, BubbleUpSide::Both)
                 }
             }
         }
@@ -392,25 +407,26 @@ impl<'a> StageMovementVisitor<'a> {
         self.bubble_up(Self::handle_def_user, node, side)
     }
 
-    // A complex define is anything other than a Reference or FieldAccess, which is not allowed
-    // in Sorts.
-    fn uses_complex_define(theta: &BTreeMap<Key, Expression>, uses: &BTreeSet<Key>) -> bool {
+    // is_sort_substitution_possible determines if substitutions are possible
+    // in a Sort stage. References are always substitutable. Documents and
+    // FieldAccesses are possibly substitutable. All other Expressions are
+    // disallowed in Sorts.
+    fn is_sort_substitution_possible(
+        theta: &BTreeMap<Key, Expression>,
+        uses: &BTreeSet<Key>,
+    ) -> SubstitutionPossibility {
         for u in uses {
             if let Some(e) = theta.get(u) {
                 match e {
                     Expression::Reference(_) => (),
-                    Expression::FieldAccess(_) => {
-                        // If the FieldAccess is not rooted in a Reference, this is a complex
-                        // Expression.
-                        if find_field_access_root(e).is_none() {
-                            return true;
-                        }
+                    Expression::Document(_) | Expression::FieldAccess(_) => {
+                        return SubstitutionPossibility::Maybe
                     }
-                    _ => return true,
+                    _ => return SubstitutionPossibility::Never,
                 }
             }
         }
-        false
+        SubstitutionPossibility::Always
     }
 }
 
