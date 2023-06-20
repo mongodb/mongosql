@@ -68,14 +68,16 @@ impl MqlTranslator {
         // We will add mappings to the mapping registry introduced by this Project Stage, which
         // is all of the keys. Previous bindings are removed after the subexpressions are
         // translated because Project kills all its inputs.
-        let unique_bot_name = Self::get_unique_bot_name(&mir_project.expression);
+        let unique_bot_name =
+            self.ensure_unique_datasource_name("__bot".to_string(), &mir_project.expression);
         let mut project_body = UniqueLinkedHashMap::new();
         let mut output_registry = MqlMappingRegistry::new();
-        for (k, e) in mir_project.expression.into_iter() {
-            let mapped_k = Self::get_datasource_name(&k.datasource, &unique_bot_name);
-            if mapped_k.starts_with('$') || mapped_k.contains('.') || mapped_k.as_str() == "" {
-                return Err(Error::InvalidProjectField);
-            }
+        for (k, e) in mir_project.expression.clone().into_iter() {
+            let mapped_k = self.get_mapped_project_name(
+                &k.datasource,
+                &unique_bot_name,
+                &mir_project.expression,
+            )?;
 
             project_body.insert(
                 mapped_k.clone(),
@@ -131,8 +133,9 @@ impl MqlTranslator {
         // aggregation functions. If it is not empty, we need to add it to the output Project
         // Stage under the unique bot name.
         if !bot_body.is_empty() {
-            let unique_bot_name =
-                Self::generate_unique_bot_name(|s| specifications.contains_key(s));
+            let unique_bot_name = Self::generate_unique_datasource_name("__bot".to_string(), |s| {
+                specifications.contains_key(s)
+            });
             specifications.insert(
                 unique_bot_name.clone(),
                 air::ProjectItem::Assignment(air::Expression::Document(bot_body)),
@@ -234,7 +237,18 @@ impl MqlTranslator {
         // since only datasources from the left will be bound to variables.
         let left = self.translate_stage(*mir_join.left)?;
         let left_registry = self.mapping_registry.clone();
+
+        // When translating the right side, we need the Translator to indicate
+        // this context because naming conflicts can occur between the left and
+        // right datasources if the left datasources need to be renamed.
+        // Therefore, we store the current is_join value, set is_join to true,
+        // translate the right side, and then restore the old is_join value.
+        // Project translation considers the is_join information to determine
+        // if name conflicts need to be resolved or not.
+        let previous_is_join = self.is_join;
+        self.is_join = true;
         let right = self.translate_stage(*mir_join.right)?;
+        self.is_join = previous_is_join;
 
         let mut let_vars = None;
         let condition = mir_join
@@ -260,7 +274,11 @@ impl MqlTranslator {
 
     fn translate_set(&mut self, mir_set: mir::Set) -> Result<air::Stage> {
         let source = self.translate_stage(*mir_set.left)?;
+        let left_registry = self.mapping_registry.clone();
         let pipeline = self.translate_stage(*mir_set.right)?;
+
+        // Ensure we retain mappings from the right side _and_ the left.
+        self.mapping_registry.merge(left_registry);
 
         Ok(air::Stage::UnionWith(air::UnionWith {
             source: Box::new(source),

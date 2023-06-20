@@ -234,6 +234,21 @@ mod expression {
         }),
     );
     test_algebrize!(
+        document_with_keys_containing_dots_and_dollars,
+        method = algebrize_expression,
+        expected = Ok(mir::Expression::Document(
+            unchecked_unique_linked_hash_map! {
+                "a.b".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                "$c".into() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+            }
+            .into()
+        )),
+        input = ast::Expression::Document(multimap! {
+                    "a.b".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                    "$c".into() => ast::Expression::Literal(ast::Literal::Integer(42)),
+        }),
+    );
+    test_algebrize!(
         qualified_ref_in_current_scope,
         method = algebrize_expression,
         expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
@@ -2747,6 +2762,50 @@ mod from_clause {
             alias: Some("bar".into()),
         })),
         catalog = catalog(vec![("test2", "foo")]),
+    );
+    test_algebrize!(
+        collection_and_alias_contains_dot,
+        method = algebrize_from_clause,
+        expected = Ok(mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::Collection(mir::Collection {
+                db: "test2".into(),
+                collection: "foo.bar".into(),
+                cache: SchemaCache::new(),
+            })),
+            expression: map! {
+                ("foo.bar", 0u16).into() =>
+                    mir::Expression::Reference(("foo.bar", 0u16).into())
+            },
+            cache: SchemaCache::new(),
+        }),),
+        input = Some(ast::Datasource::Collection(ast::CollectionSource {
+            database: Some("test2".into()),
+            collection: "foo.bar".into(),
+            alias: Some("foo.bar".into()),
+        })),
+        catalog = catalog(vec![("test2", "foo.bar")]),
+    );
+    test_algebrize!(
+        collection_and_alias_starts_with_dollar,
+        method = algebrize_from_clause,
+        expected = Ok(mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::Collection(mir::Collection {
+                db: "test2".into(),
+                collection: "$foo".into(),
+                cache: SchemaCache::new(),
+            })),
+            expression: map! {
+                ("$foo", 0u16).into() =>
+                    mir::Expression::Reference(("$foo", 0u16).into())
+            },
+            cache: SchemaCache::new(),
+        }),),
+        input = Some(ast::Datasource::Collection(ast::CollectionSource {
+            database: Some("test2".into()),
+            collection: "$foo".into(),
+            alias: Some("$foo".into()),
+        })),
+        catalog = catalog(vec![("test2", "$foo")]),
     );
     test_algebrize!(
         empty_array,

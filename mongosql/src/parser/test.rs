@@ -174,6 +174,16 @@ mod select {
         expected = false,
         input = "SELECT fo``o"
     );
+    parsable!(
+        alias_contains_dot,
+        expected = true,
+        input = "SELECT a AS `a.alias`"
+    );
+    parsable!(
+        alias_starts_with_dollar,
+        expected = true,
+        input = "SELECT a AS `$a`"
+    );
 
     validate_ast!(
         ident,
@@ -1922,6 +1932,16 @@ mod from {
         input = "SELECT * FROM bar.foo AS car"
     );
     parsable!(
+        collection_and_alias_contains_dot,
+        expected = true,
+        input = "SELECT * FROM `foo.bar` AS `foo.bar`"
+    );
+    parsable!(
+        collection_and_alias_starts_with_dollar,
+        expected = true,
+        input = "SELECT * FROM `$foo` AS `$foo`"
+    );
+    parsable!(
         array_with_alias,
         expected = true,
         input = "SELECT * FROM [{'a': 1}, {'b': 2}] arr"
@@ -3006,6 +3026,11 @@ mod document {
         doc_literal_field_bracket_star_field,
         expected = true,
         input = "select {'a': {'*': 100, 'b': 10, 'c': 1}}['a']['*']"
+    );
+    parsable!(
+        keys_with_dots_and_dollars,
+        expected = true,
+        input = "select {'a.b': 1, '$c': 2}"
     );
 
     parsable!(

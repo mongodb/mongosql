@@ -7,10 +7,7 @@ use crate::{
         MqlTranslator, Result,
     },
 };
-use mongosql_datastructures::{
-    binding_tuple::Key,
-    unique_linked_hash_map::{DuplicateKeyError, UniqueLinkedHashMap, UniqueLinkedHashMapEntry},
-};
+use mongosql_datastructures::{binding_tuple::Key, unique_linked_hash_map::UniqueLinkedHashMap};
 
 impl MqlTranslator {
     pub fn translate_expression(&self, mir_expression: mir::Expression) -> Result<air::Expression> {
@@ -104,26 +101,44 @@ impl MqlTranslator {
         &self,
         mir_document: UniqueLinkedHashMap<String, mir::Expression>,
     ) -> Result<air::Expression> {
-        Ok(air::Expression::Document(
-            mir_document
-                .into_iter()
-                .map(|(k, v)| {
-                    if k.starts_with('$') || k.contains('.') || k.is_empty() {
-                        Err(Error::InvalidDocumentKey(k))
-                    } else {
-                        Ok(UniqueLinkedHashMapEntry::new(
-                            k,
-                            self.translate_expression(v)?,
-                        ))
-                    }
-                })
-                .collect::<Result<
-                    std::result::Result<
-                        UniqueLinkedHashMap<String, air::Expression>,
-                        DuplicateKeyError,
-                    >,
-                >>()??,
-        ))
+        let mut doc_expr = UniqueLinkedHashMap::new();
+
+        for (k, v) in mir_document.clone() {
+            if k.is_empty() {
+                return Err(Error::InvalidDocumentKey(k));
+            }
+
+            // If a key starts with a '$' or contains a '.', we must use a
+            // SetField operator to represent this document. Every key-value
+            // pair must be inserted via SetFields, so once we encounter a
+            // key with these properties we start iteration over and build the
+            // SetField expression tree.
+            //
+            // This case is not likely to happen often, which is why we do not
+            // build the set_field_expr simultaneously. This set up allows us
+            // to iterate over the keys once and build the document expr without
+            // extra allocations for _most_ translation cases. If a key _does_
+            // contain a '$' or '.', this method could, in the worst case, take
+            // more time and/or memory, but that is a worthwhile tradeoff.
+            if k.starts_with('$') || k.contains('.') {
+                // Start with an empty document as the initial "input".
+                let mut set_field_expr = air::Expression::Document(UniqueLinkedHashMap::new());
+                for (k, v) in mir_document {
+                    let translated_v = self.translate_expression(v)?;
+                    set_field_expr = air::Expression::SetField(air::SetField {
+                        field: k.clone(),
+                        input: Box::new(set_field_expr),
+                        value: Box::new(translated_v),
+                    })
+                }
+                return Ok(set_field_expr);
+            }
+
+            let translated_v = self.translate_expression(v)?;
+            doc_expr.insert(k, translated_v)?;
+        }
+
+        Ok(air::Expression::Document(doc_expr))
     }
 
     fn translate_exists(&self, exists: mir::ExistsExpr) -> Result<air::Expression> {

@@ -26,26 +26,45 @@ pub(crate) enum ScalarFunctionType {
 }
 
 impl MqlTranslator {
-    /// Generate a unique bottom name given a predicate closure. Keeps pre-pending
-    /// `_` until the predicate returns false, indicating that that name is not in use.
-    pub(crate) fn generate_unique_bot_name<F>(name_exists: F) -> String
+    /// Generate a unique name given a predicate closure. Keeps pre-pending '_'
+    /// until the predicate returns false, indicating that the name is not in
+    /// use.
+    pub(crate) fn generate_unique_datasource_name<F>(base_name: String, name_exists: F) -> String
     where
         F: Fn(&String) -> bool,
     {
-        let mut ret = "__bot".to_string();
+        let mut ret = base_name;
         while name_exists(&ret) {
-            ret.insert(0, '_');
+            ret.insert(0, '_')
         }
         ret
     }
 
-    pub(crate) fn get_unique_bot_name(project_names: &BindingTuple<mir::Expression>) -> String {
-        if project_names.is_empty() {
-            return "__bot".to_string();
-        }
-        let current_scope = project_names.keys().next().unwrap().scope;
-        MqlTranslator::generate_unique_bot_name(|s| {
-            project_names.contains_key(&(s.clone(), current_scope).into())
+    /// Ensures the base_name does not conflict with any datasource names at
+    /// this scope. It does this by prepending '_' until there is no conflict.
+    /// This function checks the project_names and self.mapping_registry for
+    /// conflicts. This is because we need to handle conflicts within Projects,
+    /// such as
+    ///    SELECT `$foo`.*, `_foo`.* FROM ...
+    /// as well as conflicts from datasources external to a Project, such as
+    ///    SELECT * FROM `$foo` JOIN `_foo`
+    ///
+    /// In the first example, we will map `$foo` to `__foo` since we find
+    /// `_foo` in the Project expression. We will map `_foo` to `_foo`.
+    ///
+    /// In the second example, we will map `$foo` to `_foo` since it has
+    /// no conflicts in its individual (implicit) Project or in the mapping
+    /// registry. We will map `_foo` to `__foo` since it will conflict with
+    /// the `$foo` mapping from the mapping registry.
+    pub(crate) fn ensure_unique_datasource_name(
+        &mut self,
+        base_name: String,
+        project_names: &BindingTuple<mir::Expression>,
+    ) -> String {
+        MqlTranslator::generate_unique_datasource_name(base_name, |s| {
+            let k = (s.clone(), self.scope_level).into();
+            project_names.contains_key(&k)
+                || (self.is_join && self.mapping_registry.contains_mapping(self.scope_level, s))
         })
     }
 
@@ -57,6 +76,43 @@ impl MqlTranslator {
             DatasourceName::Bottom => unique_bot_name.to_string(),
             DatasourceName::Named(s) => s.clone(),
         }
+    }
+
+    /// Map a DatasourceName to a valid MQL project key name. Use the provided
+    /// unique_bot_name for Bottom datasource. For datasources that contain '.'
+    /// or start with '$', replace those characters with '_' and ensure the
+    /// result is unique. This allows MongoSQL to support datasource aliases
+    /// that contain '.'s or start with '$'s. Project keys with those attributes
+    /// have different semantics or are invalid in MQL, so we must replace them
+    /// with valid characters.
+    pub(crate) fn get_mapped_project_name(
+        &mut self,
+        datasource: &DatasourceName,
+        unique_bot_name: &str,
+        project_names: &BindingTuple<mir::Expression>,
+    ) -> Result<String> {
+        let mut mapped_k = Self::get_datasource_name(datasource, unique_bot_name);
+        if mapped_k.as_str() == "" {
+            return Err(Error::InvalidProjectField);
+        }
+        let mut needs_unique_check = false;
+        if mapped_k.starts_with('$') {
+            mapped_k = mapped_k.replacen('$', "_", 1);
+            needs_unique_check = true;
+        }
+        if mapped_k.contains('.') {
+            mapped_k = mapped_k.replace('.', "_");
+            needs_unique_check = true;
+        }
+        needs_unique_check = needs_unique_check
+            || (self.is_join
+                && self
+                    .mapping_registry
+                    .contains_mapping(self.scope_level, &mapped_k));
+        if needs_unique_check {
+            mapped_k = self.ensure_unique_datasource_name(mapped_k, project_names);
+        }
+        Ok(mapped_k)
     }
 
     pub(crate) fn get_reference_key_name(&self, expr: mir::Expression) -> Result<String> {

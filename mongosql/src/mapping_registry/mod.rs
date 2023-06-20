@@ -31,16 +31,18 @@ impl MqlMappingRegistry {
         MqlMappingRegistry(tree)
     }
 
+    pub fn contains_mapping(&self, scope_level: u16, mapped_k: &String) -> bool {
+        self.0
+            .iter()
+            .any(|(k, v)| k.scope == scope_level && v.name == *mapped_k)
+    }
+
     pub fn get(&self, k: &Key) -> Option<&MqlMappingRegistryValue> {
         self.0.get(k)
     }
 
     pub fn get_registry(&self) -> &BTreeMap<Key, MqlMappingRegistryValue> {
         &self.0
-    }
-
-    pub fn remove(&mut self, k: &Key) -> Option<MqlMappingRegistryValue> {
-        self.0.remove(k)
     }
 
     pub fn insert<K: Into<Key>, V: Into<MqlMappingRegistryValue>>(

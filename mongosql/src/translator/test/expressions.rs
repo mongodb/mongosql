@@ -13,6 +13,7 @@ macro_rules! test_translate_expression {
             let translator = translator::MqlTranslator{
                 mapping_registry,
                 scope_level: 0u16,
+                is_join: false,
             };
             let expected = $expected;
             let actual = translator.translate_expression(input);
@@ -39,6 +40,7 @@ macro_rules! test_translate_expression_with_schema_info {
             let translator = translator::MqlTranslator{
                 mapping_registry,
                 scope_level: 0u16,
+                is_join: false,
             };
             let expected = $expected;
             let actual = translator.translate_expression(input);
@@ -164,7 +166,8 @@ mod array {
 
 mod document {
     use crate::unchecked_unique_linked_hash_map;
-    use crate::{air, mir, translator::Error};
+    use crate::{air, mapping_registry::*, mir, translator::Error};
+
     test_translate_expression!(
         empty,
         expected = Ok(air::Expression::Document(
@@ -202,17 +205,65 @@ mod document {
         ),
     );
     test_translate_expression!(
-        dollar_prefixed_key_disallowed,
-        expected = Err(Error::InvalidDocumentKey("$foo".to_string())),
+        dollar_prefixed_key_becomes_set_field,
+        expected = Ok(air::Expression::SetField(air::SetField {
+            field: "$foo".to_string(),
+            input: Box::new(air::Expression::Document(unchecked_unique_linked_hash_map!{})),
+            value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
+        })),
         input = mir::Expression::Document(
             unchecked_unique_linked_hash_map! {"$foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())}.into()),
     );
     test_translate_expression!(
-        key_containing_dot_disallowed,
-        expected = Err(Error::InvalidDocumentKey("foo.bar".to_string())),
+        key_containing_dot_becomes_set_field,
+        expected = Ok(air::Expression::SetField(air::SetField {
+            field: "foo.bar".to_string(),
+            input: Box::new(air::Expression::Document(unchecked_unique_linked_hash_map!{})),
+            value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
+        })),
         input = mir::Expression::Document(
             unchecked_unique_linked_hash_map! {"foo.bar".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())}.into(),
         ),
+    );
+    test_translate_expression!(
+        multiple_keys_become_set_field_if_at_least_one_requires,
+        expected = Ok(air::Expression::SetField(air::SetField {
+            field: "y".to_string(),
+            input: Box::new(air::Expression::SetField(air::SetField {
+                field: "$foo".to_string(),
+                input: Box::new(air::Expression::SetField(air::SetField {
+                    field: "x".to_string(),
+                    input: Box::new(air::Expression::SetField(air::SetField {
+                        field: "foo.bar".to_string(),
+                        input: Box::new(air::Expression::Document(unchecked_unique_linked_hash_map!{})),
+                        value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
+                    })),
+                    value: Box::new(air::Expression::FieldRef("f.x".to_string().into())),
+                })),
+                value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(2))),
+            })),
+            value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(3))),
+        })),
+        input = mir::Expression::Document(
+            unchecked_unique_linked_hash_map! {
+                "foo.bar".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                "x".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
+                    expr: Box::new(mir::Expression::Reference(("f", 0u16).into())),
+                    field: "x".to_string(),
+                    cache: mir::schema::SchemaCache::new(),
+                }),
+                "$foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
+                "y".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(3).into()),
+            }.into(),
+        ),
+        mapping_registry = {
+            let mut mr = MqlMappingRegistry::default();
+            mr.insert(
+                ("f", 0u16),
+                MqlMappingRegistryValue::new("f".to_string(), MqlReferenceType::FieldRef),
+            );
+            mr
+        },
     );
     test_translate_expression!(
         empty_key_disallowed,
