@@ -25,9 +25,9 @@ static OPTIMIZERS: fn() -> Vec<Box<dyn Optimizer>> = || {
     vec![
         Box::new(flatten_variadics::FlattenVariadicFunctionsOptimizer {}),
         Box::new(constant_folding::ConstantFoldingOptimizer {}),
-        Box::new(match_null_filtering::MatchNullFilteringOptimizer {}),
         Box::new(match_splitting::MatchSplittingOptimizer {}),
         Box::new(stage_movement::StageMovementOptimizer {}),
+        Box::new(match_null_filtering::MatchNullFilteringOptimizer {}),
     ]
 };
 

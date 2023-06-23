@@ -4,9 +4,12 @@ mod test;
 use super::Optimizer;
 use crate::{
     mir::{
-        binding_tuple::Key, optimizer::use_def_analysis::find_field_access_root,
-        schema::SchemaInferenceState, visitor::Visitor, Derived, Expression, Filter, Group, Join,
-        Limit, Offset, Project, Set, Sort, Stage, Unwind,
+        binding_tuple::Key,
+        optimizer::use_def_analysis::find_field_access_root,
+        schema::{SchemaCache, SchemaInferenceState},
+        visitor::Visitor,
+        Derived, Expression, Filter, Group, Join, Limit, Offset, Project, ScalarFunction,
+        ScalarFunctionApplication, Set, Sort, Stage, Unwind,
     },
     schema::ResultSet,
     SchemaCheckingMode,
@@ -282,10 +285,9 @@ impl<'a> StageMovementVisitor<'a> {
 
     fn handle_def_user(&mut self, node: Stage) -> Stage {
         use crate::mir::schema::CachedSchema;
-        // We decided to preserve the predefined order of stages that are the def_users
-        // (Sort/Filter). Without this check, since the traversal is bottom up, we would always
-        // swap def_users.
-        if Self::source_is_terminal_or_def_user(&node) {
+        // We cannot move above a terminal node because they do not have a source, we also cannot
+        // move a Sort above another Sort because that would actually change the Sort ordering.
+        if Self::source_prevents_reorder(&node) {
             return node;
         }
         let (uses, node) = node.uses();
@@ -305,7 +307,28 @@ impl<'a> StageMovementVisitor<'a> {
                 // upsets the borrow checker since we also pass *node* by value.
                 let left_schema = n.left.schema(&self.schema_state).unwrap();
                 let right_schema = n.right.schema(&self.schema_state).unwrap();
-                self.dual_source(node, uses, left_schema, right_schema)
+                let (stage, changed) = self.dual_source(node, uses, left_schema, right_schema);
+                if changed {
+                    stage
+                } else if let Stage::Filter(f) = stage {
+                    if let Stage::Join(j) = *f.source {
+                        let condition = if j.condition.is_none() {
+                            Some(f.condition)
+                        } else {
+                            Some(Expression::ScalarFunction(ScalarFunctionApplication {
+                                function: ScalarFunction::And,
+                                args: vec![j.condition.unwrap(), f.condition],
+                                cache: SchemaCache::new(),
+                            }))
+                        };
+                        Stage::Join(Join { condition, ..j })
+                    } else {
+                        unreachable!()
+                    }
+                } else {
+                    // we cannot move a Sort into an On clause
+                    stage
+                }
             }
             Stage::Set(ref n) => {
                 // We have to compute the schema outside of the dual_source call
@@ -313,7 +336,9 @@ impl<'a> StageMovementVisitor<'a> {
                 // upsets the borrow checker since we also pass *node* by value.
                 let left_schema = n.left.schema(&self.schema_state).unwrap();
                 let right_schema = n.right.schema(&self.schema_state).unwrap();
-                self.dual_source(node, uses, left_schema, right_schema)
+                // Set does not have an On field, so we ignore the changed bool second return
+                // value.
+                self.dual_source(node, uses, left_schema, right_schema).0
             }
             source => {
                 // We can check that the intersection is non-empty without collecting by checking
@@ -346,24 +371,30 @@ impl<'a> StageMovementVisitor<'a> {
         }
     }
 
-    fn source_is_terminal_or_def_user(node: &Stage) -> bool {
-        matches!(
-            match *node {
-                Stage::Sort(ref n) => &*n.source,
-                Stage::Filter(ref n) => &*n.source,
-                _ => unreachable!(),
-            },
-            Stage::Collection(_) | Stage::Array(_) | Stage::Filter(_) | Stage::Sort(_)
-        )
+    // A source prevents a reorder if it is a terminal source: Collection, Array, or if
+    // it is a Sort and the current node is also a Sort because reordering Sorts amongst themselves
+    // actually changes semantics.
+    fn source_prevents_reorder(node: &Stage) -> bool {
+        match *node {
+            Stage::Sort(ref n) => matches!(
+                &*n.source,
+                Stage::Collection(_) | Stage::Array(_) | Stage::Sort(_)
+            ),
+            Stage::Filter(ref n) => matches!(&*n.source, Stage::Collection(_) | Stage::Array(_)),
+            _ => unreachable!(),
+        }
     }
 
+    // Handle movement for dual_source stages (Join, Set).
+    // the bool return value is true when a change is made. We can use a false value to move a
+    // filter into the On field for a Join.
     fn dual_source(
         &mut self,
         node: Stage,
         uses: BTreeSet<Key>,
         left_schema: ResultSet,
         right_schema: ResultSet,
-    ) -> Stage {
+    ) -> (Stage, bool) {
         let mut side = BubbleUpSide::Both;
         // An interesting side affect of how this is architected is that a Filter
         // with no Key usages will be bubbled up both sides, which is actually good and correct,
@@ -377,13 +408,13 @@ impl<'a> StageMovementVisitor<'a> {
                     // side and return the node without moving.
                     // the right side of the || here should be impossible, but best to be safe
                     if right_schema.has_datasource(&u) || !left_schema.has_datasource(&u) {
-                        return node;
+                        return (node, false);
                     }
                 }
                 BubbleUpSide::Right => {
                     // the right side of the || here should be impossible, but best to be safe
                     if left_schema.has_datasource(&u) || !right_schema.has_datasource(&u) {
-                        return node;
+                        return (node, false);
                     }
                 }
                 BubbleUpSide::Both => {
@@ -391,7 +422,7 @@ impl<'a> StageMovementVisitor<'a> {
                         left_schema.has_datasource(&u),
                         right_schema.has_datasource(&u),
                     ) {
-                        (true, true) => return node,
+                        (true, true) => return (node, false),
                         (true, _) => {
                             side = BubbleUpSide::Left;
                         }
@@ -399,12 +430,12 @@ impl<'a> StageMovementVisitor<'a> {
                             side = BubbleUpSide::Right;
                         }
                         // This case should be impossible, but best to be safe
-                        (false, false) => return node,
+                        (false, false) => return (node, false),
                     }
                 }
             }
         }
-        self.bubble_up(Self::handle_def_user, node, side)
+        (self.bubble_up(Self::handle_def_user, node, side), true)
     }
 
     // is_sort_substitution_possible determines if substitutions are possible

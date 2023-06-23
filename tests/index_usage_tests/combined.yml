@@ -90,3 +90,10 @@ tests:
     expected_utilization: IX_SCAN
     expected_index_bounds:
       - {'a': ['[100, 100]'], 'b': ['[MinKey, MaxKey]']}
+
+  - description: WHERE after JOIN utilizes index scan
+    current_db: test_db
+    query: 'SELECT * FROM foo JOIN bar WHERE bar.a = foo.a AND foo.a = 100'
+    expected_utilization: IX_SCAN
+    expected_index_bounds:
+      - {'a': ['[100, 100]']}

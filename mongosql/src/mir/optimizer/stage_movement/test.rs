@@ -528,7 +528,7 @@ test_move_stage!(
 );
 
 test_move_stage!(
-    move_sorts_above_project_without_reordering_sort_to_sort,
+    move_sorts_above_project_will_not_reorder_sort_to_sort,
     expected = Stage::Limit(Limit {
         source: Stage::Project(Project {
             source: Stage::Sort(Sort {
@@ -628,7 +628,7 @@ test_move_stage!(
 );
 
 test_move_stage!(
-    move_filters_above_project_without_reordering_filter_to_filter,
+    move_filters_above_project_will_reorder_filter_to_filter,
     expected = Stage::Limit(Limit {
         source: Stage::Project(Project {
             source: Stage::Filter(Filter {
@@ -639,36 +639,36 @@ test_move_stage!(
                         cache: SchemaCache::new(),
                     }).into(),
                     condition: Expression::ScalarFunction(
-                        mir::ScalarFunctionApplication {
-                            function: mir::ScalarFunction::Lt,
-                            args: vec![
-                                mir::Expression::Document(mir::DocumentExpr {
-                                    document: unchecked_unique_linked_hash_map! {
-                                        "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                                    },
-                                    cache: SchemaCache::new(),
-                                }),
-                                mir::Expression::Literal(mir::LiteralValue::Integer(54).into()),
-                            ],
-                            cache: SchemaCache::new(),
-                        }
-                    ),
+                       mir::ScalarFunctionApplication {
+                           function: mir::ScalarFunction::Lt,
+                           args: vec![
+                               mir::Expression::Document(mir::DocumentExpr {
+                                   document: unchecked_unique_linked_hash_map! {
+                                       "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+                                   },
+                                   cache: SchemaCache::new(),
+                               }),
+                               mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+                           ],
+                           cache: SchemaCache::new(),
+                    }),
                     cache: SchemaCache::new(),
                 }).into(),
                 condition: Expression::ScalarFunction(
-                   mir::ScalarFunctionApplication {
-                       function: mir::ScalarFunction::Lt,
-                       args: vec![
-                           mir::Expression::Document(mir::DocumentExpr {
-                               document: unchecked_unique_linked_hash_map! {
-                                   "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                               },
-                               cache: SchemaCache::new(),
-                           }),
-                           mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                       ],
-                       cache: SchemaCache::new(),
-                }),
+                    mir::ScalarFunctionApplication {
+                        function: mir::ScalarFunction::Lt,
+                        args: vec![
+                            mir::Expression::Document(mir::DocumentExpr {
+                                document: unchecked_unique_linked_hash_map! {
+                                    "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+                                },
+                                cache: SchemaCache::new(),
+                            }),
+                            mir::Expression::Literal(mir::LiteralValue::Integer(54).into()),
+                        ],
+                        cache: SchemaCache::new(),
+                    }
+                ),
                 cache: SchemaCache::new(),
             }).into(),
             expression: BindingTuple(map! {
@@ -857,6 +857,129 @@ test_move_stage!(
             cache: SchemaCache::new(),
         }).into(),
         limit: 10,
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage!(
+    move_filter_under_join_into_none_on,
+    expected = Stage::Join(Join {
+        left: Stage::Collection(Collection {
+            db: "foo".to_string(),
+            collection: "bar".to_string(),
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        right: Stage::Collection(Collection {
+            db: "foo".to_string(),
+            collection: "bar2".to_string(),
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        condition: Some(Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Lt,
+            args: vec![
+                mir::Expression::Reference(Key::named("bar", 0u16).into()),
+                mir::Expression::Reference(Key::named("bar2", 0u16).into()),
+            ],
+            cache: SchemaCache::new(),
+        })),
+        join_type: JoinType::Inner,
+        cache: SchemaCache::new(),
+    }),
+    input = Stage::Filter(Filter {
+        source: Stage::Join(Join {
+            left: Stage::Collection(Collection {
+                db: "foo".to_string(),
+                collection: "bar".to_string(),
+                cache: SchemaCache::new(),
+            })
+            .into(),
+            right: Stage::Collection(Collection {
+                db: "foo".to_string(),
+                collection: "bar2".to_string(),
+                cache: SchemaCache::new(),
+            })
+            .into(),
+            condition: None,
+            join_type: JoinType::Inner,
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        condition: Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Lt,
+            args: vec![
+                mir::Expression::Reference(Key::named("bar", 0u16).into()),
+                mir::Expression::Reference(Key::named("bar2", 0u16).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage!(
+    move_filter_under_join_into_some_on,
+    expected = Stage::Join(Join {
+        left: Stage::Collection(Collection {
+            db: "foo".to_string(),
+            collection: "bar".to_string(),
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        right: Stage::Collection(Collection {
+            db: "foo".to_string(),
+            collection: "bar2".to_string(),
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        condition: Some(Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::And,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+                Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Lt,
+                    args: vec![
+                        mir::Expression::Reference(Key::named("bar", 0u16).into()),
+                        mir::Expression::Reference(Key::named("bar2", 0u16).into()),
+                    ],
+                    cache: SchemaCache::new(),
+                })
+            ],
+            cache: SchemaCache::new(),
+        })),
+        join_type: JoinType::Inner,
+        cache: SchemaCache::new(),
+    }),
+    input = Stage::Filter(Filter {
+        source: Stage::Join(Join {
+            left: Stage::Collection(Collection {
+                db: "foo".to_string(),
+                collection: "bar".to_string(),
+                cache: SchemaCache::new(),
+            })
+            .into(),
+            right: Stage::Collection(Collection {
+                db: "foo".to_string(),
+                collection: "bar2".to_string(),
+                cache: SchemaCache::new(),
+            })
+            .into(),
+            condition: Some(mir::Expression::Literal(
+                mir::LiteralValue::Integer(42).into()
+            )),
+            join_type: JoinType::Inner,
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        condition: Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Lt,
+            args: vec![
+                mir::Expression::Reference(Key::named("bar", 0u16).into()),
+                mir::Expression::Reference(Key::named("bar2", 0u16).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
         cache: SchemaCache::new(),
     }),
 );
@@ -1230,6 +1353,203 @@ test_move_stage!(
             cache: SchemaCache::new(),
         }).into(),
         limit: 10,
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage!(
+    move_two_filters_under_join_one_into_none_on_and_other_filter_above_join_because_filters_can_reorder,
+    expected = Stage::Join(Join {
+        left: Stage::Filter(Filter {
+            source: Stage::Collection(Collection {
+                db: "foo".to_string(),
+                collection: "bar".to_string(),
+                cache: SchemaCache::new(),
+            })
+            .into(),
+            condition: Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Eq,
+                args: vec![
+                    mir::Expression::Reference(Key::named("bar", 0u16).into()),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+                ],
+                cache: SchemaCache::new(),
+            }),
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        right: Stage::Collection(Collection {
+            db: "foo".to_string(),
+            collection: "bar2".to_string(),
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        condition: Some(Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Lt,
+            args: vec![
+                mir::Expression::Reference(Key::named("bar", 0u16).into()),
+                mir::Expression::Reference(Key::named("bar2", 0u16).into()),
+            ],
+            cache: SchemaCache::new(),
+        })),
+        join_type: JoinType::Inner,
+        cache: SchemaCache::new(),
+    }),
+    input = Stage::Filter(Filter {
+        source: Stage::Filter(Filter {
+            source: Stage::Join(Join {
+                left: Stage::Collection(Collection {
+                    db: "foo".to_string(),
+                    collection: "bar".to_string(),
+                    cache: SchemaCache::new(),
+                })
+                .into(),
+                right: Stage::Collection(Collection {
+                    db: "foo".to_string(),
+                    collection: "bar2".to_string(),
+                    cache: SchemaCache::new(),
+                })
+                .into(),
+                condition: None,
+                join_type: JoinType::Inner,
+                cache: SchemaCache::new(),
+            })
+            .into(),
+            condition: Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Lt,
+                args: vec![
+                    mir::Expression::Reference(Key::named("bar", 0u16).into()),
+                    mir::Expression::Reference(Key::named("bar2", 0u16).into()),
+                ],
+                cache: SchemaCache::new(),
+            }),
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        condition: Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Eq,
+            args: vec![
+                mir::Expression::Reference(Key::named("bar", 0u16).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage!(
+    move_later_filter_above_unwind_that_prohibits_movement_of_earlier_filter,
+    expected = Stage::Filter(Filter {
+        source: Stage::Unwind(Unwind {
+            source: Stage::Project(Project {
+                source: Stage::Filter(Filter {
+                    source: Stage::Collection(Collection {
+                        db: "foo".to_string(),
+                        collection: "bar".to_string(),
+                        cache: SchemaCache::new(),
+                    }).into(),
+                    condition: Expression::ScalarFunction(
+                        mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::Lt,
+                            args: vec![
+                                mir::Expression::Literal(mir::LiteralValue::Integer(41).into()),
+                                mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+                            ],
+                            cache: SchemaCache::new(),
+                        }
+                    ),
+                    cache: SchemaCache::new(),
+                }).into(),
+                expression: BindingTuple(map! {
+                    Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
+                        document: unchecked_unique_linked_hash_map! {
+                            "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+                        },
+                        cache: SchemaCache::new(),
+                    }),
+                }),
+                cache: SchemaCache::new(),
+            }).into(),
+            path: Expression::FieldAccess( FieldAccess {
+                expr: Expression::Reference( ReferenceExpr {
+                    key: Key::bot(0u16),
+                    cache: SchemaCache::new(),
+                }).into(),
+                field: "x".to_string(),
+                cache: SchemaCache::new(),
+            }).into(),
+            index: None,
+            outer: false,
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        condition: Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Lt,
+                args: vec![
+                    mir::Expression::Reference(Key::bot(0u16).into()),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+                ],
+                cache: SchemaCache::new(),
+            }
+        ),
+        cache: SchemaCache::new(),
+    }),
+    input = Stage::Filter(Filter {
+        source: Stage::Filter(Filter {
+            source: Stage::Unwind(Unwind {
+                source: Stage::Project(Project {
+                    source: Stage::Collection(Collection {
+                        db: "foo".to_string(),
+                        collection: "bar".to_string(),
+                        cache: SchemaCache::new(),
+                    }).into(),
+                    expression: BindingTuple(map! {
+                        Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
+                            document: unchecked_unique_linked_hash_map! {
+                                "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+                            },
+                            cache: SchemaCache::new(),
+                        }),
+                    }),
+                    cache: SchemaCache::new(),
+                }).into(),
+                path: Expression::FieldAccess( FieldAccess {
+                    expr: Expression::Reference( ReferenceExpr {
+                        key: Key::bot(0u16),
+                        cache: SchemaCache::new(),
+                    }).into(),
+                    field: "x".to_string(),
+                    cache: SchemaCache::new(),
+                }).into(),
+                index: None,
+                outer: false,
+                cache: SchemaCache::new(),
+            })
+            .into(),
+            condition: Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Lt,
+                    args: vec![
+                        mir::Expression::Reference(Key::bot(0u16).into()),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+                    ],
+                    cache: SchemaCache::new(),
+                }
+            ),
+            cache: SchemaCache::new(),
+        }).into(),
+        condition: Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Lt,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Integer(41).into()),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+                ],
+                cache: SchemaCache::new(),
+            }
+        ),
         cache: SchemaCache::new(),
     }),
 );
