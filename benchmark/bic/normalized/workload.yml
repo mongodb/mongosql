@@ -1,0 +1,35 @@
+SchemaVersion: 2018-07-01
+Owner: "@mongodb/product-query"
+Description: |
+  This workload demonstrates the RunCommand actor, which can be used
+  to execute a command against the server.
+
+Clients:
+  Default:
+    QueryOptions:
+      maxPoolSize: 500
+      socketTimeoutMS: 5_000  # = 1 hour
+      # connectTimeoutMS: 3_600_000
+    URI: "mongodb://localhost:27017"
+
+Actors:
+- Name: NewTest
+  Type: RunCommand
+  Threads: 1
+  Phases:
+  - Duration: 5000 milliseconds
+    Database: tpch
+    Operations:
+    - OperationMetricsName: BIC
+      OperationName: RunCommand
+      OperationCommand:
+        aggregate: "nation"
+        pipeline: [
+          {
+            $group: {
+              _id: '$n_name',
+              count: { $sum: 1 }
+            }
+          }
+        ]
+        cursor: {}
