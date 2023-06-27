@@ -84,84 +84,71 @@ tests:
 
   - description: ABS operand must have numeric type or type NULL, or be MISSING
     query: "SELECT ABS(arg1) FROM foo"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     valid_types:
       - { "arg1": *numerics }
 
   - description: CEIL operand must have numeric type or type NULL, or be MISSING
     query: "SELECT CEIL(arg1) FROM foo"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     valid_types:
       - { "arg1": *numerics }
 
   - description: COS operand must have numeric type or type NULL, or be MISSING
     query: "SELECT COS(arg1) FROM foo"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     valid_types:
       - { "arg1": *numerics }
 
   - description: DEGREES operand must have numeric type or type NULL, or be MISSING
     query: "SELECT DEGREES(arg1) FROM foo"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     valid_types:
       - { "arg1": *numerics }
 
   - description: FLOOR operand must have numeric type or type NULL, or be MISSING
     query: "SELECT FLOOR(arg1) FROM foo"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     valid_types:
       - { "arg1": *numerics }
 
   - description: LOG operands must have numeric type or type NULL, or be MISSING
     query: "SELECT LOG(arg1, arg2) FROM foo"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     valid_types:
       - { "arg1": *numerics, "arg2": *numerics }
 
   - description: MOD operands must have numeric type or type NULL, or be MISSING
     query: "SELECT MOD(arg1, arg2) FROM foo"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     valid_types:
       - { "arg1": *numerics, "arg2": *numerics }
 
   - description: POW operands must have numeric type or type NULL, or be MISSING
     query: "SELECT POW(arg1, arg2) FROM foo"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     valid_types:
       - { "arg1": *numerics, "arg2": *numerics }
 
   - description: RADIANS operand must have numeric type or type NULL, or be MISSING
     query: "SELECT RADIANS(arg1) FROM foo"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     valid_types:
       - { "arg1": *numerics }
 
   - description: ROUND operands must have numeric type or type NULL, or be MISSING
     query: "SELECT ROUND(arg1, arg2) FROM foo"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
+    skip_reason: "SQL-1497: Round args type check test fails"
     valid_types:
       - { "arg1": *numerics, "arg2": *int_long }
 
   - description: SIN operand must have numeric type or type NULL, or be MISSING
     query: "SELECT SIN(arg1) FROM foo"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     valid_types:
       - { "arg1": *numerics }
 
   - description: SQRT operand must have numeric type or type NULL, or be MISSING
     query: "SELECT SQRT(arg1) FROM foo"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     valid_types:
       - { "arg1": *numerics }
 
   - description: TAN operand must have numeric type or type NULL, or be MISSING
     query: "SELECT TAN(arg1) FROM foo"
-    skip_reason: 'SQL-814: Implement required Tableau numeric functions in MongoSQL'
     valid_types:
       - { "arg1": *numerics }
 
   - description: SPLIT operand type constraints
     query: "SELECT SPLIT(arg1, arg2, arg3) FROM foo"
-    skip_reason: "SQL-816: Implement required Tableau string functions in MongoSQL"
     valid_types:
       - { "arg1": *string, "arg2": *string, "arg3": *int }

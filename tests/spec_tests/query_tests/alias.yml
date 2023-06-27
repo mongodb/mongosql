@@ -83,7 +83,6 @@ tests:
   - description: Can use different alias for same collection
     current_db: db
     query: "SELECT * FROM foo AS foo1, foo AS foo2"
-    skip_reason: "SQL-498: incorrect algebrizer state"
     result:
       - {"foo1": {'_id': 0, "a": 1, "b": 2}, "foo2": {'_id': 0, "a": 1, "b": 2}}
 

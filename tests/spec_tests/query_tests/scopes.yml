@@ -36,10 +36,12 @@ catalog_schema:
       },
       'bar': {
         'bsonType': 'object',
+        'properties': {a: {bsonType: 'int'}},
         'additionalProperties': true
       },
       'baz': {
         'bsonType': 'object',
+        'properties': {a: {bsonType: 'int'}},
         'additionalProperties': true
       },
       'schema_coll': {
@@ -187,9 +189,8 @@ tests:
   - description: c.a refers to a in baz.a in the subquery and bar.a in the outer query
     current_db: 'foo'
     query: "SELECT * FROM bar AS c WHERE c.a IN (SELECT c.a FROM baz AS c)"
-    skip_reason: "SQL-502, SQL-514"
     result:
-      - {'': {'_id': 1, 'a': 1}}
+      - {'c': {'_id': 1, 'a': 1}}
 
   - description: with a qualified reference, the highest scope number for repeated qualifiers is chosen
     current_db: foo

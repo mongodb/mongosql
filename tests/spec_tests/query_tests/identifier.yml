@@ -121,11 +121,9 @@ tests:
       - { "": {} }
 
   - description: Delimited identifier containing an empty string
-    skip_reason: "SQL-1091: Modify mongoast to support empty field names in getField"
     query: "SELECT VALUE {'empty': ``} FROM bar"
     current_db: foo
     result:
-      - { "": {} }
       - { "": {} }
       - { "": {} }
       - { "": {} }
