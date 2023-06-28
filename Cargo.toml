@@ -1,6 +1,7 @@
 [workspace]
 
 members = [
+  "benchmark/pipeline_generator",
   "index-usage-test",
   "mongosql-datastructures",
   "mongosql-c",

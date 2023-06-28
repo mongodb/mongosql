@@ -117,6 +117,20 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "a4a4ddaa51a5bc52a6948f74c06d20aaaddb71924eab79b8c97a8c556e942d6a"
 
 [[package]]
+name = "benchmark"
+version = "0.1.0"
+dependencies = [
+ "bson",
+ "chrono",
+ "mongodb",
+ "mongosql",
+ "serde",
+ "serde_json",
+ "serde_yaml 0.9.21",
+ "thiserror",
+]
+
+[[package]]
 name = "bit-set"
 version = "0.5.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
