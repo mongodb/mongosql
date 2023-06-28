@@ -46,26 +46,43 @@ enum IndexUtilization {
 #[serde(rename_all = "camelCase")]
 struct ExplainResult {
     ok: f32,
-    execution_stats: Option<ExecutionStats>,
+    query_planner: Option<QueryPlanner>,
     stages: Option<Vec<ExplainStage>>,
     // Omitting unused fields
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-struct ExecutionStats {
-    execution_stages: ExecutionStage,
+struct QueryPlanner {
+    winning_plan: WinningPlan,
     // Omitting unused fields
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-struct ExecutionStage {
+struct WinningPlan {
+    stage: Option<String>,
+    input_stage: Option<InputStage>,
+    query_plan: Option<QueryPlan>,
+    // Omitting unused fields
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct QueryPlan {
+    stage: String,
+    input_stage: Option<InputStage>,
+    // Omitting unused fields
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct InputStage {
     stage: String,
     index_bounds: Option<Bson>,
-    input_stage: Option<Box<ExecutionStage>>,
+    input_stage: Option<Box<InputStage>>,
     // If the stage is an OR it will have multiple inputs
-    input_stages: Option<Vec<ExecutionStage>>,
+    input_stages: Option<Vec<InputStage>>,
     // Omitting unused fields
 }
 
@@ -79,7 +96,7 @@ struct ExplainStage {
 #[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
 struct CursorStage {
-    execution_stats: ExecutionStats,
+    query_planner: QueryPlanner,
     // omitting unused fields
 }
 
@@ -113,8 +130,8 @@ enum Error {
     ExplainDeserialization(mongodb::bson::de::Error),
     #[error("invalid root stage: {0}")]
     InvalidRootStage(String),
-    #[error("no executionStats found: {0:?}")]
-    MissingExecutionStats(ExplainResult),
+    #[error("no queryPlanner found: {0:?}")]
+    MissingQueryPlanner(ExplainResult),
 }
 
 const TEST_DIR: &str = "../tests/index_usage_tests";
@@ -160,11 +177,13 @@ fn run_index_usage_tests() -> Result<(), Error> {
 
             let explain_result = run_explain_aggregate(&client, translation)?;
 
-            let execution_stats = explain_result.get_execution_stats()?;
+            let query_planner = explain_result.get_query_planner()?;
 
-            let root_execution_stages = execution_stats.execution_stages.get_root_stages();
+            let input_stage = get_input_stage_of_winning_plan(query_planner.winning_plan);
 
-            let actual_index_utilizations = root_execution_stages
+            let root_input_stages = input_stage.get_root_stages();
+
+            let actual_index_utilizations = root_input_stages
                 .clone()
                 .into_iter()
                 .map(|root_stage| as_index_utilization(root_stage.stage.clone()))
@@ -178,7 +197,7 @@ fn run_index_usage_tests() -> Result<(), Error> {
                 );
             }
 
-            let actual_index_bounds = root_execution_stages
+            let actual_index_bounds = root_input_stages
                 .into_iter()
                 .map(|root_stage| root_stage.index_bounds.clone())
                 .collect::<Option<Vec<Bson>>>();
@@ -313,7 +332,7 @@ fn run_explain_aggregate(
             "pipeline": translation.pipeline,
             "cursor": {},
         },
-        "verbosity": "executionStats"
+        "verbosity": "queryPlanner"
     };
 
     // Run the aggregation as an `explain` command
@@ -327,26 +346,57 @@ fn run_explain_aggregate(
 }
 
 impl ExplainResult {
-    fn get_execution_stats(&self) -> Result<ExecutionStats, Error> {
-        match self.execution_stats.clone() {
-            Some(execution_stats) => Ok(execution_stats),
+    fn get_query_planner(&self) -> Result<QueryPlanner, Error> {
+        match self.query_planner.clone() {
+            Some(query_planner) => Ok(query_planner),
             None => match self.stages.clone() {
                 Some(stages) => {
                     for stage in stages {
                         if stage.cursor.is_some() {
-                            return Ok(stage.cursor.unwrap().execution_stats);
+                            return Ok(stage.cursor.unwrap().query_planner);
                         }
                     }
-                    Err(Error::MissingExecutionStats(self.clone()))
+                    Err(Error::MissingQueryPlanner(self.clone()))
                 }
-                None => Err(Error::MissingExecutionStats(self.clone())),
+                None => Err(Error::MissingQueryPlanner(self.clone())),
             },
         }
     }
 }
 
-/// Implementation for getting the root stage of an ExecutionStage tree.
-impl ExecutionStage {
+/// This function figures out which field of the WinningPlan contains the
+/// InputStage to run get_root_stages() on.
+fn get_input_stage_of_winning_plan(winning_plan: WinningPlan) -> InputStage {
+    match (
+        winning_plan.stage,
+        winning_plan.input_stage,
+        winning_plan.query_plan,
+    ) {
+        (Some(stage), None, None) => InputStage {
+            stage,
+            index_bounds: None,
+            input_stage: None,
+            input_stages: None,
+        },
+        (_, None, Some(query_plan)) => match (query_plan.stage, query_plan.input_stage) {
+            (qp_stage, None) => InputStage {
+                stage: qp_stage,
+                index_bounds: None,
+                input_stage: None,
+                input_stages: None,
+            },
+            (_, Some(qp_input_stage)) => qp_input_stage,
+        },
+        (_, Some(input_stage), None) => input_stage,
+        // The unreachable() scenario applies to (Some,Some,Some), (None,None,None), and (None,Some,Some).
+        // This makes sense because we should never have a query_plan and input_stage at the same time,
+        // and there should always be at least one Some variant in the tuple.
+        _ => unreachable!(),
+    }
+}
+
+/// Implementation for getting the root stage of an InputStage tree.
+impl InputStage {
     fn get_root_stages(&self) -> Vec<&Self> {
         match &self.input_stage {
             None => match &self.input_stages {
@@ -361,7 +411,7 @@ impl ExecutionStage {
     }
 }
 
-/// as_index_utilization converts an ExecutionStage.stage type into an
+/// as_index_utilization converts an InputStage.stage type into an
 /// IndexUtilization value. Only COLLSCAN and IXSCAN are valid.
 fn as_index_utilization(stage_type: String) -> Result<IndexUtilization, Error> {
     match stage_type.as_str() {
