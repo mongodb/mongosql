@@ -1,0 +1,251 @@
+SchemaVersion: 2018-07-01
+Owner: "@10gen/sql-engines-team"
+Description: |
+  Validate TPC_H normalized queries for scale 1. Note that numeric comparison is not exact in this workload;
+  the AssertiveActor only ensures that any two values of numeric type are approximately equal according to a hard-coded limit.
+  Adapted from the validate workload in the genny repository.
+
+Clients:
+  Default:
+    QueryOptions:
+      socketTimeoutMS: -1
+
+ActorTemplates:
+- TemplateName: ValidateTPCHQueryActorTemplate
+  Config:
+    Name: &query {^Parameter: {Name: "Query", Default: ""}}
+    Type: AssertiveActor
+    Database: &db tpch
+    Phases:
+    - &Nop {Nop: true}
+    - Repeat: 1
+      Database: validate
+      Message: *query
+      Expected:
+        aggregate: {^Join: {array: ["res_", *query]}}
+        pipeline: [{$sort: {num: 1}}]
+        cursor: {batchSize: {^Parameter: {Name: "BatchSize", Default: 101}}}
+      Actual: {^Parameter: {Name: "Actual", Default: {}}}
+    - *Nop
+
+# Note: since the queries are all read-only and we don't care about timing metrics here, we can just run all the queries simultaneously.
+# Actors:
+# SQL-1469
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 1
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q1_denormalized.yml
+#           Key: q1_denormalized
+
+# SQL-1469
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 2
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q2_denormalized.yml
+#           Key: q2_denormalized
+
+# SQL-1470
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 3
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q3_denormalized.yml
+#           Key: q3_denormalized
+
+# SQL-1470
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 4
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q4_denormalized.yml
+#           Key: q4_denormalized
+
+# SQL-1471
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 5
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q5_denormalized.yml
+#           Key: q5_denormalized
+
+# SQL-1471
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 6
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q6_denormalized.yml
+#           Key: q6_denormalized
+
+# SQL-1472
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 7
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q7_denormalized.yml
+#           Key: q7_denormalized
+
+# SQL-1472
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 8
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q8_denormalized.yml
+#           Key: q8_denormalized
+
+# SQL-1473
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 9
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q9_denormalized.yml
+#           Key: q9_denormalized
+
+# SQL-1473
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 10
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q10_denormalized.yml
+#           Key: q10_denormalized
+
+# SQL-1474
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 11
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q11_denormalized.yml
+#           Key: q11_denormalized
+
+# SQL-1474
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 12
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q12_denormalized.yml
+#           Key: q12_denormalized
+
+# SQL-1475
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 13
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q13_denormalized.yml
+#           Key: q13_denormalized
+
+# SQL-1475
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 14
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q14_denormalized.yml
+#           Key: q14_denormalized
+
+# SQL-1476
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 15
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q15_denormalized.yml
+#           Key: q15_denormalized
+
+# SQL-1476
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 16
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q16_denormalized.yml
+#           Key: q16_denormalized
+
+# SQL-1477
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 17
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q17_denormalized.yml
+#           Key: q17_denormalized
+
+# SQL-1477
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 18
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q18_denormalized.yml
+#           Key: q18_denormalized
+
+# SQL-1478
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 19
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q19_denormalized.yml
+#           Key: q19_denormalized
+
+# SQL-1478
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 20
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q20_denormalized.yml
+#           Key: q20_denormalized
+
+# SQL-1479
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 21
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q21_denormalized.yml
+#           Key: q21_denormalized
+
+# SQL-1479
+# - ActorFromTemplate:
+#     TemplateName: ValidateTPCHQueryActorTemplate
+#     TemplateParameters:
+#       Query: 22
+#       Actual:
+#         LoadConfig:
+#           Path: ../atlas_sql/denormalized/phase/q22_denormalized.yml
+#           Key: q22_denormalized

@@ -497,6 +497,13 @@ functions:
           mongodb-database-tools-ubuntu2204-x86_64-100.7.2/bin/mongorestore --drop --numInsertionWorkersPerCollection=8 --bypassDocumentValidation --gzip --archive=${filename}
           ../genny/run-genny workload benchmark/${pipeline_dir}/workload.yml
 
+          # add validation dataset separately if needed; load into `tpch` database
+          if [[ "${pipeline_dir}" == *"validation"* ]]; then
+            echo "Downloading: https://dsi-donot-remove.s3.us-west-2.amazonaws.com/tpch/tpch-validation.archive.gz"
+            curl -LO "https://dsi-donot-remove.s3.us-west-2.amazonaws.com/tpch/tpch-validation.archive.gz"
+            mongodb-database-tools-ubuntu2204-x86_64-100.7.2/bin/mongorestore --nsFrom "validation.*" --nsTo "tpch.*" --numInsertionWorkersPerCollection=8 --bypassDocumentValidation --gzip --archive=tpch-validation.archive.gz
+          fi
+
           rm ${filename}
           pkill mongod
 
@@ -652,6 +659,22 @@ tasks:
           filename: "tpch-1-denormalized-indexed.archive.gz"
           pipeline_dir: bic/denormalized
 
+  - name: tpch-1-normalized-validation
+    allow_for_git_tag: false
+    commands:
+      - func: "run TPC-H benchmark"
+        vars:
+          filename: "tpch-1-normalized-indexed.archive.gz"
+          pipeline_dir: validation/normalized
+
+  - name: tpch-1-denormalized-validation
+    allow_for_git_tag: false
+    commands:
+      - func: "run TPC-H benchmark"
+        vars:
+          filename: "tpch-1-denormalized-indexed.archive.gz"
+          pipeline_dir: validation/denormalized
+
 buildvariants:
 
   - name: static-analysis
@@ -734,6 +757,8 @@ buildvariants:
       - name: tpch-001-denormalized-atlas-sql
       - name: tpch-1-normalized-atlas-sql
       - name: tpch-1-denormalized-atlas-sql
+      - name: tpch-1-normalized-validation
+      - name: tpch-1-denormalized-validation
 
   - name: release
     display_name: "Release"
