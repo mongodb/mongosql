@@ -122,7 +122,10 @@ fn process_workload(config: &Workload, pipeline: &str, collection: &str) {
         yaml_value = serde_yaml::Value::Mapping(map);
     }
 
-    let output = serde_yaml::to_string(&yaml_value).unwrap();
+    // Genny workload fails with '|-' in the pipeline value, removing it.
+    let output = serde_yaml::to_string(&yaml_value)
+        .unwrap()
+        .replace("pipeline: |-", "pipeline:");
     let mut path = PathBuf::from(&config.workload_dir);
     create_dir_all(&path).unwrap();
     path.push(&config.name);

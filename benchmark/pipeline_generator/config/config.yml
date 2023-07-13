@@ -447,13 +447,55 @@ workloads:
       from 
               lineitem
       where 
-              l_shipdate <= DATEADD(DAY, -90, '1998-12-01T00:00:00.000Z'::TIMESTAMP)
+              l_shipdate <= '1998-9-01T00:00:00.000Z'::TIMESTAMP
       group by 
               l_returnflag,
               l_linestatus
       order by 
               l_returnflag,
               l_linestatus
+
+  # SQL-1530: Update like clause argument to '%STEEL' after fix
+  - name: q2_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: > 
+      select 
+        p_type, r_name, s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment 
+      from 
+        part, 
+        supplier, 
+        partsupp, 
+        nation, 
+        region 
+      where 
+        p_partkey = ps_partkey 
+        and supplier.s_suppkey = partsupp.ps_suppkey 
+        and p_size = 20 
+        and p_type like '.*STEEL' 
+        and supplier.s_nationkey = nation.n_nationkey 
+        and nation.n_regionkey = r_regionkey 
+        and region.r_name = 'AMERICA' 
+        and partsupp.ps_supplycost = ( 
+                select 
+                        min(partsupp.ps_supplycost) 
+                from 
+                        partsupp, 
+                        supplier, 
+                        nation, 
+                        region 
+                where 
+                        p_partkey = partsupp.ps_partkey 
+                        and supplier.s_suppkey = partsupp.ps_suppkey 
+                        and supplier.s_nationkey = nation.n_nationkey 
+                        and nation.n_regionkey = region.r_regionkey 
+                        and region.r_name = 'AMERICA' 
+        ) 
+      order by 
+        s_acctbal desc, n_name, s_name, p_partkey 
+      limit 100
 
   - name: q1_denormalized
     db: tpch

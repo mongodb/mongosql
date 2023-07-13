@@ -1,0 +1,27 @@
+SchemaVersion: 2018-07-01
+Owner: "@10gen/sql-engines-team"
+Description: |
+  This workload runs the TPC-H Queries for 
+  the normalized scale factor 1 dataset
+
+Clients:
+  Default:
+    QueryOptions:
+      maxPoolSize: 100
+      socketTimeoutMS: 10_800_000  # 3 hours
+      # connectTimeoutMS: 3_600_000
+    URI: "mongodb://localhost:27017"
+
+Actors:
+- Name: NewTest
+  Type: RunCommand
+  Threads: 1
+  Phases:
+  - LoadConfig:
+      Path: phase/q1_normalized.yml
+      Key: q1_normalized
+
+#  Q2 takes too long to run, comment out for now and find ways to optimize
+#  - LoadConfig:
+#      Path: phase/q2_normalized.yml
+#      Key: q2_normalized

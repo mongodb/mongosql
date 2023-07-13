@@ -492,10 +492,12 @@ functions:
           tar zxvf mongodb-database-tools-ubuntu2204-x86_64-100.7.2.tgz
 
           # call pipeline generator to create atlas_sql/(normalized/denormalized) phase files
-          echo "Downloading: https://dsi-donot-remove.s3.us-west-2.amazonaws.com/tpch/${filename}"
-          curl -LO "https://dsi-donot-remove.s3.us-west-2.amazonaws.com/tpch/${filename}"
-          mongodb-database-tools-ubuntu2204-x86_64-100.7.2/bin/mongorestore --drop --numInsertionWorkersPerCollection=8 --bypassDocumentValidation --gzip --archive=${filename}
-          ../genny/run-genny workload benchmark/${pipeline_dir}/workload.yml
+          cargo run --bin pipeline_generator
+          
+          echo "Downloading: https://dsi-donot-remove.s3.us-west-2.amazonaws.com/tpch/${dataset_filename}"
+          curl -LO "https://dsi-donot-remove.s3.us-west-2.amazonaws.com/tpch/${dataset_filename}"
+          mongodb-database-tools-ubuntu2204-x86_64-100.7.2/bin/mongorestore --drop --numInsertionWorkersPerCollection=8 --bypassDocumentValidation --gzip --archive=${dataset_filename}
+          ../genny/run-genny workload benchmark/${pipeline_dir}/${workload_filename}
 
           # add validation dataset separately if needed; load into `tpch` database
           if [[ "${pipeline_dir}" == *"validation"* ]]; then
@@ -504,7 +506,7 @@ functions:
             mongodb-database-tools-ubuntu2204-x86_64-100.7.2/bin/mongorestore --nsFrom "validation.*" --nsTo "tpch.*" --numInsertionWorkersPerCollection=8 --bypassDocumentValidation --gzip --archive=tpch-validation.archive.gz
           fi
 
-          rm ${filename}
+          rm ${dataset_filename}
           pkill mongod
 
 pre:
@@ -594,86 +596,106 @@ tasks:
   - name: tpch-001-normalized-atlas-sql
     allow_for_git_tag: false
     commands:
+      - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
-          filename: "tpch-0.001-normalized-indexed.archive.gz"
+          dataset_filename: "tpch-0.001-normalized-indexed.archive.gz"
           pipeline_dir: atlas_sql/normalized
+          workload_filename: "workload_norm_sf.001.yml"
 
   - name: tpch-001-denormalized-atlas-sql
     allow_for_git_tag: false
     commands:
+      - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
-          filename: "tpch-0.001-denormalized-indexed.archive.gz"
+          dataset_filename: "tpch-0.001-denormalized-indexed.archive.gz"
           pipeline_dir: atlas_sql/denormalized
+          workload_filename: "workload_denorm_sf.001.yml"
 
   - name: tpch-1-normalized-atlas-sql
     allow_for_git_tag: false
     commands:
+      - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
-          filename: "tpch-1-normalized-indexed.archive.gz"
+          dataset_filename: "tpch-1-normalized-indexed.archive.gz"
           pipeline_dir: atlas_sql/normalized
+          workload_filename: "workload_norm_sf1.yml"
 
   - name: tpch-1-denormalized-atlas-sql
     allow_for_git_tag: false
     commands:
+      - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
-          filename: "tpch-1-denormalized-indexed.archive.gz"
+          dataset_filename: "tpch-1-denormalized-indexed.archive.gz"
           pipeline_dir: atlas_sql/denormalized
+          workload_filename: "workload_denorm_sf1.yml"
 
   - name: tpch-001-normalized-bic
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
-          filename: "tpch-0.001-normalized-indexed.archive.gz"
+          dataset_filename: "tpch-0.001-normalized-indexed.archive.gz"
           pipeline_dir: bic/normalized
+          workload_filename: "workload.yml"
 
   - name: tpch-001-denormalized-bic
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
-          filename: "tpch-0.001-denormalized-indexed.archive.gz"
+          dataset_filename: "tpch-0.001-denormalized-indexed.archive.gz"
           pipeline_dir: bic/denormalized
+          workload_filename: "workload.yml"
 
   - name: tpch-1-normalized-bic
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
-          filename: "tpch-1-normalized-indexed.archive.gz"
+          dataset_filename: "tpch-1-normalized-indexed.archive.gz"
           pipeline_dir: bic/normalized
+          workload_filename: "workload.yml"
 
   - name: tpch-1-denormalized-bic
     allow_for_git_tag: false
     disable: true
     commands:
+      - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
-          filename: "tpch-1-denormalized-indexed.archive.gz"
+          dataset_filename: "tpch-1-denormalized-indexed.archive.gz"
           pipeline_dir: bic/denormalized
+          workload_filename: "workload.yml"
 
   - name: tpch-1-normalized-validation
     allow_for_git_tag: false
     commands:
+      - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
-          filename: "tpch-1-normalized-indexed.archive.gz"
+          dataset_filename: "tpch-1-normalized-indexed.archive.gz"
           pipeline_dir: validation/normalized
+          workload_filename: "workload.yml"
 
   - name: tpch-1-denormalized-validation
     allow_for_git_tag: false
     commands:
+      - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
-          filename: "tpch-1-denormalized-indexed.archive.gz"
+          dataset_filename: "tpch-1-denormalized-indexed.archive.gz"
           pipeline_dir: validation/denormalized
+          workload_filename: "workload.yml"
 
 buildvariants:
 
