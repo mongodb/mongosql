@@ -16,6 +16,6 @@ serde_json = "1"
 chrono = "0.4"
 
 [dependencies.mongodb]
-version = "2.5"
+version = "2.6"
 default-features = false
 features = ["tokio-sync"]
