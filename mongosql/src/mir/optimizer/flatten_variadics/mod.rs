@@ -32,7 +32,7 @@ impl FlattenVariadicFunctionsOptimizer {
     /// addition, multiplication, logical disjunction, logical conjunction, and
     /// string concatenation.
     fn flatten_variadic_functions(st: Stage) -> Stage {
-        let mut v = ScalarFunctionApplicationVisitor::default();
+        let mut v = ScalarFunctionApplicationVisitor;
         v.visit_stage(st)
     }
 }

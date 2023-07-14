@@ -64,24 +64,39 @@ fn build_catalog(
 }
 
 fn modify_date_literal(parent: &mut Map<String, Value>, key: String) {
-    if let Some(Value::Object(obj)) = parent.get_mut(&key) {
-        if let Some(Value::Object(date_obj)) = obj.get_mut("$date") {
-            if let Some(Value::String(timestamp_str)) = date_obj.get("$numberLong") {
-                if let Ok(timestamp) = timestamp_str.parse::<i64>() {
-                    let date = Utc
-                        .timestamp_millis_opt(timestamp)
-                        .unwrap()
-                        .format("%Y-%m-%dT%H:%M:%S")
-                        .to_string();
-                    parent.insert(key, Value::String(format!("ISODate(\"{}\")", date)));
-                    return;
+    match parent.get_mut(&key) {
+        // for each object, look for a $date to convert
+        Some(Value::Object(obj)) => {
+            if let Some(Value::Object(date_obj)) = obj.get_mut("$date") {
+                if let Some(Value::String(timestamp_str)) = date_obj.get("$numberLong") {
+                    if let Ok(timestamp) = timestamp_str.parse::<i64>() {
+                        let date = Utc
+                            .timestamp_millis_opt(timestamp)
+                            .unwrap()
+                            .format("%Y-%m-%dT%H:%M:%S")
+                            .to_string();
+                        parent.insert(key, Value::String(format!("ISODate(\"{}\")", date)));
+                        return;
+                    }
+                }
+            }
+            let keys: Vec<String> = obj.keys().cloned().collect();
+            for k in keys {
+                modify_date_literal(obj, k);
+            }
+        }
+        // for array values, recurse on any objects contained within the array
+        Some(Value::Array(a)) => {
+            for item in a {
+                if let Value::Object(obj) = item {
+                    let keys: Vec<String> = obj.keys().cloned().collect();
+                    for k in keys {
+                        modify_date_literal(obj, k);
+                    }
                 }
             }
         }
-        let keys: Vec<String> = obj.keys().cloned().collect();
-        for k in keys {
-            modify_date_literal(obj, k);
-        }
+        _ => {}
     }
 }
 

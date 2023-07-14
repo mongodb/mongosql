@@ -19,7 +19,7 @@ pub struct JoinDesugarerPass;
 
 impl Pass for JoinDesugarerPass {
     fn apply(&self, pipeline: Stage) -> Result<Stage> {
-        let mut visitor = JoinDesugarerPassVisitor::default();
+        let mut visitor = JoinDesugarerPassVisitor;
         Ok(visitor.visit_stage(pipeline))
     }
 }

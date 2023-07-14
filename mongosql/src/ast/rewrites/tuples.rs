@@ -13,7 +13,7 @@ pub struct InTupleRewritePass;
 
 impl Pass for InTupleRewritePass {
     fn apply(&self, query: Query) -> Result<Query> {
-        let mut visitor = InTupleRewriteVisitor::default();
+        let mut visitor = InTupleRewriteVisitor;
         Ok(query.walk(&mut visitor))
     }
 }

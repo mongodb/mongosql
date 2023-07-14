@@ -11,7 +11,7 @@ pub struct NotComparisonRewritePass;
 
 impl Pass for NotComparisonRewritePass {
     fn apply(&self, query: ast::Query) -> Result<ast::Query> {
-        let mut visitor = NotComparisonVisitor::default();
+        let mut visitor = NotComparisonVisitor;
         Ok(query.walk(&mut visitor))
     }
 }

@@ -24,7 +24,7 @@ impl Pass for AggregateRewritePass {
 
         // Use the third visitor to rewrite aggregation functions that
         // use the ALL set quantifier.
-        Ok(AggregateSetQuantifierVisitor::default().visit_query(query))
+        Ok(AggregateSetQuantifierVisitor.visit_query(query))
     }
 }
 

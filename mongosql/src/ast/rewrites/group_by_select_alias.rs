@@ -9,7 +9,7 @@ pub struct GroupBySelectAliasRewritePass;
 
 impl Pass for GroupBySelectAliasRewritePass {
     fn apply(&self, query: ast::Query) -> Result<ast::Query> {
-        let mut visitor = GroupBySelectAliasVisitor::default();
+        let mut visitor = GroupBySelectAliasVisitor;
         let query = visitor.visit_query(query);
         Ok(query)
     }

@@ -12,7 +12,7 @@ pub struct RootReferenceDesugarerPass;
 
 impl Pass for RootReferenceDesugarerPass {
     fn apply(&self, pipeline: Stage) -> Result<Stage> {
-        let mut visitor = RootReferenceDesugarerPassVisitor::default();
+        let mut visitor = RootReferenceDesugarerPassVisitor;
         Ok(visitor.visit_stage(pipeline))
     }
 }
