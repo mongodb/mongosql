@@ -31,3 +31,9 @@ Actors:
 #  - LoadConfig:
 #      Path: phase/q4_normalized.yml
 #      Key: q4_normalized
+# - LoadConfig:
+#     Path: phase/q17_normalized.yml
+#     Key: q17_normalized
+#  - LoadConfig:
+#      Path: phase/q18_normalized.yml
+#      Key: q18_normalized

@@ -18,8 +18,5 @@ Actors:
   Threads: 1
   Phases:
   - LoadConfig:
-      Path: phase/q3_normalized.yml
-      Key: q3_normalized
-  - LoadConfig:
-      Path: phase/q4_normalized.yml
-      Key: q4_normalized
+      Path: phase_template.yml
+      Key: SamplePhase
