@@ -509,149 +509,6 @@ workloads:
           p_partkey 
       LIMIT 100
 
-
-  - name: q5_normalized
-    db: tpch
-    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
-    workload_dir: ./benchmark/atlas_sql/normalized/phase/
-    catalog_schema: *normalized_catalog_schema
-    query: >
-      select
-          n_name,
-          sum(l_extendedprice * (1 - l_discount)) as revenue 
-      from
-          customer, orders, lineitem, supplier, nation, region
-      where
-          c_custkey = o_custkey
-          and l_orderkey = o_orderkey 
-          and l_suppkey = s_suppkey 
-          and c_nationkey = s_nationkey 
-          and s_nationkey = n_nationkey 
-          and n_regionkey = r_regionkey 
-          and r_name = 'AFRICA'
-          and o_orderdate >= '1994-01-01T00:00:00.000Z'::TIMESTAMP
-          and o_orderdate < '1995-01-01T00:00:00.000Z'::TIMESTAMP
-      group by
-          n_name
-      order by
-          revenue
-      desc
-
-  - name: q6_normalized
-    db: tpch
-    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
-    workload_dir: ./benchmark/atlas_sql/normalized/phase/
-    catalog_schema: *normalized_catalog_schema
-    query: >
-      select
-          sum(l_extendedprice*l_discount) as revenue
-      from
-          lineitem
-      where
-          l_shipdate >= '1994-01-01T00:00:00.000Z'::TIMESTAMP
-          and l_shipdate < '1994-01-01T00:00:00.000Z'::TIMESTAMP
-          and l_discount between 0.06 - 0.01 and 0.06 + 0.011 and l_quantity < 24
-
-  - name: q11_normalized
-    db: tpch
-    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
-    workload_dir: ./benchmark/atlas_sql/normalized/phase/
-    catalog_schema: *normalized_catalog_schema
-    query: >
-      SELECT 
-          ps_partkey, 
-          SUM(ps_supplycost * ps_availqty) AS val 
-      FROM 
-          partsupp, 
-          supplier, 
-          nation 
-      WHERE 
-          ps_suppkey = s_suppkey 
-          AND s_nationkey = n_nationkey 
-          AND n_name = 'PERU' 
-      GROUP BY 
-          ps_partkey 
-      HAVING 
-          SUM(ps_supplycost * ps_availqty) > (
-              SELECT 
-                  SUM(ps_supplycost * ps_availqty) * 0.0001 
-              FROM 
-                  partsupp, 
-                  supplier, 
-                  nation 
-              WHERE 
-                  ps_suppkey = s_suppkey 
-                  AND s_nationkey = n_nationkey 
-                  AND n_name = 'PERU'
-          ) 
-      ORDER BY 
-          val DESC
-
-  - name: q12_normalized
-    db: tpch
-    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
-    workload_dir: ./benchmark/atlas_sql/normalized/phase/
-    catalog_schema: *normalized_catalog_schema
-    query: >
-      SELECT 
-          l_shipmode, 
-          SUM(
-              CASE 
-                  WHEN o_orderpriority ='1-URGENT' OR o_orderpriority ='2-HIGH' 
-                  THEN 1 
-                  ELSE 0 
-              END
-          ) AS high_line_count, 
-          SUM(
-              CASE 
-                  WHEN o_orderpriority <> '1-URGENT' AND o_orderpriority <> '2-HIGH' 
-                  THEN 1 
-                  ELSE 0 
-              END
-          ) AS low_line_count 
-      FROM 
-          orders, 
-          lineitem 
-      WHERE 
-          o_orderkey = l_orderkey 
-          AND l_shipmode IN ('MAIL', 'SHIP') 
-          AND l_commitdate < l_receiptdate 
-          AND l_shipdate < l_commitdate 
-          AND l_receiptdate >= '1994-01-01T00:00:00.000Z'::TIMESTAMP 
-          AND l_receiptdate < '1995-01-01T00:00:00.000Z'::TIMESTAMP 
-      GROUP BY 
-          l_shipmode 
-      ORDER BY 
-          l_shipmode
-
-  - name: q1_denormalized
-    db: tpch
-    phase_template: ./benchmark/atlas_sql/denormalized/phase_template.yml
-    workload_dir: ./benchmark/atlas_sql/denormalized/phase/
-    catalog_schema: *denormalized_catalog_schema
-    query: >
-      SELECT
-          orders_lineitem_l_returnflag as l_returnflag,
-          orders_lineitem_l_linestatus as l_linestatus,
-          sum(orders_lineitem_l_quantity) as sum_quantity,
-          sum(orders_lineitem_l_extendedprice) as sum_base_price,
-          sum(orders_lineitem_l_extendedprice * (1 - orders_lineitem_l_discount)) as sum_disc_price,
-          sum(orders_lineitem_l_extendedprice * (1 - orders_lineitem_l_discount) * (1 + orders_lineitem_l_tax)) as sum_charge,
-          avg(orders_lineitem_l_quantity) as avg_qty,
-          avg(orders_lineitem_l_extendedprice) as avg_price,
-          avg(orders_lineitem_l_discount) as avg_disc,
-          count(*) as count_order
-      FROM 
-          FLATTEN(UNWIND(
-              FLATTEN(UNWIND(customer WITH PATH => orders))
-          WITH PATH => orders_lineitem))
-      WHERE 
-          orders_lineitem_l_shipdate <= DATEADD(DAY, -90, '1998-12-01T00:00:00.000Z'::TIMESTAMP)
-      GROUP BY 
-          l_returnflag, l_linestatus
-      ORDER BY 
-          l_returnflag, l_linestatus
-
   - name: q3_normalized
     db: tpch
     phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
@@ -708,6 +565,47 @@ workloads:
           o_orderpriority
       ORDER BY
           o_orderpriority
+
+  - name: q5_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      SELECT
+          n_name,
+          sum(l_extendedprice * (1 - l_discount)) as revenue 
+      FROM
+          customer, orders, lineitem, supplier, nation, region
+      WHERE
+          c_custkey = o_custkey
+          and l_orderkey = o_orderkey 
+          and l_suppkey = s_suppkey 
+          and c_nationkey = s_nationkey 
+          and s_nationkey = n_nationkey 
+          and n_regionkey = r_regionkey 
+          and r_name = 'AFRICA'
+          and o_orderdate >= '1994-01-01T00:00:00.000Z'::TIMESTAMP
+          and o_orderdate < '1995-01-01T00:00:00.000Z'::TIMESTAMP
+      GROUP BY
+          n_name
+      ORDER BY
+          revenue desc
+
+  - name: q6_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      SELECT
+          sum(l_extendedprice*l_discount) as revenue
+      FROM
+          lineitem
+      WHERE
+          l_shipdate >= '1994-01-01T00:00:00.000Z'::TIMESTAMP
+          and l_shipdate < '1994-01-01T00:00:00.000Z'::TIMESTAMP
+          and l_discount between 0.06 - 0.01 and 0.06 + 0.011 and l_quantity < 24
 
   # SQL-1530: Update like clause argument to '%pink%' after fix
   - name: q9_normalized
@@ -786,6 +684,127 @@ workloads:
       ORDER BY 
           revenue DESC
 
+  - name: q11_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      SELECT 
+          ps_partkey, 
+          SUM(ps_supplycost * ps_availqty) AS val 
+      FROM 
+          partsupp, 
+          supplier, 
+          nation 
+      WHERE 
+          ps_suppkey = s_suppkey 
+          AND s_nationkey = n_nationkey 
+          AND n_name = 'PERU' 
+      GROUP BY 
+          ps_partkey 
+      HAVING 
+          SUM(ps_supplycost * ps_availqty) > (
+              SELECT 
+                  SUM(ps_supplycost * ps_availqty) * 0.0001 
+              FROM 
+                  partsupp, 
+                  supplier, 
+                  nation 
+              WHERE 
+                  ps_suppkey = s_suppkey 
+                  AND s_nationkey = n_nationkey 
+                  AND n_name = 'PERU'
+          ) 
+      ORDER BY 
+          val DESC
+
+  - name: q12_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      SELECT 
+          l_shipmode, 
+          SUM(
+              CASE 
+                  WHEN o_orderpriority ='1-URGENT' OR o_orderpriority ='2-HIGH' 
+                  THEN 1 
+                  ELSE 0 
+              END
+          ) AS high_line_count, 
+          SUM(
+              CASE 
+                  WHEN o_orderpriority <> '1-URGENT' AND o_orderpriority <> '2-HIGH' 
+                  THEN 1 
+                  ELSE 0 
+              END
+          ) AS low_line_count 
+      FROM 
+          orders, 
+          lineitem 
+      WHERE 
+          o_orderkey = l_orderkey 
+          AND l_shipmode IN ('MAIL', 'SHIP') 
+          AND l_commitdate < l_receiptdate 
+          AND l_shipdate < l_commitdate 
+          AND l_receiptdate >= '1994-01-01T00:00:00.000Z'::TIMESTAMP 
+          AND l_receiptdate < '1995-01-01T00:00:00.000Z'::TIMESTAMP 
+      GROUP BY 
+          l_shipmode 
+      ORDER BY 
+          l_shipmode
+
+  - name: q13_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      SELECT
+          c_count,
+          count(*) as custdist
+      FROM (
+          SELECT
+              c_custkey,
+              count(o_orderkey) as c_count
+          FROM
+              customer
+          LEFT OUTER JOIN
+              orders
+          ON
+              c_custkey = o_custkey
+              and o_comment not like '.*special.*requests.*'
+          GROUP BY
+              c_custkey
+      ) as c_orders
+      GROUP BY
+          c_count
+      ORDER BY
+          custdist desc,
+          c_count desc
+
+  - name: q14_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      SELECT
+          100.00 * sum(case
+              when p_type like 'PROMO.*'
+              then l_extendedprice*(1-l_discount)
+              else 0 end
+          ) / sum(l_extendedprice * (1 - l_discount)) as promo_revenue
+      FROM
+          lineitem,
+          part
+      WHERE
+          l_partkey = p_partkey
+          and l_shipdate >= '1995-09-01T00:00:00.000Z'::TIMESTAMP
+          and l_shipdate < '1995-10-01T00:00:00.000Z'::TIMESTAMP
+
   - name: q17_normalized
     db: tpch
     phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
@@ -850,3 +869,31 @@ workloads:
           o_totalprice desc,
           o_orderdate
       LIMIT 100
+
+  - name: q1_denormalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/denormalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/denormalized/phase/
+    catalog_schema: *denormalized_catalog_schema
+    query: >
+      SELECT
+          orders_lineitem_l_returnflag as l_returnflag,
+          orders_lineitem_l_linestatus as l_linestatus,
+          sum(orders_lineitem_l_quantity) as sum_quantity,
+          sum(orders_lineitem_l_extendedprice) as sum_base_price,
+          sum(orders_lineitem_l_extendedprice * (1 - orders_lineitem_l_discount)) as sum_disc_price,
+          sum(orders_lineitem_l_extendedprice * (1 - orders_lineitem_l_discount) * (1 + orders_lineitem_l_tax)) as sum_charge,
+          avg(orders_lineitem_l_quantity) as avg_qty,
+          avg(orders_lineitem_l_extendedprice) as avg_price,
+          avg(orders_lineitem_l_discount) as avg_disc,
+          count(*) as count_order
+      FROM 
+          FLATTEN(UNWIND(
+              FLATTEN(UNWIND(customer WITH PATH => orders))
+          WITH PATH => orders_lineitem))
+      WHERE 
+          orders_lineitem_l_shipdate <= DATEADD(DAY, -90, '1998-12-01T00:00:00.000Z'::TIMESTAMP)
+      GROUP BY 
+          l_returnflag, l_linestatus
+      ORDER BY 
+          l_returnflag, l_linestatus

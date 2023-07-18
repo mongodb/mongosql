@@ -21,7 +21,7 @@ Actors:
       Path: phase/q1_normalized.yml
       Key: q1_normalized
 
-#  the followign queries take too long to run, comment out for now and find ways to optimize
+#  the following queries take too long to run, comment out for now and find ways to optimize
 #  - LoadConfig:
 #      Path: phase/q2_normalized.yml
 #      Key: q2_normalized
@@ -49,6 +49,12 @@ Actors:
 #  - LoadConfig:
 #      Path: phase/q12_normalized.yml
 #      Key: q12_normalized
+#  - LoadConfig:
+#      Path: phase/q13_normalized.yml
+#      Key: q13_normalized
+#  - LoadConfig:
+#      Path: phase/q14_normalized.yml
+#      Key: q14_normalized
 # - LoadConfig:
 #     Path: phase/q17_normalized.yml
 #     Key: q17_normalized
