@@ -1,0 +1,57 @@
+SchemaVersion: 2018-07-01
+Owner: "@mongodb/product-query"
+Description: |
+  This workload demonstrates the RunCommand actor, which can be used
+  to execute a command against the server.
+
+SamplePhase:
+  Repeat: 1
+  Database: tpch
+  Operations:
+    - OperationMetricsName: AtlasSQL
+      OperationName: RunCommand
+      OperationCommand:
+        aggregate: "nation"
+        pipeline: [
+          {
+            $group: {
+              _id: '$n_name',
+              count: { $sum: 1 }
+            }
+          }
+        ]
+        cursor: {}
+
+TPCHNormalizedQuery15CreateView: &TPCHNormalizedQuery15CreateView
+  Repeat: 1
+  Database: tpch
+  Operations:
+    - OperationName: RunCommand
+      OperationCommand:
+        create: &query15View revenue
+        viewOn: lineitem
+        pipeline:
+          [
+            {$match: {
+              $and: [
+                {$expr: {$gte: ["$l_shipdate", {"$toDate": "1996-01-01"}]}},
+                {$expr: {
+                  $lt: [
+                    "$l_shipdate",
+                    {$dateAdd: {startDate: {"$toDate": "1996-01-01"}, unit: "month", amount: 3}}
+                  ]}}]}},
+            {$group: {
+              _id: "$l_suppkey",
+              total_revenue:
+                {$sum: {$multiply: ["$l_extendedprice", {$subtract: [1, "$l_discount"]}]}}}},
+            {$project: {_id: 0, supplier_no: "$_id", total_revenue: 1}},
+          ]
+
+TPCHNormalizedQuery15DropView: &TPCHNormalizedQuery15DropView
+  Repeat: 1
+  Database: tpch
+  Operations:
+    - OperationName: RunCommand
+      OperationCommand:
+        drop: *query15View
+

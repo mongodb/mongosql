@@ -427,6 +427,8 @@ denormalized_catalog_schema: &denormalized_catalog_schema
       additionalProperties: false
 
 workloads:
+
+  # ----- Normalized Queries -----
   - name: q1_normalized
     db: tpch
     phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
@@ -508,6 +510,120 @@ workloads:
           s_name,
           p_partkey 
       LIMIT 100
+
+  - name: q5_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      select
+          n_name,
+          sum(l_extendedprice * (1 - l_discount)) as revenue 
+      from
+          customer, orders, lineitem, supplier, nation, region
+      where
+          c_custkey = o_custkey
+          and l_orderkey = o_orderkey 
+          and l_suppkey = s_suppkey 
+          and c_nationkey = s_nationkey 
+          and s_nationkey = n_nationkey 
+          and n_regionkey = r_regionkey 
+          and r_name = 'AFRICA'
+          and o_orderdate >= '1994-01-01T00:00:00.000Z'::TIMESTAMP
+          and o_orderdate < '1995-01-01T00:00:00.000Z'::TIMESTAMP
+      group by
+          n_name
+      order by
+          revenue
+      desc
+
+  - name: q6_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      select
+          sum(l_extendedprice*l_discount) as revenue
+      from
+          lineitem
+      where
+          l_shipdate >= '1994-01-01T00:00:00.000Z'::TIMESTAMP
+          and l_shipdate < '1994-01-01T00:00:00.000Z'::TIMESTAMP
+          and l_discount between 0.06 - 0.01 and 0.06 + 0.011 and l_quantity < 24
+
+  - name: q11_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      SELECT 
+          ps_partkey, 
+          SUM(ps_supplycost * ps_availqty) AS val 
+      FROM 
+          partsupp, 
+          supplier, 
+          nation 
+      WHERE 
+          ps_suppkey = s_suppkey 
+          AND s_nationkey = n_nationkey 
+          AND n_name = 'PERU' 
+      GROUP BY 
+          ps_partkey 
+      HAVING 
+          SUM(ps_supplycost * ps_availqty) > (
+              SELECT 
+                  SUM(ps_supplycost * ps_availqty) * 0.0001 
+              FROM 
+                  partsupp, 
+                  supplier, 
+                  nation 
+              WHERE 
+                  ps_suppkey = s_suppkey 
+                  AND s_nationkey = n_nationkey 
+                  AND n_name = 'PERU'
+          ) 
+      ORDER BY 
+          val DESC
+
+  - name: q12_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      SELECT 
+          l_shipmode, 
+          SUM(
+              CASE 
+                  WHEN o_orderpriority ='1-URGENT' OR o_orderpriority ='2-HIGH' 
+                  THEN 1 
+                  ELSE 0 
+              END
+          ) AS high_line_count, 
+          SUM(
+              CASE 
+                  WHEN o_orderpriority <> '1-URGENT' AND o_orderpriority <> '2-HIGH' 
+                  THEN 1 
+                  ELSE 0 
+              END
+          ) AS low_line_count 
+      FROM 
+          orders, 
+          lineitem 
+      WHERE 
+          o_orderkey = l_orderkey 
+          AND l_shipmode IN ('MAIL', 'SHIP') 
+          AND l_commitdate < l_receiptdate 
+          AND l_shipdate < l_commitdate 
+          AND l_receiptdate >= '1994-01-01T00:00:00.000Z'::TIMESTAMP 
+          AND l_receiptdate < '1995-01-01T00:00:00.000Z'::TIMESTAMP 
+      GROUP BY 
+          l_shipmode 
+      ORDER BY 
+          l_shipmode
 
   - name: q3_normalized
     db: tpch
@@ -613,7 +729,7 @@ workloads:
     phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
     workload_dir: ./benchmark/atlas_sql/normalized/phase/
     catalog_schema: *normalized_catalog_schema
-    query: >
+    query: >   
       SELECT 
           nation, 
           o_year, 
@@ -805,6 +921,66 @@ workloads:
           and l_shipdate >= '1995-09-01T00:00:00.000Z'::TIMESTAMP
           and l_shipdate < '1995-10-01T00:00:00.000Z'::TIMESTAMP
 
+  - name: q15_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_q15_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      SELECT 
+          s_suppkey,
+          s_name,
+          s_address,
+          s_phone,
+          total_revenue
+      FROM
+          supplier,
+          revenue
+      WHERE
+          s_suppkey = supplier_no AND total_revenue = (
+              SELECT 
+                  MAX(revenue.total_revenue)
+              FROM 
+                  revenue
+          ) 
+      ORDER BY 
+          s_suppkey
+
+  - name: q16_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      SELECT 
+          p_brand, 
+          p_type, 
+          p_size, 
+          COUNT(DISTINCT ps_suppkey) AS supplier_cnt 
+      FROM 
+          partsupp, 
+          part 
+      WHERE 
+          p_partkey = ps_partkey 
+          AND p_brand <> 'Brand#45' 
+          AND p_type NOT LIKE '^MEDIUM POLISHED.*' 
+          AND p_size IN (49, 14, 23, 45, 19, 3, 36, 9) 
+          AND ps_suppkey NOT IN (
+              SELECT 
+                  s_suppkey 
+              FROM 
+                  supplier 
+              WHERE 
+                  s_comment LIKE '.*requests.*the.*' 
+          ) 
+      GROUP BY 
+          p_brand, p_type, p_size 
+      ORDER BY 
+          supplier_cnt DESC, 
+          p_brand, 
+          p_type, 
+          p_size
+
   - name: q17_normalized
     db: tpch
     phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
@@ -870,6 +1046,7 @@ workloads:
           o_orderdate
       LIMIT 100
 
+  # ----- Denormalized Queries -----
   - name: q1_denormalized
     db: tpch
     phase_template: ./benchmark/atlas_sql/denormalized/phase_template.yml

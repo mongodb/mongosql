@@ -55,6 +55,19 @@ Actors:
 #  - LoadConfig:
 #      Path: phase/q14_normalized.yml
 #      Key: q14_normalized
+# Q15 Creates `revenue` view, runs query, drops view
+#  - LoadConfig:
+#      Path: phase/q15_normalized.yml
+#      Key: TPCHNormalizedQuery15CreateView
+#  - LoadConfig:
+#      Path: phase/q15_normalized.yml
+#      Key: q15_normalized
+#  - LoadConfig:
+#      Path: phase/q15_normalized.yml
+#      Key: TPCHNormalizedQuery15DropView
+#  - LoadConfig:
+#      Path: phase/q16_normalized.yml
+#      Key: q16_normalized
 # - LoadConfig:
 #     Path: phase/q17_normalized.yml
 #     Key: q17_normalized

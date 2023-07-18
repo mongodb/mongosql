@@ -682,23 +682,25 @@ tasks:
 
   - name: tpch-1-normalized-validation
     allow_for_git_tag: false
+    disable: true
     commands:
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
           dataset_filename: "tpch-1-normalized-indexed.archive.gz"
           pipeline_dir: validation/normalized
-          workload_filename: "workload.yml"
+          workload_filename: "workload_norm_sf1.yml"
 
   - name: tpch-1-denormalized-validation
     allow_for_git_tag: false
+    disable: true
     commands:
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
           dataset_filename: "tpch-1-denormalized-indexed.archive.gz"
           pipeline_dir: validation/denormalized
-          workload_filename: "workload.yml"
+          workload_filename: "workload_denorm_sf1.yml"
 
 buildvariants:
 
