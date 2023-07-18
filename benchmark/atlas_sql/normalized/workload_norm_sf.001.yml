@@ -30,6 +30,12 @@ Actors:
       Path: phase/q6_normalized.yml
       Key: q6_normalized
   - LoadConfig:
+      Path: phase/q11_normalized.yml
+      Key: q11_normalized
+  - LoadConfig:
+      Path: phase/q12_normalized.yml
+      Key: q12_normalized
+  - LoadConfig:
       Path: phase/q17_normalized.yml
       Key: q17_normalized
   - LoadConfig:
