@@ -509,6 +509,7 @@ workloads:
           p_partkey 
       LIMIT 100
 
+
   - name: q5_normalized
     db: tpch
     phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
@@ -707,6 +708,83 @@ workloads:
           o_orderpriority
       ORDER BY
           o_orderpriority
+
+  # SQL-1530: Update like clause argument to '%pink%' after fix
+  - name: q9_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      SELECT 
+          nation, 
+          o_year, 
+          SUM(amount) AS sum_profit 
+      FROM (
+          SELECT 
+              n_name AS nation, 
+              EXTRACT(YEAR FROM o_orderdate) AS o_year, 
+              l_extendedprice * (1 - l_discount) - ps_supplycost * l_quantity AS amount 
+          FROM 
+              part, 
+              supplier, 
+              lineitem, 
+              partsupp, 
+              orders, 
+              nation 
+          WHERE 
+              s_suppkey = l_suppkey 
+              AND ps_suppkey = l_suppkey 
+              AND ps_partkey = l_partkey 
+              AND p_partkey = l_partkey 
+              AND o_orderkey = l_orderkey 
+              AND s_nationkey = n_nationkey  
+              AND p_name LIKE '.*pink.*'
+      ) AS profit 
+      GROUP BY 
+          nation, 
+          o_year 
+      ORDER BY 
+          nation, 
+          o_year DESC
+
+  - name: q10_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      SELECT 
+          c_custkey, 
+          c_name, 
+          SUM(l_extendedprice * (1 - l_discount)) AS revenue, 
+          c_acctbal, 
+          n_name, 
+          c_address, 
+          c_phone, 
+          c_comment 
+      FROM 
+          customer, 
+          orders, 
+          lineitem, 
+          nation 
+      WHERE 
+          c_custkey = o_custkey 
+          AND l_orderkey = o_orderkey 
+          AND o_orderdate >= '1993-10-01T00:00:00.000Z'::TIMESTAMP 
+          AND o_orderdate < '1994-01-01T00:00:00.000Z'::TIMESTAMP 
+          AND l_returnflag = 'R' 
+          AND c_nationkey = n_nationkey 
+      GROUP BY 
+          c_custkey, 
+          c_name, 
+          c_acctbal, 
+          c_phone, 
+          n_name, 
+          c_address, 
+          c_comment 
+      ORDER BY 
+          revenue DESC
 
   - name: q17_normalized
     db: tpch
