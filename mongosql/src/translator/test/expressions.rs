@@ -1741,7 +1741,7 @@ mod scalar_function {
                 op: air::SQLOperator::Round,
                 args: vec![
                     air::Expression::Literal(air::LiteralValue::Double(3.5)),
-                    air::Expression::Literal(air::LiteralValue::Double(3.5)),
+                    air::Expression::Literal(air::LiteralValue::Integer(3)),
                 ],
             }
         )),
@@ -1749,7 +1749,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Round,
             args: vec![
                 mir::Expression::Literal(mir::LiteralValue::Double(3.5).into()),
-                mir::Expression::Literal(mir::LiteralValue::Double(3.5).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(3).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
         }),

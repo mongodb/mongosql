@@ -129,7 +129,6 @@ tests:
 
   - description: ROUND operands must have numeric type or type NULL, or be MISSING
     query: "SELECT ROUND(arg1, arg2) FROM foo"
-    skip_reason: "SQL-1497: Round args type check test fails"
     valid_types:
       - { "arg1": *numerics, "arg2": *int_long }
 

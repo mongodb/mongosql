@@ -3063,14 +3063,12 @@ mod schema {
         }),
     );
     test_schema!(
-        round_second_arg_must_be_number_or_nullish,
+        round_second_arg_must_be_integral_or_nullish,
         expected = Err(mir_error::SchemaChecking {
             name: "Round",
             required: Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Integer),
                 Schema::Atomic(Atomic::Long),
-                Schema::Atomic(Atomic::Double),
-                Schema::Atomic(Atomic::Decimal),
                 Schema::Atomic(Atomic::Null),
                 Schema::Missing
             ]),

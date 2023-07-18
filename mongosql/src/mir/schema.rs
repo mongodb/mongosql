@@ -1551,9 +1551,28 @@ impl ScalarFunction {
             // Arithmetic operators with variadic arguments.
             Add | Mul => self.get_arithmetic_schema(state, arg_schemas),
             // Arithmetic operators with fixed (two) arguments.
-            Sub | Div | Round => {
+            Sub | Div => {
                 self.ensure_arg_count(arg_schemas.len(), 2)?;
                 self.get_arithmetic_schema(state, arg_schemas)
+            }
+
+            Round => {
+                self.ensure_arg_count(arg_schemas.len(), 2)?;
+                if arg_schemas[0].satisfies(&NUMERIC_OR_NULLISH) != Satisfaction::Must {
+                    Err(Error::SchemaChecking {
+                        name: Round.as_str(),
+                        required: NUMERIC_OR_NULLISH.clone(),
+                        found: arg_schemas[0].clone(),
+                    })
+                } else if arg_schemas[1].satisfies(&INTEGER_LONG_OR_NULLISH) != Satisfaction::Must {
+                    Err(Error::SchemaChecking {
+                        name: Round.as_str(),
+                        required: INTEGER_LONG_OR_NULLISH.clone(),
+                        found: arg_schemas[1].clone(),
+                    })
+                } else {
+                    Ok(arg_schemas[0].clone())
+                }
             }
 
             Cos | Degrees | Radians | Sin | Sqrt | Tan => {
