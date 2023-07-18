@@ -505,7 +505,10 @@ functions:
             curl -LO "https://dsi-donot-remove.s3.us-west-2.amazonaws.com/tpch/tpch-validation.archive.gz"
             mongodb-database-tools-ubuntu2204-x86_64-100.7.2/bin/mongorestore --nsFrom "validation.*" --nsTo "tpch.*" --numInsertionWorkersPerCollection=8 --bypassDocumentValidation --gzip --archive=tpch-validation.archive.gz
           fi
-
+          
+          # Print out the translations
+          find benchmark/${pipeline_dir}/phase/ -type f -name '*' -exec sh -c 'for dir; do echo "$dir"; find "$dir" -maxdepth 1 -type f -print0 | xargs -0 cat; done' {} +
+          
           rm ${dataset_filename}
           pkill mongod
 
