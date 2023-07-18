@@ -3,6 +3,10 @@ tests:
   query: "SELECT * FROM table1 AS table1 WHERE col1 IN (SELECT col1 FROM table2 AS table2)"
   result: "SELECT * FROM table1 AS table1 WHERE col1 = ANY(SELECT VALUE {'col1': col1} FROM table2 AS table2)"
 
+- description: nested IN expressions with subqueries on rhs rewritten to subquery comparison
+  query: "SELECT * FROM table1 AS table1 WHERE col1 IN (SELECT col1 FROM table2 AS table2 where col2 IN (SELECT col2 FROM table3 AS table3))"
+  result: "SELECT * FROM table1 AS table1 WHERE col1 = ANY(SELECT VALUE {'col1': col1} FROM table2 AS table2 WHERE col2 = ANY(SELECT VALUE {'col2': col2} FROM table3 AS table3))"
+
 - description: IN expression with expression list on rhs rewritten to subquery comparison
   query: "SELECT * FROM table1 AS table1 WHERE col1 IN (1, 2, 3)"
   result: "SELECT * FROM table1 AS table1 WHERE col1 = 1 OR col1 = 2 OR col1 = 3"

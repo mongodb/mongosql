@@ -22,6 +22,7 @@ impl TableSubqueryRewriteVisitor {}
 impl Visitor for TableSubqueryRewriteVisitor {
     fn visit_expression(&mut self, e: ast::Expression) -> ast::Expression {
         use ast::*;
+        let e = e.walk(self);
         match e {
             Expression::Binary(ref b) if b.op == BinaryOp::In || b.op == BinaryOp::NotIn => {
                 if let Expression::Subquery(s) = &*b.right {
@@ -36,10 +37,10 @@ impl Visitor for TableSubqueryRewriteVisitor {
                         subquery: s.clone(),
                     })
                 } else {
-                    e.walk(self)
+                    e
                 }
             }
-            _ => e.walk(self),
+            _ => e,
         }
     }
 }
