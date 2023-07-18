@@ -6,7 +6,7 @@ use mongosql::{
     translate_sql, SchemaCheckingMode,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::{map::Map, Value};
+use serde_json::Value;
 use std::{
     collections::BTreeMap,
     fs::{create_dir_all, File},
@@ -63,37 +63,31 @@ fn build_catalog(
         .collect()
 }
 
-fn modify_date_literal(parent: &mut Map<String, Value>, key: String) {
-    match parent.get_mut(&key) {
-        // for each object, look for a $date to convert
-        Some(Value::Object(obj)) => {
-            if let Some(Value::Object(date_obj)) = obj.get_mut("$date") {
-                if let Some(Value::String(timestamp_str)) = date_obj.get("$numberLong") {
-                    if let Ok(timestamp) = timestamp_str.parse::<i64>() {
-                        let date = Utc
-                            .timestamp_millis_opt(timestamp)
-                            .unwrap()
-                            .format("%Y-%m-%dT%H:%M:%S")
-                            .to_string();
-                        parent.insert(key, Value::String(format!("ISODate(\"{}\")", date)));
-                        return;
+fn modify_date_literal(value: &mut Value) {
+    match value {
+        Value::Object(obj) => {
+            if let Some(Value::Object(literal_obj)) = obj.get_mut("$literal") {
+                if let Some(Value::Object(date_obj)) = literal_obj.get_mut("$date") {
+                    if let Some(Value::String(timestamp_str)) = date_obj.get("$numberLong") {
+                        if let Ok(timestamp) = timestamp_str.parse::<i64>() {
+                            let date = Utc
+                                .timestamp_millis_opt(timestamp)
+                                .unwrap()
+                                .format("%Y-%m-%dT%H:%M:%S")
+                                .to_string();
+                            *value = Value::String(format!("ISODate(\"{}\")", date));
+                            return;
+                        }
                     }
                 }
             }
-            let keys: Vec<String> = obj.keys().cloned().collect();
-            for k in keys {
-                modify_date_literal(obj, k);
+            for (_k, v) in obj.iter_mut() {
+                modify_date_literal(v);
             }
         }
-        // for array values, recurse on any objects contained within the array
-        Some(Value::Array(a)) => {
-            for item in a {
-                if let Value::Object(obj) = item {
-                    let keys: Vec<String> = obj.keys().cloned().collect();
-                    for k in keys {
-                        modify_date_literal(obj, k);
-                    }
-                }
+        Value::Array(arr) => {
+            for v in arr.iter_mut() {
+                modify_date_literal(v);
             }
         }
         _ => {}
@@ -166,17 +160,7 @@ fn get_pipeline(config: &Workload) -> (String, String) {
     let json_string = serde_json::to_string(&pipeline).unwrap();
     let mut json_value: Value = serde_json::from_str(json_string.as_str()).unwrap();
 
-    // Modifies the date literals to be ISODate
-    if let Value::Array(arr) = &mut json_value {
-        for item in arr {
-            if let Value::Object(obj) = item {
-                let keys: Vec<String> = obj.keys().cloned().collect();
-                for k in keys {
-                    modify_date_literal(obj, k);
-                }
-            }
-        }
-    }
+    modify_date_literal(&mut json_value);
 
     // Removes quotes around ISODate and backslashes before quotes
     let pipeline = serde_json::to_string_pretty(&json_value)

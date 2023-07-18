@@ -485,7 +485,12 @@ functions:
 
           echo "setting up Genny"
           git clone git@github.com:mongodb/genny ../genny
-          ../genny/run-genny install -d ubuntu2204
+          cd ../genny
+          # Workaround until issue in `lamplib` requirements.txt is fixed
+          # EVG-20471
+          git checkout e50f6d5
+          ./run-genny install -d ubuntu2204
+          cd -
 
           echo "setting up mongodb-database-tools"
           curl -LO https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.7.2.tgz
