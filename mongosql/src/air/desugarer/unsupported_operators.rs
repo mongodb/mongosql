@@ -108,11 +108,7 @@ impl UnsupportedOperatorsDesugarerVisitor {
     fn desugar_like(&mut self, like: Like) -> Expression {
         let pattern = match *like.pattern {
             Expression::Literal(LiteralValue::String(l)) => {
-                if let Some(e) = like.escape {
-                    Self::convert_sql_pattern(l, e)
-                } else {
-                    format!("^{l}$")
-                }
+                Self::convert_sql_pattern(l, like.escape.unwrap_or("\\".to_string()))
             }
             _ => {
                 self.error = Some(Error::InvalidLikePattern);

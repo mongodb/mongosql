@@ -360,6 +360,28 @@ tests:
               },
           },
       }
+  
+  - name: "desugar $like with no escape containing chars that need to be converted"
+    input: 
+      - {
+        "$project":
+          {
+            "_id": 0,
+            "expr": { "$like": { "input": "$s", "pattern": "a_b%c" } },
+          },
+      }
+    expected:
+      - {
+        "$project":
+          {
+            "_id": 0,
+            "expr":
+              {
+                "$regexMatch":
+                  { "input": "$s", "regex": "^a.b.*c$", "options": "is" },
+              },
+          },
+      }
 
   - name: "desugar $like with escape"
     input:
