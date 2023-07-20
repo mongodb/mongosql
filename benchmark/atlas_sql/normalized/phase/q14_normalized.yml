@@ -1,0 +1,335 @@
+SchemaVersion: 2018-07-01
+Owner: '@mongodb/product-query'
+Description: |
+  This workload demonstrates the RunCommand actor, which can be used
+  to execute a command against the server.
+q14_normalized:
+  Repeat: 1
+  Database: tpch
+  Operations:
+  - OperationMetricsName: AtlasSQL
+    OperationName: RunCommand
+    OperationCommand:
+      aggregate: lineitem
+      pipeline:
+        [
+          {
+            "$match": {
+              "$expr": {
+                "$gt": [
+                  "$l_shipdate",
+                  {
+                    "$literal": null
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "$match": {
+              "$expr": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlLt_input0": "$l_shipdate",
+                    "desugared_sqlLt_input1": ISODate("1995-10-01T00:00:00")
+                  },
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$lte": [
+                              "$$desugared_sqlLt_input0",
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          },
+                          {
+                            "$lte": [
+                              "$$desugared_sqlLt_input1",
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "$literal": null
+                      },
+                      {
+                        "$lt": [
+                          "$$desugared_sqlLt_input0",
+                          "$$desugared_sqlLt_input1"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "$match": {
+              "$expr": {
+                "$gt": [
+                  "$l_shipdate",
+                  {
+                    "$literal": null
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "$match": {
+              "$expr": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlGte_input0": "$l_shipdate",
+                    "desugared_sqlGte_input1": ISODate("1995-09-01T00:00:00")
+                  },
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$lte": [
+                              "$$desugared_sqlGte_input0",
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          },
+                          {
+                            "$lte": [
+                              "$$desugared_sqlGte_input1",
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "$literal": null
+                      },
+                      {
+                        "$gte": [
+                          "$$desugared_sqlGte_input0",
+                          "$$desugared_sqlGte_input1"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "$project": {
+              "lineitem": "$$ROOT"
+            }
+          },
+          {
+            "$lookup": {
+              "from": "part",
+              "let": {
+                "vlineitem_0": "$lineitem"
+              },
+              "pipeline": [
+                {
+                  "$project": {
+                    "part": "$$ROOT"
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$$vlineitem_0.l_partkey",
+                          "desugared_sqlEq_input1": "$part.p_partkey"
+                        },
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input0",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                },
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input1",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "$literal": null
+                            },
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0",
+                                "$$desugared_sqlEq_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "as": "eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$unwind": {
+              "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$replaceWith": {
+              "$mergeObjects": [
+                "$$ROOT",
+                "$eca58228-b657-498a-b76e-f48a9161a404"
+              ]
+            }
+          },
+          {
+            "$project": {
+              "_id": 0,
+              "eca58228-b657-498a-b76e-f48a9161a404": 0
+            }
+          },
+          {
+            "$group": {
+              "_id": {
+                "_groupKey1": {
+                  "$literal": null
+                }
+              },
+              "_agg1": {
+                "$sum": {
+                  "$switch": {
+                    "branches": [
+                      {
+                        "case": {
+                          "$regexMatch": {
+                            "input": "$part.p_type",
+                            "regex": {
+                              "$literal": "^PROMO%$"
+                            },
+                            "options": {
+                              "$literal": "is"
+                            }
+                          }
+                        },
+                        "then": {
+                          "$multiply": [
+                            "$lineitem.l_extendedprice",
+                            {
+                              "$subtract": [
+                                {
+                                  "$literal": 1
+                                },
+                                "$lineitem.l_discount"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    ],
+                    "default": {
+                      "$literal": 0
+                    }
+                  }
+                }
+              },
+              "_agg2": {
+                "$sum": {
+                  "$multiply": [
+                    "$lineitem.l_extendedprice",
+                    {
+                      "$subtract": [
+                        {
+                          "$literal": 1
+                        },
+                        "$lineitem.l_discount"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "$project": {
+              "__bot": {
+                "_groupKey1": "$_id._groupKey1",
+                "_agg1": "$_agg1",
+                "_agg2": "$_agg2"
+              }
+            }
+          },
+          {
+            "$project": {
+              "__bot": {
+                "promo_revenue": {
+                  "$cond": [
+                    {
+                      "$eq": [
+                        "$__bot._agg2",
+                        {
+                          "$literal": 0
+                        }
+                      ]
+                    },
+                    {
+                      "$literal": null
+                    },
+                    {
+                      "$divide": [
+                        {
+                          "$multiply": [
+                            {
+                              "$literal": 100.0
+                            },
+                            "$__bot._agg1"
+                          ]
+                        },
+                        "$__bot._agg2"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "_id": 0
+            }
+          },
+          {
+            "$replaceWith": {
+              "$unsetField": {
+                "field": "__bot",
+                "input": {
+                  "$setField": {
+                    "field": "",
+                    "input": "$$ROOT",
+                    "value": "$__bot"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      cursor: {}

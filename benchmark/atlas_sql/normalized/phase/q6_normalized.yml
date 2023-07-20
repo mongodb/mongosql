@@ -1,0 +1,243 @@
+SchemaVersion: 2018-07-01
+Owner: '@mongodb/product-query'
+Description: |
+  This workload demonstrates the RunCommand actor, which can be used
+  to execute a command against the server.
+q6_normalized:
+  Repeat: 1
+  Database: tpch
+  Operations:
+  - OperationMetricsName: AtlasSQL
+    OperationName: RunCommand
+    OperationCommand:
+      aggregate: lineitem
+      pipeline:
+        [
+          {
+            "$match": {
+              "$expr": {
+                "$gt": [
+                  "$l_quantity",
+                  {
+                    "$literal": null
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "$match": {
+              "$expr": {
+                "$lt": [
+                  "$l_quantity",
+                  {
+                    "$literal": 24
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "$match": {
+              "$expr": {
+                "$gt": [
+                  "$l_discount",
+                  {
+                    "$literal": null
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "$match": {
+              "$expr": {
+                "$and": [
+                  {
+                    "$gte": [
+                      "$l_discount",
+                      {
+                        "$literal": 0.05
+                      }
+                    ]
+                  },
+                  {
+                    "$lte": [
+                      "$l_discount",
+                      {
+                        "$literal": 0.071
+                      }
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "$match": {
+              "$expr": {
+                "$gt": [
+                  "$l_shipdate",
+                  {
+                    "$literal": null
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "$match": {
+              "$expr": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlLt_input0": "$l_shipdate",
+                    "desugared_sqlLt_input1": ISODate("1995-01-01T00:00:00")
+                  },
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$lte": [
+                              "$$desugared_sqlLt_input0",
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          },
+                          {
+                            "$lte": [
+                              "$$desugared_sqlLt_input1",
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "$literal": null
+                      },
+                      {
+                        "$lt": [
+                          "$$desugared_sqlLt_input0",
+                          "$$desugared_sqlLt_input1"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "$match": {
+              "$expr": {
+                "$gt": [
+                  "$l_shipdate",
+                  {
+                    "$literal": null
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "$match": {
+              "$expr": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlGte_input0": "$l_shipdate",
+                    "desugared_sqlGte_input1": ISODate("1994-01-01T00:00:00")
+                  },
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$lte": [
+                              "$$desugared_sqlGte_input0",
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          },
+                          {
+                            "$lte": [
+                              "$$desugared_sqlGte_input1",
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "$literal": null
+                      },
+                      {
+                        "$gte": [
+                          "$$desugared_sqlGte_input0",
+                          "$$desugared_sqlGte_input1"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "$project": {
+              "lineitem": "$$ROOT"
+            }
+          },
+          {
+            "$group": {
+              "_id": {
+                "_groupKey1": {
+                  "$literal": null
+                }
+              },
+              "_agg1": {
+                "$sum": {
+                  "$multiply": [
+                    "$lineitem.l_extendedprice",
+                    "$lineitem.l_discount"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "$project": {
+              "__bot": {
+                "_groupKey1": "$_id._groupKey1",
+                "_agg1": "$_agg1"
+              }
+            }
+          },
+          {
+            "$project": {
+              "__bot": {
+                "revenue": "$__bot._agg1"
+              },
+              "_id": 0
+            }
+          },
+          {
+            "$replaceWith": {
+              "$unsetField": {
+                "field": "__bot",
+                "input": {
+                  "$setField": {
+                    "field": "",
+                    "input": "$$ROOT",
+                    "value": "$__bot"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      cursor: {}

@@ -1,0 +1,343 @@
+SchemaVersion: 2018-07-01
+Owner: '@mongodb/product-query'
+Description: |
+  This workload demonstrates the RunCommand actor, which can be used
+  to execute a command against the server.
+q13_normalized:
+  Repeat: 1
+  Database: tpch
+  Operations:
+  - OperationMetricsName: AtlasSQL
+    OperationName: RunCommand
+    OperationCommand:
+      aggregate: customer
+      pipeline:
+        [
+          {
+            "$project": {
+              "customer": "$$ROOT"
+            }
+          },
+          {
+            "$lookup": {
+              "from": "orders",
+              "let": {
+                "vcustomer_1": "$customer"
+              },
+              "pipeline": [
+                {
+                  "$project": {
+                    "orders": "$$ROOT"
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlAnd_input0": {
+                            "$let": {
+                              "vars": {
+                                "desugared_sqlEq_input0": "$$vcustomer_1.c_custkey",
+                                "desugared_sqlEq_input1": "$orders.o_custkey"
+                              },
+                              "in": {
+                                "$cond": [
+                                  {
+                                    "$or": [
+                                      {
+                                        "$lte": [
+                                          "$$desugared_sqlEq_input0",
+                                          {
+                                            "$literal": null
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "$lte": [
+                                          "$$desugared_sqlEq_input1",
+                                          {
+                                            "$literal": null
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "$literal": null
+                                  },
+                                  {
+                                    "$eq": [
+                                      "$$desugared_sqlEq_input0",
+                                      "$$desugared_sqlEq_input1"
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          },
+                          "desugared_sqlAnd_input1": {
+                            "$let": {
+                              "vars": {
+                                "desugared_sqlNot_input0": {
+                                  "$regexMatch": {
+                                    "input": "$orders.o_comment",
+                                    "regex": {
+                                      "$literal": "^%special%requests%$"
+                                    },
+                                    "options": {
+                                      "$literal": "is"
+                                    }
+                                  }
+                                }
+                              },
+                              "in": {
+                                "$cond": [
+                                  {
+                                    "$lte": [
+                                      "$$desugared_sqlNot_input0",
+                                      {
+                                        "$literal": null
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "$literal": null
+                                  },
+                                  {
+                                    "$not": [
+                                      "$$desugared_sqlNot_input0"
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$eq": [
+                                    "$$desugared_sqlAnd_input0",
+                                    {
+                                      "$literal": false
+                                    }
+                                  ]
+                                },
+                                {
+                                  "$eq": [
+                                    "$$desugared_sqlAnd_input1",
+                                    {
+                                      "$literal": false
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "$literal": false
+                            },
+                            {
+                              "$cond": [
+                                {
+                                  "$or": [
+                                    {
+                                      "$lte": [
+                                        "$$desugared_sqlAnd_input0",
+                                        {
+                                          "$literal": null
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "$lte": [
+                                        "$$desugared_sqlAnd_input1",
+                                        {
+                                          "$literal": null
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "$literal": null
+                                },
+                                {
+                                  "$literal": true
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "as": "eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$unwind": {
+              "path": "$eca58228-b657-498a-b76e-f48a9161a404",
+              "preserveNullAndEmptyArrays": true
+            }
+          },
+          {
+            "$replaceWith": {
+              "$mergeObjects": [
+                "$$ROOT",
+                "$eca58228-b657-498a-b76e-f48a9161a404"
+              ]
+            }
+          },
+          {
+            "$project": {
+              "_id": 0,
+              "eca58228-b657-498a-b76e-f48a9161a404": 0
+            }
+          },
+          {
+            "$group": {
+              "_id": {
+                "__unaliasedKey1": "$customer.c_custkey"
+              },
+              "_agg1": {
+                "$sum": {
+                  "$cond": [
+                    {
+                      "$in": [
+                        {
+                          "$type": [
+                            "$orders.o_orderkey"
+                          ]
+                        },
+                        [
+                          {
+                            "$literal": "missing"
+                          },
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      ]
+                    },
+                    {
+                      "$literal": 0
+                    },
+                    {
+                      "$literal": 1
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "$project": {
+              "customer": {
+                "c_custkey": "$_id.__unaliasedKey1"
+              },
+              "__bot": {
+                "_agg1": "$_agg1"
+              }
+            }
+          },
+          {
+            "$project": {
+              "__bot": {
+                "c_custkey": "$customer.c_custkey",
+                "c_count": "$__bot._agg1"
+              }
+            }
+          },
+          {
+            "$project": {
+              "c_orders": {
+                "$mergeObjects": [
+                  "$__bot"
+                ]
+              }
+            }
+          },
+          {
+            "$group": {
+              "_id": {
+                "__unaliasedKey1": "$c_orders.c_count"
+              },
+              "_agg1": {
+                "$sum": {
+                  "$cond": [
+                    {
+                      "$in": [
+                        {
+                          "$type": [
+                            {
+                              "$literal": 1
+                            }
+                          ]
+                        },
+                        [
+                          {
+                            "$literal": "missing"
+                          },
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      ]
+                    },
+                    {
+                      "$literal": 0
+                    },
+                    {
+                      "$literal": 1
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "$project": {
+              "c_orders": {
+                "c_count": "$_id.__unaliasedKey1"
+              },
+              "__bot": {
+                "_agg1": "$_agg1"
+              }
+            }
+          },
+          {
+            "$sort": {
+              "__bot._agg1": -1,
+              "c_orders.c_count": -1
+            }
+          },
+          {
+            "$project": {
+              "__bot": {
+                "c_count": "$c_orders.c_count",
+                "custdist": "$__bot._agg1"
+              },
+              "_id": 0
+            }
+          },
+          {
+            "$replaceWith": {
+              "$unsetField": {
+                "field": "__bot",
+                "input": {
+                  "$setField": {
+                    "field": "",
+                    "input": "$$ROOT",
+                    "value": "$__bot"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      cursor: {}

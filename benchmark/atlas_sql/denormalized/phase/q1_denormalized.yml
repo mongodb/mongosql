@@ -1,0 +1,363 @@
+SchemaVersion: 2018-07-01
+Owner: '@mongodb/product-query'
+Description: |
+  This workload demonstrates the RunCommand actor, which can be used
+  to execute a command against the server.
+q1_denormalized:
+  Repeat: 1
+  Database: tpch
+  Operations:
+  - OperationMetricsName: AtlasSQL
+    OperationName: RunCommand
+    OperationCommand:
+      aggregate: customer
+      pipeline:
+        [
+          {
+            "$project": {
+              "customer": "$$ROOT"
+            }
+          },
+          {
+            "$unwind": {
+              "path": "$customer.orders"
+            }
+          },
+          {
+            "$project": {
+              "customer": {
+                "_id": "$customer._id",
+                "c_acctbal": "$customer.c_acctbal",
+                "c_address": "$customer.c_address",
+                "c_comment": "$customer.c_comment",
+                "c_custkey": "$customer.c_custkey",
+                "c_mktsegment": "$customer.c_mktsegment",
+                "c_name": "$customer.c_name",
+                "c_phone": "$customer.c_phone",
+                "nation__id": "$customer.nation._id",
+                "nation_n_comment": "$customer.nation.n_comment",
+                "nation_n_name": "$customer.nation.n_name",
+                "nation_n_nationkey": "$customer.nation.n_nationkey",
+                "nation_region__id": "$customer.nation.region._id",
+                "nation_region_r_comment": "$customer.nation.region.r_comment",
+                "nation_region_r_name": "$customer.nation.region.r_name",
+                "nation_region_r_regionkey": "$customer.nation.region.r_regionkey",
+                "orders__id": "$customer.orders._id",
+                "orders_lineitem": "$customer.orders.lineitem",
+                "orders_o_clerk": "$customer.orders.o_clerk",
+                "orders_o_comment": "$customer.orders.o_comment",
+                "orders_o_custkey": "$customer.orders.o_custkey",
+                "orders_o_orderdate": "$customer.orders.o_orderdate",
+                "orders_o_orderkey": "$customer.orders.o_orderkey",
+                "orders_o_orderpriority": "$customer.orders.o_orderpriority",
+                "orders_o_orderstatus": "$customer.orders.o_orderstatus",
+                "orders_o_shippriority": "$customer.orders.o_shippriority",
+                "orders_o_totalprice": "$customer.orders.o_totalprice"
+              }
+            }
+          },
+          {
+            "$unwind": {
+              "path": "$customer.orders_lineitem"
+            }
+          },
+          {
+            "$match": {
+              "$expr": {
+                "$let": {
+                  "vars": {
+                    "desugared_sqlLte_input0": {
+                      "$getField": {
+                        "field": "orders_lineitem_l_shipdate",
+                        "input": {
+                          "_id": "$customer._id",
+                          "c_acctbal": "$customer.c_acctbal",
+                          "c_address": "$customer.c_address",
+                          "c_comment": "$customer.c_comment",
+                          "c_custkey": "$customer.c_custkey",
+                          "c_mktsegment": "$customer.c_mktsegment",
+                          "c_name": "$customer.c_name",
+                          "c_phone": "$customer.c_phone",
+                          "nation__id": "$customer.nation__id",
+                          "nation_n_comment": "$customer.nation_n_comment",
+                          "nation_n_name": "$customer.nation_n_name",
+                          "nation_n_nationkey": "$customer.nation_n_nationkey",
+                          "nation_region__id": "$customer.nation_region__id",
+                          "nation_region_r_comment": "$customer.nation_region_r_comment",
+                          "nation_region_r_name": "$customer.nation_region_r_name",
+                          "nation_region_r_regionkey": "$customer.nation_region_r_regionkey",
+                          "orders__id": "$customer.orders__id",
+                          "orders_lineitem__id": "$customer.orders_lineitem._id",
+                          "orders_lineitem_l_comment": "$customer.orders_lineitem.l_comment",
+                          "orders_lineitem_l_commitdate": "$customer.orders_lineitem.l_commitdate",
+                          "orders_lineitem_l_discount": "$customer.orders_lineitem.l_discount",
+                          "orders_lineitem_l_extendedprice": "$customer.orders_lineitem.l_extendedprice",
+                          "orders_lineitem_l_linenumber": "$customer.orders_lineitem.l_linenumber",
+                          "orders_lineitem_l_linestatus": "$customer.orders_lineitem.l_linestatus",
+                          "orders_lineitem_l_orderkey": "$customer.orders_lineitem.l_orderkey",
+                          "orders_lineitem_l_partkey": "$customer.orders_lineitem.l_partkey",
+                          "orders_lineitem_l_quantity": "$customer.orders_lineitem.l_quantity",
+                          "orders_lineitem_l_receiptdate": "$customer.orders_lineitem.l_receiptdate",
+                          "orders_lineitem_l_returnflag": "$customer.orders_lineitem.l_returnflag",
+                          "orders_lineitem_l_shipdate": "$customer.orders_lineitem.l_shipdate",
+                          "orders_lineitem_l_shipinstruct": "$customer.orders_lineitem.l_shipinstruct",
+                          "orders_lineitem_l_shipmode": "$customer.orders_lineitem.l_shipmode",
+                          "orders_lineitem_l_suppkey": "$customer.orders_lineitem.l_suppkey",
+                          "orders_lineitem_l_tax": "$customer.orders_lineitem.l_tax",
+                          "orders_o_clerk": "$customer.orders_o_clerk",
+                          "orders_o_comment": "$customer.orders_o_comment",
+                          "orders_o_custkey": "$customer.orders_o_custkey",
+                          "orders_o_orderdate": "$customer.orders_o_orderdate",
+                          "orders_o_orderkey": "$customer.orders_o_orderkey",
+                          "orders_o_orderpriority": "$customer.orders_o_orderpriority",
+                          "orders_o_orderstatus": "$customer.orders_o_orderstatus",
+                          "orders_o_shippriority": "$customer.orders_o_shippriority",
+                          "orders_o_totalprice": "$customer.orders_o_totalprice"
+                        }
+                      }
+                    },
+                    "desugared_sqlLte_input1": {
+                      "$dateAdd": {
+                        "startDate": ISODate("1998-12-01T00:00:00"),
+                        "unit": {
+                          "$literal": "day"
+                        },
+                        "amount": {
+                          "$literal": -90
+                        }
+                      }
+                    }
+                  },
+                  "in": {
+                    "$cond": [
+                      {
+                        "$or": [
+                          {
+                            "$lte": [
+                              "$$desugared_sqlLte_input0",
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          },
+                          {
+                            "$lte": [
+                              "$$desugared_sqlLte_input1",
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }
+                        ]
+                      },
+                      {
+                        "$literal": null
+                      },
+                      {
+                        "$lte": [
+                          "$$desugared_sqlLte_input0",
+                          "$$desugared_sqlLte_input1"
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          {
+            "$project": {
+              "customer": {
+                "_id": "$customer._id",
+                "c_acctbal": "$customer.c_acctbal",
+                "c_address": "$customer.c_address",
+                "c_comment": "$customer.c_comment",
+                "c_custkey": "$customer.c_custkey",
+                "c_mktsegment": "$customer.c_mktsegment",
+                "c_name": "$customer.c_name",
+                "c_phone": "$customer.c_phone",
+                "nation__id": "$customer.nation__id",
+                "nation_n_comment": "$customer.nation_n_comment",
+                "nation_n_name": "$customer.nation_n_name",
+                "nation_n_nationkey": "$customer.nation_n_nationkey",
+                "nation_region__id": "$customer.nation_region__id",
+                "nation_region_r_comment": "$customer.nation_region_r_comment",
+                "nation_region_r_name": "$customer.nation_region_r_name",
+                "nation_region_r_regionkey": "$customer.nation_region_r_regionkey",
+                "orders__id": "$customer.orders__id",
+                "orders_lineitem__id": "$customer.orders_lineitem._id",
+                "orders_lineitem_l_comment": "$customer.orders_lineitem.l_comment",
+                "orders_lineitem_l_commitdate": "$customer.orders_lineitem.l_commitdate",
+                "orders_lineitem_l_discount": "$customer.orders_lineitem.l_discount",
+                "orders_lineitem_l_extendedprice": "$customer.orders_lineitem.l_extendedprice",
+                "orders_lineitem_l_linenumber": "$customer.orders_lineitem.l_linenumber",
+                "orders_lineitem_l_linestatus": "$customer.orders_lineitem.l_linestatus",
+                "orders_lineitem_l_orderkey": "$customer.orders_lineitem.l_orderkey",
+                "orders_lineitem_l_partkey": "$customer.orders_lineitem.l_partkey",
+                "orders_lineitem_l_quantity": "$customer.orders_lineitem.l_quantity",
+                "orders_lineitem_l_receiptdate": "$customer.orders_lineitem.l_receiptdate",
+                "orders_lineitem_l_returnflag": "$customer.orders_lineitem.l_returnflag",
+                "orders_lineitem_l_shipdate": "$customer.orders_lineitem.l_shipdate",
+                "orders_lineitem_l_shipinstruct": "$customer.orders_lineitem.l_shipinstruct",
+                "orders_lineitem_l_shipmode": "$customer.orders_lineitem.l_shipmode",
+                "orders_lineitem_l_suppkey": "$customer.orders_lineitem.l_suppkey",
+                "orders_lineitem_l_tax": "$customer.orders_lineitem.l_tax",
+                "orders_o_clerk": "$customer.orders_o_clerk",
+                "orders_o_comment": "$customer.orders_o_comment",
+                "orders_o_custkey": "$customer.orders_o_custkey",
+                "orders_o_orderdate": "$customer.orders_o_orderdate",
+                "orders_o_orderkey": "$customer.orders_o_orderkey",
+                "orders_o_orderpriority": "$customer.orders_o_orderpriority",
+                "orders_o_orderstatus": "$customer.orders_o_orderstatus",
+                "orders_o_shippriority": "$customer.orders_o_shippriority",
+                "orders_o_totalprice": "$customer.orders_o_totalprice"
+              }
+            }
+          },
+          {
+            "$group": {
+              "_id": {
+                "l_returnflag": "$customer.orders_lineitem_l_returnflag",
+                "l_linestatus": "$customer.orders_lineitem_l_linestatus"
+              },
+              "_agg1": {
+                "$sum": "$customer.orders_lineitem_l_quantity"
+              },
+              "_agg2": {
+                "$sum": "$customer.orders_lineitem_l_extendedprice"
+              },
+              "_agg3": {
+                "$sum": {
+                  "$multiply": [
+                    "$customer.orders_lineitem_l_extendedprice",
+                    {
+                      "$subtract": [
+                        {
+                          "$literal": 1
+                        },
+                        "$customer.orders_lineitem_l_discount"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "_agg4": {
+                "$sum": {
+                  "$multiply": [
+                    "$customer.orders_lineitem_l_extendedprice",
+                    {
+                      "$subtract": [
+                        {
+                          "$literal": 1
+                        },
+                        "$customer.orders_lineitem_l_discount"
+                      ]
+                    },
+                    {
+                      "$add": [
+                        {
+                          "$literal": 1
+                        },
+                        "$customer.orders_lineitem_l_tax"
+                      ]
+                    }
+                  ]
+                }
+              },
+              "_agg5": {
+                "$avg": "$customer.orders_lineitem_l_quantity"
+              },
+              "_agg6": {
+                "$avg": "$customer.orders_lineitem_l_extendedprice"
+              },
+              "_agg7": {
+                "$avg": "$customer.orders_lineitem_l_discount"
+              },
+              "_agg8": {
+                "$sum": {
+                  "$cond": [
+                    {
+                      "$in": [
+                        {
+                          "$type": [
+                            {
+                              "$literal": 1
+                            }
+                          ]
+                        },
+                        [
+                          {
+                            "$literal": "missing"
+                          },
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      ]
+                    },
+                    {
+                      "$literal": 0
+                    },
+                    {
+                      "$literal": 1
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "$project": {
+              "__bot": {
+                "l_returnflag": "$_id.l_returnflag",
+                "l_linestatus": "$_id.l_linestatus",
+                "_agg1": "$_agg1",
+                "_agg2": "$_agg2",
+                "_agg3": "$_agg3",
+                "_agg4": "$_agg4",
+                "_agg5": "$_agg5",
+                "_agg6": "$_agg6",
+                "_agg7": "$_agg7",
+                "_agg8": "$_agg8"
+              }
+            }
+          },
+          {
+            "$sort": {
+              "__bot.l_returnflag": 1,
+              "__bot.l_linestatus": 1
+            }
+          },
+          {
+            "$project": {
+              "__bot": {
+                "l_returnflag": "$__bot.l_returnflag",
+                "l_linestatus": "$__bot.l_linestatus",
+                "sum_quantity": "$__bot._agg1",
+                "sum_base_price": "$__bot._agg2",
+                "sum_disc_price": "$__bot._agg3",
+                "sum_charge": "$__bot._agg4",
+                "avg_qty": "$__bot._agg5",
+                "avg_price": "$__bot._agg6",
+                "avg_disc": "$__bot._agg7",
+                "count_order": "$__bot._agg8"
+              },
+              "_id": 0
+            }
+          },
+          {
+            "$replaceWith": {
+              "$unsetField": {
+                "field": "__bot",
+                "input": {
+                  "$setField": {
+                    "field": "",
+                    "input": "$$ROOT",
+                    "value": "$__bot"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      cursor: {}

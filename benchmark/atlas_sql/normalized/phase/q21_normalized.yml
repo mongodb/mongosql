@@ -1,0 +1,831 @@
+SchemaVersion: 2018-07-01
+Owner: '@mongodb/product-query'
+Description: |
+  This workload demonstrates the RunCommand actor, which can be used
+  to execute a command against the server.
+q21_normalized:
+  Repeat: 1
+  Database: tpch
+  Operations:
+  - OperationMetricsName: AtlasSQL
+    OperationName: RunCommand
+    OperationCommand:
+      aggregate: supplier
+      pipeline:
+        [
+          {
+            "$project": {
+              "supplier": "$$ROOT"
+            }
+          },
+          {
+            "$lookup": {
+              "from": "lineitem",
+              "let": {
+                "vsupplier_0": "$supplier"
+              },
+              "pipeline": [
+                {
+                  "$match": {
+                    "$expr": {
+                      "$and": [
+                        {
+                          "$gt": [
+                            "$l_commitdate",
+                            {
+                              "$literal": null
+                            }
+                          ]
+                        },
+                        {
+                          "$gt": [
+                            "$l_receiptdate",
+                            {
+                              "$literal": null
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$gt": [
+                        "$l_receiptdate",
+                        "$l_commitdate"
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$project": {
+                    "l1": "$$ROOT"
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$$vsupplier_0.s_suppkey",
+                          "desugared_sqlEq_input1": "$l1.l_suppkey"
+                        },
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input0",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                },
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input1",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "$literal": null
+                            },
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0",
+                                "$$desugared_sqlEq_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "as": "eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$unwind": {
+              "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$replaceWith": {
+              "$mergeObjects": [
+                "$$ROOT",
+                "$eca58228-b657-498a-b76e-f48a9161a404"
+              ]
+            }
+          },
+          {
+            "$project": {
+              "_id": 0,
+              "eca58228-b657-498a-b76e-f48a9161a404": 0
+            }
+          },
+          {
+            "$lookup": {
+              "from": "orders",
+              "let": {
+                "vl1_0": "$l1",
+                "vsupplier_0": "$supplier"
+              },
+              "pipeline": [
+                {
+                  "$match": {
+                    "$expr": {
+                      "$gt": [
+                        "$o_orderstatus",
+                        {
+                          "$literal": null
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$eq": [
+                        "$o_orderstatus",
+                        {
+                          "$literal": "F"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$project": {
+                    "orders": "$$ROOT"
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$orders.o_orderkey",
+                          "desugared_sqlEq_input1": "$$vl1_0.l_orderkey"
+                        },
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input0",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                },
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input1",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "$literal": null
+                            },
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0",
+                                "$$desugared_sqlEq_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "as": "eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$unwind": {
+              "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$replaceWith": {
+              "$mergeObjects": [
+                "$$ROOT",
+                "$eca58228-b657-498a-b76e-f48a9161a404"
+              ]
+            }
+          },
+          {
+            "$project": {
+              "_id": 0,
+              "eca58228-b657-498a-b76e-f48a9161a404": 0
+            }
+          },
+          {
+            "$lookup": {
+              "from": "nation",
+              "let": {
+                "vl1_0": "$l1",
+                "vorders_0": "$orders",
+                "vsupplier_0": "$supplier"
+              },
+              "pipeline": [
+                {
+                  "$match": {
+                    "$expr": {
+                      "$gt": [
+                        "$n_name",
+                        {
+                          "$literal": null
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$eq": [
+                        "$n_name",
+                        {
+                          "$literal": "ARGENTINA"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$project": {
+                    "nation": "$$ROOT"
+                  }
+                },
+                {
+                  "$lookup": {
+                    "from": "lineitem",
+                    "let": {
+                      "vl1_0": "$$vl1_0",
+                      "vnation_0": "$nation",
+                      "vorders_0": "$$vorders_0",
+                      "vsupplier_0": "$$vsupplier_0"
+                    },
+                    "pipeline": [
+                      {
+                        "$match": {
+                          "$expr": {
+                            "$gt": [
+                              "$l_suppkey",
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "$match": {
+                          "$expr": {
+                            "$let": {
+                              "vars": {
+                                "desugared_sqlNe_input0": "$l_suppkey",
+                                "desugared_sqlNe_input1": "$$vl1_0.l_suppkey"
+                              },
+                              "in": {
+                                "$cond": [
+                                  {
+                                    "$or": [
+                                      {
+                                        "$lte": [
+                                          "$$desugared_sqlNe_input0",
+                                          {
+                                            "$literal": null
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "$lte": [
+                                          "$$desugared_sqlNe_input1",
+                                          {
+                                            "$literal": null
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "$literal": null
+                                  },
+                                  {
+                                    "$ne": [
+                                      "$$desugared_sqlNe_input0",
+                                      "$$desugared_sqlNe_input1"
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "$match": {
+                          "$expr": {
+                            "$gt": [
+                              "$l_orderkey",
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "$match": {
+                          "$expr": {
+                            "$let": {
+                              "vars": {
+                                "desugared_sqlEq_input0": "$l_orderkey",
+                                "desugared_sqlEq_input1": "$$vl1_0.l_orderkey"
+                              },
+                              "in": {
+                                "$cond": [
+                                  {
+                                    "$or": [
+                                      {
+                                        "$lte": [
+                                          "$$desugared_sqlEq_input0",
+                                          {
+                                            "$literal": null
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "$lte": [
+                                          "$$desugared_sqlEq_input1",
+                                          {
+                                            "$literal": null
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "$literal": null
+                                  },
+                                  {
+                                    "$eq": [
+                                      "$$desugared_sqlEq_input0",
+                                      "$$desugared_sqlEq_input1"
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "$project": {
+                          "l2": "$$ROOT"
+                        }
+                      },
+                      {
+                        "$limit": 1
+                      }
+                    ],
+                    "as": "__subquery_result_0"
+                  }
+                },
+                {
+                  "$lookup": {
+                    "from": "lineitem",
+                    "let": {
+                      "vl1_0": "$$vl1_0",
+                      "vnation_0": "$nation",
+                      "vorders_0": "$$vorders_0",
+                      "vsupplier_0": "$$vsupplier_0"
+                    },
+                    "pipeline": [
+                      {
+                        "$match": {
+                          "$expr": {
+                            "$and": [
+                              {
+                                "$gt": [
+                                  "$l_commitdate",
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              },
+                              {
+                                "$gt": [
+                                  "$l_receiptdate",
+                                  {
+                                    "$literal": null
+                                  }
+                                ]
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "$match": {
+                          "$expr": {
+                            "$gt": [
+                              "$l_receiptdate",
+                              "$l_commitdate"
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "$match": {
+                          "$expr": {
+                            "$gt": [
+                              "$l_suppkey",
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "$match": {
+                          "$expr": {
+                            "$let": {
+                              "vars": {
+                                "desugared_sqlNe_input0": "$l_suppkey",
+                                "desugared_sqlNe_input1": "$$vl1_0.l_suppkey"
+                              },
+                              "in": {
+                                "$cond": [
+                                  {
+                                    "$or": [
+                                      {
+                                        "$lte": [
+                                          "$$desugared_sqlNe_input0",
+                                          {
+                                            "$literal": null
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "$lte": [
+                                          "$$desugared_sqlNe_input1",
+                                          {
+                                            "$literal": null
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "$literal": null
+                                  },
+                                  {
+                                    "$ne": [
+                                      "$$desugared_sqlNe_input0",
+                                      "$$desugared_sqlNe_input1"
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "$match": {
+                          "$expr": {
+                            "$gt": [
+                              "$l_orderkey",
+                              {
+                                "$literal": null
+                              }
+                            ]
+                          }
+                        }
+                      },
+                      {
+                        "$match": {
+                          "$expr": {
+                            "$let": {
+                              "vars": {
+                                "desugared_sqlEq_input0": "$l_orderkey",
+                                "desugared_sqlEq_input1": "$$vl1_0.l_orderkey"
+                              },
+                              "in": {
+                                "$cond": [
+                                  {
+                                    "$or": [
+                                      {
+                                        "$lte": [
+                                          "$$desugared_sqlEq_input0",
+                                          {
+                                            "$literal": null
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "$lte": [
+                                          "$$desugared_sqlEq_input1",
+                                          {
+                                            "$literal": null
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "$literal": null
+                                  },
+                                  {
+                                    "$eq": [
+                                      "$$desugared_sqlEq_input0",
+                                      "$$desugared_sqlEq_input1"
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        }
+                      },
+                      {
+                        "$project": {
+                          "l3": "$$ROOT"
+                        }
+                      },
+                      {
+                        "$limit": 1
+                      }
+                    ],
+                    "as": "__subquery_result_1"
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlAnd_input0": {
+                            "$and": [
+                              {
+                                "$gt": [
+                                  {
+                                    "$size": [
+                                      "$__subquery_result_0"
+                                    ]
+                                  },
+                                  {
+                                    "$literal": 0
+                                  }
+                                ]
+                              },
+                              {
+                                "$not": [
+                                  {
+                                    "$gt": [
+                                      {
+                                        "$size": [
+                                          "$__subquery_result_1"
+                                        ]
+                                      },
+                                      {
+                                        "$literal": 0
+                                      }
+                                    ]
+                                  }
+                                ]
+                              }
+                            ]
+                          },
+                          "desugared_sqlAnd_input1": {
+                            "$let": {
+                              "vars": {
+                                "desugared_sqlEq_input0": "$$vsupplier_0.s_nationkey",
+                                "desugared_sqlEq_input1": "$nation.n_nationkey"
+                              },
+                              "in": {
+                                "$cond": [
+                                  {
+                                    "$or": [
+                                      {
+                                        "$lte": [
+                                          "$$desugared_sqlEq_input0",
+                                          {
+                                            "$literal": null
+                                          }
+                                        ]
+                                      },
+                                      {
+                                        "$lte": [
+                                          "$$desugared_sqlEq_input1",
+                                          {
+                                            "$literal": null
+                                          }
+                                        ]
+                                      }
+                                    ]
+                                  },
+                                  {
+                                    "$literal": null
+                                  },
+                                  {
+                                    "$eq": [
+                                      "$$desugared_sqlEq_input0",
+                                      "$$desugared_sqlEq_input1"
+                                    ]
+                                  }
+                                ]
+                              }
+                            }
+                          }
+                        },
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$eq": [
+                                    "$$desugared_sqlAnd_input0",
+                                    {
+                                      "$literal": false
+                                    }
+                                  ]
+                                },
+                                {
+                                  "$eq": [
+                                    "$$desugared_sqlAnd_input1",
+                                    {
+                                      "$literal": false
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "$literal": false
+                            },
+                            {
+                              "$cond": [
+                                {
+                                  "$or": [
+                                    {
+                                      "$lte": [
+                                        "$$desugared_sqlAnd_input0",
+                                        {
+                                          "$literal": null
+                                        }
+                                      ]
+                                    },
+                                    {
+                                      "$lte": [
+                                        "$$desugared_sqlAnd_input1",
+                                        {
+                                          "$literal": null
+                                        }
+                                      ]
+                                    }
+                                  ]
+                                },
+                                {
+                                  "$literal": null
+                                },
+                                {
+                                  "$literal": true
+                                }
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "$project": {
+                    "__subquery_result_0": 0,
+                    "__subquery_result_1": 0
+                  }
+                }
+              ],
+              "as": "eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$unwind": {
+              "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$replaceWith": {
+              "$mergeObjects": [
+                "$$ROOT",
+                "$eca58228-b657-498a-b76e-f48a9161a404"
+              ]
+            }
+          },
+          {
+            "$project": {
+              "_id": 0,
+              "eca58228-b657-498a-b76e-f48a9161a404": 0
+            }
+          },
+          {
+            "$group": {
+              "_id": {
+                "__unaliasedKey1": "$supplier.s_name"
+              },
+              "_agg1": {
+                "$sum": {
+                  "$cond": [
+                    {
+                      "$in": [
+                        {
+                          "$type": [
+                            {
+                              "$literal": 1
+                            }
+                          ]
+                        },
+                        [
+                          {
+                            "$literal": "missing"
+                          },
+                          {
+                            "$literal": "null"
+                          }
+                        ]
+                      ]
+                    },
+                    {
+                      "$literal": 0
+                    },
+                    {
+                      "$literal": 1
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "$project": {
+              "supplier": {
+                "s_name": "$_id.__unaliasedKey1"
+              },
+              "__bot": {
+                "_agg1": "$_agg1"
+              }
+            }
+          },
+          {
+            "$sort": {
+              "__bot._agg1": -1,
+              "supplier.s_name": 1
+            }
+          },
+          {
+            "$project": {
+              "__bot": {
+                "s_name": "$supplier.s_name",
+                "numwait": "$__bot._agg1"
+              },
+              "_id": 0
+            }
+          },
+          {
+            "$replaceWith": {
+              "$unsetField": {
+                "field": "__bot",
+                "input": {
+                  "$setField": {
+                    "field": "",
+                    "input": "$$ROOT",
+                    "value": "$__bot"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      cursor: {}

@@ -1,0 +1,483 @@
+SchemaVersion: 2018-07-01
+Owner: '@mongodb/product-query'
+Description: |
+  This workload demonstrates the RunCommand actor, which can be used
+  to execute a command against the server.
+q10_normalized:
+  Repeat: 1
+  Database: tpch
+  Operations:
+  - OperationMetricsName: AtlasSQL
+    OperationName: RunCommand
+    OperationCommand:
+      aggregate: customer
+      pipeline:
+        [
+          {
+            "$project": {
+              "customer": "$$ROOT"
+            }
+          },
+          {
+            "$lookup": {
+              "from": "orders",
+              "let": {
+                "vcustomer_0": "$customer"
+              },
+              "pipeline": [
+                {
+                  "$match": {
+                    "$expr": {
+                      "$gt": [
+                        "$o_orderdate",
+                        {
+                          "$literal": null
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlLt_input0": "$o_orderdate",
+                          "desugared_sqlLt_input1": ISODate("1994-01-01T00:00:00")
+                        },
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlLt_input0",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                },
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlLt_input1",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "$literal": null
+                            },
+                            {
+                              "$lt": [
+                                "$$desugared_sqlLt_input0",
+                                "$$desugared_sqlLt_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$gt": [
+                        "$o_orderdate",
+                        {
+                          "$literal": null
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlGte_input0": "$o_orderdate",
+                          "desugared_sqlGte_input1": ISODate("1993-10-01T00:00:00")
+                        },
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlGte_input0",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                },
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlGte_input1",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "$literal": null
+                            },
+                            {
+                              "$gte": [
+                                "$$desugared_sqlGte_input0",
+                                "$$desugared_sqlGte_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "$project": {
+                    "orders": "$$ROOT"
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$$vcustomer_0.c_custkey",
+                          "desugared_sqlEq_input1": "$orders.o_custkey"
+                        },
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input0",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                },
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input1",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "$literal": null
+                            },
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0",
+                                "$$desugared_sqlEq_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "as": "eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$unwind": {
+              "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$replaceWith": {
+              "$mergeObjects": [
+                "$$ROOT",
+                "$eca58228-b657-498a-b76e-f48a9161a404"
+              ]
+            }
+          },
+          {
+            "$project": {
+              "_id": 0,
+              "eca58228-b657-498a-b76e-f48a9161a404": 0
+            }
+          },
+          {
+            "$lookup": {
+              "from": "lineitem",
+              "let": {
+                "vcustomer_0": "$customer",
+                "vorders_0": "$orders"
+              },
+              "pipeline": [
+                {
+                  "$match": {
+                    "$expr": {
+                      "$gt": [
+                        "$l_returnflag",
+                        {
+                          "$literal": null
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$eq": [
+                        "$l_returnflag",
+                        {
+                          "$literal": "R"
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$project": {
+                    "lineitem": "$$ROOT"
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$lineitem.l_orderkey",
+                          "desugared_sqlEq_input1": "$$vorders_0.o_orderkey"
+                        },
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input0",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                },
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input1",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "$literal": null
+                            },
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0",
+                                "$$desugared_sqlEq_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "as": "eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$unwind": {
+              "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$replaceWith": {
+              "$mergeObjects": [
+                "$$ROOT",
+                "$eca58228-b657-498a-b76e-f48a9161a404"
+              ]
+            }
+          },
+          {
+            "$project": {
+              "_id": 0,
+              "eca58228-b657-498a-b76e-f48a9161a404": 0
+            }
+          },
+          {
+            "$lookup": {
+              "from": "nation",
+              "let": {
+                "vcustomer_0": "$customer",
+                "vlineitem_0": "$lineitem",
+                "vorders_0": "$orders"
+              },
+              "pipeline": [
+                {
+                  "$project": {
+                    "nation": "$$ROOT"
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$$vcustomer_0.c_nationkey",
+                          "desugared_sqlEq_input1": "$nation.n_nationkey"
+                        },
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input0",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                },
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input1",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "$literal": null
+                            },
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0",
+                                "$$desugared_sqlEq_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "as": "eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$unwind": {
+              "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$replaceWith": {
+              "$mergeObjects": [
+                "$$ROOT",
+                "$eca58228-b657-498a-b76e-f48a9161a404"
+              ]
+            }
+          },
+          {
+            "$project": {
+              "_id": 0,
+              "eca58228-b657-498a-b76e-f48a9161a404": 0
+            }
+          },
+          {
+            "$group": {
+              "_id": {
+                "__unaliasedKey1": "$customer.c_custkey",
+                "__unaliasedKey2": "$customer.c_name",
+                "__unaliasedKey3": "$customer.c_acctbal",
+                "__unaliasedKey4": "$customer.c_phone",
+                "__unaliasedKey5": "$nation.n_name",
+                "__unaliasedKey6": "$customer.c_address",
+                "__unaliasedKey7": "$customer.c_comment"
+              },
+              "_agg1": {
+                "$sum": {
+                  "$multiply": [
+                    "$lineitem.l_extendedprice",
+                    {
+                      "$subtract": [
+                        {
+                          "$literal": 1
+                        },
+                        "$lineitem.l_discount"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "$project": {
+              "customer": {
+                "c_custkey": "$_id.__unaliasedKey1",
+                "c_name": "$_id.__unaliasedKey2",
+                "c_acctbal": "$_id.__unaliasedKey3",
+                "c_phone": "$_id.__unaliasedKey4",
+                "c_address": "$_id.__unaliasedKey6",
+                "c_comment": "$_id.__unaliasedKey7"
+              },
+              "nation": {
+                "n_name": "$_id.__unaliasedKey5"
+              },
+              "__bot": {
+                "_agg1": "$_agg1"
+              }
+            }
+          },
+          {
+            "$sort": {
+              "__bot._agg1": -1
+            }
+          },
+          {
+            "$project": {
+              "__bot": {
+                "c_custkey": "$customer.c_custkey",
+                "c_name": "$customer.c_name",
+                "revenue": "$__bot._agg1",
+                "c_acctbal": "$customer.c_acctbal",
+                "n_name": "$nation.n_name",
+                "c_address": "$customer.c_address",
+                "c_phone": "$customer.c_phone",
+                "c_comment": "$customer.c_comment"
+              },
+              "_id": 0
+            }
+          },
+          {
+            "$replaceWith": {
+              "$unsetField": {
+                "field": "__bot",
+                "input": {
+                  "$setField": {
+                    "field": "",
+                    "input": "$$ROOT",
+                    "value": "$__bot"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      cursor: {}

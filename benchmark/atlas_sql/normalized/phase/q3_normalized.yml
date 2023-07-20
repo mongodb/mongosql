@@ -1,0 +1,390 @@
+SchemaVersion: 2018-07-01
+Owner: '@mongodb/product-query'
+Description: |
+  This workload demonstrates the RunCommand actor, which can be used
+  to execute a command against the server.
+q3_normalized:
+  Repeat: 1
+  Database: tpch
+  Operations:
+  - OperationMetricsName: AtlasSQL
+    OperationName: RunCommand
+    OperationCommand:
+      aggregate: customer
+      pipeline:
+        [
+          {
+            "$match": {
+              "$expr": {
+                "$gt": [
+                  "$c_mktsegment",
+                  {
+                    "$literal": null
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "$match": {
+              "$expr": {
+                "$eq": [
+                  "$c_mktsegment",
+                  {
+                    "$literal": "BUILDING"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "$project": {
+              "customer": "$$ROOT"
+            }
+          },
+          {
+            "$lookup": {
+              "from": "orders",
+              "let": {
+                "vcustomer_0": "$customer"
+              },
+              "pipeline": [
+                {
+                  "$match": {
+                    "$expr": {
+                      "$gt": [
+                        "$o_orderdate",
+                        {
+                          "$literal": null
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlLt_input0": "$o_orderdate",
+                          "desugared_sqlLt_input1": ISODate("1995-03-01T00:00:00")
+                        },
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlLt_input0",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                },
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlLt_input1",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "$literal": null
+                            },
+                            {
+                              "$lt": [
+                                "$$desugared_sqlLt_input0",
+                                "$$desugared_sqlLt_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "$project": {
+                    "orders": "$$ROOT"
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$$vcustomer_0.c_custkey",
+                          "desugared_sqlEq_input1": "$orders.o_custkey"
+                        },
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input0",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                },
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input1",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "$literal": null
+                            },
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0",
+                                "$$desugared_sqlEq_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "as": "eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$unwind": {
+              "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$replaceWith": {
+              "$mergeObjects": [
+                "$$ROOT",
+                "$eca58228-b657-498a-b76e-f48a9161a404"
+              ]
+            }
+          },
+          {
+            "$project": {
+              "_id": 0,
+              "eca58228-b657-498a-b76e-f48a9161a404": 0
+            }
+          },
+          {
+            "$lookup": {
+              "from": "lineitem",
+              "let": {
+                "vcustomer_0": "$customer",
+                "vorders_0": "$orders"
+              },
+              "pipeline": [
+                {
+                  "$match": {
+                    "$expr": {
+                      "$gt": [
+                        "$l_shipdate",
+                        {
+                          "$literal": null
+                        }
+                      ]
+                    }
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlGt_input0": "$l_shipdate",
+                          "desugared_sqlGt_input1": ISODate("1995-03-15T00:00:00")
+                        },
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlGt_input0",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                },
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlGt_input1",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "$literal": null
+                            },
+                            {
+                              "$gt": [
+                                "$$desugared_sqlGt_input0",
+                                "$$desugared_sqlGt_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                },
+                {
+                  "$project": {
+                    "lineitem": "$$ROOT"
+                  }
+                },
+                {
+                  "$match": {
+                    "$expr": {
+                      "$let": {
+                        "vars": {
+                          "desugared_sqlEq_input0": "$lineitem.l_orderkey",
+                          "desugared_sqlEq_input1": "$$vorders_0.o_orderkey"
+                        },
+                        "in": {
+                          "$cond": [
+                            {
+                              "$or": [
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input0",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                },
+                                {
+                                  "$lte": [
+                                    "$$desugared_sqlEq_input1",
+                                    {
+                                      "$literal": null
+                                    }
+                                  ]
+                                }
+                              ]
+                            },
+                            {
+                              "$literal": null
+                            },
+                            {
+                              "$eq": [
+                                "$$desugared_sqlEq_input0",
+                                "$$desugared_sqlEq_input1"
+                              ]
+                            }
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              ],
+              "as": "eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$unwind": {
+              "path": "$eca58228-b657-498a-b76e-f48a9161a404"
+            }
+          },
+          {
+            "$replaceWith": {
+              "$mergeObjects": [
+                "$$ROOT",
+                "$eca58228-b657-498a-b76e-f48a9161a404"
+              ]
+            }
+          },
+          {
+            "$project": {
+              "_id": 0,
+              "eca58228-b657-498a-b76e-f48a9161a404": 0
+            }
+          },
+          {
+            "$group": {
+              "_id": {
+                "__unaliasedKey1": "$lineitem.l_orderkey",
+                "__unaliasedKey2": "$orders.o_orderdate",
+                "__unaliasedKey3": "$orders.o_shippriority"
+              },
+              "_agg1": {
+                "$sum": {
+                  "$multiply": [
+                    "$lineitem.l_extendedprice",
+                    {
+                      "$subtract": [
+                        {
+                          "$literal": 1
+                        },
+                        "$lineitem.l_discount"
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "$project": {
+              "lineitem": {
+                "l_orderkey": "$_id.__unaliasedKey1"
+              },
+              "orders": {
+                "o_orderdate": "$_id.__unaliasedKey2",
+                "o_shippriority": "$_id.__unaliasedKey3"
+              },
+              "__bot": {
+                "_agg1": "$_agg1"
+              }
+            }
+          },
+          {
+            "$sort": {
+              "__bot._agg1": -1,
+              "orders.o_orderdate": 1
+            }
+          },
+          {
+            "$project": {
+              "__bot": {
+                "l_orderkey": "$lineitem.l_orderkey",
+                "revenue": "$__bot._agg1",
+                "o_orderdate": "$orders.o_orderdate",
+                "o_shippriority": "$orders.o_shippriority"
+              },
+              "_id": 0
+            }
+          },
+          {
+            "$replaceWith": {
+              "$unsetField": {
+                "field": "__bot",
+                "input": {
+                  "$setField": {
+                    "field": "",
+                    "input": "$$ROOT",
+                    "value": "$__bot"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      cursor: {}

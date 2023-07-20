@@ -1021,6 +1021,94 @@ workloads:
           o_totalprice desc,
           o_orderdate
       LIMIT 100
+  
+  - name: q19_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      SELECT
+          sum(l_extendedprice * (1 - l_discount) ) as revenue
+      FROM
+          lineitem,
+          part
+      WHERE
+          (
+              p_partkey = l_partkey
+              and p_brand = 'Brand#12'
+              and p_container in ('SM CASE', 'SM BOX', 'SM PACK', 'SM PKG')
+              and l_quantity >= 1
+              and l_quantity <= 1 + 10
+              and p_size between 1 and 5
+              and l_shipmode in ('AIR', 'AIR REG')
+              and l_shipinstruct = 'DELIVER IN PERSON'
+          )
+          or (
+              p_partkey = l_partkey
+              and p_brand = 'Brand#24'
+              and p_container in ('MED BAG', 'MED BOX', 'MED PKG', 'MED PACK')
+              and l_quantity >= 30
+              and l_quantity <= 30 + 10
+              and p_size between 1 and 10
+              and l_shipmode in ('AIR', 'AIR REG')
+              and l_shipinstruct = 'DELIVER IN PERSON'
+          )
+          or (
+              p_partkey = l_partkey
+              and p_brand = 'Brand#34'
+              and p_container in ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG', 'WRAP BOX')
+              and l_quantity >= 20
+              and l_quantity <= 20 + 10
+              and p_size between 1 and 15
+              and l_shipmode in ('AIR', 'AIR REG')
+              and l_shipinstruct = 'DELIVER IN PERSON'            
+          )
+
+  # Skip Reason: SQL-1539: desugaring multiple subqueries sometimes only handles first
+  # - name: q20_normalized
+  #   db: tpch
+  #   phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+  #   workload_dir: ./benchmark/atlas_sql/normalized/phase/
+  #   catalog_schema: *normalized_catalog_schema
+  #   query: >
+  #       SELECT
+  #           s_name,
+  #           s_address
+  #       FROM
+  #           supplier,
+  #           nation
+  #       WHERE
+  #           s_suppkey IN (
+  #               SELECT
+  #                   ps_suppkey
+  #               FROM
+  #                   partsupp
+  #               WHERE
+  #                   ps_partkey IN (
+  #                       SELECT
+  #                           p_partkey
+  #                       FROM
+  #                           part
+  #                       WHERE
+  #                           p_name like '%lavender%'
+  #                   )
+  #                   and ps_availqty > (
+  #                       SELECT
+  #                           0.5 * sum(l_quantity)
+  #                       FROM
+  #                           lineitem
+  #                       WHERE
+  #                           l_partkey = ps_partkey
+  #                           and l_suppkey = ps_suppkey
+  #                           and l_shipdate >= '1994-01-01T00:00:00.000Z'::TIMESTAMP
+  #                           and l_shipdate < '1995-01-01T00:00:00.000Z'::TIMESTAMP
+  #                   )
+  #           )
+  #           and s_nationkey = n_nationkey
+  #           and n_name = 'KENYA'
+  #       ORDER BY
+  #           s_name
 
   - name: q21_normalized
     db: tpch
