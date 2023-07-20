@@ -1022,6 +1022,94 @@ workloads:
           o_orderdate
       LIMIT 100
 
+  - name: q21_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      SELECT
+          s_name,
+          COUNT(*) AS numwait
+      FROM
+          supplier,
+          lineitem l1,
+          orders,
+          nation
+      WHERE
+          s_suppkey = l1.l_suppkey
+          AND o_orderkey = l1.l_orderkey
+          AND o_orderstatus = 'F'
+          AND l1.l_receiptdate > l1.l_commitdate
+          AND EXISTS (
+              SELECT
+                  *
+              FROM
+                  lineitem l2
+              WHERE
+                  l2.l_orderkey = l1.l_orderkey
+                  AND l2.l_suppkey <> l1.l_suppkey
+          )
+          AND NOT EXISTS (
+              SELECT
+                  *
+              FROM
+                  lineitem l3
+              WHERE
+                  l3.l_orderkey = l1.l_orderkey
+                  AND l3.l_suppkey <> l1.l_suppkey
+                  AND l3.l_receiptdate > l3.l_commitdate
+          )
+          AND s_nationkey = n_nationkey
+          AND n_name = 'ARGENTINA'
+      GROUP BY
+          s_name
+      ORDER BY
+          numwait DESC,
+          s_name
+
+#  Skip Reason: SQL-1540 error: caught panic during translation: Any { .. }
+#  - name: q22_normalized
+#    db: tpch
+#    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+#    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+#    catalog_schema: *normalized_catalog_schema
+#    query: >
+#      SELECT
+#          cntrycode,
+#          count(*) as numcust,
+#          sum(c_acctbal) as totacctbal
+#      FROM
+#          (
+#          SELECT
+#              substring(customer.c_phone, 0, 2) as cntrycode, c_acctbal
+#          FROM
+#              customer
+#          WHERE
+#              substring(customer.c_phone, 0, 2) IN ('13','31','23','29','30','18','17')
+#              AND customer.c_acctbal > (
+#                  SELECT
+#                      avg(c.c_acctbal)
+#                  FROM
+#                      customer as c
+#                  WHERE
+#                      customer.c_acctbal > 0.00
+#                      AND substring(c.c_phone, 0, 2) IN ('13','31','23','29','30','18','17')
+#              )
+#              AND NOT EXISTS (
+#                  SELECT
+#                      *
+#                  FROM
+#                      orders
+#                  WHERE
+#                      o_custkey = c_custkey
+#              )
+#          ) as custsale
+#      GROUP BY
+#          cntrycode
+#      ORDER BY
+#          cntrycode
+
   # ----- Denormalized Queries -----
   - name: q1_denormalized
     db: tpch

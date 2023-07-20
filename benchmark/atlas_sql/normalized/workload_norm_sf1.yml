@@ -80,3 +80,9 @@ Actors:
 #  - LoadConfig:
 #      Path: phase/q18_normalized.yml
 #      Key: q18_normalized
+#  - LoadConfig:
+#      Path: phase/q21_normalized.yml
+#      Key: q21_normalized
+#  - LoadConfig:
+#      Path: phase/q22_normalized.yml
+#      Key: q22_normalized
