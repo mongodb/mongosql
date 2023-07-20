@@ -502,6 +502,17 @@ functions:
           echo "Downloading: https://dsi-donot-remove.s3.us-west-2.amazonaws.com/tpch/${dataset_filename}"
           curl -LO "https://dsi-donot-remove.s3.us-west-2.amazonaws.com/tpch/${dataset_filename}"
           mongodb-database-tools-ubuntu2204-x86_64-100.7.2/bin/mongorestore --drop --numInsertionWorkersPerCollection=8 --bypassDocumentValidation --gzip --archive=${dataset_filename}
+          
+          echo "Starting SAR resource logging"
+          # Log resource usage every 5 seconds
+          SAR_INTERVAL=5
+          stdbuf -oL sar -r $SAR_INTERVAL | awk '{ print strftime("%Y-%m-%d "), $0; fflush(); }' > sar-mem.log &
+          SAR_MEM=$!
+          stdbuf -oL sar -d $SAR_INTERVAL | awk '{ print strftime("%Y-%m-%d "), $0; fflush(); }' > sar-disk.log &
+          SAR_DISK=$!
+          stdbuf -oL sar -P ALL $SAR_INTERVAL | awk '{ print strftime("%Y-%m-%d "), $0; fflush(); }' > sar-cpu.log &
+          SAR_CPU=$!
+          
           ../genny/run-genny workload benchmark/${pipeline_dir}/${workload_filename}
 
           # add validation dataset separately if needed; load into `tpch` database
@@ -516,6 +527,18 @@ functions:
           
           rm ${dataset_filename}
           pkill mongod
+          
+          kill -9 $SAR_MEM $SAR_DISK $SAR_CPU
+          tar -czvf sar.log.tgz ./sar-mem.log ./sar-disk.log ./sar-cpu.log
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/sar.log.tgz
+        remote_file: mongosql-rs/artifacts/${version_id}/${pipeline_dir}/sar.log.tgz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
 
 pre:
   - func: "fetch source"
