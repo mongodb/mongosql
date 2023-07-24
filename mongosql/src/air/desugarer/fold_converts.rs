@@ -51,13 +51,22 @@ impl FoldConvertsDesugarerVisitor {
             // some benefit.
             Type::String => Some(Ok(Expression::Literal(LiteralValue::String(s.to_string())))),
             Type::Datetime => {
-                let chrono_dt: Option<chrono::DateTime<Utc>> = s.parse().ok();
-                match chrono_dt {
-                    Some(chrono_dt) => Some(Ok(Expression::Literal(LiteralValue::DateTime(
+                // format YYYY-MM-DD(T| )HH:mm:SS(.ms)?Z?, where `?` denotes optional
+                let chrono_dt: Option<chrono::DateTime<Utc>> = if s.ends_with('Z') {
+                    s.parse().ok()
+                } else {
+                    let mut s = s.to_string();
+                    s.push('Z');
+                    s.parse().ok()
+                };
+                // We cannot guarantee our format here supports everything that MongoDB supports,
+                // so we instead fall back to the original convert expression when our attempt to
+                // create a Date fails, and allow MongoDB to succeed or fail as it will.
+                chrono_dt.map(|chrono_dt| {
+                    Ok(Expression::Literal(LiteralValue::DateTime(
                         chrono_dt.into(),
-                    )))),
-                    None => Some(Err(Error::InvalidConstantConvert(Type::Datetime))),
-                }
+                    )))
+                })
             }
             Type::Decimal128 => {
                 let dec = Decimal128::from_str(s).ok();

@@ -126,8 +126,12 @@ mod fold_converts {
     lazy_static! {
         static ref OID: bson::oid::ObjectId =
             bson::oid::ObjectId::parse_str("507f1f77bcf86cd799439011").unwrap();
-        static ref DATE: bson::DateTime = {
+        static ref DATE_WITH_MS: bson::DateTime = {
             let chrono_dt: chrono::DateTime<Utc> = "2014-01-01T08:15:39.736Z".parse().unwrap();
+            chrono_dt.into()
+        };
+        static ref DATE_WITHOUT_MS: bson::DateTime = {
+            let chrono_dt: chrono::DateTime<Utc> = "2014-01-01T08:15:39Z".parse().unwrap();
             chrono_dt.into()
         };
         static ref INT_DEC: bson::Decimal128 = bson::Decimal128::from_str("3").unwrap();
@@ -157,7 +161,7 @@ mod fold_converts {
         }))
     );
     test_desugar_manual!(
-        name = convert_valid_string_to_date,
+        name = convert_valid_string_to_date_with_milliseconds,
         desugarer = FoldConvertsDesugarerPass,
         input = air::Stage::Project(air::Project {
             source: air::Stage::Collection(air::Collection {
@@ -165,14 +169,32 @@ mod fold_converts {
                 collection: "default".into()
             })
             .into(),
-            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(
-                air::Expression::Convert(air::Convert {
-                    input: air::Expression::Literal(air::LiteralValue::String("2014-01-01T08:15:39.736Z".into())).into(),
-                    to: air::Type::Datetime,
-                    on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
-                    on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
-                })
-            )}
+            specifications: unchecked_unique_linked_hash_map! {
+                "expr1".into() => air::ProjectItem::Assignment(
+                    air::Expression::Convert(air::Convert {
+                        input: air::Expression::Literal(air::LiteralValue::String("2014-01-01T08:15:39.736Z".into())).into(),
+                        to: air::Type::Datetime,
+                        on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                        on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    })
+                ),
+                "expr2".into() => air::ProjectItem::Assignment(
+                    air::Expression::Convert(air::Convert {
+                        input: air::Expression::Literal(air::LiteralValue::String("2014-01-01 08:15:39.736Z".into())).into(),
+                        to: air::Type::Datetime,
+                        on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                        on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    })
+                ),
+                "expr3".into() => air::ProjectItem::Assignment(
+                    air::Expression::Convert(air::Convert {
+                        input: air::Expression::Literal(air::LiteralValue::String("2014-01-01 08:15:39.736".into())).into(),
+                        to: air::Type::Datetime,
+                        on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                        on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    })
+                ),
+            }
         }),
         expected = Ok::<Stage, desugarer::test::Error>(air::Stage::Project(air::Project {
             source: air::Stage::Collection(air::Collection {
@@ -180,7 +202,58 @@ mod fold_converts {
                 collection: "default".into()
             })
             .into(),
-            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::DateTime(*DATE)))}
+            specifications: unchecked_unique_linked_hash_map! {
+                "expr1".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::DateTime(*DATE_WITH_MS))),
+                "expr2".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::DateTime(*DATE_WITH_MS))),
+                "expr3".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::DateTime(*DATE_WITH_MS)))
+            }
+        }))
+    );
+    test_desugar_manual!(
+        name = convert_valid_string_to_date_without_milliseconds,
+        desugarer = FoldConvertsDesugarerPass,
+        input = air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {
+                "expr1".into() => air::ProjectItem::Assignment(
+                    air::Expression::Convert(air::Convert {
+                        input: air::Expression::Literal(air::LiteralValue::String("2014-01-01T08:15:39Z".into())).into(),
+                        to: air::Type::Datetime,
+                        on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                        on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    })
+                ),
+                "expr2".into() => air::ProjectItem::Assignment(
+                    air::Expression::Convert(air::Convert {
+                        input: air::Expression::Literal(air::LiteralValue::String("2014-01-01 08:15:39Z".into())).into(),
+                        to: air::Type::Datetime,
+                        on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                        on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                 })),
+                "expr3".into() => air::ProjectItem::Assignment(
+                    air::Expression::Convert(air::Convert {
+                        input: air::Expression::Literal(air::LiteralValue::String("2014-01-01 08:15:39".into())).into(),
+                        to: air::Type::Datetime,
+                        on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                        on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                 })),
+            }
+        }),
+        expected = Ok::<Stage, desugarer::test::Error>(air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {
+                "expr1".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::DateTime(*DATE_WITHOUT_MS))),
+                "expr2".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::DateTime(*DATE_WITHOUT_MS))),
+                "expr3".into() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::DateTime(*DATE_WITHOUT_MS)))
+            }
         }))
     );
     test_desugar_manual!(
@@ -201,9 +274,21 @@ mod fold_converts {
                 })
             )}
         }),
-        expected = Err::<Stage, Error>(Error::CannotDesugar(
-            desugarer::Error::InvalidConstantConvert(air::Type::Datetime)
-        ))
+        expected = Ok::<Stage, desugarer::test::Error>(air::Stage::Project(air::Project {
+            source: air::Stage::Collection(air::Collection {
+                db: "test".into(),
+                collection: "default".into()
+            })
+            .into(),
+            specifications: unchecked_unique_linked_hash_map! {"expr".into() => air::ProjectItem::Assignment(
+                air::Expression::Convert(air::Convert {
+                    input: air::Expression::Literal(air::LiteralValue::String("2014-01-56T08:15:39.736Z".into())).into(),
+                    to: air::Type::Datetime,
+                    on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                })
+            )}
+        }))
     );
     test_desugar_manual!(
         name = convert_valid_string_to_oid,
