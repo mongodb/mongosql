@@ -268,7 +268,7 @@ tests:
     current_db: db
     query: "SELECT VALUE {'a': a, 'b': b, 'v': - a * b, 'alt': - (a * b)} FROM [{'a': -1, 'b': 1}] AS arr"
     result:
-      - {'': {'a': -1, 'b': 1, 'v': 1, 'alt': 1}}
+      - {'': {'a': { '$numberInt': '-1' }, 'b': 1, 'v': 1, 'alt': 1}}
 
   # The expression
   #

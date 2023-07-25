@@ -1,0 +1,673 @@
+"catalog_data":
+  "testquerydb":
+    "foo":
+      - {
+          "_id": 0,
+          "a": { "$numberInt": "1" },
+          "b": { "$numberInt": "2" },
+          "coll": "foo",
+        }
+      - {
+          "_id": 1,
+          "a": { "$numberInt": "2" },
+          "b": { "$numberInt": "1" },
+          "coll": "foo",
+        }
+    "_foo":
+      - {
+          "_id": 0,
+          "a": { "$numberInt": "1" },
+          "b": { "$numberInt": "2" },
+          "coll": "_foo",
+        }
+      - {
+          "_id": 1,
+          "a": { "$numberInt": "2" },
+          "b": { "$numberInt": "1" },
+          "coll": "_foo",
+        }
+    "bar.baz":
+      - {
+          "_id": 0,
+          "a": { "$numberInt": "1" },
+          "b": { "$numberInt": "2" },
+          "coll": "bar.baz",
+        }
+      - {
+          "_id": 1,
+          "a": { "$numberInt": "2" },
+          "b": { "$numberInt": "1" },
+          "coll": "bar.baz",
+        }
+    "bar":
+      - {
+          "_id": 0,
+          "a": { "$numberInt": "1" },
+          "b": { "$numberInt": "2" },
+          "coll": "bar",
+        }
+      - {
+          "_id": 1,
+          "a": { "$numberInt": "2" },
+          "b": { "$numberInt": "1" },
+          "coll": "bar",
+        }
+
+"catalog_schema":
+  {
+    "testquerydb":
+      {
+        "foo":
+          {
+            "bsonType": "object",
+            "required": ["id", "a", "b", "coll"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a": { "bsonType": "int" },
+                "b": { "bsonType": "int" },
+                "coll": { "bsonType": "string" },
+              },
+          },
+        "_foo":
+          {
+            "bsonType": "object",
+            "required": ["id", "a", "b", "coll"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a": { "bsonType": "int" },
+                "b": { "bsonType": "int" },
+                "coll": { "bsonType": "string" },
+              },
+          },
+        "bar.baz":
+          {
+            "bsonType": "object",
+            "required": ["id", "a", "b", "coll"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a": { "bsonType": "int" },
+                "b": { "bsonType": "int" },
+                "coll": { "bsonType": "string" },
+              },
+          },
+        "bar":
+          {
+            "bsonType": "object",
+            "required": ["id", "a", "b", "coll"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a": { "bsonType": "int" },
+                "b": { "bsonType": "int" },
+                "coll": { "bsonType": "string" },
+              },
+          },
+      },
+  }
+
+tests:
+  - description: Can use $ and . characters in collection aliases
+    query: "SELECT * FROM foo as `$foo.alias`"
+    current_db: testquerydb
+    result:
+      - {
+          "$foo.alias":
+            {
+              "_id": 0,
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "foo",
+            },
+        }
+      - {
+          "$foo.alias":
+            {
+              "_id": 1,
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "foo",
+            },
+        }
+
+  - description: Can use $ and . characters in field aliases
+    query: "SELECT VALUE { '$a.alias': a } FROM foo"
+    current_db: testquerydb
+    result:
+      - { "": { "$a.alias": { "$numberInt": "1" } } }
+      - { "": { "$a.alias": { "$numberInt": "2" } } }
+
+  - description: Resolves conflicts for aliases with $ and .
+    query: "SELECT * FROM `foo`, `bar.baz`, `_foo`, `bar`"
+    current_db: testquerydb
+    result:
+      - {
+          "foo":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "foo",
+            },
+          "_foo":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "_foo",
+            },
+          "bar":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar",
+            },
+          "bar.baz":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar.baz",
+            },
+        }
+
+      - {
+          "foo":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "foo",
+            },
+          "_foo":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "_foo",
+            },
+          "bar":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar",
+            },
+          "bar.baz":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar.baz",
+            },
+        }
+
+      - {
+          "foo":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "foo",
+            },
+          "_foo":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "_foo",
+            },
+          "bar":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar",
+            },
+          "bar.baz":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar.baz",
+            },
+        }
+
+      - {
+          "foo":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "foo",
+            },
+          "_foo":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "_foo",
+            },
+          "bar":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar",
+            },
+          "bar.baz":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar.baz",
+            },
+        }
+
+      - {
+          "foo":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "foo",
+            },
+          "_foo":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "_foo",
+            },
+          "bar":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar",
+            },
+          "bar.baz":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar.baz",
+            },
+        }
+
+      - {
+          "foo":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "foo",
+            },
+          "_foo":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "_foo",
+            },
+          "bar":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar",
+            },
+          "bar.baz":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar.baz",
+            },
+        }
+
+      - {
+          "foo":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "foo",
+            },
+          "_foo":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "_foo",
+            },
+          "bar":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar",
+            },
+          "bar.baz":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar.baz",
+            },
+        }
+
+      - {
+          "foo":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "foo",
+            },
+          "_foo":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "_foo",
+            },
+          "bar":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar",
+            },
+          "bar.baz":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar.baz",
+            },
+        }
+      - {
+          "foo":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "foo",
+            },
+          "_foo":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "_foo",
+            },
+          "bar":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar",
+            },
+          "bar.baz":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar.baz",
+            },
+        }
+      - {
+          "foo":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "foo",
+            },
+          "_foo":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "_foo",
+            },
+          "bar":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar",
+            },
+          "bar.baz":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar.baz",
+            },
+        }
+      - {
+          "foo":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "foo",
+            },
+          "_foo":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "_foo",
+            },
+          "bar":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar",
+            },
+          "bar.baz":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar.baz",
+            },
+        }
+      - {
+          "foo":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "foo",
+            },
+          "_foo":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "_foo",
+            },
+          "bar":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar",
+            },
+          "bar.baz":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar.baz",
+            },
+        }
+      - {
+          "foo":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "foo",
+            },
+          "_foo":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "_foo",
+            },
+          "bar":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar",
+            },
+          "bar.baz":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar.baz",
+            },
+        }
+      - {
+          "foo":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "foo",
+            },
+          "_foo":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "_foo",
+            },
+          "bar":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar",
+            },
+          "bar.baz":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar.baz",
+            },
+        }
+      - {
+          "foo":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "foo",
+            },
+          "_foo":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "_foo",
+            },
+          "bar":
+            {
+              "_id": { "$numberInt": "0" },
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar",
+            },
+          "bar.baz":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar.baz",
+            },
+        }
+      - {
+          "foo":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "foo",
+            },
+          "_foo":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "_foo",
+            },
+          "bar":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar",
+            },
+          "bar.baz":
+            {
+              "_id": { "$numberInt": "1" },
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar.baz",
+            },
+        }
+
+  - description: Can use aliases in on when defined in subselects
+    query: "SELECT t1.*, t2.* FROM (SELECT * FROM foo AS t1) AS t1 JOIN (SELECT * FROM bar AS t2) as t2 ON t1.a = t2.b"
+    current_db: testquerydb
+    result:
+      - {
+          "t1":
+            {
+              "_id": 0,
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "foo",
+            },
+          "t2":
+            {
+              "_id": 1,
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "bar",
+            },
+        }
+      - {
+          "t1":
+            {
+              "_id": 1,
+              "a": { "$numberInt": "2" },
+              "b": { "$numberInt": "1" },
+              "coll": "foo",
+            },
+          "t2":
+            {
+              "_id": 0,
+              "a": { "$numberInt": "1" },
+              "b": { "$numberInt": "2" },
+              "coll": "bar",
+            },
+        }

@@ -189,7 +189,8 @@ functions:
   "download c library":
     - command: s3.get
       params:
-        build_variants: ['macos', 'macos-arm64', 'rhel76', 'ubuntu1804', 'amazon2-arm64']
+        build_variants:
+          ["macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64"]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/libmongosql.a
@@ -197,7 +198,7 @@ functions:
         bucket: mciuploads
     - command: s3.get
       params:
-        build_variants: ['windows']
+        build_variants: ["windows"]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/mongosql.dll
@@ -377,7 +378,51 @@ functions:
           $MONGODB_TEST_RHEL_VERSION/bin/mongod --dbpath data_db &
 
           echo "run index usage tests"
-          cargo test run_index_usage_tests -- --ignored
+          cargo test --features index-test --package e2e-tests
+          pkill mongod
+
+  # Just running the rust query tests on RHEL 7.6 for now
+  "run rust query tests":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+
+          echo "downloading mongodb"
+          curl -O https://fastdl.mongodb.org/linux/$MONGODB_TEST_RHEL_VERSION.tgz
+          tar zxvf $MONGODB_TEST_RHEL_VERSION.tgz
+          mkdir -p data_db
+
+          echo "starting mongodb"
+          $MONGODB_TEST_RHEL_VERSION/bin/mongod --dbpath data_db &
+
+          echo "run query tests"
+          cargo test --features query-test --package e2e-tests
+          pkill mongod
+
+  # Just running the rust e2e tests on RHEL 7.6 for now
+  "run rust e2e tests":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+
+          echo "downloading mongodb"
+          curl -O https://fastdl.mongodb.org/linux/$MONGODB_TEST_RHEL_VERSION.tgz
+          tar zxvf $MONGODB_TEST_RHEL_VERSION.tgz
+          mkdir -p data_db
+
+          echo "starting mongodb"
+          $MONGODB_TEST_RHEL_VERSION/bin/mongod --dbpath data_db &
+
+          echo "run e2e tests"
+          cargo test --features query-test,e2e-test --package e2e-tests
           pkill mongod
 
   "run rust tests":
@@ -403,7 +448,8 @@ functions:
   "upload c library":
     - command: s3.put
       params:
-        build_variants: ['macos', 'macos-arm64', 'rhel76', 'ubuntu1804', 'amazon2-arm64']
+        build_variants:
+          ["macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64"]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/target/release/libmongosql.a
@@ -413,7 +459,7 @@ functions:
         content_type: application/octet-stream
     - command: s3.put
       params:
-        build_variants: ['windows']
+        build_variants: ["windows"]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/target/release/mongosql.dll
@@ -423,7 +469,8 @@ functions:
         content_type: application/octet-stream
     - command: s3.put
       params:
-        build_variants: ['macos', 'macos-arm64', 'rhel76', 'ubuntu1804', 'amazon2-arm64']
+        build_variants:
+          ["macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64"]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/test_target/release/libmongosql.a
@@ -433,7 +480,7 @@ functions:
         content_type: application/octet-stream
     - command: s3.put
       params:
-        build_variants: ['windows']
+        build_variants: ["windows"]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/test_target/release/mongosql.dll
@@ -547,7 +594,6 @@ pre:
 post: []
 
 tasks:
-
   - name: clippy
     commands:
       - func: "install rust toolchain"
@@ -609,11 +655,21 @@ tasks:
       - func: "install rust toolchain"
       - func: "run index usage tests"
 
+  - name: test-rust-query
+    commands:
+      - func: "install rust toolchain"
+      - func: "run rust query tests"
+
+  - name: test-rust-e2e
+    commands:
+      - func: "install rust toolchain"
+      - func: "run rust e2e tests"
+
   - name: release
     git_tag_only: true
     depends_on:
       - name: compile
-        variant: '*'
+        variant: "*"
     commands:
       - func: "perform release"
 
@@ -731,10 +787,9 @@ tasks:
           workload_filename: "workload_denorm_sf1.yml"
 
 buildvariants:
-
   - name: static-analysis
     display_name: "* Static Analysis"
-    run_on: [ ubuntu1804-test ]
+    run_on: [ubuntu1804-test]
     tasks:
       - name: clippy
       - name: rustfmt
@@ -744,7 +799,7 @@ buildvariants:
 
   - name: ubuntu1804
     display_name: "Ubuntu 18.04"
-    run_on: [ ubuntu1804-large ]
+    run_on: [ubuntu1804-large]
     tasks:
       - name: compile
       - name: test-rust
@@ -753,7 +808,7 @@ buildvariants:
 
   - name: rhel76
     display_name: "RHEL 7.6"
-    run_on: [ rhel76-large ]
+    run_on: [rhel76-large]
     tasks:
       - name: compile
       - name: test-rust
@@ -761,10 +816,12 @@ buildvariants:
       - name: test-go
       - name: test-spec
       - name: test-index-usage
+      - name: test-rust-query
+      - name: test-rust-e2e
 
   - name: macos
     display_name: "macOS 10.14"
-    run_on: [ macos-1014 ]
+    run_on: [macos-1014]
     tasks:
       - name: compile
       - name: test-rust
@@ -773,7 +830,7 @@ buildvariants:
 
   - name: macos-arm64
     display_name: "macOS 11.0 arm64"
-    run_on: [ macos-1100-arm64 ]
+    run_on: [macos-1100-arm64]
     tasks:
       - name: compile
       - name: test-rust
@@ -782,7 +839,7 @@ buildvariants:
 
   - name: amazon2-arm64
     display_name: "Amazon2 arm64"
-    run_on: [ amazon2-arm64-large ]
+    run_on: [amazon2-arm64-large]
     tasks:
       - name: compile
       - name: test-rust
@@ -791,7 +848,7 @@ buildvariants:
 
   - name: windows
     display_name: "Windows"
-    run_on: [ windows-64-vs2019-large ]
+    run_on: [windows-64-vs2019-large]
     tasks:
       - name: compile
       - name: test-rust
@@ -800,7 +857,7 @@ buildvariants:
 
   - name: benchmark
     display_name: "Benchmark"
-    run_on: [ ubuntu2004-medium ]
+    run_on: [ubuntu2004-medium]
     tasks:
       - name: criterion
 
@@ -817,6 +874,6 @@ buildvariants:
 
   - name: release
     display_name: "Release"
-    run_on: [ ubuntu1804-large ]
+    run_on: [ubuntu1804-large]
     tasks:
       - name: release

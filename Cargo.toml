@@ -1,11 +1,11 @@
 [workspace]
 
 members = [
-  "benchmark/pipeline_generator",
-  "index-usage-test",
-  "mongosql-datastructures",
-  "mongosql-c",
-  "mongosql",
-  "visitgen",
-  "visitgen-test",
+    "benchmark/pipeline_generator",
+    "e2e-tests",
+    "mongosql-datastructures",
+    "mongosql-c",
+    "mongosql",
+    "visitgen",
+    "visitgen-test",
 ]

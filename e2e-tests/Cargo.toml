@@ -1,5 +1,5 @@
 [package]
-name = "index-usage-test"
+name = "e2e-tests"
 version = "0.1.0"
 edition = "2021"
 
@@ -17,3 +17,8 @@ thiserror = "1"
 version = "2.6"
 default-features = false
 features = ["tokio-sync"]
+
+[features]
+index-test = []
+query-test = []
+e2e-test = []
