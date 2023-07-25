@@ -1,8 +1,8 @@
 SchemaVersion: 2018-07-01
 Owner: "@mongodb/product-query"
 Description: |
-  This workload demonstrates the RunCommand actor, which can be used
-  to execute a command against the server.
+  This workload uses the RunCommand actor to issue an aggregation pipeline,
+  generated using Atlas SQL
 
 SamplePhase:
   Repeat: 1

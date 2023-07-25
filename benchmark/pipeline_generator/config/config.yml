@@ -485,7 +485,7 @@ workloads:
           p_partkey = ps_partkey 
           and supplier.s_suppkey = partsupp.ps_suppkey 
           and p_size = 20 
-          and p_type like '.*STEEL' 
+          and p_type like '%STEEL' 
           and supplier.s_nationkey = nation.n_nationkey 
           and nation.n_regionkey = r_regionkey 
           and region.r_name = 'AMERICA' 
@@ -608,7 +608,7 @@ workloads:
           lineitem
       where
           l_shipdate >= '1994-01-01T00:00:00.000Z'::TIMESTAMP
-          and l_shipdate < '1994-01-01T00:00:00.000Z'::TIMESTAMP
+          and l_shipdate < '1995-01-01T00:00:00.000Z'::TIMESTAMP
           and l_discount between 0.06 - 0.01 and 0.06 + 0.011 and l_quantity < 24
 
   - name: q7_normalized
@@ -729,7 +729,7 @@ workloads:
               AND p_partkey = l_partkey 
               AND o_orderkey = l_orderkey 
               AND s_nationkey = n_nationkey  
-              AND p_name LIKE '.*pink.*'
+              AND p_name LIKE '%pink%'
       ) AS profit 
       GROUP BY 
           nation, 
@@ -867,7 +867,7 @@ workloads:
               orders
           ON
               c_custkey = o_custkey
-              and o_comment not like '.*special.*requests.*'
+              and o_comment not like '%special%requests%'
           GROUP BY
               c_custkey
       ) as c_orders
@@ -885,7 +885,7 @@ workloads:
     query: >
       SELECT
           100.00 * sum(case
-              when p_type like 'PROMO.*'
+              when p_type like 'PROMO%'
               then l_extendedprice*(1-l_discount)
               else 0 end
           ) / sum(l_extendedprice * (1 - l_discount)) as promo_revenue
@@ -939,7 +939,7 @@ workloads:
       WHERE 
           p_partkey = ps_partkey 
           AND p_brand <> 'Brand#45' 
-          AND p_type NOT LIKE '^MEDIUM POLISHED.*' 
+          AND p_type NOT LIKE '^MEDIUM POLISHED%' 
           AND p_size IN (49, 14, 23, 45, 19, 3, 36, 9) 
           AND ps_suppkey NOT IN (
               SELECT 
@@ -947,7 +947,7 @@ workloads:
               FROM 
                   supplier 
               WHERE 
-                  s_comment LIKE '.*requests.*the.*' 
+                  s_comment LIKE '%requests%the%' 
           ) 
       GROUP BY 
           p_brand, p_type, p_size 

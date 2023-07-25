@@ -1,0 +1,15 @@
+SchemaVersion: 2018-07-01
+Owner: "@10gen/sql-engines-team"
+Description: |
+  This workload is empty, as it couldn't be directly translated into aggregation
+  language using mongotranslate
+q17_normalized:
+  Repeat: 1
+  Database: tpch
+  Operations:
+    - OperationMetricsName: BIC
+      OperationName: RunCommand
+      OperationCommand:
+        aggregate: lineitem
+        pipeline:
+        cursor: {}

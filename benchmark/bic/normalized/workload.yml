@@ -7,8 +7,8 @@ Description: |
 Clients:
   Default:
     QueryOptions:
-      maxPoolSize: 500
-      socketTimeoutMS: 5_000  # = 1 hour
+      maxPoolSize: 100
+      socketTimeoutMS: 10_800_000  # 3 hours
       # connectTimeoutMS: 3_600_000
     URI: "mongodb://localhost:27017"
 
@@ -17,19 +17,85 @@ Actors:
   Type: RunCommand
   Threads: 1
   Phases:
-  - Duration: 5000 milliseconds
-    Database: tpch
-    Operations:
-    - OperationMetricsName: BIC
-      OperationName: RunCommand
-      OperationCommand:
-        aggregate: "nation"
-        pipeline: [
-          {
-            $group: {
-              _id: '$n_name',
-              count: { $sum: 1 }
-            }
-          }
-        ]
-        cursor: {}
+  - LoadConfig:
+      Path: phase/q1_normalized.yml
+      Key: q1_normalized
+  - LoadConfig:
+      Path: phase/q2_normalized.yml
+      Key: q2_normalized
+  - LoadConfig:
+      Path: phase/q3_normalized.yml
+      Key: q3_normalized
+
+# skip-reason: mongotranslate can not generate pipeline
+#   - LoadConfig:
+#       Path: phase/q4_normalized.yml
+#       Key: q4_normalized
+
+  - LoadConfig:
+      Path: phase/q5_normalized.yml
+      Key: q5_normalized
+  - LoadConfig:
+      Path: phase/q6_normalized.yml
+      Key: q6_normalized
+  - LoadConfig:
+      Path: phase/q7_normalized.yml
+      Key: q7_normalized
+  - LoadConfig:
+      Path: phase/q8_normalized.yml
+      Key: q8_normalized
+  - LoadConfig:
+      Path: phase/q9_normalized.yml
+      Key: q9_normalized
+  - LoadConfig:
+      Path: phase/q10_normalized.yml
+      Key: q10_normalized
+
+# skip-reason: mongotranslate can not generate pipeline
+#   - LoadConfig:
+#       Path: phase/q11_normalized.yml
+#       Key: q11_normalized
+
+  - LoadConfig:
+      Path: phase/q12_normalized.yml
+      Key: q12_normalized
+  - LoadConfig:
+      Path: phase/q13_normalized.yml
+      Key: q13_normalized
+  - LoadConfig:
+      Path: phase/q14_normalized.yml
+      Key: q14_normalized
+
+# skip-reason: mongotranslate can not generate pipeline
+#   - LoadConfig:
+#       Path: phase/q15_normalized.yml
+#       Key: q15_normalized
+
+  - LoadConfig:
+      Path: phase/q16_normalized.yml
+      Key: q16_normalized
+
+# skip-reason: mongotranslate can not generate pipeline
+#   - LoadConfig:
+#       Path: phase/q17_normalized.yml
+#       Key: q17_normalized
+
+  - LoadConfig:
+      Path: phase/q18_normalized.yml
+      Key: q18_normalized
+  - LoadConfig:
+      Path: phase/q19_normalized.yml
+      Key: q19_normalized
+
+# skip-reason: mongotranslate can not generate pipeline
+#   - LoadConfig:
+#       Path: phase/q20_normalized.yml
+#       Key: q20_normalized
+# skip-reason: mongotranslate can not generate pipeline
+#   - LoadConfig:
+#       Path: phase/q21_normalized.yml
+#       Key: q21_normalized
+# skip-reason: mongotranslate can not generate pipeline
+#   - LoadConfig:
+#       Path: phase/q22_normalized.yml
+#       Key: q22_normalized
