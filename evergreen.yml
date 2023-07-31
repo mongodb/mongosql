@@ -543,6 +543,11 @@ functions:
           curl -LO https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.7.2.tgz
           tar zxvf mongodb-database-tools-ubuntu2204-x86_64-100.7.2.tgz
 
+          echo "setting up mongosh"
+          curl -LO https://downloads.mongodb.com/compass/mongosh-1.8.0-linux-x64.tgz
+          tar zxf mongosh-1.8.0-linux-x64.tgz
+
+
           # call pipeline generator to create atlas_sql/(normalized/denormalized) phase files
           cargo run --bin pipeline_generator
           
@@ -560,7 +565,10 @@ functions:
           stdbuf -oL sar -P ALL $SAR_INTERVAL | awk '{ print strftime("%Y-%m-%d "), $0; fflush(); }' > sar-cpu.log &
           SAR_CPU=$!
           
+          # run genny, and print out database profiling information
+          mongosh-1.8.0-linux-x64/bin/mongosh tpch --eval "db.setProfilingLevel(2)"
           ../genny/run-genny workload benchmark/${pipeline_dir}/${workload_filename}
+          mongosh-1.8.0-linux-x64/bin/mongosh tpch --eval "db.system.profile.find().pretty()" > profile.log
 
           # add validation dataset separately if needed; load into `tpch` database
           if [[ "${pipeline_dir}" == *"validation"* ]]; then
@@ -582,7 +590,18 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/sar.log.tgz
-        remote_file: mongosql-rs/artifacts/${version_id}/${pipeline_dir}/sar.log.tgz
+        remote_file: mongosql-rs/artifacts/${version_id}/${pipeline_dir}/${s3_prefix}Sar.log.tgz
+        display_name: ${s3_prefix}Sar.log.tgz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/profile.log
+        remote_file: mongosql-rs/artifacts/${version_id}/${pipeline_dir}/${s3_prefix}Profile.log
+        display_name: ${s3_prefix}Profile.log
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
@@ -689,6 +708,7 @@ tasks:
           dataset_filename: "tpch-0.001-normalized-indexed.archive.gz"
           pipeline_dir: atlas_sql/normalized
           workload_filename: "workload_norm_sf.001.yml"
+          s3_prefix: "Sf001"
 
   - name: tpch-001-denormalized-atlas-sql
     allow_for_git_tag: false
@@ -699,6 +719,7 @@ tasks:
           dataset_filename: "tpch-0.001-denormalized-indexed.archive.gz"
           pipeline_dir: atlas_sql/denormalized
           workload_filename: "workload_denorm_sf.001.yml"
+          s3_prefix: "Sf001"
 
   - name: tpch-1-normalized-atlas-sql
     allow_for_git_tag: false
@@ -709,6 +730,7 @@ tasks:
           dataset_filename: "tpch-1-normalized-indexed.archive.gz"
           pipeline_dir: atlas_sql/normalized
           workload_filename: "workload_norm_sf1.yml"
+          s3_prefix: "Sf1"
 
   - name: tpch-1-denormalized-atlas-sql
     allow_for_git_tag: false
@@ -719,6 +741,7 @@ tasks:
           dataset_filename: "tpch-1-denormalized-indexed.archive.gz"
           pipeline_dir: atlas_sql/denormalized
           workload_filename: "workload_denorm_sf1.yml"
+          s3_prefix: "Sf1"
 
   - name: tpch-001-normalized-bic
     allow_for_git_tag: false
