@@ -547,7 +547,6 @@ functions:
           curl -LO https://downloads.mongodb.com/compass/mongosh-1.8.0-linux-x64.tgz
           tar zxf mongosh-1.8.0-linux-x64.tgz
 
-
           # call pipeline generator to create atlas_sql/(normalized/denormalized) phase files
           cargo run --bin pipeline_generator
           
@@ -577,21 +576,83 @@ functions:
             mongodb-database-tools-ubuntu2204-x86_64-100.7.2/bin/mongorestore --nsFrom "validation.*" --nsTo "tpch.*" --numInsertionWorkersPerCollection=8 --bypassDocumentValidation --gzip --archive=tpch-validation.archive.gz
           fi
           
+          echo "Running workload: benchmark/${pipeline_dir}/${workload_filename}"
+          ../genny/run-genny workload benchmark/${pipeline_dir}/${workload_filename}
+          
+          # Convert ftdc to json for perf.send
+          PERF_RESULTS_FILE=tpch-perf-results.json
+          curator ftdc export json --input=build/WorkloadOutput/CedarMetrics/NewTest.AtlasSQL.ftdc \
+              --output=$PERF_RESULTS_FILE
+
+          phase=1
+          result_str=""
+          while IFS= read -r line
+          do
+            dur_ns=$(echo $line | jq -r '.timers.dur')
+            current_dur_s=$(awk "BEGIN {print $dur_ns/1000000000}")
+            if [[ "$phase" -eq 1 ]]; then
+                elapsed_time=$current_dur_s
+            else
+                elapsed_time=$(bc <<< $current_dur_s-$previous_dur_s)
+            fi
+          
+            json=$(jq -n \
+                --arg phase "$phase" \
+                --argjson elapsed_time "$elapsed_time" \
+                '{
+                  "info": {
+                    "test_name": ("phase " + $phase),
+                    "args": {}
+                  },
+                  "metrics": [{
+                    "name": ("duration_phase_" + $phase),
+                    "value": $elapsed_time
+                  }]
+                }')
+            if [ "$result_str" != "" ]; then
+              result_str="$result_str,"
+            fi
+            result_str="$result_str$json"
+            ((phase++))
+            previous_dur_s=$current_dur_s
+          done < "$PERF_RESULTS_FILE"
+
+          # Add total runtime
+          entry=',{
+                   "info": {
+                     "test_name": "TPC-H Benchmark Runtime Total",
+                     "args": {}
+                   },
+                   "metrics": [{
+                     "name": "total_duration",
+                     "value": '"$current_dur_s"'
+                   }]
+                }'
+          result_str="$result_str$entry"
+          result_str="[$result_str]"
+          echo "$result_str" > processed-tpch-perf-results.json
+          echo "Processed TPC-H Performance Results:"
+          cat processed-tpch-perf-results.json 
+          
           # Print out the translations
-          find benchmark/${pipeline_dir}/phase/ -type f -name '*' -exec sh -c 'for dir; do echo "$dir"; find "$dir" -maxdepth 1 -type f -print0 | xargs -0 cat; done' {} +
+          find benchmark/${pipeline_dir}/phase/ -type f -name '*' -exec sh -c 'for dir; do echo "$dir"; find "$dir" \
+            -maxdepth 1 -type f -print0 | xargs -0 cat; done' {} + > translations.log
           
           rm ${dataset_filename}
           pkill mongod
           
           kill -9 $SAR_MEM $SAR_DISK $SAR_CPU
           tar -czvf sar.log.tgz ./sar-mem.log ./sar-disk.log ./sar-cpu.log
+    - command: perf.send
+      params:
+        file: ./mongosql-rs/processed-tpch-perf-results.json
     - command: s3.put
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/sar.log.tgz
-        remote_file: mongosql-rs/artifacts/${version_id}/${pipeline_dir}/${s3_prefix}Sar.log.tgz
-        display_name: ${s3_prefix}Sar.log.tgz
+        remote_file: mongosql-rs/artifacts/${version_id}/${pipeline_dir}/${s3_prefix}.Sar.log.tgz
+        display_name: ${s3_prefix}.Sar.log.tgz
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
@@ -600,8 +661,18 @@ functions:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/profile.log
-        remote_file: mongosql-rs/artifacts/${version_id}/${pipeline_dir}/${s3_prefix}Profile.log
-        display_name: ${s3_prefix}Profile.log
+        remote_file: mongosql-rs/artifacts/${version_id}/${pipeline_dir}/${s3_prefix}.Profile.log
+        display_name: ${s3_prefix}.Profile.log
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/translations.log
+        remote_file: mongosql-rs/artifacts/${version_id}/${pipeline_dir}/${s3_prefix}.Translations.log
+        display_name: ${s3_prefix}.Translations.log
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
