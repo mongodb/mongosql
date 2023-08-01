@@ -25,7 +25,7 @@ tests:
         "$lookup":
           {
             "from": "bar",
-            "pipeline": [{ "$limit": 1 }],
+            "pipeline": [],
             "as": "__subquery_result_0",
           },
       }
@@ -66,7 +66,7 @@ tests:
       - {
         "$lookup":
           {
-            "pipeline": [{ "$documents": [{ "a": 1 }] }, { "$limit": 1 }],
+            "pipeline": [{ "$documents": [{ "a": 1 }] }],
             "as": "__subquery_result_0",
           },
       }
@@ -727,7 +727,7 @@ tests:
       - {
         "$lookup": {
           "from": "bar",
-          "pipeline": [ { "$limit": 1 } ],
+          "pipeline": [],
           "as": "__subquery_result_0"
         }
       }

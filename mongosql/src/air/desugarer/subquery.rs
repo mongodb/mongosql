@@ -324,45 +324,9 @@ impl Visitor for SubqueryExprDesugarerPassVisitor {
 }
 
 #[derive(Default)]
-struct SubqueryLimitAdder {
-    ignore_subquery_comp_subquery: bool,
-}
+struct SubqueryLimitAdder {}
 
 impl Visitor for SubqueryLimitAdder {
-    fn visit_subquery(&mut self, node: Subquery) -> Subquery {
-        let node = node.walk(self);
-
-        // Update the Subquery pipeline to end with Limit(1) if it does not
-        // already.
-        if self.ignore_subquery_comp_subquery
-            || matches!(
-                *node.pipeline,
-                Limit(Limit {
-                    source: _,
-                    limit: 1
-                })
-            )
-        {
-            node
-        } else {
-            Subquery {
-                let_bindings: node.let_bindings,
-                output_path: node.output_path,
-                pipeline: Box::new(Limit(Limit {
-                    source: node.pipeline,
-                    limit: 1,
-                })),
-            }
-        }
-    }
-
-    fn visit_subquery_comparison(&mut self, node: SubqueryComparison) -> SubqueryComparison {
-        self.ignore_subquery_comp_subquery = true;
-        let node = node.walk(self);
-        self.ignore_subquery_comp_subquery = false;
-        node
-    }
-
     fn visit_subquery_exists(&mut self, node: SubqueryExists) -> SubqueryExists {
         let node = node.walk(self);
 

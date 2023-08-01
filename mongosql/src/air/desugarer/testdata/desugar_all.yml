@@ -64,7 +64,6 @@ tests:
                   "$project":
                   {  "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 },
                 },
-                { "$limit": 1 },
               ],
             "as": "__subquery_result_0",
           },
@@ -276,7 +275,6 @@ tests:
                                           "eca58228-b657-498a-b76e-f48a9161a404": 0,
                                         },
                                     },
-                                    { "$limit": 1 },
                                   ],
                                 "as": "__subquery_result_0",
                               },
@@ -327,7 +325,6 @@ tests:
                   "$project":
                     { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 },
                 },
-                { "$limit": 1 },
               ],
             "as": "__subquery_result_0",
           },
@@ -437,7 +434,6 @@ tests:
               [
                 { "$group": { "_id": null, "acc": { "$addToSet": "$a" } } },
                 { "$project": { "_id": 1,"acc": { "$avg": "$acc" } } },
-                { "$limit": 1 },
               ],
             "as": "__subquery_result_0",
           },
@@ -498,7 +494,7 @@ tests:
                   "$lookup":
                     {
                       "from": "baz",
-                      "pipeline": [{ "$limit": 1 }],
+                      "pipeline": [],
                       "as": "__subquery_result_0",
                     },
                 },
@@ -573,7 +569,7 @@ tests:
                   "$lookup":
                     {
                       "from": "baz",
-                      "pipeline": [{ "$limit": 1 }],
+                      "pipeline": [],
                       "as": "__subquery_result_0",
                     },
                 },
@@ -645,7 +641,7 @@ tests:
         "$lookup":
           {
             "from": "baz",
-            "pipeline": [{ "$limit": 1 }],
+            "pipeline": [],
             "as": "__subquery_result_0",
           },
       }
@@ -718,7 +714,7 @@ tests:
         "$lookup":
           {
             "from": "bar",
-            "pipeline": [{ "$limit": 1 }],
+            "pipeline": [],
             "as": "__subquery_result_0",
           },
       }
@@ -775,7 +771,7 @@ tests:
         "$lookup":
           {
             "from": "bar",
-            "pipeline": [{ "$limit": 1 }],
+            "pipeline": [],
             "as": "__subquery_result_0",
           },
       }
@@ -840,7 +836,7 @@ tests:
         "$lookup":
           {
             "from": "bar",
-            "pipeline": [{ "$limit": 1 }],
+            "pipeline": [],
             "as": "__subquery_result_0",
           },
       }
@@ -1140,7 +1136,6 @@ tests:
                   "$project":
                     { "v": { "$slice": ["$$arr", "$len"] } },
                 },
-                { "$limit": 1 },
               ],
             "as": "__subquery_result_0",
           },
@@ -1456,7 +1451,6 @@ tests:
                         },
                     },
                 },
-                { "$limit": 1 },
               ],
             "as": "__subquery_result_0",
           },
@@ -1697,7 +1691,6 @@ tests:
                         },
                     },
                 },
-                { "$limit": 1 },
               ],
             "as": "__subquery_result_0",
           },
