@@ -372,13 +372,13 @@ impl<'a> StageMovementVisitor<'a> {
     }
 
     // A source prevents a reorder if it is a terminal source: Collection, Array, or if
-    // it is a Sort and the current node is also a Sort because reordering Sorts amongst themselves
-    // actually changes semantics.
+    // it is a Sort and the current node is also a Sort or Group because reordering Sorts amongst themselves
+    // actually changes semantics and reordering Groups will change sort order.
     fn source_prevents_reorder(node: &Stage) -> bool {
         match *node {
             Stage::Sort(ref n) => matches!(
                 &*n.source,
-                Stage::Collection(_) | Stage::Array(_) | Stage::Sort(_)
+                Stage::Collection(_) | Stage::Array(_) | Stage::Sort(_) | Stage::Group(_)
             ),
             Stage::Filter(ref n) => matches!(&*n.source, Stage::Collection(_) | Stage::Array(_)),
             _ => unreachable!(),

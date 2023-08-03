@@ -628,6 +628,95 @@ test_move_stage!(
 );
 
 test_move_stage!(
+    move_sorts_above_project_but_not_above_group,
+    expected = Stage::Limit(Limit {
+        source: Stage::Project(Project {
+            source: Stage::Sort(Sort {
+                source: Stage::Group(Group {
+                    source: Stage::Collection(Collection {
+                        db: "foo".to_string(),
+                        collection: "bar".to_string(),
+                        cache: SchemaCache::new(),
+                    })
+                    .into(),
+                    cache: SchemaCache::new(),
+                    keys: vec![],
+                    aggregations: vec![],
+                    scope: 0
+                })
+                .into(),
+                specs: vec![SortSpecification::Desc(
+                    mir::Expression::FieldAccess(mir::FieldAccess {
+                        expr: mir::Expression::FieldAccess(mir::FieldAccess {
+                            expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
+                            field: "x".to_string(),
+                            cache: SchemaCache::new(),
+                        })
+                        .into(),
+                        field: "b".to_string(),
+                        cache: SchemaCache::new(),
+                    })
+                    .into(),
+                ),],
+                cache: SchemaCache::new(),
+            })
+            .into(),
+            expression: BindingTuple(map! {
+                Key::named("bar", 0u16) => mir::Expression::FieldAccess(mir::FieldAccess {
+                     expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
+                     field: "x".to_string(),
+                     cache: SchemaCache::new(),
+                }),
+            }),
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        limit: 10,
+        cache: SchemaCache::new(),
+    }),
+    input = Stage::Limit(Limit {
+        source: Stage::Sort(Sort {
+            source: Stage::Project(Project {
+                source: Stage::Group(Group {
+                    source: Stage::Collection(Collection {
+                        db: "foo".to_string(),
+                        collection: "bar".to_string(),
+                        cache: SchemaCache::new(),
+                    })
+                    .into(),
+                    cache: SchemaCache::new(),
+                    keys: vec![],
+                    aggregations: vec![],
+                    scope: 0
+                })
+                .into(),
+                expression: BindingTuple(map! {
+                    Key::named("bar", 0u16) => mir::Expression::FieldAccess(mir::FieldAccess {
+                         expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
+                         field: "x".to_string(),
+                         cache: SchemaCache::new(),
+                    }),
+                }),
+                cache: SchemaCache::new(),
+            })
+            .into(),
+            specs: vec![SortSpecification::Desc(
+                mir::Expression::FieldAccess(mir::FieldAccess {
+                    expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
+                    field: "b".to_string(),
+                    cache: SchemaCache::new(),
+                })
+                .into(),
+            ),],
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        limit: 10,
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage!(
     move_filters_above_project_will_reorder_filter_to_filter,
     expected = Stage::Limit(Limit {
         source: Stage::Project(Project {
