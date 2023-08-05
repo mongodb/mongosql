@@ -9,7 +9,6 @@ Clients:
     QueryOptions:
       maxPoolSize: 100
       socketTimeoutMS: 10_800_000  # 3 hours
-      # connectTimeoutMS: 3_600_000
     URI: "mongodb://localhost:27017"
 
 Actors:

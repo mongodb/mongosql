@@ -8,8 +8,7 @@ Clients:
   Default:
     QueryOptions:
       maxPoolSize: 100
-      socketTimeoutMS: 10_800_000  # 3 hours
-      # connectTimeoutMS: 3_600_000
+      socketTimeoutMS: 86_400_000  # 1 day
     URI: "mongodb://localhost:27017"
 
 Actors:
@@ -17,12 +16,19 @@ Actors:
   Type: RunCommand
   Threads: 1
   Phases:
+  # Phase numbering starts with Phase 0
+  - LoadConfig:
+      Path: phase/q15_normalized.yml
+      Key: TPCHNormalizedQuery15CreateView
   - LoadConfig:
       Path: phase/q1_normalized.yml
       Key: q1_normalized
   - LoadConfig:
       Path: phase/q2_normalized.yml
       Key: q2_normalized
+  - LoadConfig:
+      Path: ../phase_noop.yml
+      Key: NoopPhase
   - LoadConfig:
       Path: phase/q3_normalized.yml
       Key: q3_normalized
@@ -59,36 +65,49 @@ Actors:
   - LoadConfig:
       Path: phase/q14_normalized.yml
       Key: q14_normalized
-  # Q15 Creates `revenue` view, runs query, drops view
-  - LoadConfig:
-      Path: phase/q15_normalized.yml
-      Key: TPCHNormalizedQuery15CreateView
+  # Q15 Uses `revenue` view from previous phase
   - LoadConfig:
       Path: phase/q15_normalized.yml
       Key: q15_normalized
   - LoadConfig:
-      Path: phase/q15_normalized.yml
-      Key: TPCHNormalizedQuery15DropView
-  - LoadConfig:
       Path: phase/q16_normalized.yml
       Key: q16_normalized
+  # SF0.1 q17 and q18 take > day to complete
+  #  - LoadConfig:
+  #      Path: phase/q17_normalized.yml
+  #      Key: q17_normalized
+  #  - LoadConfig:
+  #      Path: phase/q18_normalized.yml
+  #      Key: q18_normalized
   - LoadConfig:
-      Path: phase/q17_normalized.yml
-      Key: q17_normalized
+      Path: ../phase_noop.yml
+      Key: NoopPhase
   - LoadConfig:
-      Path: phase/q18_normalized.yml
-      Key: q18_normalized
+      Path: ../phase_noop.yml
+      Key: NoopPhase
+
   - LoadConfig:
       Path: phase/q19_normalized.yml
       Key: q19_normalized
-# skip reason: SQL-1539
-#   - LoadConfig:
-#       Path: phase/q20_normalized.yml
-#       Key: q20_normalized
+  # skip reason: SQL-1539
+  #   - LoadConfig:
+  #       Path: phase/q20_normalized.yml
+  #       Key: q20_normalized
+  - LoadConfig:
+      Path: ../phase_noop.yml
+      Key: NoopPhase
   - LoadConfig:
       Path: phase/q21_normalized.yml
       Key: q21_normalized
-#  Skip Reason: SQL-1540
-#  - LoadConfig:
-#      Path: phase/q22_normalized.yml
-#      Key: q22_normalized
+  #  Skip Reason: SQL-1540
+  #  - LoadConfig:
+  #      Path: phase/q22_normalized.yml
+  #      Key: q22_normalized
+  - LoadConfig:
+      Path: ../phase_noop.yml
+      Key: NoopPhase
+
+  # Adding to end to keep phase number aligned with query number
+  - LoadConfig:
+      Path: phase/q15_normalized.yml
+      Key: TPCHNormalizedQuery15DropView

@@ -1,8 +1,8 @@
 SchemaVersion: 2018-07-01
 Owner: "@10gen/sql-engines-team"
 Description: |
-  This workload demonstrates the RunCommand actor, which can be used
-  to execute a command against the server.
+  This workload runs the TPC-H Queries for 
+  the normalized scale factor .001 dataset
 
 Clients:
   Default:
@@ -18,8 +18,8 @@ Actors:
   Phases:
   # Phase numbering starts with Phase 0
   - LoadConfig:
-      Path: ../phase_noop.yml
-      Key: NoopPhase
+      Path: phase/q15_normalized.yml
+      Key: TPCHNormalizedQuery15CreateView
   - LoadConfig:
       Path: phase/q1_normalized.yml
       Key: q1_normalized
@@ -29,15 +29,9 @@ Actors:
   - LoadConfig:
       Path: phase/q3_normalized.yml
       Key: q3_normalized
-
-# skip-reason: mongotranslate can not generate pipeline
-#   - LoadConfig:
-#       Path: phase/q4_normalized.yml
-#       Key: q4_normalized
   - LoadConfig:
-      Path: ../phase_noop.yml
-      Key: NoopPhase
-
+      Path: phase/q4_normalized.yml
+      Key: q4_normalized
   - LoadConfig:
       Path: phase/q5_normalized.yml
       Key: q5_normalized
@@ -56,15 +50,9 @@ Actors:
   - LoadConfig:
       Path: phase/q10_normalized.yml
       Key: q10_normalized
-
-# skip-reason: mongotranslate can not generate pipeline
-#   - LoadConfig:
-#       Path: phase/q11_normalized.yml
-#       Key: q11_normalized
   - LoadConfig:
-      Path: ../phase_noop.yml
-      Key: NoopPhase
-
+      Path: phase/q11_normalized.yml
+      Key: q11_normalized
   - LoadConfig:
       Path: phase/q12_normalized.yml
       Key: q12_normalized
@@ -74,52 +62,41 @@ Actors:
   - LoadConfig:
       Path: phase/q14_normalized.yml
       Key: q14_normalized
-
-# skip-reason: mongotranslate can not generate pipeline
-#   - LoadConfig:
-#       Path: phase/q15_normalized.yml
-#       Key: q15_normalized
+  # Q15 Uses `revenue` view from previous phase
   - LoadConfig:
-      Path: ../phase_noop.yml
-      Key: NoopPhase
-
+      Path: phase/q15_normalized.yml
+      Key: q15_normalized
   - LoadConfig:
       Path: phase/q16_normalized.yml
       Key: q16_normalized
-
-# skip-reason: mongotranslate can not generate pipeline
-#   - LoadConfig:
-#       Path: phase/q17_normalized.yml
-#       Key: q17_normalized
   - LoadConfig:
-      Path: ../phase_noop.yml
-      Key: NoopPhase
-
+      Path: phase/q17_normalized.yml
+      Key: q17_normalized
   - LoadConfig:
       Path: phase/q18_normalized.yml
       Key: q18_normalized
   - LoadConfig:
       Path: phase/q19_normalized.yml
       Key: q19_normalized
+  # skip reason: SQL-1539
+  #   - LoadConfig:
+  #       Path: phase/q20_normalized.yml
+  #       Key: q20_normalized
+  - LoadConfig:
+      Path: ../phase_noop.yml
+      Key: NoopPhase
+  - LoadConfig:
+      Path: phase/q21_normalized.yml
+      Key: q21_normalized
+  #  Skip Reason: SQL-1540
+  #  - LoadConfig:
+  #      Path: phase/q22_normalized.yml
+  #      Key: q22_normalized
+  - LoadConfig:
+      Path: ../phase_noop.yml
+      Key: NoopPhase
 
-# skip-reason: mongotranslate can not generate pipeline
-#   - LoadConfig:
-#       Path: phase/q20_normalized.yml
-#       Key: q20_normalized
+  # Adding to end to keep phase number aligned with query number
   - LoadConfig:
-      Path: ../phase_noop.yml
-      Key: NoopPhase
-# skip-reason: mongotranslate can not generate pipeline
-#   - LoadConfig:
-#       Path: phase/q21_normalized.yml
-#       Key: q21_normalized
-  - LoadConfig:
-      Path: ../phase_noop.yml
-      Key: NoopPhase
-# skip-reason: mongotranslate can not generate pipeline
-#   - LoadConfig:
-#       Path: phase/q22_normalized.yml
-#       Key: q22_normalized
-  - LoadConfig:
-      Path: ../phase_noop.yml
-      Key: NoopPhase
+      Path: phase/q15_normalized.yml
+      Key: TPCHNormalizedQuery15DropView

@@ -11,8 +11,7 @@ stepback: true
 command_type: system
 
 # Protect ourself against rogue test case, or curl gone wild, that runs forever
-# 12 minutes is the longest we'll ever run
-exec_timeout_secs: 3600 # 12 minutes is the longest we'll ever run
+exec_timeout_secs: 86400 # 24hrs for TPC-H benchmark
 
 # What to do when evergreen hits the timeout (`post:` tasks are run automatically)
 timeout:
@@ -516,133 +515,14 @@ functions:
 
   "run TPC-H benchmark":
     - command: shell.exec
+      timeout_secs: 43200 # 12 hour timeout for new log entry
       type: test
       params:
         shell: bash
         working_dir: mongosql-rs
         script: |
           ${prepare_shell}
-          echo "downloading mongodb"
-          curl -O https://fastdl.mongodb.org/linux/$MONGODB_TEST_UBUNTU_VERSION.tgz
-          tar zxvf $MONGODB_TEST_UBUNTU_VERSION.tgz
-          mkdir -p data_db
-
-          echo "starting mongodb"
-          $MONGODB_TEST_UBUNTU_VERSION/bin/mongod --dbpath data_db &
-
-          echo "setting up Genny"
-          git clone git@github.com:mongodb/genny ../genny
-          cd ../genny
-          # Workaround until issue in `lamplib` requirements.txt is fixed
-          # EVG-20471
-          git checkout e50f6d5
-          ./run-genny install -d ubuntu2204
-          cd -
-
-          echo "setting up mongodb-database-tools"
-          curl -LO https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.7.2.tgz
-          tar zxvf mongodb-database-tools-ubuntu2204-x86_64-100.7.2.tgz
-
-          echo "setting up mongosh"
-          curl -LO https://downloads.mongodb.com/compass/mongosh-1.8.0-linux-x64.tgz
-          tar zxf mongosh-1.8.0-linux-x64.tgz
-
-          # call pipeline generator to create atlas_sql/(normalized/denormalized) phase files
-          cargo run --bin pipeline_generator
-          
-          echo "Downloading: https://dsi-donot-remove.s3.us-west-2.amazonaws.com/tpch/${dataset_filename}"
-          curl -LO "https://dsi-donot-remove.s3.us-west-2.amazonaws.com/tpch/${dataset_filename}"
-          mongodb-database-tools-ubuntu2204-x86_64-100.7.2/bin/mongorestore --drop --numInsertionWorkersPerCollection=8 --bypassDocumentValidation --gzip --archive=${dataset_filename}
-          
-          echo "Starting SAR resource logging"
-          # Log resource usage every 5 seconds
-          SAR_INTERVAL=5
-          stdbuf -oL sar -r $SAR_INTERVAL | awk '{ print strftime("%Y-%m-%d "), $0; fflush(); }' > sar-mem.log &
-          SAR_MEM=$!
-          stdbuf -oL sar -d $SAR_INTERVAL | awk '{ print strftime("%Y-%m-%d "), $0; fflush(); }' > sar-disk.log &
-          SAR_DISK=$!
-          stdbuf -oL sar -P ALL $SAR_INTERVAL | awk '{ print strftime("%Y-%m-%d "), $0; fflush(); }' > sar-cpu.log &
-          SAR_CPU=$!
-          
-          # run genny, and print out database profiling information
-          mongosh-1.8.0-linux-x64/bin/mongosh tpch --eval "db.setProfilingLevel(2)"
-          ../genny/run-genny workload benchmark/${pipeline_dir}/${workload_filename}
-          mongosh-1.8.0-linux-x64/bin/mongosh tpch --eval "db.system.profile.find().pretty()" > profile.log
-
-          # add validation dataset separately if needed; load into `tpch` database
-          if [[ "${pipeline_dir}" == *"validation"* ]]; then
-            echo "Downloading: https://dsi-donot-remove.s3.us-west-2.amazonaws.com/tpch/tpch-validation.archive.gz"
-            curl -LO "https://dsi-donot-remove.s3.us-west-2.amazonaws.com/tpch/tpch-validation.archive.gz"
-            mongodb-database-tools-ubuntu2204-x86_64-100.7.2/bin/mongorestore --nsFrom "validation.*" --nsTo "tpch.*" --numInsertionWorkersPerCollection=8 --bypassDocumentValidation --gzip --archive=tpch-validation.archive.gz
-          fi
-          
-          echo "Running workload: benchmark/${pipeline_dir}/${workload_filename}"
-          ../genny/run-genny workload benchmark/${pipeline_dir}/${workload_filename}
-          
-          # Convert ftdc to json for perf.send
-          PERF_RESULTS_FILE=tpch-perf-results.json
-          curator ftdc export json --input=build/WorkloadOutput/CedarMetrics/NewTest.AtlasSQL.ftdc \
-              --output=$PERF_RESULTS_FILE
-
-          phase=1
-          result_str=""
-          while IFS= read -r line
-          do
-            dur_ns=$(echo $line | jq -r '.timers.dur')
-            current_dur_s=$(awk "BEGIN {print $dur_ns/1000000000}")
-            if [[ "$phase" -eq 1 ]]; then
-                elapsed_time=$current_dur_s
-            else
-                elapsed_time=$(bc <<< $current_dur_s-$previous_dur_s)
-            fi
-          
-            json=$(jq -n \
-                --arg phase "$phase" \
-                --argjson elapsed_time "$elapsed_time" \
-                '{
-                  "info": {
-                    "test_name": ("phase " + $phase),
-                    "args": {}
-                  },
-                  "metrics": [{
-                    "name": ("duration_phase_" + $phase),
-                    "value": $elapsed_time
-                  }]
-                }')
-            if [ "$result_str" != "" ]; then
-              result_str="$result_str,"
-            fi
-            result_str="$result_str$json"
-            ((phase++))
-            previous_dur_s=$current_dur_s
-          done < "$PERF_RESULTS_FILE"
-
-          # Add total runtime
-          entry=',{
-                   "info": {
-                     "test_name": "TPC-H Benchmark Runtime Total",
-                     "args": {}
-                   },
-                   "metrics": [{
-                     "name": "total_duration",
-                     "value": '"$current_dur_s"'
-                   }]
-                }'
-          result_str="$result_str$entry"
-          result_str="[$result_str]"
-          echo "$result_str" > processed-tpch-perf-results.json
-          echo "Processed TPC-H Performance Results:"
-          cat processed-tpch-perf-results.json 
-          
-          # Print out the translations
-          find benchmark/${pipeline_dir}/phase/ -type f -name '*' -exec sh -c 'for dir; do echo "$dir"; find "$dir" \
-            -maxdepth 1 -type f -print0 | xargs -0 cat; done' {} + > translations.log
-          
-          rm ${dataset_filename}
-          pkill mongod
-          
-          kill -9 $SAR_MEM $SAR_DISK $SAR_CPU
-          tar -czvf sar.log.tgz ./sar-mem.log ./sar-disk.log ./sar-cpu.log
+          benchmark/run_tpch.sh ${pipeline_dir} ${workload_filename} ${dataset_filename}
     - command: perf.send
       params:
         file: ./mongosql-rs/processed-tpch-perf-results.json
@@ -770,7 +650,7 @@ tasks:
       - func: "run criterion profile"
       - func: "upload criterion artifacts"
 
-  - name: tpch-001-normalized-atlas-sql
+  - name: tpch-0.001-normalized-atlas-sql
     allow_for_git_tag: false
     commands:
       - func: "install rust toolchain"
@@ -778,22 +658,72 @@ tasks:
         vars:
           dataset_filename: "tpch-0.001-normalized-indexed.archive.gz"
           pipeline_dir: atlas_sql/normalized
-          workload_filename: "workload_norm_sf.001.yml"
-          s3_prefix: "Sf001"
+          workload_filename: "workload_norm_sf0.001.yml"
+          s3_prefix: "SF0.001"
 
-  - name: tpch-001-denormalized-atlas-sql
+  - name: tpch-0.001-denormalized-atlas-sql
     allow_for_git_tag: false
+    disable: true
     commands:
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
         vars:
           dataset_filename: "tpch-0.001-denormalized-indexed.archive.gz"
           pipeline_dir: atlas_sql/denormalized
-          workload_filename: "workload_denorm_sf.001.yml"
-          s3_prefix: "Sf001"
+          workload_filename: "workload_denorm_sf0.001.yml"
+          s3_prefix: "SF0.001"
+
+  - name: tpch-0.01-normalized-atlas-sql
+    allow_for_git_tag: false
+    disable: true
+    commands:
+      - func: "install rust toolchain"
+      - func: "run TPC-H benchmark"
+        vars:
+          dataset_filename: "tpch-0.01-normalized-indexed.archive.gz"
+          pipeline_dir: atlas_sql/normalized
+          workload_filename: "workload_norm_sf0.01.yml"
+          s3_prefix: "SF0.01"
+
+  - name: tpch-0.01-denormalized-atlas-sql
+    allow_for_git_tag: false
+    disable: true
+    commands:
+      - func: "install rust toolchain"
+      - func: "run TPC-H benchmark"
+        vars:
+          dataset_filename: "tpch-0.01-denormalized-indexed.archive.gz"
+          pipeline_dir: atlas_sql/denormalized
+          workload_filename: "workload_denorm_sf0.01.yml"
+          s3_prefix: "SF0.01"
+
+  - name: tpch-0.1-normalized-atlas-sql
+    allow_for_git_tag: false
+    disable: true
+    commands:
+      - func: "install rust toolchain"
+      - func: "run TPC-H benchmark"
+        vars:
+          dataset_filename: "tpch-0.1-normalized-indexed.archive.gz"
+          pipeline_dir: atlas_sql/normalized
+          workload_filename: "workload_norm_sf0.1.yml"
+          s3_prefix: "SF0.1"
+
+  - name: tpch-0.1-denormalized-atlas-sql
+    allow_for_git_tag: false
+    disable: true
+    commands:
+      - func: "install rust toolchain"
+      - func: "run TPC-H benchmark"
+        vars:
+          dataset_filename: "tpch-0.1-denormalized-indexed.archive.gz"
+          pipeline_dir: atlas_sql/normalized
+          workload_filename: "workload_norm_sf0.1.yml"
+          s3_prefix: "SF0.1"
 
   - name: tpch-1-normalized-atlas-sql
     allow_for_git_tag: false
+    disable: false
     commands:
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
@@ -801,10 +731,11 @@ tasks:
           dataset_filename: "tpch-1-normalized-indexed.archive.gz"
           pipeline_dir: atlas_sql/normalized
           workload_filename: "workload_norm_sf1.yml"
-          s3_prefix: "Sf1"
+          s3_prefix: "SF1"
 
   - name: tpch-1-denormalized-atlas-sql
     allow_for_git_tag: false
+    disable: true
     commands:
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
@@ -812,9 +743,9 @@ tasks:
           dataset_filename: "tpch-1-denormalized-indexed.archive.gz"
           pipeline_dir: atlas_sql/denormalized
           workload_filename: "workload_denorm_sf1.yml"
-          s3_prefix: "Sf1"
+          s3_prefix: "SF1"
 
-  - name: tpch-001-normalized-bic
+  - name: tpch-0.001-normalized-bic
     allow_for_git_tag: false
     disable: true
     commands:
@@ -824,8 +755,9 @@ tasks:
           dataset_filename: "tpch-0.001-normalized-indexed.archive.gz"
           pipeline_dir: bic/normalized
           workload_filename: "workload.yml"
+          s3_prefix: "SF0.001"
 
-  - name: tpch-001-denormalized-bic
+  - name: tpch-0.001-denormalized-bic
     allow_for_git_tag: false
     disable: true
     commands:
@@ -835,6 +767,55 @@ tasks:
           dataset_filename: "tpch-0.001-denormalized-indexed.archive.gz"
           pipeline_dir: bic/denormalized
           workload_filename: "workload.yml"
+          s3_prefix: "SF0.001"
+
+  - name: tpch-0.01-normalized-bic
+    allow_for_git_tag: false
+    disable: true
+    commands:
+      - func: "install rust toolchain"
+      - func: "run TPC-H benchmark"
+        vars:
+          dataset_filename: "tpch-0.01-normalized-indexed.archive.gz"
+          pipeline_dir: bic/normalized
+          workload_filename: "workload.yml"
+          s3_prefix: "SF0.01"
+
+  - name: tpch-0.01-denormalized-bic
+    allow_for_git_tag: false
+    disable: true
+    commands:
+      - func: "install rust toolchain"
+      - func: "run TPC-H benchmark"
+        vars:
+          dataset_filename: "tpch-0.01-denormalized-indexed.archive.gz"
+          pipeline_dir: bic/denormalized
+          workload_filename: "workload.yml"
+          s3_prefix: "SF0.01"
+
+  - name: tpch-0.1-normalized-bic
+    allow_for_git_tag: false
+    disable: true
+    commands:
+      - func: "install rust toolchain"
+      - func: "run TPC-H benchmark"
+        vars:
+          dataset_filename: "tpch-0.1-normalized-indexed.archive.gz"
+          pipeline_dir: bic/normalized
+          workload_filename: "workload.yml"
+          s3_prefix: "SF0.1"
+
+  - name: tpch-0.1-denormalized-bic
+    allow_for_git_tag: false
+    disable: true
+    commands:
+      - func: "install rust toolchain"
+      - func: "run TPC-H benchmark"
+        vars:
+          dataset_filename: "tpch-0.1-denormalized-indexed.archive.gz"
+          pipeline_dir: bic/denormalized
+          workload_filename: "workload.yml"
+          s3_prefix: "SF0.1"
 
   - name: tpch-1-normalized-bic
     allow_for_git_tag: false
@@ -846,6 +827,7 @@ tasks:
           dataset_filename: "tpch-1-normalized-indexed.archive.gz"
           pipeline_dir: bic/normalized
           workload_filename: "workload.yml"
+          s3_prefix: "SF1"
 
   - name: tpch-1-denormalized-bic
     allow_for_git_tag: false
@@ -857,6 +839,7 @@ tasks:
           dataset_filename: "tpch-1-denormalized-indexed.archive.gz"
           pipeline_dir: bic/denormalized
           workload_filename: "workload.yml"
+          s3_prefix: "SF1"
 
   - name: tpch-1-normalized-validation
     allow_for_git_tag: false
@@ -959,10 +942,22 @@ buildvariants:
     display_name: "TPC-H"
     run_on: [ ubuntu2204-large ]
     tasks:
-      - name: tpch-001-normalized-atlas-sql
-      - name: tpch-001-denormalized-atlas-sql
+      - name: tpch-0.001-normalized-atlas-sql
+      - name: tpch-0.001-denormalized-atlas-sql
+      - name: tpch-0.001-normalized-bic
+      - name: tpch-0.001-denormalized-bic
+      - name: tpch-0.01-normalized-atlas-sql
+      - name: tpch-0.01-denormalized-atlas-sql
+      - name: tpch-0.01-normalized-bic
+      - name: tpch-0.01-denormalized-bic
+      - name: tpch-0.1-normalized-atlas-sql
+      - name: tpch-0.1-denormalized-atlas-sql
+      - name: tpch-0.1-normalized-bic
+      - name: tpch-0.1-denormalized-bic
       - name: tpch-1-normalized-atlas-sql
       - name: tpch-1-denormalized-atlas-sql
+      - name: tpch-1-normalized-bic
+      - name: tpch-1-denormalized-bic
       - name: tpch-1-normalized-validation
       - name: tpch-1-denormalized-validation
 

@@ -1,0 +1,16 @@
+SchemaVersion: 2018-07-01
+Owner: "@mongodb/product-query"
+Description: |
+  This is a no-op phase to act as a placeholder and generate an ftdc output
+
+NoopPhase:
+  Repeat: 1
+  Database: tpch
+  Operations:
+    - OperationMetricsName: BIC
+      OperationName: RunCommand
+      OperationCommand:
+        aggregate: "does_not_exist"
+        pipeline: [
+        ]
+        cursor: {}

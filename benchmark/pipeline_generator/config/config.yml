@@ -1181,7 +1181,7 @@ workloads:
 #                  FROM
 #                      customer as c
 #                  WHERE
-#                      customer.c_acctbal > 0.00
+#                      c.c_acctbal > 0.00
 #                      AND substring(c.c_phone, 0, 2) IN ('13','31','23','29','30','18','17')
 #              )
 #              AND NOT EXISTS (
