@@ -19,3 +19,8 @@ chrono = "0.4"
 version = "2.6"
 default-features = false
 features = ["tokio-sync"]
+
+
+[features]
+validation = []
+genny = []

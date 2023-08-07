@@ -6,7 +6,7 @@ use mongosql::{
     translate_sql, SchemaCheckingMode,
 };
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use serde_json::{json, Value};
 use std::{
     collections::BTreeMap,
     fs::{create_dir_all, File},
@@ -75,7 +75,13 @@ fn modify_date_literal(value: &mut Value) {
                                 .unwrap()
                                 .format("%Y-%m-%dT%H:%M:%S")
                                 .to_string();
-                            *value = Value::String(format!("ISODate(\"{}\")", date));
+                            // if the pipeline is running in genny, we need a special date format.
+                            // Otherwise, use ISODate and generate a valid aggregation pipeline.
+                            *value = if cfg!(feature = "genny") {
+                                Value::String(format!("{{ ^Date: \"{}\" }}", date))
+                            } else {
+                                Value::String(format!("ISODate(\"{}\")", date))
+                            };
                             return;
                         }
                     }
@@ -101,28 +107,21 @@ fn process_workload(config: &Workload, pipeline: &str, collection: &str) {
     let mut yaml_value: serde_yaml::Value = serde_yaml::from_reader(phase_template).unwrap();
 
     if let serde_yaml::Value::Mapping(mut map) = yaml_value {
-        if let Some(serde_yaml::Value::Mapping(sample_phase)) = map.get_mut("SamplePhase") {
-            if let Some(serde_yaml::Value::Sequence(operations)) =
-                sample_phase.get_mut("Operations")
-            {
-                for operation in operations {
-                    if let serde_yaml::Value::Mapping(operation) = operation {
-                        if let Some(serde_yaml::Value::Mapping(command)) =
-                            operation.get_mut("OperationCommand")
-                        {
-                            command.insert(
-                                serde_yaml::Value::String("aggregate".into()),
-                                serde_yaml::Value::String(collection.to_string()),
-                            );
-                            command.insert(
-                                serde_yaml::Value::String("pipeline".into()),
-                                serde_yaml::Value::String(pipeline.to_string()),
-                            );
-                        }
-                    }
-                }
-            }
+        // update the aggregation phase
+        if let Some(serde_yaml::Value::Mapping(aggregation)) =
+            map.get_mut("sample_phase_aggregation")
+        {
+            aggregation.insert(
+                serde_yaml::Value::String("aggregate".into()),
+                serde_yaml::Value::String(collection.to_string()),
+            );
+            aggregation.insert(
+                serde_yaml::Value::String("pipeline".into()),
+                serde_yaml::Value::String(pipeline.to_string()),
+            );
         }
+
+        // update the actor:
         let old_value = map.remove("SamplePhase").unwrap();
         map.insert(
             serde_yaml::Value::String(config.name.to_string()),
@@ -132,15 +131,35 @@ fn process_workload(config: &Workload, pipeline: &str, collection: &str) {
     }
 
     // Genny workload fails with '|-' in the pipeline value, removing it.
+    // serde_yaml also does not serialize anchors well, so add them to the final string
     let output = serde_yaml::to_string(&yaml_value)
         .unwrap()
-        .replace("pipeline: |-", "pipeline:");
+        .replace("pipeline: |-", "pipeline:")
+        .replace(
+            "sample_phase_aggregation:",
+            "sample_phase_aggregation: &sample_phase_aggregation",
+        )
+        .replace("sample_phase", config.name.as_str())
+        .replace("OperationCommand: ", "OperationCommand: *")
+        .replace("\"{ ^", "{ ^")
+        .replace("\" }\"", "\" }");
+
     let mut path = PathBuf::from(&config.workload_dir);
     create_dir_all(&path).unwrap();
     path.push(&config.name);
     path.set_extension("yml");
     let mut file = File::create(path).unwrap();
     file.write_all(output.as_bytes()).unwrap();
+}
+
+/// replace_final_replacement changes the final stage of the pipeline from an unset field on __bot
+/// to a replaceRoot with __bot. This is possible because we know the domain of namespaces and query shapes.
+/// This turns the documents from shape {"": {...}} to shape {...} which makes them directly comparable to server
+fn replace_final_replacement(value: &mut Value) {
+    if let Value::Array(arr) = value {
+        arr.pop();
+        arr.push(json!({"$replaceRoot": {"newRoot": "$__bot"}}));
+    };
 }
 
 /// get_pipeline takes in a config workload and returns the pipeline and collection name by
@@ -161,6 +180,11 @@ fn get_pipeline(config: &Workload) -> (String, String) {
     let mut json_value: Value = serde_json::from_str(json_string.as_str()).unwrap();
 
     modify_date_literal(&mut json_value);
+
+    // only alter the pipeline when validating, so result shapes line up with server teams
+    if cfg!(feature = "validation") {
+        replace_final_replacement(&mut json_value);
+    }
 
     // Removes quotes around ISODate and backslashes before quotes
     let pipeline = serde_json::to_string_pretty(&json_value)

@@ -515,7 +515,7 @@ functions:
 
   "run TPC-H benchmark":
     - command: shell.exec
-      timeout_secs: 43200 # 12 hour timeout for new log entry
+      timeout_secs: 86400 # 24 hour timeout for new log entry
       type: test
       params:
         shell: bash
@@ -556,6 +556,17 @@ functions:
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
+
+  "validate TPC-H benchmark":
+    - command: shell.exec
+      timeout_secs: 43200 # 12 hour timeout for new log entry
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          benchmark/run_tpch.sh ${pipeline_dir} ${workload_filename} ${dataset_filename}
 
 pre:
   - func: "fetch source"
@@ -841,27 +852,26 @@ tasks:
           workload_filename: "workload.yml"
           s3_prefix: "SF1"
 
-  - name: tpch-1-normalized-validation
+  - name: tpch-0.001-normalized-validation
     allow_for_git_tag: false
-    disable: true
     commands:
       - func: "install rust toolchain"
-      - func: "run TPC-H benchmark"
+      - func: "validate TPC-H benchmark"
         vars:
-          dataset_filename: "tpch-1-normalized-indexed.archive.gz"
+          dataset_filename: "tpch-0.001-normalized-indexed.archive.gz"
           pipeline_dir: validation/normalized
-          workload_filename: "workload_norm_sf1.yml"
+          workload_filename: "workload_atlas_sql.yml"
 
-  - name: tpch-1-denormalized-validation
+  - name: tpch-0.001-denormalized-validation
     allow_for_git_tag: false
     disable: true
     commands:
       - func: "install rust toolchain"
-      - func: "run TPC-H benchmark"
+      - func: "validate TPC-H benchmark"
         vars:
-          dataset_filename: "tpch-1-denormalized-indexed.archive.gz"
+          dataset_filename: "tpch-0.001-denormalized-indexed.archive.gz"
           pipeline_dir: validation/denormalized
-          workload_filename: "workload_denorm_sf1.yml"
+          workload_filename: "workload_atlas_sql.yml"
 
 buildvariants:
   - name: static-analysis
@@ -940,6 +950,7 @@ buildvariants:
 
   - name: tpch
     display_name: "TPC-H"
+    activated: false
     run_on: [ ubuntu2204-large ]
     tasks:
       - name: tpch-0.001-normalized-atlas-sql
@@ -958,8 +969,8 @@ buildvariants:
       - name: tpch-1-denormalized-atlas-sql
       - name: tpch-1-normalized-bic
       - name: tpch-1-denormalized-bic
-      - name: tpch-1-normalized-validation
-      - name: tpch-1-denormalized-validation
+      - name: tpch-0.001-normalized-validation
+      - name: tpch-0.001-denormalized-validation
 
   - name: release
     display_name: "Release"

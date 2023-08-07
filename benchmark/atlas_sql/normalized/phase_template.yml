@@ -4,20 +4,22 @@ Description: |
   This workload uses the RunCommand actor to issue an aggregation pipeline,
   generated using Atlas SQL
 
+sample_phase_aggregation: &sample_phase_aggregation
+  aggregate: "nation"
+  pipeline: [
+    {
+      $group: {
+        _id: '$n_name',
+        count: { $sum: 1 }
+      }
+    }
+  ]
+  cursor: {}
+
 SamplePhase:
   Repeat: 1
   Database: tpch
   Operations:
   - OperationMetricsName: AtlasSQL
     OperationName: RunCommand
-    OperationCommand:
-      aggregate: "nation"
-      pipeline: [
-        {
-          $group: {
-            _id: '$n_name',
-            count: { $sum: 1 }
-          }
-        }
-      ]
-      cursor: {}
+    OperationCommand: sample_phase_aggregation

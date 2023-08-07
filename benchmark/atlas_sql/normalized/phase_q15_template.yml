@@ -4,23 +4,26 @@ Description: |
   This workload demonstrates the RunCommand actor, which can be used
   to execute a command against the server.
 
+
+sample_phase_aggregation: &sample_phase_aggregation
+  aggregate: "nation"
+  pipeline: [
+    {
+      $group: {
+        _id: '$n_name',
+        count: { $sum: 1 }
+      }
+    }
+  ]
+  cursor: {}
+
 SamplePhase:
   Repeat: 1
   Database: tpch
   Operations:
-    - OperationMetricsName: AtlasSQL
-      OperationName: RunCommand
-      OperationCommand:
-        aggregate: "nation"
-        pipeline: [
-          {
-            $group: {
-              _id: '$n_name',
-              count: { $sum: 1 }
-            }
-          }
-        ]
-        cursor: {}
+  - OperationMetricsName: AtlasSQL
+    OperationName: RunCommand
+    OperationCommand: sample_phase_aggregation
 
 TPCHNormalizedQuery15CreateView: &TPCHNormalizedQuery15CreateView
   Repeat: 1
@@ -54,4 +57,3 @@ TPCHNormalizedQuery15DropView: &TPCHNormalizedQuery15DropView
     - OperationName: RunCommand
       OperationCommand:
         drop: *query15View
-
