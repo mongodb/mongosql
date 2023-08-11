@@ -59,7 +59,7 @@ Make sure to run the 'release' task, if it is not run automatically.
 #### Set Evergreen Priorities
 Some evergreen variants may have a long schedule queue.
 To speed up release tasks, you can set the task priority for any variant to 101 for release candidates and 200 for actual releases.
-If you do not have permissions to set priority above 100, ask someone the project manager to set the
+If you do not have permissions to set priority above 100, ask someone with permissions to set the
 priority.
 
 ### Post-Release Tasks
@@ -72,16 +72,32 @@ Make sure the libraries are available at the proper urls:
 - Windows:
   `https://translators-connectors-releases.s3.us-east-1.amazonaws.com/mongosql-rs/windows/${release_version}/mongosql.dll`
 
+#### Ensure next release ticket and fixVersion created
+Create a new release for the Atlas SQL Project:
+- Ask the TPM or Lead to create the next fix version, if it does not yet exist.
+- Select the MongoSQL Project
+- Clone the previous Release Ticket.
+- Go to the Cloned ticket and set the Fix Version to the next appropriate Version
+
 #### Update and Close Release Ticket
 Find the JIRA ticket tracking this release.
-Edit the description to include a link to the JIRA release notes, and move it to the "Closed" state.
-
-#### Ensure next release ticket and fixVersion created
-Ensure that a JIRA ticket tracking the next release has been created
-and is assigned the appropriate fixVersion.
+Edit the description to include a link to the correct JIRA release notes, and move it to the "Closed" state.
+Any tickets still marked as Accepted with this release version must be updated to the next release
+version.
 
 #### Ensure Downstream Tickets Created
-Manually create MHOUSE ticket for integrating the new release into ADL, and link it as "Depends On" the release ticket
+Manually create an [MHOUSE](https://jira.mongodb.org/projects/MHOUSE) ticket for integrating the new
+release into ADL, and link it as "Depends On" the release ticket. The easiest way to do this is to
+clone the previous MHOUSE ticket and update the version numbers as necessary.
+
+The ADL team does bi-weekly releases on Tuesdays. For a release to be integrated into ADL on their next
+Tuesday release, the downstream ticket must be in by the previous Monday. They will then cut the
+release branch on Friday and release the following Tuesday.
+
+If there are critical fixes that we need to have integrated in the next Tuesday release, we need to
+let them know either by flagging it on the #enterprise-tool mongosql release announcement by tagging
+@adl-query or the ADL Query lead, or by pinging the ADL Query lead directly, if the lead is not around, then
+pinging the ADL Query team on #adl-sql-collab.
 
 #### Announce Release on Slack
 Use the following messsage template to announce the release in the #enterprise-tools channel:
