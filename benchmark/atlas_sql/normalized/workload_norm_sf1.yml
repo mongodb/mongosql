@@ -91,3 +91,6 @@ Actors:
 #  - LoadConfig:
 #      Path: phase/q22_normalized.yml
 #      Key: q22_normalized
+#  - LoadConfig:
+#      Path: phase/q19_custom_normalized.yml
+#      Key: q19_custom_normalized

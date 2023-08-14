@@ -262,20 +262,21 @@ Actors:
           Key: TPCHNormalizedQuery17Aggregation
           Parameters:
             Query17Brand: "Brand#53"
-- ActorFromTemplate:
-    TemplateName: ValidateTPCHQueryActorTemplate
-    TemplateParameters:
-      Query: 18
-      Actual:
-        LoadConfig:
-          Path: ../../atlas_sql/normalized/phase/q18_normalized.yml
-          Key: q18_normalized_aggregation
-      Expected:
-        LoadConfig:
-          Path: ../../../../genny/src/phases/tpch/normalized/Q18.yml
-          Key: TPCHNormalizedQuery18Aggregation
-          Parameters:
-            Query18Quantity: 260
+# Skip_Reason: SQL-1550
+#- ActorFromTemplate:
+#    TemplateName: ValidateTPCHQueryActorTemplate
+#    TemplateParameters:
+#      Query: 18
+#      Actual:
+#        LoadConfig:
+#          Path: ../../atlas_sql/normalized/phase/q18_normalized.yml
+#          Key: q18_normalized_aggregation
+#      Expected:
+#        LoadConfig:
+#          Path: ../../../../genny/src/phases/tpch/normalized/Q18.yml
+#          Key: TPCHNormalizedQuery18Aggregation
+#          Parameters:
+#            Query18Quantity: 260
 - ActorFromTemplate:
     TemplateName: ValidateTPCHQueryActorTemplate
     TemplateParameters:

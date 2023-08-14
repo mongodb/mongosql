@@ -662,7 +662,10 @@ tasks:
       - func: "upload criterion artifacts"
 
   - name: tpch-0.001-normalized-atlas-sql
+    depends_on:
+      - name: tpch-0.001-normalized-validation
     allow_for_git_tag: false
+    disable: true
     commands:
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
@@ -673,6 +676,8 @@ tasks:
           s3_prefix: "SF0.001"
 
   - name: tpch-0.001-denormalized-atlas-sql
+    depends_on:
+      - name: tpch-0.001-denormalized-validation
     allow_for_git_tag: false
     disable: true
     commands:
@@ -685,8 +690,10 @@ tasks:
           s3_prefix: "SF0.001"
 
   - name: tpch-0.01-normalized-atlas-sql
+    depends_on:
+      - name: tpch-0.001-normalized-validation
     allow_for_git_tag: false
-    disable: true
+    disable: false
     commands:
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
@@ -697,6 +704,8 @@ tasks:
           s3_prefix: "SF0.01"
 
   - name: tpch-0.01-denormalized-atlas-sql
+    depends_on:
+      - name: tpch-0.001-denormalized-validation
     allow_for_git_tag: false
     disable: true
     commands:
@@ -709,6 +718,8 @@ tasks:
           s3_prefix: "SF0.01"
 
   - name: tpch-0.1-normalized-atlas-sql
+    depends_on:
+      - name: tpch-0.001-normalized-validation
     allow_for_git_tag: false
     disable: true
     commands:
@@ -721,6 +732,8 @@ tasks:
           s3_prefix: "SF0.1"
 
   - name: tpch-0.1-denormalized-atlas-sql
+    depends_on:
+      - name: tpch-0.001-denormalized-validation
     allow_for_git_tag: false
     disable: true
     commands:
@@ -733,8 +746,10 @@ tasks:
           s3_prefix: "SF0.1"
 
   - name: tpch-1-normalized-atlas-sql
+    depends_on:
+      - name: tpch-0.001-normalized-validation
     allow_for_git_tag: false
-    disable: false
+    disable: true
     commands:
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
@@ -745,6 +760,8 @@ tasks:
           s3_prefix: "SF1"
 
   - name: tpch-1-denormalized-atlas-sql
+    depends_on:
+      - name: tpch-0.001-denormalized-validation
     allow_for_git_tag: false
     disable: true
     commands:
@@ -854,6 +871,7 @@ tasks:
 
   - name: tpch-0.001-normalized-validation
     allow_for_git_tag: false
+    disable: false
     commands:
       - func: "install rust toolchain"
       - func: "validate TPC-H benchmark"

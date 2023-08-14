@@ -1160,40 +1160,84 @@ workloads:
     workload_dir: ./benchmark/atlas_sql/normalized/phase/
     catalog_schema: *normalized_catalog_schema
     query: >
+        SELECT
+            cntrycode,
+            count(*) as numcust,
+            sum(c_acctbal) as totacctbal
+        FROM
+            (
+            SELECT
+                substring(customer.c_phone, 0, 2) as cntrycode, c_acctbal
+            FROM
+                customer
+            WHERE
+                substring(customer.c_phone, 0, 2) IN ('13','31','23','29','30','18','17')
+                AND customer.c_acctbal > (
+                    SELECT
+                        avg(c.c_acctbal)
+                    FROM
+                        customer as c
+                    WHERE
+                        c.c_acctbal > 0.00
+                        AND substring(c.c_phone, 0, 2) IN ('13','31','23','29','30','18','17')
+                )
+                AND NOT EXISTS (
+                    SELECT
+                        *
+                    FROM
+                        orders
+                    WHERE
+                        o_custkey = c_custkey
+                )
+            ) as custsale
+        GROUP BY
+            cntrycode
+        ORDER BY
+            cntrycode
+
+
+  - name: q19_custom_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
       SELECT
-          cntrycode,
-          count(*) as numcust,
-          sum(c_acctbal) as totacctbal
+          sum(l_extendedprice * (1 - l_discount) ) as revenue
       FROM
+          part,
+          lineitem
+      WHERE
           (
-          SELECT
-              substring(customer.c_phone, 0, 2) as cntrycode, c_acctbal
-          FROM
-              customer
-          WHERE
-              substring(customer.c_phone, 0, 2) IN ('13','31','23','29','30','18','17')
-              AND customer.c_acctbal > (
-                  SELECT
-                      avg(c.c_acctbal)
-                  FROM
-                      customer as c
-                  WHERE
-                      c.c_acctbal > 0.00
-                      AND substring(c.c_phone, 0, 2) IN ('13','31','23','29','30','18','17')
-              )
-              AND NOT EXISTS (
-                  SELECT
-                      *
-                  FROM
-                      orders
-                  WHERE
-                      o_custkey = c_custkey
-              )
-          ) as custsale
-      GROUP BY
-          cntrycode
-      ORDER BY
-          cntrycode
+              p_partkey = l_partkey
+              and p_brand = 'Brand#12'
+              and p_container in ('SM CASE', 'SM BOX', 'SM PACK', 'SM PKG')
+              and l_quantity >= 1
+              and l_quantity <= 1 + 10
+              and p_size between 1 and 5
+              and l_shipmode in ('AIR', 'AIR REG')
+              and l_shipinstruct = 'DELIVER IN PERSON'
+          )
+          or (
+              p_partkey = l_partkey
+              and p_brand = 'Brand#24'
+              and p_container in ('MED BAG', 'MED BOX', 'MED PKG', 'MED PACK')
+              and l_quantity >= 30
+              and l_quantity <= 30 + 10
+              and p_size between 1 and 10
+              and l_shipmode in ('AIR', 'AIR REG')
+              and l_shipinstruct = 'DELIVER IN PERSON'
+          )
+          or (
+              p_partkey = l_partkey
+              and p_brand = 'Brand#34'
+              and p_container in ('LG CASE', 'LG BOX', 'LG PACK', 'LG PKG', 'WRAP BOX')
+              and l_quantity >= 20
+              and l_quantity <= 20 + 10
+              and p_size between 1 and 15
+              and l_shipmode in ('AIR', 'AIR REG')
+              and l_shipinstruct = 'DELIVER IN PERSON'            
+          )
 
   # ----- Denormalized Queries -----
   - name: q1_denormalized

@@ -27,9 +27,6 @@ Actors:
       Path: phase/q2_normalized.yml
       Key: q2_normalized
   - LoadConfig:
-      Path: ../phase_noop.yml
-      Key: NoopPhase
-  - LoadConfig:
       Path: phase/q3_normalized.yml
       Key: q3_normalized
   - LoadConfig:
@@ -44,12 +41,20 @@ Actors:
   - LoadConfig:
       Path: phase/q7_normalized.yml
       Key: q7_normalized
+  # SF0.1 q8 and q9 take > 24 hours to complete
+  #  - LoadConfig:
+  #      Path: phase/q8_normalized.yml
+  #      Key: q8_normalized
+  #  - LoadConfig:
+  #      Path: phase/q9_normalized.yml
+  #      Key: q9_normalized
   - LoadConfig:
-      Path: phase/q8_normalized.yml
-      Key: q8_normalized
+      Path: ../phase_noop.yml
+      Key: NoopPhase
   - LoadConfig:
-      Path: phase/q9_normalized.yml
-      Key: q9_normalized
+      Path: ../phase_noop.yml
+      Key: NoopPhase
+
   - LoadConfig:
       Path: phase/q10_normalized.yml
       Key: q10_normalized
@@ -72,10 +77,12 @@ Actors:
   - LoadConfig:
       Path: phase/q16_normalized.yml
       Key: q16_normalized
-  # SF0.1 q17 and q18 take > day to complete
+  # SF0.1 q17 and q18 take > 24 hours to complete
   #  - LoadConfig:
   #      Path: phase/q17_normalized.yml
   #      Key: q17_normalized
+  #  Q18 now takes much longer to complete, SQL-1550 may speed it up
+  #  skip reason: SQL-1550
   #  - LoadConfig:
   #      Path: phase/q18_normalized.yml
   #      Key: q18_normalized
@@ -102,6 +109,12 @@ Actors:
   - LoadConfig:
       Path: phase/q22_normalized.yml
       Key: q22_normalized
+
+
+  # -- Start of Custom Queries --
+  - LoadConfig:
+      Path: phase/q19_custom_normalized.yml
+      Key: q19_custom_normalized
 
   # Adding to end to keep phase number aligned with query number
   - LoadConfig:
