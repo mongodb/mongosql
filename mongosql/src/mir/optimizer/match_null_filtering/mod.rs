@@ -6,7 +6,7 @@ use crate::{
     mir::{
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        ExistsExpr, Expression, FieldAccess, Filter, OptimizedMatchExists, ScalarFunction,
+        Derived, ExistsExpr, Expression, FieldAccess, Filter, OptimizedMatchExists, ScalarFunction,
         ScalarFunctionApplication, Stage, SubqueryExpr,
     },
     schema::{Satisfaction, NULLISH},
@@ -123,6 +123,13 @@ impl<'a> MatchNullFilteringVisitor<'a> {
 }
 
 impl<'a> Visitor for MatchNullFilteringVisitor<'a> {
+    fn visit_derived(&mut self, node: Derived) -> Derived {
+        self.scope += 1;
+        let node = node.walk(self);
+        self.scope -= 1;
+        node
+    }
+
     fn visit_filter(&mut self, node: Filter) -> Filter {
         let node = node.walk(self);
         match self.create_null_filter_stage(&node) {

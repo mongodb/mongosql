@@ -19,28 +19,50 @@ the code.
 
 ## Rust testing
 
-There are four types of tests for the Rust code: unit tests, fuzz tests, index usage tests, and
-spec tests. Each of these test types can be run in isolation. Fuzz tests should always exist in
-(sub)modules named `fuzz_test`, so this common name is used as a filter for running the tests.
-The index usage and spec tests are ignored by default via the `#[ignore]` directive, but can be
-run by specifying this directive after `cargo test`.
+There are several types of tests for the Rust code: unit tests, fuzz tests, index usage tests, e2e
+tests, and spec tests. Each of these test types can be run in isolation. Fuzz tests should always
+exist in (sub)modules named `fuzz_test`, so this common name is used as a filter for running the
+tests. The index usage, e2e, and spec tests are ignored by default via the `#[ignore]` directive,
+but can be run by specifying this directive after `cargo test`.
 
 The [Rust handbook](https://doc.rust-lang.org/cargo/commands/cargo-test.html) has full guidelines
 on how to use `cargo test`. Below are suggested ways of running the different sets of tests.
 
 ### Unit testing
 
+All unit tests in the repository.
+
 `cargo test -- --skip fuzz_test` from the main directory
 
 ### Fuzz testing
+
+Fuzz tests for pretty-printing.
 
 `cargo test fuzz_test` from the main directory
 
 ### Index Usage testing
 
-`cargo test run_index_usage_tests -- --ignored` from the main directory
+Index-usage assertion tests. These tests specify queries and expected index utilization.
+Requires a running mongod.
+
+`cargo test --features index-test --package e2e-tests` from the main directory
+
+### e2e testing
+
+End-to-end query tests that do not exist in the spec. These tests specify queries and expected
+result sets and execute against an actual database. Requires a running mongod.
+
+`cargo test --features query-test,e2e-test --package e2e-tests` from the main directory
+
+### Spec query testing
+
+The query spec tests that specify language behavior. Requires a running mongod.
+
+`cargo test --features query-test --package e2e-tests` from the main directory
 
 ### Spec testing
+
+The syntactic rewriter and type-constraint spec tests.
 
 `cargo test -- --ignored --skip run_index_usage_tests` from the main directory
 

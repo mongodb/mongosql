@@ -88,13 +88,9 @@ Actors:
       - LoadConfig:
           Path: phase/q21_normalized.yml
           Key: q21_normalized
-      #  Skip Reason: SQL-1540
-      #  - LoadConfig:
-      #      Path: phase/q22_normalized.yml
-      #      Key: q22_normalized
       - LoadConfig:
-          Path: ../phase_noop.yml
-          Key: NoopPhase
+          Path: phase/q22_normalized.yml
+          Key: q22_normalized
 
       # Adding to end to keep phase number aligned with query number
       - LoadConfig:

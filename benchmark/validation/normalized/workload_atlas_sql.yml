@@ -320,16 +320,15 @@ Actors:
           Key: TPCHNormalizedQuery21Aggregation
           Parameters:
             Query1Delta: "ARGENTINA"
-# Skip-Reason: SQL-1540
-# - ActorFromTemplate:
-#     TemplateName: ValidateTPCHQueryActorTemplate
-#     TemplateParameters:
-#       Query: 22
-#       Actual:
-#         LoadConfig:
-#           Path: ../../atlas_sql/normalized/phase/q22_normalized.yml
-#           Key: q22_normalized_aggregation
-#       Expected:
-#         LoadConfig:
-#           Path: ../../../../genny/src/phases/tpch/normalized/Q22.yml
-#           Key: TPCHNormalizedQuery22Aggregation
+- ActorFromTemplate:
+   TemplateName: ValidateTPCHQueryActorTemplate
+   TemplateParameters:
+     Query: 22
+     Actual:
+       LoadConfig:
+         Path: ../../atlas_sql/normalized/phase/q22_normalized.yml
+         Key: q22_normalized_aggregation
+     Expected:
+       LoadConfig:
+         Path: ../../../../genny/src/phases/tpch/normalized/Q22.yml
+         Key: TPCHNormalizedQuery22Aggregation
