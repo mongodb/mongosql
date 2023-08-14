@@ -3515,3 +3515,17 @@ mod unwind {
         input = "SELECT * FROM UNWIND(foo WITH PATH => arr, INDEX => i, INDEX => idx, PATH => a, OUTER => false)",
     );
 }
+
+mod get_token {
+    use crate::parser::lalrpop::get_token;
+
+    #[test]
+    fn token_in_map_returns_mapping() {
+        assert_eq!("+", get_token("ADD"))
+    }
+
+    #[test]
+    fn token_not_in_map_returns_self() {
+        assert_eq!("FOO", get_token("FOO"))
+    }
+}

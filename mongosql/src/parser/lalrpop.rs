@@ -1,6 +1,7 @@
 use crate::ast;
 use lalrpop_util::{lalrpop_mod, lexer::Token};
 use lazy_static::lazy_static;
+use std::collections::HashMap;
 use thiserror::Error;
 
 lalrpop_mod!(
@@ -28,6 +29,47 @@ impl From<LalrpopError<'_>> for Error {
 lazy_static! {
     static ref QUERY_PARSER: grammar::QueryParser = grammar::QueryParser::new();
     static ref EXPRESSION_PARSER: grammar::ExpressionParser = grammar::ExpressionParser::new();
+    static ref TOKEN_MAP: HashMap<&'static str, &'static str> = HashMap::from([
+        ("ADD", "+"),
+        ("ARROW", "=>"),
+        ("COMMA", ","),
+        ("COLON", ":"),
+        ("CONCAT", "||"),
+        ("DELIMITED_IDENT_BACKTICK", "`"),
+        ("DELIMITED_IDENT_QUOTE", "\""),
+        ("DIV", "/"),
+        ("DOT", "."),
+        ("DOT_STAR", ".*"),
+        ("DOUBLE_COLON", "::"),
+        ("EQ", "="),
+        ("FETCH_FIRST", "FETCH FIRST"),
+        ("GT", ">"),
+        ("GTE", ">="),
+        ("LEFT_BRACKET", "["),
+        ("LEFT_PAREN", "("),
+        ("LEFT_CURLY_BRACE", "{"),
+        ("LT", "<"),
+        ("LTE", "<="),
+        ("NEQ", "<>"),
+        ("NOT_IN", "NOT IN"),
+        ("NOT_LIKE", "NOT LIKE"),
+        ("RIGHT_BRACKET", "]"),
+        ("RIGHT_CURLY_BRACE", "}"),
+        ("RIGHT_PAREN", ")"),
+        ("ROWS_ONLY", "ROWS ONLY"),
+        ("STAR", "*"),
+        ("SUB", "-"),
+        ("TYPE_ASSERTION", "::!"),
+    ]);
+}
+
+// remove `#[allow(dead_code)]` during SQL-1605
+#[allow(dead_code)]
+pub fn get_token(input: &str) -> String {
+    match TOKEN_MAP.get(input) {
+        Some(token) => (*token).to_string(),
+        None => input.to_string(),
+    }
 }
 
 pub fn parse_query(input: &str) -> Result<ast::Query> {
