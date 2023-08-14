@@ -15,6 +15,7 @@ mod parser;
 mod result;
 pub mod schema;
 mod translator;
+pub mod usererror;
 mod util;
 
 use crate::{
