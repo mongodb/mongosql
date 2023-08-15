@@ -6,6 +6,7 @@ members = [
     "mongosql-datastructures",
     "mongosql-c",
     "mongosql",
+    "usererrordisplay-impl",
     "visitgen",
     "visitgen-test",
 ]

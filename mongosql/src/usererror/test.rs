@@ -1,6 +1,6 @@
-use super::UserError;
+use super::{UserError, UserErrorDisplay};
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, UserErrorDisplay)]
 enum Test {
     Foo,
     Bar,
@@ -33,23 +33,41 @@ impl UserError for Test {
     }
 }
 
-#[test]
-fn user_error_codes() {
-    assert_eq!(1, Test::Foo.code());
-    assert_eq!(2, Test::Bar.code());
-    assert_eq!(3, Test::Baz.code());
+mod usererror {
+    use super::{Test, UserError};
+    #[test]
+    fn user_error_codes() {
+        assert_eq!(1, Test::Foo.code());
+        assert_eq!(2, Test::Bar.code());
+        assert_eq!(3, Test::Baz.code());
+    }
+
+    #[test]
+    fn user_error_user_message() {
+        assert_eq!("Foo", Test::Foo.user_message().unwrap());
+        assert_eq!(None, Test::Bar.user_message());
+        assert_eq!("Baz", Test::Baz.user_message().unwrap());
+    }
+
+    #[test]
+    fn user_error_technical_message() {
+        assert_eq!("technically a foo", Test::Foo.technical_message());
+        assert_eq!("technically a bar", Test::Bar.technical_message());
+        assert_eq!("technically a baz", Test::Baz.technical_message());
+    }
 }
 
-#[test]
-fn user_error_user_message() {
-    assert_eq!("Foo", Test::Foo.user_message().unwrap());
-    assert_eq!(None, Test::Bar.user_message());
-    assert_eq!("Baz", Test::Baz.user_message().unwrap());
-}
+mod usererrordisplay {
+    use super::Test;
 
-#[test]
-fn user_error_technical_message() {
-    assert_eq!("technically a foo", Test::Foo.technical_message());
-    assert_eq!("technically a bar", Test::Bar.technical_message());
-    assert_eq!("technically a baz", Test::Baz.technical_message());
+    #[test]
+    fn usererrordisplay() {
+        let expected_foo = "Error 1: Foo\n\tCaused by:\n\ttechnically a foo";
+        let expected_bar = "Error 2: technically a bar";
+        let expected_baz = "Error 3: Baz\n\tCaused by:\n\ttechnically a baz";
+
+        assert_eq!(Test::Foo.to_string(), expected_foo);
+        assert_eq!(Test::Bar.to_string(), expected_bar);
+        assert_eq!(Test::Baz.to_string(), expected_baz);
+    }
 }
