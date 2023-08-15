@@ -42,6 +42,12 @@ mod positional_sort_key {
         input = "SELECT (SELECT a AS a FROM foo ORDER BY 1)",
     );
     test_rewrite!(
+        recursively_rewrite_in_subquery_expr,
+        pass = PositionalSortKeyRewritePass,
+        expected = Ok("SELECT b AS b, (SELECT a AS a FROM foo ORDER BY a ASC LIMIT 1) AS c FROM bar ORDER BY c ASC"),
+        input = "SELECT b AS b, (SELECT a AS a FROM foo ORDER BY 1 LIMIT 1) AS c FROM bar ORDER BY 2",
+    );
+    test_rewrite!(
         subquery_does_not_pollute_parent_state,
         pass = PositionalSortKeyRewritePass,
         expected = Ok("SELECT b AS b, (SELECT a AS a FROM foo) FROM bar ORDER BY b ASC"),
@@ -848,6 +854,14 @@ mod optional_parameters {
             expected = Ok("SELECT * FROM FLATTEN(foo WITH SEPARATOR => '_', SEPARATOR => '-')"),
             input = "SELECT * FROM FLATTEN(foo WITH SEPARATOR => '_', SEPARATOR => '-')",
         );
+
+        test_rewrite!(
+            recursively_apply_rewrite,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT * FROM FLATTEN(FLATTEN(foo))"),
+            input =
+                "SELECT * FROM FLATTEN(FLATTEN(foo WITH SEPARATOR => '_') WITH SEPARATOR => '_')",
+        );
     }
 
     mod unwind {
@@ -879,6 +893,13 @@ mod optional_parameters {
             pass = OptionalParameterRewritePass,
             expected = Ok("SELECT * FROM UNWIND(foo WITH OUTER => false, OUTER => true)"),
             input = "SELECT * FROM UNWIND(foo WITH OUTER => false, OUTER => true)",
+        );
+
+        test_rewrite!(
+            recursively_apply_rewrite,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT * FROM UNWIND(UNWIND(foo))"),
+            input = "SELECT * FROM UNWIND(UNWIND(foo WITH OUTER => false) WITH OUTER => false)",
         );
     }
 
@@ -912,5 +933,70 @@ mod optional_parameters {
             expected = Ok("SELECT CASE WHEN true THEN true ELSE false END FROM foo"),
             input = "SELECT CASE WHEN true THEN true ELSE false END FROM foo",
         );
+
+        test_rewrite!(
+            recursively_apply_rewrite,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT CASE WHEN (CASE a WHEN 1 THEN true ELSE NULL END) THEN true ELSE NULL END FROM foo"),
+            input = "SELECT CASE WHEN (CASE a WHEN 1 THEN true END) THEN true END FROM foo",
+        );
     }
+
+    mod function {
+        use super::*;
+
+        test_rewrite!(
+            add_substring_optional_parameter_if_missing,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT SUBSTRING('abc' FROM 1 FOR -1) FROM foo"),
+            input = "SELECT SUBSTRING('abc', 1) FROM foo",
+        );
+
+        test_rewrite!(
+            do_not_modify_substring_with_optional_parameter,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT SUBSTRING('abc' FROM 1 FOR 1) FROM foo"),
+            input = "SELECT SUBSTRING('abc', 1, 1) FROM foo",
+        );
+
+        test_rewrite!(
+            add_current_timestamp_optional_parameter_if_missing,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT CURRENT_TIMESTAMP(6) FROM foo"),
+            input = "SELECT CURRENT_TIMESTAMP FROM foo",
+        );
+
+        test_rewrite!(
+            do_not_modify_current_timestamp_with_optional_parameter,
+            pass = OptionalParameterRewritePass,
+            expected = Ok("SELECT CURRENT_TIMESTAMP(1) FROM foo"),
+            input = "SELECT CURRENT_TIMESTAMP(1) FROM foo",
+        );
+
+        test_rewrite!(
+            recursively_apply_rewrite,
+            pass = OptionalParameterRewritePass,
+            expected =
+                Ok("SELECT SUBSTRING(CAST(CURRENT_TIMESTAMP(6) AS STRING) FROM 1 FOR -1) FROM foo"),
+            input = "SELECT SUBSTRING(CAST(CURRENT_TIMESTAMP AS STRING), 1) FROM foo",
+        );
+    }
+}
+
+mod not {
+    use super::*;
+
+    test_rewrite!(
+        simple,
+        pass = NotComparisonRewritePass,
+        expected = Ok("SELECT a <> b FROM foo"),
+        input = "SELECT NOT a = b FROM foo",
+    );
+
+    test_rewrite!(
+        recursive,
+        pass = NotComparisonRewritePass,
+        expected = Ok("SELECT (SELECT a >= 1 FROM bar LIMIT 1) <> (SELECT b <= 1 FROM baz LIMIT 1) FROM foo"),
+        input = "SELECT NOT (SELECT NOT a < 1 FROM bar LIMIT 1) = (SELECT NOT b > 1 FROM baz LIMIT 1) FROM foo",
+    );
 }

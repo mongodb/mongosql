@@ -44,7 +44,8 @@ impl Visitor for FlattenOptionVisitor {
             .filter(|opt| !matches!(opt, ast::FlattenOption::Separator(sep) if sep == "_"))
             .collect();
 
-        ast::FlattenSource { options, ..node }
+        let node = ast::FlattenSource { options, ..node };
+        node.walk(self)
     }
 }
 
@@ -71,7 +72,8 @@ impl Visitor for UnwindOptionVisitor {
             .filter(|opt| !matches!(opt, ast::UnwindOption::Outer(false)))
             .collect();
 
-        ast::UnwindSource { options, ..node }
+        let node = ast::UnwindSource { options, ..node };
+        node.walk(self)
     }
 }
 
@@ -84,10 +86,11 @@ impl Visitor for CaseElseVisitor {
             node.else_branch
                 .unwrap_or_else(|| Box::new(ast::Expression::Literal(ast::Literal::Null))),
         );
-        ast::CaseExpr {
+        let node = ast::CaseExpr {
             else_branch,
             ..node
-        }
+        };
+        node.walk(self)
     }
 }
 
@@ -97,7 +100,7 @@ impl Visitor for CaseElseVisitor {
 struct FunctionVisitor;
 impl Visitor for FunctionVisitor {
     fn visit_function_expr(&mut self, node: ast::FunctionExpr) -> ast::FunctionExpr {
-        match node.function {
+        let node = match node.function {
             ast::FunctionName::Substring => match node.args {
                 ast::FunctionArguments::Star => unreachable!(),
                 ast::FunctionArguments::Args(mut ve) => {
@@ -129,6 +132,7 @@ impl Visitor for FunctionVisitor {
                 }
             },
             _ => node,
-        }
+        };
+        node.walk(self)
     }
 }
