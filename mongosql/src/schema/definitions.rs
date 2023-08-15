@@ -471,6 +471,19 @@ impl Satisfaction {
 }
 
 impl Schema {
+    /// returns the available schema field names.
+    pub fn keys(&self) -> Vec<String> {
+        match self {
+            Schema::Any => vec![],
+            Unsat => vec![],
+            Schema::Missing => vec![],
+            Schema::Atomic(_) => vec![],
+            AnyOf(a) => a.iter().flat_map(|s| s.keys()).collect(),
+            Schema::Array(_) => vec![],
+            Schema::Document(d) => d.clone().keys.into_keys().collect(),
+        }
+    }
+
     /// returns a simplified version of this schema.
     pub fn simplify(schema: &Schema) -> Schema {
         // remove_missing removes all Missing types from the given Schema. It should

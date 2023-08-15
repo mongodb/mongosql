@@ -2526,3 +2526,103 @@ mod enumerate_field_paths {
         max_length = Some(1),
     );
 }
+
+mod keys {
+    use crate::{
+        map,
+        schema::{Atomic, Document, Schema::*},
+        set,
+    };
+
+    macro_rules! test_keys {
+        ($func_name:ident, expected = $expected:expr, schema = $schema:expr $(,)?) => {
+            #[test]
+            fn $func_name() {
+                assert_eq!($expected, $schema.keys());
+            }
+        };
+    }
+
+    test_keys!(any, expected = Vec::<String>::new(), schema = &Any);
+
+    test_keys!(unsat, expected = Vec::<String>::new(), schema = &Unsat);
+
+    test_keys!(missing, expected = Vec::<String>::new(), schema = &Missing);
+
+    test_keys!(
+        atomic,
+        expected = Vec::<String>::new(),
+        schema = &Atomic(Atomic::Integer)
+    );
+
+    test_keys!(
+        any_of,
+        expected = vec!["bar", "baz", "foo", "a", "b", "c", "d"],
+        schema = &AnyOf(set![
+            Atomic(Atomic::Integer),
+            Any,
+            Document(Document {
+                keys: map! {
+                    "a".into() => Any,
+                    "b".into() => Unsat,
+                    "c".into() => Atomic(Atomic::String),
+                    "d".into() => Document(Document{
+                        keys: map!{
+                            "a2".into() => Any,
+                            "b2".into() => Unsat,
+                            "c2".into() => Atomic(Atomic::String),
+
+                            },
+                        required: set![],
+                        additional_properties: false,
+                        }),
+                },
+                required: set![],
+                additional_properties: true
+            }),
+            AnyOf(set![
+                Document(Document {
+                    keys: map! {
+                    "foo".into() => Any,
+                    "bar".into() => Unsat,
+                    "baz".into() => Atomic(Atomic::String)},
+                    required: set![],
+                    additional_properties: false,
+                }),
+                Any,
+                Missing,
+            ]),
+        ])
+    );
+
+    test_keys!(
+        array,
+        expected = Vec::<String>::new(),
+        schema = &Array(Box::new(Atomic(Atomic::Integer)))
+    );
+
+    test_keys!(
+        document,
+        expected = vec!["a", "b", "c", "d", "e"],
+        schema = &Document(Document {
+            keys: map! {
+                "a".into() => Any,
+                "b".into() => Unsat,
+                "c".into() => Atomic(Atomic::String),
+                "d".into() => Document(Document{
+                    keys: map!{
+                        "a2".into() => Any,
+                        "b2".into() => Unsat,
+                        "c2".into() => Atomic(Atomic::String),
+
+                        },
+                    required: set![],
+                    additional_properties: false,
+                    }),
+                "e".into() => Atomic(Atomic::Integer),
+            },
+            required: set![],
+            additional_properties: false,
+        })
+    );
+}
