@@ -160,7 +160,7 @@ func TestTranslatePanic(t *testing.T) {
 		t.Fatalf("an error from a caught panic should be internal, but an external error was found")
 	}
 
-	if !strings.Contains(err.Error(), "caught panic during translation: panic thrown") {
+	if !strings.Contains(err.Error(), "Internal Error: report this to MongoDB: panic thrown") {
 		t.Fatalf("error message did not contain expected text: %q", err.Error())
 	}
 }

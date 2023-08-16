@@ -231,9 +231,17 @@ fn panic_safe_exec<F: FnOnce() -> Result<T, String> + UnwindSafe, T>(
         Ok(Err(msg)) => handle_failure(msg, ErrorVisibility::External),
         Err(err) => {
             let msg = if let Some(msg) = err.downcast_ref::<&'static str>() {
-                format!("caught panic during translation: {}\n{:?}", msg, r.recv())
+                format!(
+                    "Internal Error: report this to MongoDB: {}\n{:?}",
+                    msg,
+                    r.recv()
+                )
             } else {
-                format!("caught panic during translation: {:?}\n{:?}", err, r.recv())
+                format!(
+                    "Internal Error: report this to MongoDB: {:?}\n{:?}",
+                    err,
+                    r.recv()
+                )
             };
             handle_failure(msg, ErrorVisibility::Internal)
         }
