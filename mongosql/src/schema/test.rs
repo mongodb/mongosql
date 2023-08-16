@@ -2626,3 +2626,26 @@ mod keys {
         })
     );
 }
+
+mod display_trait {
+    use crate::schema::{Atomic, Schema::*};
+
+    macro_rules! test_display_trait {
+        ($func_name:ident, expected = $expected:literal, schema = $schema:expr $(,)?) => {
+            #[test]
+            fn $func_name() {
+                assert_eq!($expected, format!("{}", $schema));
+            }
+        };
+    }
+
+    test_display_trait!(non_atomic, expected = "any type", schema = &Any,);
+
+    test_display_trait!(
+        atomic,
+        expected = "objectId",
+        schema = &Atomic(Atomic::ObjectId),
+    );
+
+    test_display_trait!(unsat, expected = "Unsat", schema = &Unsat,);
+}

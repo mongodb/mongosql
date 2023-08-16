@@ -12,6 +12,7 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 use std::{
     collections::{BTreeMap, BTreeSet},
+    fmt::{Display, Formatter},
     iter::once,
 };
 use thiserror::Error;
@@ -183,6 +184,45 @@ pub enum Atomic {
     Timestamp,
     MinKey,
     MaxKey,
+}
+
+impl Display for Schema {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Schema::Any => write!(f, "any type"),
+            Unsat => write!(f, "Unsat"),
+            Schema::Missing => write!(f, "missing value"),
+            Schema::Atomic(atomic) => atomic.fmt(f),
+            AnyOf(_) => write!(f, "polymorphic type"),
+            Schema::Array(_) => write!(f, "array type"),
+            Schema::Document(_) => write!(f, "object type"),
+        }
+    }
+}
+
+impl Display for Atomic {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Atomic::String => write!(f, "string"),
+            Atomic::Integer => write!(f, "int"),
+            Atomic::Long => write!(f, "long"),
+            Atomic::Double => write!(f, "double"),
+            Atomic::Decimal => write!(f, "decimal"),
+            Atomic::BinData => write!(f, "binData"),
+            Atomic::ObjectId => write!(f, "objectId"),
+            Atomic::Boolean => write!(f, "boolean"),
+            Atomic::Date => write!(f, "date"),
+            Atomic::Null => write!(f, "null"),
+            Atomic::Regex => write!(f, "regex"),
+            Atomic::DbPointer => write!(f, "dbPointer"),
+            Atomic::Javascript => write!(f, "javascript"),
+            Atomic::Symbol => write!(f, "symbol"),
+            Atomic::JavascriptWithScope => write!(f, "javascriptWithScope"),
+            Atomic::Timestamp => write!(f, "timestamp"),
+            Atomic::MinKey => write!(f, "minKey"),
+            Atomic::MaxKey => write!(f, "maxKey"),
+        }
+    }
 }
 
 impl TryFrom<json_schema::BsonTypeName> for Atomic {
