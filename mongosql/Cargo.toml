@@ -26,6 +26,7 @@ thiserror = "1"
 variant_count = "1.1.0"
 visitgen = { path = "../visitgen" }
 mongosql-datastructures = { path = "../mongosql-datastructures" }
+edit-distance = "2.1.0"
 usererrordisplay-impl = { path = "../usererrordisplay-impl" }
 
 [target.'cfg(unix)'.dev-dependencies]
