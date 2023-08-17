@@ -7,6 +7,7 @@ mod test;
 
 mod expressions;
 mod functions;
+mod match_query;
 mod stages;
 mod utils;
 

@@ -142,9 +142,21 @@ pub struct ReplaceWith {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct Match {
+pub enum Match {
+    ExprLanguage(ExprLanguage),
+    MatchLanguage(MatchLanguage),
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct ExprLanguage {
     pub source: Box<Stage>,
     pub expr: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct MatchLanguage {
+    pub source: Box<Stage>,
+    pub expr: Box<MatchQuery>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -634,6 +646,52 @@ pub struct Reduce {
     pub input: Box<Expression>,
     pub init_value: Box<Expression>,
     pub inside: Box<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum MatchQuery {
+    Or(Vec<MatchQuery>),
+    And(Vec<MatchQuery>),
+    Type(MatchLanguageType),
+    Regex(MatchLanguageRegex),
+    ElemMatch(ElemMatch),
+    Comparison(MatchLanguageComparison),
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct MatchLanguageType {
+    pub input: Option<FieldRef>,
+    pub target_type: TypeOrMissing,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct MatchLanguageRegex {
+    pub input: Option<FieldRef>,
+    pub regex: String,
+    pub options: String,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct ElemMatch {
+    pub input: FieldRef,
+    pub condition: Box<MatchQuery>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct MatchLanguageComparison {
+    pub function: MatchLanguageComparisonOp,
+    pub input: Option<FieldRef>,
+    pub arg: LiteralValue,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum MatchLanguageComparisonOp {
+    Lt,
+    Lte,
+    Ne,
+    Eq,
+    Gt,
+    Gte,
 }
 
 

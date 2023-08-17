@@ -24,6 +24,7 @@ pub enum Stage {
     Set(Set),
     Derived(Derived),
     Unwind(Unwind),
+    MQLIntrinsic(MQLStage),
     // We need this to handle source swapping. It is not a real stage.
     // We could change source to be Option<Box<Stage>> for all nodes,
     // but that would be more difficult a refactor.
@@ -117,6 +118,18 @@ pub struct Unwind {
     pub path: Box<Expression>,
     pub index: Option<String>,
     pub outer: bool,
+    pub cache: SchemaCache<ResultSet>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum MQLStage {
+    MatchFilter(MatchFilter),
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct MatchFilter {
+    pub source: Box<Stage>,
+    pub condition: MatchQuery,
     pub cache: SchemaCache<ResultSet>,
 }
 
@@ -652,6 +665,81 @@ pub enum SubqueryModifier {
 pub struct OptimizedMatchExists {
     pub field_access: FieldAccess,
     pub cache: SchemaCache<Schema>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum MatchQuery {
+    Logical(MatchLanguageLogical),
+    Type(MatchLanguageType),
+    Regex(MatchLanguageRegex),
+    ElemMatch(ElemMatch),
+    Comparison(MatchLanguageComparison),
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub enum MatchPath {
+    MatchReference(ReferenceExpr),
+    MatchFieldAccess(MatchFieldAccess),
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct MatchFieldAccess {
+    pub parent: Box<MatchPath>,
+    pub field: String,
+    pub cache: SchemaCache<Schema>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct MatchLanguageLogical {
+    pub op: MatchLanguageLogicalOp,
+    pub args: Vec<MatchQuery>,
+    pub cache: SchemaCache<Schema>,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum MatchLanguageLogicalOp {
+    Or,
+    And,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct MatchLanguageType {
+    pub input: Option<MatchPath>,
+    pub target_type: TypeOrMissing,
+    pub cache: SchemaCache<Schema>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct MatchLanguageRegex {
+    pub input: Option<MatchPath>,
+    pub regex: String,
+    pub options: String,
+    pub cache: SchemaCache<Schema>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct ElemMatch {
+    pub input: MatchPath,
+    pub condition: Box<MatchQuery>,
+    pub cache: SchemaCache<Schema>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct MatchLanguageComparison {
+    pub function: MatchLanguageComparisonOp,
+    pub input: Option<MatchPath>,
+    pub arg: LiteralValue,
+    pub cache: SchemaCache<Schema>
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum MatchLanguageComparisonOp {
+    Lt,
+    Lte,
+    Ne,
+    Eq,
+    Gt,
+    Gte,
 }
 
 impl From<crate::ast::UnaryOp> for ScalarFunction {

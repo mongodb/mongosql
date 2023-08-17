@@ -25,4 +25,18 @@ impl MqlCodeGenerator {
             _ => ty.to_str(),
         })
     }
+
+    /// codegen_field_ref_path_only codegens a FieldRef into the corresponding
+    /// field path _without_ the preceding '$'.
+    #[allow(clippy::only_used_in_recursion)] // false positive
+    pub(crate) fn codegen_field_ref_path_only(&self, field_ref: air::FieldRef) -> String {
+        match field_ref.parent {
+            None => field_ref.name,
+            Some(parent) => format!(
+                "{}.{}",
+                self.codegen_field_ref_path_only(*parent),
+                field_ref.name
+            ),
+        }
+    }
 }

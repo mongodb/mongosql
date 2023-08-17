@@ -14,6 +14,7 @@ use thiserror::Error;
 mod test;
 
 mod expressions;
+mod match_query;
 mod stages;
 mod utils;
 
@@ -39,6 +40,8 @@ pub enum Error {
     LimitOutOfI64Range(u64),
     #[error("expected FieldRef for subquery output path")]
     SubqueryOutputPathNotFieldRef,
+    #[error("expected FieldRef for match-language input, but got Variable")]
+    InvalidMatchLanguageInputRef,
 }
 
 #[derive(Clone)]

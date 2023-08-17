@@ -28,10 +28,12 @@ macro_rules! test_translate_plan {
 mod filter {
     test_translate_stage!(
         basic,
-        expected = Ok(air::Stage::Match(air::Match {
-            source: Box::new(air::Stage::Documents(air::Documents { array: vec![] })),
-            expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
-        })),
+        expected = Ok(air::Stage::Match(air::Match::ExprLanguage(
+            air::ExprLanguage {
+                source: Box::new(air::Stage::Documents(air::Documents { array: vec![] })),
+                expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+            }
+        ))),
         input = mir::Stage::Filter(mir::Filter {
             source: Box::new(mir::Stage::Array(mir::ArraySource {
                 array: vec![],
@@ -1405,6 +1407,7 @@ mod derived {
 }
 
 mod unwind {
+    use crate::air::ExprLanguage;
     use crate::translator::utils::ROOT;
     use crate::{map, unchecked_unique_linked_hash_map};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
@@ -1491,7 +1494,7 @@ mod unwind {
     test_translate_stage! {
         correctness_test_for_index_option_using_project_and_where,
             expected = Ok(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Match(air::Match {
+                source: Box::new(air::Stage::Match(air::Match::ExprLanguage(ExprLanguage {
                     source: Box::new(air::Stage::Unwind(air::Unwind {
                         source: Box::new(air::Stage::Collection(air::Collection {
                                 db: "test".to_string(),
@@ -1520,7 +1523,7 @@ mod unwind {
                     air::Expression::Literal(air::LiteralValue::Integer(0)),
                 ],
                 })),
-            })),
+            }))),
             specifications: unchecked_unique_linked_hash_map! {
                 "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::Document(unchecked_unique_linked_hash_map! {
                     "arr".to_string() => air::Expression::Variable(air::Variable {
@@ -1590,6 +1593,59 @@ mod unwind {
             }),
             cache: mir::schema::SchemaCache::new(),
         })
+    }
+}
+
+mod mql_intrinsic {
+    mod match_filter {
+        use crate::{map, translator::utils::ROOT, unchecked_unique_linked_hash_map};
+        use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
+
+        test_translate_stage!(
+            basic,
+            expected = Ok(air::Stage::Match(air::Match::MatchLanguage(
+                air::MatchLanguage {
+                    source: Box::new(air::Stage::Project(air::Project {
+                        source: Box::new(air::Stage::Collection(air::Collection {
+                            db: "test_db".to_string(),
+                            collection: "foo".to_string()
+                        })),
+                        specifications: unchecked_unique_linked_hash_map! {
+                            "f".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
+                        },
+                    })),
+                    expr: Box::new(air::MatchQuery::Comparison(air::MatchLanguageComparison {
+                        function: air::MatchLanguageComparisonOp::Lt,
+                        input: Some("f.a".to_string().into()),
+                        arg: air::LiteralValue::Integer(1),
+                    })),
+                }
+            ))),
+            input = mir::Stage::MQLIntrinsic(mir::MQLStage::MatchFilter(mir::MatchFilter {
+                source: Box::new(mir::Stage::Project(mir::Project {
+                    source: Box::new(mir::Stage::Collection(mir::Collection {
+                        db: "test_db".into(),
+                        collection: "foo".into(),
+                        cache: mir::schema::SchemaCache::new(),
+                    })),
+                    expression: BindingTuple(map! {
+                        Key::named("f", 0u16) => mir::Expression::Reference(("foo", 0u16).into()),
+                    }),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                condition: mir::MatchQuery::Comparison(mir::MatchLanguageComparison {
+                    function: mir::MatchLanguageComparisonOp::Lt,
+                    input: Some(mir::MatchPath::MatchFieldAccess(mir::MatchFieldAccess {
+                        parent: Box::new(mir::MatchPath::MatchReference(("f", 0u16).into())),
+                        field: "a".to_string(),
+                        cache: mir::schema::SchemaCache::new(),
+                    })),
+                    arg: mir::LiteralValue::Integer(1),
+                    cache: mir::schema::SchemaCache::new(),
+                }),
+                cache: mir::schema::SchemaCache::new(),
+            }))
+        );
     }
 }
 

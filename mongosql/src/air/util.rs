@@ -1,4 +1,4 @@
-use crate::air::{FieldRef, LiteralValue, MQLOperator, SQLOperator, Stage, Variable};
+use crate::air::{FieldRef, LiteralValue, MQLOperator, Match, SQLOperator, Stage, Variable};
 use std::fmt;
 
 impl Stage {
@@ -13,7 +13,7 @@ impl Stage {
             Stage::Unwind(u) => u.source.clone(),
             Stage::Lookup(l) => l.source.clone(),
             Stage::ReplaceWith(r) => r.source.clone(),
-            Stage::Match(m) => m.source.clone(),
+            Stage::Match(m) => m.get_source(),
             Stage::UnionWith(u) => u.source.clone(),
             Stage::Skip(s) => s.source.clone(),
             Stage::Documents(_) => Box::new(self.clone()),
@@ -31,10 +31,26 @@ impl Stage {
             Stage::Unwind(u) => u.source = new_source,
             Stage::Lookup(l) => l.source = new_source,
             Stage::ReplaceWith(r) => r.source = new_source,
-            Stage::Match(m) => m.source = new_source,
+            Stage::Match(m) => m.set_source(new_source),
             Stage::UnionWith(u) => u.source = new_source,
             Stage::Skip(s) => s.source = new_source,
             Stage::Documents(_) => {}
+        }
+    }
+}
+
+impl Match {
+    fn get_source(&self) -> Box<Stage> {
+        match self {
+            Match::ExprLanguage(e) => e.source.clone(),
+            Match::MatchLanguage(m) => m.source.clone(),
+        }
+    }
+
+    fn set_source(&mut self, new_source: Box<Stage>) {
+        match self {
+            Match::ExprLanguage(e) => e.source = new_source,
+            Match::MatchLanguage(m) => m.source = new_source,
         }
     }
 }

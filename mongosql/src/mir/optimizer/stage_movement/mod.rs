@@ -2,6 +2,7 @@
 mod test;
 
 use super::Optimizer;
+use crate::mir::{MQLStage, MatchFilter};
 use crate::{
     mir::{
         binding_tuple::Key,
@@ -40,6 +41,7 @@ impl Stage {
             // It's possible to have an Unwind that does not modify cardinality and thus invalidate
             // an offset, but we can consider that a very rare occurence.
             Stage::Unwind(_) => true,
+            Stage::MQLIntrinsic(_) => true,
             Stage::Sentinel => unreachable!(),
         }
     }
@@ -121,6 +123,13 @@ impl Stage {
                     ..n
                 }),
             ),
+            Stage::MQLIntrinsic(MQLStage::MatchFilter(n)) => (
+                vec![*n.source],
+                Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+                    source: Box::new(Stage::Sentinel),
+                    ..n
+                })),
+            ),
         }
     }
 
@@ -169,6 +178,12 @@ impl Stage {
                 ..s
             }),
             Stage::Collection(_) | Stage::Array(_) => self,
+            Stage::MQLIntrinsic(MQLStage::MatchFilter(s)) => {
+                Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+                    source: sources.swap_remove(0).into(),
+                    ..s
+                }))
+            }
             Stage::Sentinel => unreachable!(),
         }
     }

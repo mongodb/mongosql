@@ -644,19 +644,21 @@ mod to_air_pipeline_test {
     test_to_air_pipeline!(
         multiple_stages,
         expected = air::Stage::Sort(air::Sort {
-            source: Box::new(air::Stage::Match(air::Match {
-                source: Box::new(air::Stage::Project(air::Project {
-                    source: Box::new(air::Stage::Collection(air::Collection {
-                        db: "test".to_string(),
-                        collection: "default".to_string(),
+            source: Box::new(air::Stage::Match(air::Match::ExprLanguage(
+                air::ExprLanguage {
+                    source: Box::new(air::Stage::Project(air::Project {
+                        source: Box::new(air::Stage::Collection(air::Collection {
+                            db: "test".to_string(),
+                            collection: "default".to_string(),
+                        })),
+                        specifications: unchecked_unique_linked_hash_map! {
+                            "a".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Boolean(true))),
+                            "b".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(2))),
+                        },
                     })),
-                    specifications: unchecked_unique_linked_hash_map! {
-                        "a".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Boolean(true))),
-                        "b".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(2))),
-                    },
-                })),
-                expr: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
-            })),
+                    expr: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
+                }
+            ))),
             specs: vec![
                 air::SortSpecification::Asc("a".to_string()),
                 air::SortSpecification::Desc("b".to_string()),

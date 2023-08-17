@@ -212,14 +212,7 @@ impl MqlTranslator {
     }
 
     fn translate_literal(&self, lit: mir::LiteralValue) -> Result<air::Expression> {
-        Ok(air::Expression::Literal(match lit {
-            mir::LiteralValue::Null => air::LiteralValue::Null,
-            mir::LiteralValue::Boolean(b) => air::LiteralValue::Boolean(b),
-            mir::LiteralValue::String(s) => air::LiteralValue::String(s),
-            mir::LiteralValue::Integer(i) => air::LiteralValue::Integer(i),
-            mir::LiteralValue::Long(l) => air::LiteralValue::Long(l),
-            mir::LiteralValue::Double(d) => air::LiteralValue::Double(d),
-        }))
+        Ok(air::Expression::Literal(self.translate_literal_value(lit)))
     }
 
     fn translate_reference(&self, key: Key) -> Result<air::Expression> {

@@ -2,6 +2,7 @@ use crate::{
     air::{
         desugarer::{Pass, Result},
         visitor::Visitor,
+        ExprLanguage,
         Expression::*,
         Join, JoinType, Lookup, MQLOperator, MQLSemanticOperator, Match, Project, ProjectItem,
         ReplaceWith, Stage,
@@ -69,10 +70,10 @@ impl JoinDesugarerPassVisitor {
     fn desugar_join_stage(&self, join: Join) -> Stage {
         let lookup_pipeline = match join.condition {
             None => join.right,
-            Some(expr) => Box::new(Match(Match {
+            Some(expr) => Box::new(Match(Match::ExprLanguage(ExprLanguage {
                 source: join.right,
                 expr: Box::new(expr),
-            })),
+            }))),
         };
 
         // Arbitrary unique field name. This is highly unlikely to conflict

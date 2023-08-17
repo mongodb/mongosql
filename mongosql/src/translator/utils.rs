@@ -188,6 +188,17 @@ impl MqlTranslator {
             None => true,
         }
     }
+
+    pub(crate) fn translate_literal_value(&self, lit: mir::LiteralValue) -> air::LiteralValue {
+        match lit {
+            mir::LiteralValue::Null => air::LiteralValue::Null,
+            mir::LiteralValue::Boolean(b) => air::LiteralValue::Boolean(b),
+            mir::LiteralValue::String(s) => air::LiteralValue::String(s),
+            mir::LiteralValue::Integer(i) => air::LiteralValue::Integer(i),
+            mir::LiteralValue::Long(l) => air::LiteralValue::Long(l),
+            mir::LiteralValue::Double(d) => air::LiteralValue::Double(d),
+        }
+    }
 }
 
 impl From<mir::Type> for air::Type {

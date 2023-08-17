@@ -1049,6 +1049,7 @@ impl<'a> Visitor for ConstantFoldExprVisitor<'a> {
             Stage::Sort(_) => st,
             Stage::Derived(_) => st,
             Stage::Unwind(_) => st,
+            Stage::MQLIntrinsic(_) => st,
             Stage::Sentinel => unreachable!(),
         }
     }

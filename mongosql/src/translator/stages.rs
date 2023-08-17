@@ -24,6 +24,7 @@ impl MqlTranslator {
             mir::Stage::Set(s) => self.translate_set(s),
             mir::Stage::Derived(d) => self.translate_derived(d),
             mir::Stage::Unwind(u) => self.translate_unwind(u),
+            mir::Stage::MQLIntrinsic(i) => self.translate_mql_intrinsic(i),
             mir::Stage::Sentinel => unreachable!(),
         }
     }
@@ -32,10 +33,12 @@ impl MqlTranslator {
         let source_translation = self.translate_stage(*mir_filter.source)?;
         let expr_translation = self.translate_expression(mir_filter.condition)?;
 
-        Ok(air::Stage::Match(air::Match {
-            source: Box::new(source_translation),
-            expr: Box::new(expr_translation),
-        }))
+        Ok(air::Stage::Match(air::Match::ExprLanguage(
+            air::ExprLanguage {
+                source: Box::new(source_translation),
+                expr: Box::new(expr_translation),
+            },
+        )))
     }
 
     fn translate_project(&mut self, mir_project: mir::Project) -> Result<air::Stage> {
@@ -300,6 +303,24 @@ impl MqlTranslator {
             index: mir_unwind.index,
             outer: mir_unwind.outer,
         }))
+    }
+
+    fn translate_mql_intrinsic(&mut self, mir_mql_intrinsic: mir::MQLStage) -> Result<air::Stage> {
+        match mir_mql_intrinsic {
+            mir::MQLStage::MatchFilter(mf) => self.translate_match_filter(mf),
+        }
+    }
+
+    fn translate_match_filter(&mut self, mir_match_filter: mir::MatchFilter) -> Result<air::Stage> {
+        let source_translation = self.translate_stage(*mir_match_filter.source)?;
+        let condition_translation = self.translate_match_query(mir_match_filter.condition)?;
+
+        Ok(air::Stage::Match(air::Match::MatchLanguage(
+            air::MatchLanguage {
+                source: Box::new(source_translation),
+                expr: Box::new(condition_translation),
+            },
+        )))
     }
 
     // Utility functions for Group translation

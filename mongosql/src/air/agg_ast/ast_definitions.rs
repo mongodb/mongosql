@@ -556,10 +556,10 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                 source: Box::new(source.expect("$replaceWith without valid source stage")),
                 new_root: Box::new(r.into()),
             }),
-            Stage::Match(m) => air::Stage::Match(air::Match {
+            Stage::Match(m) => air::Stage::Match(air::Match::ExprLanguage(air::ExprLanguage {
                 source: Box::new(source.expect("$match without valid source stage")),
                 expr: Box::new((*m.expr).into()),
-            }),
+            })),
             Stage::Limit(l) => air::Stage::Limit(air::Limit {
                 source: Box::new(source.expect("$limit without valid source stage")),
                 limit: l,

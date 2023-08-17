@@ -258,6 +258,7 @@ impl CachedSchema for Stage {
             Stage::Set(s) => &s.cache,
             Stage::Derived(s) => &s.cache,
             Stage::Unwind(s) => &s.cache,
+            Stage::MQLIntrinsic(MQLStage::MatchFilter(s)) => &s.cache,
             Stage::Sentinel => unreachable!(),
         }
     }
@@ -817,6 +818,24 @@ impl CachedSchema for Stage {
                 Ok(ResultSet {
                     schema_env: state.env,
                     min_size: source_result_set.min_size,
+                    max_size: source_result_set.max_size,
+                })
+            }
+            Stage::MQLIntrinsic(MQLStage::MatchFilter(f)) => {
+                let source_result_set = f.source.schema(state)?;
+                let state = state.with_merged_schema_env(source_result_set.schema_env.clone())?;
+                let cond_schema = f.condition.schema(&state)?;
+                if !state.check_satisfies(&cond_schema, &BOOLEAN_OR_NULLISH) {
+                    return Err(Error::SchemaChecking {
+                        name: "match filter condition",
+                        required: BOOLEAN_OR_NULLISH.clone(),
+                        found: cond_schema,
+                    });
+                }
+
+                Ok(ResultSet {
+                    schema_env: source_result_set.schema_env,
+                    min_size: 0,
                     max_size: source_result_set.max_size,
                 })
             }
@@ -1980,5 +1999,23 @@ impl TypeAssertionExpr {
         }
 
         Ok(target_schema)
+    }
+}
+
+impl CachedSchema for MatchQuery {
+    type ReturnType = Schema;
+
+    fn get_cache(&self) -> &SchemaCache<Self::ReturnType> {
+        match self {
+            MatchQuery::Logical(s) => &s.cache,
+            MatchQuery::Type(s) => &s.cache,
+            MatchQuery::Regex(s) => &s.cache,
+            MatchQuery::ElemMatch(s) => &s.cache,
+            MatchQuery::Comparison(s) => &s.cache,
+        }
+    }
+
+    fn check_schema(&self, _: &SchemaInferenceState) -> Result<Self::ReturnType, Error> {
+        Ok(BOOLEAN_OR_NULLISH.clone())
     }
 }

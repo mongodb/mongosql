@@ -216,10 +216,10 @@ mod stage {
 
         test_from_stage!(
             expr,
-            expected = air::Stage::Match(air::Match {
+            expected = air::Stage::Match(air::Match::ExprLanguage(air::ExprLanguage {
                 source: Box::new(default_source()),
                 expr: Box::new(air::Expression::Literal(air::LiteralValue::Boolean(true))),
-            }),
+            })),
             input = agg_ast::Stage::Match(agg_ast::MatchExpression {
                 expr: Box::new(agg_ast::Expression::Literal(
                     agg_ast::LiteralValue::Boolean(true)

@@ -113,12 +113,8 @@ impl MqlCodeGenerator {
         }))
     }
 
-    #[allow(clippy::only_used_in_recursion)] // false positive
     fn codegen_field_ref(&self, field_ref: air::FieldRef) -> String {
-        match field_ref.parent {
-            None => format!("${}", field_ref.name),
-            Some(parent) => format!("{}.{}", self.codegen_field_ref(*parent), field_ref.name),
-        }
+        format!("${}", self.codegen_field_ref_path_only(field_ref))
     }
 
     #[allow(clippy::only_used_in_recursion)] // false positive

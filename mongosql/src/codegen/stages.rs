@@ -69,11 +69,37 @@ impl MqlCodeGenerator {
     }
 
     fn codegen_match(&self, air_match: air::Match) -> Result<MqlTranslation> {
-        let source_translation = self.codegen_stage(*air_match.source)?;
+        match air_match {
+            air::Match::ExprLanguage(e) => self.codegen_match_expr_language(e),
+            air::Match::MatchLanguage(m) => self.codegen_match_match_language(m),
+        }
+    }
+
+    fn codegen_match_expr_language(
+        &self,
+        air_match_expr_language: air::ExprLanguage,
+    ) -> Result<MqlTranslation> {
+        let source_translation = self.codegen_stage(*air_match_expr_language.source)?;
         let mut pipeline = source_translation.pipeline;
-        let expr = bson!({ "$expr": self.codegen_expression(*air_match.expr)?});
+        let expr = bson!({ "$expr": self.codegen_expression(*air_match_expr_language.expr)?});
 
         pipeline.push(doc! {"$match": expr});
+        Ok(MqlTranslation {
+            database: source_translation.database,
+            collection: source_translation.collection,
+            pipeline,
+        })
+    }
+
+    fn codegen_match_match_language(
+        &self,
+        air_match_match_language: air::MatchLanguage,
+    ) -> Result<MqlTranslation> {
+        let source_translation = self.codegen_stage(*air_match_match_language.source)?;
+        let mut pipeline = source_translation.pipeline;
+        let condition = self.codegen_match_query(*air_match_match_language.expr)?;
+
+        pipeline.push(doc! {"$match": condition});
         Ok(MqlTranslation {
             database: source_translation.database,
             collection: source_translation.collection,
