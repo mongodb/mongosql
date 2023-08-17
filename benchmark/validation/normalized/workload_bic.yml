@@ -197,21 +197,18 @@ Actors:
         LoadConfig:
           Path: ../../../../genny/src/phases/tpch/normalized/Q14.yml
           Key: TPCHNormalizedQuery14Aggregation
-
-# skip-reason: returns 32 rows compared to server, atlas sql's 34 rows
-# - ActorFromTemplate:
-#     TemplateName: ValidateTPCHQueryActorTemplate
-#     TemplateParameters:
-#       Query: 16
-#       Actual:
-#         LoadConfig:
-#           Path: ../../bic/normalized/phase/q16_normalized.yml
-#           Key: q16_normalized_aggregation
-#       Expected:
-#         LoadConfig:
-#           Path: ../../../../genny/src/phases/tpch/normalized/Q16.yml
-#           Key: TPCHNormalizedQuery16Aggregation
-
+- ActorFromTemplate:
+    TemplateName: ValidateTPCHQueryActorTemplate
+    TemplateParameters:
+      Query: 16
+      Actual:
+        LoadConfig:
+          Path: ../../bic/normalized/phase/q16_normalized.yml
+          Key: q16_normalized_aggregation
+      Expected:
+        LoadConfig:
+          Path: ../../../../genny/src/phases/tpch/normalized/Q16.yml
+          Key: TPCHNormalizedQuery16Aggregation
 - ActorFromTemplate:
     TemplateName: ValidateTPCHQueryActorTemplate
     TemplateParameters:

@@ -9,397 +9,515 @@ q16_normalized_aggregation: &q16_normalized_aggregation
   pipeline:
     [
       {
-        "$match":
-          {
-            "$and":
-              [
-                { "p_partkey": { "$ne": null } },
+          "$match":{
+            "$and":[
                 {
-                  "$expr":
-                    {
-                      "$let":
-                        {
-                          "vars":
-                            {
-                              "arg":
-                                {
-                                  "$cond":
-                                    {
-                                      "if":
-                                        {
-                                          "$regexMatch":
-                                            {
-                                              "input": "$p_type",
-                                              "regex": "^MEDIUM POLISHED.*$",
-                                              "options": "si",
-                                            },
-                                        },
-                                      "then": 1,
-                                      "else": 0,
-                                    },
-                                },
-                            },
-                          "in":
-                            {
-                              "$cond":
-                                {
-                                  "if": { "$lte": ["$$arg", null] },
-                                  "then": null,
-                                  "else": { "$not": ["$$arg"] },
-                                },
-                            },
+                  "p_partkey":{
+                      "$ne":null
+                  }
+                },
+                {
+                  "$expr":{
+                      "$let":{
+                        "vars":{
+                            "arg":{
+                              "$cond":{
+                                  "if":{
+                                    "$regexMatch":{
+                                        "input":"$p_type",
+                                        "regex":"^MEDIUM POLISHED.*$",
+                                        "options":"si"
+                                    }
+                                  },
+                                  "then":1,
+                                  "else":0
+                              }
+                            }
                         },
-                    },
-                },
-                {
-                  "$or":
-                    [
-                      { "p_size": { "$eq": 49 } },
-                      { "p_size": { "$eq": 14 } },
-                      { "p_size": { "$eq": 23 } },
-                      { "p_size": { "$eq": 45 } },
-                      { "p_size": { "$eq": 19 } },
-                      { "p_size": { "$eq": 3 } },
-                      { "p_size": { "$eq": 36 } },
-                      { "p_size": { "$eq": 9 } },
-                    ],
-                },
-                {
-                  "$nor":
-                    [
-                      {
-                        "p_type":
-                          { "$regex": "^MEDIUM POLISHED.*$", "$options": "si" },
-                      },
-                    ],
-                },
-                { "p_brand": { "$ne": null } },
-                { "p_brand": { "$ne": "Brand#45" } },
-              ],
-          },
-      },
-      {
-        "$lookup":
-          {
-            "from": "partsupp",
-            "localField": "p_partkey",
-            "foreignField": "ps_partkey",
-            "as": "__joined_partsupp",
-          },
-      },
-      { "$unwind": "$__joined_partsupp" },
-      {
-        "$lookup":
-          {
-            "from": "region",
-            "let": { "bic_correlated_var_0": "$__joined_partsupp.ps_suppkey" },
-            "pipeline":
-              [
-                { "$collStats": {} },
-                { "$limit": 1 },
-                {
-                  "$project":
-                    {
-                      "tpch_DOT_partsupp_DOT_ps_suppkey": "$$bic_correlated_var_0",
-                    },
-                },
-              ],
-            "as": "__subquery_region_[2]",
-          },
-      },
-      {
-        "$match":
-          {
-            "$and":
-              [
-                {
-                  "$or":
-                    [
-                      { "p_size": { "$eq": 49 } },
-                      { "p_size": { "$eq": 14 } },
-                      { "p_size": { "$eq": 23 } },
-                      { "p_size": { "$eq": 45 } },
-                      { "p_size": { "$eq": 19 } },
-                      { "p_size": { "$eq": 3 } },
-                      { "p_size": { "$eq": 36 } },
-                      { "p_size": { "$eq": 9 } },
-                    ],
-                },
-                {
-                  "$nor":
-                    [
-                      {
-                        "p_type":
-                          { "$regex": "^MEDIUM POLISHED.*$", "$options": "si" },
-                      },
-                    ],
-                },
-                { "p_brand": { "$ne": null } },
-                { "p_brand": { "$ne": "Brand#45" } },
-              ],
-          },
-      },
-      {
-        "$lookup":
-          {
-            "from": "supplier",
-            "let": { "bic_correlated_var_0": "$__joined_partsupp.ps_suppkey" },
-            "pipeline":
-              [
-                {
-                  "$match":
-                    {
-                      "s_comment":
-                        { "$regex": "^.*requests.*the.*$", "$options": "si" },
-                    },
-                },
-                { "$project": { "tpch_DOT_supplier_DOT_s_suppkey": "$s_suppkey" } },
-              ],
-            "as": "__subquery_supplier_[3]",
-          },
-      },
-      {
-        "$match":
-          {
-            "$expr":
-              {
-                "$let":
-                  {
-                    "vars":
-                      {
-                        "expr0":
-                          {
-                            "$let":
-                              {
-                                "vars":
-                                  {
-                                    "arg":
-                                      {
-                                        "$cond":
-                                          {
-                                            "if":
-                                              {
-                                                "$regexMatch":
-                                                  {
-                                                    "input": "$p_type",
-                                                    "regex": "^MEDIUM POLISHED.*$",
-                                                    "options": "si",
-                                                  },
-                                              },
-                                            "then": 1,
-                                            "else": 0,
-                                          },
-                                      },
-                                  },
-                                "in":
-                                  {
-                                    "$cond":
-                                      {
-                                        "if": { "$lte": ["$$arg", null] },
-                                        "then": null,
-                                        "else": { "$not": ["$$arg"] },
-                                      },
-                                  },
+                        "in":{
+                            "$cond":{
+                              "if":{
+                                  "$lte":[
+                                    "$$arg",
+                                    null
+                                  ]
                               },
-                          },
-                        "expr1":
-                          {
-                            "$allElementsTrue":
-                              [
-                                {
-                                  "$map":
-                                    {
-                                      "input":
+                              "then":null,
+                              "else":{
+                                  "$not":[
+                                    "$$arg"
+                                  ]
+                              }
+                            }
+                        }
+                      }
+                  }
+                },
+                {
+                  "$or":[
+                      {
+                        "p_size":{
+                            "$eq":49
+                        }
+                      },
+                      {
+                        "p_size":{
+                            "$eq":14
+                        }
+                      },
+                      {
+                        "p_size":{
+                            "$eq":23
+                        }
+                      },
+                      {
+                        "p_size":{
+                            "$eq":45
+                        }
+                      },
+                      {
+                        "p_size":{
+                            "$eq":19
+                        }
+                      },
+                      {
+                        "p_size":{
+                            "$eq":3
+                        }
+                      },
+                      {
+                        "p_size":{
+                            "$eq":36
+                        }
+                      },
+                      {
+                        "p_size":{
+                            "$eq":9
+                        }
+                      }
+                  ]
+                },
+                {
+                  "$nor":[
+                      {
+                        "p_type":{
+                            "$regex":"^MEDIUM POLISHED.*$",
+                            "$options":"si"
+                        }
+                      }
+                  ]
+                },
+                {
+                  "p_brand":{
+                      "$ne":null
+                  }
+                },
+                {
+                  "p_brand":{
+                      "$ne":"Brand#45"
+                  }
+                }
+            ]
+          }
+      },
+      {
+          "$lookup":{
+            "from":"partsupp",
+            "localField":"p_partkey",
+            "foreignField":"ps_partkey",
+            "as":"__joined_partsupp"
+          }
+      },
+      {
+          "$unwind":"$__joined_partsupp"
+      },
+      {
+          "$lookup":{
+            "from":"customer",
+            "let":{
+                "bic_correlated_var_0":"$__joined_partsupp.ps_suppkey"
+            },
+            "pipeline":[
+                {
+                  "$collStats":{
+                      
+                  }
+                },
+                {
+                  "$limit":1
+                },
+                {
+                  "$project":{
+                      "tpch_DOT_partsupp_DOT_ps_suppkey":"$$bic_correlated_var_0"
+                  }
+                }
+            ],
+            "as":"__subquery_customer_[2]"
+          }
+      },
+      {
+          "$match":{
+            "$and":[
+                {
+                  "$or":[
+                      {
+                        "p_size":{
+                            "$eq":49
+                        }
+                      },
+                      {
+                        "p_size":{
+                            "$eq":14
+                        }
+                      },
+                      {
+                        "p_size":{
+                            "$eq":23
+                        }
+                      },
+                      {
+                        "p_size":{
+                            "$eq":45
+                        }
+                      },
+                      {
+                        "p_size":{
+                            "$eq":19
+                        }
+                      },
+                      {
+                        "p_size":{
+                            "$eq":3
+                        }
+                      },
+                      {
+                        "p_size":{
+                            "$eq":36
+                        }
+                      },
+                      {
+                        "p_size":{
+                            "$eq":9
+                        }
+                      }
+                  ]
+                },
+                {
+                  "$nor":[
+                      {
+                        "p_type":{
+                            "$regex":"^MEDIUM POLISHED.*$",
+                            "$options":"si"
+                        }
+                      }
+                  ]
+                },
+                {
+                  "p_brand":{
+                      "$ne":null
+                  }
+                },
+                {
+                  "p_brand":{
+                      "$ne":"Brand#45"
+                  }
+                }
+            ]
+          }
+      },
+      {
+          "$lookup":{
+            "from":"supplier",
+            "let":{
+                "bic_correlated_var_0":"$__joined_partsupp.ps_suppkey"
+            },
+            "pipeline":[
+                {
+                  "$match":{
+                      "s_comment":{
+                        "$regex":"^.*Customer.*Complaints.*$",
+                        "$options":"si"
+                      }
+                  }
+                },
+                {
+                  "$project":{
+                      "tpch_DOT_supplier_DOT_s_suppkey":"$s_suppkey"
+                  }
+                }
+            ],
+            "as":"__subquery_supplier_[3]"
+          }
+      },
+      {
+          "$match":{
+            "$expr":{
+                "$let":{
+                  "vars":{
+                      "expr0":{
+                        "$let":{
+                            "vars":{
+                              "arg":{
+                                  "$cond":{
+                                    "if":{
+                                        "$regexMatch":{
+                                          "input":"$p_type",
+                                          "regex":"^MEDIUM POLISHED.*$",
+                                          "options":"si"
+                                        }
+                                    },
+                                    "then":1,
+                                    "else":0
+                                  }
+                              }
+                            },
+                            "in":{
+                              "$cond":{
+                                  "if":{
+                                    "$lte":[
+                                        "$$arg",
+                                        null
+                                    ]
+                                  },
+                                  "then":null,
+                                  "else":{
+                                    "$not":[
+                                        "$$arg"
+                                    ]
+                                  }
+                              }
+                            }
+                        }
+                      },
+                      "expr1":{
+                        "$allElementsTrue":[
+                            {
+                              "$map":{
+                                  "input":{
+                                    "$map":{
+                                        "input":"$__subquery_supplier_[3]",
+                                        "as":"this",
+                                        "in":{
+                                          "$ifNull":[
+                                              "$$this.tpch_DOT_supplier_DOT_s_suppkey",
+                                              null
+                                          ]
+                                        }
+                                    }
+                                  },
+                                  "as":"this",
+                                  "in":{
+                                    "$and":[
                                         {
-                                          "$map":
-                                            {
-                                              "input": "$__subquery_supplier_[3]",
-                                              "as": "this",
-                                              "in":
-                                                {
-                                                  "$ifNull":
-                                                    [
-                                                      "$$this.tpch_DOT_supplier_DOT_s_suppkey",
-                                                      null,
-                                                    ],
-                                                },
-                                            },
-                                        },
-                                      "as": "this",
-                                      "in":
-                                        {
-                                          "$and":
-                                            [
+                                          "$ne":[
                                               {
-                                                "$ne":
-                                                  [
+                                                "$arrayElemAt":[
                                                     {
-                                                      "$arrayElemAt":
-                                                        [
-                                                          {
-                                                            "$map":
-                                                              {
-                                                                "input": "$__subquery_region_[2]",
-                                                                "as": "this",
-                                                                "in":
-                                                                  {
-                                                                    "$ifNull":
-                                                                      [
-                                                                        "$$this.tpch_DOT_partsupp_DOT_ps_suppkey",
-                                                                        null,
-                                                                      ],
-                                                                  },
-                                                              },
-                                                          },
-                                                          0,
-                                                        ],
+                                                      "$map":{
+                                                          "input":"$__subquery_customer_[2]",
+                                                          "as":"this",
+                                                          "in":{
+                                                            "$ifNull":[
+                                                                "$$this.tpch_DOT_partsupp_DOT_ps_suppkey",
+                                                                null
+                                                            ]
+                                                          }
+                                                      }
                                                     },
+                                                    0
+                                                ]
+                                              },
+                                              "$$this"
+                                          ]
+                                        },
+                                        {
+                                          "$not":[
+                                              {
+                                                "$eq":[
+                                                    {
+                                                      "$arrayElemAt":[
+                                                          {
+                                                            "$map":{
+                                                                "input":"$__subquery_customer_[2]",
+                                                                "as":"this",
+                                                                "in":{
+                                                                  "$ifNull":[
+                                                                      "$$this.tpch_DOT_partsupp_DOT_ps_suppkey",
+                                                                      null
+                                                                  ]
+                                                                }
+                                                            }
+                                                          },
+                                                          0
+                                                      ]
+                                                    },
+                                                    null
+                                                ]
+                                              }
+                                          ]
+                                        },
+                                        {
+                                          "$not":[
+                                              {
+                                                "$eq":[
                                                     "$$this",
-                                                  ],
-                                              },
-                                              {
-                                                "$not":
-                                                  [
-                                                    {
-                                                      "$eq":
-                                                        [
-                                                          {
-                                                            "$arrayElemAt":
-                                                              [
-                                                                {
-                                                                  "$map":
-                                                                    {
-                                                                      "input": "$__subquery_region_[2]",
-                                                                      "as": "this",
-                                                                      "in":
-                                                                        {
-                                                                          "$ifNull":
-                                                                            [
-                                                                              "$$this.tpch_DOT_partsupp_DOT_ps_suppkey",
-                                                                              null,
-                                                                            ],
-                                                                        },
-                                                                    },
-                                                                },
-                                                                0,
-                                                              ],
-                                                          },
-                                                          null,
-                                                        ],
-                                                    },
-                                                  ],
-                                              },
-                                              {
-                                                "$not":
-                                                  [{ "$eq": ["$$this", null] }],
-                                              },
-                                            ],
-                                        },
-                                    },
-                                },
-                              ],
-                          },
-                      },
-                    "in":
-                      {
-                        "$cond":
-                          {
-                            "if":
-                              {
-                                "$or":
-                                  [
-                                    { "$eq": ["$$expr0", 0] },
-                                    { "$eq": ["$$expr0", false] },
-                                    { "$eq": ["$$expr1", 0] },
-                                    { "$eq": ["$$expr1", false] },
-                                  ],
-                              },
-                            "then": false,
-                            "else":
-                              {
-                                "$cond":
-                                  {
-                                    "if":
-                                      {
-                                        "$or":
-                                          [
-                                            { "$lte": ["$$expr0", null] },
-                                            { "$lte": ["$$expr1", null] },
-                                          ],
-                                      },
-                                    "then": null,
-                                    "else": true,
-                                  },
-                              },
-                          },
-                      },
+                                                    null
+                                                ]
+                                              }
+                                          ]
+                                        }
+                                    ]
+                                  }
+                              }
+                            }
+                        ]
+                      }
                   },
-              },
-          },
-      },
-      {
-        "$group":
-          {
-            "_id":
-              {
-                "group_key_0": { "$ifNull": ["$p_brand", { "$literal": null }] },
-                "group_key_1": { "$ifNull": ["$p_type", { "$literal": null }] },
-                "group_key_2": { "$ifNull": ["$p_size", { "$literal": null }] },
-              },
-            "distinct tpch_DOT_partsupp_DOT_ps_suppkey":
-              { "$addToSet": "$__joined_partsupp.ps_suppkey" },
-          },
-      },
-      {
-        "$project":
-          {
-            "_id": 0,
-            "tpch_DOT_part_DOT_p_brand": "$_id.group_key_0",
-            "tpch_DOT_part_DOT_p_type": "$_id.group_key_1",
-            "tpch_DOT_part_DOT_p_size": "$_id.group_key_2",
-            "count(distinct tpch_DOT_partsupp_DOT_ps_suppkey)":
-              {
-                "$sum":
-                  [
-                    {
-                      "$map":
-                        {
-                          "input": "$distinct tpch_DOT_partsupp_DOT_ps_suppkey",
-                          "as": "i",
-                          "in":
-                            {
-                              "$cond":
-                                {
-                                  "if": { "$lte": ["$$i", { "$literal": null }] },
-                                  "then": { "$literal": 0 },
-                                  "else": { "$literal": 1 },
-                                },
-                            },
+                  "in":{
+                      "$cond":{
+                        "if":{
+                            "$or":[
+                              {
+                                  "$eq":[
+                                    "$$expr0",
+                                    0
+                                  ]
+                              },
+                              {
+                                  "$eq":[
+                                    "$$expr0",
+                                    false
+                                  ]
+                              },
+                              {
+                                  "$eq":[
+                                    "$$expr1",
+                                    0
+                                  ]
+                              },
+                              {
+                                  "$eq":[
+                                    "$$expr1",
+                                    false
+                                  ]
+                              }
+                            ]
                         },
-                    },
-                  ],
-              },
-          },
+                        "then":false,
+                        "else":{
+                            "$cond":{
+                              "if":{
+                                  "$or":[
+                                    {
+                                        "$lte":[
+                                          "$$expr0",
+                                          null
+                                        ]
+                                    },
+                                    {
+                                        "$lte":[
+                                          "$$expr1",
+                                          null
+                                        ]
+                                    }
+                                  ]
+                              },
+                              "then":null,
+                              "else":true
+                            }
+                        }
+                      }
+                  }
+                }
+            }
+          }
       },
       {
-        "$sort":
-          {
-            "count(distinct tpch_DOT_partsupp_DOT_ps_suppkey)": -1,
-            "tpch_DOT_part_DOT_p_brand": 1,
-            "tpch_DOT_part_DOT_p_type": 1,
-            "tpch_DOT_part_DOT_p_size": 1,
-          },
+          "$group":{
+            "_id":{
+                "group_key_0":{
+                  "$ifNull":[
+                      "$p_brand",
+                      {
+                        "$literal":null
+                      }
+                  ]
+                },
+                "group_key_1":{
+                  "$ifNull":[
+                      "$p_type",
+                      {
+                        "$literal":null
+                      }
+                  ]
+                },
+                "group_key_2":{
+                  "$ifNull":[
+                      "$p_size",
+                      {
+                        "$literal":null
+                      }
+                  ]
+                }
+            },
+            "distinct tpch_DOT_partsupp_DOT_ps_suppkey":{
+                "$addToSet":"$__joined_partsupp.ps_suppkey"
+            }
+          }
       },
       {
-        "$project":
-          {
-            "p_brand": "$tpch_DOT_part_DOT_p_brand",
-            "p_type": "$tpch_DOT_part_DOT_p_type",
-            "p_size": "$tpch_DOT_part_DOT_p_size",
-            "supplier_cnt": "$count(distinct tpch_DOT_partsupp_DOT_ps_suppkey)",
-            "_id": 0,
-          },
+          "$project":{
+            "_id":0,
+            "tpch_DOT_part_DOT_p_brand":"$_id.group_key_0",
+            "tpch_DOT_part_DOT_p_type":"$_id.group_key_1",
+            "tpch_DOT_part_DOT_p_size":"$_id.group_key_2",
+            "count(distinct tpch_DOT_partsupp_DOT_ps_suppkey)":{
+                "$sum":[
+                  {
+                      "$map":{
+                        "input":"$distinct tpch_DOT_partsupp_DOT_ps_suppkey",
+                        "as":"i",
+                        "in":{
+                            "$cond":{
+                              "if":{
+                                  "$lte":[
+                                    "$$i",
+                                    {
+                                        "$literal":null
+                                    }
+                                  ]
+                              },
+                              "then":{
+                                  "$literal":0
+                              },
+                              "else":{
+                                  "$literal":1
+                              }
+                            }
+                        }
+                      }
+                  }
+                ]
+            }
+          }
       },
+      {
+          "$sort":{
+            "count(distinct tpch_DOT_partsupp_DOT_ps_suppkey)":-1,
+            "tpch_DOT_part_DOT_p_brand":1,
+            "tpch_DOT_part_DOT_p_type":1,
+            "tpch_DOT_part_DOT_p_size":1
+          }
+      },
+      {
+          "$project":{
+            "p_brand":"$tpch_DOT_part_DOT_p_brand",
+            "p_type":"$tpch_DOT_part_DOT_p_type",
+            "p_size":"$tpch_DOT_part_DOT_p_size",
+            "supplier_cnt":"$count(distinct tpch_DOT_partsupp_DOT_ps_suppkey)",
+            "_id":0
+          }
+      }
     ]
   cursor: {}
 

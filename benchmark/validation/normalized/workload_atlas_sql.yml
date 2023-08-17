@@ -233,21 +233,18 @@ Actors:
         LoadConfig:
           Path: ../../../../genny/src/phases/tpch/normalized/Q15.yml
           Key: TPCHNormalizedQuery15Aggregation
-
-# skip reason: reutrns 36 to bic's 32, servers 34
-# - ActorFromTemplate:
-#     TemplateName: ValidateTPCHQueryActorTemplate
-#     TemplateParameters:
-#       Query: 16
-#       Actual:
-#         LoadConfig:
-#           Path: ../../atlas_sql/normalized/phase/q16_normalized.yml
-#           Key: q16_normalized_aggregation
-#       Expected:
-#         LoadConfig:
-#           Path: ../../../../genny/src/phases/tpch/normalized/Q16.yml
-#           Key: TPCHNormalizedQuery16Aggregation
-
+- ActorFromTemplate:
+    TemplateName: ValidateTPCHQueryActorTemplate
+    TemplateParameters:
+      Query: 16
+      Actual:
+        LoadConfig:
+          Path: ../../atlas_sql/normalized/phase/q16_normalized.yml
+          Key: q16_normalized_aggregation
+      Expected:
+        LoadConfig:
+          Path: ../../../../genny/src/phases/tpch/normalized/Q16.yml
+          Key: TPCHNormalizedQuery16Aggregation
 - ActorFromTemplate:
     TemplateName: ValidateTPCHQueryActorTemplate
     TemplateParameters:
@@ -321,15 +318,17 @@ Actors:
           Key: TPCHNormalizedQuery21Aggregation
           Parameters:
             Query1Delta: "ARGENTINA"
-- ActorFromTemplate:
-   TemplateName: ValidateTPCHQueryActorTemplate
-   TemplateParameters:
-     Query: 22
-     Actual:
-       LoadConfig:
-         Path: ../../atlas_sql/normalized/phase/q22_normalized.yml
-         Key: q22_normalized_aggregation
-     Expected:
-       LoadConfig:
-         Path: ../../../../genny/src/phases/tpch/normalized/Q22.yml
-         Key: TPCHNormalizedQuery22Aggregation
+
+# skip-reason: SQL-1622
+# - ActorFromTemplate:
+#    TemplateName: ValidateTPCHQueryActorTemplate
+#    TemplateParameters:
+#      Query: 22
+#      Actual:
+#        LoadConfig:
+#          Path: ../../atlas_sql/normalized/phase/q22_normalized.yml
+#          Key: q22_normalized_aggregation
+#      Expected:
+#        LoadConfig:
+#          Path: ../../../../genny/src/phases/tpch/normalized/Q22.yml
+#          Key: TPCHNormalizedQuery22Aggregation

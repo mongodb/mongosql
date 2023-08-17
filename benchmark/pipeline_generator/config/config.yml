@@ -938,7 +938,7 @@ workloads:
       WHERE 
           p_partkey = ps_partkey 
           AND p_brand <> 'Brand#45' 
-          AND p_type NOT LIKE '^MEDIUM POLISHED%' 
+          AND p_type NOT LIKE 'MEDIUM POLISHED%' 
           AND p_size IN (49, 14, 23, 45, 19, 3, 36, 9) 
           AND ps_suppkey NOT IN (
               SELECT 
