@@ -342,15 +342,21 @@ impl MqlCodeGenerator {
     }
 
     fn codegen_subquery_comparison(&self, sc: air::SubqueryComparison) -> Result<Bson> {
-        use air::{SubqueryComparisonOp::*, SubqueryModifier::*};
+        use air::{SubqueryComparisonOp::*, SubqueryComparisonOpType::*, SubqueryModifier::*};
 
-        let op = match sc.op {
-            Lt => "lt",
-            Lte => "lte",
-            Neq => "ne",
-            Eq => "eq",
-            Gt => "gt",
-            Gte => "gte",
+        let op = match (sc.op_type, sc.op) {
+            (Mql, Lt) => "lt",
+            (Mql, Lte) => "lte",
+            (Mql, Neq) => "ne",
+            (Mql, Eq) => "eq",
+            (Mql, Gt) => "gt",
+            (Mql, Gte) => "gte",
+            (Sql, Lt) => "sqlLt",
+            (Sql, Lte) => "sqlLte",
+            (Sql, Neq) => "sqlNe",
+            (Sql, Eq) => "sqlEq",
+            (Sql, Gt) => "sqlGt",
+            (Sql, Gte) => "sqlGte",
         };
 
         let modifier = match sc.modifier {

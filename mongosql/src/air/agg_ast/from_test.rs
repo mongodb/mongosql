@@ -1323,10 +1323,56 @@ mod expression {
         );
 
         test_from_expr!(
-            sql_subquery_comparison,
+            sql_subquery_comparison_sql_op,
             expected = air::Expression::SubqueryComparison(
                 air::SubqueryComparison {
                     op: air::SubqueryComparisonOp::Eq,
+                    op_type: air::SubqueryComparisonOpType::Sql,
+                    modifier: air::SubqueryModifier::All,
+                    arg: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
+                    subquery: air::Subquery {
+                        let_bindings: vec![air::LetVariable {
+                            name: "z".to_string(),
+                            expr: air::Expression::Literal(air::LiteralValue::Integer(42)).into()
+                        },],
+                        output_path: vec!["x".to_string()],
+                        pipeline: air::Stage::Project(air::Project {
+                            source: air::Stage::Documents(air::Documents { array: vec![] }).into(),
+                            specifications: unchecked_unique_linked_hash_map! {
+                                "x".to_string() => air::ProjectItem::Inclusion,
+                            }
+                        }).into()
+                    }.into()
+                }),
+            input = agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::SubqueryComparison(
+                   agg_ast::SubqueryComparison {
+                       op: "sqlEq".to_string(),
+                       modifier: "all".to_string(),
+                       arg: Box::new(agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))),
+                       subquery: agg_ast::Subquery {
+                           db: Some("foo".to_string()),
+                           collection: Some("bar".to_string()),
+                           let_bindings: Some(map! {
+                               "z".to_string() => agg_ast::Expression::Literal(agg_ast::LiteralValue::Integer(42))
+                           }),
+                           output_path: Some(vec!["x".to_string()]),
+                           pipeline: vec![
+                               agg_ast::Stage::Documents(vec![]),
+                               agg_ast::Stage::Project(
+                                   map! {"x".to_string() => agg_ast::ProjectItem::Inclusion}
+                               )
+                           ]
+                       }.into()
+                   }
+               ))
+        );
+
+        test_from_expr!(
+            sql_subquery_comparison_mql_op,
+            expected = air::Expression::SubqueryComparison(
+                air::SubqueryComparison {
+                    op: air::SubqueryComparisonOp::Eq,
+                    op_type: air::SubqueryComparisonOpType::Mql,
                     modifier: air::SubqueryModifier::All,
                     arg: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
                     subquery: air::Subquery {
@@ -1365,11 +1411,13 @@ mod expression {
                    }
                ))
         );
+
         test_from_expr!(
             sql_subquery_comparison_rootless,
             expected = air::Expression::SubqueryComparison(
                 air::SubqueryComparison {
                     op: air::SubqueryComparisonOp::Neq,
+                    op_type: air::SubqueryComparisonOpType::Mql,
                     modifier: air::SubqueryModifier::Any,
                     arg: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
                     subquery: air::Subquery {

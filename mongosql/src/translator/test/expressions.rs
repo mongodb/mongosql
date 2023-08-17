@@ -4009,6 +4009,7 @@ mod subquery_comparison {
         expected = Ok(air::Expression::SubqueryComparison(
             air::SubqueryComparison {
                 op: air::SubqueryComparisonOp::Eq,
+                op_type: air::SubqueryComparisonOpType::Sql,
                 modifier: air::SubqueryModifier::Any,
                 arg: Box::new(air::Expression::Literal(air::LiteralValue::Integer(5))),
                 subquery: Box::new(air::Subquery {
@@ -4056,6 +4057,7 @@ mod subquery_comparison {
         expected = Ok(air::Expression::SubqueryComparison(
             air::SubqueryComparison {
                 op: air::SubqueryComparisonOp::Gt,
+                op_type: air::SubqueryComparisonOpType::Sql,
                 modifier: air::SubqueryModifier::All,
                 arg: Box::new(air::Expression::FieldRef("x".to_string().into())),
                 subquery: Box::new(air::Subquery {

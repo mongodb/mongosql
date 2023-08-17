@@ -523,7 +523,6 @@ pub struct Subquery {
     pub pipeline: Box<Stage>,
 }
 
-#[allow(dead_code)]
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum SubqueryComparisonOp {
     Lt,
@@ -534,7 +533,12 @@ pub enum SubqueryComparisonOp {
     Gte,
 }
 
-#[allow(dead_code)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
+pub enum SubqueryComparisonOpType {
+    Mql,
+    Sql,
+}
+
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum SubqueryModifier {
     Any,
@@ -544,6 +548,7 @@ pub enum SubqueryModifier {
 #[derive(PartialEq, Debug, Clone)]
 pub struct SubqueryComparison {
     pub op: SubqueryComparisonOp,
+    pub op_type: SubqueryComparisonOpType,
     pub modifier: SubqueryModifier,
     pub arg: Box<Expression>,
     pub subquery: Box<Subquery>,

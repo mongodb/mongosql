@@ -383,6 +383,7 @@ impl MqlTranslator {
         Ok(air::Expression::SubqueryComparison(
             air::SubqueryComparison {
                 op,
+                op_type: air::SubqueryComparisonOpType::Sql,
                 modifier,
                 arg: Box::new(arg),
                 subquery: Box::new(subquery),

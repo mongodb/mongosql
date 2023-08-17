@@ -1966,11 +1966,11 @@ mod subquery {
 }
 
 mod subquery_comparison {
-    use crate::air::ProjectItem;
     use crate::{
         air::{
-            Collection, Documents, Expression::*, LetVariable, Project, Stage::*, Subquery,
-            SubqueryComparison, SubqueryComparisonOp, SubqueryModifier,
+            Collection, Documents, Expression::*, LetVariable, Project, ProjectItem, Stage::*,
+            Subquery, SubqueryComparison, SubqueryComparisonOp, SubqueryComparisonOpType,
+            SubqueryModifier,
         },
         unchecked_unique_linked_hash_map,
     };
@@ -1995,6 +1995,42 @@ mod subquery_comparison {
         })),
         input = SubqueryComparison(SubqueryComparison {
             op: SubqueryComparisonOp::Eq,
+            op_type: SubqueryComparisonOpType::Mql,
+            modifier: SubqueryModifier::Any,
+            arg: Box::new(FieldRef("x".to_string().into())),
+            subquery: Box::new(Subquery {
+                let_bindings: vec![],
+                output_path: vec!["arr".to_string()],
+                pipeline: Box::new(Project(Project {
+                    source: Box::new(Documents(Documents { array: vec![] })),
+                    specifications: unchecked_unique_linked_hash_map! {
+                        "arr".to_string() => ProjectItem::Assignment(Variable("ROOT".to_string().into())),
+                    }
+                })),
+            }),
+        })
+    );
+
+    test_codegen_expression!(
+        sql_op_type,
+        expected = Ok(bson!({
+            "$subqueryComparison": {
+                "op": "sqlEq",
+                "modifier": "any",
+                "arg": "$x",
+                "subquery": {
+                    "let": {},
+                    "outputPath": ["arr"],
+                    "pipeline": [
+                        {"$documents": []},
+                        {"$project": {"arr": "$$ROOT"}}
+                    ]
+                }
+            }
+        })),
+        input = SubqueryComparison(SubqueryComparison {
+            op: SubqueryComparisonOp::Eq,
+            op_type: SubqueryComparisonOpType::Sql,
             modifier: SubqueryModifier::Any,
             arg: Box::new(FieldRef("x".to_string().into())),
             subquery: Box::new(Subquery {
@@ -2034,6 +2070,7 @@ mod subquery_comparison {
         })),
         input = SubqueryComparison(SubqueryComparison {
             op: SubqueryComparisonOp::Gt,
+            op_type: SubqueryComparisonOpType::Mql,
             modifier: SubqueryModifier::All,
             arg: Box::new(FieldRef("x".to_string().into())),
             subquery: Box::new(Subquery {

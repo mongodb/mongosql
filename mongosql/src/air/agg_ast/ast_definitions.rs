@@ -907,9 +907,11 @@ impl From<TaggedOperator> for air::Expression {
             }),
             TaggedOperator::Subquery(s) => air::Expression::Subquery(s.into()),
             TaggedOperator::SubqueryComparison(sc) => {
+                let (op, op_type) = str_to_air_sqcop(&sc.op)
+                    .unwrap_or_else(|| panic!("found bad subquery comparison op: {}", sc.op));
                 air::Expression::SubqueryComparison(air::SubqueryComparison {
-                    op: str_to_air_sqcop(&sc.op)
-                        .unwrap_or_else(|| panic!("found bad subquery comparison op: {}", sc.op)),
+                    op,
+                    op_type,
                     modifier: str_to_air_sqcmod(&sc.modifier)
                         .unwrap_or_else(|| panic!("found bad subquery modifier: {}", sc.modifier)),
                     arg: sc.arg.into(),
@@ -941,15 +943,23 @@ impl From<TaggedOperator> for air::Expression {
     }
 }
 
-fn str_to_air_sqcop(op: &str) -> Option<air::SubqueryComparisonOp> {
+fn str_to_air_sqcop(
+    op: &str,
+) -> Option<(air::SubqueryComparisonOp, air::SubqueryComparisonOpType)> {
+    let op_type = if op.starts_with("sql") {
+        air::SubqueryComparisonOpType::Sql
+    } else {
+        air::SubqueryComparisonOpType::Mql
+    };
+    let op = op.trim_start_matches("sql");
     match op {
-        "lt" => Some(air::SubqueryComparisonOp::Lt),
-        "lte" => Some(air::SubqueryComparisonOp::Lte),
+        "lt" | "Lt" => Some((air::SubqueryComparisonOp::Lt, op_type)),
+        "lte" | "Lte" => Some((air::SubqueryComparisonOp::Lte, op_type)),
         // might as well support ne and neq both
-        "ne" | "neq" => Some(air::SubqueryComparisonOp::Neq),
-        "eq" => Some(air::SubqueryComparisonOp::Eq),
-        "gt" => Some(air::SubqueryComparisonOp::Gt),
-        "gte" => Some(air::SubqueryComparisonOp::Gte),
+        "ne" | "neq" | "Ne" | "Neq" => Some((air::SubqueryComparisonOp::Neq, op_type)),
+        "eq" | "Eq" => Some((air::SubqueryComparisonOp::Eq, op_type)),
+        "gt" | "Gt" => Some((air::SubqueryComparisonOp::Gt, op_type)),
+        "gte" | "Gte" => Some((air::SubqueryComparisonOp::Gte, op_type)),
         _ => None,
     }
 }
