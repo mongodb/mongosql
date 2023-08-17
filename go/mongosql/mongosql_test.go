@@ -135,7 +135,7 @@ func TestTranslateError(t *testing.T) {
 		t.Fatalf("semantic translation errors should be external, but an internal error was found")
 	}
 
-	if !strings.Contains(err.Error(), "parse error: Unrecognized token `notavalidquery`") {
+	if !strings.Contains(err.Error(), "parse error: Error 2000: Unrecognized token `notavalidquery`") {
 		t.Fatalf("error message did not contain expected text: %q", err.Error())
 	}
 }

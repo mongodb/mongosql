@@ -1,8 +1,10 @@
-use crate::ast;
+use crate::{
+    ast,
+    usererror::{UserError, UserErrorDisplay},
+};
 use lalrpop_util::{lalrpop_mod, lexer::Token};
 use lazy_static::lazy_static;
 use std::collections::HashMap;
-use thiserror::Error;
 
 lalrpop_mod!(
     #[allow(clippy::all)]
@@ -12,10 +14,33 @@ lalrpop_mod!(
 
 type Result<T> = std::result::Result<T, Error>;
 
-#[derive(Debug, Error, PartialEq, Eq)]
+#[derive(Debug, UserErrorDisplay, PartialEq, Eq)]
 pub enum Error {
-    #[error("{0}")]
     Lalrpop(String),
+    UnexpectedToken(String, Vec<String>),
+}
+
+impl UserError for Error {
+    fn code(&self) -> u32 {
+        match self {
+            Error::Lalrpop(_) => 2000,
+            Error::UnexpectedToken(_, _) => 2001,
+        }
+    }
+
+    fn user_message(&self) -> Option<String> {
+        match self {
+            Error::Lalrpop(_) => None,
+            Error::UnexpectedToken(_, _) => None,
+        }
+    }
+
+    fn technical_message(&self) -> String {
+        match self {
+            Error::Lalrpop(string) => string.clone(),
+            Error::UnexpectedToken(_, _) => todo!(),
+        }
+    }
 }
 
 pub type LalrpopError<'t> = lalrpop_util::ParseError<usize, Token<'t>, String>;

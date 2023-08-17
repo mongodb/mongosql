@@ -26,6 +26,6 @@ pub fn formatted_error_derive(input: TokenStream) -> TokenStream {
         };
         TokenStream::from(expanded)
     } else {
-        panic!("UserErrorDispaly can only be derived for enums.");
+        panic!("UserErrorDisplay can only be derived for enums.");
     }
 }

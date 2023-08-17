@@ -1,8 +1,8 @@
 macro_rules! parsable {
-    ($func_name:ident, expected = $expected:expr, $(expected_error = $expected_error:expr,)? input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr, $(expected_error_tech_msg = $expected_error_tech_msg:expr,)? $(expected_error_code = $expected_error_code:literal,)? input = $input:expr) => {
         #[test]
         fn $func_name() {
-            use crate::parser::{parse_query, Error};
+            use crate::parser::parse_query;
             let res = parse_query($input);
             let expected = $expected;
             if expected {
@@ -12,7 +12,10 @@ macro_rules! parsable {
                 #[allow(unused_variables)]
                 match res {
                     Ok(_) => panic!("expected parse error, but parsing succeeded"),
-                    Err(Error::Lalrpop(s)) => {$(assert_eq!($expected_error.to_string(), s))?},
+                    Err(e) => {
+                        $(assert_eq!($expected_error_tech_msg.to_string(), e.technical_message());)?
+                        $(assert_eq!($expected_error_code, e.code()))?
+                    },
                 }
             }
         }
@@ -1565,7 +1568,7 @@ mod parenthized_expression {
 }
 
 mod scalar_function {
-    use crate::ast::*;
+    use crate::{ast::*, usererror::UserError};
     parsable!(null_if, expected = true, input = "select nullif(a, b)");
     parsable!(
         coalesce,
@@ -1759,7 +1762,8 @@ mod scalar_function {
     parsable!(
         user_defined_function_not_allowed,
         expected = false,
-        expected_error = "unknown function myFunc",
+        expected_error_tech_msg = "unknown function myFunc",
+        expected_error_code = 2000,
         input = "select myFunc(x)"
     );
     parsable!(
@@ -1908,7 +1912,7 @@ mod scalar_function {
 }
 
 mod from {
-    use crate::ast::*;
+    use crate::{ast::*, usererror::UserError};
     parsable!(no_qualifier, expected = true, input = "SELECT * FROM foo");
     parsable!(qualifier, expected = true, input = "SELECT * FROM bar.foo");
     parsable!(
@@ -2320,32 +2324,37 @@ mod from {
     parsable!(
         cannot_have_more_than_one_qualifier,
         expected = false,
-        expected_error =
+        expected_error_tech_msg =
             "collection datasources can only have database qualification, found: car.bar.foo",
+        expected_error_code = 2000,
         input = "SELECT * FROM car.bar.foo"
     );
     parsable!(
         cannot_be_document,
         expected = false,
-        expected_error = "found unsupported expression used as datasource: {'foo': 3 + 4}",
+        expected_error_tech_msg = "found unsupported expression used as datasource: {'foo': 3 + 4}",
+        expected_error_code = 2000,
         input = "SELECT * FROM {'foo': 3+4}"
     );
     parsable!(
         cannot_be_literal,
         expected = false,
-        expected_error = "found unsupported expression used as datasource: 3",
+        expected_error_tech_msg = "found unsupported expression used as datasource: 3",
+        expected_error_code = 2000,
         input = "SELECT * FROM 3"
     );
     parsable!(
         cannot_be_binary_op,
         expected = false,
-        expected_error = "found unsupported expression used as datasource: 3 + 4",
+        expected_error_tech_msg = "found unsupported expression used as datasource: 3 + 4",
+        expected_error_code = 2000,
         input = "SELECT * FROM 3 + 4"
     );
     parsable!(
         array_must_have_alias,
         expected = false,
-        expected_error = "array datasources must have aliases",
+        expected_error_tech_msg = "array datasources must have aliases",
+        expected_error_code = 2000,
         input = "SELECT * FROM [{'a': 1}]"
     );
     parsable!(
