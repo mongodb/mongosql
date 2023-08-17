@@ -20,6 +20,8 @@ impl MqlCodeGenerator {
             air::Stage::UnionWith(u) => self.codegen_union_with(u),
             air::Stage::Skip(s) => self.codegen_skip(s),
             air::Stage::Documents(d) => self.codegen_documents(d),
+            air::Stage::EquiJoin(j) => self.codegen_equijoin(j),
+            air::Stage::EquiLookup(l) => self.codegen_equilookup(l),
         }
     }
 
@@ -150,7 +152,7 @@ impl MqlCodeGenerator {
             lookup_pipeline_translation.collection,
         ) {
             (Some(from_db), Some(from_coll)) => {
-                if Some(from_db.clone()) == source_translation.database {
+                if Some(&from_db) == source_translation.database.as_ref() {
                     doc! {"from": from_coll}
                 } else {
                     doc! {"from": {"db": from_db, "coll": from_coll}}
@@ -356,5 +358,52 @@ impl MqlCodeGenerator {
 
         left_translation.pipeline.push(doc! {"$join": join_doc});
         Ok(left_translation)
+    }
+
+    fn codegen_equijoin(&self, air_join: air::EquiJoin) -> Result<MqlTranslation> {
+        let mut source_translation = self.codegen_stage(*air_join.source)?;
+        let join_type = match air_join.join_type {
+            air::JoinType::Inner => "inner",
+            air::JoinType::Left => "left",
+        };
+        let mut join_doc = doc! {};
+        join_doc.insert("database", air_join.from.db);
+        join_doc.insert("collection", air_join.from.collection);
+        join_doc.insert(
+            "localField",
+            self.codegen_field_ref_path_only(air_join.local_field),
+        );
+        join_doc.insert(
+            "foreignField",
+            self.codegen_field_ref_path_only(air_join.foreign_field),
+        );
+        join_doc.insert("joinType", join_type);
+
+        source_translation
+            .pipeline
+            .push(doc! {"$equiJoin": join_doc});
+        Ok(source_translation)
+    }
+
+    fn codegen_equilookup(&self, air_lookup: air::EquiLookup) -> Result<MqlTranslation> {
+        let source_translation = self.codegen_stage(*air_lookup.source)?;
+        let from = air_lookup.from;
+        let mut lookup_doc = if Some(&from.db) == source_translation.database.as_ref() {
+            doc! {"from": from.collection}
+        } else {
+            doc! {"from": {"db": from.db, "coll": from.collection}}
+        };
+        lookup_doc.extend(doc! {
+            "localField": self.codegen_field_ref_path_only(air_lookup.local_field),
+            "foreignField": self.codegen_field_ref_path_only(air_lookup.foreign_field),
+            "as": air_lookup.as_var,
+        });
+        let mut pipeline = source_translation.pipeline;
+        pipeline.push(doc! {"$lookup": lookup_doc});
+        Ok(MqlTranslation {
+            database: source_translation.database,
+            collection: source_translation.collection,
+            pipeline,
+        })
     }
 }

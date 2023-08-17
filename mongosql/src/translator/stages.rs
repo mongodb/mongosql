@@ -2,7 +2,8 @@ use crate::{
     air,
     mapping_registry::{Key, MqlMappingRegistry, MqlMappingRegistryValue, MqlReferenceType},
     mir,
-    translator::{utils::ROOT_NAME, Error, MqlTranslator, Result},
+    translator::{Error, MqlTranslator, Result},
+    util::ROOT_NAME,
 };
 use mongosql_datastructures::{
     unique_linked_hash_map, unique_linked_hash_map::UniqueLinkedHashMap,
@@ -275,6 +276,47 @@ impl MqlTranslator {
         }))
     }
 
+    fn translate_equijoin(&mut self, mir_join: mir::EquiJoin) -> Result<air::Stage> {
+        let join_type = match mir_join.join_type {
+            mir::JoinType::Inner => air::JoinType::Inner,
+            mir::JoinType::Left => air::JoinType::Left,
+        };
+
+        let source = self.translate_stage(*mir_join.source)?;
+        let from = self.translate_stage(*mir_join.from)?;
+
+        // The `from` must be of the form Project{source: Collection, ...}, we will discard
+        // the Project since EquiJoins do not have actual pipelines.
+        let collection = if let air::Stage::Project(p) = from {
+            if let air::Stage::Collection(c) = *p.source {
+                c
+            } else {
+                return Err(Error::ExpectedCollection);
+            }
+        } else {
+            return Err(Error::ExpectedCollection);
+        };
+
+        let translate_to_field_ref = |e: mir::Expression| -> Result<air::FieldRef> {
+            let e = self.translate_expression(e)?;
+            if let air::Expression::FieldRef(f) = e {
+                Ok(f)
+            } else {
+                Err(Error::ExpectedFieldRef)
+            }
+        };
+        let local_field = translate_to_field_ref(*mir_join.local_field)?;
+        let foreign_field = translate_to_field_ref(*mir_join.foreign_field)?;
+
+        Ok(air::Stage::EquiJoin(air::EquiJoin {
+            join_type,
+            source: Box::new(source),
+            from: collection,
+            local_field,
+            foreign_field,
+        }))
+    }
+
     fn translate_set(&mut self, mir_set: mir::Set) -> Result<air::Stage> {
         let source = self.translate_stage(*mir_set.left)?;
         let left_registry = self.mapping_registry.clone();
@@ -308,6 +350,7 @@ impl MqlTranslator {
     fn translate_mql_intrinsic(&mut self, mir_mql_intrinsic: mir::MQLStage) -> Result<air::Stage> {
         match mir_mql_intrinsic {
             mir::MQLStage::MatchFilter(mf) => self.translate_match_filter(mf),
+            mir::MQLStage::EquiJoin(ej) => self.translate_equijoin(ej),
         }
     }
 

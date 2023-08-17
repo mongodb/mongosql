@@ -1059,3 +1059,118 @@ mod join {
         }),
     );
 }
+
+mod equijoin {
+    use crate::{
+        air,
+        util::{air_collection, air_pipeline_collection},
+    };
+
+    test_codegen_stage!(
+        inner_join,
+        expected = Ok({
+            database: Some("test_db".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"foo": "$$ROOT"}}, bson::doc!{
+                "$equiJoin":
+                {
+                    "database": "test_db",
+                    "collection": "bar",
+                    "localField": "foo.a",
+                    "foreignField": "bar.a",
+                    "joinType": "inner",
+                }
+            }],
+        }),
+        input = air::Stage::EquiJoin(air::EquiJoin {
+            join_type: air::JoinType::Inner,
+            source: air_pipeline_collection("foo"),
+            from: air_collection("bar"),
+            local_field: "foo.a".into(),
+            foreign_field: "bar.a".into(),
+        }),
+    );
+
+    test_codegen_stage!(
+        left_join,
+        expected = Ok({
+            database: Some("test_db".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"foo": "$$ROOT"}}, bson::doc!{
+                "$equiJoin":
+                {
+                    "database": "test_db",
+                    "collection": "bar",
+                    "localField": "foo.a",
+                    "foreignField": "bar.a",
+                    "joinType": "left",
+                }
+            }],
+        }),
+        input = air::Stage::EquiJoin(air::EquiJoin {
+            join_type: air::JoinType::Left,
+            source: air_pipeline_collection("foo"),
+            from: air_collection("bar"),
+            local_field: "foo.a".into(),
+            foreign_field: "bar.a".into(),
+        }),
+    );
+}
+
+mod equilookup {
+    use crate::{
+        air,
+        util::{air_db_collection, air_pipeline_collection},
+    };
+
+    test_codegen_stage!(
+        same_db,
+        expected = Ok({
+            database: Some("test_db".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"foo": "$$ROOT"}}, bson::doc!{
+                "$lookup":
+                {
+                    "from": "bar",
+                    "localField": "foo.a",
+                    "foreignField": "bar.a",
+                    "as": "stuff",
+                }
+            }],
+        }),
+        input = air::Stage::EquiLookup(air::EquiLookup {
+            source: air_pipeline_collection("foo"),
+            from: air_db_collection("test_db", "bar"),
+            local_field: "foo.a".into(),
+            foreign_field: "bar.a".into(),
+            as_var: "stuff".to_string(),
+        }),
+    );
+
+    test_codegen_stage!(
+        cross_db,
+        expected = Ok({
+            database: Some("test_db".to_string()),
+            collection: Some("foo".to_string()),
+            pipeline: vec![bson::doc!{"$project": {"foo": "$$ROOT"}}, bson::doc!{
+                "$lookup":
+                {
+                    "from": {
+                        "db": "t2",
+                        "coll": "bar",
+                    },
+                    "localField": "foo.a",
+                    "foreignField": "bar.a",
+                    "as": "stuff",
+                }
+            }],
+        }),
+        input = air::Stage::EquiLookup(air::EquiLookup {
+            source: air_pipeline_collection("foo"),
+            from: air_db_collection("t2", "bar"),
+            local_field: "foo.a".into(),
+            foreign_field: "bar.a".into(),
+            as_var: "stuff".to_string(),
+        }),
+    );
+}

@@ -19,6 +19,8 @@ pub enum Stage {
     UnionWith(UnionWith),
     Skip(Skip),
     Documents(Documents),
+    EquiJoin(EquiJoin),
+    EquiLookup(EquiLookup),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -174,6 +176,24 @@ pub struct Skip {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Documents {
     pub array: Vec<Expression>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct EquiJoin {
+    pub join_type: JoinType,
+    pub source: Box<Stage>,
+    pub from: Collection,
+    pub local_field: FieldRef,
+    pub foreign_field: FieldRef,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct EquiLookup {
+    pub source: Box<Stage>,
+    pub from: Collection,
+    pub local_field: FieldRef,
+    pub foreign_field: FieldRef,
+    pub as_var: String,
 }
 
 #[allow(dead_code)]

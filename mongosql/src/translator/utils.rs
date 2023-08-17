@@ -5,17 +5,8 @@ use crate::{
     schema,
     translator::{Error, MqlTranslator, Result},
 };
-use lazy_static::lazy_static;
 use mongosql_datastructures::binding_tuple::{BindingTuple, DatasourceName, Key};
 use std::collections::BTreeMap;
-
-lazy_static! {
-    pub static ref ROOT_NAME: String = "ROOT".to_string();
-    pub static ref ROOT: air::Expression = air::Expression::Variable(air::Variable {
-        parent: None,
-        name: "ROOT".into()
-    });
-}
 
 #[derive(Debug)]
 pub(crate) enum ScalarFunctionType {

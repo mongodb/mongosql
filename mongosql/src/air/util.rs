@@ -17,6 +17,8 @@ impl Stage {
             Stage::UnionWith(u) => u.source.clone(),
             Stage::Skip(s) => s.source.clone(),
             Stage::Documents(_) => Box::new(self.clone()),
+            Stage::EquiJoin(j) => j.source.clone(),
+            Stage::EquiLookup(l) => l.source.clone(),
         }
     }
 
@@ -35,6 +37,8 @@ impl Stage {
             Stage::UnionWith(u) => u.source = new_source,
             Stage::Skip(s) => s.source = new_source,
             Stage::Documents(_) => {}
+            Stage::EquiJoin(j) => j.source = new_source,
+            Stage::EquiLookup(l) => l.source = new_source,
         }
     }
 }
@@ -150,39 +154,31 @@ impl PartialEq for LiteralValue {
     }
 }
 
-impl From<String> for Variable {
-    fn from(s: String) -> Variable {
-        let mut split_string = s.split('.');
-        let mut v = Variable {
-            parent: None,
-            name: split_string.next().unwrap().to_string(),
-        };
-        for name in split_string {
-            v = Variable {
-                parent: Some(Box::new(v)),
-                name: name.to_string(),
-            };
+macro_rules! generate_path_from {
+    ($t: ty, $o: ident) => {
+        impl From<$t> for $o {
+            fn from(s: $t) -> $o {
+                let mut split_string = s.split('.');
+                let mut v = $o {
+                    parent: None,
+                    name: split_string.next().unwrap().to_string(),
+                };
+                for name in split_string {
+                    v = $o {
+                        parent: Some(Box::new(v)),
+                        name: name.to_string(),
+                    };
+                }
+                v
+            }
         }
-        v
-    }
+    };
 }
 
-impl From<String> for FieldRef {
-    fn from(s: String) -> FieldRef {
-        let mut split_string = s.split('.');
-        let mut fr = FieldRef {
-            parent: None,
-            name: split_string.next().unwrap().to_string(),
-        };
-        for name in split_string {
-            fr = FieldRef {
-                parent: Some(Box::new(fr)),
-                name: name.to_string(),
-            };
-        }
-        fr
-    }
-}
+generate_path_from!(&str, Variable);
+generate_path_from!(String, Variable);
+generate_path_from!(&str, FieldRef);
+generate_path_from!(String, FieldRef);
 
 #[cfg(test)]
 mod variable_from_string_tests {

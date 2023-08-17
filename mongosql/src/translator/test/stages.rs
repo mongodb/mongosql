@@ -47,11 +47,7 @@ mod filter {
 }
 
 mod project {
-    use crate::{
-        map,
-        translator::{utils::ROOT, Error},
-        unchecked_unique_linked_hash_map,
-    };
+    use crate::{map, translator::Error, unchecked_unique_linked_hash_map, util::ROOT};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
     test_translate_stage!(
@@ -252,11 +248,7 @@ mod project {
 }
 
 mod group {
-    use crate::{
-        map,
-        translator::{utils::ROOT, Error},
-        unchecked_unique_linked_hash_map,
-    };
+    use crate::{map, translator::Error, unchecked_unique_linked_hash_map, util::ROOT};
     use mongosql_datastructures::binding_tuple::Key;
 
     test_translate_stage!(
@@ -640,7 +632,7 @@ mod offset {
 }
 
 mod sort {
-    use crate::{map, translator::utils::ROOT, unchecked_unique_linked_hash_map};
+    use crate::{map, unchecked_unique_linked_hash_map, util::ROOT};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
     test_translate_stage!(
@@ -928,7 +920,7 @@ mod array {
 }
 
 mod join {
-    use crate::{air, map, mir, translator::utils::ROOT, unchecked_unique_linked_hash_map};
+    use crate::{air, map, mir, unchecked_unique_linked_hash_map, util::ROOT};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
     fn input_collection(collection_name: &str) -> Box<mir::Stage> {
@@ -1283,6 +1275,97 @@ mod join {
     );
 }
 
+mod equijoin {
+    use crate::{
+        translator::Error,
+        util::{air_collection, air_pipeline_collection, mir_collection, mir_field_access},
+    };
+
+    test_translate_stage!(
+        inner_join,
+        expected = Ok(air::Stage::EquiJoin(air::EquiJoin {
+            join_type: air::JoinType::Inner,
+            source: air_pipeline_collection("foo"),
+            from: air_collection("bar"),
+            local_field: "foo.a".into(),
+            foreign_field: "bar.a".into(),
+        })),
+        input = mir::Stage::MQLIntrinsic(mir::MQLStage::EquiJoin(mir::EquiJoin {
+            join_type: mir::JoinType::Inner,
+            source: mir_collection("foo"),
+            from: mir_collection("bar"),
+            local_field: mir_field_access("foo", "a"),
+            foreign_field: mir_field_access("bar", "a"),
+            cache: mir::schema::SchemaCache::new(),
+        }))
+    );
+
+    test_translate_stage!(
+        left_join,
+        expected = Ok(air::Stage::EquiJoin(air::EquiJoin {
+            join_type: air::JoinType::Left,
+            source: air_pipeline_collection("foo"),
+            from: air_collection("bar"),
+            local_field: "foo.a".into(),
+            foreign_field: "bar.a".into(),
+        })),
+        input = mir::Stage::MQLIntrinsic(mir::MQLStage::EquiJoin(mir::EquiJoin {
+            join_type: mir::JoinType::Left,
+            source: mir_collection("foo"),
+            from: mir_collection("bar"),
+            local_field: mir_field_access("foo", "a"),
+            foreign_field: mir_field_access("bar", "a"),
+            cache: mir::schema::SchemaCache::new(),
+        }))
+    );
+
+    test_translate_stage!(
+        from_must_be_collection,
+        expected = Err(Error::ExpectedCollection),
+        input = mir::Stage::MQLIntrinsic(mir::MQLStage::EquiJoin(mir::EquiJoin {
+            join_type: mir::JoinType::Left,
+            source: mir_collection("foo"),
+            from: mir::Stage::Array(mir::ArraySource {
+                array: vec![],
+                alias: "foo".into(),
+                cache: mir::schema::SchemaCache::new()
+            })
+            .into(),
+            local_field: mir_field_access("foo", "a"),
+            foreign_field: mir_field_access("bar", "a"),
+            cache: mir::schema::SchemaCache::new(),
+        }))
+    );
+
+    test_translate_stage!(
+        local_must_be_field_ref,
+        expected = Err(Error::ExpectedFieldRef),
+        input = mir::Stage::MQLIntrinsic(mir::MQLStage::EquiJoin(mir::EquiJoin {
+            join_type: mir::JoinType::Left,
+            source: mir_collection("foo"),
+            from: mir_collection("bar"),
+            local_field: mir::Expression::Literal(mir::LiteralValue::String("foo".into()).into())
+                .into(),
+            foreign_field: mir_field_access("bar", "a"),
+            cache: mir::schema::SchemaCache::new(),
+        }))
+    );
+
+    test_translate_stage!(
+        foregin_must_be_field_ref,
+        expected = Err(Error::ExpectedFieldRef),
+        input = mir::Stage::MQLIntrinsic(mir::MQLStage::EquiJoin(mir::EquiJoin {
+            join_type: mir::JoinType::Left,
+            source: mir_collection("foo"),
+            from: mir_collection("bar"),
+            local_field: mir_field_access("foo", "a"),
+            foreign_field: mir::Expression::Literal(mir::LiteralValue::String("foo".into()).into())
+                .into(),
+            cache: mir::schema::SchemaCache::new(),
+        }))
+    );
+}
+
 mod set {
     test_translate_stage!(
         simple,
@@ -1316,7 +1399,7 @@ mod set {
 }
 
 mod derived {
-    use crate::{map, translator::utils::ROOT, unchecked_unique_linked_hash_map};
+    use crate::{map, unchecked_unique_linked_hash_map, util::ROOT};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
     test_translate_stage!(
@@ -1408,8 +1491,7 @@ mod derived {
 
 mod unwind {
     use crate::air::ExprLanguage;
-    use crate::translator::utils::ROOT;
-    use crate::{map, unchecked_unique_linked_hash_map};
+    use crate::{map, unchecked_unique_linked_hash_map, util::ROOT};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
     test_translate_stage! {
@@ -1598,7 +1680,7 @@ mod unwind {
 
 mod mql_intrinsic {
     mod match_filter {
-        use crate::{map, translator::utils::ROOT, unchecked_unique_linked_hash_map};
+        use crate::{map, unchecked_unique_linked_hash_map, util::ROOT};
         use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
         test_translate_stage!(
@@ -1650,7 +1732,7 @@ mod mql_intrinsic {
 }
 
 mod translate_plan {
-    use crate::{map, translator::utils::ROOT, unchecked_unique_linked_hash_map};
+    use crate::{map, unchecked_unique_linked_hash_map, util::ROOT};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
     test_translate_plan!(
@@ -1877,8 +1959,8 @@ mod translate_plan {
 
 mod subquery_expr {
     use crate::{
-        map, mir::binding_tuple::DatasourceName::Bottom, translator::utils::ROOT,
-        unchecked_unique_linked_hash_map,
+        map, mir::binding_tuple::DatasourceName::Bottom, unchecked_unique_linked_hash_map,
+        util::ROOT,
     };
 
     test_translate_stage!(

@@ -3723,8 +3723,8 @@ mod subquery {
         air, map,
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{self, binding_tuple::DatasourceName::Bottom},
-        translator::utils::ROOT,
         unchecked_unique_linked_hash_map,
+        util::ROOT,
     };
 
     test_translate_expression!(
@@ -4000,8 +4000,8 @@ mod subquery_comparison {
         air, map,
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{self, binding_tuple::DatasourceName::Bottom},
-        translator::utils::ROOT,
         unchecked_unique_linked_hash_map,
+        util::ROOT,
     };
 
     test_translate_expression!(
@@ -4140,8 +4140,8 @@ mod subquery_exists {
         air, map,
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{self, binding_tuple::DatasourceName::Bottom},
-        translator::utils::ROOT,
         unchecked_unique_linked_hash_map,
+        util::ROOT,
     };
 
     test_translate_expression!(

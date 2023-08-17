@@ -2,7 +2,7 @@ use crate::{
     air,
     mapping_registry::{Key, MqlMappingRegistry, MqlMappingRegistryValue},
     mir,
-    translator::utils::ROOT,
+    util::ROOT,
 };
 use itertools::Itertools;
 use mongosql_datastructures::{
@@ -40,6 +40,10 @@ pub enum Error {
     LimitOutOfI64Range(u64),
     #[error("expected FieldRef for subquery output path")]
     SubqueryOutputPathNotFieldRef,
+    #[error("expected FieldRef")]
+    ExpectedFieldRef,
+    #[error("expected Collection")]
+    ExpectedCollection,
     #[error("expected FieldRef for match-language input, but got Variable")]
     InvalidMatchLanguageInputRef,
 }

@@ -258,6 +258,7 @@ impl CachedSchema for Stage {
             Stage::Set(s) => &s.cache,
             Stage::Derived(s) => &s.cache,
             Stage::Unwind(s) => &s.cache,
+            Stage::MQLIntrinsic(MQLStage::EquiJoin(s)) => &s.cache,
             Stage::MQLIntrinsic(MQLStage::MatchFilter(s)) => &s.cache,
             Stage::Sentinel => unreachable!(),
         }
@@ -820,6 +821,64 @@ impl CachedSchema for Stage {
                     min_size: source_result_set.min_size,
                     max_size: source_result_set.max_size,
                 })
+            }
+            Stage::MQLIntrinsic(MQLStage::EquiJoin(j)) => {
+                let source_result_set = j.source.schema(state)?;
+                let from_result_set = j.from.schema(state)?;
+
+                let state = state.with_merged_schema_env(source_result_set.schema_env.clone())?;
+                let state = state.with_merged_schema_env(from_result_set.schema_env.clone())?;
+
+                let local_field_schema = j.local_field.schema(&state)?;
+                let foreign_field_schema = j.foreign_field.schema(&state)?;
+
+                if !state.check_comparable_with(&local_field_schema, &foreign_field_schema) {
+                    return Err(Error::InvalidComparison(
+                        "equijoin comparison",
+                        local_field_schema,
+                        foreign_field_schema,
+                    ));
+                }
+
+                match j.join_type {
+                    JoinType::Left => {
+                        let min_size = source_result_set.min_size;
+                        let max_size = source_result_set
+                            .max_size
+                            .and_then(|l| from_result_set.max_size.map(|r| l * r));
+                        Ok(ResultSet {
+                            schema_env: source_result_set
+                                .schema_env
+                                .with_merged_mappings(
+                                    from_result_set
+                                        .schema_env
+                                        .into_iter()
+                                        .map(|(key, schema)| {
+                                            (key, Schema::AnyOf(set![Schema::Missing, schema]))
+                                        })
+                                        .collect::<SchemaEnvironment>(),
+                                )
+                                .map_err(|e| Error::DuplicateKey(e.key))?,
+                            min_size,
+                            max_size,
+                        })
+                    }
+                    JoinType::Inner => {
+                        // A EquiJoin Inner Join can potentially return 0 results.
+                        let min_size = 0;
+                        let max_size = source_result_set
+                            .max_size
+                            .and_then(|l| from_result_set.max_size.map(|r| l * r));
+                        Ok(ResultSet {
+                            schema_env: source_result_set
+                                .schema_env
+                                .with_merged_mappings(from_result_set.schema_env)
+                                .map_err(|e| Error::DuplicateKey(e.key))?,
+                            min_size,
+                            max_size,
+                        })
+                    }
+                }
             }
             Stage::MQLIntrinsic(MQLStage::MatchFilter(f)) => {
                 let source_result_set = f.source.schema(state)?;

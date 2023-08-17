@@ -62,6 +62,7 @@ mod schema {
         },
         schema::*,
         set, unchecked_unique_linked_hash_map,
+        util::{mir_collection, mir_field_access},
     };
     use lazy_static::lazy_static;
 
@@ -112,6 +113,13 @@ mod schema {
                 "c".into() => Schema::Atomic(Atomic::Integer),
             },
             required: set! {"c".into()},
+            additional_properties: false,
+        });
+        pub static ref TEST_DOCUMENT_SCHEMA_S: Schema = Schema::Document(Document {
+            keys: map! {
+                "s".into() => Schema::Atomic(Atomic::String),
+            },
+            required: set! {"s".into()},
             additional_properties: false,
         });
     }
@@ -5891,6 +5899,93 @@ mod schema {
                 cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
+        }),
+    );
+
+    // EquiJoin tests
+    test_schema!(
+        left_equijoin,
+        expected = Ok(ResultSet {
+            schema_env: map! {
+                ("bar", 0u16).into() => Schema::AnyOf(set![
+                            Schema::Missing,
+                            TEST_DOCUMENT_SCHEMA_A.clone()
+                    ]
+                ),
+                ("foo", 0u16).into() => Schema::AnyOf(set![
+                        TEST_DOCUMENT_SCHEMA_A.clone()
+                    ]
+                ),
+            },
+            min_size: 1,
+            max_size: None,
+        }),
+        input = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+            join_type: JoinType::Left,
+            source: Box::new(Stage::Array(ArraySource {
+                array: vec![test_document_a()],
+                alias: "foo".into(),
+                cache: SchemaCache::new(),
+            })),
+            from: mir_collection("bar"),
+            local_field: mir_field_access("foo", "a"),
+            foreign_field: mir_field_access("bar", "a"),
+            cache: SchemaCache::new(),
+        })),
+        catalog = Catalog::new(map! {
+            Namespace {db: "test_db".into(), collection: "foo".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+            Namespace {db: "test_db".into(), collection: "bar".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+        }),
+    );
+    test_schema!(
+        inner_equijoin,
+        expected = Ok(ResultSet {
+            schema_env: map! {
+                ("bar", 0u16).into() => TEST_DOCUMENT_SCHEMA_A.clone(),
+                ("foo", 0u16).into() => Schema::AnyOf(set![ TEST_DOCUMENT_SCHEMA_A.clone() ]),
+            },
+            min_size: 0,
+            max_size: None,
+        }),
+        input = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+            join_type: JoinType::Inner,
+            source: Box::new(Stage::Array(ArraySource {
+                array: vec![test_document_a()],
+                alias: "foo".into(),
+                cache: SchemaCache::new(),
+            })),
+            from: mir_collection("bar"),
+            local_field: mir_field_access("foo", "a"),
+            foreign_field: mir_field_access("bar", "a"),
+            cache: SchemaCache::new(),
+        })),
+        catalog = Catalog::new(map! {
+            Namespace {db: "test_db".into(), collection: "foo".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+            Namespace {db: "test_db".into(), collection: "bar".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+        }),
+    );
+    test_schema!(
+        equijoin_fields_not_comparable,
+        expected = Err(crate::mir::schema::Error::InvalidComparison(
+            "equijoin comparison",
+            Schema::AnyOf(set![Schema::Atomic(Atomic::Integer),]),
+            Schema::Atomic(Atomic::String),
+        )),
+        input = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+            join_type: JoinType::Inner,
+            source: Box::new(Stage::Array(ArraySource {
+                array: vec![test_document_a()],
+                alias: "foo".into(),
+                cache: SchemaCache::new(),
+            })),
+            from: mir_collection("bar"),
+            local_field: mir_field_access("foo", "a"),
+            foreign_field: mir_field_access("bar", "s"),
+            cache: SchemaCache::new(),
+        })),
+        catalog = Catalog::new(map! {
+            Namespace {db: "test_db".into(), collection: "foo".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+            Namespace {db: "test_db".into(), collection: "bar".into()} => TEST_DOCUMENT_SCHEMA_S.clone(),
         }),
     );
 

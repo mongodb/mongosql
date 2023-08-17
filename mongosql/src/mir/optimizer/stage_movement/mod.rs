@@ -2,15 +2,14 @@
 mod test;
 
 use super::Optimizer;
-use crate::mir::{MQLStage, MatchFilter};
 use crate::{
     mir::{
         binding_tuple::Key,
         optimizer::use_def_analysis::find_field_access_root,
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        Derived, Expression, Filter, Group, Join, Limit, Offset, Project, ScalarFunction,
-        ScalarFunctionApplication, Set, Sort, Stage, Unwind,
+        Derived, EquiJoin, Expression, Filter, Group, Join, Limit, MQLStage, MatchFilter, Offset,
+        Project, ScalarFunction, ScalarFunctionApplication, Set, Sort, Stage, Unwind,
     },
     schema::ResultSet,
     SchemaCheckingMode,
@@ -123,6 +122,14 @@ impl Stage {
                     ..n
                 }),
             ),
+            Stage::MQLIntrinsic(MQLStage::EquiJoin(n)) => (
+                vec![*n.source, *n.from],
+                Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+                    source: Box::new(Stage::Sentinel),
+                    from: Box::new(Stage::Sentinel),
+                    ..n
+                })),
+            ),
             Stage::MQLIntrinsic(MQLStage::MatchFilter(n)) => (
                 vec![*n.source],
                 Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
@@ -178,6 +185,13 @@ impl Stage {
                 ..s
             }),
             Stage::Collection(_) | Stage::Array(_) => self,
+            Stage::MQLIntrinsic(MQLStage::EquiJoin(s)) => {
+                Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+                    source: sources.swap_remove(0).into(),
+                    from: sources.swap_remove(0).into(),
+                    ..s
+                }))
+            }
             Stage::MQLIntrinsic(MQLStage::MatchFilter(s)) => {
                 Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
                     source: sources.swap_remove(0).into(),
