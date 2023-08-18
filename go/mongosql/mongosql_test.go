@@ -354,7 +354,7 @@ func TestCatalogSchemaEmpty(t *testing.T) {
 		t.Fatalf("semantic translation errors should be external, but an internal error was found")
 	}
 
-	if !strings.Contains(err.Error(), "algebrize error: unknown collection 'foo' in database 'bar'") {
+	if !strings.Contains(err.Error(), "algebrize error: Error 3018: unknown collection 'foo' in database 'bar'") {
 		t.Fatalf("error message did not contain expected text: %q", err.Error())
 	}
 }

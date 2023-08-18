@@ -8,7 +8,7 @@ use crate::{
 use lazy_static::lazy_static;
 
 macro_rules! test_algebrize {
-    ($func_name:ident, method = $method:ident, $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
+    ($func_name:ident, method = $method:ident, $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? $(expected_error_code = $expected_error_code:literal,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
         #[test]
         fn $func_name() {
             use crate::{
@@ -32,6 +32,11 @@ macro_rules! test_algebrize {
             let res: Result<_, Error> = algebrizer.$method($ast $(, $source)?);
             $(assert!(matches!(res, $expected_pat));)?
             $(assert_eq!(res, $expected);)?
+
+            #[allow(unused_variables)]
+            if let Err(e) = res{
+                $(assert_eq!($expected_error_code, e.code()))?
+            }
         }
     };
 }
@@ -127,6 +132,7 @@ mod expression {
             STRING_OR_NULLISH,
         },
         set, unchecked_unique_linked_hash_map,
+        usererror::UserError,
     };
 
     test_algebrize!(
@@ -408,6 +414,7 @@ mod expression {
         unqualified_ref_may_and_must_exist_in_two_sources,
         method = algebrize_expression,
         expected = Err(Error::AmbiguousField("a".into())),
+        expected_error_code = 3009,
         input = ast::Expression::Identifier("a".into()),
         env = map! {
             ("foo", 1u16).into() => Schema::Document( Document {
@@ -471,6 +478,7 @@ mod expression {
         unqualified_subpath_in_current_and_super_may_exist_is_ambiguous,
         method = algebrize_expression,
         expected = Err(Error::AmbiguousField("a".into())),
+        expected_error_code = 3009,
         input = ast::Expression::Subpath(ast::SubpathExpr {
             expr: Box::new(ast::Expression::Identifier("a".into())),
             subpath: "c".into(),
@@ -620,6 +628,7 @@ mod expression {
         unqualified_reference_and_may_contain_sub_and_must_contain_outer_is_ambiguous,
         method = algebrize_expression,
         expected = Err(Error::AmbiguousField("a".into())),
+        expected_error_code = 3009,
         input = ast::Expression::Subpath(ast::SubpathExpr {
             expr: Box::new(ast::Expression::Identifier("a".into())),
             subpath: "c".into(),
@@ -653,6 +662,7 @@ mod expression {
         ref_does_not_exist,
         method = algebrize_expression,
         expected = Err(Error::FieldNotFound("bar".into())),
+        expected_error_code = 3008,
         input = ast::Expression::Identifier("bar".into()),
     );
 
@@ -683,6 +693,7 @@ mod expression {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
+        expected_error_code = 3018,
         input = ast::Expression::Binary(ast::BinaryExpr {
             left: Box::new(ast::Expression::Literal(ast::Literal::String(
                 "hello".into()
@@ -719,6 +730,7 @@ mod expression {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
+        expected_error_code = 3018,
         input = ast::Expression::Binary(ast::BinaryExpr {
             left: Box::new(ast::Expression::Literal(ast::Literal::String(
                 "hello".into()
@@ -755,6 +767,7 @@ mod expression {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
+        expected_error_code = 3018,
         input = ast::Expression::Binary(ast::BinaryExpr {
             left: Box::new(ast::Expression::Literal(ast::Literal::String(
                 "hello".into()
@@ -791,6 +804,7 @@ mod expression {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
+        expected_error_code = 3018,
         input = ast::Expression::Binary(ast::BinaryExpr {
             left: Box::new(ast::Expression::Literal(ast::Literal::String(
                 "hello".into()
@@ -827,6 +841,7 @@ mod expression {
             required: STRING_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer),
         })),
+        expected_error_code = 3018,
         input = ast::Expression::Binary(ast::BinaryExpr {
             left: Box::new(ast::Expression::Literal(ast::Literal::String(
                 "hello".into()
@@ -861,6 +876,7 @@ mod expression {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Boolean),
         })),
+        expected_error_code = 3018,
         input = ast::Expression::Unary(ast::UnaryExpr {
             op: ast::UnaryOp::Neg,
             expr: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
@@ -892,6 +908,7 @@ mod expression {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Boolean),
         })),
+        expected_error_code = 3018,
         input = ast::Expression::Unary(ast::UnaryExpr {
             op: ast::UnaryOp::Pos,
             expr: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
@@ -999,6 +1016,7 @@ mod expression {
             required: STRING_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer),
         })),
+        expected_error_code = 3018,
         input = ast::Expression::Trim(ast::TrimExpr {
             trim_spec: ast::TrimSpec::Both,
             trim_chars: Box::new(ast::Expression::Literal(ast::Literal::String(" ".into()))),
@@ -1013,6 +1031,7 @@ mod expression {
             required: STRING_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer),
         })),
+        expected_error_code = 3018,
         input = ast::Expression::Trim(ast::TrimExpr {
             trim_spec: ast::TrimSpec::Both,
             trim_chars: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
@@ -1253,6 +1272,7 @@ mod expression {
             required: DATE_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer),
         })),
+        expected_error_code = 3018,
         input = ast::Expression::Extract(ast::ExtractExpr {
             extract_spec: ast::DatePart::Second,
             arg: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
@@ -1262,6 +1282,7 @@ mod expression {
         unsupported_extract_date_part,
         method = algebrize_expression,
         expected = Err(Error::InvalidExtractDatePart(ast::DatePart::Quarter)),
+        expected_error_code = 3031,
         input = ast::Expression::Extract(ast::ExtractExpr {
             extract_spec: ast::DatePart::Quarter,
             arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
@@ -1387,6 +1408,7 @@ mod expression {
         unsupported_date_function_date_part,
         method = algebrize_expression,
         expected = Err(Error::InvalidDateFunctionDatePart(ast::DatePart::IsoWeek)),
+        expected_error_code = 3032,
         input = ast::Expression::DateFunction(ast::DateFunctionExpr {
             function: ast::DateFunctionName::Trunc,
             date_part: ast::DatePart::IsoWeek,
@@ -1461,6 +1483,7 @@ mod expression {
             required: BOOLEAN_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
+        expected_error_code = 3018,
         input = ast::Expression::Case(ast::CaseExpr {
             expr: None,
             when_branch: vec![ast::WhenBranch {
@@ -1541,6 +1564,7 @@ mod expression {
                 Schema::Atomic(Atomic::String),
             )
         )),
+        expected_error_code = 3018,
         input = ast::Expression::Case(ast::CaseExpr {
             expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
             when_branch: vec![ast::WhenBranch {
@@ -1623,6 +1647,7 @@ mod expression {
             required: Schema::Atomic(Atomic::String),
             found: Schema::Atomic(Atomic::Integer)
         })),
+        expected_error_code = 3018,
         input = ast::Expression::TypeAssertion(ast::TypeAssertionExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
             target_type: ast::Type::String,
@@ -1652,6 +1677,7 @@ mod expression {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String)
         })),
+        expected_error_code = 3018,
         input = ast::Expression::Is(ast::IsExpr {
             expr: Box::new(ast::Expression::Binary(ast::BinaryExpr {
                 left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
@@ -1708,6 +1734,7 @@ mod expression {
             required: STRING_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer)
         })),
+        expected_error_code = 3018,
         input = ast::Expression::Like(ast::LikeExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
             pattern: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
@@ -1722,6 +1749,7 @@ mod expression {
             required: STRING_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer)
         })),
+        expected_error_code = 3018,
         input = ast::Expression::Like(ast::LikeExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
             pattern: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
@@ -2012,6 +2040,7 @@ mod aggregation {
         ast, map, mir, multimap,
         schema::{Atomic, Schema, ANY_DOCUMENT, NUMERIC_OR_NULLISH},
         unchecked_unique_linked_hash_map,
+        usererror::UserError,
     };
     test_algebrize!(
         count_star,
@@ -2029,6 +2058,7 @@ mod aggregation {
         expected = Err(Error::SchemaChecking(
             mir::schema::Error::CountDistinctStarNotSupported
         )),
+        expected_error_code = 3018,
         input = ast::FunctionExpr {
             function: ast::FunctionName::Count,
             args: ast::FunctionArguments::Star,
@@ -2080,6 +2110,7 @@ mod aggregation {
                 Schema::Any
             )
         )),
+        expected_error_code = 3018,
         input = ast::FunctionExpr {
             function: ast::FunctionName::Count,
             args: ast::FunctionArguments::Args(vec![ast::Expression::Identifier("foo".into())]),
@@ -2093,6 +2124,7 @@ mod aggregation {
         sum_star_is_error,
         method = algebrize_aggregation,
         expected = Err(Error::StarInNonCount),
+        expected_error_code = 3010,
         input = ast::FunctionExpr {
             function: ast::FunctionName::Sum,
             args: ast::FunctionArguments::Star,
@@ -2143,6 +2175,7 @@ mod aggregation {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
+        expected_error_code = 3018,
         input = ast::FunctionExpr {
             function: ast::FunctionName::Sum,
             args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
@@ -2197,6 +2230,7 @@ mod aggregation {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
+        expected_error_code = 3018,
         input = ast::FunctionExpr {
             function: ast::FunctionName::Avg,
             args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
@@ -2250,6 +2284,7 @@ mod aggregation {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
+        expected_error_code = 3018,
         input = ast::FunctionExpr {
             function: ast::FunctionName::StddevPop,
             args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
@@ -2303,6 +2338,7 @@ mod aggregation {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
+        expected_error_code = 3018,
         input = ast::FunctionExpr {
             function: ast::FunctionName::StddevSamp,
             args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
@@ -2493,6 +2529,7 @@ mod aggregation {
             required: ANY_DOCUMENT.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
+        expected_error_code = 3018,
         input = ast::FunctionExpr {
             function: ast::FunctionName::MergeDocuments,
             args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
@@ -2511,6 +2548,7 @@ mod select_clause {
         multimap,
         schema::ANY_DOCUMENT,
         unchecked_unique_linked_hash_map,
+        usererror::UserError,
     };
 
     fn source() -> mir::Stage {
@@ -2525,6 +2563,7 @@ mod select_clause {
         select_distinct_not_allowed,
         method = algebrize_select_clause,
         expected = Err(Error::DistinctSelect),
+        expected_error_code = 3005,
         input = ast::SelectClause {
             set_quantifier: ast::SetQuantifier::Distinct,
             body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -2540,6 +2579,7 @@ mod select_clause {
         select_duplicate_bot,
         method = algebrize_select_clause,
         expected = Err(Error::DuplicateKey(Key::bot(1u16))),
+        expected_error_code = 3020,
         input = ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![
@@ -2555,6 +2595,7 @@ mod select_clause {
         select_duplicate_doc_key_a,
         method = algebrize_select_clause,
         expected = Err(Error::DuplicateDocumentKey("a".into())),
+        expected_error_code = 3023,
         input = ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -2605,6 +2646,7 @@ mod select_clause {
                 found: crate::schema::Schema::Atomic(crate::schema::Atomic::String),
             }
         )),
+        expected_error_code = 3018,
         input = ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -2619,6 +2661,7 @@ mod select_clause {
         select_duplicate_substar,
         method = algebrize_select_clause,
         expected = Err(Error::DuplicateKey(("foo", 1u16).into())),
+        expected_error_code = 3020,
         input = ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![
@@ -2665,6 +2708,7 @@ mod from_clause {
         multimap,
         schema::{Atomic, Document, Schema, ANY_DOCUMENT},
         set, unchecked_unique_linked_hash_map,
+        usererror::UserError,
     };
 
     fn mir_array_source() -> mir::Stage {
@@ -2707,12 +2751,14 @@ mod from_clause {
         from_clause_must_exist,
         method = algebrize_from_clause,
         expected = Err(Error::NoFromClause),
+        expected_error_code = 3001,
         input = None,
     );
     test_algebrize!(
         collection_must_have_alias,
         method = algebrize_from_clause,
         expected = Err(Error::CollectionMustHaveAlias),
+        expected_error_code = 3003,
         input = Some(ast::Datasource::Collection(ast::CollectionSource {
             database: None,
             collection: "foo".into(),
@@ -2855,6 +2901,7 @@ mod from_clause {
             required: ANY_DOCUMENT.clone(),
             found: Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]),
         })),
+        expected_error_code = 3018,
         input = Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Literal(ast::Literal::Integer(42))],
             alias: "bar".into(),
@@ -2868,6 +2915,7 @@ mod from_clause {
             required: ANY_DOCUMENT.clone(),
             found: Schema::AnyOf(set![Schema::Atomic(Atomic::Null)]),
         })),
+        expected_error_code = 3018,
         input = Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Literal(ast::Literal::Null)],
             alias: "bar".into(),
@@ -2877,6 +2925,7 @@ mod from_clause {
         array_datasource_must_be_literal,
         method = algebrize_from_clause,
         expected = Err(Error::ArrayDatasourceMustBeLiteral),
+        expected_error_code = 3004,
         input = Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Document(multimap! {
                 "foo".into() => ast::Expression::Identifier("foo".into()),
@@ -3035,6 +3084,7 @@ mod from_clause {
         left_outer_join_without_condition,
         method = algebrize_from_clause,
         expected = Err(Error::NoOuterJoinCondition),
+        expected_error_code = 3019,
         input = Some(ast::Datasource::Join(JoinSource {
             join_type: ast::JoinType::Left,
             left: Box::new(AST_SOURCE_FOO.clone()),
@@ -3047,6 +3097,7 @@ mod from_clause {
         right_outer_join_without_condition,
         method = algebrize_from_clause,
         expected = Err(Error::NoOuterJoinCondition),
+        expected_error_code = 3019,
         input = Some(ast::Datasource::Join(JoinSource {
             join_type: ast::JoinType::Right,
             left: Box::new(AST_SOURCE_FOO.clone()),
@@ -3095,6 +3146,7 @@ mod from_clause {
         invalid_join_condition,
         method = algebrize_from_clause,
         expected = Err(Error::FieldNotFound("x".into())),
+        expected_error_code = 3008,
         input = Some(ast::Datasource::Join(JoinSource {
             join_type: ast::JoinType::Cross,
             left: Box::new(ast::Datasource::Array(ast::ArraySource {
@@ -3443,6 +3495,7 @@ mod from_clause {
             }),
             crate::schema::Satisfaction::Must,
         )),
+        expected_error_code = 3016,
         input = Some(ast::Datasource::Derived(ast::DerivedSource {
             query: Box::new(ast::Query::Select(ast::SelectQuery {
                 select_clause: ast::SelectClause {
@@ -3595,6 +3648,7 @@ mod from_clause {
         flatten_duplicate_options,
         method = algebrize_from_clause,
         expected = Err(Error::DuplicateFlattenOption(ast::FlattenOption::Depth(2))),
+        expected_error_code = 3024,
         input = Some(ast::Datasource::Flatten(ast::FlattenSource {
             datasource: Box::new(ast_array_source()),
             options: vec![ast::FlattenOption::Depth(1), ast::FlattenOption::Depth(2)]
@@ -3696,6 +3750,7 @@ mod from_clause {
         flatten_polymorphic_object_schema_array_source,
         method = algebrize_from_clause,
         expected = Err(Error::PolymorphicObjectSchema("a".to_string())),
+        expected_error_code = 3026,
         input = Some(ast::Datasource::Flatten(ast::FlattenSource {
             datasource: Box::new(ast::Datasource::Array(ast::ArraySource {
                 array: vec![
@@ -3830,6 +3885,7 @@ mod from_clause {
             expected = Err(Error::DuplicateUnwindOption(ast::UnwindOption::Path(
                 ast::Expression::Identifier("dup".into())
             ))),
+            expected_error_code = 3027,
             input = Some(ast::Datasource::Unwind(ast::UnwindSource {
                 datasource: Box::new(AST_SOURCE_FOO.clone()),
                 options: vec![
@@ -3843,6 +3899,7 @@ mod from_clause {
             missing_path,
             method = algebrize_from_clause,
             expected = Err(Error::NoUnwindPath),
+            expected_error_code = 3028,
             input = Some(ast::Datasource::Unwind(ast::UnwindSource {
                 datasource: Box::new(AST_SOURCE_FOO.clone()),
                 options: vec![]
@@ -3853,6 +3910,7 @@ mod from_clause {
             invalid_path,
             method = algebrize_from_clause,
             expected = Err(Error::InvalidUnwindPath),
+            expected_error_code = 3029,
             input = Some(ast::Datasource::Unwind(ast::UnwindSource {
                 datasource: Box::new(AST_SOURCE_FOO.clone()),
                 options: vec![ast::UnwindOption::Path(ast::Expression::Subpath(
@@ -3875,6 +3933,7 @@ mod from_clause {
             correlated_path_disallowed,
             method = algebrize_from_clause,
             expected = Err(Error::FieldNotFound("bar".into())),
+            expected_error_code = 3008,
             input = Some(ast::Datasource::Unwind(ast::UnwindSource {
                 datasource: Box::new(AST_SOURCE_FOO.clone()),
                 options: vec![ast::UnwindOption::Path(ast::Expression::Subpath(
@@ -3977,12 +4036,13 @@ mod limit_or_offset_clause {
 
 mod set_query {
     use super::{catalog, mir_source_bar, mir_source_foo, AST_QUERY_BAR, AST_QUERY_FOO};
-    use crate::{ast, mir, mir::schema::SchemaCache};
+    use crate::{ast, mir, mir::schema::SchemaCache, usererror::UserError};
 
     test_algebrize!(
         union_distinct_not_allowed,
         method = algebrize_set_query,
         expected = Err(Error::DistinctUnion),
+        expected_error_code = 3006,
         input = ast::SetQuery {
             left: Box::new(AST_QUERY_FOO.clone()),
             op: ast::SetOperator::Union,
@@ -4156,7 +4216,9 @@ mod order_by_clause {
 }
 
 mod group_by_clause {
-    use crate::{ast, mir, mir::schema::SchemaCache, unchecked_unique_linked_hash_map};
+    use crate::{
+        ast, mir, mir::schema::SchemaCache, unchecked_unique_linked_hash_map, usererror::UserError,
+    };
     use lazy_static::lazy_static;
 
     // ARRAY DATASOURCE
@@ -4354,6 +4416,7 @@ mod group_by_clause {
         group_by_key_with_non_function_aggregation_expression,
         method = algebrize_group_by_clause,
         expected = Err(Error::NonAggregationInPlaceOfAggregation(0)),
+        expected_error_code = 3013,
         input = Some(ast::GroupByClause {
             keys: vec![AST_SUBPATH.clone()],
             aggregations: vec![ast::AliasedExpr {
@@ -4369,6 +4432,7 @@ mod group_by_clause {
         group_by_keys_must_have_unique_aliases,
         method = algebrize_group_by_clause,
         expected = Err(Error::DuplicateDocumentKey("key".into())),
+        expected_error_code = 3023,
         input = Some(ast::GroupByClause {
             keys: vec![AST_SUBPATH.clone(), AST_SUBPATH.clone()],
             aggregations: vec![],
@@ -4381,6 +4445,7 @@ mod group_by_clause {
         group_by_aggregations_must_have_unique_aliases,
         method = algebrize_group_by_clause,
         expected = Err(Error::DuplicateDocumentKey("a".into())),
+        expected_error_code = 3023,
         input = Some(ast::GroupByClause {
             keys: vec![AST_SUBPATH.clone()],
             aggregations: vec![
@@ -4410,6 +4475,7 @@ mod group_by_clause {
         group_by_aliases_must_be_unique_across_keys_and_aggregates,
         method = algebrize_group_by_clause,
         expected = Err(Error::DuplicateDocumentKey("key".into())),
+        expected_error_code = 3023,
         input = Some(ast::GroupByClause {
             keys: vec![AST_SUBPATH.clone()],
             aggregations: vec![ast::AliasedExpr {
@@ -4433,6 +4499,7 @@ mod subquery {
         multimap,
         schema::{Atomic, Document, Schema},
         set, unchecked_unique_linked_hash_map,
+        usererror::UserError,
     };
     use lazy_static::lazy_static;
 
@@ -4720,6 +4787,7 @@ mod subquery {
         degree_zero_unsat_output,
         method = algebrize_expression,
         expected = Err(Error::InvalidSubqueryDegree),
+        expected_error_code = 3022,
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
@@ -4777,6 +4845,7 @@ mod subquery {
         select_values_degree_gt_1,
         method = algebrize_expression,
         expected = Err(Error::InvalidSubqueryDegree),
+        expected_error_code = 3022,
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
@@ -4836,6 +4905,7 @@ mod subquery {
         select_star_degree_gt_1,
         method = algebrize_expression,
         expected = Err(Error::InvalidSubqueryDegree),
+        expected_error_code = 3022,
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
@@ -4860,6 +4930,7 @@ mod subquery {
         substar_degree_gt_1,
         method = algebrize_expression,
         expected = Err(Error::InvalidSubqueryDegree),
+        expected_error_code = 3022,
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
                 set_quantifier: ast::SetQuantifier::All,
@@ -5060,6 +5131,7 @@ mod subquery {
         argument_only_evaluated_in_super_scope,
         method = algebrize_expression,
         expected = Err(Error::FieldNotFound("a".into())),
+        expected_error_code = 3008,
         input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
             expr: Box::new(ast::Expression::Identifier("a".into())),
             op: ast::ComparisonOp::Eq,
@@ -5154,6 +5226,7 @@ mod schema_checking_mode {
     use crate::{
         ast,
         mir::{schema::SchemaCache, *},
+        usererror::UserError,
         Schema,
     };
 
@@ -5163,6 +5236,7 @@ mod schema_checking_mode {
         expected = Err(Error::SchemaChecking(
             schema::Error::SortKeyNotSelfComparable(0, Schema::Any)
         )),
+        expected_error_code = 3018,
         input = Some(ast::OrderByClause {
             sort_specs: vec![ast::SortSpec {
                 key: ast::SortKey::Simple(ast::Expression::Identifier("a".into())),

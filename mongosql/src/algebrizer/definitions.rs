@@ -1,4 +1,5 @@
 use crate::{
+    algebrizer::errors::Error,
     ast::{self, pretty_print::PrettyPrint},
     catalog::Catalog,
     map,
@@ -12,7 +13,6 @@ use crate::{
     SchemaCheckingMode,
 };
 use std::collections::BTreeSet;
-use thiserror::Error;
 
 type Result<T> = std::result::Result<T, Error>;
 
@@ -22,80 +22,6 @@ macro_rules! schema_check_return {
         ret.schema(&$self.schema_inference_state())?;
         return Ok(ret);
     }};
-}
-
-#[derive(Debug, Error, PartialEq)]
-pub enum Error {
-    #[error("ADD_TO_SET should be removed before try_from")]
-    AddToSetDoesNotExistInMir,
-    #[error("all SELECT queries must have a FROM clause")]
-    NoFromClause,
-    #[error("standard SELECT expressions can only contain *")]
-    NonStarStandardSelectBody,
-    #[error("collection datasources must have aliases")]
-    CollectionMustHaveAlias,
-    #[error("array datasource must be constant")]
-    ArrayDatasourceMustBeLiteral,
-    #[error("SELECT DISTINCT not allowed")]
-    DistinctSelect,
-    #[error("UNION DISTINCT not allowed")]
-    DistinctUnion,
-    #[error("no such datasource: {0:?}")]
-    NoSuchDatasource(DatasourceName),
-    #[error("field `{0}` cannot be resolved to any datasource")]
-    FieldNotFound(String),
-    #[error("ambiguous field `{0}`")]
-    AmbiguousField(String),
-    #[error("* argument only valid in COUNT function")]
-    StarInNonCount,
-    #[error("aggregation function {0} used in scalar position")]
-    AggregationInPlaceOfScalar(String),
-    #[error("scalar function {0} used in aggregation position")]
-    ScalarInPlaceOfAggregation(String),
-    #[error(
-        "non-aggregation expression found in GROUP BY aggregation function list at position {0}"
-    )]
-    NonAggregationInPlaceOfAggregation(usize),
-    #[error("aggregation functions must have exactly one argument")]
-    AggregationFunctionMustHaveOneArgument,
-    #[error("scalar functions cannot be DISTINCT")]
-    DistinctScalarFunction,
-    #[error("derived table datasources {2:?} have overlapping keys, schemata: {0:?} and {1:?}")]
-    DerivedDatasouceOverlappingKeys(crate::schema::Schema, crate::schema::Schema, Satisfaction),
-    #[error("{0} cannot be algebrized")]
-    CannotBeAlgebrized(&'static str),
-    #[error(transparent)]
-    SchemaChecking(#[from] mir::schema::Error),
-    #[error("OUTER JOINs must specify a JOIN condition")]
-    NoOuterJoinCondition,
-    #[error("cannot create schema environment with duplicate key: {0:?}")]
-    DuplicateKey(Key),
-    #[error("positional sort keys should have been rewritten to references")]
-    PositionalSortKey,
-    #[error("subquery expressions must have a degree of 1")]
-    InvalidSubqueryDegree,
-    #[error("found duplicate document key {0:?}")]
-    DuplicateDocumentKey(String),
-    #[error("found duplicate FLATTEN option {0:?}")]
-    DuplicateFlattenOption(ast::FlattenOption),
-    #[error("cannot exhaustively enumerate all field paths in schema {0:?}")]
-    CannotEnumerateAllFieldPaths(crate::schema::Schema),
-    #[error("cannot flatten field {0:?} since it has a polymorphic object schema")]
-    PolymorphicObjectSchema(String),
-    #[error("found duplicate UNWIND option {0:?}")]
-    DuplicateUnwindOption(ast::UnwindOption),
-    #[error("UNWIND must specify a PATH option")]
-    NoUnwindPath,
-    #[error("UNWIND PATH option must be an identifier")]
-    InvalidUnwindPath,
-    #[error("invalid CAST target type '{0:?}'")]
-    InvalidCast(ast::Type),
-    #[error("'{0:?}' is not a supported date part for EXTRACT")]
-    InvalidExtractDatePart(ast::DatePart),
-    #[error("'{0:?}' is not a supported date part for DATEADD, DATEDIFF, and DATETRUNC")]
-    InvalidDateFunctionDatePart(ast::DatePart),
-    #[error("unsupported type '{0:?}'")]
-    UnsupportedType(ast::TypeOrMissing),
 }
 
 impl TryFrom<ast::BinaryOp> for mir::ScalarFunction {
