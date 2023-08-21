@@ -276,6 +276,44 @@ impl MqlTranslator {
         }))
     }
 
+    fn translate_set(&mut self, mir_set: mir::Set) -> Result<air::Stage> {
+        let source = self.translate_stage(*mir_set.left)?;
+        let left_registry = self.mapping_registry.clone();
+        let pipeline = self.translate_stage(*mir_set.right)?;
+
+        // Ensure we retain mappings from the right side _and_ the left.
+        self.mapping_registry.merge(left_registry);
+
+        Ok(air::Stage::UnionWith(air::UnionWith {
+            source: Box::new(source),
+            pipeline: Box::new(pipeline),
+        }))
+    }
+
+    fn translate_derived(&mut self, mir_derived: mir::Derived) -> Result<air::Stage> {
+        self.scope_level += 1;
+        let derived_translation = self.translate_stage(*mir_derived.source)?;
+        self.scope_level -= 1;
+        Ok(derived_translation)
+    }
+
+    fn translate_unwind(&mut self, mir_unwind: mir::Unwind) -> Result<air::Stage> {
+        Ok(air::Stage::Unwind(air::Unwind {
+            source: Box::new(self.translate_stage(*mir_unwind.source)?),
+            path: Box::new(self.translate_expression(*mir_unwind.path)?),
+            index: mir_unwind.index,
+            outer: mir_unwind.outer,
+        }))
+    }
+
+    fn translate_mql_intrinsic(&mut self, mir_mql_intrinsic: mir::MQLStage) -> Result<air::Stage> {
+        match mir_mql_intrinsic {
+            mir::MQLStage::EquiJoin(ej) => self.translate_equijoin(ej),
+            mir::MQLStage::LateralJoin(lj) => self.translate_lateral_join(lj),
+            mir::MQLStage::MatchFilter(mf) => self.translate_match_filter(mf),
+        }
+    }
+
     fn translate_equijoin(&mut self, mir_join: mir::EquiJoin) -> Result<air::Stage> {
         let join_type = match mir_join.join_type {
             mir::JoinType::Inner => air::JoinType::Inner,
@@ -317,41 +355,9 @@ impl MqlTranslator {
         }))
     }
 
-    fn translate_set(&mut self, mir_set: mir::Set) -> Result<air::Stage> {
-        let source = self.translate_stage(*mir_set.left)?;
-        let left_registry = self.mapping_registry.clone();
-        let pipeline = self.translate_stage(*mir_set.right)?;
-
-        // Ensure we retain mappings from the right side _and_ the left.
-        self.mapping_registry.merge(left_registry);
-
-        Ok(air::Stage::UnionWith(air::UnionWith {
-            source: Box::new(source),
-            pipeline: Box::new(pipeline),
-        }))
-    }
-
-    fn translate_derived(&mut self, mir_derived: mir::Derived) -> Result<air::Stage> {
-        self.scope_level += 1;
-        let derived_translation = self.translate_stage(*mir_derived.source)?;
-        self.scope_level -= 1;
-        Ok(derived_translation)
-    }
-
-    fn translate_unwind(&mut self, mir_unwind: mir::Unwind) -> Result<air::Stage> {
-        Ok(air::Stage::Unwind(air::Unwind {
-            source: Box::new(self.translate_stage(*mir_unwind.source)?),
-            path: Box::new(self.translate_expression(*mir_unwind.path)?),
-            index: mir_unwind.index,
-            outer: mir_unwind.outer,
-        }))
-    }
-
-    fn translate_mql_intrinsic(&mut self, mir_mql_intrinsic: mir::MQLStage) -> Result<air::Stage> {
-        match mir_mql_intrinsic {
-            mir::MQLStage::MatchFilter(mf) => self.translate_match_filter(mf),
-            mir::MQLStage::EquiJoin(ej) => self.translate_equijoin(ej),
-        }
+    fn translate_lateral_join(&mut self, _mir_join: mir::LateralJoin) -> Result<air::Stage> {
+        // SQL-1576
+        todo!()
     }
 
     fn translate_match_filter(&mut self, mir_match_filter: mir::MatchFilter) -> Result<air::Stage> {

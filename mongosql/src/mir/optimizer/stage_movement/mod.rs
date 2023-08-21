@@ -2,6 +2,7 @@
 mod test;
 
 use super::Optimizer;
+use crate::mir::LateralJoin;
 use crate::{
     mir::{
         binding_tuple::Key,
@@ -130,6 +131,14 @@ impl Stage {
                     ..n
                 })),
             ),
+            Stage::MQLIntrinsic(MQLStage::LateralJoin(n)) => (
+                vec![*n.source, *n.subquery],
+                Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+                    source: Box::new(Stage::Sentinel),
+                    subquery: Box::new(Stage::Sentinel),
+                    ..n
+                })),
+            ),
             Stage::MQLIntrinsic(MQLStage::MatchFilter(n)) => (
                 vec![*n.source],
                 Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
@@ -189,6 +198,13 @@ impl Stage {
                 Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
                     source: sources.swap_remove(0).into(),
                     from: sources.swap_remove(0).into(),
+                    ..s
+                }))
+            }
+            Stage::MQLIntrinsic(MQLStage::LateralJoin(s)) => {
+                Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+                    source: sources.swap_remove(0).into(),
+                    subquery: sources.swap_remove(0).into(),
                     ..s
                 }))
             }

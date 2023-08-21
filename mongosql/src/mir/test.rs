@@ -5989,6 +5989,65 @@ mod schema {
         }),
     );
 
+    // LateralJoin tests
+    test_schema!(
+        left_lateral_join,
+        expected = Ok(ResultSet {
+            schema_env: map! {
+                ("bar", 0u16).into() => Schema::AnyOf(set![
+                            Schema::Missing,
+                            TEST_DOCUMENT_SCHEMA_A.clone()
+                    ]
+                ),
+                ("foo", 0u16).into() => Schema::AnyOf(set![
+                        TEST_DOCUMENT_SCHEMA_A.clone()
+                    ]
+                ),
+            },
+            min_size: 1,
+            max_size: None,
+        }),
+        input = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+            join_type: JoinType::Left,
+            source: Box::new(Stage::Array(ArraySource {
+                array: vec![test_document_a()],
+                alias: "foo".into(),
+                cache: SchemaCache::new(),
+            })),
+            subquery: mir_collection("bar"),
+            cache: SchemaCache::new(),
+        })),
+        catalog = Catalog::new(map! {
+            Namespace {db: "test_db".into(), collection: "foo".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+            Namespace {db: "test_db".into(), collection: "bar".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+        }),
+    );
+    test_schema!(
+        inner_lateral_join,
+        expected = Ok(ResultSet {
+            schema_env: map! {
+                ("bar", 0u16).into() => TEST_DOCUMENT_SCHEMA_A.clone(),
+                ("foo", 0u16).into() => Schema::AnyOf(set![ TEST_DOCUMENT_SCHEMA_A.clone() ]),
+            },
+            min_size: 0,
+            max_size: None,
+        }),
+        input = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+            join_type: JoinType::Inner,
+            source: Box::new(Stage::Array(ArraySource {
+                array: vec![test_document_a()],
+                alias: "foo".into(),
+                cache: SchemaCache::new(),
+            })),
+            subquery: mir_collection("bar"),
+            cache: SchemaCache::new(),
+        })),
+        catalog = Catalog::new(map! {
+            Namespace {db: "test_db".into(), collection: "foo".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+            Namespace {db: "test_db".into(), collection: "bar".into()} => TEST_DOCUMENT_SCHEMA_A.clone(),
+        }),
+    );
+
     // Join tests
     test_schema!(
         left_join,

@@ -259,6 +259,7 @@ impl CachedSchema for Stage {
             Stage::Derived(s) => &s.cache,
             Stage::Unwind(s) => &s.cache,
             Stage::MQLIntrinsic(MQLStage::EquiJoin(s)) => &s.cache,
+            Stage::MQLIntrinsic(MQLStage::LateralJoin(s)) => &s.cache,
             Stage::MQLIntrinsic(MQLStage::MatchFilter(s)) => &s.cache,
             Stage::Sentinel => unreachable!(),
         }
@@ -873,6 +874,50 @@ impl CachedSchema for Stage {
                             schema_env: source_result_set
                                 .schema_env
                                 .with_merged_mappings(from_result_set.schema_env)
+                                .map_err(|e| Error::DuplicateKey(e.key))?,
+                            min_size,
+                            max_size,
+                        })
+                    }
+                }
+            }
+            Stage::MQLIntrinsic(MQLStage::LateralJoin(j)) => {
+                let source_result_set = j.source.schema(state)?;
+                let subquery_result_set = j.subquery.schema(state)?;
+
+                match j.join_type {
+                    JoinType::Left => {
+                        let min_size = source_result_set.min_size;
+                        let max_size = source_result_set
+                            .max_size
+                            .and_then(|l| subquery_result_set.max_size.map(|r| l * r));
+                        Ok(ResultSet {
+                            schema_env: source_result_set
+                                .schema_env
+                                .with_merged_mappings(
+                                    subquery_result_set
+                                        .schema_env
+                                        .into_iter()
+                                        .map(|(key, schema)| {
+                                            (key, Schema::AnyOf(set![Schema::Missing, schema]))
+                                        })
+                                        .collect::<SchemaEnvironment>(),
+                                )
+                                .map_err(|e| Error::DuplicateKey(e.key))?,
+                            min_size,
+                            max_size,
+                        })
+                    }
+                    JoinType::Inner => {
+                        // A EquiJoin Inner Join can potentially return 0 results.
+                        let min_size = 0;
+                        let max_size = source_result_set
+                            .max_size
+                            .and_then(|l| subquery_result_set.max_size.map(|r| l * r));
+                        Ok(ResultSet {
+                            schema_env: source_result_set
+                                .schema_env
+                                .with_merged_mappings(subquery_result_set.schema_env)
                                 .map_err(|e| Error::DuplicateKey(e.key))?,
                             min_size,
                             max_size,

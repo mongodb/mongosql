@@ -124,6 +124,7 @@ pub struct Unwind {
 #[derive(PartialEq, Debug, Clone)]
 pub enum MQLStage {
     EquiJoin(EquiJoin),
+    LateralJoin(LateralJoin),
     MatchFilter(MatchFilter),
 }
 
@@ -134,6 +135,14 @@ pub struct EquiJoin {
     pub from: Box<Stage>,
     pub local_field: Box<Expression>,
     pub foreign_field: Box<Expression>,
+    pub cache: SchemaCache<ResultSet>,
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct LateralJoin {
+    pub join_type: JoinType,
+    pub source: Box<Stage>,
+    pub subquery: Box<Stage>,
     pub cache: SchemaCache<ResultSet>,
 }
 
