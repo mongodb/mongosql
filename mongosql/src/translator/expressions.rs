@@ -1,5 +1,5 @@
 use crate::{
-    air::{self, LetVariable, MQLOperator, SQLOperator},
+    air::{self, LetVariable, MQLOperator, SQLOperator, SubqueryComparisonOpType},
     mapping_registry::MqlReferenceType,
     mir,
     translator::{
@@ -376,6 +376,15 @@ impl MqlTranslator {
             SubqueryModifier::All => air::SubqueryModifier::All,
         };
 
+        let op_type = if MqlTranslator::schema_is_nullish(*subquery_comparison.argument.clone())
+            || MqlTranslator::schema_is_nullish(
+                *subquery_comparison.subquery_expr.output_expr.clone(),
+            ) {
+            SubqueryComparisonOpType::Sql
+        } else {
+            SubqueryComparisonOpType::Mql
+        };
+
         let arg = self.translate_expression(*subquery_comparison.argument)?;
 
         let subquery = self.translate_subquery(subquery_comparison.subquery_expr)?;
@@ -383,7 +392,7 @@ impl MqlTranslator {
         Ok(air::Expression::SubqueryComparison(
             air::SubqueryComparison {
                 op,
-                op_type: air::SubqueryComparisonOpType::Sql,
+                op_type,
                 modifier,
                 arg: Box::new(arg),
                 subquery: Box::new(subquery),

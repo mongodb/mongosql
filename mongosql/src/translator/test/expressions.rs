@@ -23,10 +23,10 @@ macro_rules! test_translate_expression {
 }
 
 macro_rules! test_translate_expression_with_schema_info {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr, $(mapping_registry = $mapping_registry:expr,)?) => {
+    ($func_name:ident, expected = $expected:expr, input = $input:expr, $(mapping_registry = $mapping_registry:expr,)? $(catalog = $catalog:expr,)? $(schema_env = $schema_env:expr,)?) => {
         #[test]
         fn $func_name() {
-            use crate::{translator, mapping_registry::MqlMappingRegistry, catalog::Catalog, mir::schema::{CachedSchema, SchemaInferenceState}};
+            use crate::{translator, mapping_registry::MqlMappingRegistry, catalog::Catalog, mir::schema::{CachedSchema, SchemaCheckingMode, SchemaInferenceState}, schema::SchemaEnvironment};
 
             // force the input
             let input = $input;
@@ -34,8 +34,15 @@ macro_rules! test_translate_expression_with_schema_info {
             let mut mapping_registry = MqlMappingRegistry::default();
             $(mapping_registry = $mapping_registry;)?
 
-            let catalog = Catalog::default();
-            let schema_inference_state = SchemaInferenceState::empty(&catalog);
+            #[allow(unused_mut, unused_assignments)]
+            let mut catalog = Catalog::default();
+            $(catalog = $catalog;)?
+
+            #[allow(unused_mut, unused_assignments)]
+            let mut schema_env = SchemaEnvironment::default();
+            $(schema_env = $schema_env;)?
+
+            let schema_inference_state = SchemaInferenceState::new(0u16, schema_env, &catalog, SchemaCheckingMode::default());
             let _ = input.schema(&schema_inference_state).unwrap();
             let translator = translator::MqlTranslator{
                 mapping_registry,
@@ -3997,15 +4004,17 @@ mod subquery {
 
 mod subquery_comparison {
     use crate::{
-        air, map,
+        air,
+        catalog::Namespace,
+        map,
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{self, binding_tuple::DatasourceName::Bottom},
-        unchecked_unique_linked_hash_map,
-        util::ROOT,
+        schema::{Atomic, Document, Schema, ANY_DOCUMENT},
+        set, unchecked_unique_linked_hash_map,
     };
 
-    test_translate_expression!(
-        uncorrelated,
+    test_translate_expression_with_schema_info!(
+        uncorrelated_with_sql_semantics,
         expected = Ok(air::Expression::SubqueryComparison(
             air::SubqueryComparison {
                 op: air::SubqueryComparisonOp::Eq,
@@ -4014,14 +4023,16 @@ mod subquery_comparison {
                 arg: Box::new(air::Expression::Literal(air::LiteralValue::Integer(5))),
                 subquery: Box::new(air::Subquery {
                     let_bindings: vec![],
-                    output_path: vec!["foo".to_string()],
+                    output_path: vec!["foo".to_string(), "a".to_string()],
                     pipeline: Box::new(air::Stage::Project(air::Project {
                         source: Box::new(air::Stage::Collection(air::Collection {
                             db: "test".to_string(),
                             collection: "foo".to_string(),
                         })),
                         specifications: unchecked_unique_linked_hash_map! {
-                            "foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
+                            "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Document(unchecked_unique_linked_hash_map! {
+                                "a".to_string() => air::Expression::Variable("ROOT.a".to_string().into()),
+                            })),
                         },
                     })),
                 }),
@@ -4034,7 +4045,11 @@ mod subquery_comparison {
                 mir::LiteralValue::Integer(5).into()
             )),
             subquery_expr: mir::SubqueryExpr {
-                output_expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                output_expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                    expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                    field: "a".to_string(),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
                 subquery: Box::new(mir::Stage::Project(mir::Project {
                     source: Box::new(mir::Stage::Collection(mir::Collection {
                         db: "test".to_string(),
@@ -4042,7 +4057,16 @@ mod subquery_comparison {
                         cache: mir::schema::SchemaCache::new(),
                     })),
                     expression: map! {
-                        ("foo", 1u16).into() => mir::Expression::Reference(("foo", 1u16).into()),
+                        ("foo", 1u16).into() => mir::Expression::Document(mir::DocumentExpr {
+                            document: unchecked_unique_linked_hash_map! {
+                                "a".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
+                                    expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                                    field: "a".to_string(),
+                                    cache: mir::schema::SchemaCache::new(),
+                                })
+                            },
+                            cache: mir::schema::SchemaCache::new(),
+                        }),
                     },
                     cache: mir::schema::SchemaCache::new(),
                 })),
@@ -4050,27 +4074,102 @@ mod subquery_comparison {
             },
             cache: mir::schema::SchemaCache::new(),
         }),
+        catalog = Catalog::new(map! {
+            Namespace { db: "test".to_string(), collection: "foo".to_string() } => Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {},
+                additional_properties: false,
+            }),
+        }),
     );
 
-    test_translate_expression!(
+    test_translate_expression_with_schema_info!(
+        uncorrelated_with_mql_semantics,
+        expected = Ok(air::Expression::SubqueryComparison(
+            air::SubqueryComparison {
+                op: air::SubqueryComparisonOp::Eq,
+                op_type: air::SubqueryComparisonOpType::Mql,
+                modifier: air::SubqueryModifier::Any,
+                arg: Box::new(air::Expression::Literal(air::LiteralValue::Integer(5))),
+                subquery: Box::new(air::Subquery {
+                    let_bindings: vec![],
+                    output_path: vec!["foo".to_string(), "a".to_string()],
+                    pipeline: Box::new(air::Stage::Project(air::Project {
+                        source: Box::new(air::Stage::Collection(air::Collection {
+                            db: "test".to_string(),
+                            collection: "foo".to_string(),
+                        })),
+                        specifications: unchecked_unique_linked_hash_map! {
+                            "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Document(unchecked_unique_linked_hash_map! {
+                                "a".to_string() => air::Expression::Variable("ROOT.a".to_string().into()),
+                            })),
+                        },
+                    })),
+                }),
+            }
+        )),
+        input = mir::Expression::SubqueryComparison(mir::SubqueryComparison {
+            operator: mir::SubqueryComparisonOp::Eq,
+            modifier: mir::SubqueryModifier::Any,
+            argument: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(5).into()
+            )),
+            subquery_expr: mir::SubqueryExpr {
+                output_expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                    expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                    field: "a".to_string(),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                subquery: Box::new(mir::Stage::Project(mir::Project {
+                    source: Box::new(mir::Stage::Collection(mir::Collection {
+                        db: "test".to_string(),
+                        collection: "foo".to_string(),
+                        cache: mir::schema::SchemaCache::new(),
+                    })),
+                    expression: map! {
+                        ("foo", 1u16).into() => mir::Expression::Document(mir::DocumentExpr {
+                            document: unchecked_unique_linked_hash_map! {
+                                "a".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
+                                    expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                                    field: "a".to_string(),
+                                    cache: mir::schema::SchemaCache::new(),
+                                })
+                            },
+                            cache: mir::schema::SchemaCache::new(),
+                        }),
+                    },
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                cache: mir::schema::SchemaCache::new(),
+            },
+            cache: mir::schema::SchemaCache::new(),
+        }),
+        catalog = Catalog::new(map! {
+            Namespace { db: "test".to_string(), collection: "foo".to_string() } => Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".to_string()},
+                additional_properties: false,
+            }),
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         correlated,
         expected = Ok(air::Expression::SubqueryComparison(
             air::SubqueryComparison {
                 op: air::SubqueryComparisonOp::Gt,
                 op_type: air::SubqueryComparisonOpType::Sql,
                 modifier: air::SubqueryModifier::All,
-                arg: Box::new(air::Expression::FieldRef("x".to_string().into())),
+                arg: Box::new(air::Expression::Literal(air::LiteralValue::Integer(5))),
                 subquery: Box::new(air::Subquery {
-                    let_bindings: vec![
-                        air::LetVariable {
-                            name: "vfoo_0".to_string(),
-                            expr: Box::new(air::Expression::FieldRef("foo".to_string().into())),
-                        },
-                        air::LetVariable {
-                            name: "vx_0".to_string(),
-                            expr: Box::new(air::Expression::FieldRef("x".to_string().into())),
-                        },
-                    ],
+                    let_bindings: vec![air::LetVariable {
+                        name: "vfoo_0".to_string(),
+                        expr: Box::new(air::Expression::FieldRef("foo".to_string().into())),
+                    }],
                     output_path: vec!["__bot".to_string(), "a".to_string()],
                     pipeline: Box::new(air::Stage::Project(air::Project {
                         source: Box::new(air::Stage::Collection(air::Collection {
@@ -4089,7 +4188,9 @@ mod subquery_comparison {
         input = mir::Expression::SubqueryComparison(mir::SubqueryComparison {
             operator: mir::SubqueryComparisonOp::Gt,
             modifier: mir::SubqueryModifier::All,
-            argument: Box::new(mir::Expression::Reference(("x", 0u16).into())),
+            argument: Box::new(mir::Expression::Literal(
+                mir::LiteralValue::Integer(5).into()
+            )),
             subquery_expr: mir::SubqueryExpr {
                 output_expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
                     expr: Box::new(mir::Expression::Reference((Bottom, 1u16).into())),
@@ -4126,12 +4227,19 @@ mod subquery_comparison {
                 ("foo", 0u16),
                 MqlMappingRegistryValue::new("foo".to_string(), MqlReferenceType::FieldRef),
             );
-            mr.insert(
-                ("x", 0u16),
-                MqlMappingRegistryValue::new("x".to_string(), MqlReferenceType::FieldRef),
-            );
             mr
         },
+        catalog = Catalog::new(map! {
+            Namespace { db: "test".to_string(), collection: "foo".to_string() } => Schema::Document(Document {
+                keys: map! {
+                    "a".to_string() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {"a".to_string()},
+                additional_properties: false,
+            }),
+            Namespace { db: "test".to_string(), collection: "bar".to_string() } => ANY_DOCUMENT.clone(),
+        }),
+        schema_env = map! {("foo", 0u16).into() => ANY_DOCUMENT.clone()},
     );
 }
 
