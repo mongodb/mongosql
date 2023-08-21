@@ -4,6 +4,7 @@ tests:
       - { "$project": { "foo": "$$ROOT" } }
     expected:
       - { "$project": { "foo": "$$ROOT" } }
+
   - name: "desugar $subquery expression with only coll"
     input:
       - {
@@ -47,6 +48,7 @@ tests:
           },
       }
       - { "$project": { "__subquery_result_0": 0 } }
+
   - name: "desugar $subquery expression with no source"
     input:
       - {
@@ -88,6 +90,7 @@ tests:
           },
       }
       - { "$project": { "__subquery_result_0": 0 } }
+
   - name: "desugar fully specified $subquery expression"
     input:
       - {
@@ -150,6 +153,7 @@ tests:
           },
       }
       - { "$project": { "__subquery_result_0": 0 } }
+
   - name: "nested subquery expression is desugared in nested pipeline"
     input:
       - {
@@ -227,6 +231,7 @@ tests:
             "as": "out",
           },
       }
+
   - name: "desugar stage with multiple subquery expressions"
     input:
       - {
@@ -359,8 +364,8 @@ tests:
                     "initialValue": false,
                     "in":
                       {
-                        "$sqlOr":
-                          ["$$value", { "$sqlGt": ["$a", "$$this.p_1"] }],
+                        "$or":
+                          ["$$value", { "$gt": ["$a", "$$this.p_1"] }],
                       },
                   },
               },
@@ -375,6 +380,7 @@ tests:
             "__subquery_result_3": 0,
           },
       }
+
   - name: "desugar $subqueryExists expression with only coll"
     input:
       - {
@@ -400,6 +406,7 @@ tests:
           },
       }
       - { "$project": { "__subquery_result_0": 0 } }
+
   - name: "desugar $subqueryExists expression with no source"
     input:
       - {
@@ -430,6 +437,7 @@ tests:
           },
       }
       - { "$project": { "__subquery_result_0": 0 } }
+
   - name: "desugar fully specified $subqueryExists expression"
     input:
       - {
@@ -474,6 +482,7 @@ tests:
           },
       }
       - { "$project": { "__subquery_result_0": 0 } }
+
   - name: "desugar $subqueryComparison expression with only coll"
     input:
       - {
@@ -516,14 +525,15 @@ tests:
                     "initialValue": false,
                     "in":
                       {
-                        "$sqlOr":
-                          ["$$value", { "$sqlGt": ["$a", "$$this.a"] }],
+                        "$or":
+                          ["$$value", { "$gt": ["$a", "$$this.a"] }],
                       },
                   },
               },
           },
       }
       - { "$project": { "__subquery_result_0": 0 } }
+
   - name: "desugar $subqueryComparison expression with no source"
     input:
       - {
@@ -565,14 +575,15 @@ tests:
                     "initialValue": false,
                     "in":
                       {
-                        "$sqlOr":
-                          ["$$value", { "$sqlGt": ["$a", "$$this.a"] }],
+                        "$or":
+                          ["$$value", { "$gt": ["$a", "$$this.a"] }],
                       },
                   },
               },
           },
       }
       - { "$project": { "__subquery_result_0": 0 } }
+
   - name: "desugar fully specified $subqueryComparison expression"
     input:
       - {
@@ -629,14 +640,15 @@ tests:
                     "initialValue": false,
                     "in":
                       {
-                        "$sqlOr":
-                          ["$$value", { "$sqlGt": ["$a", "$$this.a"] }],
+                        "$or":
+                          ["$$value", { "$gt": ["$a", "$$this.a"] }],
                       },
                   },
               },
           },
       }
       - { "$project": { "__subquery_result_0": 0 } }
+
   - name: "desugar $subqueryComparison expression with ALL modifier"
     input:
       - {
@@ -693,6 +705,71 @@ tests:
                     "initialValue": true,
                     "in":
                       {
+                        "$and":
+                          ["$$value", { "$gt": ["$a", "$$this.a"] }],
+                      },
+                  },
+              },
+          },
+      }
+      - { "$project": { "__subquery_result_0": 0 } }
+
+  - name: "desugar $subqueryComparison expression with SQL ops"
+    input:
+      - {
+        "$project":
+          {
+            "expr":
+              {
+                "$subqueryComparison":
+                  {
+                    "op": "sqlGt",
+                    "modifier": "all",
+                    "arg": "$a",
+                    "subquery":
+                      {
+                        "db": "db",
+                        "collection": "bar",
+                        "let": { "foo_b_0": "$b" },
+                        "outputPath": ["a"],
+                        "pipeline":
+                          [
+                            {
+                              "$match":
+                                { "$expr": { "$eq": ["$$foo_b_0", "$b"] } },
+                            },
+                            { "$project": { "a": 1 } },
+                          ],
+                      },
+                  },
+              },
+          },
+      }
+    expected:
+      - {
+        "$lookup":
+          {
+            "from": { "db": "db", "coll": "bar" },
+            "let": { "foo_b_0": "$b" },
+            "pipeline":
+              [
+                { "$match": { "$expr": { "$eq": ["$$foo_b_0", "$b"] } } },
+                { "$project": { "a": 1 } },
+              ],
+            "as": "__subquery_result_0",
+          },
+      }
+      - {
+        "$project":
+          {
+            "expr":
+              {
+                "$reduce":
+                  {
+                    "input": "$__subquery_result_0",
+                    "initialValue": true,
+                    "in":
+                      {
                         "$sqlAnd":
                           ["$$value", { "$sqlGt": ["$a", "$$this.a"] }],
                       },
@@ -701,6 +778,7 @@ tests:
           },
       }
       - { "$project": { "__subquery_result_0": 0 } }
+
   - name: "Preserve _id when desugaring subquery expression nested in a group"
     input:
       - {

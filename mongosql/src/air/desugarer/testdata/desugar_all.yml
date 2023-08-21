@@ -1723,7 +1723,7 @@ tests:
               {
                 "$subqueryComparison":
                   {
-                    "op": "eq",
+                    "op": "sqlEq",
                     "modifier": "any",
                     "arg": "$bar.a",
                     "subquery":

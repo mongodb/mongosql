@@ -6,7 +6,8 @@ use crate::air::{
     Let, LetVariable, Limit, LiteralValue, Lookup, MQLOperator, MQLSemanticOperator, Project,
     ProjectItem, Reduce, SQLOperator, SQLSemanticOperator, Stage,
     Stage::*,
-    Subquery, SubqueryComparison, SubqueryComparisonOp, SubqueryExists, SubqueryModifier,
+    Subquery, SubqueryComparison, SubqueryComparisonOp, SubqueryComparisonOpType, SubqueryExists,
+    SubqueryModifier,
 };
 use linked_hash_map::LinkedHashMap;
 
@@ -39,6 +40,46 @@ impl Pass for SubqueryExprDesugarerPass {
         };
         Ok(visitor.visit_stage(pipeline))
     }
+}
+
+/// A SubqueryComparison expr can desugar using SQL or MQL semantic operators, depending on
+/// the value of its op_type field. This macro allows us to parametrize the actual desugarer
+/// code by air types: SQLOperator vs MQLOperator, Expression::SQLSemanticOperator vs
+/// Expression::MQLSemanticOperator, and SQLSemanticOperator vs MQLSemanticOperator.
+macro_rules! subquery_comparison_semantic_desugarer {
+    ($subquery_comp:ident, $as_name:ident, op_enum = $op_enum:ident, expr_variant = $expr_variant:ident, expr_struct = $expr_struct:ident) => {{
+        let (initial_value, combinator_op) = match $subquery_comp.modifier {
+            SubqueryModifier::Any => (Literal(LiteralValue::Boolean(false)), $op_enum::Or),
+            SubqueryModifier::All => (Literal(LiteralValue::Boolean(true)), $op_enum::And),
+        };
+
+        let comp_op = match $subquery_comp.op {
+            SubqueryComparisonOp::Lt => $op_enum::Lt,
+            SubqueryComparisonOp::Lte => $op_enum::Lte,
+            SubqueryComparisonOp::Neq => $op_enum::Ne,
+            SubqueryComparisonOp::Eq => $op_enum::Eq,
+            SubqueryComparisonOp::Gt => $op_enum::Gt,
+            SubqueryComparisonOp::Gte => $op_enum::Gte,
+        };
+
+        let output_path = format!("this.{}", $subquery_comp.subquery.output_path.join(".")).into();
+
+        // Return the replacement expression.
+        Reduce(Reduce {
+            input: Box::new(FieldRef($as_name.into())),
+            init_value: Box::new(initial_value),
+            inside: Box::new($expr_variant($expr_struct {
+                op: combinator_op,
+                args: vec![
+                    Variable("value".to_string().into()),
+                    $expr_variant($expr_struct {
+                        op: comp_op,
+                        args: vec![*$subquery_comp.arg, Variable(output_path)],
+                    }),
+                ],
+            })),
+        })
+    }};
 }
 
 struct SubqueryExprDesugarerPassVisitor {
@@ -161,37 +202,22 @@ impl SubqueryExprDesugarerPassVisitor {
             subquery_comp.subquery.pipeline,
         );
 
-        let (initial_value, combinator_op) = match subquery_comp.modifier {
-            SubqueryModifier::Any => (Literal(LiteralValue::Boolean(false)), SQLOperator::Or),
-            SubqueryModifier::All => (Literal(LiteralValue::Boolean(true)), SQLOperator::And),
-        };
-
-        let comp_op = match subquery_comp.op {
-            SubqueryComparisonOp::Lt => SQLOperator::Lt,
-            SubqueryComparisonOp::Lte => SQLOperator::Lte,
-            SubqueryComparisonOp::Neq => SQLOperator::Ne,
-            SubqueryComparisonOp::Eq => SQLOperator::Eq,
-            SubqueryComparisonOp::Gt => SQLOperator::Gt,
-            SubqueryComparisonOp::Gte => SQLOperator::Gte,
-        };
-
-        let output_path = format!("this.{}", subquery_comp.subquery.output_path.join(".")).into();
-
-        // Return the replacement expression.
-        Reduce(Reduce {
-            input: Box::new(FieldRef(as_name.into())),
-            init_value: Box::new(initial_value),
-            inside: Box::new(SQLSemanticOperator(SQLSemanticOperator {
-                op: combinator_op,
-                args: vec![
-                    Variable("value".to_string().into()),
-                    SQLSemanticOperator(SQLSemanticOperator {
-                        op: comp_op,
-                        args: vec![*subquery_comp.arg, Variable(output_path)],
-                    }),
-                ],
-            })),
-        })
+        match subquery_comp.op_type {
+            SubqueryComparisonOpType::Sql => subquery_comparison_semantic_desugarer!(
+                subquery_comp,
+                as_name,
+                op_enum = SQLOperator,
+                expr_variant = SQLSemanticOperator,
+                expr_struct = SQLSemanticOperator
+            ),
+            SubqueryComparisonOpType::Mql => subquery_comparison_semantic_desugarer!(
+                subquery_comp,
+                as_name,
+                op_enum = MQLOperator,
+                expr_variant = MQLSemanticOperator,
+                expr_struct = MQLSemanticOperator
+            ),
+        }
     }
 
     /// desugar_subquery_exists desugars a SubqueryExists expression into a
