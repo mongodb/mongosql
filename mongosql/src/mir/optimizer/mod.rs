@@ -4,6 +4,7 @@ use crate::{
 };
 
 mod constant_folding;
+mod dead_code_elimination;
 mod flatten_variadics;
 mod match_null_filtering;
 mod match_splitting;
@@ -28,6 +29,7 @@ static OPTIMIZERS: fn() -> Vec<Box<dyn Optimizer>> = || {
         Box::new(match_splitting::MatchSplittingOptimizer {}),
         Box::new(stage_movement::StageMovementOptimizer {}),
         Box::new(match_null_filtering::MatchNullFilteringOptimizer {}),
+        Box::new(dead_code_elimination::DeadCodeEliminator {}),
     ]
 };
 

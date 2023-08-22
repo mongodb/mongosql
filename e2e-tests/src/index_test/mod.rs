@@ -28,9 +28,12 @@ pub(crate) struct IndexUsageTest {
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[allow(clippy::enum_variant_names)]
 pub(crate) enum IndexUtilization {
     #[serde(rename = "COLL_SCAN")]
     CollScan,
+    #[serde(rename = "DISTINCT_SCAN")]
+    DistinctScan,
     #[serde(rename = "IX_SCAN")]
     IxScan,
 }
@@ -310,6 +313,7 @@ impl InputStage {
 fn as_index_utilization(stage_type: String) -> Result<IndexUtilization, Error> {
     match stage_type.as_str() {
         "COLLSCAN" => Ok(IndexUtilization::CollScan),
+        "DISTINCT_SCAN" => Ok(IndexUtilization::DistinctScan),
         "IXSCAN" => Ok(IndexUtilization::IxScan),
         _ => Err(Error::InvalidRootStage(stage_type)),
     }

@@ -1,0 +1,50 @@
+catalog_data:
+  test_db:
+    test_coll:
+      - {'_id': 1, 'a': 1, 'b': 4.2}
+      - {'_id': 2, 'a': 1, 'b': 5.1}
+      - {'_id': 3, 'a': 2, 'b': 6.0}
+      - {'_id': 4, 'a': null, 'b': 4.1}
+      - {'_id': 5, 'a': 2, 'b': 10.8}
+      - {'_id': 6, 'a': null, 'b': 3.2}
+
+catalog_schema:
+  test_db:
+    test_coll:
+      bsonType: 'object'
+      properties:
+        {
+          '_id': { 'bsonType': 'int' },
+          'a':
+            {
+              'anyOf':
+                [
+                  { 'bsonType': 'int' },
+                  { 'bsonType': 'null' },
+                ]
+            },
+          'b':
+            {
+              'anyOf':
+                [
+                  { 'bsonType': 'double' },
+                  { 'bsonType': 'null' },
+                ]
+            },
+        }
+      required: ['_id']
+      additionalProperties: true
+
+indexes:
+  test_db:
+    test_coll:
+      - {'key': {'a': 1}}
+      - {'key': {'a': 1, 'b': -1}}
+
+tests:
+  - description: group without aggregations with simple source can utilize index
+    current_db: test_db
+    query: 'SELECT * FROM test_coll GROUP BY a'
+    expected_utilization: DISTINCT_SCAN
+    expected_index_bounds:
+      - {'a': ['[MinKey, MaxKey]']}

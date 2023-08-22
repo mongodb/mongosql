@@ -40,12 +40,13 @@ macro_rules! test_uses {
                     self,
                     binding_tuple::Key,
                     schema::SchemaCache,
-                    Collection,
+                    AggregationExpr, AggregationFunction, AggregationFunctionApplication,
+                    AliasedAggregation, AliasedExpr, Collection,
                     Expression::{self, *},
                     Filter, Group, LiteralExpr,
                     LiteralValue::*,
-                    ReferenceExpr, ScalarFunction, ScalarFunctionApplication, Sort,
-                    SortSpecification, Stage,
+                    OptionallyAliasedExpr, ReferenceExpr, ScalarFunction,
+                    ScalarFunctionApplication, Sort, SortSpecification, Stage,
                 },
                 set,
             };
@@ -70,12 +71,13 @@ macro_rules! test_substitute {
                     self,
                     binding_tuple::Key,
                     schema::SchemaCache,
-                    Collection,
+                    AggregationExpr, AggregationFunction, AggregationFunctionApplication,
+                    AliasedAggregation, AliasedExpr, Collection,
                     Expression::{self, *},
                     Filter, Group, LiteralExpr,
                     LiteralValue::*,
-                    ReferenceExpr, ScalarFunction, ScalarFunctionApplication, Sort,
-                    SortSpecification, Stage,
+                    OptionallyAliasedExpr, ReferenceExpr, ScalarFunction,
+                    ScalarFunctionApplication, Sort, SortSpecification, Stage,
                 },
                 set,
             };
@@ -315,6 +317,34 @@ test_uses!(
         cache: SchemaCache::new(),
     }),
 );
+test_uses!(
+    group_uses,
+    expected = {
+        let expected: BTreeSet<Key> =
+            set![Key::named("x", 0), Key::named("y", 0), Key::named("z", 0)];
+        expected
+    },
+    input = Stage::Group(Group {
+        source: mir_collection_stage(),
+        keys: vec![
+            OptionallyAliasedExpr::Aliased(AliasedExpr {
+                alias: "a".to_string(),
+                expr: mir_reference("x"),
+            }),
+            OptionallyAliasedExpr::Unaliased(mir_reference("y")),
+        ],
+        aggregations: vec![AliasedAggregation {
+            alias: "agg".to_string(),
+            agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
+                function: AggregationFunction::Avg,
+                distinct: false,
+                arg: mir_reference("z").into(),
+            }),
+        }],
+        scope: 0u16,
+        cache: SchemaCache::new(),
+    }),
+);
 test_substitute!(
     filter_substitute,
     expected = Stage::Filter(Filter {
@@ -361,6 +391,54 @@ test_substitute!(
     theta = map! {
         Key::named("x",0) => mir_int_expr(42),
         Key::named("y",0) => mir_int_expr(55),
+    },
+);
+test_substitute!(
+    group_substitute,
+    expected = Stage::Group(Group {
+        source: mir_collection_stage(),
+        keys: vec![
+            OptionallyAliasedExpr::Aliased(AliasedExpr {
+                alias: "a".to_string(),
+                expr: mir_int_expr(42),
+            }),
+            OptionallyAliasedExpr::Unaliased(mir_int_expr(55)),
+        ],
+        aggregations: vec![AliasedAggregation {
+            alias: "agg".to_string(),
+            agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
+                function: AggregationFunction::Avg,
+                distinct: false,
+                arg: mir_int_expr(0).into(),
+            }),
+        }],
+        scope: 0,
+        cache: SchemaCache::new(),
+    }),
+    stage = Stage::Group(Group {
+        source: mir_collection_stage(),
+        keys: vec![
+            OptionallyAliasedExpr::Aliased(AliasedExpr {
+                alias: "a".to_string(),
+                expr: mir_reference("x"),
+            }),
+            OptionallyAliasedExpr::Unaliased(mir_reference("y")),
+        ],
+        aggregations: vec![AliasedAggregation {
+            alias: "agg".to_string(),
+            agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
+                function: AggregationFunction::Avg,
+                distinct: false,
+                arg: mir_reference("z").into(),
+            }),
+        }],
+        scope: 0,
+        cache: SchemaCache::new(),
+    }),
+    theta = map! {
+        Key::named("x",0) => mir_int_expr(42),
+        Key::named("y",0) => mir_int_expr(55),
+        Key::named("z",0) => mir_int_expr(0),
     },
 );
 

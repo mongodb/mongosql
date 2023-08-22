@@ -105,8 +105,8 @@ struct SingleStageUseVisitor {
 
 impl Visitor for SingleStageUseVisitor {
     fn visit_stage(&mut self, node: Stage) -> Stage {
-        // We only compute uses for Filter and Sort Stages at this time. We need to make sure
-        // we do not recurse down the source field.
+        // We only compute uses for Filter, Group, and Sort Stages at this time.
+        // We need to make sure we do not recurse down the source field.
         match node {
             Stage::Filter(Filter {
                 source,
@@ -132,6 +132,29 @@ impl Visitor for SingleStageUseVisitor {
                 Stage::Sort(Sort {
                     source,
                     specs,
+                    cache,
+                })
+            }
+            Stage::Group(Group {
+                source,
+                keys,
+                aggregations,
+                scope,
+                cache,
+            }) => {
+                let keys = keys
+                    .into_iter()
+                    .map(|k| self.visit_optionally_aliased_expr(k))
+                    .collect();
+                let aggregations = aggregations
+                    .into_iter()
+                    .map(|a| self.visit_aliased_aggregation(a))
+                    .collect();
+                Stage::Group(Group {
+                    source,
+                    keys,
+                    aggregations,
+                    scope,
                     cache,
                 })
             }
@@ -213,11 +236,12 @@ impl Stage {
     pub fn substitute(self, theta: BTreeMap<Key, Expression>) -> Self {
         let mut visitor = SubstituteVisitor { theta };
         // We only implement substitute for Stages we intend to move for which substitution makes
-        // sense: Filter and Sort. Substitution is unneeded for Limit and Offset. Substitution must
-        // be very targetted. For instance, if we just visit a stage it would substitute into all
-        // the entire pipeline by recursing through the source. This is probably not an issue since
-        // the Key just should not exist, but best to be controlled. If nothing else it results
-        // in better efficiency. Also, note that substitution cannot invalidate the SchemaCache.
+        // sense: Filter, Group, and Sort. Substitution is unneeded for Limit and Offset.
+        // Substitution must be very targeted. For instance, if we just visit a stage it would
+        // substitute into all the entire pipeline by recursing through the source. This is probably
+        // not an issue since the Key just should not exist, but best to be controlled. If nothing
+        // else it results in better efficiency. Also, note that substitution cannot invalidate the
+        // SchemaCache.
         match self {
             Stage::Filter(Filter {
                 condition,
@@ -240,6 +264,25 @@ impl Stage {
                     .into_iter()
                     .map(|x| visitor.visit_sort_specification(x))
                     .collect(),
+                cache,
+            }),
+            Stage::Group(Group {
+                keys,
+                aggregations,
+                source,
+                scope,
+                cache,
+            }) => Stage::Group(Group {
+                source,
+                keys: keys
+                    .into_iter()
+                    .map(|x| visitor.visit_optionally_aliased_expr(x))
+                    .collect(),
+                aggregations: aggregations
+                    .into_iter()
+                    .map(|x| visitor.visit_aliased_aggregation(x))
+                    .collect(),
+                scope,
                 cache,
             }),
             // We could add no-ops for Limit and Offset, but it's better to just not call

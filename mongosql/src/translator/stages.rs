@@ -5,6 +5,7 @@ use crate::{
     translator::{Error, MqlTranslator, Result},
     util::ROOT_NAME,
 };
+use mongosql_datastructures::binding_tuple::DatasourceName;
 use mongosql_datastructures::{
     unique_linked_hash_map, unique_linked_hash_map::UniqueLinkedHashMap,
 };
@@ -399,7 +400,7 @@ impl MqlTranslator {
     fn get_datasource_and_field_for_unaliased_group_key<'a>(
         &'a self,
         e: &'a mir::Expression,
-    ) -> Result<(&'a MqlMappingRegistryValue, &'a String)> {
+    ) -> Result<(&'a Key, &'a MqlMappingRegistryValue, &'a String)> {
         let (key, field) = match e {
             mir::Expression::FieldAccess(mir::FieldAccess {
                 ref expr,
@@ -412,6 +413,7 @@ impl MqlTranslator {
             _ => return Err(Error::InvalidGroupKey),
         };
         Ok((
+            key,
             self.mapping_registry
                 .get(key)
                 .ok_or_else(|| Error::ReferenceNotFound(key.clone()))?,
@@ -452,9 +454,20 @@ impl MqlTranslator {
                         &unique_aliases,
                         format!("__unaliasedKey{position_counter}"),
                     );
-                    let (datasource, field) =
+                    let (og_key, mapped_datasource, field) =
                         self.get_datasource_and_field_for_unaliased_group_key(&e)?;
-                    match specifications.get_mut(&datasource.name) {
+                    let datasource_name = match mapped_datasource.ref_type {
+                        MqlReferenceType::FieldRef => mapped_datasource.name.clone(),
+                        // If the MappingRegistryValue is a Variable, we should use the
+                        // original Key's name since that is what we actually want to
+                        // project the group values under, not the internal Variable name.
+                        MqlReferenceType::Variable => match &og_key.datasource {
+                            DatasourceName::Named(n) => n.clone(),
+                            // Cannot have Bottom mapped to a Variable in this context.
+                            DatasourceName::Bottom => return Err(Error::InvalidGroupKey),
+                        },
+                    };
+                    match specifications.get_mut(&datasource_name) {
                         // If we have already put something under this Datasource, we just update
                         // the document.
                         Some(air::ProjectItem::Assignment(air::Expression::Document(ref mut d))) => {
@@ -463,7 +476,7 @@ impl MqlTranslator {
                         // We have nothing under this Datasource, so we need to create a new
                         // Document with one key/value pair.
                         None => specifications.insert(
-                            datasource.name.clone(),
+                            datasource_name.clone(),
                             air::ProjectItem::Assignment(air::Expression::Document(unique_linked_hash_map! {field.clone() => make_key_ref(unique_name.clone())})),
                         )?,
                         // We only generate Project fields where the values are Documents because the keys of
