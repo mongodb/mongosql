@@ -5,4 +5,5 @@ mongosqlrun
 .vscode
 benchmark/atlas_sql/denormalized/phase/
 benchmark/atlas_sql/normalized/phase/
+benchmark/scripts/
 

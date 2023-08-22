@@ -33,12 +33,12 @@ git checkout e50f6d5
 cd -
 
 echo "setting up mongodb-database-tools"
-download https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-100.7.2.tgz
-tar zxvf mongodb-database-tools-ubuntu2204-x86_64-100.7.2.tgz
+download https://fastdl.mongodb.org/tools/db/mongodb-database-tools-ubuntu2204-x86_64-$DB_TOOLS_VERSION.tgz
+tar zxvf mongodb-database-tools-ubuntu2204-x86_64-$DB_TOOLS_VERSION.tgz
 
 echo "setting up mongosh"
-download https://downloads.mongodb.com/compass/mongosh-1.8.0-linux-x64.tgz
-tar zxf mongosh-1.8.0-linux-x64.tgz
+download https://downloads.mongodb.com/compass/mongosh-$MONGOSH_VERSION-linux-x64.tgz
+tar zxf mongosh-$MONGOSH_VERSION-linux-x64.tgz
 
 # call pipeline generator to create atlas_sql/(normalized/denormalized) phase files
 if [[ "${pipeline_dir}" == *"validation"* ]]; then
@@ -49,7 +49,7 @@ fi
 
 # echo "Downloading: https://dsi-donot-remove.s3.us-west-2.amazonaws.com/tpch/${dataset_filename}"
 download "https://mongosql-noexpire.s3.us-east-2.amazonaws.com/tpch/${dataset_filename}"
-mongodb-database-tools-ubuntu2204-x86_64-100.7.2/bin/mongorestore --drop --numInsertionWorkersPerCollection=8 --bypassDocumentValidation --gzip --archive=${dataset_filename}
+mongodb-database-tools-ubuntu2204-x86_64-$DB_TOOLS_VERSION/bin/mongorestore --drop --numInsertionWorkersPerCollection=8 --bypassDocumentValidation --gzip --archive=${dataset_filename}
 
 echo "Starting SAR resource logging"
 # Log resource usage every 5 seconds
@@ -65,14 +65,14 @@ SAR_CPU=$!
 if [[ "${pipeline_dir}" == *"validation"* ]]; then
   echo "Downloading: https://dsi-donot-remove.s3.us-west-2.amazonaws.com/tpch/tpch-validation.archive.gz"
   download "https://dsi-donot-remove.s3.us-west-2.amazonaws.com/tpch/tpch-validation.archive.gz"
-  mongodb-database-tools-ubuntu2204-x86_64-100.7.2/bin/mongorestore --nsFrom "validation.*" --nsTo "tpch.*" --numInsertionWorkersPerCollection=8 --bypassDocumentValidation --gzip --archive=tpch-validation.archive.gz
+  mongodb-database-tools-ubuntu2204-x86_64-$DB_TOOLS_VERSION/bin/mongorestore --nsFrom "validation.*" --nsTo "tpch.*" --numInsertionWorkersPerCollection=8 --bypassDocumentValidation --gzip --archive=tpch-validation.archive.gz
 fi
 
 # run genny, and print out database profiling information
-mongosh-1.8.0-linux-x64/bin/mongosh tpch --eval "config.set('inspectDepth', Infinity); db.setProfilingLevel(2)"
+mongosh-$MONGOSH_VERSION-linux-x64/bin/mongosh tpch --eval "config.set('inspectDepth', Infinity); db.setProfilingLevel(2)"
 echo "Running workload: benchmark/${pipeline_dir}/${workload_filename}"
 ../genny/run-genny workload benchmark/${pipeline_dir}/${workload_filename}
-mongosh-1.8.0-linux-x64/bin/mongosh tpch --eval "db.system.profile.find().pretty()" > profile.log
+mongosh-$MONGOSH_VERSION-linux-x64/bin/mongosh tpch --eval "db.system.profile.find().pretty()" > profile.log
 
 # Convert ftdc to json for perf.send. Only for timing tests, not for validation
 if [[ "${pipeline_dir}" != *"validation"* ]]; then

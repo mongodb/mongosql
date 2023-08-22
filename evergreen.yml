@@ -37,6 +37,8 @@ functions:
           export MONGODB_TEST_VERSION="6.0.5"
           export MONGODB_TEST_RHEL_VERSION="mongodb-linux-x86_64-rhel70-$MONGODB_TEST_VERSION"
           export MONGODB_TEST_UBUNTU_VERSION="mongodb-linux-x86_64-ubuntu2204-$MONGODB_TEST_VERSION"
+          export DB_TOOLS_VERSION="100.7.2"
+          export MONGOSH_VERSION="1.8.0"
 
           export GOPATH="$HOME/go"
           export GOROOT=/opt/golang/go1.19
@@ -69,6 +71,8 @@ functions:
             export MONGODB_TEST_VERSION="$MONGODB_TEST_VERSION"
             export MONGODB_TEST_RHEL_VERSION="$MONGODB_TEST_RHEL_VERSION"
             export MONGODB_TEST_UBUNTU_VERSION="$MONGODB_TEST_UBUNTU_VERSION"
+            export DB_TOOLS_VERSION="$DB_TOOLS_VERSION"
+            export MONGOSH_VERSION="$MONGOSH_VERSION"
             export release_version="$release_version"
             git config --global url."ssh://git@github.com/".insteadOf "https://github.com/"
           EOT
