@@ -114,25 +114,22 @@ Actors:
           Parameters:
             Query7Nation1: "UNITED STATES"
             Query7Nation2: "JAPAN"
-
-# skip-reason: returns 0 rows, compared to server, atlas sql's 2
-# - ActorFromTemplate:
-#     TemplateName: ValidateTPCHQueryActorTemplate
-#     TemplateParameters:
-#       Query: 8
-#       Actual:
-#         LoadConfig:
-#           Path: ../../bic/normalized/phase/q8_normalized.yml
-#           Key: q8_normalized_aggregation
-#       Expected:
-#         LoadConfig:
-#           Path: ../../../../genny/src/phases/tpch/normalized/Q8.yml
-#           Key: TPCHNormalizedQuery8Aggregation
-#           Parameters:
-#             Query8Type: "ECONOMY BRUSHED STEEL"
-#             Query8Region: "EUROPE"
-#             Query8Nation: "UNITED STATES"
-
+- ActorFromTemplate:
+    TemplateName: ValidateTPCHQueryActorTemplate
+    TemplateParameters:
+      Query: 8
+      Actual:
+        LoadConfig:
+          Path: ../../bic/normalized/phase/q8_normalized.yml
+          Key: q8_normalized_aggregation
+      Expected:
+        LoadConfig:
+          Path: ../../../../genny/src/phases/tpch/normalized/Q8.yml
+          Key: TPCHNormalizedQuery8Aggregation
+          Parameters:
+            Query8Type: "ECONOMY BRUSHED STEEL"
+            Query8Region: "EUROPE"
+            Query8Nation: "UNITED STATES"
 - ActorFromTemplate:
     TemplateName: ValidateTPCHQueryActorTemplate
     TemplateParameters:
