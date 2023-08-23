@@ -693,7 +693,7 @@ mod expression {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::Expression::Binary(ast::BinaryExpr {
             left: Box::new(ast::Expression::Literal(ast::Literal::String(
                 "hello".into()
@@ -730,7 +730,7 @@ mod expression {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::Expression::Binary(ast::BinaryExpr {
             left: Box::new(ast::Expression::Literal(ast::Literal::String(
                 "hello".into()
@@ -767,7 +767,7 @@ mod expression {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::Expression::Binary(ast::BinaryExpr {
             left: Box::new(ast::Expression::Literal(ast::Literal::String(
                 "hello".into()
@@ -804,7 +804,7 @@ mod expression {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::Expression::Binary(ast::BinaryExpr {
             left: Box::new(ast::Expression::Literal(ast::Literal::String(
                 "hello".into()
@@ -841,7 +841,7 @@ mod expression {
             required: STRING_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::Expression::Binary(ast::BinaryExpr {
             left: Box::new(ast::Expression::Literal(ast::Literal::String(
                 "hello".into()
@@ -876,7 +876,7 @@ mod expression {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Boolean),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::Expression::Unary(ast::UnaryExpr {
             op: ast::UnaryOp::Neg,
             expr: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
@@ -908,7 +908,7 @@ mod expression {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Boolean),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::Expression::Unary(ast::UnaryExpr {
             op: ast::UnaryOp::Pos,
             expr: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
@@ -1016,7 +1016,7 @@ mod expression {
             required: STRING_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::Expression::Trim(ast::TrimExpr {
             trim_spec: ast::TrimSpec::Both,
             trim_chars: Box::new(ast::Expression::Literal(ast::Literal::String(" ".into()))),
@@ -1031,7 +1031,7 @@ mod expression {
             required: STRING_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::Expression::Trim(ast::TrimExpr {
             trim_spec: ast::TrimSpec::Both,
             trim_chars: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
@@ -1272,7 +1272,7 @@ mod expression {
             required: DATE_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::Expression::Extract(ast::ExtractExpr {
             extract_spec: ast::DatePart::Second,
             arg: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
@@ -1483,7 +1483,7 @@ mod expression {
             required: BOOLEAN_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::Expression::Case(ast::CaseExpr {
             expr: None,
             when_branch: vec![ast::WhenBranch {
@@ -1564,7 +1564,7 @@ mod expression {
                 Schema::Atomic(Atomic::String),
             )
         )),
-        expected_error_code = 3018,
+        expected_error_code = 1005,
         input = ast::Expression::Case(ast::CaseExpr {
             expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
             when_branch: vec![ast::WhenBranch {
@@ -1647,7 +1647,7 @@ mod expression {
             required: Schema::Atomic(Atomic::String),
             found: Schema::Atomic(Atomic::Integer)
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::Expression::TypeAssertion(ast::TypeAssertionExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
             target_type: ast::Type::String,
@@ -1677,7 +1677,7 @@ mod expression {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String)
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::Expression::Is(ast::IsExpr {
             expr: Box::new(ast::Expression::Binary(ast::BinaryExpr {
                 left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
@@ -1734,7 +1734,7 @@ mod expression {
             required: STRING_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer)
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::Expression::Like(ast::LikeExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
             pattern: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
@@ -1749,7 +1749,7 @@ mod expression {
             required: STRING_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer)
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::Expression::Like(ast::LikeExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
             pattern: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
@@ -2058,7 +2058,7 @@ mod aggregation {
         expected = Err(Error::SchemaChecking(
             mir::schema::Error::CountDistinctStarNotSupported
         )),
-        expected_error_code = 3018,
+        expected_error_code = 1004,
         input = ast::FunctionExpr {
             function: ast::FunctionName::Count,
             args: ast::FunctionArguments::Star,
@@ -2110,7 +2110,7 @@ mod aggregation {
                 Schema::Any
             )
         )),
-        expected_error_code = 3018,
+        expected_error_code = 1003,
         input = ast::FunctionExpr {
             function: ast::FunctionName::Count,
             args: ast::FunctionArguments::Args(vec![ast::Expression::Identifier("foo".into())]),
@@ -2175,7 +2175,7 @@ mod aggregation {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::FunctionExpr {
             function: ast::FunctionName::Sum,
             args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
@@ -2230,7 +2230,7 @@ mod aggregation {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::FunctionExpr {
             function: ast::FunctionName::Avg,
             args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
@@ -2284,7 +2284,7 @@ mod aggregation {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::FunctionExpr {
             function: ast::FunctionName::StddevPop,
             args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
@@ -2338,7 +2338,7 @@ mod aggregation {
             required: NUMERIC_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::FunctionExpr {
             function: ast::FunctionName::StddevSamp,
             args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
@@ -2529,7 +2529,7 @@ mod aggregation {
             required: ANY_DOCUMENT.clone(),
             found: Schema::Atomic(Atomic::String),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::FunctionExpr {
             function: ast::FunctionName::MergeDocuments,
             args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
@@ -2646,7 +2646,7 @@ mod select_clause {
                 found: crate::schema::Schema::Atomic(crate::schema::Atomic::String),
             }
         )),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
@@ -2901,7 +2901,7 @@ mod from_clause {
             required: ANY_DOCUMENT.clone(),
             found: Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Literal(ast::Literal::Integer(42))],
             alias: "bar".into(),
@@ -2915,7 +2915,7 @@ mod from_clause {
             required: ANY_DOCUMENT.clone(),
             found: Schema::AnyOf(set![Schema::Atomic(Atomic::Null)]),
         })),
-        expected_error_code = 3018,
+        expected_error_code = 1002,
         input = Some(ast::Datasource::Array(ast::ArraySource {
             array: vec![ast::Expression::Literal(ast::Literal::Null)],
             alias: "bar".into(),
@@ -3493,6 +3493,7 @@ mod from_clause {
                 },
                 additional_properties: false,
             }),
+            "d".into(),
             crate::schema::Satisfaction::Must,
         )),
         expected_error_code = 3016,
@@ -5236,7 +5237,7 @@ mod schema_checking_mode {
         expected = Err(Error::SchemaChecking(
             schema::Error::SortKeyNotSelfComparable(0, Schema::Any)
         )),
-        expected_error_code = 3018,
+        expected_error_code = 1010,
         input = Some(ast::OrderByClause {
             sort_specs: vec![ast::SortSpec {
                 key: ast::SortKey::Simple(ast::Expression::Identifier("a".into())),

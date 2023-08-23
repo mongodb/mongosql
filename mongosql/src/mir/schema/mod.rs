@@ -3,7 +3,7 @@ use crate::{
     map,
     mir::{
         binding_tuple,
-        schema_util::{get_optimized_field_accesses, lift_array_schemas, set_field_schema},
+        schema::util::{get_optimized_field_accesses, lift_array_schemas, set_field_schema},
         *,
     },
     schema::{
@@ -20,55 +20,10 @@ use std::{
     cmp::min,
     collections::{BTreeMap, BTreeSet},
 };
-use thiserror::Error;
 
-#[derive(Debug, Error, PartialEq, Eq, Clone)]
-pub enum Error {
-    #[error("datasource {0:?} not found in schema environment")]
-    DatasourceNotFoundInSchemaEnv(binding_tuple::Key),
-    #[error("incorrect argument count for {name}: required {required}, found {found}")]
-    IncorrectArgumentCount {
-        name: &'static str,
-        required: usize,
-        found: usize,
-    },
-    #[error("schema checking failed for {name}: required {required:?}, found {found:?}")]
-    SchemaChecking {
-        name: &'static str,
-        required: Schema,
-        found: Schema,
-    },
-    #[error(
-        "cannot have {0:?} aggregations over the schema: {1:?} as it is not comparable to itself"
-    )]
-    AggregationArgumentMustBeSelfComparable(String, Schema),
-    #[error("COUNT(DISTINCT *) is not supported")]
-    CountDistinctStarNotSupported,
-    #[error("invalid comparison for {0}: {1:?} cannot be compared to {2:?}")]
-    InvalidComparison(&'static str, Schema, Schema),
-    #[error("cannot merge objects {0:?} and {1:?} as they {2:?} have overlapping keys")]
-    CannotMergeObjects(Schema, Schema, Satisfaction),
-    #[error("cannot access field {0} because it does not exist")]
-    AccessMissingField(String),
-    #[error("cardinality of the subquery's result set may be greater than 1")]
-    InvalidSubqueryCardinality,
-    #[error("cannot create schema environment with duplicate datasource: {0:?}")]
-    DuplicateKey(binding_tuple::Key),
-    #[error("sort key at position {0} is not statically comparable to itself because it has the schema {1:?}")]
-    SortKeyNotSelfComparable(usize, Schema),
-    #[error("group key at position {0} is not statically comparable to itself because it has the schema {1:?}")]
-    GroupKeyNotSelfComparable(usize, Schema),
-    #[error("group key at position {0} is an unaliased field access with no datasource reference")]
-    UnaliasedFieldAccessWithNoReference(usize),
-    #[error("group key at position {0} is an unaliased non-field access expression")]
-    UnaliasedNonFieldAccessExpression(usize),
-    #[error("UNWIND INDEX name '{0}' conflicts with existing field name")]
-    UnwindIndexNameConflict(String),
-    #[error("UNWIND PATH option must be an identifier")]
-    InvalidUnwindPath,
-    #[error("unknown collection '{1}' in database '{0}'")]
-    CollectionNotFound(String, String),
-}
+mod errors;
+pub use errors::Error;
+mod util;
 
 #[derive(PartialEq, Clone, Debug)]
 struct SchemaCacheContents<T: Clone> {

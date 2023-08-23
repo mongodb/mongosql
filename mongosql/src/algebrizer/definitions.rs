@@ -468,7 +468,7 @@ impl<'a> Algebrizer<'a> {
         let src = derived_algebrizer.algebrize_query(*d.query)?;
         let src_resultset = src.schema(&derived_algebrizer.schema_inference_state())?;
         let expression = map! {
-            (d.alias, self.scope_level).into() =>
+            (d.alias.clone(), self.scope_level).into() =>
             mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::MergeObjects,
                 args: src_resultset
@@ -488,7 +488,7 @@ impl<'a> Algebrizer<'a> {
             .schema(&derived_algebrizer.schema_inference_state())
             .map_err(|e| match e {
                 mir::schema::Error::CannotMergeObjects(s1, s2, sat) => {
-                    Error::DerivedDatasouceOverlappingKeys(s1, s2, sat)
+                    Error::DerivedDatasouceOverlappingKeys(s1, s2, d.alias, sat)
                 }
                 _ => Error::SchemaChecking(e),
             })?;

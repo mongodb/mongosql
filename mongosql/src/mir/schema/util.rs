@@ -1,5 +1,5 @@
 use crate::{
-    mir::{binding_tuple, schema::Error, visitor::Visitor, *},
+    mir::{binding_tuple, schema::errors::Error, visitor::Visitor, *},
     schema::{Document, Satisfaction, Schema, NULLISH},
 };
 
@@ -18,7 +18,7 @@ impl FieldAccess {
     /// end of the path.  This method is specifically intended for use
     /// with set_field_schema (later in the file) and is therefore not
     /// available publicly.
-    pub(super) fn get_field_path(self) -> Result<Vec<String>, Error> {
+    pub(in crate::mir) fn get_field_path(self) -> Result<Vec<String>, Error> {
         fn get_field_path_aux(
             e: Expression,
             path: &mut Vec<String>,

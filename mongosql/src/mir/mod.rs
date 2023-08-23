@@ -1,7 +1,7 @@
 pub mod definitions;
 pub use definitions::*;
 pub mod schema;
-mod schema_util;
+
 pub use mongosql_datastructures::binding_tuple;
 pub mod optimizer;
 
