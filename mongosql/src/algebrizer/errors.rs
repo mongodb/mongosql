@@ -5,7 +5,7 @@ use crate::{
         binding_tuple::{DatasourceName, Key},
     },
     schema::Satisfaction,
-    usererror::{UserError, UserErrorDisplay},
+    usererror::{util::generate_suggestion, UserError, UserErrorDisplay},
 };
 
 #[derive(Debug, UserErrorDisplay, PartialEq)]
@@ -18,7 +18,7 @@ pub enum Error {
     DistinctSelect,
     DistinctUnion,
     NoSuchDatasource(DatasourceName),
-    FieldNotFound(String),
+    FieldNotFound(String, Option<Vec<String>>),
     AmbiguousField(String),
     StarInNonCount,
     AggregationInPlaceOfScalar(String),
@@ -68,7 +68,7 @@ impl UserError for Error {
             Error::DistinctSelect => 3005,
             Error::DistinctUnion => 3006,
             Error::NoSuchDatasource(_) => 3007,
-            Error::FieldNotFound(_) => 3008,
+            Error::FieldNotFound(_, _) => 3008,
             Error::AmbiguousField(_) => 3009,
             Error::StarInNonCount => 3010,
             Error::AggregationInPlaceOfScalar(_) => 3011,
@@ -107,7 +107,31 @@ impl UserError for Error {
             Error::DistinctSelect => None,
             Error::DistinctUnion => None,
             Error::NoSuchDatasource(_) => None,
-            Error::FieldNotFound(_) => None,
+            Error::FieldNotFound(field, found_fields) => {
+                if let Some(possible_fields) = found_fields {
+                    let suggestions = generate_suggestion(field, possible_fields);
+                    match suggestions {
+                        Ok(suggested_fields) => {
+                            if suggested_fields.is_empty() {
+                                Some(format!("Field `{}` not found.", field))
+                            } else {
+                                Some(format!(
+                                    "Field `{}` not found. Did you mean: {}",
+                                    field,
+                                    suggested_fields
+                                        .iter()
+                                        .map(|x| x.to_string())
+                                        .collect::<Vec<String>>()
+                                        .join(", ")
+                                ))
+                            }
+                        }
+                        Err(e) => Some(e.to_string()),
+                    }
+                } else {
+                    Some(format!("Field `{}` not found.", field))
+                }
+            }
             Error::AmbiguousField(_) => None,
             Error::StarInNonCount => None,
             Error::AggregationInPlaceOfScalar(_) => None,
@@ -146,7 +170,7 @@ impl UserError for Error {
             Error::DistinctSelect => "SELECT DISTINCT not allowed".to_string(),
             Error::DistinctUnion => "UNION DISTINCT not allowed".to_string(),
             Error::NoSuchDatasource(datasource_name) => format!("no such datasource: {0:?}", datasource_name),
-            Error::FieldNotFound(field) => format!("field `{0}` cannot be resolved to any datasource", field),
+            Error::FieldNotFound(field, _) => format!("field `{0}` cannot be resolved to any datasource", field),
             Error::AmbiguousField(field) => format!("ambiguous field `{0}`", field),
             Error::StarInNonCount => "* argument only valid in COUNT function".to_string(),
             Error::AggregationInPlaceOfScalar(func) => format!("aggregation function {0} used in scalar position", func),

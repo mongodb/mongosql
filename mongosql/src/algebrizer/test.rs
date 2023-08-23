@@ -41,6 +41,21 @@ macro_rules! test_algebrize {
     };
 }
 
+macro_rules! test_user_error_messages {
+    ($func_name:ident, input = $input:expr, expected = $expected:expr) => {
+        #[test]
+        fn $func_name() {
+            use crate::{algebrizer::Error, usererror::UserError};
+
+            let user_message = $input.user_message();
+
+            if let Some(message) = user_message {
+                assert_eq!($expected, message)
+            }
+        }
+    };
+}
+
 fn mir_source_foo() -> Stage {
     Stage::Project(Project {
         source: Box::new(Stage::Collection(Collection {
@@ -661,7 +676,7 @@ mod expression {
     test_algebrize!(
         ref_does_not_exist,
         method = algebrize_expression,
-        expected = Err(Error::FieldNotFound("bar".into())),
+        expected = Err(Error::FieldNotFound("bar".into(), None)),
         expected_error_code = 3008,
         input = ast::Expression::Identifier("bar".into()),
     );
@@ -3145,7 +3160,10 @@ mod from_clause {
     test_algebrize!(
         invalid_join_condition,
         method = algebrize_from_clause,
-        expected = Err(Error::FieldNotFound("x".into())),
+        expected = Err(Error::FieldNotFound(
+            "x".into(),
+            Some(vec!["bar".into(), "foo".into()])
+        )),
         expected_error_code = 3008,
         input = Some(ast::Datasource::Join(JoinSource {
             join_type: ast::JoinType::Cross,
@@ -3933,7 +3951,7 @@ mod from_clause {
         test_algebrize!(
             correlated_path_disallowed,
             method = algebrize_from_clause,
-            expected = Err(Error::FieldNotFound("bar".into())),
+            expected = Err(Error::FieldNotFound("bar".into(), Some(vec!["arr".into()]))),
             expected_error_code = 3008,
             input = Some(ast::Datasource::Unwind(ast::UnwindSource {
                 datasource: Box::new(AST_SOURCE_FOO.clone()),
@@ -5131,7 +5149,7 @@ mod subquery {
     test_algebrize!(
         argument_only_evaluated_in_super_scope,
         method = algebrize_expression,
-        expected = Err(Error::FieldNotFound("a".into())),
+        expected = Err(Error::FieldNotFound("a".into(), None)),
         expected_error_code = 3008,
         input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
             expr: Box::new(ast::Expression::Identifier("a".into())),
@@ -5270,4 +5288,33 @@ mod schema_checking_mode {
         catalog = catalog(vec![("", "foo")]),
         schema_checking_mode = SchemaCheckingMode::Relaxed,
     );
+}
+
+mod user_error_messages {
+
+    mod field_not_found {
+        test_user_error_messages! {
+            no_found_fields,
+            input = Error::FieldNotFound("x".into(), None),
+            expected = "Field `x` not found.".to_string()
+        }
+
+        test_user_error_messages! {
+            suggestions,
+            input = Error::FieldNotFound("foo".into(), Some(vec!["feo".to_string(), "fooo".to_string(), "aaa".to_string(), "bbb".to_string()])),
+            expected =  "Field `foo` not found. Did you mean: feo, fooo".to_string()
+        }
+
+        test_user_error_messages! {
+            no_suggestions,
+            input = Error::FieldNotFound("foo".into(), Some(vec!["aaa".to_string(), "bbb".to_string(), "ccc".to_string()])),
+            expected = "Field `foo` not found.".to_string()
+        }
+
+        test_user_error_messages! {
+            exact_match_found,
+            input = Error::FieldNotFound("foo".into(), Some(vec!["foo".to_string()])),
+            expected = "Unexpected edit distance of 0 found with input: foo and expected: [\"foo\"]"
+        }
+    }
 }

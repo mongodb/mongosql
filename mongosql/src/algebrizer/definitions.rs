@@ -1380,7 +1380,20 @@ impl<'a> Algebrizer<'a> {
             .collect::<Vec<_>>();
         // If there is no datasource containing the field, the field is not found.
         if i_containing_datasources.is_empty() {
-            return Err(Error::FieldNotFound(i));
+            let all_keys = self
+                .schema_env
+                .clone()
+                .into_iter()
+                .flat_map(|(_, s)| s.keys())
+                .collect::<Vec<_>>();
+
+            let err = if all_keys.is_empty() {
+                Error::FieldNotFound(i, None)
+            } else {
+                Error::FieldNotFound(i, Some(all_keys))
+            };
+
+            return Err(err);
         }
         // If there is exactly one possible datasource that May or Must
         // contain our reference, we use it.
