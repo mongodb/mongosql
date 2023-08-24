@@ -35,7 +35,7 @@ impl Visitor for DeadCodeEliminationVisitor {
             Stage::Group(g) => {
                 match *g.source {
                     Stage::Project(p) => {
-                        let (uses, s) = node.clone().uses();
+                        let (uses, s) = node.clone().datasource_uses();
                         let g = match s {
                             Stage::Group(g) => g,
                             _ => unreachable!(),

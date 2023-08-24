@@ -15,7 +15,7 @@ use crate::{
     schema::ResultSet,
     SchemaCheckingMode,
 };
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{HashMap, HashSet};
 
 impl Stage {
     // This is used for moving Offset as high as possible. They can be moved ahead of Any
@@ -46,7 +46,7 @@ impl Stage {
         }
     }
 
-    fn take_sources(self) -> (Vec<Stage>, Self) {
+    pub(crate) fn take_sources(self) -> (Vec<Stage>, Self) {
         match self {
             Stage::Filter(n) => (
                 vec![*n.source],
@@ -149,7 +149,7 @@ impl Stage {
         }
     }
 
-    fn change_sources(self, mut sources: Vec<Stage>) -> Stage {
+    pub(crate) fn change_sources(self, mut sources: Vec<Stage>) -> Stage {
         match self {
             Stage::Filter(s) => Stage::Filter(Filter {
                 source: sources.swap_remove(0).into(),
@@ -335,7 +335,10 @@ impl<'a> StageMovementVisitor<'a> {
         if Self::source_prevents_reorder(&node) {
             return node;
         }
-        let (uses, node) = node.uses();
+
+        // unfortunately, due to the borrow checker, we compute uses we may not need.
+        let (field_uses, node) = node.field_uses();
+        let (datasource_uses, node) = node.datasource_uses();
         let (source, is_sort) = match node {
             Stage::Sort(ref n) => (&n.source, true),
             Stage::Filter(ref n) => (&n.source, false),
@@ -352,7 +355,8 @@ impl<'a> StageMovementVisitor<'a> {
                 // upsets the borrow checker since we also pass *node* by value.
                 let left_schema = n.left.schema(&self.schema_state).unwrap();
                 let right_schema = n.right.schema(&self.schema_state).unwrap();
-                let (stage, changed) = self.dual_source(node, uses, left_schema, right_schema);
+                let (stage, changed) =
+                    self.dual_source(node, datasource_uses, left_schema, right_schema);
                 if changed {
                     stage
                 } else if let Stage::Filter(f) = stage {
@@ -383,17 +387,39 @@ impl<'a> StageMovementVisitor<'a> {
                 let right_schema = n.right.schema(&self.schema_state).unwrap();
                 // Set does not have an On field, so we ignore the changed bool second return
                 // value.
-                self.dual_source(node, uses, left_schema, right_schema).0
+                self.dual_source(node, datasource_uses, left_schema, right_schema)
+                    .0
             }
             source => {
+                let opaque_field_defines = source.opaque_field_defines();
+                let opaque_field_defines = if let Ok(opaque_field_defines) = opaque_field_defines {
+                    opaque_field_defines
+                } else {
+                    // It should actually be impossible for the defines to not be convertable to
+                    // FieldPath.
+                    unreachable!()
+                };
+                let field_uses = if let Ok(field_uses) = field_uses {
+                    field_uses
+                } else if opaque_field_defines.is_empty() {
+                    return self.bubble_up(Self::handle_def_user, node, BubbleUpSide::Both);
+                } else {
+                    // if there is a computed FieldAccess and opaque_field_defines is not empty,
+                    // we just don't do anything to be safe.
+                    return node;
+                };
                 // We can check that the intersection is non-empty without collecting by checking
                 // if next() exists.
-                if source.opaque_defines().intersection(&uses).next().is_some() {
+                if field_uses
+                    .intersection(&opaque_field_defines)
+                    .next()
+                    .is_some()
+                {
                     node
                 } else {
                     let theta = source.defines();
                     let subbed = if is_sort {
-                        match Self::is_sort_substitution_possible(&theta, &uses) {
+                        match Self::is_sort_substitution_possible(&theta, &datasource_uses) {
                             SubstitutionPossibility::Always => node.substitute(theta),
                             SubstitutionPossibility::Never => return node,
                             SubstitutionPossibility::Maybe => {
@@ -436,7 +462,7 @@ impl<'a> StageMovementVisitor<'a> {
     fn dual_source(
         &mut self,
         node: Stage,
-        uses: BTreeSet<Key>,
+        datasource_uses: HashSet<Key>,
         left_schema: ResultSet,
         right_schema: ResultSet,
     ) -> (Stage, bool) {
@@ -444,7 +470,7 @@ impl<'a> StageMovementVisitor<'a> {
         // An interesting side affect of how this is architected is that a Filter
         // with no Key usages will be bubbled up both sides, which is actually good and correct,
         // though generally trivial.
-        for u in uses.into_iter() {
+        for u in datasource_uses.into_iter() {
             match side {
                 BubbleUpSide::Left => {
                     // If we are attempting to move this stage up the Left source,
@@ -488,10 +514,10 @@ impl<'a> StageMovementVisitor<'a> {
     // FieldAccesses are possibly substitutable. All other Expressions are
     // disallowed in Sorts.
     fn is_sort_substitution_possible(
-        theta: &BTreeMap<Key, Expression>,
-        uses: &BTreeSet<Key>,
+        theta: &HashMap<Key, Expression>,
+        field_uses: &HashSet<Key>,
     ) -> SubstitutionPossibility {
-        for u in uses {
+        for u in field_uses {
             if let Some(e) = theta.get(u) {
                 match e {
                     Expression::Reference(_) => (),

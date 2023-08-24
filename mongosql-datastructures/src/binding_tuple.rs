@@ -8,7 +8,7 @@ pub struct DuplicateKeyError {
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub struct BindingTuple<T>(pub BTreeMap<Key, T>);
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash)]
 pub struct Key {
     pub datasource: DatasourceName,
     pub scope: u16,
@@ -44,7 +44,7 @@ where
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
+#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Hash)]
 pub enum DatasourceName {
     Bottom,
     Named(String),

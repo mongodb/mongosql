@@ -1,4 +1,4 @@
-use crate::mir;
+use crate::mir::{self, binding_tuple::Key, optimizer::use_def_analysis::FieldPath};
 
 macro_rules! test_method {
     ($func_name:ident, method = $method:ident, expected = $expected:expr, input = $input:expr,) => {
@@ -10,6 +10,7 @@ macro_rules! test_method {
                 mir::{
                     self,
                     binding_tuple::Key,
+                    optimizer::use_def_analysis::Error,
                     schema::SchemaCache,
                     Collection,
                     Expression::{self, *},
@@ -20,7 +21,7 @@ macro_rules! test_method {
                 set, unchecked_unique_linked_hash_map,
             };
             #[allow(unused)]
-            use std::collections::{BTreeMap, BTreeSet};
+            use std::collections::{HashMap, HashSet};
             let input = $input;
             let expected = $expected;
             let actual = input.$method();
@@ -29,8 +30,8 @@ macro_rules! test_method {
     };
 }
 
-macro_rules! test_uses {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
+macro_rules! test_method_uses {
+    ($func_name:ident, $expected:expr, $input:expr, $method:ident,) => {
         #[test]
         fn $func_name() {
             #[allow(unused)]
@@ -39,6 +40,7 @@ macro_rules! test_uses {
                 mir::{
                     self,
                     binding_tuple::Key,
+                    optimizer::use_def_analysis::{Error, FieldPath},
                     schema::SchemaCache,
                     AggregationExpr, AggregationFunction, AggregationFunctionApplication,
                     AliasedAggregation, AliasedExpr, Collection,
@@ -51,12 +53,24 @@ macro_rules! test_uses {
                 set,
             };
             #[allow(unused)]
-            use std::collections::{BTreeMap, BTreeSet};
+            use std::collections::{HashMap, HashSet};
             let input = $input;
             let expected = $expected;
-            let actual = input.uses().0;
+            let actual = input.$method().0;
             assert_eq!(expected, actual);
         }
+    };
+}
+
+macro_rules! test_field_uses {
+    ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
+        test_method_uses! {$func_name, $expected, $input, field_uses,}
+    };
+}
+
+macro_rules! test_datasource_uses {
+    ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
+        test_method_uses! {$func_name, $expected, $input, datasource_uses,}
     };
 }
 
@@ -82,7 +96,7 @@ macro_rules! test_substitute {
                 set,
             };
             #[allow(unused)]
-            use std::collections::{BTreeMap, BTreeSet};
+            use std::collections::{HashMap, HashSet};
             let input = $input;
             let expected = $expected;
             let theta = $theta;
@@ -113,7 +127,7 @@ macro_rules! test_attempt_substitute {
                 set, unchecked_unique_linked_hash_map,
             };
             #[allow(unused)]
-            use std::collections::{BTreeMap, BTreeSet};
+            use std::collections::{HashMap, HashSet};
             let input = $input;
             let expected = $expected;
             let theta = $theta;
@@ -176,11 +190,23 @@ fn mir_field_access(ref_name: &str, field_name: &str) -> mir::Expression {
     })
 }
 
+fn field_path(datasource: &str, field_name: &str) -> FieldPath {
+    FieldPath::Field {
+        parent: FieldPath::Ref(if datasource == "__bot__" {
+            Key::bot(0)
+        } else {
+            Key::named(datasource, 0)
+        })
+        .into(),
+        field: field_name.into(),
+    }
+}
+
 test_method!(
     project_defines,
     method = defines,
     expected = {
-        let expected: BTreeMap<Key, Expression> = map! {
+        let expected: HashMap<Key, Expression> = map! {
             Key::named("x", 0) => Literal(LiteralExpr {
                 value: Integer(0),
                 cache: SchemaCache::new(),
@@ -211,7 +237,7 @@ test_method!(
     group_defines,
     method = defines,
     expected = {
-        let expected: BTreeMap<Key, Expression> = map! {
+        let expected: HashMap<Key, Expression> = map! {
             Key::bot(0) => Document(unchecked_unique_linked_hash_map! {
                 "a".to_string() => mir_int_expr(1),
                 "b".to_string() => mir_int_expr(2),
@@ -232,11 +258,12 @@ test_method!(
     },
 );
 test_method!(
-    group_opaque_defines,
-    method = opaque_defines,
+    group_opaque_field_defines,
+    method = opaque_field_defines,
     expected = {
-        let expected: BTreeSet<Key> = set! {
-            Key::bot(0),
+        let expected: HashSet<FieldPath> = set! {
+            field_path("__bot__", "agg1"),
+            field_path("__bot__", "agg2"),
         };
         expected
     },
@@ -253,14 +280,21 @@ test_method!(
     },
 );
 test_method!(
-    unwind_opaque_defines,
-    method = opaque_defines,
-    expected = {
-        let expected: BTreeSet<Key> = set! {
-            Key::named("foo", 0),
+    unwind_opaque_field_defines,
+    method = opaque_field_defines,
+    expected = Ok({
+        let expected: HashSet<FieldPath> = set! {
+            FieldPath::Field {
+                parent: FieldPath::Field {
+                    parent: FieldPath::Ref(Key::named("foo", 0)).into(),
+                    field: "bar".to_string(),
+                }.into(),
+                field: "arr".to_string(),
+            },
+            field_path("foo", "idx"),
         };
         expected
-    },
+    }),
     input = Unwind {
         source: mir_collection_stage(),
         path: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
@@ -272,21 +306,67 @@ test_method!(
             field: "arr".into(),
             cache: SchemaCache::new(),
         })),
-        index: Some("foo".to_string()),
+        index: Some("idx".to_string()),
         outer: false,
         cache: SchemaCache::new(),
     },
 );
-test_uses!(
-    filter_uses,
+test_field_uses!(
+    filter_field_uses,
+    expected = Ok({
+        let expected: HashSet<FieldPath> = set! {
+            field_path("foo", "x"),
+            field_path("bar", "x"),
+            field_path("bar", "y"),
+        };
+        expected
+    }),
+    input = Stage::Filter(Filter {
+        source: mir_collection_stage(),
+        condition: Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Lt,
+            args: vec![
+                mir_field_access("foo", "x"),
+                Expression::ScalarFunction(ScalarFunctionApplication {
+                    function: ScalarFunction::Add,
+                    args: vec![mir_field_access("bar", "y"), mir_field_access("bar", "x"),],
+                    cache: SchemaCache::new(),
+                })
+            ],
+
+            cache: SchemaCache::new(),
+        }),
+        cache: SchemaCache::new(),
+    }),
+);
+test_field_uses!(
+    sort_field_uses,
+    expected = Ok({
+        let expected: HashSet<FieldPath> = set! {
+            field_path("foo", "x"),
+            field_path("foo", "y"),
+        };
+        expected
+    }),
+    input = Stage::Sort(Sort {
+        source: mir_collection_stage(),
+        specs: vec![
+            SortSpecification::Asc(mir_field_access("foo", "x").into()),
+            SortSpecification::Desc(mir_field_access("foo", "y").into()),
+        ],
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_datasource_uses!(
+    filter_datasource_uses,
     expected = {
-        let expected: BTreeSet<Key> = set![Key::named("x", 0), Key::named("y", 0),];
+        let expected: HashSet<Key> = set![Key::named("x", 0), Key::named("y", 0),];
         expected
     },
     input = Stage::Filter(Filter {
         source: mir_collection_stage(),
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
-            // condition = x < x + y (i.e. x < 0) just to show that we do not get duplicated x uses
             function: ScalarFunction::Lt,
             args: vec![
                 mir_reference("x"),
@@ -302,10 +382,10 @@ test_uses!(
         cache: SchemaCache::new(),
     }),
 );
-test_uses!(
-    sort_uses,
+test_datasource_uses!(
+    sort_datasource_uses,
     expected = {
-        let expected: BTreeSet<Key> = set![Key::named("x", 0), Key::named("y", 0),];
+        let expected: HashSet<Key> = set![Key::named("x", 0), Key::named("y", 0),];
         expected
     },
     input = Stage::Sort(Sort {
@@ -317,10 +397,11 @@ test_uses!(
         cache: SchemaCache::new(),
     }),
 );
-test_uses!(
-    group_uses,
+
+test_datasource_uses!(
+    group_datasource_uses,
     expected = {
-        let expected: BTreeSet<Key> =
+        let expected: HashSet<Key> =
             set![Key::named("x", 0), Key::named("y", 0), Key::named("z", 0)];
         expected
     },
@@ -345,6 +426,7 @@ test_uses!(
         cache: SchemaCache::new(),
     }),
 );
+
 test_substitute!(
     filter_substitute,
     expected = Stage::Filter(Filter {

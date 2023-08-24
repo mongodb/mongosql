@@ -1,6 +1,6 @@
 use crate::{
     catalog::Catalog,
-    map,
+    map, mir,
     schema::{self, Schema},
     set,
 };
@@ -67,6 +67,25 @@ lazy_static! {
             }
         )
     });
+}
+
+fn mir_reference(name: &str) -> mir::Expression {
+    mir::Expression::Reference(mir::ReferenceExpr {
+        key: if name == "__bot__" {
+            mir::binding_tuple::Key::bot(0)
+        } else {
+            mir::binding_tuple::Key::named(name, 0)
+        },
+        cache: mir::schema::SchemaCache::new(),
+    })
+}
+
+fn mir_field_access(ref_name: &str, field_name: &str) -> mir::Expression {
+    mir::Expression::FieldAccess(mir::FieldAccess {
+        expr: Box::new(mir_reference(ref_name)),
+        field: field_name.to_string(),
+        cache: mir::schema::SchemaCache::new(),
+    })
 }
 
 macro_rules! test_move_stage {
@@ -311,7 +330,7 @@ test_move_stage!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Lt,
                     args: vec![
-                        mir::Expression::Reference(Key::bot(0u16).into()),
+                        mir_field_access("__bot__", "x"),
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
@@ -358,7 +377,7 @@ test_move_stage!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Lt,
                     args: vec![
-                        mir::Expression::Reference(Key::bot(0u16).into()),
+                        mir_field_access("__bot__", "x"),
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
@@ -1088,10 +1107,14 @@ test_move_stage!(
                         mir::ScalarFunctionApplication {
                             function: mir::ScalarFunction::Lt,
                             args: vec![
-                                mir::Expression::Document(mir::DocumentExpr {
-                                    document: unchecked_unique_linked_hash_map! {
-                                        "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                                    },
+                                mir::Expression::FieldAccess(mir::FieldAccess {
+                                    expr: mir::Expression::Document(mir::DocumentExpr {
+                                        document: unchecked_unique_linked_hash_map! {
+                                            "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+                                        },
+                                        cache: SchemaCache::new(),
+                                    }).into(),
+                                    field: "x".into(),
                                     cache: SchemaCache::new(),
                                 }),
                                 mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
@@ -1102,8 +1125,6 @@ test_move_stage!(
                     cache: SchemaCache::new(),
                 }).into(),
                 expression: BindingTuple(map! {
-                    // In any real query, "bar" will be bound to a Document, but we just use a
-                    // Literal for simplicity.
                     Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
                         document: unchecked_unique_linked_hash_map! {
                             "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
@@ -1185,7 +1206,7 @@ test_move_stage!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Lt,
                     args: vec![
-                        mir::Expression::Reference(Key::named("bar", 0u16).into()),
+                        mir_field_access("bar", "x"),
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
@@ -1577,7 +1598,7 @@ test_move_stage!(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Lt,
                 args: vec![
-                    mir::Expression::Reference(Key::bot(0u16).into()),
+                    mir_field_access("__bot__", "x"),
                     mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                 ],
                 cache: SchemaCache::new(),
@@ -1621,7 +1642,7 @@ test_move_stage!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Lt,
                     args: vec![
-                        mir::Expression::Reference(Key::bot(0u16).into()),
+                        mir_field_access("__bot__", "x"),
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
