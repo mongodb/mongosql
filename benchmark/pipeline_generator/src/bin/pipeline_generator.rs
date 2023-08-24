@@ -5,6 +5,7 @@ use mongosql::{
     schema::Schema,
     translate_sql, SchemaCheckingMode,
 };
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::{
@@ -186,14 +187,17 @@ fn get_pipeline(config: &Workload) -> (String, String) {
         replace_final_replacement(&mut json_value);
     }
 
-    // Removes quotes around ISODate and backslashes before quotes
-    let pipeline = serde_json::to_string_pretty(&json_value)
-        .unwrap()
-        .replace("\\\"", "\"")
-        .replace("\"ISODate(", "ISODate(")
-        .replace(")\"", ")");
+    // Removes quotes around ISODate and backslashes before quotes in genny dates
+    let pipeline = serde_json::to_string_pretty(&json_value).unwrap();
+    let normal_pattern = r#""ISODate\(\\(["\d\-\w:]*)\\"\)""#;
+    let normal_re = Regex::new(normal_pattern).unwrap();
+    let pipeline = normal_re.replace_all(&pipeline, r#"ISODate($1")"#);
 
-    (pipeline, collection)
+    let genny_pattern = r#"\^Date: \\"([\w\d\-:]*)\\""#;
+    let genny_re = Regex::new(genny_pattern).unwrap();
+    let pipeline = genny_re.replace_all(&pipeline, r#"^Date: "$1""#);
+
+    (pipeline.to_string(), collection)
 }
 
 fn main() {

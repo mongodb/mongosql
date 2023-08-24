@@ -302,6 +302,7 @@ impl CachedSchema for Stage {
                     max_size,
                 })
             }
+            #[allow(clippy::manual_try_fold)]
             Stage::Group(g) => {
                 let source_result_set = g.source.schema(state)?;
                 let state = state.with_merged_schema_env(source_result_set.schema_env.clone())?;
@@ -1789,6 +1790,7 @@ impl ScalarFunction {
         }
     }
 
+    #[allow(clippy::manual_try_fold)]
     fn schema_check_merge_objects(
         &self,
         state: &SchemaInferenceState,
@@ -1821,8 +1823,8 @@ impl ScalarFunction {
                     return Err(Error::CannotMergeObjects(acc, curr, sat));
                 }
                 if let (Schema::Document(mut d1), Schema::Document(d2)) = (acc, curr) {
-                    d1.keys.extend(d2.keys.into_iter());
-                    d1.required.extend(d2.required.into_iter());
+                    d1.keys.extend(d2.keys);
+                    d1.required.extend(d2.required);
                     d1.additional_properties |= d2.additional_properties;
                     Ok(Schema::Document(d1))
                 } else {

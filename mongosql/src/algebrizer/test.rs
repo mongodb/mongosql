@@ -1,3 +1,4 @@
+#![allow(clippy::redundant_pattern_matching)]
 use crate::{
     ast::{self, CollectionSource, Datasource},
     catalog::{Catalog, Namespace},

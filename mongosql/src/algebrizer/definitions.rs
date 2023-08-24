@@ -504,6 +504,7 @@ impl<'a> Algebrizer<'a> {
         let source_result_set = source.schema(&self.schema_inference_state())?;
 
         // Extract user-specified separator and depth. Separator defaults to "_".
+        #[allow(clippy::manual_try_fold)]
         let (separator, depth) = f
             .options
             .iter()
@@ -577,6 +578,7 @@ impl<'a> Algebrizer<'a> {
         let src = self.algebrize_datasource(*u.datasource)?;
 
         // Extract user-specified options. OUTER defaults to false.
+        #[allow(clippy::manual_try_fold)]
         let (path, index, outer) =
             u.options
                 .iter()

@@ -1,7 +1,7 @@
 SchemaVersion: 2018-07-01
 Owner: "@10gen/sql-engines-team"
 Description: |
-  This workload runs the TPC-H Queries for 
+  This workload runs the TPC-H Queries for
   the normalized scale factor .001 dataset
 
 Clients:
@@ -72,8 +72,8 @@ Actors:
       - LoadConfig:
           Path: phase/q17_normalized.yml
           Key: q17_normalized
-      # Q18 now takes 24 hours to complete, SQL-1550 may speed it up
-      # skip reason: SQL-1550
+      # Q18 fails to parse
+      # skip reason: SQL-1634
       # - LoadConfig:
       #     Path: phase/q18_normalized.yml
       #     Key: q18_normalized
@@ -83,10 +83,9 @@ Actors:
       - LoadConfig:
           Path: phase/q19_normalized.yml
           Key: q19_normalized
-      # skip reason: SQL-1539
-      #   - LoadConfig:
-      #       Path: phase/q20_normalized.yml
-      #       Key: q20_normalized
+      - LoadConfig:
+          Path: phase/q20_normalized.yml
+          Key: q20_normalized
       - LoadConfig:
           Path: ../phase_noop.yml
           Key: NoopPhase

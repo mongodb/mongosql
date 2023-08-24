@@ -42,25 +42,16 @@ impl Visitor for MatchSplittingVisitor {
         match node.condition.clone() {
             ScalarFunction(sfa) => match sfa.function {
                 And => {
-                    // SQL-1550: remove logic for ignoring match splitting in the presence of subqueries
-                    let mut has_subquery = false;
-                    let new_filter = sfa.args.into_iter().fold(node.clone().source, |acc, expr| {
-                        match expr {
-                            Subquery(_) | SubqueryComparison(_) => has_subquery = true,
-                            _ => {}
-                        }
+                    let new_filter = sfa.args.into_iter().fold(node.source, |acc, expr| {
                         Box::new(Filter(Filter {
                             source: acc,
                             condition: expr,
                             cache: SchemaCache::new(),
                         }))
                     });
-                    match has_subquery {
-                        true => node,
-                        false => match *new_filter {
-                            Filter(filter) => filter,
-                            _ => unreachable!(),
-                        },
+                    match *new_filter {
+                        Filter(filter) => filter,
+                        _ => unreachable!(),
                     }
                 }
                 _ => node,

@@ -147,6 +147,7 @@ fn mql_schema_env_to_json_schema(
     .map_err(result::Error::JsonSchemaConversion)
 }
 
+#[allow(clippy::redundant_pattern_matching)]
 #[cfg(test)]
 mod test_get_namespaces {
     macro_rules! test_get_namespaces {

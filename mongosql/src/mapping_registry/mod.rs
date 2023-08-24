@@ -54,7 +54,7 @@ impl MqlMappingRegistry {
     }
 
     pub fn merge(&mut self, other: MqlMappingRegistry) -> &mut Self {
-        self.0.extend(other.0.into_iter());
+        self.0.extend(other.0);
         self
     }
 }

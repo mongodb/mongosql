@@ -81,6 +81,22 @@ macro_rules! subquery_comparison_semantic_desugarer {
         })
     }};
 }
+#[derive(PartialEq, Debug, Clone)]
+pub struct SentinelReplacer {
+    pub new_source: Box<Stage>,
+}
+
+impl Visitor for SentinelReplacer {
+    fn visit_stage(
+        &mut self,
+        node: crate::air::definitions::Stage,
+    ) -> crate::air::definitions::Stage {
+        match node {
+            Sentinel => *self.new_source.clone(),
+            _ => node.walk(self),
+        }
+    }
+}
 
 struct SubqueryExprDesugarerPassVisitor {
     // subquery_counter tracks how many subquery
@@ -280,6 +296,12 @@ impl SubqueryExprDesugarerPassVisitor {
 
         as_var
     }
+
+    fn update_source(&self, new_source: Box<Stage>) -> Box<Stage> {
+        let mut v = SentinelReplacer { new_source };
+
+        Box::new(v.visit_stage(*self.subquery_lookups.clone()))
+    }
 }
 
 impl Visitor for SubqueryExprDesugarerPassVisitor {
@@ -300,11 +322,12 @@ impl Visitor for SubqueryExprDesugarerPassVisitor {
         // Reset values to default.
         self.subquery_counter = 0;
         self.as_names = vec![];
-        self.subquery_lookups = stage.get_source();
+        self.subquery_lookups = Box::new(Sentinel);
 
         // Walk this stage, desugaring subquery expressions and populating the
         // visitor's fields with desugared subquery data.
         let mut stage = stage.walk(self);
+        self.subquery_lookups = self.update_source(stage.get_source());
 
         let new_stage = if self.subquery_counter == 0 {
             // If there are no subquery expressions in this Stage, there is

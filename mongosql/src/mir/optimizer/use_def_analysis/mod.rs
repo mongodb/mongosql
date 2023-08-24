@@ -172,7 +172,7 @@ impl Visitor for SingleStageUseVisitor {
         // collects ALL uses from the SubqueryExpr.
         let mut all_use_visitor = AllUseVisitor::default();
         let node = node.walk(&mut all_use_visitor);
-        self.uses.extend(all_use_visitor.uses.into_iter());
+        self.uses.extend(all_use_visitor.uses);
         node
     }
 
@@ -181,7 +181,7 @@ impl Visitor for SingleStageUseVisitor {
         // collects ALL uses from the SubqueryComparison.
         let mut all_use_visitor = AllUseVisitor::default();
         let node = node.walk(&mut all_use_visitor);
-        self.uses.extend(all_use_visitor.uses.into_iter());
+        self.uses.extend(all_use_visitor.uses);
         node
     }
 
@@ -190,7 +190,7 @@ impl Visitor for SingleStageUseVisitor {
         // collects ALL uses from the SubqueryComparison.
         let mut all_use_visitor = AllUseVisitor::default();
         let node = node.walk(&mut all_use_visitor);
-        self.uses.extend(all_use_visitor.uses.into_iter());
+        self.uses.extend(all_use_visitor.uses);
         node
     }
 }

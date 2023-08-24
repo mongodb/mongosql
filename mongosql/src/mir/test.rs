@@ -1,3 +1,4 @@
+#![allow(clippy::redundant_pattern_matching)]
 macro_rules! test_schema {
     ($func_name:ident, $(expected_error_code = $expected_error_code:literal,)? $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? input = $input:expr, $(schema_env = $schema_env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
         #[test]

@@ -896,6 +896,7 @@ impl Schema {
     ///
     /// If `self` is a schema AnyOf([Int, Double]) and `inside_document` is true, then
     /// enumerate_field_paths_aux returns the set containing an empty vector `set![vec![]]``.
+    #[allow(clippy::manual_try_fold)]
     fn enumerate_field_paths_aux(
         &self,
         max_length: Option<u32>,
@@ -923,10 +924,7 @@ impl Schema {
                                 new_paths
                                     .into_iter()
                                     .map(|path| {
-                                        vec![key.clone()]
-                                            .into_iter()
-                                            .chain(path.into_iter())
-                                            .collect_vec()
+                                        vec![key.clone()].into_iter().chain(path).collect_vec()
                                     })
                                     .collect::<BTreeSet<Vec<String>>>(),
                             );

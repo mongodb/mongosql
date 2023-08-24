@@ -21,6 +21,7 @@ pub enum Stage {
     Documents(Documents),
     EquiJoin(EquiJoin),
     EquiLookup(EquiLookup),
+    Sentinel
 }
 
 #[derive(PartialEq, Debug, Clone)]

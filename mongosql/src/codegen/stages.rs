@@ -22,6 +22,7 @@ impl MqlCodeGenerator {
             air::Stage::Documents(d) => self.codegen_documents(d),
             air::Stage::EquiJoin(j) => self.codegen_equijoin(j),
             air::Stage::EquiLookup(l) => self.codegen_equilookup(l),
+            air::Stage::Sentinel => unreachable!(),
         }
     }
 
