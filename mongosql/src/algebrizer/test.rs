@@ -5318,4 +5318,12 @@ mod user_error_messages {
             expected = "Unexpected edit distance of 0 found with input: foo and expected: [\"foo\"]"
         }
     }
+
+    mod ambiguous_field {
+        test_user_error_messages! {
+            ambiguous_field,
+            input = Error::AmbiguousField("foo".into()),
+            expected = "Field `foo` exists in multiple datasources and is ambiguous. Please qualify."
+        }
+    }
 }

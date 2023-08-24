@@ -132,7 +132,10 @@ impl UserError for Error {
                     Some(format!("Field `{}` not found.", field))
                 }
             }
-            Error::AmbiguousField(_) => None,
+            Error::AmbiguousField(field) => Some(format!(
+                "Field `{}` exists in multiple datasources and is ambiguous. Please qualify.",
+                field
+            )),
             Error::StarInNonCount => None,
             Error::AggregationInPlaceOfScalar(_) => None,
             Error::ScalarInPlaceOfAggregation(_) => None,
