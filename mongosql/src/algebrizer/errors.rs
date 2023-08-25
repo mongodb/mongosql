@@ -7,6 +7,7 @@ use crate::{
     schema::Satisfaction,
     usererror::{util::generate_suggestion, UserError, UserErrorDisplay},
 };
+use std::collections::HashSet;
 
 #[derive(Debug, UserErrorDisplay, PartialEq)]
 pub enum Error {
@@ -26,7 +27,7 @@ pub enum Error {
     NonAggregationInPlaceOfAggregation(usize),
     AggregationFunctionMustHaveOneArgument,
     DistinctScalarFunction,
-    DerivedDatasouceOverlappingKeys(
+    DerivedDatasourceOverlappingKeys(
         crate::schema::Schema,
         crate::schema::Schema,
         String,
@@ -76,7 +77,7 @@ impl UserError for Error {
             Error::NonAggregationInPlaceOfAggregation(_) => 3013,
             Error::AggregationFunctionMustHaveOneArgument => 3014,
             Error::DistinctScalarFunction => 3015,
-            Error::DerivedDatasouceOverlappingKeys(_, _, _, _) => 3016,
+            Error::DerivedDatasourceOverlappingKeys(_, _, _, _) => 3016,
             Error::CannotBeAlgebrized(_) => 3017,
             Error::SchemaChecking(e) => e.code(),
             Error::NoOuterJoinCondition => 3019,
@@ -142,7 +143,25 @@ impl UserError for Error {
             Error::NonAggregationInPlaceOfAggregation(_) => None,
             Error::AggregationFunctionMustHaveOneArgument => None,
             Error::DistinctScalarFunction => None,
-            Error::DerivedDatasouceOverlappingKeys(_, _, _, _) => None,
+            Error::DerivedDatasourceOverlappingKeys(s1, s2, derived_name, _) => {
+                let all_s1_keys: HashSet<String> = s1.keys().into_iter().collect();
+                let all_s2_keys: HashSet<String> = s2.keys().into_iter().collect();
+                let mut overlapping_keys = all_s1_keys
+                    .intersection(&all_s2_keys)
+                    .collect::<Vec<&String>>();
+
+                overlapping_keys.sort();
+
+                Some(format!(
+                    "Derived datasource `{}` has the following overlapping keys: {}",
+                    derived_name,
+                    overlapping_keys
+                        .iter()
+                        .map(|x| x.to_string())
+                        .collect::<Vec<String>>()
+                        .join(", ")
+                ))
+            }
             Error::CannotBeAlgebrized(_) => None,
             Error::SchemaChecking(e) => e.user_message(),
             Error::NoOuterJoinCondition => None,
@@ -181,7 +200,7 @@ impl UserError for Error {
             Error::NonAggregationInPlaceOfAggregation(pos) => format!("non-aggregation expression found in GROUP BY aggregation function list at position {0}", pos),
             Error::AggregationFunctionMustHaveOneArgument => "aggregation functions must have exactly one argument".to_string(),
             Error::DistinctScalarFunction => "scalar functions cannot be DISTINCT".to_string(),
-            Error::DerivedDatasouceOverlappingKeys(s1, s2, derived_name,sat) => format!("derived source {2} {3:?} have overlapping keys between schemata {0:?} and {1:?}", s1, s2, derived_name, sat),
+            Error::DerivedDatasourceOverlappingKeys(s1, s2, derived_name, sat) => format!("derived source {derived_name} {sat:?} have overlapping keys between schemata {s1:?} and {s2:?}"),
             Error::CannotBeAlgebrized(str) => format!("{0} cannot be algebrized", str),
             Error::SchemaChecking(error) => error.technical_message(),
             Error::NoOuterJoinCondition => "OUTER JOINs must specify a JOIN condition".to_string(),

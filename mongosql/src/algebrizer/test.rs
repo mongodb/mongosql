@@ -3489,7 +3489,7 @@ mod from_clause {
     test_algebrize!(
         derived_join_datasources_overlapped_keys_fails,
         method = algebrize_from_clause,
-        expected = Err(Error::DerivedDatasouceOverlappingKeys(
+        expected = Err(Error::DerivedDatasourceOverlappingKeys(
             Schema::Document(Document {
                 keys: map! {
                     "bar".into() => Schema::Atomic(Atomic::Integer),
@@ -5319,11 +5319,55 @@ mod user_error_messages {
         }
     }
 
+    mod derived_datasource_overlapping_keys {
+        use crate::{
+            map,
+            schema::{Atomic, Document, Schema},
+            set,
+        };
+
+        test_user_error_messages! {
+        derived_datasource_overlapping_keys,
+        input = Error::DerivedDatasourceOverlappingKeys(
+            Schema::Document(Document {
+                keys: map! {
+                    "bar".into() => Schema::Atomic(Atomic::Integer),
+                    "baz".into() => Schema::Atomic(Atomic::Integer),
+                    "foo1".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {
+                    "bar".into(),
+                    "baz".into(),
+                    "foo1".into()
+                },
+                additional_properties: false,
+            }),
+            Schema::Document(Document {
+                keys: map! {
+                    "bar".into() => Schema::Atomic(Atomic::Integer),
+                    "baz".into() => Schema::Atomic(Atomic::Integer),
+                    "foo2".into() => Schema::Atomic(Atomic::Integer),
+                },
+                required: set! {
+                    "bar".into(),
+                    "baz".into(),
+                    "foo2".into()
+                },
+            additional_properties: false,
+            }),
+            "foo".into(),
+            crate::schema::Satisfaction::Must,
+        ),
+        expected = "Derived datasource `foo` has the following overlapping keys: bar, baz"
+        }
+    }
+
     mod ambiguous_field {
         test_user_error_messages! {
             ambiguous_field,
             input = Error::AmbiguousField("foo".into()),
             expected = "Field `foo` exists in multiple datasources and is ambiguous. Please qualify."
+
         }
     }
 }

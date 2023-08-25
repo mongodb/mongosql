@@ -488,7 +488,7 @@ impl<'a> Algebrizer<'a> {
             .schema(&derived_algebrizer.schema_inference_state())
             .map_err(|e| match e {
                 mir::schema::Error::CannotMergeObjects(s1, s2, sat) => {
-                    Error::DerivedDatasouceOverlappingKeys(s1, s2, d.alias, sat)
+                    Error::DerivedDatasourceOverlappingKeys(s1, s2, d.alias, sat)
                 }
                 _ => Error::SchemaChecking(e),
             })?;
