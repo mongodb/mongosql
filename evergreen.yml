@@ -972,7 +972,7 @@ buildvariants:
 
   - name: tpch
     display_name: "TPC-H"
-    activated: false
+    activate: false
     run_on: [ ubuntu2204-large ]
     tasks:
       - name: tpch-0.001-normalized-atlas-sql
