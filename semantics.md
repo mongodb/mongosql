@@ -2430,14 +2430,14 @@ The 3-ary string operator LIKE determines whether a string matches a
 pattern. The third argument is optional. When provided, it specifies an
 escape character used in the pattern. If the third argument is not
 specified, there is no escape character. In the pattern, an unescaped
-underscore character \'\' represents any single character and an
+underscore character \'_\' represents any single character and an
 unescaped percent character \'%\' represents any number of characters,
 even zero characters.
 
 To paraphrase SQL-92: \"If there is not a partitioning of the pattern
 into substrings such that each substring has length 1 or 2, no substring
 of length 1 is the escape character, and each substring of length 2 is
-the escape character followed by either the escape character, an \'\',
+the escape character followed by either the escape character, an \'_\',
 or a \'%\',\" then the result is NULL ([SQL-92
 8.5](https://www.contrib.andrew.cmu.edu/~shadow/sql/sql1992.txt)).
 
