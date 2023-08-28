@@ -1,14 +1,16 @@
-use crate::air::{
-    self,
-    desugarer::{Error, Pass, Result},
-    util::sql_op_to_mql_op,
-    visitor::Visitor,
-    Expression, Is, Let, LetVariable, Like, LiteralValue, MQLOperator, MQLSemanticOperator,
-    RegexMatch, SQLOperator, SQLSemanticOperator, SqlConvert, SqlDivide, Stage, Switch, SwitchCase,
-    Type,
+use crate::{
+    air::{
+        self,
+        desugarer::{Error, Pass, Result},
+        util::sql_op_to_mql_op,
+        visitor::Visitor,
+        Expression, Is, Let, LetVariable, Like, LiteralValue, MQLOperator, MQLSemanticOperator,
+        RegexMatch, SQLOperator, SQLSemanticOperator, SqlConvert, SqlDivide, Stage, Switch,
+        SwitchCase, Type,
+    },
+    make_cond_expr,
+    util::{convert_sql_pattern, LIKE_OPTIONS},
 };
-
-use crate::make_cond_expr;
 
 /// Desugars any SQL operators that do not exist in MQL (e.g. Between, Like,
 /// etc.) or that do not have the same semantics in MQL (e.g. Cos, Sin, Tan,
@@ -43,42 +45,6 @@ const EIGHT_LITERAL: Expression = Expression::Literal(LiteralValue::Integer(8));
 const ONE_HUNDRED_LITERAL: Expression = Expression::Literal(LiteralValue::Integer(100));
 
 impl UnsupportedOperatorsDesugarerVisitor {
-    fn convert_sql_pattern(pattern: String, escape: String) -> String {
-        const REGEX_CHARS_TO_ESCAPE: [char; 12] =
-            ['.', '^', '$', '*', '+', '?', '(', ')', '[', '{', '\\', '|'];
-        let mut regex = "^".to_string();
-        let mut escaped = false;
-        for c in pattern.chars() {
-            let c_string = c.to_string();
-            if !escaped & (c_string == escape) {
-                escaped = true;
-                continue;
-            }
-            match c {
-                '_' => {
-                    let s = if escaped { '_' } else { '.' };
-                    regex.push(s)
-                }
-                '%' => {
-                    if escaped {
-                        regex.push('%');
-                    } else {
-                        regex.push_str(".*");
-                    }
-                }
-                _ => {
-                    if REGEX_CHARS_TO_ESCAPE.contains(&c) {
-                        regex.push('\\');
-                    }
-                    regex.push_str(c.to_string().as_str())
-                }
-            }
-            escaped = false;
-        }
-        regex.push('$');
-        regex.to_string()
-    }
-
     fn wrap_in_infinity_check(&self, arg: Expression) -> Expression {
         let pos_inf_check = Expression::MQLSemanticOperator(MQLSemanticOperator {
             op: MQLOperator::Eq,
@@ -107,9 +73,7 @@ impl UnsupportedOperatorsDesugarerVisitor {
 
     fn desugar_like(&mut self, like: Like) -> Expression {
         let pattern = match *like.pattern {
-            Expression::Literal(LiteralValue::String(l)) => {
-                Self::convert_sql_pattern(l, like.escape.unwrap_or("\\".to_string()))
-            }
+            Expression::Literal(LiteralValue::String(l)) => convert_sql_pattern(l, like.escape),
             _ => {
                 self.error = Some(Error::InvalidLikePattern);
                 return Expression::Like(like);
@@ -119,7 +83,7 @@ impl UnsupportedOperatorsDesugarerVisitor {
             input: Box::new(*like.expr),
             regex: Box::new(Expression::Literal(LiteralValue::String(pattern))),
             options: Some(Box::new(Expression::Literal(LiteralValue::String(
-                "is".to_string(),
+                LIKE_OPTIONS.clone(),
             )))),
         })
     }
@@ -686,59 +650,4 @@ impl Visitor for UnsupportedOperatorsDesugarerVisitor {
         };
         node.walk(self)
     }
-}
-
-#[cfg(test)]
-mod test_helpers {
-    use super::UnsupportedOperatorsDesugarerVisitor;
-    macro_rules! test_convert_sql_pattern {
-        ($func_name:ident, expected = $expected:expr, input = $input:expr, escape = $escape:expr) => {
-            #[test]
-            fn $func_name() {
-                let input = $input;
-                let expected = $expected;
-                let escape = $escape;
-                let actual = UnsupportedOperatorsDesugarerVisitor::convert_sql_pattern(
-                    input.to_string(),
-                    escape.to_string(),
-                );
-                assert_eq!(expected, actual)
-            }
-        };
-    }
-
-    test_convert_sql_pattern!(
-        no_special_sql_characters,
-        expected = "^abc$",
-        input = "abc",
-        escape = "\\"
-    );
-
-    test_convert_sql_pattern!(
-        unescaped_special_sql_characters,
-        expected = "^a.b.*c$",
-        input = "a_b%c",
-        escape = "\\"
-    );
-
-    test_convert_sql_pattern!(
-        escaped_special_sql_characters,
-        expected = "^a_b%c$",
-        input = "a\\_b\\%c",
-        escape = "\\"
-    );
-
-    test_convert_sql_pattern!(
-        escaped_escape_character,
-        expected = "^a\\\\.b%c$",
-        input = "a\\\\_b\\%c",
-        escape = "\\"
-    );
-
-    test_convert_sql_pattern!(
-        special_mql_characters,
-        expected = "^\\.\\^\\$\\*\\+\\?\\(\\)\\[\\{\\\\\\|$",
-        input = ".^$*+?()[{\\|",
-        escape = "e"
-    );
 }

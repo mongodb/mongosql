@@ -22,6 +22,21 @@ catalog_data:
       - {'_id': 8, 'a': 60, 'b': 60}
       - {'_id': 9, 'a': 164, 'b': 2961}
       - {'_id': 10, 'a': 300, 'b': 2811}
+    strings:
+      - {'_id': 1, 's': 'aabcc'}
+      - {'_id': 2, 's': 'abc'}
+      - {'_id': 3, 's': 'aabbcc'}
+      - {'_id': 4, 's': 'ab'}
+      - {'_id': 5, 's': 'bc'}
+      - {'_id': 6, 's': ''}
+      - {'_id': 7, 's': 'no'}
+    mixed:
+      - {'_id': 1, v: 'str'}
+      - {'_id': 2, v: 1}
+      - {'_id': 3, v: 5}
+      - {'_id': 4, v: 'xyz'}
+      - {'_id': 5, v: 10.2}
+      - {'_id': 6, v: ''}
 
 catalog_schema:
   test_db:
@@ -52,6 +67,32 @@ catalog_schema:
         }
       required: ['_id', 'a', 'b']
       additionalProperties: false
+    strings:
+      bsonType: 'object'
+      properties:
+        {
+          '_id': { 'bsonType': 'int' },
+          's': { 'bsonType': 'string' }
+        }
+      required: ['_id', 's']
+      additionalProperties: false
+    mixed:
+      bsonType: 'object'
+      properties:
+        {
+          '_id': { 'bsonType': 'int' },
+          'v':
+            {
+              'anyOf':
+                [
+                  { 'bsonType': 'int' },
+                  { 'bsonType': 'string' },
+                  { 'bsonType': 'double' },
+                ]
+            },
+        }
+      required: ['_id', 'v']
+      additionalProperties: false
 
 indexes:
   test_db:
@@ -63,6 +104,10 @@ indexes:
       - {'key': {'a': 1}}
       - {'key': {'b': 1}}
       - {'key': {'a': 1, 'b': 1}}
+    strings:
+      - {'key': {'s': 1}}
+    mixed:
+      - {'key': {'v': 1}}
 
 tests:
   - description: select with no where uses collection scan
@@ -261,3 +306,17 @@ tests:
     expected_utilization: IX_SCAN
     expected_index_bounds:
       - { 'a': [ '(100, MaxKey]' ] }
+
+  - description: LIKE filter uses index scan
+    current_db: test_db
+    query: "SELECT * FROM strings WHERE s LIKE 'abc'"
+    expected_utilization: IX_SCAN
+    expected_index_bounds:
+      - { 's': [ '["", {})', '[/^abc$/si, /^abc$/si]' ] }
+
+  - description: IS filter uses index scan
+    current_db: test_db
+    query: "SELECT * FROM mixed WHERE v IS NUMBER"
+    expected_utilization: IX_SCAN
+    expected_index_bounds:
+      - { 'v': [ '[nan.0, inf.0]' ] }

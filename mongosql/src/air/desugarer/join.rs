@@ -10,6 +10,7 @@ use crate::{
         Unwind,
     },
     map,
+    util::ROOT,
 };
 use linked_hash_map::LinkedHashMap;
 
@@ -98,10 +99,7 @@ impl JoinDesugarerPassVisitor {
             source: Box::new(unwind),
             new_root: Box::new(MQLSemanticOperator(MQLSemanticOperator {
                 op: MQLOperator::MergeObjects,
-                args: vec![
-                    Variable("ROOT".to_string().into()),
-                    FieldRef(as_var_name.clone().into()),
-                ],
+                args: vec![ROOT.clone(), FieldRef(as_var_name.clone().into())],
             })),
         });
 

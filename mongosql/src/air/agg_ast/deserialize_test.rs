@@ -88,6 +88,7 @@ mod stage_test {
                 Expression, LiteralValue, ProjectItem, Stage, StringOrRef, UntaggedOperator,
             },
             map,
+            util::ROOT_NAME,
         };
 
         test_deserialize_stage!(
@@ -120,7 +121,7 @@ mod stage_test {
             multiple_elements,
             expected = Stage::Project(map! {
                 "_id".to_string() => ProjectItem::Exclusion,
-                "foo".to_string() => ProjectItem::Assignment(Expression::StringOrRef(StringOrRef::Variable("ROOT".to_string()))),
+                "foo".to_string() => ProjectItem::Assignment(Expression::StringOrRef(StringOrRef::Variable(ROOT_NAME.clone()))),
                 "bar".to_string() => ProjectItem::Assignment(Expression::StringOrRef(StringOrRef::FieldRef("bar".to_string()))),
                 "a".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
                     op: "$add".to_string(),
@@ -154,8 +155,9 @@ mod stage_test {
     }
 
     mod replace_with {
-        use crate::air::agg_ast::ast_definitions::{
-            Expression, Stage, StringOrRef, UntaggedOperator,
+        use crate::{
+            air::agg_ast::ast_definitions::{Expression, Stage, StringOrRef, UntaggedOperator},
+            util::ROOT_NAME,
         };
 
         test_deserialize_stage!(
@@ -171,7 +173,7 @@ mod stage_test {
             expected = Stage::ReplaceWith(Expression::UntaggedOperator(UntaggedOperator {
                 op: "$mergeObjects".to_string(),
                 args: vec![
-                    Expression::StringOrRef(StringOrRef::Variable("ROOT".to_string())),
+                    Expression::StringOrRef(StringOrRef::Variable(ROOT_NAME.clone())),
                     Expression::StringOrRef(StringOrRef::FieldRef("as".to_string())),
                 ]
             })),

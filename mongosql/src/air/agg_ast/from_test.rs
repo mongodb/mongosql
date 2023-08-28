@@ -564,6 +564,7 @@ mod stage {
                 agg_ast::{ast_definitions as agg_ast, from_test::default_source},
             },
             unchecked_unique_linked_hash_map,
+            util::{ROOT, ROOT_NAME},
         };
 
         test_from_stage!(
@@ -677,7 +678,7 @@ mod stage {
                                 source: Box::new(default_source()),
                                 specifications: unchecked_unique_linked_hash_map! {
                                     "_id".to_string() => air::ProjectItem::Exclusion,
-                                    "baz".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
+                                    "baz".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                                 }
                             })),
                             specifications: unchecked_unique_linked_hash_map! {
@@ -704,7 +705,7 @@ mod stage {
                             (
                                 "baz".to_string(),
                                 agg_ast::ProjectItem::Assignment(agg_ast::Expression::StringOrRef(
-                                    agg_ast::StringOrRef::Variable("ROOT".to_string())
+                                    agg_ast::StringOrRef::Variable(ROOT_NAME.clone())
                                 ))
                             ),
                         ]

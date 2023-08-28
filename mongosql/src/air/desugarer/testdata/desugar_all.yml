@@ -977,7 +977,7 @@ tests:
                             {
                               "input": "$a",
                               "regex": "^abc$",
-                              "options": "is",
+                              "options": "si",
                             },
                         },
                     },

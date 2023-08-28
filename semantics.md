@@ -2429,7 +2429,7 @@ STRING.
 The 3-ary string operator LIKE determines whether a string matches a
 pattern. The third argument is optional. When provided, it specifies an
 escape character used in the pattern. If the third argument is not
-specified, there is no escape character. In the pattern, an unescaped
+specified, the default escape character, \'\\\', is used. In the pattern, an unescaped
 underscore character \'_\' represents any single character and an
 unescaped percent character \'%\' represents any number of characters,
 even zero characters.

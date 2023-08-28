@@ -206,7 +206,7 @@ mod project {
                     collection: "foo".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "t1".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
+                    "t1".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                 ),
             })),
             specifications: unchecked_unique_linked_hash_map!(
@@ -698,7 +698,7 @@ mod sort {
                 })
                 .into(),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
+                    "foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                 }
             })
             .into(),
@@ -714,7 +714,8 @@ mod sort {
                     db: "test_db".into(),
                     collection: "foo".into(),
                     cache: mir::schema::SchemaCache::new(),
-                }).into(),
+                })
+                .into(),
                 expression: map! {
                     ("foo", 0u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
                 },
@@ -753,7 +754,7 @@ mod sort {
                 })
                 .into(),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
+                    "foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                 }
             })
             .into(),
@@ -768,7 +769,8 @@ mod sort {
                     db: "test_db".into(),
                     collection: "foo".into(),
                     cache: mir::schema::SchemaCache::new(),
-                }).into(),
+                })
+                .into(),
                 expression: map! {
                     ("foo", 0u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
                 },
@@ -1440,7 +1442,7 @@ mod derived {
                     collection: "bar".to_string()
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::Variable("ROOT".to_string().into())),
+                    "__bot".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                     "d2".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(1)))
                 }
             })),
@@ -1490,8 +1492,11 @@ mod derived {
 }
 
 mod unwind {
-    use crate::air::ExprLanguage;
-    use crate::{map, unchecked_unique_linked_hash_map, util::ROOT};
+    use crate::{
+        air::ExprLanguage,
+        map, unchecked_unique_linked_hash_map,
+        util::{air_variable_from_root, ROOT},
+    };
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
     test_translate_stage! {
@@ -1575,53 +1580,29 @@ mod unwind {
 
     test_translate_stage! {
         correctness_test_for_index_option_using_project_and_where,
-            expected = Ok(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Match(air::Match::ExprLanguage(ExprLanguage {
-                    source: Box::new(air::Stage::Unwind(air::Unwind {
-                        source: Box::new(air::Stage::Collection(air::Collection {
-                                db: "test".to_string(),
-                                collection: "foo".to_string(),
-                            })),
-                            path: Box::new(air::Expression::Variable(air::Variable {
-                            parent: Some(Box::new(air::Variable {
-                        parent: None,
-                        name: "ROOT".to_string(),
+        expected = Ok(air::Stage::Project(air::Project {
+            source: Box::new(air::Stage::Match(air::Match::ExprLanguage(ExprLanguage {
+                source: Box::new(air::Stage::Unwind(air::Unwind {
+                    source: Box::new(air::Stage::Collection(air::Collection {
+                        db: "test".to_string(),
+                        collection: "foo".to_string(),
                     })),
-                    name: "arr".to_string(),
+                    path: Box::new(air_variable_from_root("arr")),
+                    index: Some("idx".to_string()),
+                    outer: false,
                 })),
-                index: Some("idx".to_string()),
-                outer: false,
-            })),
-            expr: Box::new(air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
-                op: air::SQLOperator::Gt,
-                args: vec![
-                    air::Expression::Variable(air::Variable {
-                        parent: Some(Box::new(air::Variable {
-                            parent: None,
-                            name: "ROOT".to_string(),
-                        })),
-                        name: "arr".to_string(),
-                    }),
-                    air::Expression::Literal(air::LiteralValue::Integer(0)),
-                ],
+                expr: Box::new(air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
+                    op: air::SQLOperator::Gt,
+                    args: vec![
+                        air_variable_from_root("arr"),
+                        air::Expression::Literal(air::LiteralValue::Integer(0)),
+                    ],
                 })),
             }))),
             specifications: unchecked_unique_linked_hash_map! {
                 "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::Document(unchecked_unique_linked_hash_map! {
-                    "arr".to_string() => air::Expression::Variable(air::Variable {
-                        parent: Some(Box::new(air::Variable {
-                            parent: None,
-                            name: "ROOT".to_string(),
-                        })),
-                        name: "arr".to_string(),
-                    }),
-                    "idx".to_string() => air::Expression::Variable(air::Variable {
-                        parent: Some(Box::new(air::Variable {
-                            parent: None,
-                            name: "ROOT".to_string(),
-                        })),
-                        name: "idx".to_string(),
-                    })
+                    "arr".to_string() => air_variable_from_root("arr"),
+                    "idx".to_string() => air_variable_from_root("idx")
                 })),
             },
         })),
@@ -1755,7 +1736,7 @@ mod translate_plan {
                     field: "___bot".to_string(),
                     input: air::Expression::SetField(air::SetField {
                         field: "".to_string(),
-                        input: air::Expression::Variable("ROOT".to_string().into()).into(),
+                        input: ROOT.clone().into(),
                         value: air::Expression::FieldRef("___bot".to_string().into()).into(),
                     }).into()
                 }).into()

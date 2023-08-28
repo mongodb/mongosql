@@ -387,7 +387,7 @@ mod match_path {
             field: "y".to_string(),
             cache: mir::schema::SchemaCache::new(),
         });
-        let expected: Result<air::FieldRef> = Ok("f.x.y".to_string().into());
+        let expected: Result<Option<air::FieldRef>> = Ok(Some("f.x.y".to_string().into()));
         let actual = translator.translate_match_path(input);
         assert_eq!(expected, actual);
     }

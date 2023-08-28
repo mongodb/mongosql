@@ -867,7 +867,7 @@ mod limit {
 }
 
 mod join {
-    use crate::{air::*, unchecked_unique_linked_hash_map};
+    use crate::{air::*, unchecked_unique_linked_hash_map, util::ROOT};
 
     test_codegen_stage!(
         simple_inner_join,
@@ -885,7 +885,7 @@ mod join {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into())),
+                    "col".to_string() => ProjectItem::Assignment(ROOT.clone()),
                 )
             })),
             right: Box::new(Stage::Project(Project {
@@ -894,7 +894,7 @@ mod join {
                     collection: "col2".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col2".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into())),
+                    "col2".to_string() => ProjectItem::Assignment(ROOT.clone()),
                 )
             })),
             let_vars: None,
@@ -918,7 +918,7 @@ mod join {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into())),
+                    "col".to_string() => ProjectItem::Assignment(ROOT.clone()),
                 )
             })),
             right: Box::new(Stage::Project(Project {
@@ -927,7 +927,7 @@ mod join {
                     collection: "col2".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col2".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into())),
+                    "col2".to_string() => ProjectItem::Assignment(ROOT.clone()),
                 )
             })),
             let_vars: None,
@@ -958,7 +958,7 @@ mod join {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into())),
+                    "col".to_string() => ProjectItem::Assignment(ROOT.clone()),
                 )
             })),
             right: Box::new(Stage::Project(Project {
@@ -967,7 +967,7 @@ mod join {
                     collection: "col2".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col2".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into())),
+                    "col2".to_string() => ProjectItem::Assignment(ROOT.clone()),
                 )
             })),
             let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef("col".to_string().into()))}]),
@@ -1004,7 +1004,7 @@ mod join {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into()))
+                    "col".to_string() => ProjectItem::Assignment(ROOT.clone())
                 )
             })),
             right: Box::new(Stage::Project(Project {
@@ -1013,7 +1013,7 @@ mod join {
                     collection: "col2".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col2".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into()))
+                    "col2".to_string() => ProjectItem::Assignment(ROOT.clone())
                 )
             })),
             let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef("col".to_string().into()))}]),
@@ -1043,7 +1043,7 @@ mod join {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into()))
+                    "col".to_string() => ProjectItem::Assignment(ROOT.clone())
                 )
             })),
             right: Box::new(Stage::Project(Project {
@@ -1051,7 +1051,7 @@ mod join {
                     array: vec![Expression::Literal(LiteralValue::Integer(1)), Expression::Literal(LiteralValue::Integer(1))]
                 })),
                 specifications: unchecked_unique_linked_hash_map!(
-                    "arr".to_string() => ProjectItem::Assignment(Expression::Variable("ROOT".to_string().into()))
+                    "arr".to_string() => ProjectItem::Assignment(ROOT.clone())
                 )
             })),
             let_vars: None,

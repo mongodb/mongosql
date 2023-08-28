@@ -9,6 +9,7 @@ mod flatten_variadics;
 mod match_null_filtering;
 mod match_splitting;
 mod prefilter_unwinds;
+mod rewrite_to_match_language;
 mod stage_movement;
 mod use_def_analysis;
 
@@ -31,6 +32,7 @@ static OPTIMIZERS: fn() -> Vec<Box<dyn Optimizer>> = || {
         Box::new(stage_movement::StageMovementOptimizer {}),
         Box::new(prefilter_unwinds::PrefilterUnwindsOptimizer {}),
         Box::new(stage_movement::StageMovementOptimizer {}),
+        Box::new(rewrite_to_match_language::MatchLanguageRewriter {}),
         Box::new(match_null_filtering::MatchNullFilteringOptimizer {}),
         Box::new(dead_code_elimination::DeadCodeEliminator {}),
     ]

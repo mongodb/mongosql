@@ -1439,7 +1439,10 @@ mod get_field {
 }
 
 mod set_field {
-    use crate::air::{Expression::*, SetField};
+    use crate::{
+        air::{Expression::*, SetField},
+        util::ROOT,
+    };
     use bson::bson;
 
     test_codegen_expression!(
@@ -1447,7 +1450,7 @@ mod set_field {
         expected = Ok(bson!({"$setField": {"field": "", "input": "$$ROOT", "value": "$__bot"}})),
         input = SetField(SetField {
             field: "".into(),
-            input: Box::new(Variable("ROOT".to_string().into())),
+            input: Box::new(ROOT.clone()),
             value: Box::new(FieldRef("__bot".to_string().into()))
         })
     );
@@ -1459,7 +1462,7 @@ mod set_field {
         ),
         input = SetField(SetField {
             field: "$x_val".into(),
-            input: Box::new(Variable("ROOT".to_string().into())),
+            input: Box::new(ROOT.clone()),
             value: Box::new(FieldRef("x".to_string().into()))
         })
     );
@@ -1815,6 +1818,7 @@ mod subquery_exists {
             Collection, Expression::*, LetVariable, Project, ProjectItem, Stage::*, SubqueryExists,
         },
         unchecked_unique_linked_hash_map,
+        util::ROOT,
     };
     use bson::bson;
 
@@ -1838,7 +1842,7 @@ mod subquery_exists {
                     collection: "foo".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => ProjectItem::Assignment(Variable("ROOT".to_string().into())),
+                    "foo".to_string() => ProjectItem::Assignment(ROOT.clone()),
                 },
             })),
         })
@@ -1869,7 +1873,7 @@ mod subquery_exists {
                         collection: "bar".to_string(),
                     })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "bar".to_string() => ProjectItem::Assignment(Variable("ROOT".to_string().into())),
+                        "bar".to_string() => ProjectItem::Assignment(ROOT.clone()),
                     },
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
@@ -1889,6 +1893,7 @@ mod subquery {
             Subquery,
         },
         unchecked_unique_linked_hash_map,
+        util::ROOT,
     };
     use bson::bson;
 
@@ -1910,7 +1915,7 @@ mod subquery {
             pipeline: Box::new(Project(Project {
                 source: Box::new(Documents(Documents { array: vec![] })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "arr".to_string() => ProjectItem::Assignment(Variable("ROOT".to_string().into())),
+                    "arr".to_string() => ProjectItem::Assignment(ROOT.clone()),
                 }
             })),
         })
@@ -1952,7 +1957,7 @@ mod subquery {
                         collection: "bar".to_string(),
                     })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "bar".to_string() => ProjectItem::Assignment(Variable("ROOT".to_string().into())),
+                        "bar".to_string() => ProjectItem::Assignment(ROOT.clone()),
                     }
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
@@ -1973,6 +1978,7 @@ mod subquery_comparison {
             SubqueryModifier,
         },
         unchecked_unique_linked_hash_map,
+        util::ROOT,
     };
     use bson::bson;
 
@@ -2004,7 +2010,7 @@ mod subquery_comparison {
                 pipeline: Box::new(Project(Project {
                     source: Box::new(Documents(Documents { array: vec![] })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "arr".to_string() => ProjectItem::Assignment(Variable("ROOT".to_string().into())),
+                        "arr".to_string() => ProjectItem::Assignment(ROOT.clone()),
                     }
                 })),
             }),
@@ -2039,7 +2045,7 @@ mod subquery_comparison {
                 pipeline: Box::new(Project(Project {
                     source: Box::new(Documents(Documents { array: vec![] })),
                     specifications: unchecked_unique_linked_hash_map! {
-                        "arr".to_string() => ProjectItem::Assignment(Variable("ROOT".to_string().into())),
+                        "arr".to_string() => ProjectItem::Assignment(ROOT.clone()),
                     }
                 })),
             }),
@@ -2092,7 +2098,7 @@ mod subquery_comparison {
                             collection: "bar".to_string(),
                         })),
                         specifications: unchecked_unique_linked_hash_map! {
-                            "bar".to_string() => ProjectItem::Assignment(Variable("ROOT".to_string().into())),
+                            "bar".to_string() => ProjectItem::Assignment(ROOT.clone()),
                         }
                     })),
                     specifications: unchecked_unique_linked_hash_map! {

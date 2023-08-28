@@ -1,5 +1,10 @@
 use crate::{
-    mir::{binding_tuple, schema::errors::Error, visitor::Visitor, *},
+    mir::{
+        binding_tuple,
+        schema::{errors::Error, SchemaCache},
+        visitor::Visitor,
+        *,
+    },
     schema::{Document, Satisfaction, Schema, NULLISH},
 };
 
@@ -61,6 +66,26 @@ impl FieldAccess {
             Expression::FieldAccess(fa) => fa
                 .to_string_if_pure()
                 .map(|s| format!("{s}.{}", self.field)),
+            _ => None,
+        }
+    }
+
+    /// If this FieldAccess is "pure", then return the corresponding MatchPath.
+    /// MatchPath can _only_ be "pure".
+    pub(crate) fn to_match_path_if_pure(&self) -> Option<MatchPath> {
+        match self.expr.as_ref() {
+            Expression::Reference(r) => Some(MatchPath::MatchFieldAccess(MatchFieldAccess {
+                parent: Box::new(MatchPath::MatchReference(r.clone())),
+                field: self.field.clone(),
+                cache: SchemaCache::new(),
+            })),
+            Expression::FieldAccess(fa) => fa.to_match_path_if_pure().map(|mp| {
+                MatchPath::MatchFieldAccess(MatchFieldAccess {
+                    parent: Box::new(mp),
+                    field: self.field.clone(),
+                    cache: SchemaCache::new(),
+                })
+            }),
             _ => None,
         }
     }
