@@ -193,7 +193,35 @@ impl Display for Schema {
             Unsat => write!(f, "Unsat"),
             Schema::Missing => write!(f, "missing value"),
             Schema::Atomic(atomic) => atomic.fmt(f),
-            AnyOf(_) => write!(f, "polymorphic type"),
+            AnyOf(schema_set) => {
+                let self_copy = AnyOf(schema_set.clone());
+
+                if schema_set.len() == 3
+                    && schema_set.contains(&Schema::Missing)
+                    && schema_set.contains(&Schema::Atomic(Atomic::Null))
+                {
+                    let self_copy_without_nullish = self_copy.clone().subtract_nullish();
+                    match self_copy_without_nullish {
+                        AnyOf(mut set) => {
+                            let anyof_contents = set.pop_first().unwrap();
+                            if let AnyOf(_) = anyof_contents {
+                                write!(f, "polymorphic type")
+                            } else {
+                                write!(f, "nullable {}", anyof_contents)
+                            }
+                        }
+                        _ => unreachable!(),
+                    }
+                } else if self_copy.eq(&INTEGER_LONG_OR_NULLISH) {
+                    write!(f, "nullable long or integer")
+                } else if self_copy.eq(&NUMERIC_OR_NULLISH) {
+                    write!(f, "nullable numeric type")
+                } else if self_copy.eq(&NUMERIC) {
+                    write!(f, "numeric type")
+                } else {
+                    write!(f, "polymorphic type")
+                }
+            }
             Schema::Array(_) => write!(f, "array type"),
             Schema::Document(_) => write!(f, "object type"),
         }

@@ -57,6 +57,21 @@ macro_rules! test_max_numeric {
     };
 }
 
+macro_rules! test_user_error_messages {
+    ($func_name:ident, input = $input:expr, expected = $expected:expr) => {
+        #[test]
+        fn $func_name() {
+            use crate::{mir::schema::Error, usererror::UserError};
+
+            let user_message = $input.user_message();
+
+            if let Some(message) = user_message {
+                assert_eq!($expected, message)
+            }
+        }
+    };
+}
+
 mod schema {
     use crate::{
         catalog::*,
@@ -7976,4 +7991,67 @@ mod max_numeric {
         input1 = Schema::Atomic(Atomic::Decimal),
         input2 = Schema::Atomic(Atomic::Integer)
     );
+}
+
+mod user_error_messages {
+
+    mod schema_checking {
+        use crate::{
+            schema::{
+                Atomic, Schema, ANY_DOCUMENT, BOOLEAN_OR_NULLISH, DATE_OR_NULLISH,
+                NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
+            },
+            set,
+        };
+
+        test_user_error_messages! {
+            operation_needs_nullable_numeric_type,
+            input = Error::SchemaChecking{
+                name: "Add",
+                required: NUMERIC_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::String),
+            },
+            expected = "Incorrect argument type for `Add`. Required: nullable numeric type. Found: string."
+        }
+
+        test_user_error_messages! {
+            operation_needs_nullable_string_type,
+            input = Error::SchemaChecking{
+                name: "Concat",
+                required: STRING_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::Integer),
+            },
+            expected = "Incorrect argument type for `Concat`. Required: nullable string. Found: int."
+        }
+
+        test_user_error_messages! {
+            operation_needs_nullable_boolean_type,
+            input = Error::SchemaChecking{
+                name: "SearchedCase",
+                required: BOOLEAN_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::String),
+            },
+            expected = "Incorrect argument type for `SearchedCase`. Required: nullable boolean. Found: string."
+        }
+
+        test_user_error_messages! {
+            operation_needs_nullable_date_type,
+            input = Error::SchemaChecking{
+                name: "Second",
+                required: DATE_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::Integer),
+            },
+            expected = "Incorrect argument type for `Second`. Required: nullable date. Found: int."
+        }
+
+        test_user_error_messages! {
+            array_datasource_has_wrong_type,
+            input = Error::SchemaChecking{
+                name: "array datasource items",
+                required: ANY_DOCUMENT.clone(),
+                found: Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)]),
+            },
+            expected = "Incorrect argument type for `array datasource items`. Required: object type. Found: int."
+        }
+    }
 }

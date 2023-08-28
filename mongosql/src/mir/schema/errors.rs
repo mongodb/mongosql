@@ -60,7 +60,16 @@ impl UserError for Error {
         match self {
             Error::DatasourceNotFoundInSchemaEnv(_) => None,
             Error::IncorrectArgumentCount { .. } => None,
-            Error::SchemaChecking { .. } => None,
+            Error::SchemaChecking {
+                name,
+                required,
+                found,
+            } => {
+                let simplified_required = Schema::simplify(required);
+                let simplified_found = Schema::simplify(found);
+
+                Some(format!("Incorrect argument type for `{name}`. Required: {simplified_required}. Found: {simplified_found}."))
+            }
             Error::AggregationArgumentMustBeSelfComparable(_, _) => None,
             Error::CountDistinctStarNotSupported => None,
             Error::InvalidComparison(_, _, _) => None,
