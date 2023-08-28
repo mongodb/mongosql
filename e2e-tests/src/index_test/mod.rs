@@ -126,7 +126,7 @@ fn run_index_usage_tests() -> Result<(), Error> {
                 &catalog,
                 mongosql::SchemaCheckingMode::Strict,
             )
-            .map_err(|e| Error::Translation(format!("{e:?}")))?;
+            .map_err(Error::Translation)?;
 
             let explain_result = run_explain_aggregate(&client, translation)?;
 

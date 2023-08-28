@@ -248,8 +248,6 @@ tests:
     current_db: test_db
     query: 'SELECT * FROM nullable_fields WHERE a > 100 AND b > 3000'
     expected_utilization: IX_SCAN
-    # It is unclear exactly why the index a_1 consistently wins here; perhaps it is considered more discerning
-    # since there are more values of 'a' excluded by this index than values of b excluded by b_1.
     expected_index_bounds:
       - {'a': ['(100, MaxKey]']}
 
@@ -266,8 +264,6 @@ tests:
     current_db: test_db
     query: 'SELECT * FROM nullable_fields WHERE a > 100 OR b > 3000'
     expected_utilization: IX_SCAN
-    # It is unclear exactly why the index a_1 consistently wins here; perhaps it is considered more discerning
-    # since there are more values of 'a' excluded by this index than values of b excluded by b_1.
     expected_index_bounds:
       - {'a': ['(null, MaxKey]']}
 

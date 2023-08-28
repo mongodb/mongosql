@@ -240,7 +240,7 @@ tests:
   - description: INDEX must be simple identifier
     current_db: test
     query: "SELECT * FROM UNWIND(foo WITH PATH => arr, INDEX => invalid.index.identifier)"
-    parse_error: "Unrecognized token `.` found at 59:60\nExpected one of COMMA or RIGHT_PAREN"
+    parse_error: "Unrecognized token: `.`"
 
   - description: duplicate option keys are disallowed
     current_db: test
@@ -250,7 +250,7 @@ tests:
   - description: unknown option keys are disallowed
     current_db: test
     query: "SELECT * FROM UNWIND(foo WITH PATH => arr, INVALID => invalid)"
-    parse_error: "Unrecognized token `INVALID` found at 43:50\nExpected one of INDEX, OUTER or PATH"
+    parse_error: "Unrecognized token: `INVALID`"
 
   - description: error unless we can definitely prove there is no name conflict for INDEX alias
     current_db: test

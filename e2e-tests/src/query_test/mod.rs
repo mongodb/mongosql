@@ -76,7 +76,7 @@ fn run_query_tests() -> Result<(), Error> {
                 &catalog,
                 mongosql::SchemaCheckingMode::Strict,
             )
-            .map_err(|e| Error::Translation(format!("{e:?}")));
+            .map_err(Error::Translation);
 
             if let Some(should_compile) = test.should_compile {
                 assert_eq!(
@@ -97,8 +97,10 @@ fn run_query_tests() -> Result<(), Error> {
                         .unwrap()
                         .to_string()
                         .contains(&parse_error),
-                    "{}: unexpected parse result",
-                    test.description
+                    "{}: unexpected parse result.\nexpected: {}\nactual: {}",
+                    test.description,
+                    parse_error,
+                    translation.unwrap_err()
                 );
                 continue;
             }
@@ -110,10 +112,11 @@ fn run_query_tests() -> Result<(), Error> {
                         .err()
                         .unwrap()
                         .to_string()
-                        .contains("failed to translate query"),
-                    "{}: unexpected algebrize result: {}",
+                        .contains(&algebrize_error),
+                    "{}: unexpected algebrize result.\nexpected: {}\nactual: {}",
                     test.description,
-                    algebrize_error
+                    algebrize_error,
+                    translation.unwrap_err()
                 );
                 continue;
             }

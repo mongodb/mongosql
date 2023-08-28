@@ -38,7 +38,7 @@ impl UserError for Error {
     fn technical_message(&self) -> String {
         match self {
             Error::Lalrpop(string) => string.clone(),
-            Error::UnexpectedToken(_, _) => todo!(),
+            Error::UnexpectedToken(t, e) => format!("Unrecognized token: `{t}`, expected: {e:?}"),
         }
     }
 }
@@ -46,8 +46,26 @@ impl UserError for Error {
 pub type LalrpopError<'t> = lalrpop_util::ParseError<usize, Token<'t>, String>;
 
 impl From<LalrpopError<'_>> for Error {
-    fn from(e: LalrpopError<'_>) -> Self {
-        Error::Lalrpop(format!("{e}"))
+    fn from(value: LalrpopError<'_>) -> Self {
+        match value {
+            lalrpop_util::ParseError::UnrecognizedToken { token, expected } => {
+                Self::UnexpectedToken(token.1.to_string(), expected.clone())
+            }
+            lalrpop_util::ParseError::InvalidToken { location } => {
+                Self::Lalrpop(format!("InvalidToken at {}", location))
+            }
+            lalrpop_util::ParseError::UnrecognizedEOF { location, expected } => {
+                Self::Lalrpop(format!(
+                    "UnrecognizedEOF at {} with expected {:?}",
+                    location, expected
+                ))
+            }
+            lalrpop_util::ParseError::ExtraToken { token } => Self::Lalrpop(format!(
+                "ExtraToken at {} with token {:?}",
+                token.0, token.1
+            )),
+            lalrpop_util::ParseError::User { error } => Self::Lalrpop(error),
+        }
     }
 }
 

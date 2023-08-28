@@ -146,17 +146,17 @@ tests:
   - description: user-specified depth must be an integer literal
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH depth => 1.2)"
-    parse_error: "Unrecognized token `1.2` found at 40:43\nExpected one of INT"
+    parse_error: "Unrecognized token: `1.2`"
 
   - description: user-specified separator must be a string literal
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH separator => 1)"
-    parse_error: "Unrecognized token `1` found at 44:45\nExpected one of STRING"
+    parse_error: "Unrecognized token: `1`"
 
   - description: error on unknown option keys
     current_db: mydb
     query: "SELECT * FROM FLATTEN(foo WITH INVALID => a)"
-    parse_error: "Unrecognized token `INVALID` found at 31:38\nExpected one of DEPTH or SEPARATOR"
+    parse_error: "Unrecognized token: `INVALID`"
 
   - description: error on duplicate option keys
     current_db: mydb

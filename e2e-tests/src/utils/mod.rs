@@ -36,7 +36,7 @@ pub(crate) enum Error {
     #[error("failed to schema to MongoSQL model: {0:?}")]
     InvalidSchema(mongosql::schema::Error),
     #[error("failed to translate query: {0}")]
-    Translation(String),
+    Translation(mongosql::result::Error),
     #[error("failed to run aggregation: {0:?}")]
     MongoDBAggregation(mongodb::error::Error),
     #[error("failed to deserialize ExplainResult: {0:?}")]
