@@ -170,7 +170,9 @@ impl UserError for Error {
             Error::InvalidSubqueryDegree => None,
             Error::DuplicateDocumentKey(_) => None,
             Error::DuplicateFlattenOption(_) => None,
-            Error::CannotEnumerateAllFieldPaths(_) => None,
+            Error::CannotEnumerateAllFieldPaths(_) => {
+                Some("Insufficient schema information.".to_string())
+            }
             Error::PolymorphicObjectSchema(_) => None,
             Error::DuplicateUnwindOption(_) => None,
             Error::NoUnwindPath => None,

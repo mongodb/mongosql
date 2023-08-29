@@ -5388,4 +5388,12 @@ mod user_error_messages {
             expected = "Cannot sort by key because `polymorphic type` can't be compared against itself."
         }
     }
+
+    mod cannot_enumerate_all_field_paths {
+        test_user_error_messages! {
+            cannot_enumerate_all_field_paths,
+            input = Error::CannotEnumerateAllFieldPaths(crate::schema::Schema::Any),
+            expected = "Insufficient schema information."
+        }
+    }
 }
