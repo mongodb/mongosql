@@ -438,6 +438,16 @@ functions:
           ${prepare_shell}
           cargo test -- --skip fuzz_test
 
+  "run pipeline generator":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          cargo run --bin pipeline_generator
+
   "run rust fuzz tests":
     - command: shell.exec
       type: test
@@ -606,6 +616,11 @@ tasks:
       - func: "install rust toolchain"
       - func: "compile release"
       - func: "upload c library"
+
+  - name: test-pipeline-generate
+    commands:
+      - func: "install rust toolchain"
+      - func: "run pipeline generator"
 
   - name: test-rust
     commands:
@@ -911,6 +926,7 @@ buildvariants:
     run_on: [ubuntu1804-large]
     tasks:
       - name: compile
+      - name: test-pipeline-generate
       - name: test-rust
       - name: test-rust-fuzz
       - name: test-go
@@ -920,6 +936,7 @@ buildvariants:
     run_on: [rhel76-large]
     tasks:
       - name: compile
+      - name: test-pipeline-generate
       - name: test-rust
       - name: test-rust-fuzz
       - name: test-go
@@ -933,6 +950,7 @@ buildvariants:
     run_on: [macos-1014]
     tasks:
       - name: compile
+      - name: test-pipeline-generate
       - name: test-rust
       - name: test-rust-fuzz
       - name: test-go
@@ -942,6 +960,7 @@ buildvariants:
     run_on: [macos-1100-arm64]
     tasks:
       - name: compile
+      - name: test-pipeline-generate
       - name: test-rust
       - name: test-rust-fuzz
       - name: test-go
@@ -951,6 +970,7 @@ buildvariants:
     run_on: [amazon2-arm64-large]
     tasks:
       - name: compile
+      - name: test-pipeline-generate
       - name: test-rust
       - name: test-rust-fuzz
       - name: test-go
@@ -960,6 +980,7 @@ buildvariants:
     run_on: [windows-64-vs2019-large]
     tasks:
       - name: compile
+      - name: test-pipeline-generate
       - name: test-rust
       - name: test-rust-fuzz
       - name: test-go
