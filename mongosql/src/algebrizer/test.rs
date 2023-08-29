@@ -5370,4 +5370,22 @@ mod user_error_messages {
 
         }
     }
+
+    mod sort_key_comparable {
+        test_user_error_messages! {
+            sort_key_not_comparable_any,
+            input = Error::SchemaChecking(crate::mir::schema::Error::SortKeyNotSelfComparable(0, crate::schema::Schema::Any)),
+            expected = "Cannot sort by key because `any type` can't be compared against itself."
+        }
+
+        test_user_error_messages! {
+            sort_key_not_comparable_other_types,
+            input = Error::SchemaChecking(crate::mir::schema::Error::SortKeyNotSelfComparable(0,
+                crate::schema::Schema::AnyOf( crate::set![
+                    crate::schema::Schema::Atomic(crate::schema::Atomic::Integer),
+                    crate::schema::Schema::Atomic(crate::schema::Atomic::String)
+                ]))),
+            expected = "Cannot sort by key because `polymorphic type` can't be compared against itself."
+        }
+    }
 }

@@ -77,7 +77,10 @@ impl UserError for Error {
             Error::AccessMissingField(_) => None,
             Error::InvalidSubqueryCardinality => None,
             Error::DuplicateKey(_) => None,
-            Error::SortKeyNotSelfComparable(_, _) => None,
+            Error::SortKeyNotSelfComparable(_, s) => Some(format!(
+                "Cannot sort by key because `{}` can't be compared against itself.",
+                Schema::simplify(s)
+            )),
             Error::GroupKeyNotSelfComparable(_, _) => None,
             Error::UnaliasedFieldAccessWithNoReference(_) => None,
             Error::UnaliasedNonFieldAccessExpression(_) => None,
