@@ -81,7 +81,10 @@ impl UserError for Error {
                 "Cannot sort by key because `{}` can't be compared against itself.",
                 Schema::simplify(s)
             )),
-            Error::GroupKeyNotSelfComparable(_, _) => None,
+            Error::GroupKeyNotSelfComparable(_, schema) => Some(format!(
+                "Cannot group by key because `{}` can't be compared against itself.",
+                Schema::simplify(schema)
+            )),
             Error::UnaliasedFieldAccessWithNoReference(_) => None,
             Error::UnaliasedNonFieldAccessExpression(_) => None,
             Error::UnwindIndexNameConflict(_) => None,

@@ -8054,4 +8054,53 @@ mod user_error_messages {
             expected = "Incorrect argument type for `array datasource items`. Required: object type. Found: int."
         }
     }
+
+    mod sort_key_comparable {
+        use crate::{
+            schema::{Atomic, Schema},
+            set,
+        };
+
+        test_user_error_messages! {
+            sort_key_not_comparable_any,
+            input = Error::SortKeyNotSelfComparable(0, Schema::Any),
+            expected = "Cannot sort by key because `any type` can't be compared against itself."
+        }
+
+        test_user_error_messages! {
+            sort_key_not_comparable_other_types,
+            input = Error::SortKeyNotSelfComparable(0,
+                Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::String)
+                ])
+            ),
+            expected = "Cannot sort by key because `polymorphic type` can't be compared against itself."
+        }
+    }
+
+    mod group_key_comparable {
+        use crate::{
+            schema::{Atomic, Schema},
+            set,
+        };
+
+        test_user_error_messages! {
+            group_key_not_comparable_any,
+            input = Error::GroupKeyNotSelfComparable(0, Schema::Any),
+            expected = "Cannot group by key because `any type` can't be compared against itself."
+        }
+
+        test_user_error_messages! {
+            group_key_not_comparable_other_types,
+            input = Error::GroupKeyNotSelfComparable(
+                1,
+                Schema::AnyOf(set![
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::String)
+                ]),
+            ),
+            expected = "Cannot group by key because `polymorphic type` can't be compared against itself."
+        }
+    }
 }
