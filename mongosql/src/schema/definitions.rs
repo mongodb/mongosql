@@ -218,6 +218,10 @@ impl Display for Schema {
                     write!(f, "nullable numeric type")
                 } else if self_copy.eq(&NUMERIC) {
                     write!(f, "numeric type")
+                } else if self_copy.eq(&NULLISH) {
+                    write!(f, "null type")
+                } else if self_copy.eq(&NON_NULLISH) {
+                    write!(f, "non-null type")
                 } else {
                     write!(f, "polymorphic type")
                 }

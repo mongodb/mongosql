@@ -72,7 +72,12 @@ impl UserError for Error {
             }
             Error::AggregationArgumentMustBeSelfComparable(_, _) => None,
             Error::CountDistinctStarNotSupported => None,
-            Error::InvalidComparison(_, _, _) => None,
+            Error::InvalidComparison(func, s1, s2) => {
+                let simplified_s1 = Schema::simplify(s1);
+                let simplified_s2 = Schema::simplify(s2);
+
+                Some(format!("Invalid use of `{func}` due to incomparable types: `{simplified_s1}` cannot be compared to `{simplified_s2}`."))
+            }
             Error::CannotMergeObjects(_, _, _) => None,
             Error::AccessMissingField(_) => None,
             Error::InvalidSubqueryCardinality => None,

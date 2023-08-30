@@ -8055,6 +8055,20 @@ mod user_error_messages {
         }
     }
 
+    mod invalid_comparison {
+        use crate::schema::{Atomic, Schema};
+
+        test_user_error_messages! {
+            invalid_comparison,
+            input = Error::InvalidComparison(
+                "Lte",
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::String),
+            ),
+            expected = "Invalid use of `Lte` due to incomparable types: `int` cannot be compared to `string`."
+        }
+    }
+
     mod sort_key_comparable {
         use crate::{
             schema::{Atomic, Schema},
