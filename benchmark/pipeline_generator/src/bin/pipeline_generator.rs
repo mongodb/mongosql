@@ -64,9 +64,20 @@ fn build_catalog(
         .collect()
 }
 
-fn modify_date_literal(value: &mut Value) {
+fn modify_pipeline_value(value: &mut Value) {
     match value {
         Value::Object(obj) => {
+            // Workaround added to use $toString where Genny is converting a string to int
+            // When SQL-1642 is unblocked, remove this and confirm Q22 passes validation
+            if let Some(Value::String(s)) = obj.get("$literal") {
+                if s.parse::<i64>().is_ok() {
+                    let mut replace_with = serde_json::Map::new();
+                    replace_with.insert("$toString".to_string(), obj.remove("$literal").unwrap());
+                    *obj = replace_with;
+                    return;
+                }
+            }
+
             if let Some(Value::Object(literal_obj)) = obj.get_mut("$literal") {
                 if let Some(Value::Object(date_obj)) = literal_obj.get_mut("$date") {
                     if let Some(Value::String(timestamp_str)) = date_obj.get("$numberLong") {
@@ -89,12 +100,12 @@ fn modify_date_literal(value: &mut Value) {
                 }
             }
             for (_k, v) in obj.iter_mut() {
-                modify_date_literal(v);
+                modify_pipeline_value(v);
             }
         }
         Value::Array(arr) => {
             for v in arr.iter_mut() {
-                modify_date_literal(v);
+                modify_pipeline_value(v);
             }
         }
         _ => {}
@@ -180,7 +191,7 @@ fn get_pipeline(config: &Workload) -> (String, String) {
     let json_string = serde_json::to_string(&pipeline).unwrap();
     let mut json_value: Value = serde_json::from_str(json_string.as_str()).unwrap();
 
-    modify_date_literal(&mut json_value);
+    modify_pipeline_value(&mut json_value);
 
     // only alter the pipeline when validating, so result shapes line up with server teams
     if cfg!(feature = "validation") {
