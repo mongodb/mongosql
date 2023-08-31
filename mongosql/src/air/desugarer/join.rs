@@ -90,7 +90,7 @@ impl JoinDesugarerPassVisitor {
 
         let unwind = Unwind(Unwind {
             source: Box::new(lookup),
-            path: Box::new(FieldRef(as_var_name.clone().into())),
+            path: FieldRef(as_var_name.clone().into()),
             index: None,
             outer: join.join_type == JoinType::Left,
         });

@@ -39,13 +39,14 @@ fn air_field_input() -> Option<air::FieldRef> {
     Some("f.a".to_string().into())
 }
 
-fn mir_field_input() -> Option<mir::MatchPath> {
-    Some(mir::MatchPath::MatchFieldAccess(mir::MatchFieldAccess {
-        parent: Box::new(mir::MatchPath::MatchReference(("f", 0u16).into())),
-        field: "a".to_string(),
+fn mir_field_input() -> Option<mir::FieldPath> {
+    Some(mir::FieldPath {
+        key: ("f", 0u16).into(),
+        fields: vec!["a".to_string()],
         cache: mir::schema::SchemaCache::new(),
-    }))
+    })
 }
+
 mod logical {
     mod or {
         test_translate_match_query!(
@@ -378,17 +379,14 @@ mod match_path {
             is_join: false,
         };
 
-        let input = mir::MatchPath::MatchFieldAccess(mir::MatchFieldAccess {
-            parent: Box::new(mir::MatchPath::MatchFieldAccess(mir::MatchFieldAccess {
-                parent: Box::new(mir::MatchPath::MatchReference(("f", 0u16).into())),
-                field: "x".to_string(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
-            field: "y".to_string(),
+        let input = mir::FieldPath {
+            key: ("f", 0u16).into(),
+            fields: vec!["x".to_string(), "y".to_string()],
             cache: mir::schema::SchemaCache::new(),
-        });
+        };
+
         let expected: Result<Option<air::FieldRef>> = Ok(Some("f.x.y".to_string().into()));
-        let actual = translator.translate_match_path(input);
+        let actual = translator.translate_field_path(input);
         assert_eq!(expected, actual);
     }
 }

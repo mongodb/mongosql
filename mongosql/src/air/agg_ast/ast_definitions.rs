@@ -668,13 +668,13 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
             Stage::Unwind(u) => match u {
                 Unwind::FieldPath(path) => air::Stage::Unwind(air::Unwind {
                     source: Box::new(source.expect("$unwind without valid source stage")),
-                    path: Box::new(path.into()),
+                    path: path.into(),
                     index: None,
                     outer: false,
                 }),
                 Unwind::Document(d) => air::Stage::Unwind(air::Unwind {
                     source: Box::new(source.expect("$unwind without valid source stage")),
-                    path: d.path.into(),
+                    path: (*d.path).into(),
                     index: d.include_array_index,
                     outer: d.preserve_null_and_empty_arrays.unwrap_or(false),
                 }),

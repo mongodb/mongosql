@@ -6,7 +6,6 @@ use crate::mir::LateralJoin;
 use crate::{
     mir::{
         binding_tuple::Key,
-        optimizer::use_def_analysis::find_field_access_root,
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
         Derived, EquiJoin, Expression, Filter, Group, Join, Limit, MQLStage, MatchFilter, Offset,
@@ -15,7 +14,7 @@ use crate::{
     schema::ResultSet,
     SchemaCheckingMode,
 };
-use std::collections::{HashMap, HashSet};
+use std::collections::HashSet;
 
 impl Stage {
     // This is used for moving Offset as high as possible. They can be moved ahead of Any
@@ -248,13 +247,6 @@ enum BubbleUpSide {
     Both,
 }
 
-#[derive(Debug, Clone, PartialEq)]
-enum SubstitutionPossibility {
-    Always,
-    Maybe,
-    Never,
-}
-
 #[derive(Clone)]
 struct StageMovementVisitor<'a> {
     schema_state: SchemaInferenceState<'a>,
@@ -339,9 +331,9 @@ impl<'a> StageMovementVisitor<'a> {
         // unfortunately, due to the borrow checker, we compute uses we may not need.
         let (field_uses, node) = node.field_uses();
         let (datasource_uses, node) = node.datasource_uses();
-        let (source, is_sort) = match node {
-            Stage::Sort(ref n) => (&n.source, true),
-            Stage::Filter(ref n) => (&n.source, false),
+        let source = match node {
+            Stage::Sort(ref n) => &n.source,
+            Stage::Filter(ref n) => &n.source,
             _ => unreachable!(),
         };
         match source.as_ref() {
@@ -392,13 +384,6 @@ impl<'a> StageMovementVisitor<'a> {
             }
             source => {
                 let opaque_field_defines = source.opaque_field_defines();
-                let opaque_field_defines = if let Ok(opaque_field_defines) = opaque_field_defines {
-                    opaque_field_defines
-                } else {
-                    // It should actually be impossible for the defines to not be convertable to
-                    // FieldPath.
-                    unreachable!()
-                };
                 let field_uses = if let Ok(field_uses) = field_uses {
                     field_uses
                 } else if opaque_field_defines.is_empty() {
@@ -418,25 +403,14 @@ impl<'a> StageMovementVisitor<'a> {
                     node
                 } else {
                     let theta = source.defines();
-                    let subbed = if is_sort {
-                        match Self::is_sort_substitution_possible(&theta, &datasource_uses) {
-                            SubstitutionPossibility::Always => node.substitute(theta),
-                            SubstitutionPossibility::Never => return node,
-                            SubstitutionPossibility::Maybe => {
-                                match node.clone().attempt_substitute(theta, |e| {
-                                    find_field_access_root(&e).is_some()
-                                }) {
-                                    None => return node,
-                                    Some(subbed) => subbed,
-                                }
-                            }
-                        }
+                    // unfortunately, since substitution can fail, we need to clone the node.
+                    if let Some(subbed) = node.clone().substitute(theta) {
+                        // The source here is not a Set or a Join so the BubbleUpSide does not actually
+                        // matter, we use Both as a place holder.
+                        self.bubble_up(Self::handle_def_user, subbed, BubbleUpSide::Both)
                     } else {
-                        node.substitute(theta)
-                    };
-                    // The source here is not a Set or a Join so the BubbleUpSide does not actually
-                    // matter, we use Both as a place holder.
-                    self.bubble_up(Self::handle_def_user, subbed, BubbleUpSide::Both)
+                        node
+                    }
                 }
             }
         }
@@ -507,28 +481,6 @@ impl<'a> StageMovementVisitor<'a> {
             }
         }
         (self.bubble_up(Self::handle_def_user, node, side), true)
-    }
-
-    // is_sort_substitution_possible determines if substitutions are possible
-    // in a Sort stage. References are always substitutable. Documents and
-    // FieldAccesses are possibly substitutable. All other Expressions are
-    // disallowed in Sorts.
-    fn is_sort_substitution_possible(
-        theta: &HashMap<Key, Expression>,
-        field_uses: &HashSet<Key>,
-    ) -> SubstitutionPossibility {
-        for u in field_uses {
-            if let Some(e) = theta.get(u) {
-                match e {
-                    Expression::Reference(_) => (),
-                    Expression::Document(_) | Expression::FieldAccess(_) => {
-                        return SubstitutionPossibility::Maybe
-                    }
-                    _ => return SubstitutionPossibility::Never,
-                }
-            }
-        }
-        SubstitutionPossibility::Always
     }
 }
 

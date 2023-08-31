@@ -313,14 +313,11 @@ test_move_stage!(
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
-                path: Expression::FieldAccess( FieldAccess {
-                    expr: Expression::Reference( ReferenceExpr {
-                        key: Key::bot(0u16),
-                        cache: SchemaCache::new(),
-                    }).into(),
-                    field: "x".to_string(),
+                path: mir::FieldPath {
+                    key: Key::bot(0u16),
+                    fields: vec!["x".to_string()],
                     cache: SchemaCache::new(),
-                }).into(),
+                },
                 index: None,
                 outer: false,
                 cache: SchemaCache::new(),
@@ -360,14 +357,11 @@ test_move_stage!(
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
-                path: Expression::FieldAccess( FieldAccess {
-                    expr: Expression::Reference( ReferenceExpr {
-                        key: Key::bot(0u16),
-                        cache: SchemaCache::new(),
-                    }).into(),
-                    field: "x".to_string(),
+                path: mir::FieldPath {
+                    key: Key::bot(0u16),
+                    fields: vec!["x".to_string()],
                     cache: SchemaCache::new(),
-                }).into(),
+                },
                 index: None,
                 outer: false,
                 cache: SchemaCache::new(),
@@ -416,11 +410,11 @@ test_move_stage!(
            }).into(),
            specs: vec![
                SortSpecification::Asc(
-                   mir::Expression::FieldAccess(mir::FieldAccess {
-                       expr: mir::Expression::Reference(Key::bot(0u16).into()).into(),
-                       field: "y".to_string(),
+                   mir::FieldPath {
+                       key: Key::bot(0u16),
+                       fields: vec!["y".to_string()],
                        cache: SchemaCache::new(),
-                   }).into(),
+                   }
                ),
            ],
            cache: SchemaCache::new(),
@@ -452,11 +446,11 @@ test_move_stage!(
            }).into(),
            specs: vec![
                SortSpecification::Asc(
-                   mir::Expression::FieldAccess(mir::FieldAccess {
-                       expr: mir::Expression::Reference(Key::bot(0u16).into()).into(),
-                       field: "y".to_string(),
+                   mir::FieldPath {
+                       key: Key::bot(0u16),
+                       fields: vec!["y".to_string()],
                        cache: SchemaCache::new(),
-                   }).into(),
+                   }
                ),
            ],
            cache: SchemaCache::new(),
@@ -477,14 +471,11 @@ test_move_stage!(
                     cache: SchemaCache::new(),
                 })
                 .into(),
-                specs: vec![SortSpecification::Asc(
-                    mir::Expression::FieldAccess(mir::FieldAccess {
-                        expr: mir::Expression::Reference(("bar", 0u16).into()).into(),
-                        field: "y".to_string(),
-                        cache: SchemaCache::new(),
-                    })
-                    .into(),
-                ),],
+                specs: vec![SortSpecification::Asc(mir::FieldPath {
+                    key: Key::named("bar", 0u16),
+                    fields: vec!["y".to_string()],
+                    cache: SchemaCache::new(),
+                }),],
                 cache: SchemaCache::new(),
             })
             .into(),
@@ -530,14 +521,11 @@ test_move_stage!(
                 cache: SchemaCache::new(),
             })
             .into(),
-            specs: vec![SortSpecification::Asc(
-                mir::Expression::FieldAccess(mir::FieldAccess {
-                    expr: mir::Expression::Reference(Key::bot(0u16).into()).into(),
-                    field: "y".to_string(),
-                    cache: SchemaCache::new(),
-                })
-                .into(),
-            ),],
+            specs: vec![SortSpecification::Asc(mir::FieldPath {
+                key: Key::bot(0u16),
+                fields: vec!["y".to_string()],
+                cache: SchemaCache::new(),
+            }),],
             cache: SchemaCache::new(),
         })
         .into(),
@@ -559,30 +547,22 @@ test_move_stage!(
                     }).into(),
                     specs: vec![
                         SortSpecification::Asc(
-                            mir::Expression::FieldAccess(mir::FieldAccess {
-                                expr: mir::Expression::FieldAccess(mir::FieldAccess {
-                                    expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
-                                    field: "x".to_string(),
-                                    cache: SchemaCache::new(),
-                                }).into(),
-                                field: "a".to_string(),
+                            mir::FieldPath {
+                                key: Key::named("bar", 0u16),
+                                fields: vec!["x".to_string(), "a".to_string()],
                                 cache: SchemaCache::new(),
-                            }).into(),
+                            }
                         ),
                     ],
                     cache: SchemaCache::new(),
                 }).into(),
                 specs: vec![
                     SortSpecification::Desc(
-                        mir::Expression::FieldAccess(mir::FieldAccess {
-                            expr: mir::Expression::FieldAccess(mir::FieldAccess {
-                                expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
-                                field: "x".to_string(),
-                                cache: SchemaCache::new(),
-                            }).into(),
-                            field: "b".to_string(),
+                        mir::FieldPath {
+                            key: Key::named("bar", 0u16),
+                            fields: vec!["x".to_string(), "b".to_string()],
                             cache: SchemaCache::new(),
-                        }).into(),
+                        }
                     ),
                 ],
                 cache: SchemaCache::new(),
@@ -620,11 +600,11 @@ test_move_stage!(
                 }).into(),
                 specs: vec![
                     SortSpecification::Asc(
-                        mir::Expression::FieldAccess(mir::FieldAccess {
-                            expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
-                            field: "a".to_string(),
+                        mir::FieldPath {
+                            key: Key::named("bar", 0u16),
+                            fields: vec!["a".to_string()],
                             cache: SchemaCache::new(),
-                        }).into(),
+                        }
                     ),
                 ],
                 cache: SchemaCache::new(),
@@ -632,11 +612,11 @@ test_move_stage!(
             .into(),
             specs: vec![
                 SortSpecification::Desc(
-                    mir::Expression::FieldAccess(mir::FieldAccess {
-                        expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
-                        field: "b".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    mir::FieldPath {
+                         key: Key::named("bar", 0u16),
+                         fields: vec!["b".to_string()],
+                         cache: SchemaCache::new(),
+                    }
                 ),
             ],
             cache: SchemaCache::new(),
@@ -664,19 +644,11 @@ test_move_stage!(
                     scope: 0
                 })
                 .into(),
-                specs: vec![SortSpecification::Desc(
-                    mir::Expression::FieldAccess(mir::FieldAccess {
-                        expr: mir::Expression::FieldAccess(mir::FieldAccess {
-                            expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
-                            field: "x".to_string(),
-                            cache: SchemaCache::new(),
-                        })
-                        .into(),
-                        field: "b".to_string(),
-                        cache: SchemaCache::new(),
-                    })
-                    .into(),
-                ),],
+                specs: vec![SortSpecification::Desc(mir::FieldPath {
+                    key: Key::named("bar", 0u16),
+                    fields: vec!["x".to_string(), "b".to_string()],
+                    cache: SchemaCache::new(),
+                },),],
                 cache: SchemaCache::new(),
             })
             .into(),
@@ -719,14 +691,11 @@ test_move_stage!(
                 cache: SchemaCache::new(),
             })
             .into(),
-            specs: vec![SortSpecification::Desc(
-                mir::Expression::FieldAccess(mir::FieldAccess {
-                    expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
-                    field: "b".to_string(),
-                    cache: SchemaCache::new(),
-                })
-                .into(),
-            ),],
+            specs: vec![SortSpecification::Desc(mir::FieldPath {
+                key: Key::named("bar", 0u16),
+                fields: vec!["b".to_string()],
+                cache: SchemaCache::new(),
+            }),],
             cache: SchemaCache::new(),
         })
         .into(),
@@ -1581,14 +1550,11 @@ test_move_stage!(
                 }),
                 cache: SchemaCache::new(),
             }).into(),
-            path: Expression::FieldAccess( FieldAccess {
-                expr: Expression::Reference( ReferenceExpr {
-                    key: Key::bot(0u16),
-                    cache: SchemaCache::new(),
-                }).into(),
-                field: "x".to_string(),
+            path: mir::FieldPath {
+                key: Key::bot(0u16),
+                fields: vec!["x".to_string()],
                 cache: SchemaCache::new(),
-            }).into(),
+            },
             index: None,
             outer: false,
             cache: SchemaCache::new(),
@@ -1625,14 +1591,11 @@ test_move_stage!(
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
-                path: Expression::FieldAccess( FieldAccess {
-                    expr: Expression::Reference( ReferenceExpr {
-                        key: Key::bot(0u16),
-                        cache: SchemaCache::new(),
-                    }).into(),
-                    field: "x".to_string(),
+                path: mir::FieldPath {
+                    key: Key::bot(0u16),
+                    fields: vec!["x".to_string()],
                     cache: SchemaCache::new(),
-                }).into(),
+                },
                 index: None,
                 outer: false,
                 cache: SchemaCache::new(),

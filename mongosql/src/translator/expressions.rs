@@ -43,6 +43,81 @@ impl MqlTranslator {
         }
     }
 
+    pub fn translate_field_path(
+        &self,
+        mir_field_path: mir::FieldPath,
+    ) -> Result<Option<air::FieldRef>> {
+        let root = {
+            let mapping_registry_value = self
+                .mapping_registry
+                .get(&mir_field_path.key)
+                .ok_or(Error::ReferenceNotFound(mir_field_path.key))?;
+            match mapping_registry_value.ref_type {
+                MqlReferenceType::FieldRef => Some(mapping_registry_value.name.clone()),
+                MqlReferenceType::Variable => {
+                    // If the MappingRegistryValue is a Variable, we must ensure
+                    // it is the ROOT variable. Any other variable is invalid.
+                    // If it is the ROOT variable, we should omit that component
+                    // from the field path since Variables are invalid in match
+                    // language.
+                    if mapping_registry_value.name.as_str() != crate::util::ROOT_NAME {
+                        return Err(Error::InvalidMatchLanguageInputRef);
+                    }
+                    None
+                }
+            }
+        };
+        let mut ret = root.map(|root| air::FieldRef {
+            parent: None,
+            name: root,
+        });
+        for name in mir_field_path.fields {
+            let parent = ret.map(Box::new);
+            ret = Some(air::FieldRef { parent, name });
+        }
+        Ok(ret)
+    }
+
+    pub fn translate_field_path_to_expresssion(
+        &self,
+        mir_field_path: mir::FieldPath,
+    ) -> Result<air::Expression> {
+        let (root, is_var) = {
+            let mapping_registry_value = self
+                .mapping_registry
+                .get(&mir_field_path.key)
+                .ok_or(Error::ReferenceNotFound(mir_field_path.key))?;
+            match mapping_registry_value.ref_type {
+                MqlReferenceType::FieldRef => (mapping_registry_value.name.clone(), false),
+                MqlReferenceType::Variable => (mapping_registry_value.name.clone(), true),
+            }
+        };
+        if is_var {
+            let mut ret = air::Variable {
+                parent: None,
+                name: root,
+            };
+            for name in mir_field_path.fields {
+                ret = air::Variable {
+                    parent: Some(Box::new(ret)),
+                    name,
+                };
+            }
+            return Ok(air::Expression::Variable(ret));
+        }
+        let mut ret = air::FieldRef {
+            parent: None,
+            name: root,
+        };
+        for name in mir_field_path.fields {
+            ret = air::FieldRef {
+                parent: Some(Box::new(ret)),
+                name,
+            };
+        }
+        Ok(air::Expression::FieldRef(ret))
+    }
+
     fn translate_array_expression(&self, array: Vec<mir::Expression>) -> Result<air::Expression> {
         Ok(air::Expression::Array(
             array

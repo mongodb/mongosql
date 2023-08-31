@@ -9,8 +9,10 @@ pub mod optimizer;
 mod test;
 
 use thiserror::Error;
-#[derive(Debug, Error, PartialEq, Eq)]
+#[derive(Debug, Error, PartialEq, Clone)]
 pub enum Error {
     #[error("{0:?} is not a valid MIR type")]
     InvalidType(crate::ast::Type),
+    #[error("{0:?} is not a valid Field Path")]
+    InvalidFieldPath(crate::mir::Expression),
 }

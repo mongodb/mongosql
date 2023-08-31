@@ -650,8 +650,8 @@ mod sort {
                     }
                 }).into(),
            specs: vec![
-                air::SortSpecification::Desc("bar".to_string()),
-                air::SortSpecification::Asc("baz".to_string())
+                air::SortSpecification::Desc("bar.a".to_string()),
+                air::SortSpecification::Asc("baz.a".to_string())
             ],
         })),
         input = mir::Stage::Sort(mir::Sort {
@@ -670,18 +670,18 @@ mod sort {
         }).into(),
             specs: vec![
                 mir::SortSpecification::Desc(
-                    mir::Expression::Reference(mir::ReferenceExpr {
-                        key: Key::named("bar", 0u16),
+                    mir::FieldPath {
+                        key: ("bar", 0u16).into(),
+                        fields: vec!["a".to_string()],
                         cache: mir::schema::SchemaCache::new(),
-                    })
-                    .into()
+                    }
                 ),
                 mir::SortSpecification::Asc(
-                    mir::Expression::Reference(mir::ReferenceExpr {
-                        key: Key::named("baz", 0u16),
+                    mir::FieldPath {
+                        key: ("baz", 0u16).into(),
+                        fields: vec!["a".to_string()],
                         cache: mir::schema::SchemaCache::new(),
-                    })
-                    .into()
+                    }
                 )
             ],
             cache: mir::schema::SchemaCache::new(),
@@ -723,22 +723,16 @@ mod sort {
             })
             .into(),
             specs: vec![
-                mir::SortSpecification::Desc(
-                    mir::Expression::FieldAccess(mir::FieldAccess {
-                        expr: mir::Expression::Reference(("foo", 0u16).into()).into(),
-                        field: "bar".into(),
-                        cache: mir::schema::SchemaCache::new()
-                    })
-                    .into()
-                ),
-                mir::SortSpecification::Asc(
-                    mir::Expression::FieldAccess(mir::FieldAccess {
-                        expr: mir::Expression::Reference(("foo", 0u16).into()).into(),
-                        field: "baz".into(),
-                        cache: mir::schema::SchemaCache::new()
-                    })
-                    .into()
-                )
+                mir::SortSpecification::Desc(mir::FieldPath {
+                    key: ("foo", 0u16).into(),
+                    fields: vec!["bar".to_string()],
+                    cache: mir::schema::SchemaCache::new(),
+                }),
+                mir::SortSpecification::Asc(mir::FieldPath {
+                    key: ("foo", 0u16).into(),
+                    fields: vec!["baz".to_string()],
+                    cache: mir::schema::SchemaCache::new(),
+                })
             ],
             cache: mir::schema::SchemaCache::new()
         })
@@ -778,37 +772,20 @@ mod sort {
             })
             .into(),
             specs: vec![
-                mir::SortSpecification::Desc(
-                    mir::Expression::FieldAccess(mir::FieldAccess {
-                        expr: mir::Expression::FieldAccess(mir::FieldAccess {
-                            expr: mir::Expression::Reference(("foo", 0u16).into()).into(),
-                            field: "bar".into(),
-                            cache: mir::schema::SchemaCache::new()
-                        })
-                        .into(),
-                        field: "quz".into(),
-                        cache: mir::schema::SchemaCache::new()
-                    })
-                    .into(),
-                ),
-                mir::SortSpecification::Asc(
-                    mir::Expression::FieldAccess(mir::FieldAccess {
-                        expr: mir::Expression::FieldAccess(mir::FieldAccess {
-                            expr: mir::Expression::FieldAccess(mir::FieldAccess {
-                                expr: mir::Expression::Reference(("foo", 0u16).into()).into(),
-                                field: "baz".into(),
-                                cache: mir::schema::SchemaCache::new(),
-                            })
-                            .into(),
-                            field: "fizzle".into(),
-                            cache: mir::schema::SchemaCache::new(),
-                        })
-                        .into(),
-                        field: "bazzle".into(),
-                        cache: mir::schema::SchemaCache::new(),
-                    })
-                    .into()
-                )
+                mir::SortSpecification::Desc(mir::FieldPath {
+                    key: ("foo", 0u16).into(),
+                    fields: vec!["bar".to_string(), "quz".to_string()],
+                    cache: mir::schema::SchemaCache::new(),
+                }),
+                mir::SortSpecification::Asc(mir::FieldPath {
+                    key: ("foo", 0u16).into(),
+                    fields: vec![
+                        "baz".to_string(),
+                        "fizzle".to_string(),
+                        "bazzle".to_string()
+                    ],
+                    cache: mir::schema::SchemaCache::new(),
+                })
             ],
             cache: mir::schema::SchemaCache::new()
         })
@@ -1493,9 +1470,7 @@ mod derived {
 
 mod unwind {
     use crate::{
-        air::ExprLanguage,
-        map, unchecked_unique_linked_hash_map,
-        util::{air_variable_from_root, ROOT},
+        air::ExprLanguage, map, unchecked_unique_linked_hash_map, util::air_variable_from_root,
     };
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
@@ -1506,7 +1481,7 @@ mod unwind {
                 db: "test_db".to_string(),
                 collection: "foo".to_string()
             })),
-            path: Box::new(ROOT.clone()),
+            path: air::Expression::Variable("ROOT.bar".to_string().into()),
             index: None,
             outer: false,
         })),
@@ -1516,7 +1491,11 @@ mod unwind {
                 collection: "foo".into(),
                 cache: mir::schema::SchemaCache::new(),
             })),
-            path: Box::new(mir::Expression::Reference(("foo",0u16).into())),
+            path: mir::FieldPath {
+                key: ("foo",0u16).into(),
+                fields: vec!["bar".to_string()],
+                cache: mir::schema::SchemaCache::new(),
+            },
             index: None,
             outer: false,
             cache: mir::schema::SchemaCache::new(),
@@ -1530,7 +1509,7 @@ mod unwind {
                 db: "test_db".to_string(),
                 collection: "foo".to_string()
             })),
-            path: Box::new(air::Expression::Variable("ROOT.bar".to_string().into())),
+            path: air::Expression::Variable("ROOT.bar".to_string().into()),
             index: None,
             outer: true,
         })),
@@ -1540,11 +1519,11 @@ mod unwind {
                 collection: "foo".into(),
                 cache: mir::schema::SchemaCache::new(),
             })),
-            path: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
-                expr: mir::Expression::Reference(("foo",0u16).into()).into(),
-                field: "bar".into(),
+            path: mir::FieldPath {
+                key: ("foo",0u16).into(),
+                fields: vec!["bar".to_string()],
                 cache: mir::schema::SchemaCache::new(),
-            })),
+            },
             index: None,
             outer: true,
             cache: mir::schema::SchemaCache::new(),
@@ -1557,7 +1536,7 @@ mod unwind {
                 db: "test_db".to_string(),
                 collection: "foo".to_string(),
             })),
-            path: Box::new(air::Expression::Variable("ROOT.bar".to_string().into())),
+            path: air::Expression::Variable("ROOT.bar".to_string().into()),
             index: Some("i".to_string()),
             outer: true,
         })),
@@ -1567,11 +1546,11 @@ mod unwind {
                 collection: "foo".into(),
                 cache: mir::schema::SchemaCache::new(),
             })),
-            path: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
-                expr: mir::Expression::Reference(("foo",0u16).into()).into(),
-                field: "bar".into(),
+            path: mir::FieldPath {
+                key: ("foo",0u16).into(),
+                fields: vec!["bar".to_string()],
                 cache: mir::schema::SchemaCache::new(),
-            })),
+            },
             index: Some("i".into()),
             outer: true,
             cache: mir::schema::SchemaCache::new(),
@@ -1587,7 +1566,7 @@ mod unwind {
                         db: "test".to_string(),
                         collection: "foo".to_string(),
                     })),
-                    path: Box::new(air_variable_from_root("arr")),
+                    path: air_variable_from_root("arr"),
                     index: Some("idx".to_string()),
                     outer: false,
                 })),
@@ -1614,11 +1593,11 @@ mod unwind {
                         collection: "foo".into(),
                         cache: mir::schema::SchemaCache::new(),
                     })),
-                    path: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
-                        expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-                        field: "arr".into(),
+                    path: mir::FieldPath {
+                        key: ("foo", 0u16).into(),
+                        fields: vec!["arr".to_string()],
                         cache: mir::schema::SchemaCache::new(),
-                    })),
+                    },
                     index: Some("idx".into()),
                     outer: false,
                     cache: mir::schema::SchemaCache::new(),
@@ -1698,11 +1677,11 @@ mod mql_intrinsic {
                 })),
                 condition: mir::MatchQuery::Comparison(mir::MatchLanguageComparison {
                     function: mir::MatchLanguageComparisonOp::Lt,
-                    input: Some(mir::MatchPath::MatchFieldAccess(mir::MatchFieldAccess {
-                        parent: Box::new(mir::MatchPath::MatchReference(("f", 0u16).into())),
-                        field: "a".to_string(),
+                    input: Some(mir::FieldPath {
+                        key: ("f", 0u16).into(),
+                        fields: vec!["a".to_string()],
                         cache: mir::schema::SchemaCache::new(),
-                    })),
+                    }),
                     arg: mir::LiteralValue::Integer(1),
                     cache: mir::schema::SchemaCache::new(),
                 }),

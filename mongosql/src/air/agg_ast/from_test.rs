@@ -310,9 +310,9 @@ mod stage {
             unwind_field_path,
             expected = air::Stage::Unwind(air::Unwind {
                 source: Box::new(default_source()),
-                path: Box::new(air::Expression::FieldRef(
+                path: air::Expression::FieldRef(
                     "eca58228-b657-498a-b76e-f48a9161a404".to_string().into()
-                )),
+                ),
                 index: None,
                 outer: false
             }),
@@ -327,7 +327,7 @@ mod stage {
             unwind_document_no_options,
             expected = air::Stage::Unwind(air::Unwind {
                 source: Box::new(default_source()),
-                path: Box::new(air::Expression::FieldRef("array".to_string().into())),
+                path: air::Expression::FieldRef("array".to_string().into()),
                 index: None,
                 outer: false
             }),
@@ -344,7 +344,7 @@ mod stage {
             unwind_document_all_options,
             expected = air::Stage::Unwind(air::Unwind {
                 source: Box::new(default_source()),
-                path: Box::new(air::Expression::FieldRef("array".to_string().into())),
+                path: air::Expression::FieldRef("array".to_string().into()),
                 index: Some("i".to_string()),
                 outer: true
             }),
@@ -705,7 +705,7 @@ mod stage {
                             (
                                 "baz".to_string(),
                                 agg_ast::ProjectItem::Assignment(agg_ast::Expression::StringOrRef(
-                                    agg_ast::StringOrRef::Variable(ROOT_NAME.clone())
+                                    agg_ast::StringOrRef::Variable(ROOT_NAME.to_string())
                                 ))
                             ),
                         ]

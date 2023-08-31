@@ -119,7 +119,7 @@ pub enum JoinType {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Unwind {
     pub source: Box<Stage>,
-    pub path: Box<Expression>,
+    pub path: Expression,
     pub index: Option<String>,
     pub outer: bool,
 }

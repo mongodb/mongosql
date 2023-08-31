@@ -190,11 +190,11 @@ impl MqlTranslator {
             .into_iter()
             .map(|spec| {
                 Ok(match spec {
-                    mir::SortSpecification::Asc(mir_expr) => {
-                        air::SortSpecification::Asc(self.get_reference_key_name(*mir_expr)?)
+                    mir::SortSpecification::Asc(mir_field_path) => {
+                        air::SortSpecification::Asc(self.get_field_path_name(mir_field_path)?)
                     }
-                    mir::SortSpecification::Desc(mir_expr) => {
-                        air::SortSpecification::Desc(self.get_reference_key_name(*mir_expr)?)
+                    mir::SortSpecification::Desc(mir_field_path) => {
+                        air::SortSpecification::Desc(self.get_field_path_name(mir_field_path)?)
                     }
                 })
             })
@@ -208,7 +208,7 @@ impl MqlTranslator {
     fn translate_collection(&mut self, mir_collection: mir::Collection) -> Result<air::Stage> {
         self.mapping_registry.insert(
             Key::named(&mir_collection.collection, self.scope_level),
-            MqlMappingRegistryValue::new(ROOT_NAME.clone(), MqlReferenceType::Variable),
+            MqlMappingRegistryValue::new(ROOT_NAME.to_string(), MqlReferenceType::Variable),
         );
 
         Ok(air::Stage::Collection(air::Collection {
@@ -220,7 +220,7 @@ impl MqlTranslator {
     fn translate_array_stage(&mut self, mir_arr: mir::ArraySource) -> Result<air::Stage> {
         self.mapping_registry.insert(
             Key::named(&mir_arr.alias, self.scope_level),
-            MqlMappingRegistryValue::new(ROOT_NAME.clone(), MqlReferenceType::Variable),
+            MqlMappingRegistryValue::new(ROOT_NAME.to_string(), MqlReferenceType::Variable),
         );
 
         Ok(air::Stage::Documents(air::Documents {
@@ -301,7 +301,7 @@ impl MqlTranslator {
     fn translate_unwind(&mut self, mir_unwind: mir::Unwind) -> Result<air::Stage> {
         Ok(air::Stage::Unwind(air::Unwind {
             source: Box::new(self.translate_stage(*mir_unwind.source)?),
-            path: Box::new(self.translate_expression(*mir_unwind.path)?),
+            path: self.translate_field_path_to_expresssion(mir_unwind.path)?,
             index: mir_unwind.index,
             outer: mir_unwind.outer,
         }))

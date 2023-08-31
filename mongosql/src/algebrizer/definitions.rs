@@ -612,7 +612,7 @@ impl<'a> Algebrizer<'a> {
 
         let stage = mir::Stage::Unwind(mir::Unwind {
             source: Box::new(src),
-            path: Box::new(path),
+            path,
             index,
             outer: outer.unwrap_or(false),
             cache: Default::default(),
@@ -632,26 +632,9 @@ impl<'a> Algebrizer<'a> {
     /// identifier. Here, this means the algebrized expression is a FieldAccess
     /// expression which consists of only other FieldAccess expressions up the
     /// chain of exprs until it hits a Reference expression.
-    fn algebrize_unwind_path(&self, path: ast::Expression) -> Result<mir::Expression> {
-        /// Auxiliary function that recursively walks up the FieldAccess
-        /// tree, ensuring each parent expression is a FieldAccess until
-        /// it hits a reference.
-        fn is_valid_path(e: mir::Expression) -> bool {
-            match e {
-                mir::Expression::Reference(_) => true,
-                mir::Expression::FieldAccess(f) => is_valid_path(*f.expr),
-                _ => false,
-            }
-        }
-
+    fn algebrize_unwind_path(&self, path: ast::Expression) -> Result<mir::FieldPath> {
         let path = self.algebrize_expression(path)?;
-        if is_valid_path(path.clone()) {
-            if let mir::Expression::FieldAccess(_) = path {
-                return Ok(path);
-            }
-        };
-
-        Err(Error::InvalidUnwindPath)
+        (&path).try_into().map_err(|_| Error::InvalidUnwindPath)
     }
 
     #[allow(clippy::only_used_in_recursion)] // false positive
@@ -737,7 +720,7 @@ impl<'a> Algebrizer<'a> {
                     .sort_specs
                     .into_iter()
                     .map(|s| {
-                        let key = match s.key {
+                        let sort_key = match s.key {
                             ast::SortKey::Simple(expr) => {
                                 expression_algebrizer.algebrize_expression(expr)
                             }
@@ -745,10 +728,10 @@ impl<'a> Algebrizer<'a> {
                         }?;
                         match s.direction {
                             ast::SortDirection::Asc => {
-                                Ok(mir::SortSpecification::Asc(Box::new(key)))
+                                Ok(mir::SortSpecification::Asc(sort_key.try_into()?))
                             }
                             ast::SortDirection::Desc => {
-                                Ok(mir::SortSpecification::Desc(Box::new(key)))
+                                Ok(mir::SortSpecification::Desc(sort_key.try_into()?))
                             }
                         }
                     })
@@ -1025,11 +1008,7 @@ impl<'a> Algebrizer<'a> {
             self,
             mir::Expression::Is(mir::IsExpr {
                 expr: Box::new(self.algebrize_expression(*ast_node.expr)?),
-                target_type: mir::TypeOrMissing::try_from(ast_node.target_type).map_err(
-                    |e| match e {
-                        mir::Error::InvalidType(_) => Error::UnsupportedType(ast_node.target_type),
-                    }
-                )?,
+                target_type: mir::TypeOrMissing::try_from(ast_node.target_type)?,
                 cache: SchemaCache::new(),
             }),
         )
@@ -1168,10 +1147,7 @@ impl<'a> Algebrizer<'a> {
             self,
             mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
                 expr: Box::new(self.algebrize_expression(*t.expr)?),
-                target_type: mir::Type::try_from(t.target_type).map_err(|e| match e {
-                    mir::Error::InvalidType(_) =>
-                        Error::UnsupportedType(ast::TypeOrMissing::Type(t.target_type)),
-                })?,
+                target_type: mir::Type::try_from(t.target_type)?,
                 cache: SchemaCache::new(),
             }),
         );
@@ -1239,10 +1215,7 @@ impl<'a> Algebrizer<'a> {
                 self,
                 mir::Expression::Cast(mir::CastExpr {
                     expr: Box::new(self.algebrize_expression(*c.expr)?),
-                    to: mir::Type::try_from(c.to).map_err(|e| match e {
-                        mir::Error::InvalidType(_) =>
-                            Error::UnsupportedType(ast::TypeOrMissing::Type(c.to)),
-                    })?,
+                    to: mir::Type::try_from(c.to)?,
                     on_null: Box::new(
                         self.algebrize_expression(*(c.on_null.unwrap_or_else(|| null_expr!())))?
                     ),

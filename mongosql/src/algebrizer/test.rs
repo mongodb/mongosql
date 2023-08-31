@@ -3805,11 +3805,11 @@ mod from_clause {
             method = algebrize_from_clause,
             expected = Ok(mir::Stage::Unwind(mir::Unwind {
                 source: Box::new(mir_source_foo()),
-                path: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
-                    expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-                    field: "arr".into(),
+                path: mir::FieldPath {
+                    key: ("foo", 0u16).into(),
+                    fields: vec!["arr".to_string()],
                     cache: SchemaCache::new(),
-                })),
+                },
                 index: None,
                 outer: false,
                 cache: SchemaCache::new(),
@@ -3833,11 +3833,11 @@ mod from_clause {
             method = algebrize_from_clause,
             expected = Ok(mir::Stage::Unwind(mir::Unwind {
                 source: Box::new(mir_source_foo()),
-                path: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
-                    expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-                    field: "arr".into(),
+                path: mir::FieldPath {
+                    key: ("foo", 0u16).into(),
+                    fields: vec!["arr".to_string()],
                     cache: SchemaCache::new(),
-                })),
+                },
                 index: Some("i".into()),
                 outer: true,
                 cache: SchemaCache::new(),
@@ -3863,15 +3863,11 @@ mod from_clause {
             method = algebrize_from_clause,
             expected = Ok(mir::Stage::Unwind(mir::Unwind {
                 source: Box::new(mir_source_foo()),
-                path: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
-                    expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
-                        expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-                        field: "doc".into(),
-                        cache: SchemaCache::new(),
-                    })),
-                    field: "arr".into(),
+                path: mir::FieldPath {
+                    key: ("foo", 0u16).into(),
+                    fields: vec!["doc".to_string(), "arr".to_string()],
                     cache: SchemaCache::new(),
-                })),
+                },
                 index: None,
                 outer: false,
                 cache: SchemaCache::new(),
@@ -4141,20 +4137,16 @@ mod order_by_clause {
         expected = Ok(mir::Stage::Sort(mir::Sort {
             source: Box::new(source()),
             specs: vec![
-                mir::SortSpecification::Asc(Box::new(mir::Expression::FieldAccess(
-                    mir::FieldAccess {
-                        expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-                        field: "a".to_string(),
-                        cache: SchemaCache::new(),
-                    }
-                ))),
-                mir::SortSpecification::Desc(Box::new(mir::Expression::FieldAccess(
-                    mir::FieldAccess {
-                        expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-                        field: "b".to_string(),
-                        cache: SchemaCache::new(),
-                    }
-                )))
+                mir::SortSpecification::Asc(mir::FieldPath {
+                    key: ("foo", 0u16).into(),
+                    fields: vec!["a".to_string()],
+                    cache: SchemaCache::new(),
+                }),
+                mir::SortSpecification::Desc(mir::FieldPath {
+                    key: ("foo", 0u16).into(),
+                    fields: vec!["b".to_string()],
+                    cache: SchemaCache::new(),
+                })
             ],
             cache: SchemaCache::new(),
         })),
@@ -4204,13 +4196,11 @@ mod order_by_clause {
                 alias: "arr".into(),
                 cache: SchemaCache::new(),
             })),
-            specs: vec![mir::SortSpecification::Asc(Box::new(
-                mir::Expression::FieldAccess(mir::FieldAccess {
-                    expr: Box::new(mir::Expression::Reference(("arr", 0u16).into())),
-                    field: "a".to_string(),
-                    cache: SchemaCache::new(),
-                })
-            )),],
+            specs: vec![mir::SortSpecification::Asc(mir::FieldPath {
+                key: ("arr", 0u16).into(),
+                fields: vec!["a".to_string()],
+                cache: SchemaCache::new(),
+            }),],
             cache: SchemaCache::new(),
         })),
         input = Some(ast::OrderByClause {

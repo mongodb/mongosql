@@ -4,13 +4,12 @@ mod test;
 use super::Optimizer;
 use crate::{
     mir::{
-        optimizer::use_def_analysis::FieldPath,
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        ElemMatch, Expression, Filter, LiteralValue, MQLStage, MatchFieldAccess, MatchFilter,
+        ElemMatch, Expression, FieldPath, Filter, LiteralValue, MQLStage, MatchFilter,
         MatchLanguageComparison, MatchLanguageComparisonOp, MatchLanguageLogical,
-        MatchLanguageLogicalOp, MatchPath, MatchQuery, ReferenceExpr, ScalarFunction,
-        ScalarFunctionApplication, Stage, Unwind,
+        MatchLanguageLogicalOp, MatchQuery, ScalarFunction, ScalarFunctionApplication, Stage,
+        Unwind,
     },
     SchemaCheckingMode,
 };
@@ -49,7 +48,7 @@ impl Visitor for PrefilterUnwindsVisitor {
                     };
                     if field_uses.len() == 1 {
                         let field_use = field_uses.into_iter().next().unwrap();
-                        let opaque_field_defines = u.opaque_field_defines().unwrap();
+                        let opaque_field_defines = u.opaque_field_defines();
                         if !opaque_field_defines.contains(&field_use) {
                             return Stage::Filter(Filter {
                                 source: Box::new(Stage::Unwind(u)),
@@ -57,20 +56,12 @@ impl Visitor for PrefilterUnwindsVisitor {
                                 ..f
                             });
                         }
-                        if let FieldPath::Field {
-                            field: ref field_name,
-                            ..
-                        } = field_use
-                        {
-                            // unfortunately, stable rust does not yet allow chaning if let with
-                            // &&, so we must use a nested if.
-                            if Some(field_name) == u.index.as_ref() {
-                                return Stage::Filter(Filter {
-                                    source: Box::new(Stage::Unwind(u)),
-                                    condition,
-                                    ..f
-                                });
-                            }
+                        if field_use.fields.get(0) == u.index.as_ref() {
+                            return Stage::Filter(Filter {
+                                source: Box::new(Stage::Unwind(u)),
+                                condition,
+                                ..f
+                            });
                         }
                         Stage::Filter(Filter {
                             source: Box::new(Stage::Unwind(Unwind {
@@ -112,11 +103,7 @@ fn generate_prefilter(field: FieldPath, source: Box<Stage>, condition: &Expressi
                 };
             return Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
                 source,
-                condition: generate_between_elem_match_query(
-                    field.into(),
-                    lower_bound,
-                    upper_bound,
-                ),
+                condition: generate_between_elem_match_query(field, lower_bound, upper_bound),
                 cache: SchemaCache::new(),
             }))
             .into();
@@ -133,7 +120,7 @@ fn generate_prefilter(field: FieldPath, source: Box<Stage>, condition: &Expressi
         };
         return Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
             source,
-            condition: generate_comparison_elem_match_query(function, field.into(), lit),
+            condition: generate_comparison_elem_match_query(function, field, lit),
             cache: SchemaCache::new(),
         }))
         .into();
@@ -143,7 +130,7 @@ fn generate_prefilter(field: FieldPath, source: Box<Stage>, condition: &Expressi
 
 fn generate_comparison_elem_match_query(
     function: MatchLanguageComparisonOp,
-    field: MatchPath,
+    field: FieldPath,
     lit: LiteralValue,
 ) -> MatchQuery {
     MatchQuery::ElemMatch(ElemMatch {
@@ -154,7 +141,7 @@ fn generate_comparison_elem_match_query(
 }
 
 fn generate_between_elem_match_query(
-    field: MatchPath,
+    field: FieldPath,
     lower_bound: LiteralValue,
     upper_bound: LiteralValue,
 ) -> MatchQuery {
@@ -219,21 +206,5 @@ impl TryFrom<ScalarFunction> for MatchLanguageComparisonOp {
             ScalarFunction::Gte => Self::Gte,
             _ => return Err(()),
         })
-    }
-}
-
-impl From<FieldPath> for MatchPath {
-    fn from(f: FieldPath) -> MatchPath {
-        match f {
-            FieldPath::Ref(k) => MatchPath::MatchReference(ReferenceExpr {
-                key: k,
-                cache: SchemaCache::new(),
-            }),
-            FieldPath::Field { parent, field } => MatchPath::MatchFieldAccess(MatchFieldAccess {
-                parent: Box::new((*parent).into()),
-                field,
-                cache: SchemaCache::new(),
-            }),
-        }
     }
 }

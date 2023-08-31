@@ -3,7 +3,8 @@ macro_rules! test_schema {
     ($func_name:ident, $(expected_error_code = $expected_error_code:literal,)? $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? input = $input:expr, $(schema_env = $schema_env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
         #[test]
         fn $func_name() {
-            use crate::{mir::schema::SchemaInferenceState, schema::SchemaEnvironment, SchemaCheckingMode, catalog::Catalog};
+            #[allow(unused_imports)]
+            use crate::{mir::{FieldPath, schema::SchemaInferenceState}, schema::SchemaEnvironment, SchemaCheckingMode, catalog::Catalog};
 
             let input = $input;
 
@@ -6576,16 +6577,16 @@ mod schema {
                     cache: SchemaCache::new(),
                 })),
                 specs: vec![
-                    SortSpecification::Asc(Box::new(Expression::FieldAccess(FieldAccess {
-                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into(),
+                    SortSpecification::Asc(FieldPath {
+                        key: ("foo", 0u16).into(),
+                        fields: vec!["a".to_string()],
                         cache: SchemaCache::new(),
-                    }))),
-                    SortSpecification::Desc(Box::new(Expression::FieldAccess(FieldAccess {
-                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "b".into(),
+                    }),
+                    SortSpecification::Desc(FieldPath {
+                        key: ("foo", 0u16).into(),
+                        fields: vec!["b".to_string()],
                         cache: SchemaCache::new(),
-                    })))
+                    }),
                 ],
                 cache: SchemaCache::new(),
             }),
@@ -6620,16 +6621,16 @@ mod schema {
                     cache: SchemaCache::new(),
                 })),
                 specs: vec![
-                    SortSpecification::Asc(Box::new(Expression::FieldAccess(FieldAccess {
-                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into(),
+                    SortSpecification::Asc(FieldPath {
+                        key: ("foo", 0u16).into(),
+                        fields: vec!["a".to_string()],
                         cache: SchemaCache::new(),
-                    }))),
-                    SortSpecification::Asc(Box::new(Expression::FieldAccess(FieldAccess {
-                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "b".into(),
+                    }),
+                    SortSpecification::Asc(FieldPath {
+                        key: ("foo", 0u16).into(),
+                        fields: vec!["b".to_string()],
                         cache: SchemaCache::new(),
-                    })))
+                    }),
                 ],
                 cache: SchemaCache::new(),
             }),
@@ -6664,13 +6665,11 @@ mod schema {
                     collection: "bar".into(),
                     cache: SchemaCache::new(),
                 })),
-                specs: vec![SortSpecification::Asc(Box::new(Expression::FieldAccess(
-                    FieldAccess {
-                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into(),
-                        cache: SchemaCache::new(),
-                    }
-                ))),],
+                specs: vec![SortSpecification::Asc(FieldPath {
+                    key: ("foo", 0u16).into(),
+                    fields: vec!["a".to_string()],
+                    cache: SchemaCache::new(),
+                },)],
                 cache: SchemaCache::new(),
             }),
             schema_env = map! {
@@ -6990,7 +6989,7 @@ mod schema {
             mir::{
                 schema::Error,
                 schema::{CachedSchema, SchemaCache},
-                Collection, Expression, FieldAccess, Join, JoinType, Stage, Unwind,
+                Collection, FieldPath, Join, JoinType, Stage, Unwind,
             },
             schema::{Atomic, Document, ResultSet, Schema},
             set,
@@ -7007,11 +7006,11 @@ mod schema {
                     collection: "foo".into(),
                     cache: SchemaCache::new(),
                 })),
-                path: Box::new(Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                    field: "arr".into(),
+                path: FieldPath {
+                    key: ("foo", 0u16).into(),
+                    fields: vec!["arr".to_string()],
                     cache: SchemaCache::new(),
-                })),
+                },
                 index,
                 outer,
                 cache: SchemaCache::new(),
@@ -7342,11 +7341,11 @@ mod schema {
                         collection: "foo".into(),
                         cache: SchemaCache::new(),
                     })),
-                    path: Box::new(Expression::FieldAccess(FieldAccess {
-                        expr: Box::new(Expression::Reference(("bar", 0u16).into())),
-                        field: "arr".into(),
+                    path: FieldPath {
+                        key: ("bar", 0u16).into(),
+                        fields: vec!["arr".to_string()],
                         cache: SchemaCache::new(),
-                    })),
+                    },
                     index: None,
                     outer: false,
                     cache: SchemaCache::new(),
@@ -7667,19 +7666,11 @@ mod schema {
                         collection: "foo".into(),
                         cache: SchemaCache::new(),
                     })),
-                    path: Box::new(Expression::FieldAccess(FieldAccess {
-                        expr: Box::new(Expression::FieldAccess(FieldAccess {
-                            expr: Box::new(Expression::FieldAccess(FieldAccess {
-                                expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                                field: "a".into(),
-                                cache: SchemaCache::new(),
-                            })),
-                            field: "b".into(),
-                            cache: SchemaCache::new(),
-                        })),
-                        field: "arr".into(),
+                    path: FieldPath {
+                        key: ("foo", 0u16).into(),
+                        fields: vec!["a".to_string(), "b".to_string(), "arr".to_string()],
                         cache: SchemaCache::new(),
-                    })),
+                    },
                     index: Some("idx".into()),
                     outer: false,
                     cache: SchemaCache::new(),
@@ -7744,11 +7735,11 @@ mod schema {
                         condition: None,
                         cache: SchemaCache::new(),
                     })),
-                    path: Box::new(Expression::FieldAccess(FieldAccess {
-                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "arr".into(),
+                    path: FieldPath {
+                        key: ("foo", 0u16).into(),
+                        fields: vec!["arr".to_string()],
                         cache: SchemaCache::new(),
-                    })),
+                    },
                     index: Some("idx".into()),
                     outer: false,
                     cache: SchemaCache::new(),

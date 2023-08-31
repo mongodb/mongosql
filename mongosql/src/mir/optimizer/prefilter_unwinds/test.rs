@@ -19,16 +19,16 @@ fn mir_field_access(ref_name: &str, field_name: &str) -> mir::Expression {
     })
 }
 
-fn match_path(ref_name: &str, field_name: &str) -> mir::MatchPath {
-    mir::MatchPath::MatchFieldAccess(mir::MatchFieldAccess {
-        parent: mir::MatchPath::MatchReference(mir::ReferenceExpr {
-            key: (Key::named(ref_name, 0)),
-            cache: mir::schema::SchemaCache::new(),
-        })
-        .into(),
-        field: field_name.to_string(),
+fn mir_field_path(datasource_name: &str, field_name: &str) -> mir::FieldPath {
+    mir::FieldPath {
+        key: if datasource_name == "__bot__" {
+            Key::bot(0u16)
+        } else {
+            Key::named(datasource_name, 0u16)
+        },
+        fields: vec![field_name.to_string()],
         cache: mir::schema::SchemaCache::new(),
-    })
+    }
 }
 
 macro_rules! test_prefilter {
@@ -101,7 +101,7 @@ test_prefilter! {
                         source: Stage::Sentinel.into(),
                         condition: MatchQuery::ElemMatch(
                             ElemMatch {
-                                input: match_path("foo", "bar"),
+                                input: mir_field_path("foo", "bar"),
                                 condition: MatchQuery::Comparison(
                                     MatchLanguageComparison {
                                         function: MatchLanguageComparisonOp::Eq,
@@ -113,7 +113,7 @@ test_prefilter! {
                             }),
                             cache: SchemaCache::new(),
                     })).into(),
-                    path: mir_field_access("foo", "bar").into(),
+                    path: mir_field_path("foo", "bar"),
                     index: Some("idx".to_string()),
                     outer: false,
                     cache: SchemaCache::new(),
@@ -134,7 +134,7 @@ test_prefilter! {
     input = Stage::Filter(Filter {
                 source: Stage::Unwind( Unwind {
                     source: Stage::Sentinel.into(),
-                    path: mir_field_access("foo", "bar").into(),
+                    path: mir_field_path("foo", "bar"),
                     index: Some("idx".to_string()),
                     outer: false,
                     cache: SchemaCache::new(),
@@ -159,7 +159,7 @@ test_prefilter_no_op! {
     Stage::Filter(Filter {
             source: Stage::Unwind( Unwind {
                 source: Stage::Sentinel.into(),
-                path: mir_field_access("foo", "bar").into(),
+                path: mir_field_path("foo", "bar"),
                 index: Some("idx".to_string()),
                 outer: false,
                 cache: SchemaCache::new(),
@@ -187,7 +187,7 @@ test_prefilter! {
                         source: Stage::Sentinel.into(),
                         condition: MatchQuery::ElemMatch(
                             ElemMatch {
-                                input: match_path("foo", "bar"),
+                                input: mir_field_path("foo", "bar"),
                                 condition:
                                     MatchQuery::Logical( MatchLanguageLogical {
                                         op: MatchLanguageLogicalOp::And,
@@ -214,7 +214,7 @@ test_prefilter! {
                             }),
                             cache: SchemaCache::new(),
                     })).into(),
-                    path: mir_field_access("foo", "bar").into(),
+                    path: mir_field_path("foo", "bar"),
                     index: Some("idx".to_string()),
                     outer: false,
                     cache: SchemaCache::new(),
@@ -238,7 +238,7 @@ test_prefilter! {
     input = Stage::Filter(Filter {
                 source: Stage::Unwind( Unwind {
                     source: Stage::Sentinel.into(),
-                    path: mir_field_access("foo", "bar").into(),
+                    path: mir_field_path("foo", "bar"),
                     index: Some("idx".to_string()),
                     outer: false,
                     cache: SchemaCache::new(),
@@ -266,7 +266,7 @@ test_prefilter_no_op! {
     Stage::Filter(Filter {
             source: Stage::Unwind( Unwind {
                 source: Stage::Sentinel.into(),
-                path: mir_field_access("foo", "bar").into(),
+                path: mir_field_path("foo", "bar"),
                 index: Some("idx".to_string()),
                 outer: false,
                 cache: SchemaCache::new(),
@@ -297,7 +297,7 @@ test_prefilter_no_op! {
     Stage::Filter(Filter {
             source: Stage::Unwind( Unwind {
                 source: Stage::Sentinel.into(),
-                path: mir_field_access("foo", "bar").into(),
+                path: mir_field_path("foo", "bar"),
                 index: Some("idx".to_string()),
                 outer: false,
                 cache: SchemaCache::new(),
@@ -322,7 +322,7 @@ test_prefilter_no_op! {
     Stage::Filter(Filter {
         source: Stage::Unwind( Unwind {
             source: Stage::Sentinel.into(),
-            path: mir_field_access("foo", "bar").into(),
+            path: mir_field_path("foo", "bar"),
             index: Some("idx".to_string()),
             outer: false,
             cache: SchemaCache::new(),
@@ -349,7 +349,7 @@ test_prefilter_no_op! {
     Stage::Filter(Filter {
         source: Stage::Unwind( Unwind {
             source: Stage::Sentinel.into(),
-            path: mir_field_access("foo", "bar").into(),
+            path: mir_field_path("foo", "bar"),
             index: Some("idx".to_string()),
             outer: false,
             cache: SchemaCache::new(),

@@ -2,89 +2,14 @@
 mod test;
 
 use crate::{
-    catalog::Catalog,
     mir::{
-        binding_tuple::Key, optimizer::constant_folding::ConstantFoldExprVisitor,
-        schema::SchemaInferenceState, visitor::Visitor, ExistsExpr, Expression, FieldAccess,
-        Filter, Group, Project, ReferenceExpr, Sort, SortSpecification, Stage, SubqueryComparison,
-        SubqueryExpr, Unwind,
+        binding_tuple::Key, schema::SchemaCache, visitor::Visitor, Error, ExistsExpr, Expression,
+        FieldAccess, FieldPath, Filter, Group, Project, ReferenceExpr, Sort, Stage,
+        SubqueryComparison, SubqueryExpr, Unwind,
     },
-    schema::SchemaEnvironment,
     util::unique_linked_hash_map::UniqueLinkedHashMap,
-    SchemaCheckingMode,
 };
 use std::collections::{HashMap, HashSet};
-
-use thiserror::Error;
-#[derive(Debug, Error, PartialEq, Clone)]
-pub enum Error {
-    #[error("{0:?} is not a viable FieldPath")]
-    InvalidFieldPath(Expression),
-}
-
-#[derive(Eq, PartialEq, Debug, Hash, Clone)]
-pub enum FieldPath {
-    Ref(Key),
-    Field {
-        parent: Box<FieldPath>,
-        field: String,
-    },
-}
-
-impl FieldPath {
-    pub fn get_datasource(&self) -> Key {
-        match self {
-            Self::Ref(k) => k.clone(),
-            Self::Field { parent: p, .. } => p.get_datasource(),
-        }
-    }
-}
-
-impl TryFrom<&Expression> for FieldPath {
-    type Error = Error;
-
-    fn try_from(value: &Expression) -> Result<Self, Self::Error> {
-        match value {
-            Expression::FieldAccess(ref f) => f.try_into(),
-            Expression::Reference(ref r) => r.try_into(),
-            _ => Err(Error::InvalidFieldPath(value.clone())),
-        }
-    }
-}
-
-impl TryFrom<&FieldAccess> for FieldPath {
-    type Error = Error;
-
-    fn try_from(f: &FieldAccess) -> Result<Self, Self::Error> {
-        Ok(FieldPath::Field {
-            parent: Box::new(f.expr.as_ref().try_into()?),
-            field: f.field.clone(),
-        })
-    }
-}
-
-impl TryFrom<&ReferenceExpr> for FieldPath {
-    type Error = Error;
-
-    fn try_from(r: &ReferenceExpr) -> Result<Self, Self::Error> {
-        Ok(FieldPath::Ref(r.key.clone()))
-    }
-}
-
-pub fn find_field_access_root(field_access: &Expression) -> Option<Key> {
-    // We could use the FieldUseVisitor to find the root of the FieldAccess here, but it would
-    // require cloning the FieldAccess, which I wish to avoid, because the FieldUseVisitor needs
-    // ownership of the Expression.
-    let mut root_finder = field_access;
-    while let Expression::FieldAccess(FieldAccess { ref expr, .. }) = root_finder {
-        root_finder = &**expr;
-    }
-    if let Expression::Reference(ReferenceExpr { ref key, .. }) = root_finder {
-        return Some(key.clone());
-    }
-    // If the FieldAccess is not rooted in a Reference, we return None.
-    None
-}
 
 impl Project {
     pub(crate) fn defines(&self) -> HashMap<Key, Expression> {
@@ -121,9 +46,10 @@ impl Group {
     pub fn opaque_field_defines(&self) -> HashSet<FieldPath> {
         let mut ret = HashSet::new();
         for agg in self.aggregations.iter() {
-            ret.insert(FieldPath::Field {
-                parent: Box::new(FieldPath::Ref(Key::bot(self.scope))),
-                field: agg.alias.clone(),
+            ret.insert(FieldPath {
+                key: Key::bot(self.scope),
+                fields: vec![agg.alias.clone()],
+                cache: SchemaCache::new(),
             });
         }
         ret
@@ -131,19 +57,17 @@ impl Group {
 }
 
 impl Unwind {
-    pub fn opaque_field_defines(&self) -> Result<HashSet<FieldPath>, Error> {
+    pub fn opaque_field_defines(&self) -> HashSet<FieldPath> {
         let mut ret = HashSet::new();
-        ret.insert(self.path.as_ref().try_into()?);
+        ret.insert(self.path.clone());
         if let Some(ref index) = self.index {
-            let _ = ret.insert(FieldPath::Field {
-                parent: Box::new(FieldPath::Ref(
-                    find_field_access_root(self.path.as_ref())
-                        .ok_or_else(|| Error::InvalidFieldPath(self.path.as_ref().clone()))?,
-                )),
-                field: index.clone(),
+            let _ = ret.insert(FieldPath {
+                key: self.path.key.clone(),
+                fields: vec![index.clone()],
+                cache: SchemaCache::new(),
             });
         }
-        Ok(ret)
+        ret
     }
 }
 
@@ -156,11 +80,11 @@ impl Stage {
         }
     }
 
-    pub fn opaque_field_defines(&self) -> Result<HashSet<FieldPath>, Error> {
+    pub fn opaque_field_defines(&self) -> HashSet<FieldPath> {
         match self {
-            Stage::Group(n) => Ok(n.opaque_field_defines()),
+            Stage::Group(n) => n.opaque_field_defines(),
             Stage::Unwind(n) => n.opaque_field_defines(),
-            _ => Ok(HashSet::new()),
+            _ => HashSet::new(),
         }
     }
 }
@@ -230,6 +154,13 @@ impl Visitor for SingleStageFieldUseVisitor {
         node
     }
 
+    fn visit_field_path(&mut self, node: FieldPath) -> FieldPath {
+        if let Ok(ref mut field_uses) = self.field_uses {
+            field_uses.insert(node.clone());
+        }
+        node
+    }
+
     fn visit_subquery_expr(&mut self, node: SubqueryExpr) -> SubqueryExpr {
         // When we visit a SubqueryExpr in a Filter, we need to create a new Visitor that
         // collects ALL field_uses from the SubqueryExpr.
@@ -281,6 +212,8 @@ impl Visitor for SingleStageFieldUseVisitor {
 
 #[derive(Clone, Debug)]
 struct AllFieldUseVisitor {
+    // At some point we may prefer to change field_uses to HashSet<&FieldPath>
+    // to avoid some cloning, but this would likely be a difficult change.
     field_uses: Result<HashSet<FieldPath>, Error>,
 }
 
@@ -376,6 +309,11 @@ impl Visitor for SingleStageDatasourceUseVisitor {
         node
     }
 
+    fn visit_field_path(&mut self, node: FieldPath) -> FieldPath {
+        self.datasource_uses.insert(node.key.clone());
+        node
+    }
+
     fn visit_subquery_expr(&mut self, node: SubqueryExpr) -> SubqueryExpr {
         // When we visit a SubqueryExpr in a Filter, we need to create a new Visitor that
         // collects ALL datasource_uses from the SubqueryExpr.
@@ -420,16 +358,89 @@ impl Visitor for AllDatasourceUseVisitor {
 struct SubstituteVisitor {
     // It is traditional to call the substitution map in term rewriting the Greek symbol theta.
     theta: HashMap<Key, Expression>,
+    // Substitution can fail when trying to substitute a FieldPath
+    failed: bool,
 }
 
 impl Visitor for SubstituteVisitor {
     fn visit_expression(&mut self, node: Expression) -> Expression {
+        if self.failed {
+            return node;
+        }
         match node {
             Expression::Reference(ReferenceExpr { ref key, .. }) => {
                 self.theta.get(key).cloned().unwrap_or(node)
             }
             _ => node.walk(self),
         }
+    }
+
+    fn visit_field_path(&mut self, mut node: FieldPath) -> FieldPath {
+        if let Some(rep) = self.theta.get(&node.key) {
+            if self.failed {
+                return node;
+            }
+            let mut cur = rep;
+            // traverse through the fields to get to the proper place in the Document
+            // that is replacing the Key in this substitution
+            let mut field_idx = 0;
+            loop {
+                if node.fields.is_empty() {
+                    break;
+                }
+                let field = node.fields.get(field_idx);
+                match cur {
+                    // Each level of the Key substitution must be a Document, FieldAccess, or
+                    // Reference.
+                    Expression::Document(d) => {
+                        if let Some(next) = d.document.get(field.unwrap()) {
+                            cur = next;
+                            // since this was a Document, we need to remove addvance the field_idx
+                            // so that we can get the next field and so that this current field
+                            // will be omitted from the output, assuming this substitution
+                            // ultimately succeeds.
+                            field_idx += 1;
+                        } else {
+                            self.failed = true;
+                            return node;
+                        }
+                    }
+                    // If we hit a FieldAccess or Reference we end iteration and keep the remaining fields.
+                    // The remaining node.fields will be concatenated with the fields from this
+                    // FieldAccess, assuming it can be converted to a FieldPath, or the node.key will
+                    // just be replaced, if this is a Reference.
+                    Expression::FieldAccess(_) | Expression::Reference(_) => {
+                        break;
+                    }
+                    _ => {
+                        self.failed = true;
+                        return node;
+                    }
+                }
+            }
+            // If we are subbing in a Reference, we simply replace the FieldPath key with the Reference key.
+            if let Expression::Reference(r) = cur {
+                node.key = r.key.clone();
+                node.fields = node.fields.into_iter().skip(field_idx).collect();
+                return node;
+            }
+            // If we are subbing in a FieldAccess, it must be convertable to a FieldPath
+            // or this substitution has failed.
+            if let Expression::FieldAccess(fa) = cur {
+                let fp: Result<FieldPath, _> = fa.try_into();
+                if let Ok(fp) = fp {
+                    node.key = fp.key;
+                    node.fields = fp
+                        .fields
+                        .into_iter()
+                        .chain(node.fields.into_iter().skip(field_idx))
+                        .collect();
+                    return node;
+                }
+            }
+        }
+        self.failed = true;
+        node
     }
 }
 
@@ -460,8 +471,11 @@ impl Stage {
         (visitor.datasource_uses, ret)
     }
 
-    pub fn substitute(self, theta: HashMap<Key, Expression>) -> Self {
-        let mut visitor = SubstituteVisitor { theta };
+    pub fn substitute(self, theta: HashMap<Key, Expression>) -> Option<Self> {
+        let mut visitor = SubstituteVisitor {
+            theta,
+            failed: false,
+        };
         // We only implement substitute for Stages we intend to move for which substitution makes
         // sense: Filter, Group, and Sort. Substitution is unneeded for Limit and Offset.
         // Substitution must be very targeted. For instance, if we just visit a stage it would
@@ -469,7 +483,7 @@ impl Stage {
         // not an issue since the Key just should not exist, but best to be controlled. If nothing
         // else it results in better efficiency. Also, note that substitution cannot invalidate the
         // SchemaCache.
-        match self {
+        let ret = match self {
             Stage::Filter(Filter {
                 condition,
                 source,
@@ -515,72 +529,11 @@ impl Stage {
             // We could add no-ops for Limit and Offset, but it's better to just not call
             // substitute while we move them!
             _ => unimplemented!(),
-        }
-    }
-
-    /// attempt_substitute attempts to substitute theta into self, but will only
-    /// succeed if all substituted expressions pass the provided condition. None
-    /// is returned otherwise.
-    pub fn attempt_substitute<F>(
-        self,
-        theta: HashMap<Key, Expression>,
-        condition: F,
-    ) -> Option<Self>
-    where
-        F: Fn(Box<Expression>) -> bool,
-    {
-        // Substitute theta
-        let substituted = self.substitute(theta);
-
-        match substituted {
-            Stage::Sort(Sort {
-                source,
-                specs,
-                cache,
-            }) => {
-                // Create a constant folding visitor that field_uses empty SchemaInferenceState.
-                // The state is irrelevant since we are only constant-folding so that
-                // FieldAccesses that are rooted at Document expressions are simplified.
-                let c = &Catalog::default();
-                let empty_state = SchemaInferenceState::new(
-                    0,
-                    SchemaEnvironment::default(),
-                    c,
-                    SchemaCheckingMode::Relaxed,
-                );
-                let mut visitor = ConstantFoldExprVisitor { state: empty_state };
-
-                let mut folded_specs = vec![];
-                for spec in specs {
-                    // Attempt to constant fold each sort spec
-                    let folded_spec = visitor.visit_sort_specification(spec);
-
-                    // If the result meets the provided condition, retain it.
-                    if condition(folded_spec.clone().get_expr()) {
-                        folded_specs.push(folded_spec)
-                    } else {
-                        // Otherwise, substitution is not possible so return None.
-                        return None;
-                    }
-                }
-
-                Some(Stage::Sort(Sort {
-                    source,
-                    specs: folded_specs,
-                    cache,
-                }))
-            }
-            // Anything other than Sort is safe
-            _ => Some(substituted),
-        }
-    }
-}
-
-impl SortSpecification {
-    fn get_expr(self) -> Box<Expression> {
-        match self {
-            SortSpecification::Asc(e) => e,
-            SortSpecification::Desc(e) => e,
+        };
+        if visitor.failed {
+            None
+        } else {
+            Some(ret)
         }
     }
 }

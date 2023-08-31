@@ -271,7 +271,7 @@ mod match_stage {
             expr : Box::new(
                 MatchQuery::Comparison(MatchLanguageComparison {
                     function: MatchLanguageComparisonOp::Eq,
-                    input: Some("a".to_string().into()),
+                    input: Some("a".into()),
                     arg: LiteralValue::Integer(1),
                 })
             )
@@ -315,7 +315,7 @@ mod project {
                 }),
             ),
             specifications: unchecked_unique_linked_hash_map! {
-                "foo".to_string() => ProjectItem::Assignment(Expression::FieldRef("col".to_string().into())),
+                "foo".to_string() => ProjectItem::Assignment(Expression::FieldRef("col".into())),
                 "bar".to_string() => ProjectItem::Assignment(Expression::Literal(LiteralValue::Integer(19))),
             },
         }),
@@ -357,7 +357,7 @@ mod project {
                 }),
             ),
             specifications: unchecked_unique_linked_hash_map! {
-                "_id".to_string() => ProjectItem::Assignment(Expression::FieldRef("col".to_string().into())),
+                "_id".to_string() => ProjectItem::Assignment(Expression::FieldRef("col".into())),
                 "bar".to_string() => ProjectItem::Assignment(Expression::Literal(LiteralValue::Integer(19))),
             },
         }),
@@ -390,14 +390,14 @@ mod group {
             keys: vec![
                 NameExprPair {
                     name: "foo".into(),
-                    expr: Expression::FieldRef("foo".to_string().into())
+                    expr: Expression::FieldRef("foo".into())
                 },
                 NameExprPair {
                     name: "bar".into(),
                     expr: Expression::MQLSemanticOperator( MQLSemanticOperator {
                         op: MQLOperator::Add,
                         args: vec![
-                            Expression::FieldRef("bar".to_string().into()),
+                            Expression::FieldRef("bar".into()),
                             Expression::Literal(LiteralValue::Integer(1))
                         ],
                     })
@@ -408,7 +408,7 @@ mod group {
                     alias: "x".into(),
                     function: AggregationFunction::Min,
                     distinct: false,
-                    arg: Expression::FieldRef("x".to_string().into()).into(),
+                    arg: Expression::FieldRef("x".into()).into(),
                 },
                 AccumulatorExpr {
                     alias: "y".into(),
@@ -417,7 +417,7 @@ mod group {
                     arg: Expression::MQLSemanticOperator(MQLSemanticOperator {
                         op: MQLOperator::Mod,
                         args: vec![
-                            Expression::FieldRef("x".to_string().into()),
+                            Expression::FieldRef("x".into()),
                             Expression::Literal(LiteralValue::Integer(1i32))
                         ],
                     }).into(),
@@ -447,7 +447,7 @@ mod group {
             keys: vec![
                 NameExprPair {
                     name: "foo".into(),
-                    expr: Expression::FieldRef("foo".to_string().into())
+                    expr: Expression::FieldRef("foo".into())
                 },
             ],
             aggregations: vec![
@@ -455,7 +455,7 @@ mod group {
                     alias: "x".into(),
                     function: AggregationFunction::Min,
                     distinct: true,
-                    arg: Expression::FieldRef("x".to_string().into()).into(),
+                    arg: Expression::FieldRef("x".into()).into(),
                 },
             ],
         }),
@@ -482,7 +482,7 @@ mod group {
             keys: vec![
                 NameExprPair {
                     name: "foo".into(),
-                    expr: Expression::FieldRef("foo".to_string().into())
+                    expr: Expression::FieldRef("foo".into())
                 },
             ],
             aggregations: vec![
@@ -490,7 +490,7 @@ mod group {
                     alias: "x".into(),
                     function: AggregationFunction::Count,
                     distinct: false,
-                    arg: Expression::FieldRef("x".to_string().into()).into(),
+                    arg: Expression::FieldRef("x".into()).into(),
                 },
             ],
         }),
@@ -515,7 +515,7 @@ mod unwind {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
             })),
-            path: Expression::FieldRef("array".to_string().into()).into(),
+            path: Expression::FieldRef("array".into()),
             index: None,
             outer: false
         }),
@@ -535,7 +535,7 @@ mod unwind {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
             })),
-            path: Expression::FieldRef("array".to_string().into()).into(),
+            path: Expression::FieldRef("array".into()),
             index: Some("i".into()),
             outer: false
         }),
@@ -555,7 +555,7 @@ mod unwind {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
             })),
-            path: Expression::FieldRef("array".to_string().into()).into(),
+            path: Expression::FieldRef("array".into()),
             index: None,
             outer: true
         }),
@@ -574,7 +574,7 @@ mod unwind {
                 db: "mydb".to_string(),
                 collection: "col".to_string(),
             })),
-            path: Expression::FieldRef("array".to_string().into()).into(),
+            path: Expression::FieldRef("array".into()),
             index: Some("i".into()),
             outer: true
         }),
@@ -596,10 +596,10 @@ mod unwind {
                     collection: "col".to_string(),
                 })),
                 specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => ProjectItem::Assignment(Expression::FieldRef("col".to_string().into())),
+                    "foo".to_string() => ProjectItem::Assignment(Expression::FieldRef("col".into())),
                 },
             })),
-            path: Expression::FieldRef("foo.a.b".to_string().into()).into(),
+            path: Expression::FieldRef("foo.a.b".into()),
             index: Some("i".into()),
             outer: true,
         }),
@@ -814,7 +814,7 @@ mod lookup {
         input = test_input!(
             Some(vec![
                 LetVariable{name: "x".to_string(), expr: Box::new(Expression::Literal(LiteralValue::Integer(9)))},
-                LetVariable{name: "y".to_string(), expr: Box::new(Expression::FieldRef("a".to_string().into()))},
+                LetVariable{name: "y".to_string(), expr: Box::new(Expression::FieldRef("a".into()))},
             ])
         ),
     );
@@ -970,7 +970,7 @@ mod join {
                     "col2".to_string() => ProjectItem::Assignment(ROOT.clone()),
                 )
             })),
-            let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef("col".to_string().into()))}]),
+            let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef("col".into()))}]),
             join_type: JoinType::Left,
         }),
     );
@@ -994,8 +994,8 @@ mod join {
             condition: Some(Expression::SQLSemanticOperator(SQLSemanticOperator {
                 op: SQLOperator::Eq,
                 args: vec![
-                    Expression::Variable("vcol_0".to_string().into()),
-                    Expression::FieldRef("col2".to_string().into()),
+                    Expression::Variable("vcol_0".into()),
+                    Expression::FieldRef("col2".into()),
                 ]
             })),
             left: Box::new(Stage::Project(Project {
@@ -1016,7 +1016,7 @@ mod join {
                     "col2".to_string() => ProjectItem::Assignment(ROOT.clone())
                 )
             })),
-            let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef("col".to_string().into()))}]),
+            let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef("col".into()))}]),
             join_type: JoinType::Left,
         }),
     );

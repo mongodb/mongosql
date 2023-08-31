@@ -1,4 +1,7 @@
-use crate::mir::{self, binding_tuple::Key, optimizer::use_def_analysis::FieldPath};
+use crate::{
+    mir::{self, binding_tuple::Key, optimizer::use_def_analysis::FieldPath},
+    unchecked_unique_linked_hash_map,
+};
 
 macro_rules! test_method {
     ($func_name:ident, method = $method:ident, expected = $expected:expr, input = $input:expr,) => {
@@ -50,7 +53,7 @@ macro_rules! test_method_uses {
                     OptionallyAliasedExpr, ReferenceExpr, ScalarFunction,
                     ScalarFunctionApplication, Sort, SortSpecification, Stage,
                 },
-                set,
+                set, unchecked_unique_linked_hash_map,
             };
             #[allow(unused)]
             use std::collections::{HashMap, HashSet};
@@ -101,38 +104,6 @@ macro_rules! test_substitute {
             let expected = $expected;
             let theta = $theta;
             let actual = input.substitute(theta);
-            assert_eq!(expected, actual);
-        }
-    };
-}
-
-macro_rules! test_attempt_substitute {
-    ($func_name:ident, expected = $expected:expr, stage = $input:expr, theta = $theta:expr, condition = $condition:expr,) => {
-        #[test]
-        fn $func_name() {
-            #[allow(unused)]
-            use crate::{
-                map,
-                mir::{
-                    self,
-                    binding_tuple::Key,
-                    schema::SchemaCache,
-                    Collection,
-                    Expression::{self, *},
-                    Filter, Group, LiteralExpr,
-                    LiteralValue::*,
-                    ReferenceExpr, ScalarFunction, ScalarFunctionApplication, Sort,
-                    SortSpecification, Stage,
-                },
-                set, unchecked_unique_linked_hash_map,
-            };
-            #[allow(unused)]
-            use std::collections::{HashMap, HashSet};
-            let input = $input;
-            let expected = $expected;
-            let theta = $theta;
-            let condition = $condition;
-            let actual = input.attempt_substitute(theta, condition);
             assert_eq!(expected, actual);
         }
     };
@@ -190,15 +161,15 @@ fn mir_field_access(ref_name: &str, field_name: &str) -> mir::Expression {
     })
 }
 
-fn field_path(datasource: &str, field_name: &str) -> FieldPath {
-    FieldPath::Field {
-        parent: FieldPath::Ref(if datasource == "__bot__" {
-            Key::bot(0)
+fn mir_field_path(datasource_name: &str, field_names: Vec<&str>) -> mir::FieldPath {
+    FieldPath {
+        key: if datasource_name == "__bot__" {
+            Key::bot(0u16)
         } else {
-            Key::named(datasource, 0)
-        })
-        .into(),
-        field: field_name.into(),
+            Key::named(datasource_name, 0u16)
+        },
+        fields: field_names.into_iter().map(String::from).collect(),
+        cache: mir::schema::SchemaCache::new(),
     }
 }
 
@@ -262,8 +233,8 @@ test_method!(
     method = opaque_field_defines,
     expected = {
         let expected: HashSet<FieldPath> = set! {
-            field_path("__bot__", "agg1"),
-            field_path("__bot__", "agg2"),
+            mir_field_path("__bot__", vec!["agg1"]),
+            mir_field_path("__bot__", vec!["agg2"]),
         };
         expected
     },
@@ -279,45 +250,41 @@ test_method!(
         scope: 0,
     },
 );
+
 test_method!(
     unwind_opaque_field_defines,
     method = opaque_field_defines,
-    expected = Ok({
+    expected = {
         let expected: HashSet<FieldPath> = set! {
-            FieldPath::Field {
-                parent: FieldPath::Field {
-                    parent: FieldPath::Ref(Key::named("foo", 0)).into(),
-                    field: "bar".to_string(),
-                }.into(),
-                field: "arr".to_string(),
+            mir::FieldPath {
+                key: Key::named("foo", 0),
+                fields: vec!["bar".to_string(), "arr".to_string()],
+                cache: SchemaCache::new(),
             },
-            field_path("foo", "idx"),
+            mir_field_path("foo", vec!["idx"]),
         };
         expected
-    }),
+    },
     input = Unwind {
         source: mir_collection_stage(),
-        path: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
-                expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-                field: "bar".into(),
-                cache: SchemaCache::new(),
-            })),
-            field: "arr".into(),
+        path: mir::FieldPath {
+            key: Key::named("foo", 0),
+            fields: vec!["bar".to_string(), "arr".to_string()],
             cache: SchemaCache::new(),
-        })),
+        },
         index: Some("idx".to_string()),
         outer: false,
         cache: SchemaCache::new(),
     },
 );
+
 test_field_uses!(
     filter_field_uses,
     expected = Ok({
         let expected: HashSet<FieldPath> = set! {
-            field_path("foo", "x"),
-            field_path("bar", "x"),
-            field_path("bar", "y"),
+            mir_field_path("foo", vec!["x"]),
+            mir_field_path("bar", vec!["x"]),
+            mir_field_path("bar", vec!["y"]),
         };
         expected
     }),
@@ -343,16 +310,16 @@ test_field_uses!(
     sort_field_uses,
     expected = Ok({
         let expected: HashSet<FieldPath> = set! {
-            field_path("foo", "x"),
-            field_path("foo", "y"),
+            mir_field_path("foo", vec!["x"]),
+            mir_field_path("foo", vec!["y"]),
         };
         expected
     }),
     input = Stage::Sort(Sort {
         source: mir_collection_stage(),
         specs: vec![
-            SortSpecification::Asc(mir_field_access("foo", "x").into()),
-            SortSpecification::Desc(mir_field_access("foo", "y").into()),
+            SortSpecification::Asc(mir_field_path("foo", vec!["x"])),
+            SortSpecification::Desc(mir_field_path("foo", vec!["y"])),
         ],
         cache: SchemaCache::new(),
     }),
@@ -391,8 +358,8 @@ test_datasource_uses!(
     input = Stage::Sort(Sort {
         source: mir_collection_stage(),
         specs: vec![
-            SortSpecification::Asc(mir_reference("x").into()),
-            SortSpecification::Desc(mir_reference("y").into()),
+            SortSpecification::Asc(mir_field_path("x", vec!["a"])),
+            SortSpecification::Desc(mir_field_path("y", vec!["b"])),
         ],
         cache: SchemaCache::new(),
     }),
@@ -429,7 +396,7 @@ test_datasource_uses!(
 
 test_substitute!(
     filter_substitute,
-    expected = Stage::Filter(Filter {
+    expected = Some(Stage::Filter(Filter {
         source: mir_collection_stage(),
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Eq,
@@ -437,7 +404,7 @@ test_substitute!(
             cache: SchemaCache::new(),
         }),
         cache: SchemaCache::new(),
-    }),
+    })),
     stage = Stage::Filter(Filter {
         source: mir_collection_stage(),
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -452,32 +419,100 @@ test_substitute!(
         Key::named("y",0) => mir_int_expr(55),
     },
 );
+
 test_substitute!(
-    sort_substitute,
-    expected = Stage::Sort(Sort {
+    sort_substitute_doc,
+    expected = Some(Stage::Sort(Sort {
         source: mir_collection_stage(),
         specs: vec![
-            SortSpecification::Asc(mir_int_expr(42).into()),
-            SortSpecification::Desc(mir_int_expr(55).into()),
+            SortSpecification::Asc(mir_field_path("bar", vec!["x2", "a", "b"])),
+            SortSpecification::Desc(mir_field_path("bar", vec!["y2"])),
         ],
         cache: SchemaCache::new(),
-    }),
+    })),
     stage = Stage::Sort(Sort {
         source: mir_collection_stage(),
         specs: vec![
-            SortSpecification::Asc(mir_reference("x").into()),
-            SortSpecification::Desc(mir_reference("y").into()),
+            SortSpecification::Asc(mir_field_path("foo", vec!["x", "a", "b"])),
+            SortSpecification::Desc(mir_field_path("foo", vec!["y"])),
         ],
         cache: SchemaCache::new(),
     }),
     theta = map! {
-        Key::named("x",0) => mir_int_expr(42),
-        Key::named("y",0) => mir_int_expr(55),
+        Key::named("foo",0) =>
+            mir::Expression::Document(mir::DocumentExpr {
+                document: unchecked_unique_linked_hash_map! {
+                    "x".to_string() => mir::Expression::FieldAccess( mir::FieldAccess {
+                        expr: Box::new(mir::Expression::Reference( mir::ReferenceExpr {
+                            key: Key::named("bar", 0u16),
+                            cache: mir::schema::SchemaCache::new(),
+                        })),
+                        field: "x2".to_string(),
+                        cache: mir::schema::SchemaCache::new(),
+                    }),
+                    "y".to_string() => mir::Expression::FieldAccess( mir::FieldAccess {
+                        expr: Box::new(mir::Expression::Reference( mir::ReferenceExpr {
+                            key: Key::named("bar", 0u16),
+                            cache: mir::schema::SchemaCache::new(),
+                        })),
+                        field: "y2".to_string(),
+                        cache: mir::schema::SchemaCache::new(),
+                    }),
+                },
+                cache: mir::schema::SchemaCache::new(),
+          })
     },
 );
+
+test_substitute!(
+    sort_substitute_access,
+    expected = Some(Stage::Sort(Sort {
+        source: mir_collection_stage(),
+        specs: vec![
+            SortSpecification::Asc(mir_field_path("bar", vec!["a", "x", "a"])),
+            SortSpecification::Desc(mir_field_path("bar", vec!["a", "y"])),
+        ],
+        cache: SchemaCache::new(),
+    })),
+    stage = Stage::Sort(Sort {
+        source: mir_collection_stage(),
+        specs: vec![
+            SortSpecification::Asc(mir_field_path("foo", vec!["x", "a"])),
+            SortSpecification::Desc(mir_field_path("foo", vec!["y"])),
+        ],
+        cache: SchemaCache::new(),
+    }),
+    theta = map! {
+        Key::named("foo",0) => mir_field_access("bar", "a"),
+    },
+);
+
+test_substitute!(
+    sort_substitute_ref,
+    expected = Some(Stage::Sort(Sort {
+        source: mir_collection_stage(),
+        specs: vec![
+            SortSpecification::Asc(mir_field_path("bar", vec!["x"])),
+            SortSpecification::Desc(mir_field_path("bar", vec!["y"])),
+        ],
+        cache: SchemaCache::new(),
+    })),
+    stage = Stage::Sort(Sort {
+        source: mir_collection_stage(),
+        specs: vec![
+            SortSpecification::Asc(mir_field_path("foo", vec!["x"])),
+            SortSpecification::Desc(mir_field_path("foo", vec!["y"])),
+        ],
+        cache: SchemaCache::new(),
+    }),
+    theta = map! {
+        Key::named("foo",0) => mir_reference("bar"),
+    },
+);
+
 test_substitute!(
     group_substitute,
-    expected = Stage::Group(Group {
+    expected = Some(Stage::Group(Group {
         source: mir_collection_stage(),
         keys: vec![
             OptionallyAliasedExpr::Aliased(AliasedExpr {
@@ -496,7 +531,7 @@ test_substitute!(
         }],
         scope: 0,
         cache: SchemaCache::new(),
-    }),
+    })),
     stage = Stage::Group(Group {
         source: mir_collection_stage(),
         keys: vec![
@@ -524,21 +559,21 @@ test_substitute!(
     },
 );
 
-test_attempt_substitute!(
-    sort_attempt_substitute_succeeds,
+test_substitute!(
+    sort_attempt_substitute_succeeds_two_levels,
     expected = Some(Stage::Sort(Sort {
         source: mir_collection_stage(),
         specs: vec![
-            SortSpecification::Asc(mir_field_access("y", "a").into()),
-            SortSpecification::Desc(mir_field_access("y", "b").into()),
+            SortSpecification::Asc(mir_field_path("y", vec!["a"])),
+            SortSpecification::Desc(mir_field_path("y", vec!["b"])),
         ],
         cache: SchemaCache::new(),
     })),
     stage = Stage::Sort(Sort {
         source: mir_collection_stage(),
         specs: vec![
-            SortSpecification::Asc(mir_field_access("x", "a").into()),
-            SortSpecification::Desc(mir_field_access("x", "b").into()),
+            SortSpecification::Asc(mir_field_path("x", vec!["a"])),
+            SortSpecification::Desc(mir_field_path("x", vec!["b"])),
         ],
         cache: SchemaCache::new(),
     }),
@@ -548,30 +583,77 @@ test_attempt_substitute!(
             "b".to_string() => mir_field_access("y", "b"),
         }.into()),
     },
-    condition = |_| true,
 );
 
-test_attempt_substitute!(
-    sort_attempt_substitute_fails,
+test_substitute!(
+    sort_attempt_substitute_succeeds_three_levels,
+    expected = Some(Stage::Sort(Sort {
+        source: mir_collection_stage(),
+        specs: vec![
+            SortSpecification::Asc(mir_field_path("y", vec!["a"])),
+            SortSpecification::Desc(mir_field_path("y", vec!["b"])),
+        ],
+        cache: SchemaCache::new(),
+    })),
+    stage = Stage::Sort(Sort {
+        source: mir_collection_stage(),
+        specs: vec![
+            SortSpecification::Asc(mir_field_path("x", vec!["a", "c"])),
+            SortSpecification::Desc(mir_field_path("x", vec!["b", "d"])),
+        ],
+        cache: SchemaCache::new(),
+    }),
+    theta = map! {
+        Key::named("x",0) => mir::Expression::Document(unchecked_unique_linked_hash_map! {
+            "a".to_string() => mir::Expression::Document(unchecked_unique_linked_hash_map! {
+                "c".to_string() => mir_field_access("y", "a"),
+            }.into()),
+            "b".to_string() => mir::Expression::Document(unchecked_unique_linked_hash_map! {
+                "d".to_string() => mir_field_access("y", "b"),
+            }.into()),
+        }.into()),
+    },
+);
+
+test_substitute!(
+    sort_attempt_substitute_fails_missing_key,
     expected = None,
     stage = Stage::Sort(Sort {
         source: mir_collection_stage(),
         specs: vec![
-            SortSpecification::Asc(mir_field_access("x", "a").into()),
-            SortSpecification::Desc(mir_field_access("x", "b").into()),
+            SortSpecification::Asc(mir_field_path("x", vec!["a"])),
+            SortSpecification::Desc(mir_field_path("x", vec!["b"])),
+        ],
+        cache: SchemaCache::new(),
+    }),
+    theta = map! {
+        Key::named("z",0) => mir::Expression::Document(unchecked_unique_linked_hash_map! {
+            "a".to_string() => mir_field_access("y", "a"),
+            "b".to_string() => mir_field_access("y", "b"),
+        }.into()),
+    },
+);
+
+test_substitute!(
+    sort_attempt_substitute_fails_not_field_path,
+    expected = None,
+    stage = Stage::Sort(Sort {
+        source: mir_collection_stage(),
+        specs: vec![
+            SortSpecification::Asc(mir_field_path("x", vec!["a"])),
+            SortSpecification::Desc(mir_field_path("x", vec!["b"])),
         ],
         cache: SchemaCache::new(),
     }),
     theta = map! {
         Key::named("x",0) => mir::Expression::Document(unchecked_unique_linked_hash_map! {
-            "a".to_string() => mir_field_access("y", "a"),
-            "b".to_string() => mir_field_access("y", "b"),
+            "a".to_string() => mir_int_expr(42),
+            "b".to_string() => mir_int_expr(43),
         }.into()),
     },
-    condition = |_| false,
 );
 
-test_attempt_substitute!(
+test_substitute!(
     non_sort_attempt_substitute_trivially_succeeds,
     expected = Some(Stage::Filter(Filter {
         source: mir_collection_stage(),
@@ -595,5 +677,4 @@ test_attempt_substitute!(
         Key::named("x",0) => mir_int_expr(42),
         Key::named("y",0) => mir_int_expr(55),
     },
-    condition = |_| false,
 );

@@ -93,12 +93,12 @@ fn match_filter_stage(condition: MatchQuery) -> Stage {
     }))
 }
 
-fn match_path(field: &str) -> Option<MatchPath> {
-    Some(MatchPath::MatchFieldAccess(MatchFieldAccess {
-        parent: Box::new(MatchPath::MatchReference(("foo", 0u16).into())),
-        field: field.to_string(),
+fn field_path(field: &str) -> Option<FieldPath> {
+    Some(FieldPath {
+        key: ("foo", 0u16).into(),
+        fields: vec![field.to_string()],
         cache: SchemaCache::new(),
-    }))
+    })
 }
 
 // The following "helper functions" cannot exist as static variables since
@@ -116,7 +116,7 @@ fn valid_is() -> Expression {
 
 fn valid_match_is() -> MatchQuery {
     MatchQuery::Type(MatchLanguageType {
-        input: match_path("str"),
+        input: field_path("str"),
         target_type: TypeOrMissing::Type(Type::String),
         cache: SchemaCache::new(),
     })
@@ -147,7 +147,7 @@ fn valid_like() -> Expression {
 
 fn valid_match_like() -> MatchQuery {
     MatchQuery::Regex(MatchLanguageRegex {
-        input: match_path("str"),
+        input: field_path("str"),
         regex: "^abc$".to_string(),
         options: "si".to_string(),
         cache: SchemaCache::new(),
@@ -276,7 +276,7 @@ test_rewrite_to_match_language!(
 test_rewrite_to_match_language!(
     rewrite_valid_like_with_escape,
     expected = match_filter_stage(MatchQuery::Regex(MatchLanguageRegex {
-        input: match_path("str"),
+        input: field_path("str"),
         regex: "^a_._.*%$".to_string(),
         options: "si".to_string(),
         cache: SchemaCache::new(),

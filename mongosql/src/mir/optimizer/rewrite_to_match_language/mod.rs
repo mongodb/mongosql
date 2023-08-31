@@ -6,9 +6,9 @@ use crate::{
         optimizer::Optimizer,
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        Expression, FieldAccess, IsExpr, LikeExpr, LiteralExpr, LiteralValue, MQLStage,
-        MatchFieldAccess, MatchFilter, MatchLanguageLogical, MatchLanguageLogicalOp,
-        MatchLanguageRegex, MatchLanguageType, MatchPath, MatchQuery, ScalarFunction, Stage,
+        Expression, IsExpr, LikeExpr, LiteralExpr, LiteralValue, MQLStage, MatchFilter,
+        MatchLanguageLogical, MatchLanguageLogicalOp, MatchLanguageRegex, MatchLanguageType,
+        MatchQuery, ScalarFunction, Stage,
     },
     util::{convert_sql_pattern, LIKE_OPTIONS},
     SchemaCheckingMode,
@@ -50,20 +50,23 @@ struct MatchLanguageRewriterVisitor;
 impl MatchLanguageRewriterVisitor {
     fn rewrite_is(is: IsExpr) -> Option<MatchQuery> {
         match *is.expr {
-            Expression::FieldAccess(fa) => fa.to_match_path_if_pure().map(|mp| {
-                MatchQuery::Type(MatchLanguageType {
-                    input: Some(mp),
-                    target_type: is.target_type,
-                    cache: SchemaCache::new(),
+            Expression::FieldAccess(fa) => fa
+                .try_into()
+                .map(|mp| {
+                    MatchQuery::Type(MatchLanguageType {
+                        input: Some(mp),
+                        target_type: is.target_type,
+                        cache: SchemaCache::new(),
+                    })
                 })
-            }),
+                .ok(),
             _ => None,
         }
     }
 
     fn rewrite_like(like: LikeExpr) -> Option<MatchQuery> {
         let match_path = match *like.expr {
-            Expression::FieldAccess(fa) => fa.to_match_path_if_pure(),
+            Expression::FieldAccess(fa) => fa.try_into().ok(),
             _ => return None,
         };
 
@@ -134,20 +137,6 @@ impl Visitor for MatchLanguageRewriterVisitor {
                 })
             }
             _ => node,
-        }
-    }
-}
-
-impl From<FieldAccess> for MatchPath {
-    fn from(value: FieldAccess) -> Self {
-        match *value.expr {
-            Expression::Reference(r) => MatchPath::MatchReference(r),
-            Expression::FieldAccess(fa) => MatchPath::MatchFieldAccess(MatchFieldAccess {
-                parent: Box::new(fa.into()),
-                field: value.field,
-                cache: SchemaCache::new(),
-            }),
-            _ => panic!("only pure FieldAccesses supported"),
         }
     }
 }

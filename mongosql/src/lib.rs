@@ -1,3 +1,8 @@
+// we have a false positive on this because of FieldPath which does not actually Hash its Cache.
+// There appears to be no way to turn this off other than globally. Putting it on the struct
+// does not fix things.
+#![allow(clippy::mutable_key_type)]
+
 // air module (read as: the word "air", or "A - I - R"; stands for "Aggregation IR")
 mod air;
 mod algebrizer;

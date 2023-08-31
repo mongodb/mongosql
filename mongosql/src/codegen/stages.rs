@@ -258,8 +258,8 @@ impl MqlCodeGenerator {
         // If the path does not have a parent, then we're already at the root level of the document
         // and can just use the argument as is.
         if include_array_index.is_some() {
-            if let Some(field_ref) = match &*air_unwind.path {
-                air::Expression::FieldRef(f) => Some(f),
+            if let Some(field_ref) = match air_unwind.path {
+                air::Expression::FieldRef(ref f) => Some(f),
                 _ => None,
             } {
                 if field_ref.parent.is_some() {
@@ -271,7 +271,7 @@ impl MqlCodeGenerator {
                 }
             }
         }
-        let path = self.codegen_expression(*air_unwind.path)?;
+        let path = self.codegen_expression(air_unwind.path)?;
         let preserve_null_and_empty_arrays = air_unwind.outer;
 
         let unwind_body = match (

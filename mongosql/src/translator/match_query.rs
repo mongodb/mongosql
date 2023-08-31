@@ -1,8 +1,5 @@
-use crate::util::ROOT_NAME;
 use crate::{
-    air,
-    mapping_registry::MqlReferenceType,
-    mir,
+    air, mir,
     translator::{Error, MqlTranslator, Result},
 };
 
@@ -10,7 +7,7 @@ macro_rules! possibly_translate_input {
     ($self:ident, $input:expr) => {
         match $input {
             None => None,
-            Some(input) => $self.translate_match_path(input)?,
+            Some(input) => $self.translate_field_path(input)?,
         }
     };
 }
@@ -27,45 +24,6 @@ impl MqlTranslator {
             Regex(r) => self.translate_match_regex(r),
             ElemMatch(em) => self.translate_elem_match(em),
             Comparison(c) => self.translate_match_comparison(c),
-        }
-    }
-
-    pub fn translate_match_path(
-        &self,
-        mir_match_path: mir::MatchPath,
-    ) -> Result<Option<air::FieldRef>> {
-        use mir::MatchPath::*;
-        match mir_match_path {
-            MatchReference(r) => {
-                let mapping_registry_value = self
-                    .mapping_registry
-                    .get(&r.key)
-                    .ok_or(Error::ReferenceNotFound(r.key))?;
-                match mapping_registry_value.ref_type {
-                    MqlReferenceType::FieldRef => {
-                        Ok(Some(mapping_registry_value.name.clone().into()))
-                    }
-                    // If the MappingRegistryValue is a Variable, we must ensure
-                    // it is the ROOT variable. Any other variable is invalid.
-                    // If it is the ROOT variable, we should omit that component
-                    // from the field path since Variables are invalid in match
-                    // language.
-                    MqlReferenceType::Variable => {
-                        if mapping_registry_value.name == ROOT_NAME.clone() {
-                            Ok(None)
-                        } else {
-                            Err(Error::InvalidMatchLanguageInputRef)
-                        }
-                    }
-                }
-            }
-            MatchFieldAccess(fa) => {
-                let parent = self.translate_match_path(*fa.parent)?;
-                Ok(Some(air::FieldRef {
-                    parent: parent.map(Box::new),
-                    name: fa.field,
-                }))
-            }
         }
     }
 
@@ -91,7 +49,9 @@ impl MqlTranslator {
     }
 
     fn translate_match_regex(&self, r: mir::MatchLanguageRegex) -> Result<air::MatchQuery> {
+        dbg!(&r.input);
         let input = possibly_translate_input!(self, r.input);
+        dbg!(&input);
         Ok(air::MatchQuery::Regex(air::MatchLanguageRegex {
             input,
             regex: r.regex,
@@ -100,11 +60,12 @@ impl MqlTranslator {
     }
 
     fn translate_elem_match(&self, em: mir::ElemMatch) -> Result<air::MatchQuery> {
-        let input = self.translate_match_path(em.input)?;
+        let input = self.translate_field_path(em.input)?;
         let input = match input {
             None => return Err(Error::InvalidMatchLanguageInputRef),
             Some(input) => input,
         };
+
         let condition = self.translate_match_query(*em.condition)?;
         Ok(air::MatchQuery::ElemMatch(air::ElemMatch {
             input,

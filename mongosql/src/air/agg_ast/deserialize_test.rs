@@ -121,7 +121,7 @@ mod stage_test {
             multiple_elements,
             expected = Stage::Project(map! {
                 "_id".to_string() => ProjectItem::Exclusion,
-                "foo".to_string() => ProjectItem::Assignment(Expression::StringOrRef(StringOrRef::Variable(ROOT_NAME.clone()))),
+                "foo".to_string() => ProjectItem::Assignment(Expression::StringOrRef(StringOrRef::Variable(ROOT_NAME.to_string()))),
                 "bar".to_string() => ProjectItem::Assignment(Expression::StringOrRef(StringOrRef::FieldRef("bar".to_string()))),
                 "a".to_string() => ProjectItem::Assignment(Expression::UntaggedOperator(UntaggedOperator {
                     op: "$add".to_string(),
@@ -173,7 +173,7 @@ mod stage_test {
             expected = Stage::ReplaceWith(Expression::UntaggedOperator(UntaggedOperator {
                 op: "$mergeObjects".to_string(),
                 args: vec![
-                    Expression::StringOrRef(StringOrRef::Variable(ROOT_NAME.clone())),
+                    Expression::StringOrRef(StringOrRef::Variable(ROOT_NAME.to_string())),
                     Expression::StringOrRef(StringOrRef::FieldRef("as".to_string())),
                 ]
             })),

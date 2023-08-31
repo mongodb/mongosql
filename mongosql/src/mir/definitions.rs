@@ -115,7 +115,7 @@ pub struct Derived {
 #[derive(PartialEq, Debug, Clone)]
 pub struct Unwind {
     pub source: Box<Stage>,
-    pub path: Box<Expression>,
+    pub path: FieldPath,
     pub index: Option<String>,
     pub outer: bool,
     pub cache: SchemaCache<ResultSet>,
@@ -202,8 +202,8 @@ pub struct AggregationFunctionApplication {
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum SortSpecification {
-    Asc(Box<Expression>),
-    Desc(Box<Expression>),
+    Asc(FieldPath),
+    Desc(FieldPath),
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
@@ -267,7 +267,7 @@ impl From<LiteralValue> for LiteralExpr {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct ReferenceExpr {
     pub key: Key,
     pub cache: SchemaCache<Schema>,
@@ -696,15 +696,98 @@ pub enum MatchQuery {
     Comparison(MatchLanguageComparison),
 }
 
-#[derive(PartialEq, Debug, Clone)]
-pub enum MatchPath {
-    MatchReference(ReferenceExpr),
-    MatchFieldAccess(MatchFieldAccess),
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
+pub struct FieldPath {
+    pub key: Key,
+    pub fields: Vec<String>,
+    pub cache: SchemaCache<Schema>,
 }
 
-#[derive(PartialEq, Debug, Clone)]
-pub struct MatchFieldAccess {
-    pub parent: Box<MatchPath>,
+impl TryFrom<Expression> for FieldPath {
+    type Error = Error;
+
+    fn try_from(value: Expression) -> Result<Self, Self::Error> {
+        if let Expression::FieldAccess(f) = value {
+            f.try_into()
+        } else {
+            Err(Error::InvalidFieldPath(value))
+        }
+    }
+}
+
+impl TryFrom<&Expression> for FieldPath {
+    type Error = Error;
+
+    fn try_from(value: &Expression) -> Result<Self, Self::Error> {
+        if let Expression::FieldAccess(ref f) = value {
+            f.try_into()
+        } else {
+            Err(Error::InvalidFieldPath(value.clone()))
+        }
+    }
+}
+
+impl TryFrom<FieldAccess> for FieldPath {
+    type Error = Error;
+
+    fn try_from(value: FieldAccess) -> Result<Self, Self::Error> {
+        let mut cur = *value.expr;
+        let mut fields = vec![value.field];
+        loop {
+            match cur {
+                Expression::Reference(ReferenceExpr {key, cache}) => {
+                    fields.reverse();
+                    return Ok(
+                        FieldPath {
+                            key,
+                            fields,
+                            cache,
+                        });
+                }
+                Expression::FieldAccess(FieldAccess {expr, field, ..}) => {
+                    fields.push(field);
+                    cur = *expr;
+                }
+                _ => {
+                    return Err(Error::InvalidFieldPath(cur));
+                }
+            }
+        }
+    }
+}
+
+impl TryFrom<&FieldAccess> for FieldPath {
+    type Error = Error;
+
+    fn try_from(value: &FieldAccess) -> Result<Self, Self::Error> {
+        let mut cur = value.expr.as_ref();
+        let mut fields = vec![value.field.clone()];
+        loop {
+            match cur {
+                Expression::Reference(ReferenceExpr {key, cache}) => {
+                    fields.reverse();
+                    return Ok(
+                        FieldPath {
+                            key: key.clone(),
+                            fields,
+                            cache: cache.clone(),
+                        });
+                }
+                Expression::FieldAccess(FieldAccess {expr, field, ..}) => {
+                    fields.push(field.clone());
+                    cur = expr.as_ref();
+                }
+                _ => {
+                    return Err(Error::InvalidFieldPath(cur.clone()));
+                }
+            }
+        }
+    }
+}
+
+#[derive(PartialEq, Eq, Debug, Clone, Hash)]
+pub struct Field {
+    pub parent: Box<FieldPath>,
     pub field: String,
     pub cache: SchemaCache<Schema>,
 }
@@ -724,14 +807,14 @@ pub enum MatchLanguageLogicalOp {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct MatchLanguageType {
-    pub input: Option<MatchPath>,
+    pub input: Option<FieldPath>,
     pub target_type: TypeOrMissing,
     pub cache: SchemaCache<Schema>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct MatchLanguageRegex {
-    pub input: Option<MatchPath>,
+    pub input: Option<FieldPath>,
     pub regex: String,
     pub options: String,
     pub cache: SchemaCache<Schema>,
@@ -739,7 +822,7 @@ pub struct MatchLanguageRegex {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct ElemMatch {
-    pub input: MatchPath,
+    pub input: FieldPath,
     pub condition: Box<MatchQuery>,
     pub cache: SchemaCache<Schema>,
 }
@@ -747,7 +830,7 @@ pub struct ElemMatch {
 #[derive(PartialEq, Debug, Clone)]
 pub struct MatchLanguageComparison {
     pub function: MatchLanguageComparisonOp,
-    pub input: Option<MatchPath>,
+    pub input: Option<FieldPath>,
     pub arg: LiteralValue,
     pub cache: SchemaCache<Schema>
 }

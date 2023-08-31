@@ -2,11 +2,12 @@ use crate::air;
 use lazy_static::lazy_static;
 pub use mongosql_datastructures::unique_linked_hash_map;
 
+pub const ROOT_NAME: &str = "ROOT";
+
 lazy_static! {
-    pub static ref ROOT_NAME: String = "ROOT".to_string();
     pub static ref ROOT: air::Expression = air::Expression::Variable(air::Variable {
         parent: None,
-        name: ROOT_NAME.clone()
+        name: ROOT_NAME.to_string()
     });
     // https://www.mongodb.com/docs/manual/reference/operator/query/regex/#mongodb-query-op.-options
     // `s` allows '.' to match all characters including newline characters
@@ -113,7 +114,7 @@ pub(crate) fn mir_field_access(key_name: &str, field_name: &str) -> Box<mir::Exp
 
 #[cfg(test)]
 pub(crate) fn air_variable_from_root(rest: &str) -> air::Expression {
-    let full_path = format!("{}.{}", *ROOT_NAME, rest);
+    let full_path = format!("{}.{}", ROOT_NAME, rest);
     air::Expression::Variable(full_path.into())
 }
 

@@ -19,13 +19,14 @@ use std::{
     cell::RefCell,
     cmp::min,
     collections::{BTreeMap, BTreeSet},
+    hash::{Hash, Hasher},
 };
 
 mod errors;
 pub use errors::Error;
 mod util;
 
-#[derive(PartialEq, Clone, Debug)]
+#[derive(PartialEq, Eq, Hash, Clone, Debug)]
 struct SchemaCacheContents<T: Clone> {
     result: T,
 }
@@ -37,7 +38,7 @@ impl<T: Clone> SchemaCacheContents<T> {
 }
 
 /// SchemaCache caches a `Result` because `schema()` methods are fallible and always return a Result.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq)]
 pub struct SchemaCache<T: Clone>(RefCell<Option<SchemaCacheContents<Result<T, Error>>>>);
 
 impl<T: Clone> PartialEq for SchemaCache<T> {
@@ -46,6 +47,12 @@ impl<T: Clone> PartialEq for SchemaCache<T> {
         // about the contents of the SchemaCache of the stage or expression when comparing structs
         // which contain caches.
         true
+    }
+}
+
+impl<T: Clone> Hash for SchemaCache<T> {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        0.hash(state);
     }
 }
 
@@ -638,13 +645,8 @@ impl CachedSchema for Stage {
                     state.schema_checking_mode,
                 );
 
-                let path_as_field_access = match *u.path.clone() {
-                    Expression::FieldAccess(fa) => fa,
-                    _ => unreachable!(), // algebrization ensures the path is an Expression::FieldAccess
-                };
-
-                let path_datasource = path_as_field_access.clone().get_root_datasource()?;
-                let path_schema = u.path.clone().schema(&state)?;
+                let path_datasource = u.path.key.clone();
+                let path_schema = u.path.schema(&state)?;
                 let is_path_not_array = path_schema.satisfies(&ANY_ARRAY) == Satisfaction::Not;
 
                 // If the Unwind specifies an INDEX name, ensure it does not
@@ -761,9 +763,13 @@ impl CachedSchema for Stage {
                 match state.env.get(&(path_datasource.clone())) {
                     None => return Err(Error::DatasourceNotFoundInSchemaEnv(path_datasource)),
                     Some(path_datasource_schema) => {
+                        // the set_field_schema method expects paths to be in reverse order
+                        // of access. Rather than clone and then reverse in place, we just reverse
+                        // as we clone to avoid one iterative pass.
+                        let mut path_fields = u.path.fields.iter().cloned().rev().collect();
                         let updated_path_datasource_schema = set_field_schema(
                             path_datasource_schema.clone(),
-                            &mut path_as_field_access.get_field_path()?,
+                            &mut path_fields,
                             path_result_schema,
                             path_required,
                         );
@@ -1273,6 +1279,36 @@ impl LiteralValue {
             Long(_) => Schema::Atomic(Atomic::Long),
             Double(_) => Schema::Atomic(Atomic::Double),
         })
+    }
+}
+
+impl FieldPath {
+    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        let key_schema = state
+            .env
+            .get(&self.key)
+            .cloned()
+            .ok_or_else(|| Error::DatasourceNotFoundInSchemaEnv(self.key.clone()))?;
+
+        let mut cur_schema = key_schema;
+
+        // Note this will not check anything, if fields is empty, except that the datasource exists.
+        // Our code should never generate empty fields, and even if it did, this is technically correct.
+        // There is no reason the datasource has to be a Document if no fields are accessed.
+        for field in self.fields.iter() {
+            if cur_schema.satisfies(&ANY_DOCUMENT) == Satisfaction::Not {
+                return Err(Error::SchemaChecking {
+                    name: "FieldPath",
+                    required: ANY_DOCUMENT.clone(),
+                    found: cur_schema,
+                });
+            }
+            if cur_schema.contains_field(field) == Satisfaction::Not {
+                return Err(Error::AccessMissingField(field.clone()));
+            }
+            cur_schema = Expression::get_field_schema(&cur_schema, field);
+        }
+        Ok(cur_schema)
     }
 }
 

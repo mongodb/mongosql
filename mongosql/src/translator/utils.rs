@@ -106,20 +106,13 @@ impl MqlTranslator {
         Ok(mapped_k)
     }
 
-    pub(crate) fn get_reference_key_name(&self, expr: mir::Expression) -> Result<String> {
-        match expr {
-            mir::Expression::Reference(reference) => self
-                .mapping_registry
-                .get(&reference.key)
-                .ok_or(Error::ReferenceNotFound(reference.key))
-                .map(|s| s.name.clone()),
-            mir::Expression::FieldAccess(reference) => Ok(format!(
-                "{}.{}",
-                self.get_reference_key_name(*reference.expr)?,
-                reference.field
-            )),
-            _ => Err(Error::ExprNotReferenceOrFieldAccess),
-        }
+    pub(crate) fn get_field_path_name(&self, fp: mir::FieldPath) -> Result<String> {
+        let datasource_name = self
+            .mapping_registry
+            .get(&fp.key)
+            .ok_or(Error::ReferenceNotFound(fp.key))
+            .map(|s| s.name.clone())?;
+        Ok(format!("{datasource_name}.{0}", fp.fields.join(".")))
     }
 
     pub(crate) fn generate_let_bindings(

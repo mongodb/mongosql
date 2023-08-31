@@ -46,7 +46,7 @@ impl Visitor for DeadCodeEliminationVisitor {
                             match subbed {
                                 // After substituting Reference definitions from the Project
                                 // into the Group, remove the Project from the Stage tree.
-                                Stage::Group(g) => Stage::Group(Group {
+                                Some(Stage::Group(g)) => Stage::Group(Group {
                                     source: p.source,
                                     ..g
                                 }),
