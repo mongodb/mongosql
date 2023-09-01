@@ -1,7 +1,7 @@
 use crate::{
     mir::binding_tuple,
     schema::{Satisfaction, Schema},
-    usererror::{UserError, UserErrorDisplay},
+    usererror::{util::generate_suggestion, UserError, UserErrorDisplay},
 };
 
 #[derive(Debug, UserErrorDisplay, PartialEq, Eq, Clone)]
@@ -21,7 +21,7 @@ pub enum Error {
     CountDistinctStarNotSupported,
     InvalidComparison(&'static str, Schema, Schema),
     CannotMergeObjects(Schema, Schema, Satisfaction),
-    AccessMissingField(String),
+    AccessMissingField(String, Option<Vec<String>>),
     InvalidSubqueryCardinality,
     DuplicateKey(binding_tuple::Key),
     SortKeyNotSelfComparable(usize, Schema),
@@ -43,7 +43,7 @@ impl UserError for Error {
             Error::CountDistinctStarNotSupported => 1004,
             Error::InvalidComparison(_, _, _) => 1005,
             Error::CannotMergeObjects(_, _, _) => 1006,
-            Error::AccessMissingField(_) => 1007,
+            Error::AccessMissingField(_, _) => 1007,
             Error::InvalidSubqueryCardinality => 1008,
             Error::DuplicateKey(_) => 1009,
             Error::SortKeyNotSelfComparable(_, _) => 1010,
@@ -77,6 +77,32 @@ impl UserError for Error {
             }
             Error::CountDistinctStarNotSupported => None,
             Error::InvalidComparison(_, _, _) => None,
+            Error::AccessMissingField(field, found_fields) => {
+                if let Some(possible_fields) = found_fields {
+                    let suggestions = generate_suggestion(field, possible_fields);
+                    match suggestions {
+                        Ok(suggested_fields) => {
+                            if suggested_fields.is_empty() {
+                                Some(format!("Cannot access field `{field}` because it could not be found."))
+                            } else {
+                                Some(format!(
+                                    "Cannot access field `{field}` because it could not be found. Did you mean: {}",
+                                    suggested_fields
+                                        .iter()
+                                        .map(|x| x.to_string())
+                                        .collect::<Vec<String>>()
+                                        .join(", ")
+                                ))
+                            }
+                        }
+                        Err(e) => Some(format!("Cannot access field `{field}` because it could not be found. Internal error: {e}")),
+                    }
+                } else {
+                    Some(format!(
+                        "Cannot access field `{field}` because it could not be found."
+                    ))
+                }
+            }
             Error::CannotMergeObjects(s1, s2, _) => {
                 let overlap = s1
                     .keys()
@@ -89,7 +115,6 @@ impl UserError for Error {
                     overlap.join("`, `")
                 ))
             }
-            Error::AccessMissingField(_) => None,
             Error::InvalidSubqueryCardinality => None,
             Error::DuplicateKey(_) => None,
             Error::SortKeyNotSelfComparable(_, s) => Some(format!(
@@ -117,7 +142,7 @@ impl UserError for Error {
             Error::CountDistinctStarNotSupported => "COUNT(DISTINCT *) is not supported".to_string(),
             Error::InvalidComparison(func, s1, s2) => format!("invalid comparison for {0}: {1:?} cannot be compared to {2:?}", func, s1, s2),
             Error::CannotMergeObjects(s1, s2, sat) => format!("cannot merge objects {0:?} and {1:?} as they {2:?} have overlapping keys", s1, s2, sat),
-            Error::AccessMissingField(field) => format!("cannot access field {0} because it does not exist", field),
+            Error::AccessMissingField(field, _) => format!("cannot access field {0} because it does not exist", field),
             Error::InvalidSubqueryCardinality => "cardinality of the subquery's result set may be greater than 1".to_string(),
             Error::DuplicateKey(datasource) => format!("cannot create schema environment with duplicate datasource: {0:?}", datasource),
             Error::SortKeyNotSelfComparable(pos, schema) => format!("sort key at position {0} is not statically comparable to itself because it has the schema {1:?}", pos, schema),

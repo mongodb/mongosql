@@ -24,6 +24,8 @@ use std::{
 
 mod errors;
 pub use errors::Error;
+#[cfg(test)]
+mod test;
 mod util;
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
@@ -1214,7 +1216,12 @@ impl CachedSchema for Expression {
                     });
                 }
                 if accessee_schema.contains_field(field) == Satisfaction::Not {
-                    return Err(Error::AccessMissingField(field.clone()));
+                    let found_keys = accessee_schema.keys();
+                    if found_keys.is_empty() {
+                        return Err(Error::AccessMissingField(field.clone(), None));
+                    } else {
+                        return Err(Error::AccessMissingField(field.clone(), Some(found_keys)));
+                    }
                 }
                 Ok(Expression::get_field_schema(&accessee_schema, field))
             }
@@ -1304,7 +1311,10 @@ impl FieldPath {
                 });
             }
             if cur_schema.contains_field(field) == Satisfaction::Not {
-                return Err(Error::AccessMissingField(field.clone()));
+                return Err(Error::AccessMissingField(
+                    field.clone(),
+                    Some(cur_schema.keys()),
+                ));
             }
             cur_schema = Expression::get_field_schema(&cur_schema, field);
         }

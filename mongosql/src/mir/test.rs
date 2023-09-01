@@ -411,7 +411,10 @@ mod schema {
     test_schema!(
         field_access_field_must_not_exist_not_in_document,
         expected_error_code = 1007,
-        expected = Err(mir_error::AccessMissingField("foo".to_string())),
+        expected = Err(mir_error::AccessMissingField(
+            "foo".to_string(),
+            Some(vec!["foof".to_string()])
+        )),
         input = Expression::FieldAccess(FieldAccess {
             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
             field: "foo".to_string(),
@@ -5595,7 +5598,10 @@ mod schema {
     test_schema!(
         subquery_output_expr_violates_type_constraints,
         expected_error_code = 1007,
-        expected = Err(mir_error::AccessMissingField("_2".into())),
+        expected = Err(mir_error::AccessMissingField(
+            "_2".into(),
+            Some(vec!["_1".to_string()])
+        )),
         input = Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
