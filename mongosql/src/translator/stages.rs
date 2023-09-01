@@ -83,7 +83,6 @@ impl MqlTranslator {
                 &unique_bot_name,
                 &mir_project.expression,
             )?;
-
             project_body.insert(
                 mapped_k.clone(),
                 air::ProjectItem::Assignment(expr_translator.translate_expression(e)?),

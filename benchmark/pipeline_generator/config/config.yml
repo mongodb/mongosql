@@ -981,46 +981,46 @@ workloads:
           )
 
   # skip reason: SQL-1635 - query fails to parse
-  # - name: q18_normalized
-  #   db: tpch
-  #   phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
-  #   workload_dir: ./benchmark/atlas_sql/normalized/phase/
-  #   catalog_schema: *normalized_catalog_schema
-  #   query: >
-  #     SELECT
-  #         c_name,
-  #         c_custkey,
-  #         o_orderkey,
-  #         o_orderdate,
-  #         o_totalprice,
-  #         sum(l_quantity) as `sum(l_quantity)`
-  #     FROM
-  #         customer,
-  #         orders,
-  #         lineitem
-  #     WHERE
-  #         o_orderkey in (
-  #             SELECT
-  #                 l.l_orderkey
-  #             FROM
-  #                 lineitem as l
-  #             GROUP BY
-  #                 l.l_orderkey
-  #             HAVING
-  #                 sum(l.l_quantity) > 260
-  #         )
-  #         and c_custkey = o_custkey
-  #         and o_orderkey = l_orderkey
-  #     GROUP BY
-  #         c_name,
-  #         c_custkey,
-  #         o_orderkey,
-  #         o_orderdate,
-  #         o_totalprice
-  #     ORDER BY
-  #         o_totalprice desc,
-  #         o_orderdate
-  #     LIMIT 100
+  - name: q18_normalized
+    db: tpch
+    phase_template: ./benchmark/atlas_sql/normalized/phase_template.yml
+    workload_dir: ./benchmark/atlas_sql/normalized/phase/
+    catalog_schema: *normalized_catalog_schema
+    query: >
+      SELECT
+          c_name,
+          c_custkey,
+          o_orderkey,
+          o_orderdate,
+          o_totalprice,
+          sum(l_quantity) as `sum(l_quantity)`
+      FROM
+          customer,
+          orders,
+          lineitem
+      WHERE
+          o_orderkey in (
+              SELECT
+                  l.l_orderkey
+              FROM
+                  lineitem as l
+              GROUP BY
+                  l.l_orderkey
+              HAVING
+                  sum(l.l_quantity) > 260
+          )
+          and c_custkey = o_custkey
+          and o_orderkey = l_orderkey
+      GROUP BY
+          c_name,
+          c_custkey,
+          o_orderkey,
+          o_orderdate,
+          o_totalprice
+      ORDER BY
+          o_totalprice desc,
+          o_orderdate
+      LIMIT 100
 
   - name: q19_normalized
     db: tpch
