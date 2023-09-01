@@ -1,7 +1,10 @@
 use crate::{
     mir::binding_tuple,
     schema::{Satisfaction, Schema},
-    usererror::{util::generate_suggestion, UserError, UserErrorDisplay},
+    usererror::{
+        util::{generate_suggestion, unsat_check},
+        UserError, UserErrorDisplay,
+    },
 };
 
 #[derive(Debug, UserErrorDisplay, PartialEq, Eq, Clone)]
@@ -68,15 +71,36 @@ impl UserError for Error {
                 let simplified_required = Schema::simplify(required);
                 let simplified_found = Schema::simplify(found);
 
-                Some(format!("Incorrect argument type for `{name}`. Required: {simplified_required}. Found: {simplified_found}."))
+                if let Some(message) =
+                    unsat_check(vec![simplified_required.clone(), simplified_found.clone()])
+                {
+                    Some(message)
+                } else {
+                    Some(format!("Incorrect argument type for `{name}`. Required: {simplified_required}. Found: {simplified_found}."))
+                }
             }
             Error::AggregationArgumentMustBeSelfComparable(agg, schema) => {
                 let simplified_schema = Schema::simplify(schema);
 
-                Some(format!("Cannot perform `{agg}` aggregation over the type `{simplified_schema}` as it is not comparable to itself."))
+                if let Some(message) = unsat_check(vec![simplified_schema.clone()]) {
+                    Some(message)
+                } else {
+                    Some(format!("Cannot perform `{agg}` aggregation over the type `{simplified_schema}` as it is not comparable to itself."))
+                }
             }
             Error::CountDistinctStarNotSupported => None,
-            Error::InvalidComparison(_, _, _) => None,
+            Error::InvalidComparison(func, s1, s2) => {
+                let simplified_s1 = Schema::simplify(s1);
+                let simplified_s2 = Schema::simplify(s2);
+
+                if let Some(message) =
+                    unsat_check(vec![simplified_s1.clone(), simplified_s2.clone()])
+                {
+                    Some(message)
+                } else {
+                    Some(format ! ("Invalid use of `{func}` due to incomparable types: `{simplified_s1}` cannot be compared to `{simplified_s2}`."))
+                }
+            }
             Error::AccessMissingField(field, found_fields) => {
                 if let Some(possible_fields) = found_fields {
                     let suggestions = generate_suggestion(field, possible_fields);
@@ -117,14 +141,28 @@ impl UserError for Error {
             }
             Error::InvalidSubqueryCardinality => None,
             Error::DuplicateKey(_) => None,
-            Error::SortKeyNotSelfComparable(_, s) => Some(format!(
-                "Cannot sort by key because `{}` can't be compared against itself.",
-                Schema::simplify(s)
-            )),
-            Error::GroupKeyNotSelfComparable(_, schema) => Some(format!(
-                "Cannot group by key because `{}` can't be compared against itself.",
-                Schema::simplify(schema)
-            )),
+            Error::SortKeyNotSelfComparable(_, schema) => {
+                let simplified_schema = Schema::simplify(schema);
+
+                if let Some(message) = unsat_check(vec![simplified_schema.clone()]) {
+                    Some(message)
+                } else {
+                    Some(format!(
+                        "Cannot sort by key because `{simplified_schema}` can't be compared against itself."
+                    ))
+                }
+            }
+            Error::GroupKeyNotSelfComparable(_, schema) => {
+                let simplified_schema = Schema::simplify(schema);
+
+                if let Some(message) = unsat_check(vec![simplified_schema.clone()]) {
+                    Some(message)
+                } else {
+                    Some(format!(
+                        "Cannot group by key because `{simplified_schema}` can't be compared against itself.",
+                    ))
+                }
+            }
             Error::UnaliasedFieldAccessWithNoReference(_) => None,
             Error::UnaliasedNonFieldAccessExpression(_) => None,
             Error::UnwindIndexNameConflict(_) => None,

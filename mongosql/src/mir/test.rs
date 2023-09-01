@@ -8050,6 +8050,13 @@ mod user_error_messages {
             },
             expected = "Incorrect argument type for `array datasource items`. Required: object type. Found: int."
         }
+    }
+
+    mod cannot_merge_objects {
+        use crate::{
+            schema::{Atomic, Schema},
+            set,
+        };
 
         test_user_error_messages! {
             overlapping_single_key,

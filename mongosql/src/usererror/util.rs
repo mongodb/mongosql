@@ -1,3 +1,4 @@
+use crate::schema::Schema;
 use edit_distance::edit_distance;
 
 type Result<T> = std::result::Result<T, String>;
@@ -24,6 +25,42 @@ pub fn generate_suggestion(input: &str, expected: &[String]) -> Result<Vec<Strin
     closest.sort_by(|(a, _), (b, _)| a.cmp(b));
 
     Ok(closest.into_iter().map(|(_, s)| s.clone()).collect())
+}
+
+pub fn unsat_check(schema_vec: Vec<Schema>) -> Option<String> {
+    let unsat_found = schema_vec.iter().any(|schema| schema.eq(&Schema::Unsat));
+
+    if unsat_found {
+        Some("Internal error: Unsat schema found. Report this to MongoDB".to_string())
+    } else {
+        None
+    }
+}
+
+#[cfg(test)]
+mod unsat_check_tests {
+    use super::*;
+    use crate::schema::Atomic;
+
+    #[test]
+    fn unsat_found() {
+        assert_eq!(
+            Some("Internal error: Unsat schema found. Report this to MongoDB".to_string()),
+            unsat_check(vec![
+                Schema::Unsat,
+                Schema::Atomic(Atomic::Integer),
+                Schema::Atomic(Atomic::Boolean)
+            ])
+        )
+    }
+
+    #[test]
+    fn unsat_not_found() {
+        assert_eq!(
+            None,
+            unsat_check(vec![Schema::Atomic(Atomic::Null), Schema::Missing])
+        )
+    }
 }
 
 #[cfg(test)]
