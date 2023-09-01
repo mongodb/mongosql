@@ -115,7 +115,7 @@ if [[ "${pipeline_dir}" != *"validation"* ]]; then
       result_str="$result_str,"
     fi
     result_str="$result_str$json"
-    ((phase++))
+    ((phase++)) || true
     previous_dur_s=$current_dur_s
   done < "$PERF_RESULTS_FILE"
 
@@ -138,7 +138,7 @@ if [[ "${pipeline_dir}" != *"validation"* ]]; then
   max_q=$(ls benchmark/${pipeline_dir}/phase/q[0-9]*.yml | sed -E 's/.*q([0-9]+)_.*.yml/\1/' | sort -n | tail -n 1)
 
   for i in $(seq 1 $max_q); do
-    file=$(ls benchmark/${pipeline_dir}/phase/q${i}_*.yml 2>/dev/null)
+    file=$(ls benchmark/${pipeline_dir}/phase/q${i}_*.yml 2>/dev/null || true)
     if [ -f "$file" ]; then
       cat "$file" >> translations.log
     fi
