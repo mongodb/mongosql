@@ -76,13 +76,19 @@ impl UserError for Error {
                 Some(format!("Cannot perform `{agg}` aggregation over the type `{simplified_schema}` as it is not comparable to itself."))
             }
             Error::CountDistinctStarNotSupported => None,
-            Error::InvalidComparison(func, s1, s2) => {
-                let simplified_s1 = Schema::simplify(s1);
-                let simplified_s2 = Schema::simplify(s2);
+            Error::InvalidComparison(_, _, _) => None,
+            Error::CannotMergeObjects(s1, s2, _) => {
+                let overlap = s1
+                    .keys()
+                    .into_iter()
+                    .filter(|k| !matches!(s2.contains_field(k), Satisfaction::Not))
+                    .collect::<Vec<_>>();
 
-                Some(format!("Invalid use of `{func}` due to incomparable types: `{simplified_s1}` cannot be compared to `{simplified_s2}`."))
+                Some(format!(
+                    "Cannot merge objects because they have overlapping key(s): `{}`",
+                    overlap.join("`, `")
+                ))
             }
-            Error::CannotMergeObjects(_, _, _) => None,
             Error::AccessMissingField(_) => None,
             Error::InvalidSubqueryCardinality => None,
             Error::DuplicateKey(_) => None,

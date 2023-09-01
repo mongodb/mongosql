@@ -8044,6 +8044,60 @@ mod user_error_messages {
             },
             expected = "Incorrect argument type for `array datasource items`. Required: object type. Found: int."
         }
+
+        test_user_error_messages! {
+            overlapping_single_key,
+            input = Error::CannotMergeObjects(
+                Schema::Document(crate::schema::Document {
+                    keys: crate::map! {"a".into() => Schema::Atomic(Atomic::Integer) },
+                    required: set! {"a".into()},
+                    additional_properties: false,
+                }),
+                Schema::Document(crate::schema::Document {
+                    keys: crate::map! {"a".into() => Schema::Atomic(Atomic::Double) },
+                    required: set! {"a".into()},
+                    additional_properties: false,
+                }),
+                crate::schema::Satisfaction::Must,
+            ),
+            expected = "Cannot merge objects because they have overlapping key(s): `a`"
+        }
+
+        test_user_error_messages! {
+            overlapping_multiple_keys,
+            input = Error::CannotMergeObjects(
+                Schema::Document(crate::schema::Document {
+                    keys: crate::map! {"a".into() => Schema::Atomic(Atomic::Integer), "b".into() => Schema::Atomic(Atomic::String) },
+                    required: set! {"a".into(), "b".into()},
+                    additional_properties: false,
+                }),
+                Schema::Document(crate::schema::Document {
+                    keys: crate::map! {"a".into() => Schema::Atomic(Atomic::Double), "b".into() => Schema::Any },
+                    required: set! {"a".into(), "b".into()},
+                    additional_properties: false,
+                }),
+                crate::schema::Satisfaction::May,
+            ),
+            expected = "Cannot merge objects because they have overlapping key(s): `a`, `b`"
+        }
+        test_user_error_messages! {
+            overlapping_some_keys,
+            input = Error::CannotMergeObjects(
+                Schema::Document(crate::schema::Document {
+                    keys: crate::map! {"a".into() => Schema::Atomic(Atomic::Integer), "b".into() => Schema::Atomic(Atomic::String) },
+                    required: set! {"a".into(), "b".into()},
+                    additional_properties: false,
+                }),
+                Schema::Document(crate::schema::Document {
+                    keys: crate::map! {"a".into() => Schema::Atomic(Atomic::Double), "c".into() => Schema::Any },
+                    required: set! {"a".into(), "c".into()},
+                    additional_properties: false,
+                }),
+                crate::schema::Satisfaction::Must,
+            ),
+            expected = "Cannot merge objects because they have overlapping key(s): `a`"
+
+        }
     }
 
     mod aggregation_argument_must_be_self_comparable {
