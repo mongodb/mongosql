@@ -8046,6 +8046,28 @@ mod user_error_messages {
         }
     }
 
+    mod aggregation_argument_must_be_self_comparable {
+        use crate::schema::ANY_DOCUMENT;
+
+        test_user_error_messages! {
+            max,
+            input = Error::AggregationArgumentMustBeSelfComparable(
+                "Max".into(),
+                ANY_DOCUMENT.clone()
+            ),
+            expected = "Cannot perform `Max` aggregation over the type `object type` as it is not comparable to itself."
+        }
+
+        test_user_error_messages! {
+            max_distinct,
+            input = Error::AggregationArgumentMustBeSelfComparable(
+                "Max DISTINCT".into(),
+                ANY_DOCUMENT.clone()
+            ),
+            expected = "Cannot perform `Max DISTINCT` aggregation over the type `object type` as it is not comparable to itself."
+        }
+    }
+
     mod invalid_comparison {
         use crate::schema::{Atomic, Schema};
 
@@ -8106,6 +8128,7 @@ mod user_error_messages {
                 ]),
             ),
             expected = "Cannot group by key because `polymorphic type` can't be compared against itself."
+
         }
     }
 }

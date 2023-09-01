@@ -70,7 +70,11 @@ impl UserError for Error {
 
                 Some(format!("Incorrect argument type for `{name}`. Required: {simplified_required}. Found: {simplified_found}."))
             }
-            Error::AggregationArgumentMustBeSelfComparable(_, _) => None,
+            Error::AggregationArgumentMustBeSelfComparable(agg, schema) => {
+                let simplified_schema = Schema::simplify(schema);
+
+                Some(format!("Cannot perform `{agg}` aggregation over the type `{simplified_schema}` as it is not comparable to itself."))
+            }
             Error::CountDistinctStarNotSupported => None,
             Error::InvalidComparison(func, s1, s2) => {
                 let simplified_s1 = Schema::simplify(s1);
