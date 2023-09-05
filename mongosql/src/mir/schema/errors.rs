@@ -6,6 +6,7 @@ use crate::{
         UserError, UserErrorDisplay,
     },
 };
+use mongosql_datastructures::binding_tuple::DatasourceName;
 
 #[derive(Debug, UserErrorDisplay, PartialEq, Eq, Clone)]
 pub enum Error {
@@ -140,7 +141,16 @@ impl UserError for Error {
                 ))
             }
             Error::InvalidSubqueryCardinality => None,
-            Error::DuplicateKey(_) => None,
+            Error::DuplicateKey(datasource) => {
+                let datasource_name =
+                    if let DatasourceName::Named(name) = datasource.datasource.clone() {
+                        name
+                    } else {
+                        "".to_string()
+                    };
+
+                Some(format!("Cannot create schema environment because multiple datasources are named `{datasource_name}`."))
+            }
             Error::SortKeyNotSelfComparable(_, schema) => {
                 let simplified_schema = Schema::simplify(schema);
 
