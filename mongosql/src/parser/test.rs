@@ -1,8 +1,8 @@
 macro_rules! parsable {
-    ($func_name:ident, expected = $expected:expr, $(expected_error_tech_msg = $expected_error_tech_msg:expr,)? $(expected_error_code = $expected_error_code:literal,)? input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr, $(expected_error_user_msg = $expected_error_user_msg:expr,)? $(expected_error_tech_msg = $expected_error_tech_msg:expr,)? $(expected_error_code = $expected_error_code:literal,)? input = $input:expr) => {
         #[test]
         fn $func_name() {
-            use crate::parser::parse_query;
+            use crate::{parser::parse_query, usererror::UserError};
             let res = parse_query($input);
             let expected = $expected;
             if expected {
@@ -13,6 +13,9 @@ macro_rules! parsable {
                 match res {
                     Ok(_) => panic!("expected parse error, but parsing succeeded"),
                     Err(e) => {
+                        if e.user_message().is_some() {
+                            $(assert_eq!($expected_error_user_msg.to_string(), e.user_message().unwrap());)?
+                        }
                         $(assert_eq!($expected_error_tech_msg.to_string(), e.technical_message());)?
                         $(assert_eq!($expected_error_code, e.code()))?
                     },
@@ -1568,7 +1571,7 @@ mod parenthized_expression {
 }
 
 mod scalar_function {
-    use crate::{ast::*, usererror::UserError};
+    use crate::ast::*;
     parsable!(null_if, expected = true, input = "select nullif(a, b)");
     parsable!(
         coalesce,
@@ -1912,7 +1915,7 @@ mod scalar_function {
 }
 
 mod from {
-    use crate::{ast::*, usererror::UserError};
+    use crate::ast::*;
     parsable!(no_qualifier, expected = true, input = "SELECT * FROM foo");
     parsable!(qualifier, expected = true, input = "SELECT * FROM bar.foo");
     parsable!(
@@ -3537,4 +3540,37 @@ mod get_token {
     fn token_not_in_map_returns_self() {
         assert_eq!("FOO", get_token("FOO"))
     }
+}
+
+mod unrecognized_token_suggestion {
+
+    parsable!(
+        no_with_path,
+        expected = false,
+        expected_error_user_msg = "Unrecognized token `PAT`, did you mean `PATH`?",
+        expected_error_code = 2001,
+        input = "select * from UNWIND(foo WITH PAT => foo)"
+    );
+
+    parsable!(
+        selec,
+        expected = false,
+        expected_error_user_msg = "Unrecognized token `SELEC`, did you mean `SELECT`?",
+        expected_error_code = 2001,
+        input = "SELEC foo from bar"
+    );
+
+    parsable!(
+        nothing_close_to_recommend,
+        expected = false,
+        expected_error_user_msg = "Unrecognized token `=>`, expected: `+`, `AGGREGATE`, `AND`, `AS`, `ASC`, `BETWEEN`, `,`, `||`, `CROSS`, ```, `\"`, `DESC`, `/`, `.`, `.*`, `::`, `ELSE`, `END`, `=`, `ESCAPE`, `FETCH FIRST`, `FOR`, `FROM`, `GROUP`, `>`, `>=`, `HAVING`, `ID`, `IN`, `INNER`, `IS`, `JOIN`, `LEFT`, `[`, `(`, `LIKE`, `LIMIT`, `<`, `<=`, `<>`, `NOT`, `NOT IN`, `NOT LIKE`, `OFFSET`, `ON`, `OR`, `ORDER`, `RIGHT`, `]`, `}`, `)`, `*`, `-`, `THEN`, `::!`, `UNION`, `WHEN`, `WHERE`, `WITH`",
+        input = "select * from UNWIND(foo => foo)"
+    );
+
+    parsable!(
+        not_a_valid_query,
+        expected = false,
+        expected_error_user_msg = "Unrecognized token `notavalidquery`, expected: `SELECT`",
+        input = "notavalidquery"
+    );
 }

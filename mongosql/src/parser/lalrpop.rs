@@ -1,6 +1,6 @@
 use crate::{
     ast,
-    usererror::{UserError, UserErrorDisplay},
+    usererror::{util::generate_suggestion, UserError, UserErrorDisplay},
 };
 use lalrpop_util::{lalrpop_mod, lexer::Token};
 use lazy_static::lazy_static;
@@ -31,7 +31,30 @@ impl UserError for Error {
     fn user_message(&self) -> Option<String> {
         match self {
             Error::Lalrpop(_) => None,
-            Error::UnexpectedToken(_, _) => None,
+            Error::UnexpectedToken(input, expected) => {
+                match generate_suggestion(
+                    input,
+                    &expected.iter().map(get_token).collect::<Vec<_>>(),
+                ) {
+                    Ok(translated_expected) => {
+                        if translated_expected.len() > 3 || translated_expected.is_empty() {
+                            return Some(format!(
+                                "Unrecognized token `{input}`, expected: `{}`",
+                                expected
+                                    .iter()
+                                    .map(get_token)
+                                    .collect::<Vec<_>>()
+                                    .join("`, `")
+                            ));
+                        }
+                        Some(format!(
+                            "Unrecognized token `{input}`, did you mean `{}`?",
+                            translated_expected.join("`, `")
+                        ))
+                    }
+                    Err(e) => Some(format!("Unrecognized token `{input}`. {e}")),
+                }
+            }
         }
     }
 
@@ -106,10 +129,10 @@ lazy_static! {
     ]);
 }
 
-// remove `#[allow(dead_code)]` during SQL-1605
 #[allow(dead_code)]
-pub fn get_token(input: &str) -> String {
-    match TOKEN_MAP.get(input) {
+pub fn get_token<T: Into<String>>(input: T) -> String {
+    let input = input.into();
+    match TOKEN_MAP.get(input.as_str()) {
         Some(token) => (*token).to_string(),
         None => input.to_string(),
     }
