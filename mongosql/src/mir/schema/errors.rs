@@ -35,6 +35,7 @@ pub enum Error {
     UnwindIndexNameConflict(String),
     InvalidUnwindPath,
     CollectionNotFound(String, String),
+    ExtJsonComparison(String),
 }
 
 impl UserError for Error {
@@ -57,6 +58,7 @@ impl UserError for Error {
             Error::UnwindIndexNameConflict(_) => 1014,
             Error::InvalidUnwindPath => 1015,
             Error::CollectionNotFound(_, _) => 1016,
+            Error::ExtJsonComparison(_) => 1017,
         }
     }
 
@@ -178,6 +180,7 @@ impl UserError for Error {
             Error::UnwindIndexNameConflict(_) => None,
             Error::InvalidUnwindPath => None,
             Error::CollectionNotFound(_, _) => None,
+            Error::ExtJsonComparison(s) => Some(s.clone()),
         }
     }
 
@@ -200,6 +203,7 @@ impl UserError for Error {
             Error::UnwindIndexNameConflict(name) => format!("UNWIND INDEX name '{0}' conflicts with existing field name", name),
             Error::InvalidUnwindPath => "UNWIND PATH option must be an identifier".to_string(),
             Error::CollectionNotFound(database, coll) => format!("unknown collection '{1}' in database '{0}'", database, coll),
+            Error::ExtJsonComparison(_) => "Extended JSON detected in comparison operation".to_string()
         }
     }
 }

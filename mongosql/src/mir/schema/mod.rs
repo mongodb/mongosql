@@ -24,8 +24,8 @@ use std::{
 
 mod errors;
 pub use errors::Error;
-#[cfg(test)]
-mod test;
+mod ext_json_detector;
+use self::ext_json_detector::ext_json_check;
 mod util;
 
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
@@ -1338,7 +1338,7 @@ impl ScalarFunctionApplication {
         let args = self
             .args
             .iter()
-            .map(|x| x.schema(state))
+            .map(|x| ext_json_check(x).and_then(|x| x.schema(state)))
             .collect::<Result<Vec<_>, _>>()?;
         self.function.schema(state, &args)
     }

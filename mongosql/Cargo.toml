@@ -28,6 +28,7 @@ visitgen = { path = "../visitgen" }
 mongosql-datastructures = { path = "../mongosql-datastructures" }
 edit-distance = "2.1.0"
 usererrordisplay-impl = { path = "../usererrordisplay-impl" }
+mongodb = { version = "2.6.1", features = ["tokio-sync"] }
 
 [target.'cfg(unix)'.dev-dependencies]
 criterion = "0.3"

@@ -3533,6 +3533,76 @@ mod schema {
         }),
     );
     test_schema!(
+        extended_json_error_oid,
+        expected_error_code = 1017,
+        expected = Err(mir_error::ExtJsonComparison("MongoSQL does not support direct comparisons with extended JSON. Try `= CAST(\"5ca4bbcea2dd94ee58162a6a\" as objectId)`.".to_string())),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Lte,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(
+                    LiteralValue::String(r#"{"$oid":"5ca4bbcea2dd94ee58162a6a"}"#.to_string())
+                        .into()
+                )
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        extended_json_error_timestamp,
+        expected_error_code = 1017,
+        expected = Err(mir_error::ExtJsonComparison(
+            "MongoSQL does not support direct comparisons with extended JSON.".to_string()
+        )),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Eq,
+            args: vec![
+                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(
+                    LiteralValue::String(r#"{"$timestamp":{"t":1565545664,"i":1}}"#.to_string())
+                        .into()
+                )
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        extended_json_error_number_double,
+        expected_error_code = 1017,
+        expected = Err(mir_error::ExtJsonComparison(
+            "MongoSQL does not support direct comparisons with extended JSON. Try `= 55.55`."
+                .to_string()
+        )),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Eq,
+            args: vec![
+                Expression::Literal(LiteralValue::Double(55.55).into()),
+                Expression::Literal(
+                    LiteralValue::String(r#"{"$numberDouble":"55.55"}"#.to_string()).into()
+                )
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
+        extended_json_error_number_decimal,
+        expected_error_code = 1017,
+        expected = Err(mir_error::ExtJsonComparison(
+            "MongoSQL does not support direct comparisons with extended JSON. Try `= 55.55`."
+                .to_string()
+        )),
+        input = Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Eq,
+            args: vec![
+                Expression::Literal(LiteralValue::Double(55.55).into()),
+                Expression::Literal(
+                    LiteralValue::String(r#"{"$numberDecimal":"55.55"}"#.to_string()).into()
+                )
+            ],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_schema!(
         comp_op_requires_a_valid_comparison,
         expected_error_code = 1005,
         expected = Err(mir_error::InvalidComparison(
