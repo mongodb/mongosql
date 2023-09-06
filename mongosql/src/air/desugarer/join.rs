@@ -2,7 +2,7 @@ use crate::{
     air::{
         desugarer::{Pass, Result},
         visitor::Visitor,
-        ExprLanguage,
+        EquiJoin, EquiLookup, ExprLanguage,
         Expression::*,
         Join, JoinType, Lookup, MQLOperator, MQLSemanticOperator, Match, Project, ProjectItem,
         ReplaceWith, Stage,
@@ -30,7 +30,7 @@ impl Pass for JoinDesugarerPass {
 struct JoinDesugarerPassVisitor;
 
 impl JoinDesugarerPassVisitor {
-    /// desugar_join_stage desugars a Join stage into a sequence of Lookup,
+    /// desugar_join_stage desugars a Join stage into a sequence of expressive Lookup,
     /// Unwind, ReplaceWith, and Project stages. Specifically, in MQL, it
     /// turns:
     ///
@@ -113,6 +113,54 @@ impl JoinDesugarerPassVisitor {
             specifications: specs.into(),
         })
     }
+
+    /// desugar_equijoin_stage desugars a join stage into a sequence of concise Lookup and Unwind.
+    /// Specifically, in MQL, it turns:
+    ///    { $equijoin: {
+    ///        database: <db name>,
+    ///        collection: <coll name>,
+    ///        from_collection: <coll name>,
+    ///        joinType: <join type>,
+    ///        from: <coll name>,
+    ///        local: <field reference>,
+    ///        foreign: <field reference>
+    ///    }}
+    ///
+    /// into:
+    ///    { $equilookup: {
+    ///         db: <db name>,
+    ///         coll: <coll name>
+    ///         localField: <field reference>,
+    ///         foreignField: <field reference>,
+    ///         as: "<coll name>"
+    ///    }},
+    ///    { $unwind: {
+    ///        path: "$<coll name>",
+    ///        preserveNullAndEmptyArrays: <join type> == "left"
+    ///    }}
+    ///
+    /// Note that in the $unwind stage, preserveNullAndEmptyArrays is
+    /// true when the joinType is "left" and false when it is "inner".
+    ///
+    /// Also note that the database, collection are both optional.
+    fn desugar_equijoin_stage(&self, eqj: EquiJoin) -> Stage {
+        let as_var_name = eqj.from.collection.to_string();
+
+        let lookup = EquiLookup(EquiLookup {
+            source: eqj.source,
+            from: eqj.from,
+            local_field: eqj.local_field,
+            foreign_field: eqj.foreign_field,
+            as_var: as_var_name.clone(),
+        });
+
+        Unwind(Unwind {
+            source: Box::new(lookup),
+            path: FieldRef(as_var_name.clone().into()),
+            index: None,
+            outer: eqj.join_type == JoinType::Left,
+        })
+    }
 }
 
 impl Visitor for JoinDesugarerPassVisitor {
@@ -120,6 +168,7 @@ impl Visitor for JoinDesugarerPassVisitor {
         let node = node.walk(self);
         match node {
             Join(j) => self.desugar_join_stage(j),
+            EquiJoin(eqj) => self.desugar_equijoin_stage(eqj),
             _ => node,
         }
     }

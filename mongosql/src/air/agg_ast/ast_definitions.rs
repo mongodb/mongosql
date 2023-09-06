@@ -38,10 +38,14 @@ pub(crate) enum Stage {
     Group(Group),
     #[serde(rename = "$join")]
     Join(Box<Join>),
+    #[serde(rename = "$equiJoin")]
+    EquiJoin(EquiJoin),
     #[serde(rename = "$unwind")]
     Unwind(Unwind),
     #[serde(rename = "$lookup")]
     Lookup(Lookup),
+    #[serde(rename = "$equiLookup")]
+    EquiLookup(EquiLookup),
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -101,6 +105,17 @@ pub(crate) struct Join {
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct EquiJoin {
+    // Note: At the moment equijoin are only supported on collections of the same DB
+    pub(crate) database: Option<String>,
+    pub(crate) collection: Option<String>,
+    pub(crate) join_type: JoinType,
+    pub(crate) local_field: String,
+    pub(crate) foreign_field: String,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub(crate) enum JoinType {
     Inner,
@@ -128,6 +143,16 @@ pub(crate) struct Lookup {
     #[serde(rename = "let")]
     pub(crate) let_body: Option<HashMap<String, Expression>>,
     pub(crate) pipeline: Vec<Stage>,
+    #[serde(rename = "as")]
+    pub(crate) as_var: String,
+}
+
+#[derive(Debug, PartialEq, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct EquiLookup {
+    pub(crate) from: LookupFrom,
+    pub(crate) local_field: String,
+    pub(crate) foreign_field: String,
     #[serde(rename = "as")]
     pub(crate) as_var: String,
 }
@@ -665,6 +690,23 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                     condition: j.condition.map(|expr| expr.into()),
                 })
             }
+            Stage::EquiJoin(eqj) => {
+                let join_type = match eqj.join_type {
+                    JoinType::Inner => air::JoinType::Inner,
+                    JoinType::Left => air::JoinType::Left,
+                };
+
+                air::Stage::EquiJoin(air::EquiJoin {
+                    join_type,
+                    source: Box::new(source.expect("$equijoin without valid source stage")),
+                    from: air::Collection {
+                        db: eqj.database.unwrap_or_else(|| "test".to_string()),
+                        collection: eqj.collection.unwrap_or_else(|| "default".to_string()),
+                    },
+                    local_field: eqj.local_field.into(),
+                    foreign_field: eqj.foreign_field.into(),
+                })
+            }
             Stage::Unwind(u) => match u {
                 Unwind::FieldPath(path) => air::Stage::Unwind(air::Unwind {
                     source: Box::new(source.expect("$unwind without valid source stage")),
@@ -711,6 +753,22 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                     let_vars,
                     pipeline: Box::new(pipeline),
                     as_var: l.as_var,
+                })
+            }
+            Stage::EquiLookup(eql) => {
+                let (from_db, from_coll) = match eql.from {
+                    LookupFrom::Collection(c) => (None, c),
+                    LookupFrom::Namespace(n) => (Some(n.db), n.coll),
+                };
+                air::Stage::EquiLookup(air::EquiLookup {
+                    source: Box::new(source.expect("$equilookup without valid source stage")),
+                    from: air::Collection {
+                        db: from_db.unwrap_or_else(|| "test".to_string()),
+                        collection: from_coll,
+                    },
+                    local_field: eql.local_field.into(),
+                    foreign_field: eql.foreign_field.into(),
+                    as_var: eql.as_var,
                 })
             }
         }

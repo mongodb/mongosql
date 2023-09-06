@@ -35,6 +35,27 @@ tests:
       }
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
+  - name: "desugar inner equijoin"
+    input:
+      - { "$equiJoin": { "collection": "bar", "joinType": "inner", "localField": "a", "foreignField" : "b" } }
+    expected:
+      - {
+        "$equiLookup":
+          {
+            "from": "bar",
+            "localField": "a",
+            "foreignField" : "b",
+            "as": "bar",
+          },
+      }
+      - {
+        "$unwind":
+          {
+            "path": "$bar",
+            "preserveNullAndEmptyArrays": false,
+          },
+      }
+
   - name: "desugar left join"
     input:
       - { "$join": { "collection": "bar", "joinType": "left", "pipeline": [] } }
@@ -62,6 +83,27 @@ tests:
           },
       }
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
+
+  - name: "desugar left equijoin"
+    input:
+      - { "$equiJoin": { "collection": "bar", "joinType": "left", "localField": "a", "foreignField" : "b" } }
+    expected:
+      - {
+        "$equiLookup":
+          {
+            "from": "bar",
+            "localField": "a",
+            "foreignField" : "b",
+            "as": "bar",
+          },
+      }
+      - {
+        "$unwind":
+          {
+            "path": "$bar",
+            "preserveNullAndEmptyArrays": true,
+          },
+      }
 
   - name: "desugar join with db specified"
     input:
@@ -98,6 +140,36 @@ tests:
           },
       }
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
+
+  - name: "desugar equijoin with db specified"
+    input:
+      - {
+        "$equiJoin":
+          {
+            "database": "db",
+            "collection": "bar",
+            "joinType": "inner",
+            "localField": "a",
+            "foreignField" : "b",
+          },
+      }
+    expected:
+      - {
+        "$equiLookup":
+          {
+            "from": { "db": "db", "coll": "bar" },
+            "localField": "a",
+            "foreignField" : "b",
+            "as": "bar",
+          },
+      }
+      - {
+        "$unwind":
+          {
+            "path": "$bar",
+            "preserveNullAndEmptyArrays": false,
+          },
+      }
 
   - name: "desugar join with no collection and non-empty pipeline"
     input:
@@ -220,6 +292,37 @@ tests:
       }
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
 
+  - name: "desugar when equijoin is not first in pipeline"
+    input:
+      - { "$project": { "_id": 0, "foo": "$$ROOT" } }
+      - {
+        "$equiJoin":
+          {
+            "collection": "bar",
+            "joinType": "inner",
+            "localField": "a",
+            "foreignField" : "b",
+          },
+      }
+    expected:
+      - { "$project": { "_id": 0, "foo": "$$ROOT" } }
+      - {
+        "$equiLookup":
+          {
+            "from": "bar",
+            "localField": "a",
+            "foreignField" : "b",
+            "as": "bar",
+          },
+      }
+      - {
+        "$unwind":
+          {
+            "path": "$bar",
+            "preserveNullAndEmptyArrays": false,
+          },
+      }
+
   - name: "desugar multiple joins"
     input:
       - { "$project": { "_id": 0, "foo": "$$ROOT" } }
@@ -231,6 +334,15 @@ tests:
             "let": { "x": "$x" },
             "pipeline": [{ "$project": { "_id": 0, "x": 1 } }],
             "condition": { "$sqlEq": ["$$x", "$x"] },
+          },
+      }
+      - {
+        "$equiJoin":
+          {
+            "collection": "bat",
+            "joinType": "left",
+            "localField": "a",
+            "foreignField" : "b",
           },
       }
       - {
@@ -273,6 +385,22 @@ tests:
           },
       }
       - { "$project": { "_id": 0, "eca58228-b657-498a-b76e-f48a9161a404": 0 } }
+      - {
+        "$equiLookup":
+          {
+            "from": "bat",
+            "localField": "a",
+            "foreignField": "b",
+            "as": "bat",
+          },
+      }
+      - {
+        "$unwind":
+          {
+            "path": "$bat",
+            "preserveNullAndEmptyArrays": true,
+          },
+      }
       - {
         "$lookup":
           {
@@ -323,7 +451,17 @@ tests:
                               {
                                 "collection": "car",
                                 "joinType": "inner",
-                                "pipeline": [],
+                                "pipeline": [
+                                  {
+                                    "$equiJoin":
+                                      {
+                                        "collection": "bat",
+                                        "joinType": "left",
+                                        "localField": "a",
+                                        "foreignField": "b",
+                                      }
+                                  }
+                                ],
                               },
                           },
                         ],
@@ -349,7 +487,24 @@ tests:
                             "$lookup":
                               {
                                 "from": "car",
-                                "pipeline": [],
+                                "pipeline": [
+                                  {
+                                    "$equiLookup":
+                                      {
+                                        "from": "bat",
+                                        "localField": "a",
+                                        "foreignField": "b",
+                                        "as": "bat",
+                                      },
+                                  },
+                                  {
+                                     "$unwind":
+                                      {
+                                        "path": "$bat",
+                                        "preserveNullAndEmptyArrays": true,
+                                      },
+                                  }
+                                ],
                                 "as": "eca58228-b657-498a-b76e-f48a9161a404",
                               },
                           },
