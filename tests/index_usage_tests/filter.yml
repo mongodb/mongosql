@@ -37,6 +37,10 @@ catalog_data:
       - {'_id': 4, v: 'xyz'}
       - {'_id': 5, v: 10.2}
       - {'_id': 6, v: ''}
+    arrays:
+      - {'_id': 1, v: [1, 2, 3]}
+      - {'_id': 2, v: [4, 5, 6]}
+      - {'_id': 3, v: [7, 8, 9]}
 
 catalog_schema:
   test_db:
@@ -93,6 +97,22 @@ catalog_schema:
         }
       required: ['_id', 'v']
       additionalProperties: false
+    arrays:
+      bsonType: 'object'
+      properties:
+        {
+          '_id': { 'bsonType': 'int' },
+          'v':
+            {
+                'bsonType': 'array',
+                'items': {
+                    'bsonType': 'int'
+                }
+            },
+        }
+      required: ['_id', 'v']
+      additionalProperties: false
+
 
 indexes:
   test_db:
@@ -107,6 +127,8 @@ indexes:
     strings:
       - {'key': {'s': 1}}
     mixed:
+      - {'key': {'v': 1}}
+    arrays:
       - {'key': {'v': 1}}
 
 tests:
@@ -316,3 +338,10 @@ tests:
     expected_utilization: IX_SCAN
     expected_index_bounds:
       - { 'v': [ '[nan.0, inf.0]' ] }
+
+  - description: Unwound collection with filter on array field uses index
+    current_db: test_db
+    query: "SELECT * FROM UNWIND(arrays WITH PATH => v) WHERE v = 6"
+    expected_utilization: IX_SCAN
+    expected_index_bounds:
+      - { 'v': [ '[6, 6]' ] }

@@ -78,7 +78,9 @@ impl Visitor for DeadCodeEliminationVisitor {
                         if uses.iter().all(|used_ref| theta.contains_key(used_ref)) {
                             let subbed = node.substitute(theta);
                             match subbed {
-                                Some(Stage::Group(g)) => Stage::Project(Project {
+                                // After substituting Reference definitions from the Project
+                                // into the Group, remove the Project from the Stage tree.
+                                Ok(Stage::Group(g)) => Stage::Project(Project {
                                     source: Box::new(Stage::Group(Group {
                                         source: p.source,
                                         ..g
@@ -86,6 +88,9 @@ impl Visitor for DeadCodeEliminationVisitor {
                                     expression: new_expr,
                                     cache: SchemaCache::new(),
                                 }),
+                                // It is possible for substitution to fail if the Group clause
+                                // contains Subqueries. This will be very rare.
+                                Err(n) => n,
                                 _ => unreachable!(),
                             }
                         } else {

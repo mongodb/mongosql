@@ -49,9 +49,7 @@ impl MqlTranslator {
     }
 
     fn translate_match_regex(&self, r: mir::MatchLanguageRegex) -> Result<air::MatchQuery> {
-        dbg!(&r.input);
         let input = possibly_translate_input!(self, r.input);
-        dbg!(&input);
         Ok(air::MatchQuery::Regex(air::MatchLanguageRegex {
             input,
             regex: r.regex,

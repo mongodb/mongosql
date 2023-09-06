@@ -93,7 +93,8 @@ macro_rules! test_substitute {
                     Expression::{self, *},
                     Filter, Group, LiteralExpr,
                     LiteralValue::*,
-                    OptionallyAliasedExpr, ReferenceExpr, ScalarFunction,
+                    MQLStage, MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp,
+                    MatchQuery, OptionallyAliasedExpr, ReferenceExpr, ScalarFunction,
                     ScalarFunctionApplication, Sort, SortSpecification, Stage,
                 },
                 set,
@@ -101,8 +102,10 @@ macro_rules! test_substitute {
             #[allow(unused)]
             use std::collections::{HashMap, HashSet};
             let input = $input;
-            let expected = $expected;
             let theta = $theta;
+            // if None is expected, we convert that to Err(input.clone()
+            // it keeps the test cases smaller
+            let expected = $expected.ok_or(input.clone());
             let actual = input.substitute(theta);
             assert_eq!(expected, actual);
         }
@@ -577,6 +580,36 @@ test_substitute!(
         ],
         cache: SchemaCache::new(),
     }),
+    theta = map! {
+        Key::named("x",0) => mir::Expression::Document(unchecked_unique_linked_hash_map! {
+            "a".to_string() => mir_field_access("y", "a"),
+            "b".to_string() => mir_field_access("y", "b"),
+        }.into()),
+    },
+);
+
+test_substitute!(
+    match_filter_attempt_substitute_succeeds_two_levels,
+    expected = Some(Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        source: mir_collection_stage(),
+        condition: MatchQuery::Comparison(MatchLanguageComparison {
+            function: MatchLanguageComparisonOp::Eq,
+            input: Some(mir_field_path("y", vec!["a"])),
+            arg: Integer(42),
+            cache: SchemaCache::new(),
+        }),
+        cache: SchemaCache::new(),
+    }))),
+    stage = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        source: mir_collection_stage(),
+        condition: MatchQuery::Comparison(MatchLanguageComparison {
+            function: MatchLanguageComparisonOp::Eq,
+            input: Some(mir_field_path("x", vec!["a"])),
+            arg: Integer(42),
+            cache: SchemaCache::new(),
+        }),
+        cache: SchemaCache::new(),
+    })),
     theta = map! {
         Key::named("x",0) => mir::Expression::Document(unchecked_unique_linked_hash_map! {
             "a".to_string() => mir_field_access("y", "a"),

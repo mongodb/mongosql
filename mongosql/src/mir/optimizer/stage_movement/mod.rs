@@ -334,6 +334,7 @@ impl<'a> StageMovementVisitor<'a> {
         let source = match node {
             Stage::Sort(ref n) => &n.source,
             Stage::Filter(ref n) => &n.source,
+            Stage::MQLIntrinsic(MQLStage::MatchFilter(ref n)) => &n.source,
             _ => unreachable!(),
         };
         match source.as_ref() {
@@ -367,7 +368,7 @@ impl<'a> StageMovementVisitor<'a> {
                         unreachable!()
                     }
                 } else {
-                    // we cannot move a Sort into an On clause
+                    // we cannot move a Sort or a MatchFilter into an On clause
                     stage
                 }
             }
@@ -404,12 +405,14 @@ impl<'a> StageMovementVisitor<'a> {
                 } else {
                     let theta = source.defines();
                     // unfortunately, since substitution can fail, we need to clone the node.
-                    if let Some(subbed) = node.clone().substitute(theta) {
+                    match node.substitute(theta) {
+                        Ok(subbed) =>
                         // The source here is not a Set or a Join so the BubbleUpSide does not actually
                         // matter, we use Both as a place holder.
-                        self.bubble_up(Self::handle_def_user, subbed, BubbleUpSide::Both)
-                    } else {
-                        node
+                        {
+                            self.bubble_up(Self::handle_def_user, subbed, BubbleUpSide::Both)
+                        }
+                        Err(original) => original,
                     }
                 }
             }
@@ -426,6 +429,9 @@ impl<'a> StageMovementVisitor<'a> {
                 Stage::Collection(_) | Stage::Array(_) | Stage::Sort(_) | Stage::Group(_)
             ),
             Stage::Filter(ref n) => matches!(&*n.source, Stage::Collection(_) | Stage::Array(_)),
+            Stage::MQLIntrinsic(MQLStage::MatchFilter(ref n)) => {
+                matches!(&*n.source, Stage::Collection(_) | Stage::Array(_))
+            }
             _ => unreachable!(),
         }
     }
@@ -489,7 +495,9 @@ impl<'a> Visitor for StageMovementVisitor<'a> {
         let node = node.walk(self);
         match node {
             Stage::Offset(_) => self.handle_offset(node),
-            Stage::Sort(_) | Stage::Filter(_) => self.handle_def_user(node),
+            Stage::Sort(_) | Stage::MQLIntrinsic(MQLStage::MatchFilter(_)) | Stage::Filter(_) => {
+                self.handle_def_user(node)
+            }
             _ => node,
         }
     }

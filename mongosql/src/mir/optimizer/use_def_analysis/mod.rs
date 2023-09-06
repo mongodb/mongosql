@@ -4,8 +4,8 @@ mod test;
 use crate::{
     mir::{
         binding_tuple::Key, schema::SchemaCache, visitor::Visitor, Error, ExistsExpr, Expression,
-        FieldAccess, FieldPath, Filter, Group, Project, ReferenceExpr, Sort, Stage,
-        SubqueryComparison, SubqueryExpr, Unwind,
+        FieldAccess, FieldPath, Filter, Group, MQLStage, MatchFilter, Project, ReferenceExpr, Sort,
+        Stage, SubqueryComparison, SubqueryExpr, Unwind,
     },
     util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
@@ -121,6 +121,18 @@ impl Visitor for SingleStageFieldUseVisitor {
                     condition,
                     cache,
                 })
+            }
+            Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+                source,
+                condition,
+                cache,
+            })) => {
+                let condition = self.visit_match_query(condition);
+                Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+                    source,
+                    condition,
+                    cache,
+                }))
             }
             Stage::Sort(Sort {
                 source,
@@ -261,6 +273,18 @@ impl Visitor for SingleStageDatasourceUseVisitor {
                     condition,
                     cache,
                 })
+            }
+            Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+                source,
+                condition,
+                cache,
+            })) => {
+                let condition = self.visit_match_query(condition);
+                Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+                    source,
+                    condition,
+                    cache,
+                }))
             }
             Stage::Sort(Sort {
                 source,
@@ -471,7 +495,7 @@ impl Stage {
         (visitor.datasource_uses, ret)
     }
 
-    pub fn substitute(self, theta: HashMap<Key, Expression>) -> Option<Self> {
+    pub fn substitute(self, theta: HashMap<Key, Expression>) -> Result<Self, Self> {
         let mut visitor = SubstituteVisitor {
             theta,
             failed: false,
@@ -483,57 +507,62 @@ impl Stage {
         // not an issue since the Key just should not exist, but best to be controlled. If nothing
         // else it results in better efficiency. Also, note that substitution cannot invalidate the
         // SchemaCache.
-        let ret = match self {
-            Stage::Filter(Filter {
-                condition,
-                source,
-                cache,
-            }) => Stage::Filter(Filter {
-                condition: visitor.visit_expression(condition),
-                source,
-                cache,
-            }),
-            Stage::Sort(Sort {
-                source,
-                specs,
-                cache,
-            }) => Stage::Sort(Sort {
-                source,
-                // here we need to map over the sort specifications because we do not want to
-                // substitute into the source by using visit_sort
-                specs: specs
-                    .into_iter()
-                    .map(|x| visitor.visit_sort_specification(x))
-                    .collect(),
-                cache,
-            }),
-            Stage::Group(Group {
-                keys,
-                aggregations,
-                source,
-                scope,
-                cache,
-            }) => Stage::Group(Group {
-                source,
-                keys: keys
-                    .into_iter()
-                    .map(|x| visitor.visit_optionally_aliased_expr(x))
-                    .collect(),
-                aggregations: aggregations
-                    .into_iter()
-                    .map(|x| visitor.visit_aliased_aggregation(x))
-                    .collect(),
-                scope,
-                cache,
-            }),
+        match self {
+            Stage::Filter(mut f) => {
+                let subbed = visitor.visit_expression(f.condition.clone());
+                if visitor.failed {
+                    return Err(Stage::Filter(f));
+                }
+                f.condition = subbed;
+                Ok(Stage::Filter(f))
+            }
+            Stage::MQLIntrinsic(MQLStage::MatchFilter(mut f)) => {
+                let subbed = visitor.visit_match_query(f.condition.clone());
+                if visitor.failed {
+                    return Err(Stage::MQLIntrinsic(MQLStage::MatchFilter(f)));
+                }
+                f.condition = subbed;
+                Ok(Stage::MQLIntrinsic(MQLStage::MatchFilter(f)))
+            }
+            Stage::Sort(mut s) => {
+                let cloned_specs = s.specs.clone();
+                let mut subbed_specs = Vec::new();
+                for spec in cloned_specs.into_iter() {
+                    let subbed = visitor.visit_sort_specification(spec);
+                    if visitor.failed {
+                        return Err(Stage::Sort(s));
+                    }
+                    subbed_specs.push(subbed);
+                }
+                s.specs = subbed_specs;
+                Ok(Stage::Sort(s))
+            }
+            Stage::Group(mut g) => {
+                let cloned_keys = g.keys.clone();
+                let mut subbed_keys = Vec::new();
+                for key in cloned_keys.into_iter() {
+                    let subbed = visitor.visit_optionally_aliased_expr(key);
+                    if visitor.failed {
+                        return Err(Stage::Group(g));
+                    }
+                    subbed_keys.push(subbed);
+                }
+                let cloned_aggregations = g.aggregations.clone();
+                let mut subbed_aggregations = Vec::new();
+                for aggregation in cloned_aggregations.into_iter() {
+                    let subbed = visitor.visit_aliased_aggregation(aggregation);
+                    if visitor.failed {
+                        return Err(Stage::Group(g));
+                    }
+                    subbed_aggregations.push(subbed);
+                }
+                g.keys = subbed_keys;
+                g.aggregations = subbed_aggregations;
+                Ok(Stage::Group(g))
+            }
             // We could add no-ops for Limit and Offset, but it's better to just not call
             // substitute while we move them!
             _ => unimplemented!(),
-        };
-        if visitor.failed {
-            None
-        } else {
-            Some(ret)
         }
     }
 }

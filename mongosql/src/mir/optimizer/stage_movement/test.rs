@@ -104,10 +104,11 @@ macro_rules! test_move_stage {
                     visitor::Visitor,
                     Collection,
                     Expression::{self, *},
-                    FieldAccess, Filter, Group, Join, JoinType, Limit, LiteralExpr,
+                    FieldAccess, Filter, Group, Join, JoinType, Limit, LiteralExpr, LiteralValue,
                     LiteralValue::*,
-                    Offset, Project, ReferenceExpr, Set, SetOperation, Sort, SortSpecification,
-                    Stage, Unwind,
+                    MQLStage, MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp,
+                    MatchQuery, Offset, Project, ReferenceExpr, Set, SetOperation, Sort,
+                    SortSpecification, Stage, Unwind,
                 },
                 schema::SchemaEnvironment,
                 set, unchecked_unique_linked_hash_map,
@@ -528,6 +529,90 @@ test_move_stage!(
             }),],
             cache: SchemaCache::new(),
         })
+        .into(),
+        limit: 10,
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage!(
+    move_match_filter_above_project_when_substitutable_complex_expression_is_used,
+    expected = Stage::Limit(Limit {
+        source: Stage::Project(Project {
+            source: Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+                source: Stage::Collection(Collection {
+                    db: "foo".to_string(),
+                    collection: "bar".to_string(),
+                    cache: SchemaCache::new(),
+                })
+                .into(),
+                condition: MatchQuery::Comparison(MatchLanguageComparison {
+                    function: MatchLanguageComparisonOp::Eq,
+                    input: Some(mir::FieldPath {
+                        key: Key::named("bar", 0u16),
+                        fields: vec!["y".to_string()],
+                        cache: SchemaCache::new(),
+                    }),
+                    arg: LiteralValue::Integer(43),
+                    cache: SchemaCache::new(),
+                }),
+                cache: SchemaCache::new(),
+            }))
+            .into(),
+            expression: BindingTuple(map! {
+                Key::bot(0u16) => mir::Expression::Document(mir::DocumentExpr {
+                    document: unchecked_unique_linked_hash_map! {
+                        "y".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
+                            expr: Box::new(mir::Expression::Reference(("bar", 0u16).into())),
+                            field: "y".to_string(),
+                            cache: SchemaCache::new(),
+                        }),
+                    },
+                    cache: SchemaCache::new(),
+                }),
+            }),
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        limit: 10,
+        cache: SchemaCache::new(),
+    }),
+    input = Stage::Limit(Limit {
+        source: Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+            source: Stage::Project(Project {
+                source: Stage::Collection(Collection {
+                    db: "foo".to_string(),
+                    collection: "bar".to_string(),
+                    cache: SchemaCache::new(),
+                })
+                .into(),
+                expression: BindingTuple(map! {
+                     Key::bot(0u16) => mir::Expression::Document(mir::DocumentExpr {
+                         document: unchecked_unique_linked_hash_map! {
+                             "y".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
+                                 expr: Box::new(mir::Expression::Reference(("bar", 0u16).into())),
+                                 field: "y".to_string(),
+                                 cache: SchemaCache::new(),
+                             }),
+                        },
+                        cache: SchemaCache::new(),
+                    }),
+                }),
+                cache: SchemaCache::new(),
+            })
+            .into(),
+            condition: MatchQuery::Comparison(MatchLanguageComparison {
+                function: MatchLanguageComparisonOp::Eq,
+                input: Some(mir::FieldPath {
+                    key: Key::bot(0u16),
+                    fields: vec!["y".to_string()],
+                    cache: SchemaCache::new(),
+                }),
+                arg: LiteralValue::Integer(43),
+                cache: SchemaCache::new(),
+            }),
+            cache: SchemaCache::new(),
+        }))
         .into(),
         limit: 10,
         cache: SchemaCache::new(),
