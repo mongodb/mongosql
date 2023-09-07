@@ -5,7 +5,7 @@ use crate::{
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
         visitor::Visitor,
     },
-    schema::{Satisfaction, Schema, NULLISH},
+    schema::{Atomic, Satisfaction, Schema, NULLISH},
 };
 use lazy_static::lazy_static;
 
@@ -853,10 +853,17 @@ impl<'a> ConstantFoldExprVisitor<'a> {
             Err(_) => Expression::Is(is_expr),
             Ok(schema) => {
                 let target_schema = Schema::from(is_expr.target_type);
-                match schema.satisfies(&target_schema) {
-                    Satisfaction::Must => Expression::Literal(LiteralValue::Boolean(true).into()),
-                    Satisfaction::Not => Expression::Literal(LiteralValue::Boolean(false).into()),
-                    Satisfaction::May => Expression::Is(is_expr),
+                match target_schema {
+                    Schema::Atomic(Atomic::Null) => Expression::Is(is_expr),
+                    _ => match schema.satisfies(&target_schema) {
+                        Satisfaction::Must => {
+                            Expression::Literal(LiteralValue::Boolean(true).into())
+                        }
+                        Satisfaction::Not => {
+                            Expression::Literal(LiteralValue::Boolean(false).into())
+                        }
+                        Satisfaction::May => Expression::Is(is_expr),
+                    },
                 }
             }
         }

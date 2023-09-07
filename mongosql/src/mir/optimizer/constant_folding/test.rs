@@ -2656,6 +2656,27 @@ mod constant_folding {
         }),
     );
     test_constant_fold!(
+        is_expr_null,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Is(IsExpr {
+                expr: Expression::Literal(LiteralValue::Double(1.0).into()).into(),
+                target_type: TypeOrMissing::Type(Type::Null),
+                cache: SchemaCache::new(),
+            })],
+            cache: SchemaCache::new(),
+        }),
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Is(IsExpr {
+                expr: Expression::Literal(LiteralValue::Double(1.0).into()).into(),
+                target_type: TypeOrMissing::Type(Type::Null),
+                cache: SchemaCache::new(),
+            })],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_constant_fold!(
         is_expr_nested,
         expected = Stage::Array(ArraySource {
             alias: "".into(),
