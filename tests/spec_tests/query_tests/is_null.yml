@@ -1,0 +1,32 @@
+catalog_data:
+    db:
+        foo:
+            - {'_id': 0, 'x': true}
+            - {'_id': 1, 'x': null}
+            - {'_id': 2}
+            - {'_id': 3, 'x': false}
+
+catalog_schema:
+    db:
+        foo:
+            bsonType: 'object'
+            additionalProperties: false
+            required: ['_id']
+            properties:
+                '_id': {'bsonType': 'int'}
+                x: {'anyOf': [{'bsonType': 'bool'}, {'bsonType': 'null'}]}
+
+tests:
+    - description: IS NULL covers missing fields
+      current_db: db
+      query: 'SELECT * FROM foo WHERE x IS NULL'
+      result:
+          - {'foo': {'_id': 1, 'x': null}}
+          - {'foo': {'_id': 2}}
+
+    - description: IS NOT NULL covers missing fields
+      current_db: db
+      query: 'SELECT * FROM foo WHERE x IS NOT NULL'
+      result:
+          - {'foo': {'_id': 0, 'x': true}}
+          - {'foo': {'_id': 3, 'x': false}}

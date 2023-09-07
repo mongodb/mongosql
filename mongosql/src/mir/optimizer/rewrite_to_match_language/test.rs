@@ -122,6 +122,23 @@ fn valid_match_is() -> MatchQuery {
     })
 }
 
+fn valid_is_null() -> Expression {
+    Expression::Is(IsExpr {
+        expr: mir_field_access("foo", "str"),
+        target_type: TypeOrMissing::Type(Type::Null),
+        cache: SchemaCache::new(),
+    })
+}
+
+fn valid_match_is_null() -> MatchQuery {
+    MatchQuery::Comparison(MatchLanguageComparison {
+        function: MatchLanguageComparisonOp::Eq,
+        input: field_path("str"),
+        arg: LiteralValue::Null,
+        cache: SchemaCache::new(),
+    })
+}
+
 fn invalid_is() -> Expression {
     Expression::Is(IsExpr {
         expr: Box::new(Expression::Literal(LiteralExpr {
@@ -265,6 +282,12 @@ test_rewrite_to_match_language!(
     rewrite_valid_is,
     expected = match_filter_stage(valid_match_is()),
     input = filter_stage(valid_is())
+);
+
+test_rewrite_to_match_language!(
+    rewrite_valid_is_null,
+    expected = match_filter_stage(valid_match_is_null()),
+    input = filter_stage(valid_is_null())
 );
 
 test_rewrite_to_match_language!(

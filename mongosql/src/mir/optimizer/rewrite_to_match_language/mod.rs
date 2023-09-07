@@ -6,9 +6,10 @@ use crate::{
         optimizer::Optimizer,
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        Expression, IsExpr, LikeExpr, LiteralExpr, LiteralValue, MQLStage, MatchFilter,
-        MatchLanguageLogical, MatchLanguageLogicalOp, MatchLanguageRegex, MatchLanguageType,
-        MatchQuery, ScalarFunction, Stage,
+        Expression, FieldPath, IsExpr, LikeExpr, LiteralExpr, LiteralValue, MQLStage, MatchFilter,
+        MatchLanguageComparison, MatchLanguageComparisonOp, MatchLanguageLogical,
+        MatchLanguageLogicalOp, MatchLanguageRegex, MatchLanguageType, MatchQuery, ScalarFunction,
+        Stage, Type, TypeOrMissing,
     },
     util::{convert_sql_pattern, LIKE_OPTIONS},
     SchemaCheckingMode,
@@ -52,12 +53,21 @@ impl MatchLanguageRewriterVisitor {
         match *is.expr {
             Expression::FieldAccess(fa) => fa
                 .try_into()
-                .map(|mp| {
-                    MatchQuery::Type(MatchLanguageType {
-                        input: Some(mp),
-                        target_type: is.target_type,
-                        cache: SchemaCache::new(),
-                    })
+                .map(|mp: FieldPath| {
+                    if is.target_type == TypeOrMissing::Type(Type::Null) {
+                        MatchQuery::Comparison(MatchLanguageComparison {
+                            function: MatchLanguageComparisonOp::Eq,
+                            input: Some(mp),
+                            arg: LiteralValue::Null,
+                            cache: SchemaCache::new(),
+                        })
+                    } else {
+                        MatchQuery::Type(MatchLanguageType {
+                            input: Some(mp),
+                            target_type: is.target_type,
+                            cache: SchemaCache::new(),
+                        })
+                    }
                 })
                 .ok(),
             _ => None,
