@@ -29,11 +29,14 @@ static OPTIMIZERS: fn() -> Vec<Box<dyn Optimizer>> = || {
         Box::new(flatten_variadics::FlattenVariadicFunctionsOptimizer {}),
         Box::new(constant_folding::ConstantFoldingOptimizer {}),
         Box::new(match_splitting::MatchSplittingOptimizer {}),
+        Box::new(rewrite_to_match_language::MatchLanguageRewriter {}),
+        // lower_joins
         Box::new(stage_movement::StageMovementOptimizer {}),
+        // determine_join_semantics
+        // lower_joins
+        Box::new(match_null_filtering::MatchNullFilteringOptimizer {}),
         Box::new(prefilter_unwinds::PrefilterUnwindsOptimizer {}),
         Box::new(stage_movement::StageMovementOptimizer {}),
-        Box::new(rewrite_to_match_language::MatchLanguageRewriter {}),
-        Box::new(match_null_filtering::MatchNullFilteringOptimizer {}),
         Box::new(dead_code_elimination::DeadCodeEliminator {}),
     ]
 };
