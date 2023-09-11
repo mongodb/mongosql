@@ -1,3 +1,10 @@
+///
+/// Optimizes Group stages by swapping with preceding Project stages when
+/// possible. If a Group stage's source is a Project and all References
+/// in the Group can be substituted with their definitions from Project
+/// then the Project and Group can be swapped. This optimization enables index
+/// utilization for some queries.
+///
 #[cfg(test)]
 mod test;
 
@@ -12,11 +19,6 @@ use crate::{
     SchemaCheckingMode,
 };
 
-/// Optimizes Group stages by eliminating preceding Project stages when
-/// possible. If a Group stage's source is a Project and all References
-/// in the Group can be substituted with their definitions from Project
-/// then the Project and Group can be swapped. This optimization enables index
-/// utilization for some queries.
 pub(crate) struct DeadCodeEliminator;
 
 impl Optimizer for DeadCodeEliminator {

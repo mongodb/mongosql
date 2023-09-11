@@ -1,3 +1,10 @@
+///
+/// Match Splitting
+///
+/// The Match Splitting pass splits Filter stages with conjunctions into separate
+/// consecuitive Filter Stages in order to facilitate more movement in the Stage Movement
+/// pass.
+///
 #[cfg(test)]
 mod test;
 

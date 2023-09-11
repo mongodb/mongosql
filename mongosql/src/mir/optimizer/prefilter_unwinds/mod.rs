@@ -1,3 +1,22 @@
+///
+/// Prefilter Unwinds
+///
+/// The Prefilter Unwinds pass generates ElemMatch matches before Unwind stages
+/// when there is a Filter after the Unwind that cannot move passed the Unwind
+/// since it uses an Opaque field from the Unwind. The ElemMatch will potentially
+/// not be entirely selective, but in conjunction with Stage Movement, it can possibly
+/// allow the usage of more indexes that can massively improve query performance.
+///
+/// As an example of where this can really help, consider:
+/// SELECT * FROM UNWIND(foo WITH path => v) WHERE v = 6
+///
+/// The ElemMatch on v = 6 will result in an index that removes any documents where the v array
+/// does not contain 6. Note that the original Filter will be maintained after the Unwind so that
+/// any value that is not explicitly 6 will be removed still.
+///
+/// In general, this can reduce a very large COL_SCANs into a possibly very selective IDX_SCANs
+/// depending on the size of the arrays and volitility of data in the arrays.
+///
 #[cfg(test)]
 mod test;
 

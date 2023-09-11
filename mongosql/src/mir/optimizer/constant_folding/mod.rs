@@ -1,3 +1,9 @@
+///
+/// Constant Folding
+///
+/// This optimization replaces constant expressions with the values they will evaluate to at
+/// query time. The goal of this is to reduce the amount of work done during query execution.
+///
 #[cfg(test)]
 mod test;
 

@@ -1,3 +1,20 @@
+///
+/// Optimizes Filter stages by prepending them, when necessary, with Filter
+/// stages that assert nullable FieldAccess expressions exist and are not null.
+///
+/// If a Filter stage's condition contains SQL-semantic ScalarFunctions, then
+/// for all FieldAccess expressions that MAY or MUST be NULL or MISSING that
+/// are descendants of those ScalarFunctions:
+///   1. Find all FieldAccess expressions that MAY or MUST be NULL or MISSING
+///      that are descendants of those Scalar Functions.
+///   2. Insert a _new_ Filter stage before it that asserts those FieldAccess
+///      expressions exist and are not null.
+///   3. Update those FieldAccesses in the _original_ Filter's condition to
+///      indicate they are _NOT_ NULL or MISSING.
+///
+/// This will help the final MQL translations utilize indexes since it will
+/// ensure Filter stages can always use MQL semantics for condition operators.
+///
 #[cfg(test)]
 mod test;
 
@@ -14,21 +31,6 @@ use crate::{
 };
 use std::collections::BTreeMap;
 
-/// Optimizes Filter stages by prepending them, when necessary, with Filter
-/// stages that assert nullable FieldAccess expressions exist and are not null.
-///
-/// If a Filter stage's condition contains SQL-semantic ScalarFunctions, then
-/// for all FieldAccess expressions that MAY or MUST be NULL or MISSING that
-/// are descendants of those ScalarFunctions:
-///   1. Find all FieldAccess expressions that MAY or MUST be NULL or MISSING
-///      that are descendants of those Scalar Functions.
-///   2. Insert a _new_ Filter stage before it that asserts those FieldAccess
-///      expressions exist and are not null.
-///   3. Update those FieldAccesses in the _original_ Filter's condition to
-///      indicate they are _NOT_ NULL or MISSING.
-///
-/// This will help the final MQL translations utilize indexes since it will
-/// ensure Filter stages can always use MQL semantics for condition operators.
 pub(crate) struct MatchNullFilteringOptimizer;
 
 impl Optimizer for MatchNullFilteringOptimizer {

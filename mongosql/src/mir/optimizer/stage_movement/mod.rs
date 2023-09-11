@@ -1,3 +1,17 @@
+///
+/// Stage Movement
+///
+/// The Stage Movement passes moves stages up in the MIR query plan as high as possible
+/// in order to impove the usage of indexes and reduce the number of generated documents.
+///
+/// Filter and MatchFilter stages are moved both to improve the usage of indexes and reduce the
+/// number of computations on documents that are eventually thrown away.
+///
+/// Sort is moved as high as possible in order to improve index usage.
+///
+/// Limit and Offset are moved as highly as possible to reduce the number of computations on
+/// documents that are eventually thrown away.
+///
 #[cfg(test)]
 mod test;
 

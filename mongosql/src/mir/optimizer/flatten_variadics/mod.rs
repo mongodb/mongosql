@@ -1,3 +1,19 @@
+///
+/// Flatten Variadic
+///
+/// The Flatten Variadic Functions pass will flatten something such as OR(x, OR(y, z)) into
+/// OR(x, y, z). This makes passes run after this pass easier to implement since they have
+/// fewer equivalent forms to consider.
+///
+/// Any ScalarFunction that is variadic will be flattened. At this time the variadic functions
+/// are:
+///
+/// * Add
+/// * Mul
+/// * And
+/// * Or
+/// * Concat
+///
 #[cfg(test)]
 mod test;
 

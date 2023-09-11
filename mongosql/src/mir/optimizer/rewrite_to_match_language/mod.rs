@@ -1,20 +1,3 @@
-#[cfg(test)]
-mod test;
-
-use crate::{
-    mir::{
-        optimizer::Optimizer,
-        schema::{SchemaCache, SchemaInferenceState},
-        visitor::Visitor,
-        Expression, FieldPath, IsExpr, LikeExpr, LiteralExpr, LiteralValue, MQLStage, MatchFilter,
-        MatchLanguageComparison, MatchLanguageComparisonOp, MatchLanguageLogical,
-        MatchLanguageLogicalOp, MatchLanguageRegex, MatchLanguageType, MatchQuery, ScalarFunction,
-        Stage, Type, TypeOrMissing,
-    },
-    util::{convert_sql_pattern, LIKE_OPTIONS},
-    SchemaCheckingMode,
-};
-
 /// Optimizes IS and LIKE expressions such that they can be translated and
 /// codegenned using match language. If a Filter stage's condition contains
 /// only IS and/or LIKE expressions, or disjunctions or conjunctions with
@@ -32,6 +15,24 @@ use crate::{
 /// Also note, MatchSplitting should ensure we never have a conjunction at this
 /// point, however we choose to make this optimization work independent of that
 /// one.
+///
+#[cfg(test)]
+mod test;
+
+use crate::{
+    mir::{
+        optimizer::Optimizer,
+        schema::{SchemaCache, SchemaInferenceState},
+        visitor::Visitor,
+        Expression, FieldPath, IsExpr, LikeExpr, LiteralExpr, LiteralValue, MQLStage, MatchFilter,
+        MatchLanguageComparison, MatchLanguageComparisonOp, MatchLanguageLogical,
+        MatchLanguageLogicalOp, MatchLanguageRegex, MatchLanguageType, MatchQuery, ScalarFunction,
+        Stage, Type, TypeOrMissing,
+    },
+    util::{convert_sql_pattern, LIKE_OPTIONS},
+    SchemaCheckingMode,
+};
+
 pub(crate) struct MatchLanguageRewriter;
 
 impl Optimizer for MatchLanguageRewriter {
