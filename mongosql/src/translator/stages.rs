@@ -355,9 +355,40 @@ impl MqlTranslator {
         }))
     }
 
-    fn translate_lateral_join(&mut self, _mir_join: mir::LateralJoin) -> Result<air::Stage> {
-        // SQL-1576
-        todo!()
+    fn translate_lateral_join(&mut self, mir_join: mir::LateralJoin) -> Result<air::Stage> {
+        let join_type = match mir_join.join_type {
+            mir::JoinType::Inner => air::JoinType::Inner,
+            mir::JoinType::Left => air::JoinType::Left,
+        };
+
+        // the let variables will be found from the datasources for the first stage in the pipeline.
+        let left = self.translate_stage(*mir_join.source)?;
+        let left_registry = self.mapping_registry.clone();
+        let let_vars = Some(self.generate_let_bindings(left_registry.clone()));
+
+        // When translating the right side, we need the Translator to indicate
+        // this context because naming conflicts can occur between the left and
+        // right datasources if the left datasources need to be renamed.
+        // Therefore, we store the current is_join value, set is_join to true,
+        // translate the right side, and then restore the old is_join value.
+        // Project translation considers the is_join information to determine
+        // if name conflicts need to be resolved or not.
+        let previous_is_join = self.is_join;
+        self.is_join = true;
+        let right = self.translate_stage(*mir_join.subquery)?;
+        self.is_join = previous_is_join;
+
+        // Restore the original mappings for the left datasource since they may have been
+        // overwritten to map to Variable references when translating the condition.
+        self.mapping_registry.merge(left_registry);
+
+        Ok(air::Stage::Join(air::Join {
+            join_type,
+            left: Box::new(left),
+            right: Box::new(right),
+            let_vars,
+            condition: None,
+        }))
     }
 
     fn translate_match_filter(&mut self, mir_match_filter: mir::MatchFilter) -> Result<air::Stage> {

@@ -1345,6 +1345,100 @@ mod equijoin {
     );
 }
 
+mod lateral_join {
+    use crate::{
+        map, unchecked_unique_linked_hash_map,
+        util::{air_pipeline_collection, mir_collection, ROOT},
+    };
+    use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
+
+    test_translate_stage!(
+        lateral_join_inner_simple,
+        expected = Ok(air::Stage::Join(air::Join {
+            join_type: air::JoinType::Inner,
+            left: air_pipeline_collection("foo"),
+            right: air_pipeline_collection("bar"),
+            let_vars: Some(vec![air::LetVariable {
+                name: "vfoo_0".to_string(),
+                expr: Box::new(air::Expression::FieldRef(air::FieldRef {
+                    parent: None,
+                    name: "foo".to_string(),
+                }))
+            }]),
+            condition: None
+        })),
+        input = mir::Stage::MQLIntrinsic(mir::MQLStage::LateralJoin(mir::LateralJoin {
+            join_type: mir::JoinType::Inner,
+            source: mir_collection("foo"),
+            subquery: mir_collection("bar"),
+            cache: mir::schema::SchemaCache::new(),
+        }))
+    );
+
+    test_translate_stage!(
+        left_lateral_join_let_vars,
+        expected = Ok(air::Stage::Project(air::Project {
+            source: Box::new(air::Stage::Join(air::Join {
+                join_type: air::JoinType::Left,
+                left: air::Stage::Project(air::Project {
+                    source: Box::new(air::Stage::Collection(
+                        air::Collection{
+                            db:"test_db".to_string(), collection:"foo".to_string()
+                        })),
+                        specifications: unchecked_unique_linked_hash_map!(
+                            "t1".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
+                        )
+                    }).into(),
+                right: air::Stage::Project(air::Project {
+                    source: Box::new(air::Stage::Collection(
+                        air::Collection{
+                            db:"test_db".to_string(), collection:"bar".to_string()
+                        })),
+                        specifications: unchecked_unique_linked_hash_map!()
+                    }).into(),
+                let_vars: Some(vec![air::LetVariable {
+                    name: "vt1_0".to_string(),
+                    expr: Box::new(air::Expression::FieldRef("t1".to_string().into())),
+                }]),
+                condition: None
+            })),
+            specifications: unchecked_unique_linked_hash_map!(
+                "foo".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("t1".to_string().into())),
+            )
+        })),
+        input = mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::MQLIntrinsic(mir::MQLStage::LateralJoin(mir::LateralJoin {
+                join_type: mir::JoinType::Left,
+                source: mir::Stage::Project(mir::Project {
+                    source: Box::new(mir::Stage::Collection(mir::Collection {
+                        db: "test_db".into(),
+                        collection: "foo".into(),
+                        cache: mir::schema::SchemaCache::new(),
+                    })),
+                    expression: map! {
+                        Key::named("t1", 0u16) => mir::Expression::Reference(("foo".to_string(), 0u16).into()),
+                    },
+                    cache: mir::schema::SchemaCache::new(),
+                }).into(),
+                subquery: mir::Stage::Project(mir::Project {
+                    source: Box::new(mir::Stage::Collection(mir::Collection {
+                        db: "test_db".into(),
+                        collection: "bar".into(),
+                        cache: mir::schema::SchemaCache::new(),
+                    })),
+                    expression: map! {},
+                    cache: mir::schema::SchemaCache::new(),
+                }).into(),
+                cache: mir::schema::SchemaCache::new(),
+            }))),
+            expression: BindingTuple(map! {
+                Key::named("foo", 0u16) => mir::Expression::Reference(("t1".to_string(), 0u16).into()),
+            }),
+            cache: mir::schema::SchemaCache::new()
+        })
+    );
+}
+
 mod set {
     test_translate_stage!(
         simple,
