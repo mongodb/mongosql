@@ -28,6 +28,9 @@ mod ext_json_detector;
 use self::ext_json_detector::ext_json_check;
 mod util;
 
+#[cfg(test)]
+mod test;
+
 #[derive(PartialEq, Eq, Hash, Clone, Debug)]
 struct SchemaCacheContents<T: Clone> {
     result: T,

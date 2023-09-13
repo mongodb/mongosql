@@ -5,9 +5,6 @@ pub mod schema;
 pub use mongosql_datastructures::binding_tuple;
 pub mod optimizer;
 
-#[cfg(test)]
-mod test;
-
 use thiserror::Error;
 #[derive(Debug, Error, PartialEq, Clone)]
 pub enum Error {
