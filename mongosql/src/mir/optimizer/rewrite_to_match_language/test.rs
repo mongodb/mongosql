@@ -310,7 +310,7 @@ test_rewrite_to_match_language!(
             value: LiteralValue::String("a|__|_%|%".to_string()),
             cache: SchemaCache::new(),
         })),
-        escape: Some("|".to_string()),
+        escape: Some('|'),
         cache: SchemaCache::new(),
     }))
 );

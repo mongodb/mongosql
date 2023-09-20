@@ -120,10 +120,8 @@ pub(crate) fn air_variable_from_root(rest: &str) -> air::Expression {
 
 const DEFAULT_ESCAPE: char = '\\';
 
-pub(crate) fn convert_sql_pattern(pattern: String, escape: Option<String>) -> String {
-    let escape = escape
-        .map(|e| e.chars().next().unwrap())
-        .unwrap_or(DEFAULT_ESCAPE);
+pub(crate) fn convert_sql_pattern(pattern: String, escape: Option<char>) -> String {
+    let escape = escape.unwrap_or(DEFAULT_ESCAPE);
     const REGEX_CHARS_TO_ESCAPE: [char; 12] =
         ['.', '^', '$', '*', '+', '?', '(', ')', '[', '{', '\\', '|'];
     let mut regex = "^".to_string();
@@ -160,7 +158,7 @@ pub(crate) fn convert_sql_pattern(pattern: String, escape: Option<String>) -> St
 
 #[cfg(test)]
 mod test_convert_sql_pattern {
-    use super::convert_sql_pattern;
+    use super::{convert_sql_pattern, DEFAULT_ESCAPE};
     macro_rules! test_convert_sql_pattern {
         ($func_name:ident, expected = $expected:expr, input = $input:expr, escape = $escape:expr) => {
             #[test]
@@ -178,28 +176,28 @@ mod test_convert_sql_pattern {
         no_special_sql_characters,
         expected = "^abc$",
         input = "abc",
-        escape = Some("\\".to_string())
+        escape = Some(DEFAULT_ESCAPE)
     );
 
     test_convert_sql_pattern!(
         unescaped_special_sql_characters,
         expected = "^a.b.*c$",
         input = "a_b%c",
-        escape = Some("\\".to_string())
+        escape = Some(DEFAULT_ESCAPE)
     );
 
     test_convert_sql_pattern!(
         escaped_special_sql_characters,
         expected = "^a_b%c$",
         input = "a\\_b\\%c",
-        escape = Some("\\".to_string())
+        escape = Some(DEFAULT_ESCAPE)
     );
 
     test_convert_sql_pattern!(
         escaped_escape_character,
         expected = "^a\\\\.b%c$",
         input = "a\\\\_b\\%c",
-        escape = Some("\\".to_string())
+        escape = Some(DEFAULT_ESCAPE)
     );
 
     test_convert_sql_pattern!(
@@ -213,6 +211,6 @@ mod test_convert_sql_pattern {
         special_mql_characters,
         expected = "^\\.\\^\\$\\*\\+\\?\\(\\)\\[\\{\\\\\\|$",
         input = ".^$*+?()[{\\|",
-        escape = Some("e".to_string())
+        escape = Some('e')
     );
 }

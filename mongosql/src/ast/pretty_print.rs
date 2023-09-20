@@ -742,9 +742,9 @@ impl PrettyPrint for LikeExpr {
             "{} LIKE {}{}",
             formatted_expr,
             formatted_pattern,
-            self.escape.as_ref().map_or("".to_string(), |x| format!(
+            self.escape.as_ref().map_or("".into(), |x| format!(
                 " ESCAPE '{}'",
-                escape_string_literal(x)
+                escape_string_literal(&x.to_string())
             ))
         ))
     }

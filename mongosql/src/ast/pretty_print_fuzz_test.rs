@@ -906,7 +906,7 @@ mod arbitrary {
             Self {
                 expr: Box::new(Expression::arbitrary(g)),
                 pattern: Box::new(Expression::arbitrary(g)),
-                escape: arbitrary_optional(g, |_| escape).map(|x| x.to_string()),
+                escape: arbitrary_optional(g, |_| escape),
             }
         }
     }

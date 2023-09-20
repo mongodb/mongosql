@@ -338,7 +338,7 @@ pub struct IsExpr {
 pub struct LikeExpr {
     pub expr: Box<Expression>,
     pub pattern: Box<Expression>,
-    pub escape: Option<String>,
+    pub escape: Option<char>,
     pub cache: SchemaCache<Schema>,
 }
 

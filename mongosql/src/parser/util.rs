@@ -136,7 +136,7 @@ pub fn parse_like_expr(
         Ok(Box::new(Expression::Like(LikeExpr {
             expr,
             pattern,
-            escape,
+            escape: escape.map(|x| char::from_str(&x).unwrap()),
         })))
     } else {
         Err(LalrpopError::from(

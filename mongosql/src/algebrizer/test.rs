@@ -1714,13 +1714,13 @@ mod expression {
             pattern: Box::new(mir::Expression::Literal(
                 mir::LiteralValue::String("42".into()).into()
             )),
-            escape: Some("foo".into()),
+            escape: Some('f'),
             cache: SchemaCache::new(),
         })),
         input = ast::Expression::Like(ast::LikeExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
             pattern: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
-            escape: Some("foo".into()),
+            escape: Some('f'),
         }),
     );
     test_algebrize!(
@@ -1754,7 +1754,7 @@ mod expression {
         input = ast::Expression::Like(ast::LikeExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
             pattern: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
-            escape: Some(" ".into()),
+            escape: None,
         }),
     );
     test_algebrize!(
@@ -1769,7 +1769,7 @@ mod expression {
         input = ast::Expression::Like(ast::LikeExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
             pattern: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-            escape: Some(" ".into()),
+            escape: Some(' '),
         }),
     );
 

@@ -1345,12 +1345,12 @@ mod like {
         expected = Ok(bson!({"$like": {
             "input": "$input",
             "pattern": "$pattern",
-            "escape": "escape",
+            "escape": "'",
         }})),
         input = Expression::Like(air::Like {
             expr: Box::new(Expression::FieldRef("input".to_string().into())),
             pattern: Box::new(Expression::FieldRef("pattern".to_string().into())),
-            escape: Some("escape".to_string()),
+            escape: Some('\''),
         })
     );
 

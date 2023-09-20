@@ -1180,7 +1180,7 @@ mod expression {
                 pattern: Box::new(air::Expression::Literal(air::LiteralValue::String(
                     "pat".to_string()
                 ))),
-                escape: Some("e".to_string())
+                escape: Some('e')
             }),
             input =
                 agg_ast::Expression::TaggedOperator(agg_ast::TaggedOperator::Like(agg_ast::Like {
@@ -1190,7 +1190,7 @@ mod expression {
                     pattern: Box::new(agg_ast::Expression::StringOrRef(
                         agg_ast::StringOrRef::String("pat".to_string())
                     )),
-                    escape: Some("e".to_string()),
+                    escape: Some('e'),
                 }))
         );
 

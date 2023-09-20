@@ -332,7 +332,7 @@ pub(crate) struct Convert {
 pub(crate) struct Like {
     pub(crate) input: Box<Expression>,
     pub(crate) pattern: Box<Expression>,
-    pub(crate) escape: Option<String>,
+    pub(crate) escape: Option<char>,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]

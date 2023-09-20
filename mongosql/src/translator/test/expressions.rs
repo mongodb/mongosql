@@ -3544,12 +3544,12 @@ mod like {
         expected = Ok(air::Expression::Like(air::Like {
             expr: Box::new(air::Expression::FieldRef("input".to_string().into())),
             pattern: Box::new(air::Expression::FieldRef("pattern".to_string().into())),
-            escape: Some("escape".to_string())
+            escape: Some('\\')
         })),
         input = mir::Expression::Like(mir::LikeExpr {
             expr: mir::Expression::Reference(("input", 0u16).into()).into(),
             pattern: mir::Expression::Reference(("pattern", 0u16).into()).into(),
-            escape: Some("escape".to_string()),
+            escape: Some('\\'),
             cache: mir::schema::SchemaCache::new(),
         }),
         mapping_registry = {

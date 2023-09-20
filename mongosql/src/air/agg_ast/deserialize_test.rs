@@ -491,7 +491,7 @@ mod stage_test {
             input = r#"stage: {"$lookup": {
                 "from": {"db": "from_db", "coll": "from_coll"},
                 "let": {"x": 9},
-                "pipeline": [], 
+                "pipeline": [],
                 "as": "as_var"
             }}"#
         );
@@ -515,7 +515,7 @@ mod stage_test {
                     "x": 9,
                     "y": "$z"
                 },
-                "pipeline": [], 
+                "pipeline": [],
                 "as": "as_var"
             }}"#
         );
@@ -934,7 +934,7 @@ mod expression_test {
                 pattern: Box::new(Expression::StringOrRef(StringOrRef::String(
                     "x!*.*".to_string()
                 ))),
-                escape: Some("!".to_string())
+                escape: Some('!')
             })),
             input = r#"expr: {"$like": {
                                 "input": "x*yz",

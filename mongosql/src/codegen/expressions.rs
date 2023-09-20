@@ -224,7 +224,7 @@ impl MqlCodeGenerator {
             "pattern": self.codegen_expression(*like.pattern)?,
         };
         if like.escape.is_some() {
-            like_doc.insert("escape", like.escape.unwrap());
+            like_doc.insert("escape", like.escape.unwrap().to_string());
         }
         Ok(Bson::Document(doc! {"$like": like_doc}))
     }
