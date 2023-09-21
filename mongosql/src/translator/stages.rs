@@ -300,7 +300,7 @@ impl MqlTranslator {
     fn translate_unwind(&mut self, mir_unwind: mir::Unwind) -> Result<air::Stage> {
         Ok(air::Stage::Unwind(air::Unwind {
             source: Box::new(self.translate_stage(*mir_unwind.source)?),
-            path: self.translate_field_path_to_expresssion(mir_unwind.path)?,
+            path: self.translate_field_path_to_expression(mir_unwind.path, false)?,
             index: mir_unwind.index,
             outer: mir_unwind.outer,
         }))
@@ -323,11 +323,18 @@ impl MqlTranslator {
         let source = self.translate_stage(*mir_join.source)?;
         let from = self.translate_stage(*mir_join.from)?;
 
-        // The `from` must be of the form Project{source: Collection, ...}, we will discard
-        // the Project since EquiJoins do not have actual pipelines.
-        let collection = if let air::Stage::Project(p) = from {
+        // The `from` must be of the form Project{source: Collection, ...}. We discard
+        // the Project since EquiJoins do not have actual pipelines. We use the mapped
+        // name as the as_name for the EquiJoin.
+        let (as_name, collection) = if let air::Stage::Project(p) = from {
             if let air::Stage::Collection(c) = *p.source {
-                c
+                // Here, we assume algebrization and optimization are correct.
+                // The resulting Project must have one mapping, which refers to
+                // the Collection.
+                match p.specifications.keys().next() {
+                    Some(as_name) => (as_name.clone(), c),
+                    _ => return Err(Error::ExpectedCollection),
+                }
             } else {
                 return Err(Error::ExpectedCollection);
             }
@@ -335,16 +342,17 @@ impl MqlTranslator {
             return Err(Error::ExpectedCollection);
         };
 
-        let translate_to_field_ref = |e: mir::Expression| -> Result<air::FieldRef> {
-            let e = self.translate_expression(e)?;
-            if let air::Expression::FieldRef(f) = e {
-                Ok(f)
-            } else {
-                Err(Error::ExpectedFieldRef)
-            }
-        };
-        let local_field = translate_to_field_ref(*mir_join.local_field)?;
-        let foreign_field = translate_to_field_ref(*mir_join.foreign_field)?;
+        let translate_to_field_ref =
+            |e: mir::FieldPath, omit_root: bool| -> Result<air::FieldRef> {
+                let e = self.translate_field_path_to_expression(e, omit_root)?;
+                if let air::Expression::FieldRef(f) = e {
+                    Ok(f)
+                } else {
+                    Err(Error::ExpectedFieldRef)
+                }
+            };
+        let local_field = translate_to_field_ref(*mir_join.local_field, false)?;
+        let foreign_field = translate_to_field_ref(*mir_join.foreign_field, true)?;
 
         Ok(air::Stage::EquiJoin(air::EquiJoin {
             join_type,
@@ -352,6 +360,7 @@ impl MqlTranslator {
             from: collection,
             local_field,
             foreign_field,
+            as_name,
         }))
     }
 

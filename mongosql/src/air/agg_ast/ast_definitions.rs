@@ -113,6 +113,8 @@ pub(crate) struct EquiJoin {
     pub(crate) join_type: JoinType,
     pub(crate) local_field: String,
     pub(crate) foreign_field: String,
+    #[serde(rename = "as")]
+    pub(crate) as_var: String,
 }
 
 #[derive(Debug, PartialEq, Deserialize)]
@@ -705,6 +707,7 @@ impl From<(Option<air::Stage>, Stage)> for air::Stage {
                     },
                     local_field: eqj.local_field.into(),
                     foreign_field: eqj.foreign_field.into(),
+                    as_name: eqj.as_var,
                 })
             }
             Stage::Unwind(u) => match u {

@@ -183,22 +183,22 @@ test_schema!(
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::And,
             args: vec![
-                Expression::OptimizedMatchExists(OptimizedMatchExists {
+                Expression::MQLIntrinsic(MQLExpression::FieldExistence(FieldExistence {
                     field_access: FieldAccess {
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                         field: "nullable_a".to_string(),
                         cache: SchemaCache::new(),
                     },
                     cache: SchemaCache::new(),
-                }),
-                Expression::OptimizedMatchExists(OptimizedMatchExists {
+                })),
+                Expression::MQLIntrinsic(MQLExpression::FieldExistence(FieldExistence {
                     field_access: FieldAccess {
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                         field: "nullable_b".to_string(),
                         cache: SchemaCache::new(),
                     },
                     cache: SchemaCache::new(),
-                }),
+                })),
             ],
             cache: SchemaCache::new(),
         }),

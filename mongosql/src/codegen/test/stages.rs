@@ -1077,8 +1077,9 @@ mod equijoin {
                     "database": "test_db",
                     "collection": "bar",
                     "localField": "foo.a",
-                    "foreignField": "bar.a",
+                    "foreignField": "a",
                     "joinType": "inner",
+                    "as": "bar",
                 }
             }],
         }),
@@ -1087,7 +1088,8 @@ mod equijoin {
             source: air_pipeline_collection("foo"),
             from: air_collection("bar"),
             local_field: "foo.a".into(),
-            foreign_field: "bar.a".into(),
+            foreign_field: "a".into(),
+            as_name: "bar".to_string(),
         }),
     );
 
@@ -1102,8 +1104,9 @@ mod equijoin {
                     "database": "test_db",
                     "collection": "bar",
                     "localField": "foo.a",
-                    "foreignField": "bar.a",
+                    "foreignField": "a",
                     "joinType": "left",
+                    "as": "x",
                 }
             }],
         }),
@@ -1112,7 +1115,8 @@ mod equijoin {
             source: air_pipeline_collection("foo"),
             from: air_collection("bar"),
             local_field: "foo.a".into(),
-            foreign_field: "bar.a".into(),
+            foreign_field: "a".into(),
+            as_name: "x".to_string(),
         }),
     );
 }

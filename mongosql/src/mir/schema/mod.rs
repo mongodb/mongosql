@@ -253,8 +253,8 @@ impl CachedSchema for Stage {
                     });
                 }
 
-                // For each OptimizedMatchExists in the condition, we must
-                // update the result set schema to indicate that the optimized
+                // For each FieldExistence in the condition, we must update
+                // the result set schema to indicate that the optimized
                 // field is never nullish.
                 let optimized_field_accesses = get_optimized_field_accesses(f);
                 for ofa in optimized_field_accesses {
@@ -1184,7 +1184,7 @@ impl CachedSchema for Expression {
             Expression::Subquery(s) => &s.cache,
             Expression::SubqueryComparison(s) => &s.cache,
             Expression::Exists(s) => &s.cache, // schema is always always boolean after checking the boxed stage, which is cached
-            Expression::OptimizedMatchExists(s) => &s.cache,
+            Expression::MQLIntrinsic(MQLExpression::FieldExistence(s)) => &s.cache,
         }
     }
 
@@ -1273,7 +1273,9 @@ impl CachedSchema for Expression {
                     Satisfaction::Must => Ok(Schema::Atomic(Atomic::Null)),
                 }
             }
-            Expression::OptimizedMatchExists(_) => Ok(Schema::Atomic(Atomic::Boolean)),
+            Expression::MQLIntrinsic(MQLExpression::FieldExistence(_)) => {
+                Ok(Schema::Atomic(Atomic::Boolean))
+            }
         }
     }
 }

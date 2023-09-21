@@ -642,15 +642,16 @@ workloads:
               and ((n1.n_name = 'UNITED STATES' and n2.n_name = 'JAPAN')
               or (n1.n_name = 'JAPAN' and n2.n_name = 'UNITED STATES'))
               and l_shipdate between '1995-01-01T00:00:00.000Z'::TIMESTAMP
-              and '1996-12-31T00:00:00.000Z'::TIMESTAMP ) as shipping
-          GROUP BY
-              supp_nation,
-              cust_nation,
-              l_year
-          ORDER BY
-              supp_nation,
-              cust_nation,
-              l_year
+              and '1996-12-31T00:00:00.000Z'::TIMESTAMP
+      ) as shipping
+      GROUP BY
+          supp_nation,
+          cust_nation,
+          l_year
+      ORDER BY
+          supp_nation,
+          cust_nation,
+          l_year
 
   - name: q8_normalized
     db: tpch

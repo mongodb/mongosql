@@ -440,11 +440,23 @@ impl<'a> StageMovementVisitor<'a> {
         match *node {
             Stage::Sort(ref n) => matches!(
                 &*n.source,
-                Stage::Collection(_) | Stage::Array(_) | Stage::Sort(_) | Stage::Group(_)
+                Stage::Collection(_)
+                    | Stage::Array(_)
+                    | Stage::Sort(_)
+                    | Stage::Group(_)
+                    | Stage::MQLIntrinsic(MQLStage::EquiJoin(_))
             ),
-            Stage::Filter(ref n) => matches!(&*n.source, Stage::Collection(_) | Stage::Array(_)),
+            Stage::Filter(ref n) => matches!(
+                &*n.source,
+                Stage::Collection(_) | Stage::Array(_) | Stage::MQLIntrinsic(MQLStage::EquiJoin(_))
+            ),
             Stage::MQLIntrinsic(MQLStage::MatchFilter(ref n)) => {
-                matches!(&*n.source, Stage::Collection(_) | Stage::Array(_))
+                matches!(
+                    &*n.source,
+                    Stage::Collection(_)
+                        | Stage::Array(_)
+                        | Stage::MQLIntrinsic(MQLStage::EquiJoin(_))
+                )
             }
             _ => unreachable!(),
         }

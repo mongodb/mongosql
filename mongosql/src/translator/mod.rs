@@ -42,10 +42,12 @@ pub enum Error {
     SubqueryOutputPathNotFieldRef,
     #[error("expected FieldRef")]
     ExpectedFieldRef,
-    #[error("expected Collection")]
+    #[error("expected Collection source on RHS of EquiJoin")]
     ExpectedCollection,
     #[error("expected FieldRef for match-language input, but got Variable")]
     InvalidMatchLanguageInputRef,
+    #[error("expected ROOT-based Variable for EquiJoin foreign field, but got {0}")]
+    InvalidEquiJoinForeignFieldRef(String),
 }
 
 #[derive(Clone)]

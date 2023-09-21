@@ -6,6 +6,7 @@ use crate::{
         utils::scalar_function_to_scalar_function_type, utils::ScalarFunctionType, Error,
         MqlTranslator, Result,
     },
+    util::ROOT_NAME,
 };
 use mongosql_datastructures::{binding_tuple::Key, unique_linked_hash_map::UniqueLinkedHashMap};
 
@@ -39,7 +40,9 @@ impl MqlTranslator {
                 self.translate_subquery_comparison(subquery_comparison)
             }
             mir::Expression::TypeAssertion(ta) => self.translate_expression(*ta.expr),
-            mir::Expression::OptimizedMatchExists(o) => self.translate_optimized_match_exists(o),
+            mir::Expression::MQLIntrinsic(mir::MQLExpression::FieldExistence(o)) => {
+                self.translate_field_existence(o)
+            }
         }
     }
 
@@ -78,9 +81,18 @@ impl MqlTranslator {
         Ok(ret)
     }
 
-    pub fn translate_field_path_to_expresssion(
+    /// translate_field_path_to_expression translates a mir::FieldPath
+    /// to an air::Expression. The variant is either Variable or FieldRef.
+    /// If the omit_root flag is set to true, then the root of the reference
+    /// will be omitted. Variable expressions that start with "ROOT" will be
+    /// upconverted to FieldRef expressions, omitting the "ROOT" component.
+    /// This is relevant for EquiJoin translation where the foreign_field
+    /// must be a mir::FieldPath, but should not contain a reference to the
+    /// datasource in its translated name.
+    pub fn translate_field_path_to_expression(
         &self,
         mir_field_path: mir::FieldPath,
+        omit_root: bool,
     ) -> Result<air::Expression> {
         let (root, is_var) = {
             let mapping_registry_value = self
@@ -92,7 +104,7 @@ impl MqlTranslator {
                 MqlReferenceType::Variable => (mapping_registry_value.name.clone(), true),
             }
         };
-        if is_var {
+        if is_var && !omit_root {
             let mut ret = air::Variable {
                 parent: None,
                 name: root,
@@ -105,17 +117,22 @@ impl MqlTranslator {
             }
             return Ok(air::Expression::Variable(ret));
         }
-        let mut ret = air::FieldRef {
-            parent: None,
-            name: root,
+        let mut ret: Option<Box<air::FieldRef>> = if omit_root {
+            if is_var && root != *ROOT_NAME.to_string() {
+                return Err(Error::InvalidEquiJoinForeignFieldRef(root));
+            } else {
+                None
+            }
+        } else {
+            Some(Box::new(air::FieldRef {
+                parent: None,
+                name: root,
+            }))
         };
         for name in mir_field_path.fields {
-            ret = air::FieldRef {
-                parent: Some(Box::new(ret)),
-                name,
-            };
+            ret = Some(Box::new(air::FieldRef { parent: ret, name }));
         }
-        Ok(air::Expression::FieldRef(ret))
+        Ok(air::Expression::FieldRef(*ret.unwrap()))
     }
 
     fn translate_array_expression(&self, array: Vec<mir::Expression>) -> Result<air::Expression> {
@@ -475,13 +492,10 @@ impl MqlTranslator {
         ))
     }
 
-    /// An OptimizedMatchExists is a special node that represents an existence assertion in
-    /// a Match condition. The goal of this expression is to ensure its argument exists and
-    /// is not null. We achieve this in MQL via { $gt: [ <expr>, null ] }.
-    fn translate_optimized_match_exists(
-        &self,
-        ome: mir::OptimizedMatchExists,
-    ) -> Result<air::Expression> {
+    /// A FieldExistence is a special node that represents an existence assertion in a Match
+    /// condition. The goal of this expression is to ensure its argument exists and is not
+    /// null. We achieve this in MQL via { $gt: [ <expr>, null ] }.
+    fn translate_field_existence(&self, ome: mir::FieldExistence) -> Result<air::Expression> {
         Ok(air::Expression::MQLSemanticOperator(
             air::MQLSemanticOperator {
                 op: MQLOperator::Gt,
@@ -518,7 +532,10 @@ impl MqlTranslator {
             mir::Expression::Reference(mir::ReferenceExpr { key, .. }) => {
                 match self.mapping_registry.get(&key) {
                     Some(registry_value) => Ok(vec![registry_value.name.clone()]),
-                    None => Err(Error::ReferenceNotFound(key)),
+                    None => {
+                        println!("545");
+                        Err(Error::ReferenceNotFound(key))
+                    }
                 }
             }
             mir::Expression::FieldAccess(fa) => {

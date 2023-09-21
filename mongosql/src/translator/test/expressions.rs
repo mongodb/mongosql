@@ -4325,7 +4325,7 @@ mod subquery_exists {
     );
 }
 
-mod optimized_match_exists {
+mod mql_intrinsic {
     use crate::{
         air,
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
@@ -4343,14 +4343,16 @@ mod optimized_match_exists {
                 ],
             }
         )),
-        input = mir::Expression::OptimizedMatchExists(mir::OptimizedMatchExists {
-            field_access: mir::FieldAccess {
-                expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-                field: "x".to_string(),
+        input = mir::Expression::MQLIntrinsic(mir::MQLExpression::FieldExistence(
+            mir::FieldExistence {
+                field_access: mir::FieldAccess {
+                    expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
+                    field: "x".to_string(),
+                    cache: mir::schema::SchemaCache::new(),
+                },
                 cache: mir::schema::SchemaCache::new(),
-            },
-            cache: mir::schema::SchemaCache::new(),
-        }),
+            }
+        )),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(

@@ -1,6 +1,7 @@
 use crate::{
-    mir::{self, binding_tuple::Key, optimizer::use_def_analysis::FieldPath},
+    mir::{self, optimizer::use_def_analysis::FieldPath},
     unchecked_unique_linked_hash_map,
+    util::mir_field_path,
 };
 
 macro_rules! test_method {
@@ -162,18 +163,6 @@ fn mir_field_access(ref_name: &str, field_name: &str) -> mir::Expression {
         field: field_name.to_string(),
         cache: mir::schema::SchemaCache::new(),
     })
-}
-
-fn mir_field_path(datasource_name: &str, field_names: Vec<&str>) -> mir::FieldPath {
-    FieldPath {
-        key: if datasource_name == "__bot__" {
-            Key::bot(0u16)
-        } else {
-            Key::named(datasource_name, 0u16)
-        },
-        fields: field_names.into_iter().map(String::from).collect(),
-        cache: mir::schema::SchemaCache::new(),
-    }
 }
 
 test_method!(

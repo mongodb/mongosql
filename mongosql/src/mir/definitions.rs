@@ -133,8 +133,8 @@ pub struct EquiJoin {
     pub join_type: JoinType,
     pub source: Box<Stage>,
     pub from: Box<Stage>,
-    pub local_field: Box<Expression>,
-    pub foreign_field: Box<Expression>,
+    pub local_field: Box<FieldPath>,
+    pub foreign_field: Box<FieldPath>,
     pub cache: SchemaCache<ResultSet>,
 }
 
@@ -239,7 +239,7 @@ pub enum Expression {
 
     // Special variants that only exists for optimization purposes;
     // these do not represent actual MongoSQL constructs.
-    OptimizedMatchExists(OptimizedMatchExists),
+    MQLIntrinsic(MQLExpression),
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -682,7 +682,12 @@ pub enum SubqueryModifier {
 }
 
 #[derive(PartialEq, Debug, Clone)]
-pub struct OptimizedMatchExists {
+pub enum MQLExpression {
+    FieldExistence(FieldExistence),
+}
+
+#[derive(PartialEq, Debug, Clone)]
+pub struct FieldExistence {
     pub field_access: FieldAccess,
     pub cache: SchemaCache<Schema>,
 }
@@ -735,13 +740,13 @@ impl TryFrom<FieldAccess> for FieldPath {
         let mut fields = vec![value.field];
         loop {
             match cur {
-                Expression::Reference(ReferenceExpr {key, cache}) => {
+                Expression::Reference(ReferenceExpr {key, cache: _}) => {
                     fields.reverse();
                     return Ok(
                         FieldPath {
                             key,
                             fields,
-                            cache,
+                            cache: value.cache,
                         });
                 }
                 Expression::FieldAccess(FieldAccess {expr, field, ..}) => {
@@ -764,13 +769,13 @@ impl TryFrom<&FieldAccess> for FieldPath {
         let mut fields = vec![value.field.clone()];
         loop {
             match cur {
-                Expression::Reference(ReferenceExpr {key, cache}) => {
+                Expression::Reference(ReferenceExpr {key, cache: _}) => {
                     fields.reverse();
                     return Ok(
                         FieldPath {
                             key: key.clone(),
                             fields,
-                            cache: cache.clone(),
+                            cache: value.cache.clone(),
                         });
                 }
                 Expression::FieldAccess(FieldAccess {expr, field, ..}) => {

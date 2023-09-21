@@ -23,8 +23,8 @@ use crate::{
     mir::{
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        Derived, ExistsExpr, Expression, FieldAccess, Filter, OptimizedMatchExists, ScalarFunction,
-        ScalarFunctionApplication, Stage, SubqueryExpr,
+        Derived, ExistsExpr, Expression, FieldAccess, FieldExistence, Filter, MQLExpression,
+        ScalarFunction, ScalarFunctionApplication, Stage, SubqueryExpr,
     },
     schema::{Satisfaction, NULLISH},
     SchemaCheckingMode,
@@ -48,10 +48,10 @@ impl Optimizer for MatchNullFilteringOptimizer {
 
         // After adding these new Filter stages, we invalidate all of the
         // schema caches and recalculate. This is necessary since the new
-        // Filter's OptimizedMatchExists expressions alter the schema of
-        // their field references in subsequent stages. We cannot just
-        // call the `schema` method on a per-expression or even per-stage
-        // basis _during_ the walk because that would fail to incorporate
+        // Filter's FieldExistence expressions alter the schema of their
+        // field references in subsequent stages. We cannot just call the
+        // `schema` method on a per-expression or even per-stage basis
+        // _during_ the walk because that would fail to incorporate
         // correlated schema information.
         let mut v = SchemaInvalidator;
         let st = v.visit_stage(st);
@@ -88,10 +88,10 @@ impl<'a> MatchNullFilteringVisitor<'a> {
             .gather_fields_for_null_filter(condition)
             .into_values()
             .map(|fa| {
-                Expression::OptimizedMatchExists(OptimizedMatchExists {
+                Expression::MQLIntrinsic(MQLExpression::FieldExistence(FieldExistence {
                     field_access: fa,
                     cache: SchemaCache::new(),
-                })
+                }))
             })
             .collect::<Vec<Expression>>();
 

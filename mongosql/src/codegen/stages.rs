@@ -379,6 +379,7 @@ impl MqlCodeGenerator {
             self.codegen_field_ref_path_only(air_join.foreign_field),
         );
         join_doc.insert("joinType", join_type);
+        join_doc.insert("as", air_join.as_name);
 
         source_translation
             .pipeline

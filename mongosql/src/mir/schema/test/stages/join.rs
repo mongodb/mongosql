@@ -13,7 +13,7 @@ use crate::{
     },
     schema::{Atomic, Document, ResultSet, Schema, BOOLEAN_OR_NULLISH},
     set, test_schema, unchecked_unique_linked_hash_map,
-    util::{mir_collection, mir_field_access},
+    util::{mir_collection, mir_field_path},
 };
 use mongosql_datastructures::binding_tuple::DatasourceName::Bottom;
 
@@ -45,8 +45,8 @@ mod equijoin {
                 cache: SchemaCache::new(),
             })),
             from: mir_collection("bar"),
-            local_field: mir_field_access("foo", "a"),
-            foreign_field: mir_field_access("bar", "a"),
+            local_field: Box::new(mir_field_path("foo", vec!["a"])),
+            foreign_field: Box::new(mir_field_path("bar", vec!["a"])),
             cache: SchemaCache::new(),
         })),
         catalog = Catalog::new(map! {
@@ -73,8 +73,8 @@ mod equijoin {
                 cache: SchemaCache::new(),
             })),
             from: mir_collection("bar"),
-            local_field: mir_field_access("foo", "a"),
-            foreign_field: mir_field_access("bar", "a"),
+            local_field: Box::new(mir_field_path("foo", vec!["a"])),
+            foreign_field: Box::new(mir_field_path("bar", vec!["a"])),
             cache: SchemaCache::new(),
         })),
         catalog = Catalog::new(map! {
@@ -99,8 +99,8 @@ mod equijoin {
                 cache: SchemaCache::new(),
             })),
             from: mir_collection("bar"),
-            local_field: mir_field_access("foo", "a"),
-            foreign_field: mir_field_access("bar", "s"),
+            local_field: Box::new(mir_field_path("foo", vec!["a"])),
+            foreign_field: Box::new(mir_field_path("bar", vec!["s"])),
             cache: SchemaCache::new(),
         })),
         catalog = Catalog::new(map! {

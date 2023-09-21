@@ -7,7 +7,7 @@ mod scalar_function; // mir::Expression::ScalarFunction
 mod subquery; // mir::Expression::{Exists, Subquery, SubqueryComparison}
 mod type_expr; // mir::Expression::{Cast, TypeAssertion}
 
-mod optimized_match_exists {
+mod mql_intrinsic {
     use crate::{
         map,
         mir::{schema::SchemaCache, *},
@@ -16,16 +16,16 @@ mod optimized_match_exists {
     };
 
     test_schema!(
-        optimized_match_exists_is_always_boolean,
+        field_existence_is_always_boolean,
         expected = Ok(Schema::Atomic(Atomic::Boolean)),
-        input = Expression::OptimizedMatchExists(OptimizedMatchExists {
+        input = Expression::MQLIntrinsic(MQLExpression::FieldExistence(FieldExistence {
             field_access: FieldAccess {
                 expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                 field: "x".to_string(),
                 cache: SchemaCache::new(),
             },
             cache: SchemaCache::new()
-        }),
+        })),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::Document(Document {
                 keys: map! {

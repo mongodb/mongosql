@@ -151,6 +151,42 @@ impl ResultSet {
     pub fn has_datasource(&self, datasource: &Key) -> bool {
         self.schema_env.contains_key(datasource)
     }
+
+    /// contains_field determines if this ResultSet contains the field,
+    /// specified by `path`, in the provided datasource. If the ResultSet
+    /// does include the datasource and contains the full path, returns true.
+    /// Otherwise returns false.
+    pub fn contains_field(&self, datasource: &Key, path: &[String]) -> bool {
+        if let Some(s) = self.schema_env.get(datasource) {
+            let mut cur_schema = s;
+
+            for field in path.iter() {
+                match cur_schema {
+                    Schema::Document(d) => {
+                        // If the Document schema contains the next part of the path,
+                        // continue searching down the Document schema chain, otherwise
+                        // return false since part of the path is not included.
+                        if let Some(field_s) = d.keys.get(field) {
+                            cur_schema = field_s;
+                        } else {
+                            return false;
+                        }
+                    }
+                    // If the current schema is not a Document but there are
+                    // more field path components, the ResultSet must not contain
+                    // the full path.
+                    _ => return false,
+                }
+            }
+
+            // If we get through iteration, we know the field must be included in
+            // this ResultSet.
+            true
+        } else {
+            // Does not contain the datasource.
+            false
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]

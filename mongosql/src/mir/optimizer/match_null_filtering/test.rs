@@ -4,9 +4,9 @@ use crate::{
     mir::{
         optimizer::{match_null_filtering::MatchNullFilteringOptimizer, Optimizer},
         schema::{CachedSchema, SchemaCache, SchemaCheckingMode, SchemaInferenceState},
-        Collection, Derived, ExistsExpr, Expression, FieldAccess, Filter, LiteralExpr,
-        LiteralValue, OptimizedMatchExists, Project, ScalarFunction, ScalarFunctionApplication,
-        Stage, SubqueryExpr,
+        Collection, Derived, ExistsExpr, Expression, FieldAccess, FieldExistence, Filter,
+        LiteralExpr, LiteralValue, MQLExpression, Project, ScalarFunction,
+        ScalarFunctionApplication, Stage, SubqueryExpr,
     },
     schema::{Atomic, Document, Schema, SchemaEnvironment, INTEGER_OR_NULLISH},
     set, unchecked_unique_linked_hash_map,
@@ -99,15 +99,15 @@ fn field_access_expr(collection: &str, field: Vec<&str>, ref_scope: u16) -> Expr
     )
 }
 
-fn optimized_match_exists_expr(collection: &str, field: Vec<&str>, ref_scope: u16) -> Expression {
+fn field_existence_expr(collection: &str, field: Vec<&str>, ref_scope: u16) -> Expression {
     let field_access = match field_access_expr(collection, field, ref_scope) {
         Expression::FieldAccess(fa) => fa,
         _ => unreachable!(),
     };
-    Expression::OptimizedMatchExists(OptimizedMatchExists {
+    Expression::MQLIntrinsic(MQLExpression::FieldExistence(FieldExistence {
         field_access,
         cache: SchemaCache::new(),
-    })
+    }))
 }
 
 mod all_fields_always_nullable {
@@ -118,7 +118,7 @@ mod all_fields_always_nullable {
         expected = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
                 source: collection_source("foo"),
-                condition: optimized_match_exists_expr("foo", vec!["nullable_a"], 0u16),
+                condition: field_existence_expr("foo", vec!["nullable_a"], 0u16),
                 cache: SchemaCache::new(),
             })),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -159,8 +159,8 @@ mod all_fields_always_nullable {
                 condition: Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::And,
                     args: vec![
-                        optimized_match_exists_expr("foo", vec!["nullable_a"], 0u16),
-                        optimized_match_exists_expr("foo", vec!["nullable_b"], 0u16),
+                        field_existence_expr("foo", vec!["nullable_a"], 0u16),
+                        field_existence_expr("foo", vec!["nullable_b"], 0u16),
                     ],
                     cache: SchemaCache::new(),
                 }),
@@ -198,8 +198,8 @@ mod all_fields_always_nullable {
                 condition: Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::And,
                     args: vec![
-                        optimized_match_exists_expr("foo", vec!["nullable_a"], 0u16),
-                        optimized_match_exists_expr("foo", vec!["nullable_b"], 0u16),
+                        field_existence_expr("foo", vec!["nullable_a"], 0u16),
+                        field_existence_expr("foo", vec!["nullable_b"], 0u16),
                     ],
                     cache: SchemaCache::new(),
                 }),
@@ -274,7 +274,7 @@ mod all_fields_always_nullable {
         expected = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
                 source: collection_source("foo"),
-                condition: optimized_match_exists_expr("foo", vec!["nullable_a"], 0u16),
+                condition: field_existence_expr("foo", vec!["nullable_a"], 0u16),
                 cache: SchemaCache::new(),
             })),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -349,8 +349,8 @@ mod all_fields_always_nullable {
                 condition: Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::And,
                     args: vec![
-                        optimized_match_exists_expr("foo", vec!["doc_a", "nested"], 0u16),
-                        optimized_match_exists_expr("foo", vec!["doc_b", "nested"], 0u16),
+                        field_existence_expr("foo", vec!["doc_a", "nested"], 0u16),
+                        field_existence_expr("foo", vec!["doc_b", "nested"], 0u16),
                     ],
                     cache: SchemaCache::new(),
                 }),
@@ -391,7 +391,7 @@ mod all_fields_always_nullable {
                         subquery: Box::new(Stage::Filter(Filter {
                             source: Box::new(Stage::Filter(Filter {
                                 source: collection_source("foo"),
-                                condition: optimized_match_exists_expr("foo", vec!["nullable_a"], 1u16),
+                                condition: field_existence_expr("foo", vec!["nullable_a"], 1u16),
                                 cache: SchemaCache::new(),
                             })),
                             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -449,7 +449,7 @@ mod all_fields_always_nullable {
                 source: Box::new(Stage::Filter(Filter {
                     source: Box::new(Stage::Filter(Filter {
                         source: collection_source("foo"),
-                        condition: optimized_match_exists_expr("foo", vec!["nullable_b"], 0u16),
+                        condition: field_existence_expr("foo", vec!["nullable_b"], 0u16),
                         cache: SchemaCache::new(),
                     })),
                     condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -465,7 +465,7 @@ mod all_fields_always_nullable {
                     }),
                     cache: SchemaCache::new(),
                 })),
-                condition: optimized_match_exists_expr("foo", vec!["nullable_a"], 0u16),
+                condition: field_existence_expr("foo", vec!["nullable_a"], 0u16),
                 cache: SchemaCache::new(),
             })),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -520,11 +520,7 @@ mod all_fields_always_nullable {
                     stage: Box::new(Stage::Filter(Filter {
                         source: Box::new(Stage::Filter(Filter {
                             source: collection_source("nested"),
-                            condition: optimized_match_exists_expr(
-                                "nested",
-                                vec!["nullable_field"],
-                                2u16
-                            ),
+                            condition: field_existence_expr("nested", vec!["nullable_field"], 2u16),
                             cache: SchemaCache::new(),
                         })),
                         condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -578,7 +574,7 @@ mod mixed_field_nullability {
         expected = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
                 source: collection_source("foo"),
-                condition: optimized_match_exists_expr("foo", vec!["nullable_b"], 0u16),
+                condition: field_existence_expr("foo", vec!["nullable_b"], 0u16),
                 cache: SchemaCache::new(),
             })),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {

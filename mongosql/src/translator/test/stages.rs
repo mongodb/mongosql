@@ -1256,9 +1256,11 @@ mod join {
 
 mod equijoin {
     use crate::{
+        map,
         translator::Error,
-        util::{air_collection, air_pipeline_collection, mir_collection, mir_field_access},
+        util::{air_collection, air_pipeline_collection, mir_collection, mir_field_path},
     };
+    use mongosql_datastructures::binding_tuple::Key;
 
     test_translate_stage!(
         inner_join,
@@ -1267,14 +1269,15 @@ mod equijoin {
             source: air_pipeline_collection("foo"),
             from: air_collection("bar"),
             local_field: "foo.a".into(),
-            foreign_field: "bar.a".into(),
+            foreign_field: "a".into(),
+            as_name: "bar".to_string(),
         })),
         input = mir::Stage::MQLIntrinsic(mir::MQLStage::EquiJoin(mir::EquiJoin {
             join_type: mir::JoinType::Inner,
             source: mir_collection("foo"),
             from: mir_collection("bar"),
-            local_field: mir_field_access("foo", "a"),
-            foreign_field: mir_field_access("bar", "a"),
+            local_field: Box::new(mir_field_path("foo", vec!["a"])),
+            foreign_field: Box::new(mir_field_path("bar", vec!["a"])),
             cache: mir::schema::SchemaCache::new(),
         }))
     );
@@ -1286,14 +1289,25 @@ mod equijoin {
             source: air_pipeline_collection("foo"),
             from: air_collection("bar"),
             local_field: "foo.a".into(),
-            foreign_field: "bar.a".into(),
+            foreign_field: "a".into(),
+            as_name: "x".to_string(),
         })),
         input = mir::Stage::MQLIntrinsic(mir::MQLStage::EquiJoin(mir::EquiJoin {
             join_type: mir::JoinType::Left,
             source: mir_collection("foo"),
-            from: mir_collection("bar"),
-            local_field: mir_field_access("foo", "a"),
-            foreign_field: mir_field_access("bar", "a"),
+            from: Box::new(mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Collection(mir::Collection {
+                    db: "test_db".to_string(),
+                    collection: "bar".to_string(),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                expression: map! {
+                    Key::named("x", 0u16) => mir::Expression::Reference(("bar".to_string(), 0u16).into()),
+                },
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            local_field: Box::new(mir_field_path("foo", vec!["a"])),
+            foreign_field: Box::new(mir_field_path("x", vec!["a"])),
             cache: mir::schema::SchemaCache::new(),
         }))
     );
@@ -1310,36 +1324,8 @@ mod equijoin {
                 cache: mir::schema::SchemaCache::new()
             })
             .into(),
-            local_field: mir_field_access("foo", "a"),
-            foreign_field: mir_field_access("bar", "a"),
-            cache: mir::schema::SchemaCache::new(),
-        }))
-    );
-
-    test_translate_stage!(
-        local_must_be_field_ref,
-        expected = Err(Error::ExpectedFieldRef),
-        input = mir::Stage::MQLIntrinsic(mir::MQLStage::EquiJoin(mir::EquiJoin {
-            join_type: mir::JoinType::Left,
-            source: mir_collection("foo"),
-            from: mir_collection("bar"),
-            local_field: mir::Expression::Literal(mir::LiteralValue::String("foo".into()).into())
-                .into(),
-            foreign_field: mir_field_access("bar", "a"),
-            cache: mir::schema::SchemaCache::new(),
-        }))
-    );
-
-    test_translate_stage!(
-        foregin_must_be_field_ref,
-        expected = Err(Error::ExpectedFieldRef),
-        input = mir::Stage::MQLIntrinsic(mir::MQLStage::EquiJoin(mir::EquiJoin {
-            join_type: mir::JoinType::Left,
-            source: mir_collection("foo"),
-            from: mir_collection("bar"),
-            local_field: mir_field_access("foo", "a"),
-            foreign_field: mir::Expression::Literal(mir::LiteralValue::String("foo".into()).into())
-                .into(),
+            local_field: Box::new(mir_field_path("foo", vec!["a"])),
+            foreign_field: Box::new(mir_field_path("bar", vec!["a"])),
             cache: mir::schema::SchemaCache::new(),
         }))
     );

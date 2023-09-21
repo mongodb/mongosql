@@ -186,6 +186,7 @@ pub struct EquiJoin {
     pub from: Collection,
     pub local_field: FieldRef,
     pub foreign_field: FieldRef,
+    pub as_name: String,
 }
 
 #[derive(PartialEq, Debug, Clone)]

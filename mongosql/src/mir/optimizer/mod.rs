@@ -5,6 +5,7 @@ use crate::{
 
 mod constant_folding;
 mod dead_code_elimination;
+mod determine_join_semantics;
 mod flatten_variadics;
 mod match_null_filtering;
 mod match_splitting;
@@ -32,7 +33,7 @@ static OPTIMIZERS: fn() -> Vec<Box<dyn Optimizer>> = || {
         Box::new(rewrite_to_match_language::MatchLanguageRewriter {}),
         // lower_joins
         Box::new(stage_movement::StageMovementOptimizer {}),
-        // determine_join_semantics
+        Box::new(determine_join_semantics::JoinSemanticsOptimizer {}),
         // lower_joins
         Box::new(match_null_filtering::MatchNullFilteringOptimizer {}),
         Box::new(prefilter_unwinds::PrefilterUnwindsOptimizer {}),
@@ -47,7 +48,7 @@ pub fn optimize_plan(
     st: Stage,
     schema_checking_mode: SchemaCheckingMode,
     schema_state: &SchemaInferenceState,
-) -> crate::mir::Stage {
+) -> Stage {
     OPTIMIZERS().into_iter().fold(st, |acc, opt| {
         opt.optimize(acc, schema_checking_mode, schema_state)
     })

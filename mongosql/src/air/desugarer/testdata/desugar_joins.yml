@@ -37,7 +37,7 @@ tests:
 
   - name: "desugar inner equijoin"
     input:
-      - { "$equiJoin": { "collection": "bar", "joinType": "inner", "localField": "a", "foreignField" : "b" } }
+      - { "$equiJoin": { "collection": "bar", "joinType": "inner", "localField": "a", "foreignField" : "b", "as": "bar" } }
     expected:
       - {
         "$equiLookup":
@@ -86,7 +86,7 @@ tests:
 
   - name: "desugar left equijoin"
     input:
-      - { "$equiJoin": { "collection": "bar", "joinType": "left", "localField": "a", "foreignField" : "b" } }
+      - { "$equiJoin": { "collection": "bar", "joinType": "left", "localField": "a", "foreignField" : "b", "as": "bar" } }
     expected:
       - {
         "$equiLookup":
@@ -151,6 +151,7 @@ tests:
             "joinType": "inner",
             "localField": "a",
             "foreignField" : "b",
+            "as": "bar"
           },
       }
     expected:
@@ -302,6 +303,7 @@ tests:
             "joinType": "inner",
             "localField": "a",
             "foreignField" : "b",
+            "as": "x",
           },
       }
     expected:
@@ -312,13 +314,13 @@ tests:
             "from": "bar",
             "localField": "a",
             "foreignField" : "b",
-            "as": "bar",
+            "as": "x",
           },
       }
       - {
         "$unwind":
           {
-            "path": "$bar",
+            "path": "$x",
             "preserveNullAndEmptyArrays": false,
           },
       }
@@ -343,6 +345,7 @@ tests:
             "joinType": "left",
             "localField": "a",
             "foreignField" : "b",
+            "as": "bat",
           },
       }
       - {
@@ -459,6 +462,7 @@ tests:
                                         "joinType": "left",
                                         "localField": "a",
                                         "foreignField": "b",
+                                        "as": "bat",
                                       }
                                   }
                                 ],

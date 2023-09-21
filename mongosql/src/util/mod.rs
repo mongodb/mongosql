@@ -113,6 +113,19 @@ pub(crate) fn mir_field_access(key_name: &str, field_name: &str) -> Box<mir::Exp
 }
 
 #[cfg(test)]
+pub(crate) fn mir_field_path(datasource_name: &str, field_names: Vec<&str>) -> mir::FieldPath {
+    mir::FieldPath {
+        key: if datasource_name == "__bot__" {
+            Key::bot(0u16)
+        } else {
+            Key::named(datasource_name, 0u16)
+        },
+        fields: field_names.into_iter().map(String::from).collect(),
+        cache: mir::schema::SchemaCache::new(),
+    }
+}
+
+#[cfg(test)]
 pub(crate) fn air_variable_from_root(rest: &str) -> air::Expression {
     let full_path = format!("{}.{}", ROOT_NAME, rest);
     air::Expression::Variable(full_path.into())

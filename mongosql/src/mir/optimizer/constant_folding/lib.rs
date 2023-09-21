@@ -1043,7 +1043,7 @@ impl<'a> Visitor for ConstantFoldExprVisitor<'a> {
             Expression::SubqueryComparison(_) => e,
             Expression::Subquery(_) => e,
             Expression::TypeAssertion(_) => e,
-            Expression::OptimizedMatchExists(_) => e,
+            Expression::MQLIntrinsic(_) => e,
         }
     }
 

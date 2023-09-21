@@ -117,13 +117,12 @@ impl JoinDesugarerPassVisitor {
     /// desugar_equijoin_stage desugars a join stage into a sequence of concise Lookup and Unwind.
     /// Specifically, in MQL, it turns:
     ///    { $equijoin: {
-    ///        database: <db name>,
-    ///        collection: <coll name>,
-    ///        from_collection: <coll name>,
     ///        joinType: <join type>,
-    ///        from: <coll name>,
+    ///        from_database: <db name>,
+    ///        from_collection: <coll name>,
     ///        local: <field reference>,
     ///        foreign: <field reference>
+    ///        as: <as name>
     ///    }}
     ///
     /// into:
@@ -132,10 +131,10 @@ impl JoinDesugarerPassVisitor {
     ///         coll: <coll name>
     ///         localField: <field reference>,
     ///         foreignField: <field reference>,
-    ///         as: "<coll name>"
+    ///         as: "<as name>"
     ///    }},
     ///    { $unwind: {
-    ///        path: "$<coll name>",
+    ///        path: "$<as name>",
     ///        preserveNullAndEmptyArrays: <join type> == "left"
     ///    }}
     ///
@@ -144,19 +143,17 @@ impl JoinDesugarerPassVisitor {
     ///
     /// Also note that the database, collection are both optional.
     fn desugar_equijoin_stage(&self, eqj: EquiJoin) -> Stage {
-        let as_var_name = eqj.from.collection.to_string();
-
         let lookup = EquiLookup(EquiLookup {
             source: eqj.source,
             from: eqj.from,
             local_field: eqj.local_field,
             foreign_field: eqj.foreign_field,
-            as_var: as_var_name.clone(),
+            as_var: eqj.as_name.clone(),
         });
 
         Unwind(Unwind {
             source: Box::new(lookup),
-            path: FieldRef(as_var_name.clone().into()),
+            path: FieldRef(eqj.as_name.clone().into()),
             index: None,
             outer: eqj.join_type == JoinType::Left,
         })

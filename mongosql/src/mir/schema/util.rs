@@ -181,7 +181,7 @@ pub fn set_field_schema(
 /// get_optimized_field_accesses gets all optimized field accesses
 /// in the provided Filter stage's condition.
 pub fn get_optimized_field_accesses(filter: &Filter) -> Vec<FieldAccess> {
-    let mut visitor = OptimizedMatchExistsFieldAccessGatherer {
+    let mut visitor = FieldExistenceFieldAccessGatherer {
         optimized_field_accesses: vec![],
     };
 
@@ -190,17 +190,17 @@ pub fn get_optimized_field_accesses(filter: &Filter) -> Vec<FieldAccess> {
     visitor.optimized_field_accesses
 }
 
-struct OptimizedMatchExistsFieldAccessGatherer {
+struct FieldExistenceFieldAccessGatherer {
     optimized_field_accesses: Vec<FieldAccess>,
 }
 
-impl Visitor for OptimizedMatchExistsFieldAccessGatherer {
+impl Visitor for FieldExistenceFieldAccessGatherer {
     // Do not walk nested stages.
     fn visit_stage(&mut self, node: Stage) -> Stage {
         node
     }
 
-    fn visit_optimized_match_exists(&mut self, node: OptimizedMatchExists) -> OptimizedMatchExists {
+    fn visit_field_existence(&mut self, node: FieldExistence) -> FieldExistence {
         self.optimized_field_accesses
             .push(node.field_access.clone());
         node
