@@ -16,6 +16,7 @@ mod mir;
 pub use mir::schema::SchemaCheckingMode;
 pub mod json_schema;
 mod mapping_registry;
+mod options;
 mod parser;
 pub mod result;
 pub mod schema;
