@@ -7,6 +7,7 @@ mod constant_folding;
 mod dead_code_elimination;
 mod determine_join_semantics;
 mod flatten_variadics;
+mod lower_joins;
 mod match_null_filtering;
 mod match_splitting;
 mod prefilter_unwinds;
@@ -31,10 +32,9 @@ static OPTIMIZERS: fn() -> Vec<Box<dyn Optimizer>> = || {
         Box::new(constant_folding::ConstantFoldingOptimizer {}),
         Box::new(match_splitting::MatchSplittingOptimizer {}),
         Box::new(rewrite_to_match_language::MatchLanguageRewriter {}),
-        // lower_joins
         Box::new(stage_movement::StageMovementOptimizer {}),
         Box::new(determine_join_semantics::JoinSemanticsOptimizer {}),
-        // lower_joins
+        Box::new(lower_joins::LowerJoinsOptimizer {}),
         Box::new(match_null_filtering::MatchNullFilteringOptimizer {}),
         Box::new(prefilter_unwinds::PrefilterUnwindsOptimizer {}),
         Box::new(stage_movement::StageMovementOptimizer {}),

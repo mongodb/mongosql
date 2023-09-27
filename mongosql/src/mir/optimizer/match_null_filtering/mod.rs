@@ -18,13 +18,13 @@
 #[cfg(test)]
 mod test;
 
-use super::Optimizer;
 use crate::{
     mir::{
+        optimizer::Optimizer,
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        Derived, ExistsExpr, Expression, FieldAccess, FieldExistence, Filter, MQLExpression,
-        ScalarFunction, ScalarFunctionApplication, Stage, SubqueryExpr,
+        Derived, ExistsExpr, Expression, FieldAccess, FieldExistence, Filter, LateralJoin,
+        MQLExpression, ScalarFunction, ScalarFunctionApplication, Stage, SubqueryExpr,
     },
     schema::{Satisfaction, NULLISH},
     SchemaCheckingMode,
@@ -129,6 +129,12 @@ impl<'a> Visitor for MatchNullFilteringVisitor<'a> {
         self.scope += 1;
         let node = node.walk(self);
         self.scope -= 1;
+        node
+    }
+
+    // SQL-1683 We skip applying this optimization to LateralJoins since the
+    // correlated fields should not be filtered within the RHS of the Join.
+    fn visit_lateral_join(&mut self, node: LateralJoin) -> LateralJoin {
         node
     }
 

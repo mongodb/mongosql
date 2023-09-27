@@ -445,17 +445,24 @@ impl<'a> StageMovementVisitor<'a> {
                     | Stage::Sort(_)
                     | Stage::Group(_)
                     | Stage::MQLIntrinsic(MQLStage::EquiJoin(_))
+                    | Stage::MQLIntrinsic(MQLStage::LateralJoin(_))
             ),
             Stage::Filter(ref n) => matches!(
                 &*n.source,
-                Stage::Collection(_) | Stage::Array(_) | Stage::MQLIntrinsic(MQLStage::EquiJoin(_))
+                Stage::Collection(_)
+                    | Stage::Array(_)
+                    | Stage::Derived(_)
+                    | Stage::MQLIntrinsic(MQLStage::EquiJoin(_))
+                    | Stage::MQLIntrinsic(MQLStage::LateralJoin(_))
             ),
             Stage::MQLIntrinsic(MQLStage::MatchFilter(ref n)) => {
                 matches!(
                     &*n.source,
                     Stage::Collection(_)
                         | Stage::Array(_)
+                        | Stage::Derived(_)
                         | Stage::MQLIntrinsic(MQLStage::EquiJoin(_))
+                        | Stage::MQLIntrinsic(MQLStage::LateralJoin(_))
                 )
             }
             _ => unreachable!(),

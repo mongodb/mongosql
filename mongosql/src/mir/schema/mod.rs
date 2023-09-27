@@ -850,7 +850,8 @@ impl CachedSchema for Stage {
             }
             Stage::MQLIntrinsic(MQLStage::LateralJoin(j)) => {
                 let source_result_set = j.source.schema(state)?;
-                let subquery_result_set = j.subquery.schema(state)?;
+                let state = state.with_merged_schema_env(source_result_set.schema_env.clone())?;
+                let subquery_result_set = j.subquery.schema(&state)?;
 
                 match j.join_type {
                     JoinType::Left => {
