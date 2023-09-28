@@ -363,7 +363,9 @@ pub enum FunctionName {
     Degrees,
     Floor,
     Log,
+    Log10,
     Lower,
+    LTrim,
     Mod,
     NullIf,
     OctetLength,
@@ -371,6 +373,7 @@ pub enum FunctionName {
     Pow,
     Radians,
     Round,
+    RTrim,
     Sin,
     Size,
     Slice,
@@ -379,6 +382,18 @@ pub enum FunctionName {
     Substring,
     Tan,
     Upper,
+}
+
+impl TryFrom<FunctionName> for TrimSpec {
+    type Error = ();
+
+    fn try_from(name: FunctionName) -> Result<Self, Self::Error> {
+        match name {
+            FunctionName::LTrim => Ok(TrimSpec::Leading),
+            FunctionName::RTrim => Ok(TrimSpec::Trailing),
+            _ => Err(()),
+        }
+    }
 }
 
 impl TryFrom<&str> for FunctionName {
@@ -397,6 +412,7 @@ impl TryFrom<&str> for FunctionName {
             "BIT_LENGTH" => Ok(FunctionName::BitLength),
             "AVG" => Ok(FunctionName::Avg),
             "CEIL" => Ok(FunctionName::Ceil),
+            "CEILING" => Ok(FunctionName::Ceil),
             "CHAR_LENGTH" => Ok(FunctionName::CharLength),
             "CHARACTER_LENGTH" => Ok(FunctionName::CharLength),
             "COALESCE" => Ok(FunctionName::Coalesce),
@@ -407,18 +423,24 @@ impl TryFrom<&str> for FunctionName {
             "FIRST" => Ok(FunctionName::First),
             "FLOOR" => Ok(FunctionName::Floor),
             "LAST" => Ok(FunctionName::Last),
+            "LCASE" => Ok(FunctionName::Lower),
             "LOG" => Ok(FunctionName::Log),
+            "LOG10" => Ok(FunctionName::Log10),
             "LOWER" => Ok(FunctionName::Lower),
+            "LTRIM" => Ok(FunctionName::LTrim),
             "MAX" => Ok(FunctionName::Max),
             "MERGE_DOCUMENTS" => Ok(FunctionName::MergeDocuments),
             "MIN" => Ok(FunctionName::Min),
             "MOD" => Ok(FunctionName::Mod),
+            "NOW" => Ok(FunctionName::CurrentTimestamp),
             "NULLIF" => Ok(FunctionName::NullIf),
             "OCTET_LENGTH" => Ok(FunctionName::OctetLength),
             "POSITION" => Ok(FunctionName::Position),
             "POW" => Ok(FunctionName::Pow),
+            "POWER" => Ok(FunctionName::Pow),
             "RADIANS" => Ok(FunctionName::Radians),
             "ROUND" => Ok(FunctionName::Round),
+            "RTRIM" => Ok(FunctionName::RTrim),
             "SIN" => Ok(FunctionName::Sin),
             "SIZE" => Ok(FunctionName::Size),
             "SLICE" => Ok(FunctionName::Slice),
@@ -429,6 +451,7 @@ impl TryFrom<&str> for FunctionName {
             "SUBSTRING" => Ok(FunctionName::Substring),
             "SUM" => Ok(FunctionName::Sum),
             "TAN" => Ok(FunctionName::Tan),
+            "UCASE" => Ok(FunctionName::Upper),
             "UPPER" => Ok(FunctionName::Upper),
             _ => Err(format!("unknown function {name}")),
         }
@@ -456,7 +479,9 @@ impl FunctionName {
             FunctionName::Floor => "FLOOR",
             FunctionName::Last => "LAST",
             FunctionName::Log => "LOG",
+            FunctionName::Log10 => "LOG10",
             FunctionName::Lower => "LOWER",
+            FunctionName::LTrim => "LTRIM",
             FunctionName::Max => "MAX",
             FunctionName::MergeDocuments => "MERGE_DOCUMENTS",
             FunctionName::Min => "MIN",
@@ -467,6 +492,7 @@ impl FunctionName {
             FunctionName::Pow => "POW",
             FunctionName::Radians => "RADIANS",
             FunctionName::Round => "ROUND",
+            FunctionName::RTrim => "RTRIM",
             FunctionName::Size => "SIZE",
             FunctionName::Sin => "SIN",
             FunctionName::Slice => "SLICE",
@@ -507,7 +533,9 @@ impl FunctionName {
             | FunctionName::Degrees
             | FunctionName::Floor
             | FunctionName::Log
+            | FunctionName::Log10
             | FunctionName::Lower
+            | FunctionName::LTrim
             | FunctionName::Mod
             | FunctionName::NullIf
             | FunctionName::OctetLength
@@ -515,6 +543,7 @@ impl FunctionName {
             | FunctionName::Pow
             | FunctionName::Radians
             | FunctionName::Round
+            | FunctionName::RTrim
             | FunctionName::Sin
             | FunctionName::Size
             | FunctionName::Slice

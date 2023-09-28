@@ -805,6 +805,9 @@ mod arbitrary {
                 // Self::Substring intentionally omitted
                 33 => Self::Tan,
                 34 => Self::Upper,
+                35 => Self::LTrim,
+                36 => Self::RTrim,
+                37 => Self::Log10,
                 _ => panic!("missing FunctionName variant(s)"),
             }
         }

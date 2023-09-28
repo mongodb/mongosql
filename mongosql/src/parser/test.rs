@@ -1486,6 +1486,21 @@ mod literals {
         expected = false,
         input = "select 9223372036854775808"
     );
+    parsable!(
+        ts_escape_nominal_success,
+        expected = true,
+        input = "select { ts '2012-01-01 00:00:00' }"
+    );
+    parsable!(
+        ts_escape_not_case_sensitive,
+        expected = true,
+        input = "select { TS '2012-01-01 00:00:00' }"
+    );
+    parsable!(
+        ts_escape_wrong_escape,
+        expected = false,
+        input = "select { st '2012-01-01 00:00:00' }"
+    );
 
     validate_ast!(
         string_escaped_quote_no_chars,
@@ -1773,6 +1788,26 @@ mod scalar_function {
         split,
         expected = true,
         input = "select sPliT(str,'delim', 3)"
+    );
+    parsable!(
+        fn_escape_wrong_escape,
+        expected = false,
+        input = "select { foo ucase(str) }"
+    );
+    parsable!(
+        fn_escape_unknown_function,
+        expected = false,
+        input = "select { fn foo(str) }"
+    );
+    parsable!(
+        fn_escape_nominal_success,
+        expected = true,
+        input = "select { fn lcase(str) }"
+    );
+    parsable!(
+        fn_escape_not_case_sensitive,
+        expected = true,
+        input = "select { FN CEILing(str) }"
     );
 
     validate_ast!(

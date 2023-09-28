@@ -71,7 +71,6 @@ impl TryFrom<ast::FunctionName> for mir::ScalarFunction {
             ast::FunctionName::Position => mir::ScalarFunction::Position,
             ast::FunctionName::Pow => mir::ScalarFunction::Pow,
             ast::FunctionName::Radians => mir::ScalarFunction::Radians,
-            ast::FunctionName::Round => mir::ScalarFunction::Round,
             ast::FunctionName::Sin => mir::ScalarFunction::Sin,
             ast::FunctionName::Size => mir::ScalarFunction::Size,
             ast::FunctionName::Slice => mir::ScalarFunction::Slice,
@@ -80,7 +79,10 @@ impl TryFrom<ast::FunctionName> for mir::ScalarFunction {
             ast::FunctionName::Substring => mir::ScalarFunction::Substring,
             ast::FunctionName::Tan => mir::ScalarFunction::Tan,
             ast::FunctionName::Upper => mir::ScalarFunction::Upper,
-
+            ast::FunctionName::Round => mir::ScalarFunction::Round,
+            ast::FunctionName::LTrim | ast::FunctionName::RTrim | ast::FunctionName::Log10 => {
+                unreachable!()
+            }
             ast::FunctionName::AddToArray
             | ast::FunctionName::AddToSet
             | ast::FunctionName::Avg
@@ -127,7 +129,9 @@ impl TryFrom<ast::FunctionName> for mir::AggregationFunction {
             | ast::FunctionName::Degrees
             | ast::FunctionName::Floor
             | ast::FunctionName::Log
+            | ast::FunctionName::Log10
             | ast::FunctionName::Lower
+            | ast::FunctionName::LTrim
             | ast::FunctionName::Mod
             | ast::FunctionName::NullIf
             | ast::FunctionName::OctetLength
@@ -135,6 +139,7 @@ impl TryFrom<ast::FunctionName> for mir::AggregationFunction {
             | ast::FunctionName::Pow
             | ast::FunctionName::Round
             | ast::FunctionName::Radians
+            | ast::FunctionName::RTrim
             | ast::FunctionName::Sin
             | ast::FunctionName::Size
             | ast::FunctionName::Slice

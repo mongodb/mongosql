@@ -3013,12 +3013,15 @@ characters. For each, the argument must statically have type STRING or
 NULL, and may be MISSING. If the argument is NULL or MISSING, the result
 is NULL.
 
-The TRIM(spec substring FROM string) scalar function removes leading
-and/or trailing spaces, or an optionally specified substring, from the
+The TRIM(spec charset FROM string) scalar function removes leading
+and/or trailing spaces, or an optionally specified charset, from the
 argued string. The first two arguments are optional; by default, they
 are BOTH and the space character, respectively. The latter two arguments
 must statically have type STRING or NULL, and may be missing. If either
 is NULL or MISSING, the result is NULL.
+
+A charset is a string of unordered characters that will all be trimmed from 
+the beginning and/or end of `string` as defined by `spec`.
 
 As noted, the first two arguments for TRIM are optional and have the
 default values BOTH and the space character, respectively. Invocations
@@ -3031,9 +3034,9 @@ TRIM(BOTH \' \' FROM str)
 
 and
 
-TRIM(substr FROM str)</br>
+TRIM(charset FROM str)</br>
 will be rewritten as:</br>
-TRIM(BOTH substr FROM str)
+TRIM(BOTH charset FROM str)
 
 and
 

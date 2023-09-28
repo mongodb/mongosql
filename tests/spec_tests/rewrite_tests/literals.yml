@@ -1,0 +1,4 @@
+tests:
+  - description: ts escape is a cast in the ast
+    query:  "SELECT {ts '2012-12-15 01:01:01'} FROM foo AS foo"
+    result: "SELECT VALUE {'_1': CAST('2012-12-15 01:01:01' AS BSON_DATE)} FROM foo AS foo"

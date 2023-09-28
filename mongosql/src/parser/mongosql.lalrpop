@@ -292,6 +292,31 @@ CurrentTimestamp: FunctionExpr = {
     }
 }
 
+FunctionEscape: Expression = {
+    LEFT_CURLY_BRACE <i:ID> <f:FunctionExpr> RIGHT_CURLY_BRACE =>? {
+        if i.to_lowercase() != "fn" {
+            Err(ParseError::from(format!("function escape must use `fn`, found:`{i}`")))
+        } else {
+            Ok(Expression::Function(f))
+        }
+    },
+}
+
+LiteralEscape: Expression = {
+    LEFT_CURLY_BRACE <i:ID> <s:String> RIGHT_CURLY_BRACE =>? {
+        if i.to_lowercase() != "ts" {
+            Err(ParseError::from(format!("timestamp escape sequence must use `ts`, found:`{i}`")))
+        } else {
+            Ok(Expression::Cast(CastExpr {
+                expr: Box::new(Expression::Literal(Literal::String(s.to_string()))),
+                to: Type::Datetime,
+                on_null: None,
+                on_error: None
+            }))
+        }
+    },
+}
+
 StandaredDateSpec: DatePart = {
   YEAR => DatePart::Year,
   MONTH => DatePart::Month,
@@ -548,6 +573,8 @@ BottomExpr: Box<Expression> = {
   Literal => Box::new(Expression::Literal(<>)),
   SubqueryExpr => Box::new(Expression::Subquery(<>)),
   Tuple => Box::new(<>),
+  FunctionEscape => Box::new(<>),
+  LiteralEscape => Box::new(<>),
 };
 
 InOp: BinaryOp = {

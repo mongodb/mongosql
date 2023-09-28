@@ -1000,3 +1000,68 @@ mod not {
         input = "SELECT NOT (SELECT NOT a < 1 FROM bar LIMIT 1) = (SELECT NOT b > 1 FROM baz LIMIT 1) FROM foo",
     );
 }
+
+mod scalar_functions {
+    use super::*;
+
+    test_rewrite!(
+        log_two_args_removes_escape,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT LOG(10, 5)"),
+        input = "SELECT {fn LOG(10, 5)}",
+    );
+    test_rewrite!(
+        log_three_args_is_error,
+        pass = ScalarFunctionsRewritePass,
+        expected = Err(Error::IncorrectArgumentCount {
+            name: "LOG",
+            required: "1 or 2",
+            found: 3
+        }),
+        input = "SELECT { fn LOG(10, 5, 10) }",
+    );
+    test_rewrite!(
+        log_one_arg_is_base_e,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT LOG(10, 2.718281828459045)"),
+        input = "SELECT LOG(10)",
+    );
+    test_rewrite!(
+        log10,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT LOG(10, 10.0)"),
+        input = "SELECT LOG10(10)",
+    );
+    test_rewrite!(
+        ltrim,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT TRIM(LEADING ' ' FROM ' stuff ')"),
+        input = "SELECT LTRIM(' stuff ')",
+    );
+    test_rewrite!(
+        ltrim_two_args_is_error,
+        pass = ScalarFunctionsRewritePass,
+        expected = Err(Error::IncorrectArgumentCount {
+            name: "LTRIM",
+            required: "1",
+            found: 2
+        }),
+        input = "SELECT LTRIM(' stuff ', 'more stuff')",
+    );
+    test_rewrite!(
+        rtrim,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT TRIM(TRAILING ' ' FROM ' stuff ')"),
+        input = "SELECT RTRIM(' stuff ')",
+    );
+    test_rewrite!(
+        rtrim_two_args_is_error,
+        pass = ScalarFunctionsRewritePass,
+        expected = Err(Error::IncorrectArgumentCount {
+            name: "RTRIM",
+            required: "1",
+            found: 2
+        }),
+        input = "SELECT RTRIM(' stuff ', 'more stuff')",
+    );
+}

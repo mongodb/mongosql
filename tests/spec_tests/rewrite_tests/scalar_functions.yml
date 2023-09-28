@@ -23,6 +23,42 @@ tests:
     query: "SELECT TRIM(substr FROM s) FROM foo"
     result: "SELECT VALUE {'_1': TRIM(BOTH substr FROM s)} FROM foo AS foo"
 
+  - description: Rewrite LTRIM(s) to LEADING Trim with all whitespace as the trim chars
+    query: "SELECT LTRIM(s) FROM foo"
+    result: "SELECT VALUE {'_1': TRIM(LEADING ' ' FROM s)} FROM foo AS foo"
+
+  - description: Rewrite RTRIM(s) to TRAILING Trim with all whitespace as the trim chars
+    query: "SELECT RTRIM(s) FROM foo"
+    result: "SELECT VALUE {'_1': TRIM(TRAILING ' ' FROM s)} FROM foo AS foo"
+
+  - description: Rewrite CEILING as CEIL
+    query: "SELECT CEILING(f) FROM foo"
+    result: "SELECT VALUE {'_1': CEIL(f)} FROM foo AS foo"
+
+  - description: Rewrite LCASE as LOWER
+    query: "SELECT LCASE(s) FROM foo"
+    result: "SELECT VALUE {'_1': LOWER(s)} FROM foo AS foo"
+
+  - description: Rewrite UCASE as UPPER
+    query: "SELECT UCASE(s) FROM foo"
+    result: "SELECT VALUE {'_1': UPPER(s)} FROM foo AS foo"
+
+  - description: Rewrite LOG10(f) as LOG(f, 10)
+    query: "SELECT LOG10(f) FROM foo"
+    result: "SELECT VALUE {'_1': LOG(f, 10.0)} FROM foo AS foo"
+
+  - description: Rewrite LOG(f) as LOG(f, E)
+    query: "SELECT LOG(f) FROM foo"
+    result: "SELECT VALUE {'_1': LOG(f, 2.718281828459045)} FROM foo AS foo"
+
+  - description: Rewrite NOW to CURRENT_TIMESTAMP
+    query: "SELECT NOW()"
+    result: "SELECT VALUE {'_1': CURRENT_TIMESTAMP(6)} FROM [{}] AS _dual"
+
   - description: Rewrite CURRENT_TIMESTAMP to include default precision argument
     query: "SELECT CURRENT_TIMESTAMP"
     result: "SELECT VALUE {'_1': CURRENT_TIMESTAMP(6)} FROM [{}] AS _dual"
+
+  - description: Rewrite POWER(f, f) as POW(f, f)
+    query: "SELECT POWER(f, f) FROM foo"
+    result: "SELECT VALUE {'_1': POW(f, f)} FROM foo AS foo"

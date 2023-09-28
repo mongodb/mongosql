@@ -29,6 +29,12 @@ tests:
     result:
       - {'': {'_1': 0, '_2': 0, '_3': -1, '_4': 1, '_5': -10, '_6': 10, '_7': -789, '_8': 789}}
 
+  - description: Date escape literal
+    query: "SELECT VALUE { '_1': {ts '2012-01-01 10:10:10'} }"
+    current_db: test
+    result:
+      - {'': {'_1': {'$date': '2012-01-01T10:10:10.000Z'}}}
+
   - description: Unsigned double literals (no exponent parts)
     skip_reason: 'SQL-718: fix failing double tests'
     query: "SELECT VALUE {'_1': 0., '_2': 1., '_3': 0.123, '_4': 2.0, '_5': 3.4, '_6': 50.607, '_7': .1} FROM [{}] AS _dual"

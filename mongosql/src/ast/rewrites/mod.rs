@@ -22,6 +22,8 @@ mod not;
 use not::NotComparisonRewritePass;
 mod optional_parameters;
 use optional_parameters::OptionalParameterRewritePass;
+mod scalar_functions;
+use scalar_functions::ScalarFunctionsRewritePass;
 
 #[cfg(test)]
 mod test;
@@ -47,6 +49,12 @@ pub enum Error {
     NoAliasForSelectExpression,
     #[error("the top-level SELECT in a subquery expression must be a standard SELECT")]
     SubqueryWithSelectValue,
+    #[error("incorrect argument count for {name}: required {required}, found {found}")]
+    IncorrectArgumentCount {
+        name: &'static str,
+        required: &'static str,
+        found: usize,
+    },
 }
 
 /// A fallible transformation that can be applied to a query
@@ -68,6 +76,7 @@ pub fn rewrite_query(query: ast::Query) -> Result<ast::Query> {
         &TableSubqueryRewritePass,
         &OptionalParameterRewritePass,
         &NotComparisonRewritePass,
+        &ScalarFunctionsRewritePass,
     ];
 
     let mut rewritten = query;
