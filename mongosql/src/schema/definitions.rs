@@ -10,6 +10,7 @@ use crate::{
 use enum_iterator::IntoEnumIterator;
 use itertools::Itertools;
 use lazy_static::lazy_static;
+use std::collections::HashMap;
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::{Display, Formatter},
@@ -27,6 +28,59 @@ pub enum Error {
     CannotEnumerateAllFieldPaths(Schema),
     #[error("cannot convert bson type {0:?} to atomic")]
     CannotConvertBsonTypeToAtomic(json_schema::BsonTypeName),
+    #[error("{0}")]
+    FieldConflictInNonNamespacedResult(String),
+}
+
+impl From<namespace_error::Error> for Error {
+    fn from(value: namespace_error::Error) -> Self {
+        match value {
+            namespace_error::Error::FieldConflictInNonNamespacedResult(_, _) => {
+                Error::FieldConflictInNonNamespacedResult(value.to_string())
+            }
+        }
+    }
+}
+
+mod namespace_error {
+    // namespace_error implements the UserError trait and is separate from schema::Error
+    // as this error could be directly returned to end-users
+    use crate::schema::Schema;
+    use crate::usererror::{UserError, UserErrorDisplay};
+
+    #[derive(Debug, UserErrorDisplay, PartialEq)]
+    pub enum Error {
+        FieldConflictInNonNamespacedResult(Vec<String>, Vec<Schema>),
+    }
+
+    impl UserError for Error {
+        fn code(&self) -> u32 {
+            match self {
+                Error::FieldConflictInNonNamespacedResult(_, _) => 4000,
+            }
+        }
+
+        fn user_message(&self) -> Option<String> {
+            match self {
+                Error::FieldConflictInNonNamespacedResult(names, _) => Some(format!(
+                    "Consider aliasing the following conflicting field(s) to unique names: {}",
+                    names.join(", ")
+                )),
+            }
+        }
+
+        fn technical_message(&self) -> String {
+            match self {
+                Error::FieldConflictInNonNamespacedResult(_, schemas) => {
+                    format!(
+                        "Cannot return non-namespaced result set due to field name \
+                             conflict(s), schema {:?}",
+                        schemas
+                    )
+                }
+            }
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Default)]
@@ -45,6 +99,45 @@ impl SchemaEnvironment {
             out = out.union_schema_for_datasource(k, v);
         }
         out
+    }
+
+    /// check_for_non_namespaced_collisions iterates through the SchemaEnvironment
+    /// and checks for duplicate field names across datasources. If duplicates are found,
+    /// it will return an error with a list of conflicting names and schemas.
+    /// The `additional_properties` flag is checked and an error is returned if true
+    pub fn check_for_non_namespaced_collisions(&self) -> Result<(), Error> {
+        let mut column_names_and_key = HashMap::new();
+        let mut name_duplicates = Vec::new();
+        let mut keys_with_duplicates = BTreeSet::new();
+        for (key, schema) in self.iter() {
+            if let Schema::Document(d) = schema {
+                if d.additional_properties {
+                    return Err(Error::CannotEnumerateAllFieldPaths(schema.clone()));
+                }
+            }
+            for column in schema.keys() {
+                if let Some(key_with_duplicate) =
+                    column_names_and_key.insert(column.clone(), key.clone())
+                {
+                    name_duplicates.push(column.clone());
+                    // Insert the existing key with duplicate column and current key
+                    keys_with_duplicates.insert(key_with_duplicate);
+                    keys_with_duplicates.insert(key.clone());
+                }
+            }
+        }
+        if !name_duplicates.is_empty() {
+            return Err(namespace_error::Error::FieldConflictInNonNamespacedResult(
+                name_duplicates,
+                keys_with_duplicates
+                    .iter()
+                    .filter_map(|key| self.get(key))
+                    .cloned()
+                    .collect(),
+            )
+            .into());
+        }
+        Ok(())
     }
 
     /// Inserts a Datasource-Schema key-value pair into the current
@@ -355,7 +448,12 @@ impl TryFrom<json_schema::Schema> for Document {
                 .properties
                 .unwrap_or_default()
                 .into_iter()
-                .map(|(key, schema)| Ok((key, Schema::try_from(schema)?)))
+                .map(|(key, schema)| {
+                    Ok::<(std::string::String, Schema), Self::Error>((
+                        key,
+                        Schema::try_from(schema)?,
+                    ))
+                })
                 .collect::<Result<_, _>>()?,
             required: v
                 .required

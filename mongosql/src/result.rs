@@ -21,4 +21,6 @@ pub enum Error {
     Translator(#[from] translator::Error),
     #[error("desugarer error: {0}")]
     Desugarer(#[from] desugarer::Error),
+    #[error("schema error: {0}")]
+    Schema(#[from] schema::Error),
 }

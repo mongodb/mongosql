@@ -22,7 +22,7 @@ impl SqlOptions {
 
 /// Specifies whether or not to exclude namespaces in the result set
 #[allow(dead_code)]
-#[derive(Debug, Copy, Clone, Default)]
+#[derive(Debug, Copy, Clone, Default, PartialEq)]
 pub enum ExcludeNamespacesOption {
     ExcludeNamespaces,
     #[default]

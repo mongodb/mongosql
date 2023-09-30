@@ -24,6 +24,7 @@ mod translator;
 pub mod usererror;
 mod util;
 
+use crate::options::ExcludeNamespacesOption;
 use crate::{
     algebrizer::Algebrizer,
     catalog::Catalog,
@@ -52,6 +53,9 @@ pub fn translate_sql(
     catalog: &Catalog,
     schema_checking_mode: SchemaCheckingMode,
 ) -> Result<Translation> {
+    let sql_options =
+        options::SqlOptions::new(ExcludeNamespacesOption::default(), schema_checking_mode);
+
     // parse the query and apply syntactic rewrites
     let ast = parser::parse_query(sql)?;
     let ast = ast::rewrites::rewrite_query(ast)?;
@@ -71,6 +75,11 @@ pub fn translate_sql(
     let schema_env = plan
         .schema(&algebrizer.schema_inference_state())?
         .schema_env;
+
+    // check for non-namespaced field name collisions if namespaces are excluded
+    if sql_options.exclude_namespaces == ExcludeNamespacesOption::ExcludeNamespaces {
+        schema_env.check_for_non_namespaced_collisions()?;
+    }
 
     // construct the translator and use it to build an air plan
     let mut translator = MqlTranslator::new();

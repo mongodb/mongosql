@@ -2649,3 +2649,184 @@ mod display_trait {
 
     test_display_trait!(unsat, expected = "Unsat", schema = &Unsat,);
 }
+
+mod collision_check {
+    use crate::{
+        map,
+        mir::binding_tuple::Key,
+        schema::{Atomic::*, Document, Error::*, Schema, Schema::*, SchemaEnvironment},
+    };
+    use lazy_static::lazy_static;
+    use std::collections::BTreeSet;
+
+    lazy_static! {
+        static ref A_C_DOCUMENT_SCHEMA: Schema = Schema::Document(Document {
+            keys: map! {"a".to_string() => Atomic(Integer),
+            "c".to_string() => Atomic(Integer)},
+            required: BTreeSet::new(),
+            additional_properties: false,
+        });
+        static ref A_B_C_DOCUMENT_SCHEMA: Schema = Schema::Document(Document {
+            keys: map! {"a".to_string() => Atomic(Integer),
+                "b".to_string() => Atomic(Integer),
+            "c".to_string() => Atomic(Integer)},
+            required: BTreeSet::new(),
+            additional_properties: false,
+        });
+        static ref A_B_C_D_DOCUMENT_SCHEMA: Schema = Schema::Document(Document {
+            keys: map! {"a".to_string() => Atomic(Integer),
+                "b".to_string() => Atomic(Integer),
+                "c".to_string() => Atomic(Integer),
+            "d".to_string() => Atomic(Integer)},
+            required: BTreeSet::new(),
+            additional_properties: false,
+        });
+        static ref A_DOCUMENT_SCHEMA: Schema = Schema::Document(Document {
+            keys: map! {"a".to_string() => Atomic(Integer)},
+            required: BTreeSet::new(),
+            additional_properties: false,
+        });
+        static ref B_DOCUMENT_SCHEMA: Schema = Schema::Document(Document {
+            keys: map! {"b".to_string() => Atomic(Integer)},
+            required: BTreeSet::new(),
+            additional_properties: false,
+        });
+        static ref D_DOCUMENT_SCHEMA: Schema = Schema::Document(Document {
+            keys: map! {"d".to_string() => Atomic(Integer)},
+            required: BTreeSet::new(),
+            additional_properties: false,
+        });
+        static ref A_DOCUMENT_SCHEMA_ADDITIONAL_PROPS_TRUE: Schema = Schema::Document(Document {
+            keys: map! {"a".to_string() => Atomic(Integer)},
+            required: BTreeSet::new(),
+            additional_properties: true,
+        });
+    }
+
+    macro_rules! test_collisions_check {
+        ($func_name:ident,
+        expected = $expected:expr,
+        instances = {$($key:expr => $value:expr),*}) => {
+            #[test]
+            fn $func_name() {
+                let mut env_instance = SchemaEnvironment::new();
+                $(
+                    let key = Key::named($key, 0);
+                    env_instance.insert(key, $value);
+                )*
+                let res = env_instance.check_for_non_namespaced_collisions();
+                assert_eq!($expected, res);
+            }
+        };
+    }
+
+    test_collisions_check! {
+        single_schema_can_enumerate_all_fields,
+        expected = Ok(()),
+        instances = {
+            "schema" => A_C_DOCUMENT_SCHEMA.clone()
+        }
+    }
+
+    test_collisions_check! {
+        single_schema_cannot_enumerate_all_fields,
+        expected = Err(
+            CannotEnumerateAllFieldPaths(A_DOCUMENT_SCHEMA_ADDITIONAL_PROPS_TRUE.clone())),
+        instances = {
+            "schema" => A_DOCUMENT_SCHEMA_ADDITIONAL_PROPS_TRUE.clone()
+        }
+    }
+
+    test_collisions_check! {
+        multiple_schemas_cannot_enumerate_all_fields,
+        expected = Err(
+            CannotEnumerateAllFieldPaths(A_DOCUMENT_SCHEMA_ADDITIONAL_PROPS_TRUE.clone())),
+        instances = {
+            "schema_props_true" => A_DOCUMENT_SCHEMA_ADDITIONAL_PROPS_TRUE.clone(),
+            "schema_props_false" => A_C_DOCUMENT_SCHEMA.clone()
+        }
+    }
+
+    test_collisions_check! {
+        conflict_on_one_field,
+        expected = Err(FieldConflictInNonNamespacedResult("Error 4000: Consider aliasing \
+            the following conflicting field(s) to unique names: a\n\tCaused by:\n\tCannot \
+            return non-namespaced result set due to field name conflict(s), schema \
+            [Document(Document { keys: {\"a\": Atomic(Integer), \"c\": Atomic(Integer)}, \
+            required: {}, additional_properties: false }), Document(Document { keys: {\"a\": \
+            Atomic(Integer)}, required: {}, additional_properties: false })]".to_string())),
+        instances = {
+        "schema" => A_C_DOCUMENT_SCHEMA.clone(),
+        "schema_other" => A_DOCUMENT_SCHEMA.clone()
+        }
+    }
+
+    test_collisions_check! {
+        conflict_on_two_fields,
+        expected = Err(FieldConflictInNonNamespacedResult("Error 4000: Consider aliasing \
+            the following conflicting field(s) to unique names: a, c\n\tCaused by:\n\tCannot \
+            return non-namespaced result set due to field name conflict(s), schema \
+            [Document(Document { keys: {\"a\": Atomic(Integer), \"c\": Atomic(Integer)}, \
+            required: {}, additional_properties: false }), Document(Document { keys: {\"a\": \
+            Atomic(Integer), \"c\": Atomic(Integer)}, required: {}, \
+            additional_properties: false })]".to_string())),
+        instances = {
+            "schema" => A_C_DOCUMENT_SCHEMA.clone(),
+            "schema_other" => A_C_DOCUMENT_SCHEMA.clone()
+        }
+    }
+
+    test_collisions_check! {
+        conflict_on_three_fields,
+        expected = Err(FieldConflictInNonNamespacedResult("Error 4000: Consider aliasing \
+            the following conflicting field(s) to unique names: a, b, c\n\tCaused by:\n\tCannot \
+            return non-namespaced result set due to field name conflict(s), schema \
+            [Document(Document { keys: {\"a\": Atomic(Integer), \"b\": Atomic(Integer), \"c\": \
+            Atomic(Integer)}, required: {}, additional_properties: false }), Document(Document \
+            { keys: {\"a\": Atomic(Integer), \"b\": Atomic(Integer), \"c\": Atomic(Integer), \
+            \"d\": Atomic(Integer)}, required: {}, additional_properties: false })]".to_string())),
+        instances = {
+            "schema" => A_B_C_DOCUMENT_SCHEMA.clone(),
+            "schema_other" => A_B_C_D_DOCUMENT_SCHEMA.clone()
+        }
+    }
+
+    test_collisions_check! {
+        two_schemas_no_conflict,
+        expected = Ok(()),
+        instances = {
+            "schema_a" => A_C_DOCUMENT_SCHEMA.clone(),
+            "schema_b" => B_DOCUMENT_SCHEMA.clone()
+        }
+    }
+
+    test_collisions_check! {
+        three_schemas_no_conflict,
+        expected = Ok(()),
+        instances = {
+            "schema_a" => A_C_DOCUMENT_SCHEMA.clone(),
+            "schema_b" => B_DOCUMENT_SCHEMA.clone(),
+            "schema_d" => D_DOCUMENT_SCHEMA.clone()
+        }
+    }
+
+    test_collisions_check! {
+        multiple_schemas_with_conflict,
+        expected = Err(FieldConflictInNonNamespacedResult("Error 4000: Consider aliasing \
+            the following conflicting field(s) to unique names: a, c, b\n\tCaused by:\n\tCannot \
+            return non-namespaced result set due to field name conflict(s), schema \
+            [Document(Document { keys: {\"a\": Atomic(Integer), \"c\": Atomic(Integer)}, \
+            required: {}, additional_properties: false }), Document(Document { keys: {\"b\": \
+            Atomic(Integer)}, required: {}, additional_properties: false }), Document(Document \
+            { keys: {\"a\": Atomic(Integer), \"c\": Atomic(Integer)}, required: {}, \
+            additional_properties: false }), Document(Document { keys: {\"b\": Atomic(Integer)}, \
+            required: {}, additional_properties: false })]".to_string())),
+        instances = {
+            "schema_1" => A_C_DOCUMENT_SCHEMA.clone(),
+            "schema_2" => B_DOCUMENT_SCHEMA.clone(),
+            "schema_3" => D_DOCUMENT_SCHEMA.clone(),
+            "schema_4" => A_C_DOCUMENT_SCHEMA.clone(),
+            "schema_5" => B_DOCUMENT_SCHEMA.clone()
+        }
+    }
+}
