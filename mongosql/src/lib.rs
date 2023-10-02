@@ -82,7 +82,7 @@ pub fn translate_sql(
     }
 
     // construct the translator and use it to build an air plan
-    let mut translator = MqlTranslator::new();
+    let mut translator = MqlTranslator::new(sql_options);
     let agg_plan = translator.translate_plan(plan)?;
 
     // desugar the air plan

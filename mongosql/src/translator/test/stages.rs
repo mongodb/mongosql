@@ -3,8 +3,8 @@ macro_rules! test_translate_stage {
         #[test]
         fn $func_name() {
             #[allow(unused_imports)]
-            use crate::{air, mir, translator};
-            let mut translator = translator::MqlTranslator::new();
+            use crate::{air, mir, options, translator};
+            let mut translator = translator::MqlTranslator::new(options::SqlOptions::default());
             let expected = $expected;
             let actual = translator.translate_stage($input);
             assert_eq!(expected, actual);
@@ -13,11 +13,14 @@ macro_rules! test_translate_stage {
 }
 
 macro_rules! test_translate_plan {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr, input = $input:expr, $(options = $options:expr,)?) => {
         #[test]
         fn $func_name() {
-            use crate::{air, mir, translator};
-            let mut translator = translator::MqlTranslator::new();
+            use crate::{air, options, translator};
+            #[allow(unused_mut, unused_assignments)]
+            let mut options = options::SqlOptions::default();
+            $(options = $options;)?
+            let mut translator = translator::MqlTranslator::new(options);
             let expected = $expected;
             let actual = translator.translate_plan($input);
             assert_eq!(expected, actual);
@@ -1772,7 +1775,15 @@ mod mql_intrinsic {
 }
 
 mod translate_plan {
-    use crate::{map, unchecked_unique_linked_hash_map, util::ROOT};
+    use crate::{
+        map, mir, unchecked_unique_linked_hash_map,
+        util::{
+            air_project_bot_collection, air_project_collection,
+            air_project_collection_with_expected_rename, mir_collection,
+            mir_project_bot_collection, mir_project_collection, sql_options_exclude_namespaces,
+            ROOT,
+        },
+    };
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
     test_translate_plan!(
@@ -1813,7 +1824,7 @@ mod translate_plan {
                 Key::named("____bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(4).into()),
             }),
             cache: mir::schema::SchemaCache::new(),
-        })
+        }),
     );
 
     // SELECT * FROM `$foo`, `bar.baz`, `$_foo`, `_foo`, `bar`
@@ -1828,60 +1839,22 @@ mod translate_plan {
                         join_type: air::JoinType::Inner,
                         left: Box::new(air::Stage::Join(air::Join {
                             join_type: air::JoinType::Inner,
-                            left: Box::new(air::Stage::Project(air::Project {
-                                source: Box::new(air::Stage::Collection(air::Collection {
-                                    db: "test_db".to_string(),
-                                    collection: "$foo".to_string(),
-                                })),
-                                specifications: unchecked_unique_linked_hash_map! {
-                                    "_foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                                },
-                            })),
-                            right: Box::new(air::Stage::Project(air::Project {
-                                source: Box::new(air::Stage::Collection(air::Collection {
-                                    db: "test_db".to_string(),
-                                    collection: "bar.baz".to_string(),
-                                })),
-                                specifications: unchecked_unique_linked_hash_map! {
-                                    "bar_baz".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                                },
-                            })),
+                            left: air_project_collection_with_expected_rename("$foo", "_foo"),
+                            right: air_project_collection_with_expected_rename(
+                                "bar.baz", "bar_baz"
+                            ),
                             let_vars: None,
                             condition: None,
                         })),
-                        right: Box::new(air::Stage::Project(air::Project {
-                            source: Box::new(air::Stage::Collection(air::Collection {
-                                db: "test_db".to_string(),
-                                collection: "$_foo".to_string(),
-                            })),
-                            specifications: unchecked_unique_linked_hash_map! {
-                                "__foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                            },
-                        })),
+                        right: air_project_collection_with_expected_rename("$_foo", "__foo"),
                         let_vars: None,
                         condition: None,
                     })),
-                    right: Box::new(air::Stage::Project(air::Project {
-                        source: Box::new(air::Stage::Collection(air::Collection {
-                            db: "test_db".to_string(),
-                            collection: "_foo".to_string(),
-                        })),
-                        specifications: unchecked_unique_linked_hash_map! {
-                            "___foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                        },
-                    })),
+                    right: air_project_collection_with_expected_rename("_foo", "___foo"),
                     let_vars: None,
                     condition: None,
                 })),
-                right: Box::new(air::Stage::Project(air::Project {
-                    source: Box::new(air::Stage::Collection(air::Collection {
-                        db: "test_db".to_string(),
-                        collection: "bar".to_string(),
-                    })),
-                    specifications: unchecked_unique_linked_hash_map! {
-                        "bar".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                    },
-                })),
+                right: air_project_collection("bar"),
                 let_vars: None,
                 condition: None,
             })),
@@ -1927,73 +1900,89 @@ mod translate_plan {
                     join_type: mir::JoinType::Inner,
                     left: Box::new(mir::Stage::Join(mir::Join {
                         join_type: mir::JoinType::Inner,
-                        left: Box::new(mir::Stage::Project(mir::Project {
-                            source: Box::new(mir::Stage::Collection(mir::Collection {
-                                db: "test_db".into(),
-                                collection: "$foo".into(),
-                                cache: mir::schema::SchemaCache::new(),
-                            })),
-                            expression: BindingTuple(map! {
-                                Key::named("$foo", 0u16) => mir::Expression::Reference(("$foo", 0u16).into()),
-                            }),
-                            cache: mir::schema::SchemaCache::new(),
-                        })),
-                        right: Box::new(mir::Stage::Project(mir::Project {
-                            source: Box::new(mir::Stage::Collection(mir::Collection {
-                                db: "test_db".into(),
-                                collection: "bar.baz".into(),
-                                cache: mir::schema::SchemaCache::new(),
-                            })),
-                            expression: BindingTuple(map! {
-                                Key::named("bar.baz", 0u16) => mir::Expression::Reference(("bar.baz", 0u16).into()),
-                            }),
-                            cache: mir::schema::SchemaCache::new(),
-                        })),
+                        left: mir_project_collection("$foo"),
+                        right: mir_project_collection("bar.baz"),
                         condition: None,
                         cache: mir::schema::SchemaCache::new(),
                     })),
-                    right: Box::new(mir::Stage::Project(mir::Project {
-                        source: Box::new(mir::Stage::Collection(mir::Collection {
-                            db: "test_db".into(),
-                            collection: "$_foo".into(),
-                            cache: mir::schema::SchemaCache::new(),
-                        })),
-                        expression: BindingTuple(map! {
-                            Key::named("$_foo", 0u16) => mir::Expression::Reference(("$_foo", 0u16).into()),
-                        }),
-                        cache: mir::schema::SchemaCache::new(),
-                    })),
+                    right: mir_project_collection("$_foo"),
                     condition: None,
                     cache: mir::schema::SchemaCache::new(),
                 })),
-                right: Box::new(mir::Stage::Project(mir::Project {
-                    source: Box::new(mir::Stage::Collection(mir::Collection {
-                        db: "test_db".into(),
-                        collection: "_foo".into(),
-                        cache: mir::schema::SchemaCache::new(),
-                    })),
-                    expression: BindingTuple(map! {
-                        Key::named("_foo", 0u16) => mir::Expression::Reference(("_foo", 0u16).into()),
-                    }),
-                    cache: mir::schema::SchemaCache::new(),
-                })),
+                right: mir_project_collection("_foo"),
                 condition: None,
                 cache: mir::schema::SchemaCache::new(),
             })),
-            right: Box::new(mir::Stage::Project(mir::Project {
-                source: Box::new(mir::Stage::Collection(mir::Collection {
-                    db: "test_db".into(),
-                    collection: "bar".into(),
-                    cache: mir::schema::SchemaCache::new(),
-                })),
-                expression: BindingTuple(map! {
-                    Key::named("bar", 0u16) => mir::Expression::Reference(("bar", 0u16).into()),
-                }),
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            right: mir_project_collection("bar"),
             condition: None,
             cache: mir::schema::SchemaCache::new(),
-        })
+        }),
+    );
+
+    test_translate_plan!(
+        single_non_namespaced_results,
+        expected = Ok(air::Stage::ReplaceWith(air::ReplaceWith {
+            source: air_project_collection("foo"),
+            new_root: Box::new(air::Expression::FieldRef("foo".into())),
+        })),
+        input = *mir_collection("foo"),
+        options = crate::options::SqlOptions::new(
+            crate::options::ExcludeNamespacesOption::ExcludeNamespaces,
+            crate::SchemaCheckingMode::default()
+        ),
+    );
+
+    test_translate_plan!(
+        multiple_non_namespaced_results,
+        expected = Ok(air::Stage::ReplaceWith(air::ReplaceWith {
+            source: Box::new(air::Stage::Join(air::Join {
+                join_type: air::JoinType::Inner,
+                left: Box::new(air::Stage::Join(air::Join {
+                    join_type: air::JoinType::Inner,
+                    left: air_project_collection("foo"),
+                    right: air_project_collection("bar"),
+                    let_vars: None,
+                    condition: None,
+                })),
+                right: air_project_collection("baz"),
+                let_vars: None,
+                condition: None,
+            })),
+            new_root: Box::new(air::Expression::MQLSemanticOperator(
+                air::MQLSemanticOperator {
+                    op: air::MQLOperator::MergeObjects,
+                    args: vec![
+                        air::Expression::FieldRef("bar".into()),
+                        air::Expression::FieldRef("baz".into()),
+                        air::Expression::FieldRef("foo".into()),
+                    ]
+                }
+            ))
+        })),
+        input = mir::Stage::Join(mir::Join {
+            join_type: mir::JoinType::Inner,
+            left: Box::new(mir::Stage::Join(mir::Join {
+                join_type: mir::JoinType::Inner,
+                left: mir_project_collection("foo"),
+                right: mir_project_collection("bar"),
+                condition: None,
+                cache: mir::schema::SchemaCache::new(),
+            })),
+            right: mir_project_collection("baz"),
+            condition: None,
+            cache: mir::schema::SchemaCache::new(),
+        }),
+        options = sql_options_exclude_namespaces(),
+    );
+
+    test_translate_plan!(
+        non_namespaced_handles_bot,
+        expected = Ok(air::Stage::ReplaceWith(air::ReplaceWith {
+            source: air_project_bot_collection("foo"),
+            new_root: Box::new(air::Expression::FieldRef("__bot".into()))
+        })),
+        input = *mir_project_bot_collection("foo"),
+        options = sql_options_exclude_namespaces(),
     );
 }
 

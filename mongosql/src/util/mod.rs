@@ -74,6 +74,24 @@ pub(crate) fn mir_collection(collection_name: &str) -> Box<mir::Stage> {
 }
 
 #[cfg(test)]
+pub(crate) fn mir_project_collection(collection_name: &str) -> Box<mir::Stage> {
+    Box::new(mir::Stage::Project(mir::Project {
+        source: Box::new(mir::Stage::Collection(mir::Collection {
+            db: "test_db".into(),
+            collection: collection_name.into(),
+            cache: mir::schema::SchemaCache::new(),
+        })),
+        expression: BindingTuple(map! {
+            Key::named(collection_name, 0u16) => mir::Expression::Reference(mir::ReferenceExpr {
+                key: Key::named(collection_name, 0u16),
+                cache: mir::schema::SchemaCache::new(),
+            }),
+        }),
+        cache: mir::schema::SchemaCache::new(),
+    }))
+}
+
+#[cfg(test)]
 pub(crate) fn air_collection(collection_name: &str) -> air::Collection {
     air::Collection {
         db: "test_db".into(),
@@ -98,6 +116,57 @@ pub(crate) fn air_pipeline_collection(collection_name: &str) -> Box<air::Stage> 
         },
     })
     .into()
+}
+
+#[cfg(test)]
+pub(crate) fn air_project_collection(collection_name: &str) -> Box<air::Stage> {
+    air::Stage::Project(air::Project {
+        source: air::Stage::Collection(air_collection(collection_name)).into(),
+        specifications: unchecked_unique_linked_hash_map! {
+            collection_name.to_string() => air::ProjectItem::Assignment(ROOT.clone()),
+        },
+    })
+    .into()
+}
+
+#[cfg(test)]
+pub(crate) fn air_project_collection_with_expected_rename(
+    collection_name: &str,
+    expected_rename: &str,
+) -> Box<air::Stage> {
+    air::Stage::Project(air::Project {
+        source: air::Stage::Collection(air_collection(collection_name)).into(),
+        specifications: unchecked_unique_linked_hash_map! {
+            expected_rename.to_string() => air::ProjectItem::Assignment(ROOT.clone()),
+        },
+    })
+    .into()
+}
+
+#[cfg(test)]
+pub(crate) fn air_project_bot_collection(collection_name: &str) -> Box<air::Stage> {
+    air::Stage::Project(air::Project {
+        source: air::Stage::Collection(air_collection(collection_name)).into(),
+        specifications: unchecked_unique_linked_hash_map! {
+            "__bot".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
+        },
+    })
+    .into()
+}
+
+#[cfg(test)]
+pub(crate) fn mir_project_bot_collection(collection_name: &str) -> Box<mir::Stage> {
+    Box::new(mir::Stage::Project(mir::Project {
+        source: Box::new(mir::Stage::Collection(mir::Collection {
+            db: "test_db".into(),
+            collection: collection_name.into(),
+            cache: mir::schema::SchemaCache::new(),
+        })),
+        expression: BindingTuple(map! {
+            Key::bot(0u16) => mir::Expression::Reference((collection_name, 0u16).into()),
+        }),
+        cache: mir::schema::SchemaCache::new(),
+    }))
 }
 
 #[cfg(test)]
@@ -129,6 +198,14 @@ pub(crate) fn mir_field_path(datasource_name: &str, field_names: Vec<&str>) -> m
 pub(crate) fn air_variable_from_root(rest: &str) -> air::Expression {
     let full_path = format!("{}.{}", ROOT_NAME, rest);
     air::Expression::Variable(full_path.into())
+}
+
+#[cfg(test)]
+pub(crate) fn sql_options_exclude_namespaces() -> crate::options::SqlOptions {
+    crate::options::SqlOptions {
+        exclude_namespaces: crate::options::ExcludeNamespacesOption::ExcludeNamespaces,
+        ..Default::default()
+    }
 }
 
 const DEFAULT_ESCAPE: char = '\\';

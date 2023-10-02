@@ -2,7 +2,7 @@ macro_rules! test_translate_expression {
     ($func_name:ident, expected = $expected:expr, input = $input:expr, $(mapping_registry = $mapping_registry:expr,)?) => {
         #[test]
         fn $func_name() {
-            use crate::{translator, mapping_registry::MqlMappingRegistry};
+            use crate::{translator, mapping_registry::MqlMappingRegistry, options::SqlOptions};
 
             // force the input
             let input = $input;
@@ -14,6 +14,7 @@ macro_rules! test_translate_expression {
                 mapping_registry,
                 scope_level: 0u16,
                 is_join: false,
+                sql_options: SqlOptions::default()
             };
             let expected = $expected;
             let actual = translator.translate_expression(input);
@@ -26,7 +27,7 @@ macro_rules! test_translate_expression_with_schema_info {
     ($func_name:ident, expected = $expected:expr, input = $input:expr, $(mapping_registry = $mapping_registry:expr,)? $(catalog = $catalog:expr,)? $(schema_env = $schema_env:expr,)?) => {
         #[test]
         fn $func_name() {
-            use crate::{translator, mapping_registry::MqlMappingRegistry, catalog::Catalog, mir::schema::{CachedSchema, SchemaCheckingMode, SchemaInferenceState}, schema::SchemaEnvironment};
+            use crate::{translator, mapping_registry::MqlMappingRegistry, options::SqlOptions, catalog::Catalog, mir::schema::{CachedSchema, SchemaCheckingMode, SchemaInferenceState}, schema::SchemaEnvironment};
 
             // force the input
             let input = $input;
@@ -48,6 +49,7 @@ macro_rules! test_translate_expression_with_schema_info {
                 mapping_registry,
                 scope_level: 0u16,
                 is_join: false,
+                sql_options: SqlOptions::default()
             };
             let expected = $expected;
             let actual = translator.translate_expression(input);

@@ -1,7 +1,8 @@
 use crate::{
     air,
-    mapping_registry::{Key, MqlMappingRegistry, MqlMappingRegistryValue},
+    mapping_registry::{Key, MqlMappingRegistry, MqlMappingRegistryValue, MqlReferenceType},
     mir,
+    options::{ExcludeNamespacesOption, SqlOptions},
     util::ROOT,
 };
 use itertools::Itertools;
@@ -54,23 +55,36 @@ pub enum Error {
 pub struct MqlTranslator {
     pub mapping_registry: MqlMappingRegistry,
     pub scope_level: u16,
+    pub sql_options: SqlOptions,
     is_join: bool,
 }
 
 impl MqlTranslator {
-    pub fn new() -> Self {
+    pub fn new(sql_options: SqlOptions) -> Self {
         Self {
             mapping_registry: Default::default(),
             scope_level: 0u16,
+            sql_options,
             is_join: false,
         }
     }
 
     /// translate_plan is the entry point, it mostly just calls translate_stage,
-    /// but also sets up a ReplaceWith to replace __bot with the empty key: ''.
+    /// but depending on desired namespace results will change how data is returned
+    /// to users.
+    ///
+    /// If sql_options contains a [`mongosql::options::ExcludeNamespacesOption`]
+    /// that is set to [`mongosql::options::ExcludeNamespacesOption::ExcludeNamespaces`],
+    /// it will merge all documents togther.
+    /// If the value is [`mongosql::options::ExcludeNamespacesOption::IncludeNamespaces`],
+    /// it will set up a ReplaceWith to replace __bot with the empty key: ''.
     pub fn translate_plan(&mut self, mir_stage: mir::Stage) -> Result<air::Stage> {
         let source = self.translate_stage(mir_stage)?;
-        self.append_name_replacements(source)
+        if self.sql_options.exclude_namespaces == ExcludeNamespacesOption::ExcludeNamespaces {
+            self.append_unnest_stage(source)
+        } else {
+            self.append_name_replacements(source)
+        }
     }
 
     /// append_name_replacements adds a stage that replaces any datasource
@@ -156,5 +170,37 @@ impl MqlTranslator {
         } else {
             Ok(source)
         }
+    }
+
+    /// append_unnest_stage goes through the mapping registry, getting all variables and references
+    /// representing datasources and flattening them into a vec.
+    /// If the length of the resultant vec is 1, then we only had one datasource and we generate a flat
+    /// ReplaceWith. If there was more than one, we generate a ReplaceWith with a MergeObjects.
+    /// This ultimately results in all namespaces being removed from the results the users will see
+    fn append_unnest_stage(
+        &mut self,
+        source: air::Stage,
+    ) -> std::result::Result<air::Stage, Error> {
+        let namespaces = self
+            .mapping_registry
+            .get_registry()
+            .iter()
+            .map(|(_, v)| match v.ref_type {
+                MqlReferenceType::FieldRef => air::Expression::FieldRef(v.name.clone().into()),
+                MqlReferenceType::Variable => air::Expression::Variable(v.name.clone().into()),
+            })
+            .collect::<Vec<air::Expression>>();
+
+        Ok(air::Stage::ReplaceWith(air::ReplaceWith {
+            source: Box::new(source),
+            new_root: Box::new(if namespaces.len() == 1 {
+                namespaces.get(0).unwrap().clone()
+            } else {
+                air::Expression::MQLSemanticOperator(air::MQLSemanticOperator {
+                    op: air::MQLOperator::MergeObjects,
+                    args: namespaces,
+                })
+            }),
+        }))
     }
 }

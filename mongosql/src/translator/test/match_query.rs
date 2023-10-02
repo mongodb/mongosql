@@ -9,6 +9,7 @@ macro_rules! test_translate_match_query {
                 air,
                 mapping_registry::{MqlMappingRegistry, MqlMappingRegistryValue, MqlReferenceType},
                 mir,
+                options::SqlOptions,
                 translator::{
                     self,
                     test::match_query::{air_field_input, mir_field_input},
@@ -25,6 +26,7 @@ macro_rules! test_translate_match_query {
                 mapping_registry,
                 scope_level: 0u16,
                 is_join: false,
+                sql_options: SqlOptions::default(),
             };
 
             let input = $input;
@@ -362,6 +364,7 @@ mod match_path {
         air,
         mapping_registry::{MqlMappingRegistry, MqlMappingRegistryValue, MqlReferenceType},
         mir,
+        options::SqlOptions,
         translator::{self, Result},
     };
 
@@ -377,6 +380,7 @@ mod match_path {
             mapping_registry,
             scope_level: 0u16,
             is_join: false,
+            sql_options: SqlOptions::default(),
         };
 
         let input = mir::FieldPath {
