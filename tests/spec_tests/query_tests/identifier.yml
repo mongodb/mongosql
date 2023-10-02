@@ -179,7 +179,7 @@ tests:
     query: "SELECT VALUE {'αβγ': αβγ} FROM [{'αβγ': 1}] arr"
     current_db: test
     should_compile: false
-    parse_error: "Invalid token at 24"
+    parse_error: "parse error: Error 2000: InvalidToken at 24"
 
   - description: Delimited identifier with non-ASCII characters
     query: "SELECT VALUE {'αβγ': `αβγ`} FROM [{'αβγ': 1}] arr"

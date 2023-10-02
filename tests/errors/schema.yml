@@ -1,0 +1,122 @@
+catalog_data:
+  db:
+    foo:
+      - {'_id': 0, 'a': 1, 'b': 2, 'c': "foo", 'd': {'a': 1}}
+    bar:
+      - { '_id': 0, 'a': 1, 'b': 2, 'c': "bar", 'd': {'a': 2}}
+
+catalog_schema:
+  {
+    'db': {
+      'foo': {
+        'bsonType': 'object',
+        "required": [ "id", "a", "b", "c", "d"],
+        "additionalProperties": false,
+        "properties":
+          {
+            "_id": { "bsonType": "int" },
+            "a": { "bsonType": "int" },
+            "b": { "bsonType": "int" },
+            "c": {"bsonType": "string"},
+            "d":
+              {
+                "required": ["a"],
+                "bsonType": "object",
+                "properties": {
+                  "a": { "bsonType": "int" }
+                }
+              },
+          },
+      },
+      'bar': {
+        'bsonType': 'object',
+        "required": [ "id", "a", "b", "c", "d" ],
+        "additionalProperties": false,
+        "properties":
+          {
+            "_id": { "bsonType": "int" },
+            "a": { "bsonType": "int" },
+            "b": { "bsonType": "int" },
+            "c": { "bsonType": "string" },
+            "d":
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              },
+          },
+      }
+    }
+  }
+
+tests:
+  - description: Error 1001 IncorrectArgumentCount
+    query: "SELECT ROUND(a,1,5) FROM foo"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 1001: incorrect argument count for Round: required 2, found 3'
+
+  - description: Error 1002 SchemaChecking
+    query: "SELECT ROUND(c,5) FROM foo"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 1002: Incorrect argument type for `Round`. Required: nullable numeric type. Found: string.'
+
+  - description: Error 1003 AggregationArgumentMustBeSelfComparable
+    query: "SELECT * FROM foo GROUP BY a AGGREGATE min(d) AS min"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 1003: Cannot perform `Min` aggregation over the type `object type` as it is not comparable to itself.'
+
+  - description: Error 1004 CountDistinctStarNotSupported
+    query: "SELECT COUNT(DISTINCT *) FROM foo"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 1004: COUNT(DISTINCT *) is not supported'
+
+  - description: Error 1005 InvalidComparison
+    query: "SELECT * FROM foo WHERE a <= c"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 1005: Invalid use of `Lte` due to incomparable types: `int` cannot be compared to `string`.'
+
+  - description: Error 1007 AccessMissingField
+    query: "SELECT foo.f FROM foo"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 1007: Cannot access field `f` because it could not be found. Did you mean: a, b, c, d'
+
+  - description: Error 1008 InvalidSubqueryCardinality
+    query: "SELECT (SELECT a FROM foo) FROM bar"
+    current_db: db
+    should_compile: false
+    algebrize_error: "Error 1008: cardinality of the subquery's result set may be greater than 1"
+
+  - description: Error 1010 SortKeyNotSelfComparable
+    query: "SELECT * FROM foo ORDER BY d"
+    current_db: db
+    should_compile: false
+    algebrize_error: "Error 1010: Cannot sort by key because `object type` can't be compared against itself."
+
+  - description: Error 1011 GroupKeyNotSelfComparable
+    query: "SELECT * FROM foo GROUP BY d"
+    current_db: db
+    should_compile: false
+    algebrize_error: "Error 1011: Cannot group by key because `object type` can't be compared against itself."
+
+  - description: Error 1014 UnwindIndexNameConflict
+    query: "SELECT * FROM UNWIND(foo WITH PATH => a, INDEX => b)"
+    current_db: db
+    should_compile: false
+    algebrize_error: "Error 1014: UNWIND INDEX name 'b' conflicts with existing field name"
+
+  - description: Error 1016 CollectionNotFound
+    query: "SELECT * FROM baz"
+    current_db: db
+    should_compile: false
+    algebrize_error: "Error 1016: unknown collection 'baz' in database 'db'"
+
+  - description: Error 1017 ExtJsonComparison
+    query: "SELECT * FROM foo where a = '{\"$numberInt\": \"5\"}'"
+    current_db: db
+    should_compile: false
+    algebrize_error: "Error 1017: MongoSQL does not support direct comparisons with extended JSON. Try `= 5`."

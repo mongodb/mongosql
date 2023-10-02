@@ -1,0 +1,41 @@
+catalog_data:
+  db:
+    foo:
+      - {'_id': 0, 'a': 1, 'b': 2}
+
+catalog_schema:
+  {
+    'db': {
+      'foo': {
+        'bsonType': 'object',
+        "required": [ "id", "a", "b", "c", "d"],
+        "additionalProperties": false,
+        "properties":
+          {
+            "_id": { "bsonType": "int" },
+            "a": { "bsonType": "int" },
+            "b": { "bsonType": "int" },
+            "c": {"bsonType": "string"},
+            "d":
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              },
+          },
+      }
+    }
+  }
+
+tests:
+  - description: Error 2000 Lalrpop
+    query: "SELECT VALUE {'αβγ': αβγ} FROM [{'αβγ': 1}] arr"
+    current_db: db
+    should_compile: false
+    parse_error: 'Error 2000: InvalidToken at 24'
+
+  - description: Error 2001 UnexpectedToken
+    query: "SELECT ** FROM foo AS f"
+    current_db: db
+    should_compile: false
+    parse_error: "Error 2001: Unrecognized token `*`, did you mean `,`, `)`?"
+

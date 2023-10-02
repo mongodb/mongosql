@@ -54,6 +54,13 @@ result sets and execute against an actual database. Requires a running mongod.
 
 `cargo test --features query-test,e2e-test --package e2e-tests` from the main directory
 
+### errors testing
+
+error tests are e2e tests for our errors. These tests specify a SQL query and have an expected 
+error that they should cause. Requires a running mongod.
+
+`cargo test --features query-test,errors --package e2e-tests` from the main directory
+
 ### Spec query testing
 
 The query spec tests that specify language behavior. Requires a running mongod.

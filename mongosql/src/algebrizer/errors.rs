@@ -50,7 +50,6 @@ pub enum Error {
     InvalidExtractDatePart(ast::DatePart),
     InvalidDateFunctionDatePart(ast::DatePart),
     InvalidFieldPath(mir::Expression),
-    UnsupportedType(ast::TypeOrMissing),
 }
 
 impl From<mir::schema::Error> for Error {
@@ -104,7 +103,6 @@ impl UserError for Error {
             Error::InvalidCast(_) => 3030,
             Error::InvalidExtractDatePart(_) => 3031,
             Error::InvalidDateFunctionDatePart(_) => 3032,
-            Error::UnsupportedType(_) => 3033,
             Error::InvalidFieldPath(_) => 3034,
         }
     }
@@ -191,7 +189,6 @@ impl UserError for Error {
             Error::InvalidCast(_) => None,
             Error::InvalidExtractDatePart(_) => None,
             Error::InvalidDateFunctionDatePart(_) => None,
-            Error::UnsupportedType(_) => None,
             Error::InvalidFieldPath(_) => {
                 Some("expressions are not allowed in field paths".to_string())
             }
@@ -215,7 +212,7 @@ impl UserError for Error {
             Error::ScalarInPlaceOfAggregation(func) => format!("scalar function {0} used in aggregation position", func),
             Error::NonAggregationInPlaceOfAggregation(pos) => format!("non-aggregation expression found in GROUP BY aggregation function list at position {0}", pos),
             Error::AggregationFunctionMustHaveOneArgument => "aggregation functions must have exactly one argument".to_string(),
-            Error::DistinctScalarFunction => "scalar functions cannot be DISTINCT".to_string(),
+            Error::DistinctScalarFunction => "scalar functions don't support DISTINCT".to_string(),
             Error::DerivedDatasourceOverlappingKeys(s1, s2, derived_name, sat) => format!("derived source {derived_name} {sat:?} have overlapping keys between schemata {s1:?} and {s2:?}"),
             Error::CannotBeAlgebrized(str) => format!("{0} cannot be algebrized", str),
             Error::SchemaChecking(error) => error.technical_message(),
@@ -233,7 +230,6 @@ impl UserError for Error {
             Error::InvalidCast(ast_type) => format!("invalid CAST target type '{0:?}'", ast_type),
             Error::InvalidExtractDatePart(date_part) => format!("'{0:?}' is not a supported date part for EXTRACT", date_part),
             Error::InvalidDateFunctionDatePart(date_part) => format!("'{0:?}' is not a supported date part for DATEADD, DATEDIFF, and DATETRUNC", date_part),
-            Error::UnsupportedType(unsupported_type) => format!("unsupported type '{0:?}'", unsupported_type),
             Error::InvalidFieldPath(e) =>
                 format!("field path must be a pure field path with no expressions in this context. found {0:?}",
                     e

@@ -58,7 +58,7 @@ tests:
   - description: array datasource must be array literal
     query: "SELECT * FROM {'a': [{'b': 1}]}['a'] AS arr"
     should_compile: false
-    parse_error: "found unsupported expression used as datasource: {'a': [{'b': 1}]}['a']"
+    parse_error: "parse error: Error 2000: found unsupported expression used as datasource: {'a': [{'b': 1}]}['a']"
 
   - description: array datasource cannot be referenced as value
     query: "SELECT arr FROM [{'a': 1}] AS arr"

@@ -1,0 +1,190 @@
+catalog_data:
+  db:
+    foo:
+      - {'_id': 0, 'a': 1, 'b': 2}
+    bar:
+      - {'_id': 0, 'a': 1, 'b': 2}
+    noSchemaInfo:
+      - {'_id': 0, 'a': {'b': 1}}
+
+catalog_schema:
+  {
+    'db': {
+      'foo': {
+        'bsonType': 'object',
+        "required": [ "id", "a", "b", "c", "d"],
+        "additionalProperties": false,
+        "properties":
+          {
+            "_id": { "bsonType": "int" },
+            "a": { "bsonType": "int" },
+            "b": { "bsonType": "int" },
+            "c": {"bsonType": "string"},
+            "d": { "anyOf": [
+              {
+                "bsonType": "object",
+              },
+              {
+                "bsonType": "int",
+              }, ]
+            },
+          },
+      },
+      'bar': {
+        'bsonType': 'object',
+        "required": [ "id", "a", "b", "c", "d" ],
+        "additionalProperties": false,
+        "properties":
+          {
+            "_id": { "bsonType": "int" },
+            "a": { "bsonType": "int" },
+            "b": { "bsonType": "int" },
+            "c": { "bsonType": "string" },
+            "d":
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              },
+          },
+      },
+      'noSchemaInfo': {
+        'bsonType': "object",
+        'additionalProperties': true
+      },
+    }
+  }
+
+tests:
+  - description: Error 3002 NonStarStandardSelectBody
+    query: "SELECT *, a from foo"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3002: standard SELECT expressions can only contain *'
+
+  - description: Error 3004 ArrayDatasourceMustBeLiteral
+    query: "SELECT * FROM [{'a': foo.a}] AS arr"
+    current_db: db
+    should_compile: false
+    algebrize_error: "Error 3004: array datasource must be constant"
+
+  - description: Error 3005 DistinctSelect
+    query: "SELECT DISTINCT * from foo"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3005: SELECT DISTINCT not allowed'
+
+  - description: Error 3006 DistinctUnion
+    query: "SELECT a FROM foo AS foo UNION SELECT b, c FROM bar AS bar"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3006: UNION DISTINCT not allowed'
+
+  - description: Error 3007 NoSuchDatasource
+    query: "SELECT a.* FROM foo"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3007: no such datasource: Named("a")'
+
+  - description: Error 3008 FieldNotFound
+    query: "Select aa from foo"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3008: Field `aa` not found. Did you mean: a, b, c, d'
+
+  - description: Error 3009 AmbiguousField
+    query: "SELECT a FROM foo AS coll JOIN foo AS coll2"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3009: Field `a` exists in multiple datasources and is ambiguous. Please qualify.'
+
+  - description: Error 3010 StarInNonCount
+    query: "SELECT * FROM foo AS arr GROUP BY a AS a AGGREGATE SUM(*) AS gsum"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3010: * argument only valid in COUNT function'
+
+  - description: Error 3012 ScalarInPlaceOfAggregation
+    query: "SELECT * FROM foo GROUP BY a AGGREGATE round(a) AS round"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3012: scalar function ROUND used in aggregation position'
+
+  - description: Error 3013 NonAggregationInPlaceOfAggregation
+    query: "SELECT * FROM foo GROUP BY a AGGREGATE COUNT(*) + 7 AS whatever"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3013: non-aggregation expression found in GROUP BY aggregation function list at position 0'
+
+  - description: Error 3014 AggregationFunctionMustHaveOneArgument
+    query: "SELECT * FROM foo GROUP BY a AGGREGATE min(a,b) AS min"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3014: aggregation functions must have exactly one argument'
+
+  - description: Error 3015 DistinctScalarFunction
+    query: 'SELECT ROUND(DISTINCT a,2) FROM foo'
+    current_db: db
+    should_compile: false
+    algebrize_error: "Error 3015: scalar functions don't support DISTINCT"
+
+  - description: Error 3016 DerivedDatasourceOverlappingKeys
+    query: "SELECT * FROM (SELECT * FROM foo AS foo, bar AS bar) AS derived"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3016: Derived datasource `derived` has the following overlapping keys: _id, a, b, c, d'
+
+    # There is no `Error 10xx` test because all it does it wrap the schema errors, and they have their own tests in schema.yml.
+
+  - description: Error 3019 NoOuterJoinCondition
+    query: "SELECT * FROM foo AS foo LEFT OUTER JOIN bar"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3019: OUTER JOINs must specify a JOIN condition'
+
+  - description: Error 3020 DuplicateKey
+    query: "SELECT * FROM foo AS alias, bar AS alias"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3020: cannot create schema environment with duplicate key: Key { datasource: Named("alias"), scope: 0 }'
+
+  - description: Error 3022 InvalidSubqueryDegree
+    query: "SELECT (SELECT * FROM foo LIMIT 1) FROM bar AS bar"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3022: subquery expressions must have a degree of 1'
+
+  - description: Error 3023 DuplicateDocumentKey
+    query: "SELECT a AS alias, b AS alias FROM foo"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3023: found duplicate document key "alias"'
+
+  - description: Error 3024 DuplicateFlattenOption
+    query: "SELECT * FROM FLATTEN(foo WITH depth => 1, depth => 2)"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3024: found duplicate FLATTEN option Depth(2)'
+
+  - description: Error 3025 CannotEnumerateAllFieldPaths
+    query: "SELECT * FROM FLATTEN(noSchemaInfo)"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3025: Insufficient schema information.'
+
+  - description: Error 3027 DuplicateUnwindOption
+    query: "SELECT * FROM UNWIND(foo WITH PATH => arr, PATH => invalid)"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3027: found duplicate UNWIND option Path(Identifier("invalid"))'
+
+  - description: Error 3028 NoUnwindPath
+    query: "SELECT * FROM UNWIND(foo)"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3028: UNWIND must specify a PATH option'
+
+  - description: Error 3030 InvalidCast
+    query: "SELECT CAST(a AS DATE) FROM foo"
+    current_db: db
+    should_compile: false
+    algebrize_error: "Error 3030: invalid CAST target type 'Date'"

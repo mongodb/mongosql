@@ -40,6 +40,8 @@ fn run_query_tests() -> Result<(), Error> {
     // the e2e tests. Both features are required.
     let test_dir = if cfg!(feature = "e2e-test") {
         "../tests/e2e_tests"
+    } else if cfg!(feature = "errors") {
+        "../tests/errors"
     } else {
         "../tests/spec_tests/query_tests"
     };
@@ -85,11 +87,9 @@ fn run_query_tests() -> Result<(), Error> {
                     "{}: unexpected compilation result",
                     test.description
                 );
-                continue;
             }
 
             if let Some(parse_error) = test.parse_error {
-                let parse_error = parse_error.escape_default().to_string();
                 assert!(
                     translation
                         .as_ref()
