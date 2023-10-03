@@ -10,7 +10,7 @@ catalog_schema:
     'db': {
       'foo': {
         'bsonType': 'object',
-        "required": [ "id", "a", "b", "c", "d"],
+        "required": [ "_id", "a", "b", "c", "d"],
         "additionalProperties": false,
         "properties":
           {
@@ -30,7 +30,7 @@ catalog_schema:
       },
       'bar': {
         'bsonType': 'object',
-        "required": [ "id", "a", "b", "c", "d" ],
+        "required": [ "_id", "a", "b", "c", "d" ],
         "additionalProperties": false,
         "properties":
           {

@@ -11,7 +11,7 @@ catalog_schema:
         "foo": {
             "bar": {
               "bsonType": "object",
-              "required": [ "id", "foo" ],
+              "required": [ "_id", "foo" ],
               "additionalProperties": false,
               "properties": {
                 "_id": { "bsonType": "int" },
@@ -20,7 +20,7 @@ catalog_schema:
             },
             "baz": {
               "bsonType": "object",
-              "required": [ "id", "foo" ],
+              "required": [ "_id", "foo" ],
               "additionalProperties": false,
               "properties": {
                 "_id": { "bsonType": "int" },

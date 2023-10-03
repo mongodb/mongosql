@@ -60,7 +60,7 @@
         "foo":
           {
             "bsonType": "object",
-            "required": ["id", "a", "b", "coll"],
+            "required": ["_id", "a", "b", "coll"],
             "additionalProperties": false,
             "properties":
               {
@@ -73,7 +73,7 @@
         "_foo":
           {
             "bsonType": "object",
-            "required": ["id", "a", "b", "coll"],
+            "required": ["_id", "a", "b", "coll"],
             "additionalProperties": false,
             "properties":
               {
@@ -86,7 +86,7 @@
         "bar.baz":
           {
             "bsonType": "object",
-            "required": ["id", "a", "b", "coll"],
+            "required": ["_id", "a", "b", "coll"],
             "additionalProperties": false,
             "properties":
               {
@@ -99,7 +99,7 @@
         "bar":
           {
             "bsonType": "object",
-            "required": ["id", "a", "b", "coll"],
+            "required": ["_id", "a", "b", "coll"],
             "additionalProperties": false,
             "properties":
               {
