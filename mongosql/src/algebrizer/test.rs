@@ -868,6 +868,45 @@ mod expression {
     );
 
     test_algebrize!(
+        eq_bool_and_int,
+        method = algebrize_expression,
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Eq,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
+                ],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+            op: ast::BinaryOp::Comparison(ast::ComparisonOp::Eq),
+            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+        }),
+    );
+    test_algebrize!(
+        gt_bool_and_int,
+        method = algebrize_expression,
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Gt,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(false).into()),
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
+                ],
+                cache: SchemaCache::new(),
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(0))),
+            op: ast::BinaryOp::Comparison(ast::ComparisonOp::Gt),
+            right: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+        }),
+    );
+
+    test_algebrize!(
         neg_unary_op,
         method = algebrize_expression,
         expected = Ok(mir::Expression::ScalarFunction(

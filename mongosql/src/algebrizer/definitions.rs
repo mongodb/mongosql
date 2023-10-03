@@ -7,8 +7,9 @@ use crate::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
+        LiteralExpr,
     },
-    schema::{self, Satisfaction, SchemaEnvironment},
+    schema::{self, Satisfaction, SchemaEnvironment, BOOLEAN_OR_NULLISH},
     util::unique_linked_hash_map::UniqueLinkedHashMap,
     SchemaCheckingMode,
 };
@@ -994,15 +995,49 @@ impl<'a> Algebrizer<'a> {
         );
     }
 
+    fn convert_literal_to_bool(expr: mir::Expression) -> mir::Expression {
+        match expr {
+            mir::Expression::Literal(LiteralExpr {
+                value: mir::LiteralValue::Integer(i),
+                cache,
+            }) => match i {
+                0 => mir::Expression::Literal(LiteralExpr {
+                    value: mir::LiteralValue::Boolean(false),
+                    cache: SchemaCache::new(),
+                }),
+                1 => mir::Expression::Literal(LiteralExpr {
+                    value: mir::LiteralValue::Boolean(true),
+                    cache: SchemaCache::new(),
+                }),
+                _ => mir::Expression::Literal(LiteralExpr {
+                    value: mir::LiteralValue::Integer(i),
+                    cache,
+                }),
+            },
+            _ => expr,
+        }
+    }
+
     fn algebrize_binary_expr(&self, b: ast::BinaryExpr) -> Result<mir::Expression> {
+        let (mut left, mut right) = (
+            self.algebrize_expression(*b.left)?,
+            self.algebrize_expression(*b.right)?,
+        );
+        let (left_schema, right_schema) = (
+            left.check_schema(&self.schema_inference_state())?,
+            right.check_schema(&self.schema_inference_state())?,
+        );
+        if left_schema.satisfies(&BOOLEAN_OR_NULLISH) == Satisfaction::Must {
+            right = Self::convert_literal_to_bool(right);
+        }
+        if right_schema.satisfies(&BOOLEAN_OR_NULLISH) == Satisfaction::Must {
+            left = Self::convert_literal_to_bool(left);
+        }
         schema_check_return!(
             self,
             mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::try_from(b.op)?,
-                args: vec![
-                    self.algebrize_expression(*b.left)?,
-                    self.algebrize_expression(*b.right)?,
-                ],
+                args: vec![left, right],
                 cache: SchemaCache::new(),
             })
         );

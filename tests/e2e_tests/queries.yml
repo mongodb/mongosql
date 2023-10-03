@@ -52,6 +52,9 @@
           "b": { "$numberInt": "1" },
           "coll": "bar",
         }
+    "boolz":
+      - { "_id": 0, "a": true }
+      - { "_id": 1, "a": false }
 
 "catalog_schema":
   {
@@ -105,6 +108,19 @@
               {
                 "_id": { "bsonType": "int" },
                 "a": { "bsonType": "int" },
+                "b": { "bsonType": "int" },
+                "coll": { "bsonType": "string" },
+              },
+          },
+        "boolz":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a", "b", "coll"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a": { "bsonType": "bool" },
                 "b": { "bsonType": "int" },
                 "coll": { "bsonType": "string" },
               },
@@ -670,4 +686,37 @@ tests:
               "b": { "$numberInt": "2" },
               "coll": "bar",
             },
+        }
+  - description: Can compare bool column to literal value
+    query: "SELECT * from boolz where a = 1"
+    current_db: testquerydb
+    result:
+      - {
+          "bool": {
+            "_id": 0,
+            "a": true,
+            "b": { "$numberInt": "1" },
+            "coll": "bool",
+          }
+        }
+
+  - description: Can still compare numerics
+    query: "SELECT * from boolz where b = 1"
+    current_db: testquerydb
+    result:
+      - {
+          "bool": {
+            "_id": 0,
+            "a": true,
+            "b": { "$numberInt": "1" },
+            "coll": "bool",
+          }
+        }
+     - {
+          "bool": {
+            "_id": 1,
+            "a": false,
+            "b": { "$numberInt": "1" },
+            "coll": "bool",
+          }
         }
