@@ -20,15 +20,17 @@ mod options;
 mod parser;
 pub mod result;
 pub mod schema;
+#[cfg(test)]
+mod test;
 mod translator;
 pub mod usererror;
 mod util;
 
-use crate::options::ExcludeNamespacesOption;
 use crate::{
     algebrizer::Algebrizer,
     catalog::Catalog,
     mir::schema::CachedSchema,
+    options::ExcludeNamespacesOption,
     result::Result,
     schema::{Schema, SchemaEnvironment},
     translator::MqlTranslator,
@@ -108,7 +110,7 @@ pub fn translate_sql(
     );
 
     let result_set_schema =
-        mql_schema_env_to_json_schema(schema_env, &translator.mapping_registry)?;
+        mql_schema_env_to_json_schema(schema_env, &translator.mapping_registry, sql_options)?;
 
     Ok(Translation {
         target_db,
@@ -137,12 +139,34 @@ pub fn get_namespaces(current_db: &str, sql: &str) -> Result<BTreeSet<Namespace>
 }
 
 // mql_schema_env_to_json_schema converts a SchemaEnvironment to a json_schema::Schema with an
-// MqlMappingRegistry.  It will not work with any other codegen backends
+// MqlMappingRegistry. It uses `SqlOptions` to determine whether to include namespaces in the schema or
+// to remove them and instead pull the keys in the namespaces up a level in the schema.
+// It will not work with any other codegen backends.
 fn mql_schema_env_to_json_schema(
     schema_env: SchemaEnvironment,
     mapping_registry: &codegen::MqlMappingRegistry,
+    sql_options: options::SqlOptions,
 ) -> Result<json_schema::Schema> {
-    let keys: std::collections::BTreeMap<String, Schema> = schema_env
+    let keys: std::collections::BTreeMap<String, Schema> =
+        if sql_options.exclude_namespaces == ExcludeNamespacesOption::IncludeNamespaces {
+            include_namespace_in_result_set_schema_keys(schema_env, mapping_registry)?
+        } else {
+            exclude_namespace_in_result_set_schema_keys(schema_env, mapping_registry)?
+        };
+
+    json_schema::Schema::try_from(Schema::simplify(&Schema::Document(schema::Document {
+        required: keys.keys().cloned().collect(),
+        keys,
+        additional_properties: false,
+    })))
+    .map_err(result::Error::JsonSchemaConversion)
+}
+
+fn include_namespace_in_result_set_schema_keys(
+    schema_env: SchemaEnvironment,
+    mapping_registry: &codegen::MqlMappingRegistry,
+) -> Result<std::collections::BTreeMap<String, Schema>> {
+    schema_env
         .into_iter()
         .map(|(k, v)| {
             let registry_value = mapping_registry.get(&k);
@@ -153,90 +177,32 @@ fn mql_schema_env_to_json_schema(
                 )),
             }
         })
-        .collect::<Result<_>>()?;
-    json_schema::Schema::try_from(Schema::simplify(&Schema::Document(schema::Document {
-        required: keys.keys().cloned().collect(),
-        keys,
-        additional_properties: false,
-    })))
-    .map_err(result::Error::JsonSchemaConversion)
+        .collect::<Result<std::collections::BTreeMap<String, Schema>>>()
 }
 
-#[allow(clippy::redundant_pattern_matching)]
-#[cfg(test)]
-mod test_get_namespaces {
-    macro_rules! test_get_namespaces {
-        ($func_name:ident, $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? db = $current_db:expr, query = $sql:expr,) => {
-            #[test]
-            fn $func_name() {
-                #[allow(unused_imports)]
-                use crate::{get_namespaces, set, Namespace};
-                let current_db = $current_db;
-                let sql = $sql;
-                let actual = get_namespaces(current_db, sql);
-                $(assert!(matches!(actual, $expected_pat));)?
-                $(assert_eq!($expected, actual);)?
+fn exclude_namespace_in_result_set_schema_keys(
+    schema_env: SchemaEnvironment,
+    mapping_registry: &codegen::MqlMappingRegistry,
+) -> Result<std::collections::BTreeMap<String, Schema>> {
+    schema_env
+        .into_iter()
+        .flat_map(|(k, v)| {
+            if mapping_registry.get(&k).is_some() {
+                if let Schema::Document(doc) = v {
+                    doc.keys
+                        .into_iter()
+                        .map(|(key, schema)| Ok((key, schema)))
+                        .collect::<Vec<_>>()
+                } else {
+                    vec![Err(result::Error::Translator(
+                        translator::Error::DocumentSchemaTypeNotFound(v),
+                    ))]
+                }
+            } else {
+                vec![Err(result::Error::Translator(
+                    translator::Error::ReferenceNotFound(k),
+                ))]
             }
-        };
-    }
-
-    test_get_namespaces!(
-        no_collections,
-        expected = Ok(set![]),
-        db = "mydb",
-        query = "select * from [] as arr",
-    );
-
-    test_get_namespaces!(
-        implicit,
-        expected = Ok(set![Namespace {
-            database: "mydb".into(),
-            collection: "foo".into()
-        }]),
-        db = "mydb",
-        query = "select * from foo",
-    );
-
-    test_get_namespaces!(
-        explicit,
-        expected = Ok(set![Namespace {
-            database: "bar".into(),
-            collection: "baz".into()
-        }]),
-        db = "mydb",
-        query = "select * from bar.baz",
-    );
-
-    test_get_namespaces!(
-        duplicates,
-        expected = Ok(set![Namespace {
-            database: "mydb".into(),
-            collection: "foo".into()
-        }]),
-        db = "mydb",
-        query = "select * from foo a join foo b",
-    );
-
-    test_get_namespaces!(
-        semantically_invalid,
-        expected = Ok(set![
-            Namespace {
-                database: "mydb".into(),
-                collection: "foo".into()
-            },
-            Namespace {
-                database: "mydb".into(),
-                collection: "bar".into()
-            }
-        ]),
-        db = "mydb",
-        query = "select a from foo join bar",
-    );
-
-    test_get_namespaces!(
-        syntactically_invalid,
-        expected_pat = Err(_),
-        db = "mydb",
-        query = "not a valid query",
-    );
+        })
+        .collect::<Result<std::collections::BTreeMap<String, Schema>>>()
 }

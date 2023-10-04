@@ -3,6 +3,7 @@ use crate::{
     mapping_registry::{Key, MqlMappingRegistry, MqlMappingRegistryValue, MqlReferenceType},
     mir,
     options::{ExcludeNamespacesOption, SqlOptions},
+    schema,
     util::ROOT,
 };
 use itertools::Itertools;
@@ -49,6 +50,8 @@ pub enum Error {
     InvalidMatchLanguageInputRef,
     #[error("expected ROOT-based Variable for EquiJoin foreign field, but got {0}")]
     InvalidEquiJoinForeignFieldRef(String),
+    #[error("expected document schema type in SchemaEnvironment BTreeMap value, but got {0:?}")]
+    DocumentSchemaTypeNotFound(schema::Schema),
 }
 
 #[derive(Clone)]
