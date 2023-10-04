@@ -43,6 +43,7 @@ impl Optimizer for MatchNullFilteringOptimizer {
         let mut v = MatchNullFilteringVisitor {
             schema_state: schema_state.clone(),
             scope: 0,
+            changed: false,
         };
         let st = v.visit_stage(st);
 
@@ -53,16 +54,21 @@ impl Optimizer for MatchNullFilteringOptimizer {
         // `schema` method on a per-expression or even per-stage basis
         // _during_ the walk because that would fail to incorporate
         // correlated schema information.
-        let mut v = SchemaInvalidator;
-        let st = v.visit_stage(st);
-        let _ = st.schema(schema_state);
-        st
+        if v.changed {
+            let mut v = SchemaInvalidator;
+            let st = v.visit_stage(st);
+            let _ = st.schema(schema_state);
+            st
+        } else {
+            st
+        }
     }
 }
 
 struct MatchNullFilteringVisitor<'a> {
     schema_state: SchemaInferenceState<'a>,
     scope: u16,
+    changed: bool,
 }
 
 impl<'a> MatchNullFilteringVisitor<'a> {
@@ -142,11 +148,14 @@ impl<'a> Visitor for MatchNullFilteringVisitor<'a> {
         let node = node.walk(self);
         match self.create_null_filter_stage(&node) {
             None => node,
-            Some(null_filter_stage) => Filter {
-                source: Box::new(Stage::Filter(null_filter_stage)),
-                condition: node.condition,
-                cache: SchemaCache::new(),
-            },
+            Some(null_filter_stage) => {
+                self.changed = true;
+                Filter {
+                    source: Box::new(Stage::Filter(null_filter_stage)),
+                    condition: node.condition,
+                    cache: SchemaCache::new(),
+                }
+            }
         }
     }
 
