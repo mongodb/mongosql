@@ -53,8 +53,8 @@
           "coll": "bar",
         }
     "boolz":
-      - { "_id": 0, "a": true }
-      - { "_id": 1, "a": false }
+      - { "_id": 0, "a": true, "b": 1 }
+      - { "_id": 1, "a": false, "b": 1 }
 
 "catalog_schema":
   {
@@ -115,14 +115,13 @@
         "boolz":
           {
             "bsonType": "object",
-            "required": ["_id", "a", "b", "coll"],
+            "required": ["_id", "a", "b"],
             "additionalProperties": false,
             "properties":
               {
                 "_id": { "bsonType": "int" },
                 "a": { "bsonType": "bool" },
                 "b": { "bsonType": "int" },
-                "coll": { "bsonType": "string" },
               },
           },
       },
@@ -692,11 +691,10 @@ tests:
     current_db: testquerydb
     result:
       - {
-          "bool": {
+          "boolz": {
             "_id": 0,
             "a": true,
             "b": { "$numberInt": "1" },
-            "coll": "bool",
           }
         }
 
@@ -704,19 +702,5 @@ tests:
     query: "SELECT * from boolz where b = 1"
     current_db: testquerydb
     result:
-      - {
-          "bool": {
-            "_id": 0,
-            "a": true,
-            "b": { "$numberInt": "1" },
-            "coll": "bool",
-          }
-        }
-     - {
-          "bool": {
-            "_id": 1,
-            "a": false,
-            "b": { "$numberInt": "1" },
-            "coll": "bool",
-          }
-        }
+      - { "boolz": { "_id": 0, "a": true, b: 1 } }
+      - { "boolz": { "_id": 1, "a": false, b: 1 } }

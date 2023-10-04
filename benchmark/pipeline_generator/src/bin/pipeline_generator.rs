@@ -211,7 +211,11 @@ fn get_pipeline(config: &Workload) -> (String, String) {
     (pipeline.to_string(), collection)
 }
 
-fn main() {
+use std::thread;
+
+const STACK_SIZE: usize = 8 * 1024 * 1024; // 8 MB of stack space
+
+fn run() {
     let config_file = File::open(CONFIG_FILE).map_err(Error::FileOpen).unwrap();
     let config: Config = serde_yaml::from_reader(config_file)
         .map_err(Error::ConfigFile)
@@ -222,4 +226,17 @@ fn main() {
         let (pipeline, collection) = get_pipeline(&workload);
         process_workload(&workload, &pipeline, collection.as_str());
     }
+}
+
+fn main() {
+    // Spawn thread with explicit stack size since we
+    // could hit stack overflows on devices with low
+    // stack space (e.g. Windows default is 1 MB.
+    let child = thread::Builder::new()
+        .stack_size(STACK_SIZE)
+        .spawn(run)
+        .unwrap();
+
+    // Wait for thread to join
+    child.join().unwrap();
 }
