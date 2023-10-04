@@ -61,18 +61,28 @@ impl Visitor for SelectRewriteVisitor {
         use ast::*;
         let node = node.walk(self);
 
-        // Store all substar expressions in a vector and all non-substar expressions in a single map,
-        // where the alias is the key and the expression is the value. There's no need to rewrite
+        // Store a vector of select expressions, preserving select order. Consecutive non-substar
+        // select expressions will be added to the same document. There's no need to rewrite
         // SelectValuesExpressions or queries of the form `select *`.
-        let mut v: Vec<ast::DocumentPair> = Vec::new();
-        let mut substar_exprs: Vec<SelectValuesExpression> = vec![];
-        let mut rewrite = true;
+        let mut non_substar_exprs: Vec<ast::DocumentPair> = Vec::new();
         match node.clone() {
             SelectBody::Standard(exprs) => {
+                let mut ordered_select_expressions = vec![];
                 for expr in exprs {
                     match expr {
                         SelectExpression::Substar(substar) => {
-                            substar_exprs.push((SelectValuesExpression::Substar(substar)).clone())
+                            // in order to preserve ordering, add a document expression with all the preceding
+                            // non-substar expressions, then add the substar to the select vector
+                            if !non_substar_exprs.is_empty() {
+                                ordered_select_expressions.push(
+                                    SelectValuesExpression::Expression(Expression::Document(
+                                        non_substar_exprs,
+                                    )),
+                                );
+                                non_substar_exprs = Vec::new();
+                            };
+                            ordered_select_expressions
+                                .push((SelectValuesExpression::Substar(substar)).clone());
                         }
                         SelectExpression::Expression(expr) => {
                             match expr {
@@ -83,16 +93,23 @@ impl Visitor for SelectRewriteVisitor {
                                     expr,
                                     alias,
                                 }) => {
-                                    v.push(ast::DocumentPair {
+                                    non_substar_exprs.push(ast::DocumentPair {
                                         key: alias,
                                         value: expr,
                                     });
                                 }
                             };
                         }
-                        SelectExpression::Star => rewrite = false,
+                        SelectExpression::Star => return node,
                     }
                 }
+                // add any remaining non-substar expressions to a document and place that in the select list
+                if !non_substar_exprs.is_empty() {
+                    ordered_select_expressions.push(SelectValuesExpression::Expression(
+                        Expression::Document(non_substar_exprs),
+                    ));
+                };
+                SelectBody::Values(ordered_select_expressions)
             }
             SelectBody::Values(_) => {
                 // Even though all SELECT queries should be rewritten to SELECT VALUE(S) for the
@@ -101,21 +118,8 @@ impl Visitor for SelectRewriteVisitor {
                 if !self.allow_select_value {
                     self.error = Some(Error::SubqueryWithSelectValue)
                 }
-                rewrite = false
+                node
             }
-        };
-
-        if !rewrite {
-            return node;
-        };
-
-        // Return a vector of SelectValuesExpressions that includes the map of non-substar expressions
-        // followed by the substar expressions.
-        let mut array = vec![];
-        if !v.is_empty() {
-            array.push(SelectValuesExpression::Expression(Expression::Document(v)));
-        };
-        array.append(&mut substar_exprs);
-        SelectBody::Values(array)
+        }
     }
 }

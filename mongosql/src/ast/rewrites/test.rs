@@ -483,6 +483,12 @@ mod select {
         input = "SELECT a.b.c as a1",
     );
     test_rewrite!(
+        multiple_ident_unordered,
+        pass = SelectRewritePass,
+        expected = Ok("SELECT VALUE {'c': c, 'a': a, 'b': b}"),
+        input = "SELECT c AS c, a AS a, b AS b",
+    );
+    test_rewrite!(
         standalone_substar,
         pass = SelectRewritePass,
         expected = Ok("SELECT VALUE t.*"),
@@ -503,8 +509,14 @@ mod select {
     test_rewrite!(
         multiple_ident_substar_mix,
         pass = SelectRewritePass,
-        expected = Ok("SELECT VALUES {'a': a, 't': t}, a.*, t.*"),
+        expected = Ok("SELECT VALUES {'a': a}, a.*, {'t': t}, t.*"),
         input = "SELECT a AS a, a.*, t AS t, t.*",
+    );
+    test_rewrite!(
+        multiple_ident_substar_mix_groups_idents,
+        pass = SelectRewritePass,
+        expected = Ok("SELECT VALUES {'b': b, 'a': a}, a.*, {'z': y, 'y': z}"),
+        input = "SELECT b as b, a AS a, a.*, y AS z, z as y",
     );
     test_rewrite!(
         star_no_rewrite,
