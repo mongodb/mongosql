@@ -2,7 +2,11 @@ use mongodb::{
     bson::{doc, Bson, Document},
     sync::Client,
 };
-use mongosql::{catalog::Catalog, Translation};
+use mongosql::{
+    catalog::Catalog,
+    options::{ExcludeNamespacesOption, SqlOptions},
+    Translation,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     collections::{BTreeMap, HashSet},
@@ -76,7 +80,10 @@ fn run_query_tests() -> Result<(), Error> {
                 db.as_str(),
                 test.query.as_str(),
                 &catalog,
-                mongosql::SchemaCheckingMode::Strict,
+                SqlOptions::new(
+                    ExcludeNamespacesOption::IncludeNamespaces,
+                    mongosql::SchemaCheckingMode::Strict,
+                ),
             )
             .map_err(Error::Translation);
 

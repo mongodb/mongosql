@@ -1,6 +1,8 @@
 use mongosql::{
     catalog::{self, Catalog},
-    json_schema, schema, SchemaCheckingMode,
+    json_schema,
+    options::{ExcludeNamespacesOption, SqlOptions},
+    schema, SchemaCheckingMode,
 };
 use std::{
     collections::{BTreeMap, BTreeSet},
@@ -30,9 +32,18 @@ pub extern "C" fn translate(
     sql: *const libc::c_char,
     catalog: *const libc::c_char,
     relax_schema_checking: libc::c_int,
+    exclude_namespaces: libc::c_int,
 ) -> *const raw::c_char {
     panic_safe_exec(
-        || translate_helper(current_db, sql, catalog, relax_schema_checking),
+        || {
+            translate_helper(
+                current_db,
+                sql,
+                catalog,
+                relax_schema_checking,
+                exclude_namespaces,
+            )
+        },
         Box::new(translation_success_payload),
         Box::new(translation_failure_payload),
     )
@@ -45,6 +56,7 @@ fn translate_helper(
     sql: *const libc::c_char,
     catalog: *const libc::c_char,
     relax_schema_checking: libc::c_int,
+    exclude_namespaces: libc::c_int,
 ) -> Result<mongosql::Translation, String> {
     let current_db =
         from_extern_string(current_db).map_err(|_| "current_db not valid UTF-8".to_string())?;
@@ -54,6 +66,11 @@ fn translate_helper(
         1 => Ok(SchemaCheckingMode::Relaxed),
         0 => Ok(SchemaCheckingMode::Strict),
         n => Err(format!("invalid value {n} for relax_schema_checking")),
+    }?;
+    let exclude_namespaces_mode = match exclude_namespaces {
+        1 => Ok(ExcludeNamespacesOption::ExcludeNamespaces),
+        0 => Ok(ExcludeNamespacesOption::IncludeNamespaces),
+        n => Err(format!("invalid value {n} for exclude_namespaces")),
     }?;
     let catalog_str = from_extern_string(catalog)
         .map_err(|_| "catalog schema string not valid UTF-8".to_string())?;
@@ -67,8 +84,13 @@ fn translate_helper(
         }
     }
 
-    mongosql::translate_sql(&current_db, &sql, &catalog, schema_checking_mode)
-        .map_err(|e| format!("{e}"))
+    mongosql::translate_sql(
+        &current_db,
+        &sql,
+        &catalog,
+        SqlOptions::new(exclude_namespaces_mode, schema_checking_mode),
+    )
+    .map_err(|e| format!("{e}"))
 }
 
 /// Converts the given base64-encoded bson document into a Catalog.

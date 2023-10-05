@@ -2,6 +2,7 @@ use chrono::{TimeZone, Utc};
 use mongosql::{
     catalog::{Catalog, Namespace},
     json_schema,
+    options::{ExcludeNamespacesOption, SqlOptions},
     schema::Schema,
     translate_sql, SchemaCheckingMode,
 };
@@ -182,7 +183,10 @@ fn get_pipeline(config: &Workload) -> (String, String) {
         &config.db,
         &config.query,
         &catalog,
-        SchemaCheckingMode::default(),
+        SqlOptions::new(
+            ExcludeNamespacesOption::IncludeNamespaces,
+            SchemaCheckingMode::Relaxed,
+        ),
     );
     let translation = translation.unwrap();
     let pipeline = translation.pipeline;

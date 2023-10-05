@@ -16,7 +16,7 @@ mod mir;
 pub use mir::schema::SchemaCheckingMode;
 pub mod json_schema;
 mod mapping_registry;
-mod options;
+pub mod options;
 mod parser;
 pub mod result;
 pub mod schema;
@@ -30,7 +30,7 @@ use crate::{
     algebrizer::Algebrizer,
     catalog::Catalog,
     mir::schema::CachedSchema,
-    options::ExcludeNamespacesOption,
+    options::{ExcludeNamespacesOption, SqlOptions},
     result::Result,
     schema::{Schema, SchemaEnvironment},
     translator::MqlTranslator,
@@ -53,23 +53,20 @@ pub fn translate_sql(
     current_db: &str,
     sql: &str,
     catalog: &Catalog,
-    schema_checking_mode: SchemaCheckingMode,
+    sql_options: SqlOptions,
 ) -> Result<Translation> {
-    let sql_options =
-        options::SqlOptions::new(ExcludeNamespacesOption::default(), schema_checking_mode);
-
     // parse the query and apply syntactic rewrites
     let ast = parser::parse_query(sql)?;
     let ast = ast::rewrites::rewrite_query(ast)?;
 
     // construct the algebrizer and use it to build an mir plan
-    let algebrizer = Algebrizer::new(current_db, catalog, 0u16, schema_checking_mode);
+    let algebrizer = Algebrizer::new(current_db, catalog, 0u16, sql_options.schema_checking_mode);
     let plan = algebrizer.algebrize_query(ast)?;
 
     // optimizer runs
     let plan = mir::optimizer::optimize_plan(
         plan,
-        schema_checking_mode,
+        sql_options.schema_checking_mode,
         &algebrizer.schema_inference_state(),
     );
 
@@ -145,7 +142,7 @@ pub fn get_namespaces(current_db: &str, sql: &str) -> Result<BTreeSet<Namespace>
 fn mql_schema_env_to_json_schema(
     schema_env: SchemaEnvironment,
     mapping_registry: &codegen::MqlMappingRegistry,
-    sql_options: options::SqlOptions,
+    sql_options: SqlOptions,
 ) -> Result<json_schema::Schema> {
     let keys: std::collections::BTreeMap<String, Schema> =
         if sql_options.exclude_namespaces == ExcludeNamespacesOption::IncludeNamespaces {

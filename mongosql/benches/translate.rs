@@ -2,6 +2,7 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use mongosql::{
     catalog::{Catalog, Namespace},
     map,
+    options::{ExcludeNamespacesOption, SqlOptions},
     schema::ANY_DOCUMENT,
     translate_sql, SchemaCheckingMode, Translation,
 };
@@ -12,8 +13,16 @@ fn translate(sql: &str) -> Translation {
     let catalog = Catalog::new(map! {
         Namespace {db: "mydb".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
     });
-    let schema_checking_mode = SchemaCheckingMode::Relaxed;
-    translate_sql(current_db, sql, &catalog, schema_checking_mode).unwrap()
+    translate_sql(
+        current_db,
+        sql,
+        &catalog,
+        SqlOptions::new(
+            ExcludeNamespacesOption::IncludeNamespaces,
+            SchemaCheckingMode::Relaxed,
+        ),
+    )
+    .unwrap()
 }
 
 fn criterion_benchmark(c: &mut Criterion) {

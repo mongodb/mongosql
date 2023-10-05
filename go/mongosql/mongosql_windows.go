@@ -83,7 +83,13 @@ func callTranslate(args TranslationArgs) (string, error) {
 	if args.relaxSchemaChecking {
 		relaxSchemaCheckingArg = 1
 	}
-	ret1, _, _ := translateProc.Call(uintptr(dbArg), uintptr(sqlArg), uintptr(catalogArg), uintptr(relaxSchemaCheckingArg))
+
+	excludeNamespacesArg := 0
+	if args.excludeNamespaces {
+		excludeNamespacesArg = 1
+	}
+
+	ret1, _, _ := translateProc.Call(uintptr(dbArg), uintptr(sqlArg), uintptr(catalogArg), uintptr(relaxSchemaCheckingArg), uintptr(excludeNamespacesArg))
 	translationBase64 := uintptrToString(ret1)
 
 	// delete the returned uintptr

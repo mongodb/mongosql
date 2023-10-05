@@ -3,7 +3,10 @@ use mongodb::{
     sync::Client,
     IndexModel,
 };
-use mongosql::Translation;
+use mongosql::{
+    options::{ExcludeNamespacesOption, SqlOptions},
+    Translation,
+};
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fs, io::Read, path::PathBuf};
 
@@ -124,7 +127,10 @@ fn run_index_usage_tests() -> Result<(), Error> {
                 test.current_db.as_str(),
                 test.query.as_str(),
                 &catalog,
-                mongosql::SchemaCheckingMode::Strict,
+                SqlOptions::new(
+                    ExcludeNamespacesOption::IncludeNamespaces,
+                    mongosql::SchemaCheckingMode::Strict,
+                ),
             )
             .map_err(Error::Translation)?;
 

@@ -50,7 +50,12 @@ func callTranslate(args TranslationArgs) (string, error) {
 		cRelaxSchemaChecking = C.int(1)
 	}
 
-	cTranslationBase64 := C.translate(cDB, cSQL, cCatalogSchema, cRelaxSchemaChecking)
+	cExcludeNamespaces := C.int(0)
+	if args.excludeNamespaces {
+		cExcludeNamespaces = C.int(1)
+	}
+
+	cTranslationBase64 := C.translate(cDB, cSQL, cCatalogSchema, cRelaxSchemaChecking, cExcludeNamespaces)
 	defer C.delete_string(cTranslationBase64)
 
 	translationBase64 := C.GoString(cTranslationBase64)
