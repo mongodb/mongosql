@@ -6,6 +6,7 @@ package mongosql
 #include "./mongosql.h"
 */
 import "C"
+
 import (
 	"encoding/base64"
 	"fmt"
@@ -19,8 +20,8 @@ import (
 // version of the go library matches that of the c library.
 func version() string {
 	cVersion := C.version()
+	defer C.delete_string(cVersion)
 	version := C.GoString(cVersion)
-	C.free(unsafe.Pointer(cVersion))
 	return version
 }
 
@@ -50,7 +51,7 @@ func callTranslate(args TranslationArgs) (string, error) {
 	}
 
 	cTranslationBase64 := C.translate(cDB, cSQL, cCatalogSchema, cRelaxSchemaChecking)
-	defer C.free(unsafe.Pointer(cTranslationBase64))
+	defer C.delete_string(cTranslationBase64)
 
 	translationBase64 := C.GoString(cTranslationBase64)
 
@@ -69,7 +70,7 @@ func callGetNamespaces(currentDB, sql string) string {
 	defer C.free(unsafe.Pointer(cDB))
 
 	cResultBase64 := C.get_namespaces(cDB, cSQL)
-	defer C.free(unsafe.Pointer(cResultBase64))
+	defer C.delete_string(cResultBase64)
 
 	resultBase64 := C.GoString(cResultBase64)
 	return resultBase64
