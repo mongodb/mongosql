@@ -207,32 +207,40 @@ mod test_mql_schema_env_to_json_schema {
         sql_options = SqlOptions::new(IncludeNamespaces, SchemaCheckingMode::default()),
         expected = json_schema::Schema {
             bson_type: Some(BsonType::Single(BsonTypeName::Object)),
-            properties: Some(map! {
-                "bar".to_string() => json_schema::Schema {
-                    bson_type: Some(BsonType::Single(BsonTypeName::Object)),
-                    properties: Some(map! {
-                        "b".to_string() => json_schema::Schema {
-                            bson_type: Some(BsonType::Single(BsonTypeName::String)),
-                            ..Default::default()
-                        }
-                    }),
-                    required: Some(vec!["b".to_string()]),
-                    additional_properties: Some(false),
-                    ..Default::default()
-                },
-                "foo".to_string() => json_schema::Schema {
-                    bson_type: Some(BsonType::Single(BsonTypeName::Object)),
-                    properties: Some(map! {
-                        "a".to_string() => json_schema::Schema {
-                            bson_type: Some(BsonType::Single(BsonTypeName::String)),
-                            ..Default::default()
-                        }
-                    }),
-                    required: Some(vec!["a".to_string()]),
-                    additional_properties: Some(false),
-                    ..Default::default()
-                }
-            }),
+            properties: vec![
+                (
+                    "bar".to_string(),
+                    json_schema::Schema {
+                        bson_type: Some(BsonType::Single(BsonTypeName::Object)),
+                        properties: vec![(
+                            "b".to_string(),
+                            json_schema::Schema {
+                                bson_type: Some(BsonType::Single(BsonTypeName::String)),
+                                ..Default::default()
+                            }
+                        )],
+                        required: Some(vec!["b".to_string()]),
+                        additional_properties: Some(false),
+                        ..Default::default()
+                    }
+                ),
+                (
+                    "foo".to_string(),
+                    json_schema::Schema {
+                        bson_type: Some(BsonType::Single(BsonTypeName::Object)),
+                        properties: vec![(
+                            "a".to_string(),
+                            json_schema::Schema {
+                                bson_type: Some(BsonType::Single(BsonTypeName::String)),
+                                ..Default::default()
+                            }
+                        )],
+                        required: Some(vec!["a".to_string()]),
+                        additional_properties: Some(false),
+                        ..Default::default()
+                    }
+                )
+            ],
             required: Some(vec!["bar".to_string(), "foo".to_string()]),
             additional_properties: Some(false),
             ..Default::default()
@@ -272,16 +280,22 @@ mod test_mql_schema_env_to_json_schema {
         sql_options = SqlOptions::new(ExcludeNamespaces, SchemaCheckingMode::default()),
         expected = json_schema::Schema {
             bson_type: Some(BsonType::Single(BsonTypeName::Object)),
-            properties: Some(map! {
-                "b".to_string() => json_schema::Schema {
-                    bson_type: Some(BsonType::Single(BsonTypeName::String)),
-                    ..Default::default()
-                },
-                "a".to_string() => json_schema::Schema {
-                    bson_type: Some(BsonType::Single(BsonTypeName::String)),
-                    ..Default::default()
-                }
-            }),
+            properties: vec![
+                (
+                    "a".to_string(),
+                    json_schema::Schema {
+                        bson_type: Some(BsonType::Single(BsonTypeName::String)),
+                        ..Default::default()
+                    }
+                ),
+                (
+                    "b".to_string(),
+                    json_schema::Schema {
+                        bson_type: Some(BsonType::Single(BsonTypeName::String)),
+                        ..Default::default()
+                    }
+                )
+            ],
             required: Some(vec!["a".to_string(), "b".to_string()]),
             additional_properties: Some(false),
             ..Default::default()

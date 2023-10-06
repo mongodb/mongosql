@@ -71,7 +71,6 @@ mod to_bson {
                                  {"bsonType": "null"},
                                  {
                                      "bsonType": "object",
-                                     "properties":  {},
                                      "required": [],
                                      "additionalProperties": true,
                                  },
@@ -196,10 +195,13 @@ mod from_json {
             Atomic(MaxKey),
         ])),
         json_schema = json_schema::Schema {
-            properties: Some(map! {"a".to_string() => json_schema::Schema {
-                bson_type: Some(BsonType::Single(BsonTypeName::String)),
-                ..Default::default()
-            }}),
+            properties: vec![(
+                "a".to_string(),
+                json_schema::Schema {
+                    bson_type: Some(BsonType::Single(BsonTypeName::String)),
+                    ..Default::default()
+                }
+            )],
             ..Default::default()
         }
     );
@@ -313,13 +315,22 @@ mod from_json {
         })),
         json_schema = json_schema::Schema {
             bson_type: Some(BsonType::Single(BsonTypeName::Object)),
-            properties: Some(map! { "a".to_string() => json_schema::Schema {
-                bson_type: Some(BsonType::Single(BsonTypeName::Int)),
-                ..Default::default()
-            }, "b".to_string() => json_schema::Schema {
-                bson_type: Some(BsonType::Single(BsonTypeName::Int)),
-                ..Default::default()
-            }}),
+            properties: vec![
+                (
+                    "a".to_string(),
+                    json_schema::Schema {
+                        bson_type: Some(BsonType::Single(BsonTypeName::Int)),
+                        ..Default::default()
+                    }
+                ),
+                (
+                    "b".to_string(),
+                    json_schema::Schema {
+                        bson_type: Some(BsonType::Single(BsonTypeName::Int)),
+                        ..Default::default()
+                    }
+                )
+            ],
             required: Some(vec!["a".to_string()]),
             additional_properties: Some(true),
             ..Default::default()
@@ -331,13 +342,22 @@ mod from_json {
         schema_schema = Ok(Atomic(Integer)),
         json_schema = json_schema::Schema {
             bson_type: Some(BsonType::Single(BsonTypeName::Int)),
-            properties: Some(map! { "a".to_string() => json_schema::Schema {
-                bson_type: Some(BsonType::Single(BsonTypeName::Int)),
-                ..Default::default()
-            }, "b".to_string() => json_schema::Schema {
-                bson_type: Some(BsonType::Single(BsonTypeName::Int)),
-                ..Default::default()
-            }}),
+            properties: vec![
+                (
+                    "a".to_string(),
+                    json_schema::Schema {
+                        bson_type: Some(BsonType::Single(BsonTypeName::Int)),
+                        ..Default::default()
+                    }
+                ),
+                (
+                    "b".to_string(),
+                    json_schema::Schema {
+                        bson_type: Some(BsonType::Single(BsonTypeName::Int)),
+                        ..Default::default()
+                    }
+                )
+            ],
             required: Some(vec!["a".to_string()]),
             additional_properties: Some(true),
             ..Default::default()
@@ -371,13 +391,22 @@ mod from_json {
         })),
         json_schema = json_schema::Schema {
             bson_type: Some(BsonType::Single(BsonTypeName::Object)),
-            properties: Some(map! { "a".to_string() => json_schema::Schema {
-                bson_type: Some(BsonType::Single(BsonTypeName::Int)),
-                ..Default::default()
-            }, "b".to_string() => json_schema::Schema {
-                bson_type: Some(BsonType::Single(BsonTypeName::Int)),
-                ..Default::default()
-            }}),
+            properties: vec![
+                (
+                    "a".to_string(),
+                    json_schema::Schema {
+                        bson_type: Some(BsonType::Single(BsonTypeName::Int)),
+                        ..Default::default()
+                    }
+                ),
+                (
+                    "b".to_string(),
+                    json_schema::Schema {
+                        bson_type: Some(BsonType::Single(BsonTypeName::Int)),
+                        ..Default::default()
+                    }
+                )
+            ],
             required: Some(vec!["a".to_string()]),
             ..Default::default()
         }
@@ -449,13 +478,22 @@ mod from_json {
                 BsonTypeName::Array,
                 BsonTypeName::Object
             ])),
-            properties: Some(map! { "a".to_string() => json_schema::Schema {
-                bson_type: Some(BsonType::Single(BsonTypeName::Int)),
-                ..Default::default()
-            }, "b".to_string() => json_schema::Schema {
-                bson_type: Some(BsonType::Single(BsonTypeName::Int)),
-                ..Default::default()
-            }}),
+            properties: vec![
+                (
+                    "a".to_string(),
+                    json_schema::Schema {
+                        bson_type: Some(BsonType::Single(BsonTypeName::Int)),
+                        ..Default::default()
+                    }
+                ),
+                (
+                    "b".to_string(),
+                    json_schema::Schema {
+                        bson_type: Some(BsonType::Single(BsonTypeName::Int)),
+                        ..Default::default()
+                    }
+                )
+            ],
             required: Some(vec!["a".to_string()]),
             additional_properties: Some(true),
             items: Some(Items::Single(Box::new(json_schema::Schema {

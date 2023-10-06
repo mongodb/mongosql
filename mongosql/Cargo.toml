@@ -30,6 +30,10 @@ edit-distance = "2.1.0"
 usererrordisplay-impl = { path = "../usererrordisplay-impl" }
 mongodb = { version = "2.6.1", features = ["tokio-sync"] }
 
+[dependencies.serde-tuple-vec-map]
+version = "1"
+default-features=false
+
 [target.'cfg(unix)'.dev-dependencies]
 criterion = "0.3"
 pprof = { version = "0.4", features = ["flamegraph", "criterion"] }

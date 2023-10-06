@@ -3,15 +3,15 @@ mod test;
 
 use enum_iterator::IntoEnumIterator;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use tuple_vec_map;
 
 #[derive(Serialize, Deserialize, PartialEq, Debug, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct Schema {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bson_type: Option<BsonType>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub properties: Option<HashMap<String, Schema>>,
+    #[serde(with = "tuple_vec_map", skip_serializing_if = "Vec::is_empty", default)]
+    pub properties: Vec<(String, Schema)>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub required: Option<Vec<String>>,
     #[serde(skip_serializing_if = "Option::is_none")]

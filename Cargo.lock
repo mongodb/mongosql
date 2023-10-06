@@ -1189,6 +1189,7 @@ dependencies = [
  "rand",
  "regex",
  "serde",
+ "serde-tuple-vec-map",
  "serde_json",
  "serde_yaml 0.8.26",
  "thiserror",
@@ -1769,6 +1770,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5d25439cd7397d044e2748a6fe2432b5e85db703d6d097bd014b3c0ad1ebff0b"
 dependencies = [
  "serde_derive",
+]
+
+[[package]]
+name = "serde-tuple-vec-map"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "a04d0ebe0de77d7d445bb729a895dcb0a288854b267ca85f030ce51cdc578c82"
+dependencies = [
+ "serde",
 ]
 
 [[package]]
