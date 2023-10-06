@@ -92,6 +92,7 @@ if [[ "${pipeline_dir}" != *"validation"* ]]; then
   do
     dur_ns=$(echo $line | jq -r '.timers.dur')
     current_dur_s=$(awk "BEGIN {print $dur_ns/1000000000}")
+    current_dur_ms=$(echo "$current_dur_s * 1000" | bc | cut -d'.' -f1)
     if [[ "$phase" -eq 0 ]]; then
         elapsed_time=$current_dur_s
     else
@@ -108,6 +109,7 @@ if [[ "${pipeline_dir}" != *"validation"* ]]; then
           },
           "metrics": [{
             "name": ("duration_phase_" + $phase),
+            "type": "SUM",
             "value": $elapsed_time
           }]
         }')
@@ -123,10 +125,13 @@ if [[ "${pipeline_dir}" != *"validation"* ]]; then
   entry=',{
           "info": {
             "test_name": "TPC-H Benchmark Runtime Total",
-            "args": {}
+            "args": {
+              "duration_ms": '"$current_dur_ms"'
+            }
           },
           "metrics": [{
             "name": "total_duration",
+            "type": "SUM",
             "value": '"$current_dur_s"'
           }]
         }'
