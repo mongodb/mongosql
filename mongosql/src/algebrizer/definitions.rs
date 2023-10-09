@@ -473,17 +473,22 @@ impl<'a> Algebrizer<'a> {
         );
         let src = derived_algebrizer.algebrize_query(*d.query)?;
         let src_resultset = src.schema(&derived_algebrizer.schema_inference_state())?;
+        let mut datasource_refs = src_resultset
+            .schema_env
+            .into_iter()
+            .map(|(k, _)| mir::Expression::Reference(k.into()))
+            .collect::<Vec<mir::Expression>>();
         let expression = map! {
             (d.alias.clone(), self.scope_level).into() =>
-            mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::MergeObjects,
-                args: src_resultset
-                    .schema_env
-                    .into_iter()
-                    .map(|(k, _)| mir::Expression::Reference(k.into()))
-                    .collect::<Vec<_>>(),
-                cache: SchemaCache::new(),
-            }),
+            if datasource_refs.len() == 1 {
+                datasource_refs.pop().unwrap()
+            } else {
+                mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::MergeObjects,
+                    args: datasource_refs,
+                    cache: SchemaCache::new()
+                })
+            },
         };
         let stage = mir::Stage::Project(mir::Project {
             source: Box::new(src),

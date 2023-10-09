@@ -451,7 +451,6 @@ impl<'a> StageMovementVisitor<'a> {
                 &*n.source,
                 Stage::Collection(_)
                     | Stage::Array(_)
-                    | Stage::Derived(_)
                     | Stage::MQLIntrinsic(MQLStage::EquiJoin(_))
                     | Stage::MQLIntrinsic(MQLStage::LateralJoin(_))
             ),
@@ -460,7 +459,6 @@ impl<'a> StageMovementVisitor<'a> {
                     &*n.source,
                     Stage::Collection(_)
                         | Stage::Array(_)
-                        | Stage::Derived(_)
                         | Stage::MQLIntrinsic(MQLStage::EquiJoin(_))
                         | Stage::MQLIntrinsic(MQLStage::LateralJoin(_))
                 )

@@ -345,3 +345,10 @@ tests:
     expected_utilization: IX_SCAN
     expected_index_bounds:
       - { 'v': [ '[6, 6]' ] }
+
+  - description: Filter can be pushed into derived table and utilize index
+    current_db: test_db
+    query: 'SELECT t1.* FROM (SELECT * FROM nullable_fields AS t1) AS t1 WHERE t1.a > 100'
+    expected_utilization: IX_SCAN
+    expected_index_bounds:
+      - {'a': ['(100, MaxKey]']}

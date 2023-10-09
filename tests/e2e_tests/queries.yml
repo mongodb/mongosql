@@ -686,6 +686,7 @@ tests:
               "coll": "bar",
             },
         }
+
   - description: Can compare bool column to literal value
     query: "SELECT * from boolz where a = 1"
     current_db: testquerydb

@@ -102,7 +102,7 @@ macro_rules! test_move_stage {
                     optimizer::stage_movement::StageMovementVisitor,
                     schema::{SchemaCache, SchemaCheckingMode, SchemaInferenceState},
                     visitor::Visitor,
-                    Collection,
+                    Collection, Derived,
                     Expression::{self, *},
                     FieldAccess, Filter, Group, Join, JoinType, Limit, LiteralExpr, LiteralValue,
                     LiteralValue::*,
@@ -1517,6 +1517,76 @@ test_move_stage!(
             cache: SchemaCache::new(),
         }).into(),
         limit: 10,
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage!(
+    move_filter_into_derived_query,
+    expected = Stage::Derived(Derived {
+        source: Box::new(Stage::Project(Project {
+            source: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Filter(Filter {
+                    source: Box::new(Stage::Collection(Collection {
+                        db: "foo".to_string(),
+                        collection: "bar".to_string(),
+                        cache: SchemaCache::new(),
+                    })),
+                    condition: Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                        function: mir::ScalarFunction::Lt,
+                        args: vec![
+                            Expression::FieldAccess(FieldAccess {
+                                expr: Box::new(Expression::Reference(("bar", 1u16).into())),
+                                field: "y".to_string(),
+                                cache: SchemaCache::new(),
+                            }),
+                            Expression::Literal(LiteralValue::Integer(100).into()),
+                        ],
+                        cache: SchemaCache::new(),
+                    }),
+                    cache: SchemaCache::new(),
+                })),
+                expression: BindingTuple(map! {
+                    Key::named("bar", 1u16) => Expression::Reference(("bar", 1u16).into()),
+                }),
+                cache: SchemaCache::new(),
+            })),
+            expression: BindingTuple(map! {
+                Key::named("bar", 0u16) => Expression::Reference(("bar", 1u16).into()),
+            }),
+            cache: SchemaCache::new(),
+        })),
+        cache: SchemaCache::new(),
+    }),
+    input = Stage::Filter(Filter {
+        source: Box::new(Stage::Derived(Derived {
+            source: Box::new(Stage::Project(Project {
+                source: Box::new(Stage::Project(Project {
+                    source: Box::new(Stage::Collection(Collection {
+                        db: "foo".to_string(),
+                        collection: "bar".to_string(),
+                        cache: SchemaCache::new(),
+                    })),
+                    expression: BindingTuple(map! {
+                        Key::named("bar", 1u16) => Expression::Reference(("bar", 1u16).into()),
+                    }),
+                    cache: SchemaCache::new(),
+                })),
+                expression: BindingTuple(map! {
+                    Key::named("bar", 0u16) => Expression::Reference(("bar", 1u16).into()),
+                }),
+                cache: SchemaCache::new(),
+            })),
+            cache: SchemaCache::new(),
+        })),
+        condition: Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Lt,
+            args: vec![
+                mir_field_access("bar", "y"),
+                Expression::Literal(LiteralValue::Integer(100).into()),
+            ],
+            cache: SchemaCache::new(),
+        }),
         cache: SchemaCache::new(),
     }),
 );

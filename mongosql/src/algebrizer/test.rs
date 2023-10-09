@@ -3243,15 +3243,8 @@ mod from_clause {
                     },
                     cache: SchemaCache::new(),
                 })),
-                expression: map! {("d", 0u16).into() =>
-                    mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::MergeObjects,
-                        args: vec![
-                            mir::Expression::Reference(("bar", 1u16).into())
-                        ],
-                        cache: SchemaCache::new(),
-                    }
-                    )
+                expression: map! {
+                    ("d", 0u16).into() => mir::Expression::Reference(("bar", 1u16).into())
                 },
                 cache: SchemaCache::new(),
             })),
