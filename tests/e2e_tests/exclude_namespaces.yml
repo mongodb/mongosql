@@ -1,0 +1,90 @@
+catalog_data:
+  db:
+    foo:
+      - {'_id': 0, 'a': 1, 'b': 2}
+    bar:
+      - {'_id': 0, 'c': 1, 'd': 2}
+    baz:
+      - {'_id': 0, 'a': 3, 'b': 2}
+
+catalog_schema:
+  {
+    'db': {
+      'foo': {
+        'bsonType': 'object',
+        'required': [ '_id', 'a', 'b'],
+        'additionalProperties': false,
+        'properties':
+          {
+            '_id': { 'bsonType': 'int' },
+            'a': { 'bsonType': 'int' },
+            'b': { 'bsonType': 'int' },
+          },
+      },
+      'bar': {
+        'bsonType': 'object',
+        'required': [ '_id', 'c', 'd' ],
+        'additionalProperties': false,
+        'properties':
+          {
+            '_id': { 'bsonType': 'int' },
+            'c': { 'bsonType': 'int' },
+            'd': { 'bsonType': 'int' },
+          },
+      },
+      'baz': {
+        'bsonType': 'object',
+        'required': [ '_id', 'a', 'b'],
+        'additionalProperties': false,
+        'properties':
+          {
+            '_id': { 'bsonType': 'int' },
+            'a': { 'bsonType': 'int' },
+            'b': { 'bsonType': 'int' },
+          },
+      },
+    }
+  }
+
+tests:
+  - description: Select * join has _id field name conflict, causing an error
+    current_db: db
+    query: 'SELECT * FROM foo, bar'
+    exclude_namespaces: true
+    should_compile: false
+    algebrize_error: 'Error 4000: Consider aliasing the following conflicting field(s) to unique names: _id'
+
+  - description: Both foo and baz have a field named a, causing an error
+    current_db: db
+    query: 'SELECT foo.*, baz.a FROM foo, baz'
+    exclude_namespaces: true
+    should_compile: false
+    algebrize_error: 'Error 4000: Consider aliasing the following conflicting field(s) to unique names: a'
+
+  - description: Alias causes naming conflict, causing an error
+    current_db: db
+    query: 'SELECT foo.*, baz.a AS a FROM foo, baz'
+    exclude_namespaces: true
+    should_compile: false
+    algebrize_error: 'Error 4000: Consider aliasing the following conflicting field(s) to unique names: a'
+
+  - description: Query does not return collection namespace when exclude_namespaces is true
+    current_db: db
+    query: 'SELECT * FROM foo'
+    exclude_namespaces: true
+    result:
+      - {'_id': 0, 'a': 1, 'b': 2}
+
+  - description: Specify column names to avoid _id field name conflicts
+    current_db: db
+    query: 'SELECT foo.a, baz.b FROM foo, baz'
+    exclude_namespaces: true
+    result:
+      - {'a': 1, 'b': 2}
+
+  - description: Use alias to avoid field name conflicts
+    current_db: db
+    query: 'SELECT foo.a, baz.a AS a_alias from foo, baz'
+    exclude_namespaces: true
+    result:
+      - {'a': 1, 'a_alias': 3}

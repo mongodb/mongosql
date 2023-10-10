@@ -31,6 +31,7 @@ struct QueryTest {
     skip_reason: Option<String>,
     current_db: Option<String>,
     query: String,
+    exclude_namespaces: Option<bool>,
     should_compile: Option<bool>,
     result: Option<Vec<Document>>,
     parse_error: Option<String>,
@@ -76,12 +77,18 @@ fn run_query_tests() -> Result<(), Error> {
 
             let db = test.current_db.unwrap_or_else(|| "test".to_string());
 
+            let exclude_namespaces_option = if let Some(true) = test.exclude_namespaces {
+                ExcludeNamespacesOption::ExcludeNamespaces
+            } else {
+                ExcludeNamespacesOption::IncludeNamespaces
+            };
+
             let translation = mongosql::translate_sql(
                 db.as_str(),
                 test.query.as_str(),
                 &catalog,
                 SqlOptions::new(
-                    ExcludeNamespacesOption::IncludeNamespaces,
+                    exclude_namespaces_option,
                     mongosql::SchemaCheckingMode::Strict,
                 ),
             )

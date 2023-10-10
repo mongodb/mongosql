@@ -6,27 +6,12 @@ import (
 	"testing"
 
 	"github.com/10gen/mongosql-rs/go/mongosql"
+	"github.com/10gen/mongosql-rs/go/mongosql/internal/util"
 	"github.com/google/go-cmp/cmp"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/bsontype"
 	"go.mongodb.org/mongo-driver/x/bsonx/bsoncore"
 )
-
-func checkResultSetSchema(t *testing.T, expected bson.D, found bsoncore.Document) {
-	var foundResultSetSchema bson.D
-	val := bson.RawValue{
-		Type:  bsontype.EmbeddedDocument,
-		Value: found,
-	}
-	err := val.Unmarshal(&foundResultSetSchema)
-	if err != nil {
-		t.Fatalf("failed to unmarshal bson '%s'", err)
-	}
-
-	if !reflect.DeepEqual(expected, foundResultSetSchema) {
-		t.Fatalf("expected resultset schema to be equal, but they weren't:\n%s\nand\n%s", expected, foundResultSetSchema)
-	}
-}
 
 func TestVersion(t *testing.T) {
 	v := mongosql.Version()
@@ -48,7 +33,7 @@ func TestVersion(t *testing.T) {
 }
 
 func TestTranslate(t *testing.T) {
-	schema, err := generateDefaultCollectionSchema()
+	schema, err := util.GenerateDefaultCollectionSchema()
 	if err != nil {
 		t.Fatalf("expected err to be nil, got '%s'", err)
 	}
@@ -111,7 +96,7 @@ func TestTranslate(t *testing.T) {
 		{"additionalProperties", false},
 	}
 
-	checkResultSetSchema(t, expectedResultSetSchema, translation.ResultSetSchema)
+	util.CheckResultSetSchema(t, expectedResultSetSchema, translation.ResultSetSchema)
 }
 
 func TestTranslateError(t *testing.T) {
@@ -222,39 +207,16 @@ func TestCatalogSchema(t *testing.T) {
 		{"additionalProperties", false},
 	}
 
-	checkResultSetSchema(t, expectedResultSetSchema, translation.ResultSetSchema)
-}
-
-func generateTestSchema() (bsoncore.Document, error) {
-	schema := bson.M{
-		"bsonType": "object",
-		"properties": bson.M{
-			"a": bson.M{"bsonType": "double"},
-		},
-	}
-	bytes, err := bson.Marshal(&schema)
-	if err != nil {
-		return nil, err
-	}
-	return bytes, nil
-}
-
-func generateDefaultCollectionSchema() (bsoncore.Document, error) {
-	schema := bson.D{
-		{"bsonType", "object"},
-		{"additionalProperties", true},
-	}
-
-	return bson.Marshal(&schema)
+	util.CheckResultSetSchema(t, expectedResultSetSchema, translation.ResultSetSchema)
 }
 
 func TestCatalogSchemaMultipleCollections(t *testing.T) {
-	barBazSchema, err := generateTestSchema()
+	barBazSchema, err := util.GenerateTestSchema()
 	if err != nil {
 		t.Fatalf("expected err to be nil, got '%s'", err)
 	}
 
-	fooSchema, err := generateDefaultCollectionSchema()
+	fooSchema, err := util.GenerateDefaultCollectionSchema()
 	if err != nil {
 		t.Fatalf("expected err to be nil, got '%s'", err)
 	}
@@ -286,11 +248,11 @@ func TestCatalogSchemaMultipleCollections(t *testing.T) {
 		{"additionalProperties", false},
 	}
 
-	checkResultSetSchema(t, expectedResultSetSchema, translation.ResultSetSchema)
+	util.CheckResultSetSchema(t, expectedResultSetSchema, translation.ResultSetSchema)
 }
 
 func TestCatalogSchemaMultipleNamespaces(t *testing.T) {
-	schema, err := generateTestSchema()
+	schema, err := util.GenerateTestSchema()
 	if err != nil {
 		if err != nil {
 			t.Fatalf("expected err to be nil, got '%s'", err)
@@ -327,7 +289,7 @@ func TestCatalogSchemaMultipleNamespaces(t *testing.T) {
 		{"additionalProperties", false},
 	}
 
-	checkResultSetSchema(t, expectedResultSetSchema, translation.ResultSetSchema)
+	util.CheckResultSetSchema(t, expectedResultSetSchema, translation.ResultSetSchema)
 }
 
 func TestCatalogSchemaEmpty(t *testing.T) {
