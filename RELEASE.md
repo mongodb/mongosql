@@ -51,7 +51,7 @@ Create an annotated tag and push it:
 git tag -a -m X.Y.Z vX.Y.Z
 git push --tags
 ```
-This should trigger an Evergreen run that can be viewed on the [mongosql-rs waterfall](https://spruce.mongodb.com/waterfall/mongosql-rs).  
+This should trigger an Evergreen run that can be viewed on the [mongosql-rs waterfall](https://spruce.mongodb.com/waterfall/mongosql-rs).
 The description for the tag triggered release starts with "Triggered From Git Tag 'vX.Y.Z"
 If it does not, you may have to ask the project manager to give you the right permissions to do so.
 Make sure to run the 'release' task, if it is not run automatically.
@@ -100,7 +100,7 @@ let them know either by flagging it on the #enterprise-tool mongosql release ann
 pinging the ADL Query team on #adl-sql-collab.
 
 #### Announce Release on Slack
-Use the following messsage template to announce the release in the #enterprise-tools channel:
+Use the following messsage template to announce the release in the #atlas-sql channel:
 
 > Hello! We've released mongosql-rs version <VERSION>
 > More information, including release notes, can be found on the Release Ticket: <JIRA Link>
