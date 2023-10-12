@@ -286,54 +286,82 @@ impl<'a> Algebrizer<'a> {
         // We must check for duplicate Datasource Keys, which is an error. The datasources
         // Set keeps track of which Keys have been seen.
         let mut datasources = BTreeSet::new();
+        let mut bottom: Option<Vec<ast::DocumentPair>> = None;
+
         // Build the Project expression from the SelectBody::Values(exprs)
-        let expression = exprs
-            .into_iter()
-            .map(|expr| {
-                match expr {
-                    // An Expression is mapped to DatasourceName::Bottom.
-                    ast::SelectValuesExpression::Expression(e) => {
+        let mut expression = BindingTuple::new();
+        for expr in exprs.into_iter() {
+            match expr {
+                // An Expression is mapped to DatasourceName::Bottom. Bottom should be a document,
+                // but can be in multiple parts based on the query. Unify them using a single vec
+                // and algebrize after all expressions have been evaluated.
+                ast::SelectValuesExpression::Expression(e) => match e {
+                    ast::Expression::Document(d) => {
+                        if bottom.is_some() {
+                            bottom.as_mut().unwrap().extend(d.into_iter());
+                        } else {
+                            bottom = Some(d);
+                        }
+                    }
+                    // If select values are not a document, an error will ultimately be thrown. Algebrize
+                    // for now, and depending on the rest of the select query, a DuplicateKey or SchemaChecking
+                    // error will occur downstream.
+                    _ => {
                         let e = expression_algebrizer.algebrize_expression(e)?;
                         let bot = Key::bot(expression_algebrizer.scope_level);
                         datasources
                             .insert(bot.clone())
                             .then_some(())
                             .ok_or_else(|| Error::DuplicateKey(bot.clone()))?;
-                        Ok((bot, e))
+                        expression.insert(bot, e);
                     }
-                    // For a Substar, a.*, we map the name of the Substar, 'a', to a Key
-                    // containing 'a' and the proper scope level.
-                    ast::SelectValuesExpression::Substar(s) => {
-                        let datasource = DatasourceName::Named(s.datasource.clone());
-                        let key = Key {
-                            datasource: datasource.clone(),
-                            scope: expression_algebrizer.scope_level,
-                        };
-                        datasources
-                            .insert(key.clone())
-                            .then_some(())
-                            .ok_or_else(|| Error::DuplicateKey(key.clone()))?;
-                        let scope = expression_algebrizer
-                            .schema_env
-                            .nearest_scope_for_datasource(
-                                &datasource,
-                                expression_algebrizer.scope_level,
-                            )
-                            .ok_or_else(|| Error::NoSuchDatasource(datasource.clone()))?;
-                        Ok((
-                            key,
-                            mir::Expression::Reference(
-                                Key {
-                                    datasource: DatasourceName::Named(s.datasource),
-                                    scope,
-                                }
-                                .into(),
-                            ),
-                        ))
-                    }
+                },
+                // For a Substar, a.*, we map the name of the Substar, 'a', to a Key
+                // containing 'a' and the proper scope level.
+                ast::SelectValuesExpression::Substar(s) => {
+                    let datasource = DatasourceName::Named(s.datasource.clone());
+                    let key = Key {
+                        datasource: datasource.clone(),
+                        scope: expression_algebrizer.scope_level,
+                    };
+                    datasources
+                        .insert(key.clone())
+                        .then_some(())
+                        .ok_or_else(|| Error::DuplicateKey(key.clone()))?;
+                    let scope = expression_algebrizer
+                        .schema_env
+                        .nearest_scope_for_datasource(
+                            &datasource,
+                            expression_algebrizer.scope_level,
+                        )
+                        .ok_or_else(|| Error::NoSuchDatasource(datasource.clone()))?;
+                    expression.insert(
+                        key,
+                        mir::Expression::Reference(
+                            Key {
+                                datasource: DatasourceName::Named(s.datasource),
+                                scope,
+                            }
+                            .into(),
+                        ),
+                    );
                 }
-            })
-            .collect::<Result<_>>()?;
+            }
+        }
+
+        // if we found Expressions's, algebrize them as a single document, and add it to the expression
+        // under the Bottom namespace.
+        if bottom.is_some() {
+            let e = expression_algebrizer
+                .algebrize_expression(ast::Expression::Document(bottom.unwrap()))?;
+            let bot = Key::bot(expression_algebrizer.scope_level);
+            datasources
+                .insert(bot.clone())
+                .then_some(())
+                .ok_or_else(|| Error::DuplicateKey(bot.clone()))?;
+            expression.insert(bot, e);
+        }
+
         // Build the Project Stage using the source and built expression.
         let stage = mir::Stage::Project(mir::Project {
             source: Box::new(source),

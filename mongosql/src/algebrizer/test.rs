@@ -2633,8 +2633,16 @@ mod select_clause {
     test_algebrize!(
         select_duplicate_bot,
         method = algebrize_select_clause,
-        expected = Err(Error::DuplicateKey(Key::bot(1u16))),
-        expected_error_code = 3020,
+        expected = Ok(mir::Stage::Project(mir::Project {
+            source: Box::new(source()),
+            expression: map! {
+                Key::bot(1u16) => mir::Expression::Document(mir::DocumentExpr {
+                    document: unchecked_unique_linked_hash_map!{},
+                    cache: SchemaCache::new(),
+                })
+            },
+            cache: SchemaCache::new(),
+        })),
         input = ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![
@@ -2670,8 +2678,8 @@ mod select_clause {
         expected = Ok(mir::Stage::Project(mir::Project {
             source: Box::new(source()),
             expression: map! {
-                ("bar", 1u16).into() => mir::Expression::Reference(("bar", 1u16).into()),
                 Key::bot(1u16) => mir::Expression::Document(unchecked_unique_linked_hash_map!{}.into()),
+                ("bar", 1u16).into() => mir::Expression::Reference(("bar", 1u16).into()),
                 ("foo", 1u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
             },
             cache: SchemaCache::new(),

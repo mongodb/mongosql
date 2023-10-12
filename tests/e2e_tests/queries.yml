@@ -705,3 +705,12 @@ tests:
     result:
       - { "boolz": { "_id": 0, "a": true, b: 1 } }
       - { "boolz": { "_id": 1, "a": false, b: 1 } }
+
+  - description: Select with multiple bottom works
+    query: "SELECT foo.a, bar.*, foo.b from foo, bar"
+    current_db: testquerydb
+    result:
+      - { "bar": { "_id": 0, "a": 1, "b": 2, "coll": "bar" }, "": { "a": 1, "b": 2 } }
+      - { "bar": { "_id": 1, "a": 2, "b": 1, "coll": "bar" }, "": { "a": 1, "b": 2 } }
+      - { "bar": { "_id": 0, "a": 1, "b": 2, "coll": "bar" }, "": { "a": 2, "b": 1 } }
+      - { "bar": { "_id": 1, "a": 2, "b": 1, "coll": "bar" }, "": { "a": 2, "b": 1 } }
