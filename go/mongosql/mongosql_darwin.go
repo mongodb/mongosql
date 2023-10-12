@@ -54,7 +54,7 @@ func callTranslate(args TranslationArgs) (string, error) {
 	}
 
 	cExcludeNamespaces := C.int(0)
-	if args.excludeNamespaces {
+	if args.ExcludeNamespaces {
 		cExcludeNamespaces = C.int(1)
 	}
 

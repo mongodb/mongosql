@@ -32,7 +32,7 @@ func TestExcludeNamespaces(t *testing.T) {
 		DB:                "bar",
 		SQL:               "select * from foo",
 		CatalogSchema:     catalogSchema,
-		excludeNamespaces: true,
+		ExcludeNamespaces: true,
 	})
 	if err != nil {
 		t.Fatalf("expected err to be nil, got '%s'", err)

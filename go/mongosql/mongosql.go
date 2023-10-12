@@ -29,8 +29,8 @@ type TranslationArgs struct {
 	// set to true. This means that schema checking will pass unless a type
 	// constraint has been violated.
 	relaxSchemaChecking bool
-	// excludeNamespaces when set to true will return a non-namespaced result set
-	excludeNamespaces bool
+	// ExcludeNamespaces when set to true will return a non-namespaced result set
+	ExcludeNamespaces bool
 }
 
 // Translation represents the result of translating a sql query to
