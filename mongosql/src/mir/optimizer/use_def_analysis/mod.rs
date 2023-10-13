@@ -34,7 +34,7 @@ mod test;
 
 use crate::{
     mir::{
-        binding_tuple::Key, schema::SchemaCache, visitor::Visitor, Error, ExistsExpr, Expression,
+        binding_tuple::Key, schema::SchemaCache, visitor::Visitor, ExistsExpr, Expression,
         FieldAccess, FieldPath, Filter, Group, MQLStage, MatchFilter, Project, ReferenceExpr, Sort,
         Stage, SubqueryComparison, SubqueryExpr, Unwind,
     },
@@ -122,20 +122,20 @@ impl Stage {
 
 #[derive(Clone, Debug)]
 struct SingleStageFieldUseVisitor {
-    field_uses: Result<HashSet<FieldPath>, Error>,
+    field_uses: Option<HashSet<FieldPath>>,
 }
 
 impl Default for SingleStageFieldUseVisitor {
     fn default() -> Self {
         Self {
-            field_uses: Ok(HashSet::new()),
+            field_uses: Some(HashSet::new()),
         }
     }
 }
 
 impl Visitor for SingleStageFieldUseVisitor {
     fn visit_stage(&mut self, node: Stage) -> Stage {
-        if self.field_uses.is_err() {
+        if self.field_uses.is_none() {
             return node;
         }
         // We only compute field_uses for Filter and Sort Stages at this time. We need to make sure
@@ -185,20 +185,20 @@ impl Visitor for SingleStageFieldUseVisitor {
     }
 
     fn visit_field_access(&mut self, node: FieldAccess) -> FieldAccess {
-        if let Ok(ref mut field_uses) = self.field_uses {
+        if let Some(ref mut field_uses) = self.field_uses {
             let f: Result<FieldPath, _> = (&node).try_into();
             match f {
                 Ok(fp) => {
                     let _ = field_uses.insert(fp);
                 }
-                Err(e) => self.field_uses = Err(e),
+                Err(_) => self.field_uses = None,
             }
         }
         node
     }
 
     fn visit_field_path(&mut self, node: FieldPath) -> FieldPath {
-        if let Ok(ref mut field_uses) = self.field_uses {
+        if let Some(ref mut field_uses) = self.field_uses {
             field_uses.insert(node.clone());
         }
         node
@@ -207,12 +207,12 @@ impl Visitor for SingleStageFieldUseVisitor {
     fn visit_subquery_expr(&mut self, node: SubqueryExpr) -> SubqueryExpr {
         // When we visit a SubqueryExpr in a Filter, we need to create a new Visitor that
         // collects ALL field_uses from the SubqueryExpr.
-        if let Ok(ref mut field_uses) = self.field_uses {
+        if let Some(ref mut field_uses) = self.field_uses {
             let mut all_use_visitor = AllFieldUseVisitor::default();
             let node = node.walk(&mut all_use_visitor);
             match all_use_visitor.field_uses {
-                Ok(u) => field_uses.extend(u),
-                Err(e) => self.field_uses = Err(e),
+                Some(u) => field_uses.extend(u),
+                None => self.field_uses = None,
             }
             node
         } else {
@@ -223,12 +223,12 @@ impl Visitor for SingleStageFieldUseVisitor {
     fn visit_subquery_comparison(&mut self, node: SubqueryComparison) -> SubqueryComparison {
         // When we visit a SubqueryComparison in a Filter, we need to create a new Visitor that
         // collects ALL field_uses from the SubqueryComparison.
-        if let Ok(ref mut field_uses) = self.field_uses {
+        if let Some(ref mut field_uses) = self.field_uses {
             let mut all_use_visitor = AllFieldUseVisitor::default();
             let node = node.walk(&mut all_use_visitor);
             match all_use_visitor.field_uses {
-                Ok(u) => field_uses.extend(u),
-                Err(e) => self.field_uses = Err(e),
+                Some(u) => field_uses.extend(u),
+                None => self.field_uses = None,
             }
             node
         } else {
@@ -239,12 +239,12 @@ impl Visitor for SingleStageFieldUseVisitor {
     fn visit_exists_expr(&mut self, node: ExistsExpr) -> ExistsExpr {
         // When we visit an ExistsExpr in a Filter, we need to create a new Visitor that
         // collects ALL field_uses from the SubqueryComparison.
-        if let Ok(ref mut field_uses) = self.field_uses {
+        if let Some(ref mut field_uses) = self.field_uses {
             let mut all_use_visitor = AllFieldUseVisitor::default();
             let node = node.walk(&mut all_use_visitor);
             match all_use_visitor.field_uses {
-                Ok(u) => field_uses.extend(u),
-                Err(e) => self.field_uses = Err(e),
+                Some(u) => field_uses.extend(u),
+                None => self.field_uses = None,
             }
             node
         } else {
@@ -257,26 +257,26 @@ impl Visitor for SingleStageFieldUseVisitor {
 struct AllFieldUseVisitor {
     // At some point we may prefer to change field_uses to HashSet<&FieldPath>
     // to avoid some cloning, but this would likely be a difficult change.
-    field_uses: Result<HashSet<FieldPath>, Error>,
+    field_uses: Option<HashSet<FieldPath>>,
 }
 
 impl Default for AllFieldUseVisitor {
     fn default() -> Self {
         Self {
-            field_uses: Ok(HashSet::new()),
+            field_uses: Some(HashSet::new()),
         }
     }
 }
 
 impl Visitor for AllFieldUseVisitor {
     fn visit_field_access(&mut self, node: FieldAccess) -> FieldAccess {
-        if let Ok(ref mut field_uses) = self.field_uses {
+        if let Some(ref mut field_uses) = self.field_uses {
             let f: Result<FieldPath, _> = (&node).try_into();
             match f {
                 Ok(fp) => {
                     let _ = field_uses.insert(fp);
                 }
-                Err(e) => self.field_uses = Err(e),
+                Err(_) => self.field_uses = None,
             }
         }
         node
@@ -502,7 +502,7 @@ impl Visitor for SubstituteVisitor {
 impl Expression {
     // We compute field_uses so that we can easily check if any opaque_field_defines are used by a stage.
     // We do not care about normal defines which can be substituted.
-    pub fn field_uses(self) -> (Result<HashSet<FieldPath>, Error>, Self) {
+    pub fn field_uses(self) -> (Option<HashSet<FieldPath>>, Self) {
         let mut visitor = SingleStageFieldUseVisitor::default();
         let ret = visitor.visit_expression(self);
         (visitor.field_uses, ret)
@@ -512,7 +512,7 @@ impl Expression {
 impl Stage {
     // We compute field_uses so that we can easily check if any opaque_field_defines are used by a stage.
     // We do not care about normal defines which can be substituted.
-    pub fn field_uses(self) -> (Result<HashSet<FieldPath>, Error>, Stage) {
+    pub fn field_uses(self) -> (Option<HashSet<FieldPath>>, Stage) {
         let mut visitor = SingleStageFieldUseVisitor::default();
         let ret = visitor.visit_stage(self);
         (visitor.field_uses, ret)

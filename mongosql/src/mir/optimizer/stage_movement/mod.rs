@@ -399,7 +399,7 @@ impl<'a> StageMovementVisitor<'a> {
             }
             source => {
                 let opaque_field_defines = source.opaque_field_defines();
-                let field_uses = if let Ok(field_uses) = field_uses {
+                let field_uses = if let Some(field_uses) = field_uses {
                     field_uses
                 } else if opaque_field_defines.is_empty() {
                     return self.bubble_up(Self::handle_def_user, node, BubbleUpSide::Both);

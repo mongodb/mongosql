@@ -49,7 +49,7 @@ pub enum Error {
     InvalidCast(ast::Type),
     InvalidExtractDatePart(ast::DatePart),
     InvalidDateFunctionDatePart(ast::DatePart),
-    InvalidFieldPath(mir::Expression),
+    InvalidSortKey(mir::Expression),
 }
 
 impl From<mir::schema::Error> for Error {
@@ -61,7 +61,6 @@ impl From<mir::schema::Error> for Error {
 impl From<mir::Error> for Error {
     fn from(value: mir::Error) -> Self {
         match value {
-            mir::Error::InvalidFieldPath(e) => Error::InvalidFieldPath(e),
             mir::Error::InvalidType(t) => Error::InvalidCast(t),
         }
     }
@@ -103,7 +102,7 @@ impl UserError for Error {
             Error::InvalidCast(_) => 3030,
             Error::InvalidExtractDatePart(_) => 3031,
             Error::InvalidDateFunctionDatePart(_) => 3032,
-            Error::InvalidFieldPath(_) => 3034,
+            Error::InvalidSortKey(_) => 3034,
         }
     }
 
@@ -189,8 +188,8 @@ impl UserError for Error {
             Error::InvalidCast(_) => None,
             Error::InvalidExtractDatePart(_) => None,
             Error::InvalidDateFunctionDatePart(_) => None,
-            Error::InvalidFieldPath(_) => {
-                Some("expressions are not allowed in field paths".to_string())
+            Error::InvalidSortKey(_) => {
+                Some("expressions are not allowed in sort key field paths".to_string())
             }
         }
     }
@@ -230,8 +229,8 @@ impl UserError for Error {
             Error::InvalidCast(ast_type) => format!("invalid CAST target type '{0:?}'", ast_type),
             Error::InvalidExtractDatePart(date_part) => format!("'{0:?}' is not a supported date part for EXTRACT", date_part),
             Error::InvalidDateFunctionDatePart(date_part) => format!("'{0:?}' is not a supported date part for DATEADD, DATEDIFF, and DATETRUNC", date_part),
-            Error::InvalidFieldPath(e) =>
-                format!("field path must be a pure field path with no expressions in this context. found {0:?}",
+            Error::InvalidSortKey(e) =>
+                format!("sort key field path must be a pure field path with no expressions in this context. found {0:?}",
                     e
                 ),
         }

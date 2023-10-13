@@ -40,30 +40,31 @@ The SQL query has to be amended in order to overcome a parsing error.
 
 The following errors occur when something goes wrong while converting the SQL query to MQL, such as incorrect argument counts or failing to find a field reference or data source.
 
-| Error Code | Error Description |
-| ---------- | ------------------ |
-| [Error 3002](#error-3002)  | A SELECT list with multiple values cannot contain a non-namespaced `*` (i.e., `SELECT a, *, b FROM myTable` is not supported). A non-namespaced `*` must be used by itself. |
-| [Error 3004](#error-3004)  | The array data source contains an identifier. Array data sources must be constant. |
-| [Error 3005](#error-3005)  | SELECT DISTINCT is not allowed. |
-| [Error 3006](#error-3006)  | Distinct UNION is not allowed. |
-| [Error 3007](#error-3007)  | A data source referenced in the SELECT list could not be found. |
-| [Error 3008](#error-3008)  | A field could not be found in any data source. |
-| [Error 3009](#error-3009)  | A field exists in multiple data sources and is ambiguous. |
-| [Error 3010](#error-3010)  | The * argument is only valid in the COUNT aggregate function. |
-| [Error 3012](#error-3012)  | A scalar function was used in an aggregation position. |
-| [Error 3013](#error-3013)  | A non-aggregation expression was found in a GROUP BY aggregation function list. |
-| [Error 3014](#error-3014)  | Aggregation functions must have exactly one argument. |
-| [Error 3015](#error-3015)  | Scalar functions don't support DISTINCT. |
-| [Error 3016](#error-3016)  | A derived data source has overlapping fields. |
-| [Error 3019](#error-3019)  | An OUTER JOIN is missing a JOIN condition. OUTER JOINs must specify a JOIN condition. |
-| [Error 3020](#error-3020)  | A schema environment could not be created due to a duplicate field. |
-| [Error 3022](#error-3022)  | Subquery expressions must have a degree of 1. |
-| [Error 3023](#error-3023)  | A document has multiple fields with the same name. |
-| [Error 3024](#error-3024)  | The same FLATTEN option is defined more than once.  |
-| [Error 3025](#error-3025)  | Schema information is insufficient to allow for flattening the data source. |
-| [Error 3027](#error-3027)  | The same UNWIND option is defined more than once. |
-| [Error 3028](#error-3028)  | UNWIND is missing the path option. UNWIND must specify a PATH option. |
-| [Error 3030](#error-3030)  | The target type of the CAST is an invalid type (i.e., it's either an unknown type or a type that MongoSQL does not support casting for). |
+| Error Code                | Error Description                                                                                                                                                           |
+|---------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [Error 3002](#error-3002) | A SELECT list with multiple values cannot contain a non-namespaced `*` (i.e., `SELECT a, *, b FROM myTable` is not supported). A non-namespaced `*` must be used by itself. |
+| [Error 3004](#error-3004) | The array data source contains an identifier. Array data sources must be constant.                                                                                          |
+| [Error 3005](#error-3005) | SELECT DISTINCT is not allowed.                                                                                                                                             |
+| [Error 3006](#error-3006) | Distinct UNION is not allowed.                                                                                                                                              |
+| [Error 3007](#error-3007) | A data source referenced in the SELECT list could not be found.                                                                                                             |
+| [Error 3008](#error-3008) | A field could not be found in any data source.                                                                                                                              |
+| [Error 3009](#error-3009) | A field exists in multiple data sources and is ambiguous.                                                                                                                   |
+| [Error 3010](#error-3010) | The * argument is only valid in the COUNT aggregate function.                                                                                                               |
+| [Error 3012](#error-3012) | A scalar function was used in an aggregation position.                                                                                                                      |
+| [Error 3013](#error-3013) | A non-aggregation expression was found in a GROUP BY aggregation function list.                                                                                             |
+| [Error 3014](#error-3014) | Aggregation functions must have exactly one argument.                                                                                                                       |
+| [Error 3015](#error-3015) | Scalar functions don't support DISTINCT.                                                                                                                                    |
+| [Error 3016](#error-3016) | A derived data source has overlapping fields.                                                                                                                               |
+| [Error 3019](#error-3019) | An OUTER JOIN is missing a JOIN condition. OUTER JOINs must specify a JOIN condition.                                                                                       |
+| [Error 3020](#error-3020) | A schema environment could not be created due to a duplicate field.                                                                                                         |
+| [Error 3022](#error-3022) | Subquery expressions must have a degree of 1.                                                                                                                               |
+| [Error 3023](#error-3023) | A document has multiple fields with the same name.                                                                                                                          |
+| [Error 3024](#error-3024) | The same FLATTEN option is defined more than once.                                                                                                                          |
+| [Error 3025](#error-3025) | Schema information is insufficient to allow for flattening the data source.                                                                                                 |
+| [Error 3027](#error-3027) | The same UNWIND option is defined more than once.                                                                                                                           |
+| [Error 3028](#error-3028) | UNWIND is missing the path option. UNWIND must specify a PATH option.                                                                                                       |
+| [Error 3030](#error-3030) | The target type of the CAST is an invalid type (i.e., it's either an unknown type or a type that MongoSQL does not support casting for).                                    |
+| [Error 3034](#error-3034) | A sort key is invalid because it uses complex expressions (i.e., `ORDER BY {'a': b}.a` is invalid).                                                                         |
 
 ### Error 1001
 
@@ -330,3 +331,11 @@ The following errors occur when something goes wrong while converting the SQL qu
 - **Resolution Steps:** Make sure you only cast to supported target types. Valid target types are ARRAY, DOCUMENT, DOUBLE, STRING, OBJECTID, BOOL, BSON_DATE, INT, LONG, and DECIMAL,
   or any of their corresponding SQL-92 type aliases: REAL, FLOAT, VARCHAR, CHAR, CHARACTER, CHAR VARYING, CHARACTER VARYING, DEC, NUMERIC, BIT, BOOLEAN, TIMESTAMP, INTEGER, SMALLINT.
   Corrected example query: `SELECT CAST(a AS BSON_DATE) FROM foo`.
+
+### Error 3034
+
+- **Description:** A sort key is invalid because it uses complex expressions (i.e., `ORDER BY {'a': b}.a` is invalid).
+- **Common Causes:** Attempting to ORDER BY complex expressions or "impure" field paths. For example, the query `SELECT * FROM foo ORDER BY CAST(d AS DOCUMENT).a`
+    causes this error because `CAST(d AS DOCUMENT)` is a complex expression.
+- **Resolution Steps:** Make sure you only sort by "pure" field path. A "pure" field path consists only of
+    identifiers, such as `foo.d.a` or `a`.

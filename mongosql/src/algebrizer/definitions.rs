@@ -766,12 +766,18 @@ impl<'a> Algebrizer<'a> {
                             ast::SortKey::Positional(_) => Err(Error::PositionalSortKey),
                         }?;
                         match s.direction {
-                            ast::SortDirection::Asc => {
-                                Ok(mir::SortSpecification::Asc(sort_key.try_into()?))
-                            }
-                            ast::SortDirection::Desc => {
-                                Ok(mir::SortSpecification::Desc(sort_key.try_into()?))
-                            }
+                            ast::SortDirection::Asc => Ok(mir::SortSpecification::Asc(
+                                sort_key
+                                    .clone()
+                                    .try_into()
+                                    .map_err(|_| Error::InvalidSortKey(sort_key))?,
+                            )),
+                            ast::SortDirection::Desc => Ok(mir::SortSpecification::Desc(
+                                sort_key
+                                    .clone()
+                                    .try_into()
+                                    .map_err(|_| Error::InvalidSortKey(sort_key))?,
+                            )),
                         }
                     })
                     .collect::<Result<Vec<mir::SortSpecification>>>()?;

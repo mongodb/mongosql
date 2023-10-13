@@ -709,31 +709,31 @@ pub struct FieldPath {
 }
 
 impl TryFrom<Expression> for FieldPath {
-    type Error = Error;
+    type Error = ();
 
     fn try_from(value: Expression) -> Result<Self, Self::Error> {
         if let Expression::FieldAccess(f) = value {
             f.try_into()
         } else {
-            Err(Error::InvalidFieldPath(value))
+            Err(())
         }
     }
 }
 
 impl TryFrom<&Expression> for FieldPath {
-    type Error = Error;
+    type Error = ();
 
     fn try_from(value: &Expression) -> Result<Self, Self::Error> {
         if let Expression::FieldAccess(ref f) = value {
             f.try_into()
         } else {
-            Err(Error::InvalidFieldPath(value.clone()))
+            Err(())
         }
     }
 }
 
 impl TryFrom<FieldAccess> for FieldPath {
-    type Error = Error;
+    type Error = ();
 
     fn try_from(value: FieldAccess) -> Result<Self, Self::Error> {
         let mut cur = *value.expr;
@@ -754,7 +754,7 @@ impl TryFrom<FieldAccess> for FieldPath {
                     cur = *expr;
                 }
                 _ => {
-                    return Err(Error::InvalidFieldPath(cur));
+                    return Err(());
                 }
             }
         }
@@ -762,7 +762,7 @@ impl TryFrom<FieldAccess> for FieldPath {
 }
 
 impl TryFrom<&FieldAccess> for FieldPath {
-    type Error = Error;
+    type Error = ();
 
     fn try_from(value: &FieldAccess) -> Result<Self, Self::Error> {
         let mut cur = value.expr.as_ref();
@@ -783,7 +783,7 @@ impl TryFrom<&FieldAccess> for FieldPath {
                     cur = expr.as_ref();
                 }
                 _ => {
-                    return Err(Error::InvalidFieldPath(cur.clone()));
+                    return Err(());
                 }
             }
         }

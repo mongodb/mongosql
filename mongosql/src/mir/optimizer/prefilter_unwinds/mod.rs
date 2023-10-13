@@ -56,7 +56,7 @@ impl Visitor for PrefilterUnwindsVisitor {
             Stage::Filter(f) => match *f.source {
                 Stage::Unwind(u) => {
                     let (field_uses, condition) = f.condition.field_uses();
-                    let field_uses = if let Ok(field_uses) = field_uses {
+                    let field_uses = if let Some(field_uses) = field_uses {
                         field_uses
                     } else {
                         return Stage::Filter(Filter {

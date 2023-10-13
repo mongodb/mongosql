@@ -14,7 +14,6 @@ macro_rules! test_method {
                 mir::{
                     self,
                     binding_tuple::Key,
-                    optimizer::use_def_analysis::Error,
                     schema::SchemaCache,
                     Collection,
                     Expression::{self, *},
@@ -44,7 +43,7 @@ macro_rules! test_method_uses {
                 mir::{
                     self,
                     binding_tuple::Key,
-                    optimizer::use_def_analysis::{Error, FieldPath},
+                    optimizer::use_def_analysis::FieldPath,
                     schema::SchemaCache,
                     AggregationExpr, AggregationFunction, AggregationFunctionApplication,
                     AliasedAggregation, AliasedExpr, Collection,
@@ -272,7 +271,7 @@ test_method!(
 
 test_field_uses!(
     filter_field_uses,
-    expected = Ok({
+    expected = Some({
         let expected: HashSet<FieldPath> = set! {
             mir_field_path("foo", vec!["x"]),
             mir_field_path("bar", vec!["x"]),
@@ -300,7 +299,7 @@ test_field_uses!(
 );
 test_field_uses!(
     sort_field_uses,
-    expected = Ok({
+    expected = Some({
         let expected: HashSet<FieldPath> = set! {
             mir_field_path("foo", vec!["x"]),
             mir_field_path("foo", vec!["y"]),
