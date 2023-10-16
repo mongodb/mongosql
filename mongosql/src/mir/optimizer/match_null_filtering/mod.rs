@@ -21,12 +21,11 @@ mod test;
 use crate::{
     mir::{
         optimizer::Optimizer,
-        schema::{CachedSchema, SchemaCache, SchemaInferenceState},
+        schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
         Derived, ExistsExpr, Expression, FieldAccess, FieldExistence, Filter, LateralJoin,
         MQLExpression, ScalarFunction, ScalarFunctionApplication, Stage, SubqueryExpr,
     },
-    schema::{Satisfaction, NULLISH},
     SchemaCheckingMode,
 };
 use std::collections::BTreeMap;
@@ -38,60 +37,52 @@ impl Optimizer for MatchNullFilteringOptimizer {
         &self,
         st: Stage,
         _sm: SchemaCheckingMode,
-        schema_state: &SchemaInferenceState,
+        _schema_state: &SchemaInferenceState,
     ) -> Stage {
-        let mut v = MatchNullFilteringVisitor {
-            schema_state: schema_state.clone(),
-            scope: 0,
-            changed: false,
-        };
-        let st = v.visit_stage(st);
-
-        // After adding these new Filter stages, we invalidate all of the
-        // schema caches and recalculate. This is necessary since the new
-        // Filter's FieldExistence expressions alter the schema of their
-        // field references in subsequent stages. We cannot just call the
-        // `schema` method on a per-expression or even per-stage basis
-        // _during_ the walk because that would fail to incorporate
-        // correlated schema information.
-        if v.changed {
-            let mut v = SchemaInvalidator;
-            let st = v.visit_stage(st);
-            let _ = st.schema(schema_state);
-            st
-        } else {
-            st
-        }
+        let mut v = MatchNullFilteringVisitor { scope: 0 };
+        v.visit_stage(st)
     }
 }
 
-struct MatchNullFilteringVisitor<'a> {
-    schema_state: SchemaInferenceState<'a>,
+struct MatchNullFilteringVisitor {
     scope: u16,
-    changed: bool,
 }
 
-impl<'a> MatchNullFilteringVisitor<'a> {
+impl MatchNullFilteringVisitor {
     /// create_null_filter_stage attempts to create a Filter stage that ensures
     /// possibly null FieldAccesses in the original_filter exist. If the
     /// original_filter does not contain any null-semantic operators or does
     /// not contain any nullable FieldAccesses, this method returns None.
-    fn create_null_filter_stage(&self, original_filter: &Filter) -> Option<Filter> {
-        self.generate_null_filter_condition(&original_filter.condition)
-            .map(|null_filter_condition| Filter {
-                source: original_filter.source.clone(),
-                condition: null_filter_condition,
-                cache: SchemaCache::new(),
-            })
+    fn create_null_filter_stage(&self, original_filter: Filter) -> (Box<Stage>, Expression) {
+        let Filter {
+            source: original_source,
+            condition: original_condition,
+            ..
+        } = original_filter;
+        let (opt_cond, original_cond) = self.generate_null_filter_condition(original_condition);
+        (
+            match opt_cond {
+                Some(opt_cond) => Box::new(Stage::Filter(Filter {
+                    source: original_source,
+                    condition: opt_cond,
+                    cache: SchemaCache::new(),
+                })),
+                None => original_source,
+            },
+            original_cond,
+        )
     }
 
     /// generate_null_filter_condition attempts to create an Expression that
     /// ensures possibly null FieldAccesses in the condition exist. If the
     /// condition does not contain any null-semantic operators or does not
     /// contain any nullable FieldAccesses, this method returns None.
-    fn generate_null_filter_condition(&self, condition: &Expression) -> Option<Expression> {
-        let optimized_exists_ops = self
-            .gather_fields_for_null_filter(condition)
+    fn generate_null_filter_condition(
+        &self,
+        condition: Expression,
+    ) -> (Option<Expression>, Expression) {
+        let (fields, condition) = self.gather_fields_for_null_filter(condition);
+        let mut optimized_exists_ops = fields
             .into_values()
             .map(|fa| {
                 Expression::MQLIntrinsic(MQLExpression::FieldExistence(FieldExistence {
@@ -102,13 +93,17 @@ impl<'a> MatchNullFilteringVisitor<'a> {
             .collect::<Vec<Expression>>();
 
         match optimized_exists_ops.len() {
-            0 => None,
-            1 => optimized_exists_ops.first().cloned(),
-            _ => Some(Expression::ScalarFunction(ScalarFunctionApplication {
-                function: ScalarFunction::And,
-                args: optimized_exists_ops,
-                cache: SchemaCache::new(),
-            })),
+            0 => (None, condition),
+            1 => (Some(optimized_exists_ops.swap_remove(0)), condition),
+            _ => (
+                Some(Expression::ScalarFunction(ScalarFunctionApplication {
+                    function: ScalarFunction::And,
+                    is_nullable: false,
+                    args: optimized_exists_ops,
+                    cache: SchemaCache::new(),
+                })),
+                condition,
+            ),
         }
     }
 
@@ -117,20 +112,20 @@ impl<'a> MatchNullFilteringVisitor<'a> {
     /// operators.
     fn gather_fields_for_null_filter(
         &self,
-        condition: &Expression,
-    ) -> BTreeMap<String, FieldAccess> {
+        condition: Expression,
+    ) -> (BTreeMap<String, FieldAccess>, Expression) {
         let mut visitor = NullableFieldAccessGatherer {
             filter_fields: BTreeMap::new(),
             is_collecting: false,
-            state: self.schema_state.clone(),
+            found_impure: false,
             scope: self.scope,
         };
-        visitor.visit_expression(condition.clone());
-        visitor.filter_fields
+        let condition = visitor.visit_expression(condition);
+        (visitor.filter_fields, condition)
     }
 }
 
-impl<'a> Visitor for MatchNullFilteringVisitor<'a> {
+impl Visitor for MatchNullFilteringVisitor {
     fn visit_derived(&mut self, node: Derived) -> Derived {
         self.scope += 1;
         let node = node.walk(self);
@@ -146,16 +141,11 @@ impl<'a> Visitor for MatchNullFilteringVisitor<'a> {
 
     fn visit_filter(&mut self, node: Filter) -> Filter {
         let node = node.walk(self);
-        match self.create_null_filter_stage(&node) {
-            None => node,
-            Some(null_filter_stage) => {
-                self.changed = true;
-                Filter {
-                    source: Box::new(Stage::Filter(null_filter_stage)),
-                    condition: node.condition,
-                    cache: SchemaCache::new(),
-                }
-            }
+        let (null_filter_stage, condition) = self.create_null_filter_stage(node);
+        Filter {
+            source: null_filter_stage,
+            condition,
+            cache: SchemaCache::new(),
         }
     }
 
@@ -170,6 +160,7 @@ impl<'a> Visitor for MatchNullFilteringVisitor<'a> {
         self.scope += 1;
         let node = SubqueryExpr {
             // do not walk subquery output_exprs
+            is_nullable: node.is_nullable,
             output_expr: node.output_expr,
             subquery: Box::new(node.subquery.walk(self)),
             cache: node.cache,
@@ -179,57 +170,102 @@ impl<'a> Visitor for MatchNullFilteringVisitor<'a> {
     }
 }
 
-struct NullableFieldAccessGatherer<'a> {
+struct NullableSetter {}
+
+impl Visitor for NullableSetter {
+    // Do not recurse down subqueries
+    fn visit_subquery_expr(&mut self, node: SubqueryExpr) -> SubqueryExpr {
+        node
+    }
+
+    // Do not recurse down exists exprs
+    fn visit_exists_expr(&mut self, node: ExistsExpr) -> ExistsExpr {
+        node
+    }
+
+    fn visit_scalar_function_application(
+        &mut self,
+        node: ScalarFunctionApplication,
+    ) -> ScalarFunctionApplication {
+        let mut node = node.walk(self);
+        // In the case of recusive ScalarFunctions, this will get set twice.
+        // It is worth it for the improvement in code clarity.
+        node.is_nullable = false;
+        node
+    }
+
+    fn visit_expression(&mut self, node: Expression) -> Expression {
+        let mut node = node.walk(self);
+        node.set_is_nullable(false);
+        node
+    }
+}
+
+struct NullableFieldAccessGatherer {
     filter_fields: BTreeMap<String, FieldAccess>,
     is_collecting: bool,
-    state: SchemaInferenceState<'a>,
+    found_impure: bool,
     scope: u16,
 }
 
-impl<'a> Visitor for NullableFieldAccessGatherer<'a> {
+impl Visitor for NullableFieldAccessGatherer {
     // Do not walk stages nested within expressions.
     fn visit_stage(&mut self, node: Stage) -> Stage {
         node
     }
 
     fn visit_expression(&mut self, node: Expression) -> Expression {
-        match node.clone() {
+        match node {
             // If we encounter a "nullable" scalar function, meaning a scalar
             // function with SQL-style semantics, then we want to collect
             // nullable fields nested within that function's arguments.
-            Expression::ScalarFunction(sf) if self.is_nullable_function(sf.function) => {
+            Expression::ScalarFunction(sf)
+                if sf.is_nullable && sf.function.mql_null_semantics_diverge() =>
+            {
                 let old_is_collecting = self.is_collecting;
+                let old_found_impure = self.found_impure;
                 self.is_collecting = true;
-                sf.walk(self);
+                self.found_impure = false;
+                let mut sf = sf.walk(self);
+                // If no impure functions were found, we can set all the semantics
+                // to MQL in the expression.
+                if !self.found_impure {
+                    let mut nullable_setter = NullableSetter {};
+                    sf = nullable_setter.visit_scalar_function_application(sf);
+                }
                 self.is_collecting = old_is_collecting;
+                self.found_impure = old_found_impure;
 
-                node
+                Expression::ScalarFunction(sf)
             }
             Expression::FieldAccess(fa) => {
                 let scope = fa.scope_if_pure();
-                if self.is_collecting
-                    && scope == Some(self.scope)
-                    && self.schema_is_nullish(node.clone())
-                {
+                if self.is_collecting && scope == Some(self.scope) && fa.is_nullable {
                     // Only store nullable "pure" fields in the map.
                     match fa.to_string_if_pure() {
-                        None => (),
+                        None => {
+                            self.found_impure = true;
+                        }
                         Some(s) => {
-                            self.filter_fields.insert(s, fa);
+                            self.filter_fields.insert(s, fa.clone());
                         }
                     }
                 }
 
-                node
+                Expression::FieldAccess(fa)
             }
             _ => node.walk(self),
         }
     }
 }
 
-impl<'a> NullableFieldAccessGatherer<'a> {
-    fn is_nullable_function(&self, f: ScalarFunction) -> bool {
-        match f {
+impl ScalarFunction {
+    // This method defines those functions that have MQL NULL behavior that is divergent from SQL.
+    // That is to say, in SQL the function will return NULL if any argument is NULL, but in MQL it
+    // will not. For instance, NULL = 1 and NULL = NULL return false and true, respectively, in
+    // MQL.
+    pub fn mql_null_semantics_diverge(&self) -> bool {
+        match self {
             ScalarFunction::Lt
             | ScalarFunction::Lte
             | ScalarFunction::Neq
@@ -241,8 +277,11 @@ impl<'a> NullableFieldAccessGatherer<'a> {
             | ScalarFunction::And
             | ScalarFunction::Or => true,
 
-            // We include every variant instead of a wildcard in case
-            // new variants are added in the future that could benefit
+            // These functions all correctly return NULL in MQL, if there is a NULL argument.
+            // NullIf is weird in that it can also return NULL if none of the arguments are NULL,
+            // but that does not affect this optimization.
+            // We include every variant instead of a wildcard in case new variants are added in the
+            // future that could benefit
             // from this optimization.
             ScalarFunction::Concat
             | ScalarFunction::Pos
@@ -293,26 +332,5 @@ impl<'a> NullableFieldAccessGatherer<'a> {
             | ScalarFunction::IsoWeekday
             | ScalarFunction::MergeObjects => false,
         }
-    }
-
-    fn schema_is_nullish(&self, expr: Expression) -> bool {
-        match expr.schema(&self.state) {
-            Err(_) => true, // assume null in absence of schema
-            Ok(schema) => NULLISH.satisfies(&schema) != Satisfaction::Not,
-        }
-    }
-}
-
-struct SchemaInvalidator;
-
-impl Visitor for SchemaInvalidator {
-    fn visit_stage(&mut self, node: Stage) -> Stage {
-        node.invalidate_cache();
-        node.walk(self)
-    }
-
-    fn visit_expression(&mut self, node: Expression) -> Expression {
-        node.invalidate_cache();
-        node.walk(self)
     }
 }

@@ -105,6 +105,7 @@ impl<'a> ConstantFoldExprVisitor<'a> {
         }
         Expression::ScalarFunction(ScalarFunctionApplication {
             function: sf.function,
+            is_nullable: sf.is_nullable,
             args: non_literals,
             cache: sf.cache,
         })
@@ -221,6 +222,7 @@ impl<'a> ConstantFoldExprVisitor<'a> {
         }
         Expression::ScalarFunction(ScalarFunctionApplication {
             function: sf.function,
+            is_nullable: sf.is_nullable,
             args,
             cache: sf.cache,
         })
@@ -403,14 +405,17 @@ impl<'a> ConstantFoldExprVisitor<'a> {
         let (arg, bottom, top) = (sf.args[0].clone(), sf.args[1].clone(), sf.args[2].clone());
         let new_sf = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::And,
+            is_nullable: sf.is_nullable,
             args: vec![
                 Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::Lte,
+                    is_nullable: sf.is_nullable,
                     args: vec![arg.clone(), top],
                     cache: SchemaCache::new(),
                 }),
                 Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::Gte,
+                    is_nullable: sf.is_nullable,
                     args: vec![arg, bottom],
                     cache: SchemaCache::new(),
                 }),
@@ -636,6 +641,7 @@ impl<'a> ConstantFoldExprVisitor<'a> {
         } else {
             Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Concat,
+                is_nullable: sf.is_nullable,
                 args: result,
                 cache: sf.cache,
             })
@@ -711,7 +717,7 @@ impl<'a> ConstantFoldExprVisitor<'a> {
     fn fold_merge_objects_function(&mut self, sf: ScalarFunctionApplication) -> Expression {
         use crate::util::unique_linked_hash_map::UniqueLinkedHashMap;
         // This is one case where it is actually not correct to Error if we have duplicate keys,
-        // as that is allowed in the semantics of merge_objects.
+        // as that is allowed in the is_nullable of merge_objects.
         let mut result_doc = linked_hash_map::LinkedHashMap::new();
         for (i, expr) in sf.args.clone().into_iter().enumerate() {
             if let Expression::Document(DocumentExpr { document, .. }) = expr {
@@ -725,6 +731,7 @@ impl<'a> ConstantFoldExprVisitor<'a> {
             } else {
                 return Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::MergeObjects,
+                    is_nullable: sf.is_nullable,
                     args: [
                         vec![Expression::Document(result_doc.into())],
                         sf.args.into_iter().skip(i).collect(),
@@ -922,6 +929,7 @@ impl<'a> ConstantFoldExprVisitor<'a> {
                 when_branch: new_case_branches,
                 else_branch: case_expr.else_branch,
                 cache: case_expr.cache,
+                is_nullable: case_expr.is_nullable,
             })
         }
     }
@@ -950,6 +958,7 @@ impl<'a> ConstantFoldExprVisitor<'a> {
                 when_branch: new_case_branches,
                 else_branch: case_expr.else_branch,
                 cache: case_expr.cache,
+                is_nullable: case_expr.is_nullable,
             })
         }
     }

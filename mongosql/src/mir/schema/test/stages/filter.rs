@@ -5,7 +5,7 @@ use crate::{
         schema::{Error as mir_error, SchemaCache},
         *,
     },
-    schema::{Atomic, Document, ResultSet, Schema, ANY_DOCUMENT},
+    schema::{Atomic, ResultSet, Schema, ANY_DOCUMENT},
     set, test_schema, unchecked_unique_linked_hash_map,
 };
 
@@ -101,6 +101,7 @@ test_schema!(
             expr: Expression::Reference(("foo", 0u16).into()).into(),
             field: "bar".into(),
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
         cache: SchemaCache::new(),
     }),
@@ -158,61 +159,5 @@ test_schema!(
             cache: SchemaCache::new(),
         }).into(),
         cache: SchemaCache::new(),
-    }),
-);
-
-test_schema!(
-    optimized_fields_in_filter_stage_ensure_those_fields_are_non_null_in_the_result_set,
-    expected = Ok(ResultSet {
-        min_size: 0,
-        max_size: None,
-        schema_env: map! {
-            ("foo", 0u16).into() => Schema::Document(Document {
-                keys: map! {
-                    "non_nullable".to_string() => Schema::Atomic(Atomic::Integer),
-                    "nullable_a".to_string() => Schema::Atomic(Atomic::Integer),
-                    "nullable_b".to_string() => Schema::Atomic(Atomic::String),
-                },
-                required: set! {"non_nullable".to_string(), "nullable_a".to_string(), "nullable_b".to_string()},
-                additional_properties: false,
-            })
-        },
-    }),
-    input = Stage::Filter(Filter {
-        source: Box::new(test_source()),
-        condition: Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::And,
-            args: vec![
-                Expression::MQLIntrinsic(MQLExpression::FieldExistence(FieldExistence {
-                    field_access: FieldAccess {
-                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "nullable_a".to_string(),
-                        cache: SchemaCache::new(),
-                    },
-                    cache: SchemaCache::new(),
-                })),
-                Expression::MQLIntrinsic(MQLExpression::FieldExistence(FieldExistence {
-                    field_access: FieldAccess {
-                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "nullable_b".to_string(),
-                        cache: SchemaCache::new(),
-                    },
-                    cache: SchemaCache::new(),
-                })),
-            ],
-            cache: SchemaCache::new(),
-        }),
-        cache: SchemaCache::new(),
-    }),
-    catalog = Catalog::new(map! {
-        Namespace {db: "test".into(), collection: "foo".into()} => Schema::Document(Document {
-            keys: map! {
-                "non_nullable".to_string() => Schema::Atomic(Atomic::Integer),
-                "nullable_a".to_string() => Schema::Atomic(Atomic::Integer),
-                "nullable_b".to_string() => Schema::AnyOf(set!{Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)}),
-            },
-            required: set! {"non_nullable".to_string()},
-            additional_properties: false,
-        }),
     }),
 );

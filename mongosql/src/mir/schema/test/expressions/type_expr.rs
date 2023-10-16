@@ -19,6 +19,7 @@ mod cast {
             to: Type::Int32,
             on_null: Box::new(Expression::Literal(LiteralValue::Null.into())),
             on_error: Box::new(Expression::Literal(LiteralValue::Null.into())),
+            is_nullable: true,
             cache: SchemaCache::new(),
         }),
     );
@@ -35,6 +36,7 @@ mod cast {
             to: Type::Double,
             on_null: Box::new(Expression::Literal(LiteralValue::Null.into())),
             on_error: Box::new(Expression::Literal(LiteralValue::Null.into())),
+            is_nullable: true,
             cache: SchemaCache::new(),
         }),
     );
@@ -53,6 +55,7 @@ mod cast {
                 LiteralValue::String("abc".to_string()).into()
             )),
             on_error: Box::new(Expression::Literal(LiteralValue::Boolean(true).into())),
+            is_nullable: false,
             cache: SchemaCache::new(),
         }),
     );
@@ -71,6 +74,7 @@ mod cast {
                 LiteralValue::String("abc".to_string()).into()
             )),
             on_error: Box::new(Expression::Literal(LiteralValue::Boolean(true).into())),
+            is_nullable: false,
             cache: SchemaCache::new(),
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
@@ -93,6 +97,7 @@ mod cast {
                 LiteralValue::String("abc".to_string()).into()
             )),
             on_error: Box::new(Expression::Literal(LiteralValue::Boolean(true).into())),
+            is_nullable: false,
             cache: SchemaCache::new(),
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
@@ -109,6 +114,7 @@ mod cast {
             to: Type::Int32,
             on_null: Box::new(Expression::Literal(LiteralValue::Null.into())),
             on_error: Box::new(Expression::Literal(LiteralValue::Null.into())),
+            is_nullable: true,
             cache: SchemaCache::new(),
         }),
     );
@@ -121,6 +127,7 @@ mod cast {
             to: Type::Int32,
             on_null: Box::new(Expression::Literal(LiteralValue::Double(1.0).into())),
             on_error: Box::new(Expression::Literal(LiteralValue::Null.into())),
+            is_nullable: true,
             cache: SchemaCache::new(),
         }),
     );
@@ -133,6 +140,7 @@ mod cast {
             to: Type::Int32,
             on_null: Box::new(Expression::Literal(LiteralValue::Null.into())),
             on_error: Box::new(Expression::Literal(LiteralValue::Null.into())),
+            is_nullable: true,
             cache: SchemaCache::new(),
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Missing},
@@ -146,6 +154,7 @@ mod cast {
             to: Type::Int32,
             on_null: Box::new(Expression::Literal(LiteralValue::Double(1.0).into())),
             on_error: Box::new(Expression::Literal(LiteralValue::Null.into())),
+            is_nullable: true,
             cache: SchemaCache::new(),
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Missing},

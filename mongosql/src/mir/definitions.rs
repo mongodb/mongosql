@@ -242,6 +242,54 @@ pub enum Expression {
     MQLIntrinsic(MQLExpression),
 }
 
+impl Expression {
+    pub fn is_nullable(&self) -> bool {
+        match self {
+            Expression::Array(_) => false,
+            Expression::Cast(x) => x.is_nullable,
+            Expression::DateFunction(x) => x.is_nullable,
+            Expression::Document(_) => false,
+            Expression::Exists(_) => false,
+            Expression::FieldAccess(x) => x.is_nullable,
+            Expression::Is(_) => false,
+            Expression::Like(_) => false,
+            Expression::Literal(LiteralExpr{value: LiteralValue::Null, ..}) => true,
+            Expression::Literal(_) => false,
+            Expression::Reference(_) => false,
+            Expression::ScalarFunction(x) => x.is_nullable,
+            Expression::SearchedCase(x) => x.is_nullable,
+            Expression::SimpleCase(x) => x.is_nullable,
+            Expression::Subquery(x) => x.is_nullable,
+            Expression::SubqueryComparison(x) => x.is_nullable,
+            Expression::TypeAssertion(x) => x.expr.is_nullable(),
+            Expression::MQLIntrinsic(MQLExpression::FieldExistence(_)) => false,
+        }
+    }
+
+    pub fn set_is_nullable(&mut self, value: bool) {
+        match self {
+            Expression::Array(_) => (),
+            Expression::Cast(x) => x.is_nullable = value,
+            Expression::DateFunction(x) => x.is_nullable = value,
+            Expression::Document(_) => (),
+            Expression::Exists(_) => (),
+            Expression::FieldAccess(x) => x.is_nullable = value,
+            Expression::Is(_) => (),
+            Expression::Like(_) => (),
+            Expression::Literal(LiteralExpr{value: LiteralValue::Null, ..}) => (),
+            Expression::Literal(_) => (),
+            Expression::Reference(_) => (),
+            Expression::ScalarFunction(x) => x.is_nullable = x.function.is_always_nullable() || value,
+            Expression::SearchedCase(x) => x.is_nullable = value,
+            Expression::SimpleCase(x) => x.is_nullable = value,
+            Expression::Subquery(_) => (),
+            Expression::SubqueryComparison(x) => x.is_nullable = value,
+            Expression::TypeAssertion(_) => (),
+            Expression::MQLIntrinsic(MQLExpression::FieldExistence(_)) => (),
+        }
+    }
+}
+
 #[derive(PartialEq, Debug, Clone)]
 pub enum LiteralValue {
     Null,
@@ -345,6 +393,7 @@ pub struct LikeExpr {
 #[derive(PartialEq, Debug, Clone)]
 pub struct ScalarFunctionApplication {
     pub function: ScalarFunction,
+    pub is_nullable: bool,
     pub args: Vec<Expression>,
     pub cache: SchemaCache<Schema>,
 }
@@ -353,8 +402,10 @@ pub struct ScalarFunctionApplication {
 pub struct FieldAccess {
     pub expr: Box<Expression>,
     pub field: String,
+    pub is_nullable: bool,
     pub cache: SchemaCache<Schema>,
 }
+
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum AggregationFunction {
@@ -540,6 +591,83 @@ impl ScalarFunction {
             ScalarFunction::MergeObjects => "MergeObjects",
         }
     }
+
+    // Some functions are always nullable regardless of argument nullablity,
+    // we list them here and return true for them. We enumate all functions
+    // so this will fail to compile when new functions are added, so that
+    // we must consider the semantics.
+    pub fn is_always_nullable(&self) -> bool {
+        match self {
+            // COALESCE(v1, v2, ..., vn) : Returns the first non-NULL argument, or NULL if there are no non-NULL arguments.
+            ScalarFunction::Coalesce
+            // COS( number ) : If the argument evaluates to negative or positive Infinity, the result of the operation is NULL.ce
+            | ScalarFunction::Cos
+            // SIN( number ) : If the argument evaluates to negative or positive Infinity, the result of the operation is NULL.
+            | ScalarFunction::Sin
+            // number / divisor : A divisor of 0 will result in NULL.
+            | ScalarFunction::Div
+            // MOD( number, divisor ) : A divisor of 0 will result in NULL.
+            | ScalarFunction::Mod
+            // NULLIF (arg1, arg2) returns NULL if arg1 = arg2
+            | ScalarFunction::NullIf
+            // ROUND(number, decimals) : The decimals argument must be an integer between -20 and 100. Arguments outside of the supported ranges will return NULL.
+            | ScalarFunction::Round
+            // TAN( number ) : If the argument evaluates to negative or positive Infinity, the result of the operation is NULL
+            | ScalarFunction::Tan
+            // SPLIT(string, delimiter, token number) : If any argument is NULL or MISSING, or a delimiter evaluates to an empty string, the result is NULL.
+            | ScalarFunction::Split => true,
+
+            ScalarFunction::Add
+            | ScalarFunction::And
+            | ScalarFunction::BitLength
+            | ScalarFunction::CharLength
+            | ScalarFunction::ComputedFieldAccess
+            | ScalarFunction::Concat
+            | ScalarFunction::CurrentTimestamp
+            | ScalarFunction::Year
+            | ScalarFunction::Month
+            | ScalarFunction::Day
+            | ScalarFunction::Hour
+            | ScalarFunction::Minute
+            | ScalarFunction::Second
+            | ScalarFunction::Week
+            | ScalarFunction::IsoWeek
+            | ScalarFunction::IsoWeekday
+            | ScalarFunction::DayOfYear
+            | ScalarFunction::Abs
+            | ScalarFunction::Ceil
+            | ScalarFunction::Degrees
+            | ScalarFunction::Eq
+            | ScalarFunction::Floor
+            | ScalarFunction::Gt
+            | ScalarFunction::Gte
+            | ScalarFunction::Between
+            | ScalarFunction::Log
+            | ScalarFunction::Lower
+            | ScalarFunction::Lt
+            | ScalarFunction::Lte
+            | ScalarFunction::Mul
+            | ScalarFunction::Neq
+            | ScalarFunction::Neg
+            | ScalarFunction::Not
+            | ScalarFunction::OctetLength
+            | ScalarFunction::Or
+            | ScalarFunction::Pos
+            | ScalarFunction::Position
+            | ScalarFunction::Pow
+            | ScalarFunction::Radians
+            | ScalarFunction::Size
+            | ScalarFunction::Slice
+            | ScalarFunction::Sqrt
+            | ScalarFunction::Sub
+            | ScalarFunction::Substring
+            | ScalarFunction::LTrim
+            | ScalarFunction::RTrim
+            | ScalarFunction::BTrim
+            | ScalarFunction::Upper
+            | ScalarFunction::MergeObjects => false
+        }
+    }
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
@@ -564,6 +692,7 @@ pub enum DateFunction {
 #[derive(PartialEq, Debug, Clone)]
 pub struct DateFunctionApplication {
     pub function: DateFunction,
+    pub is_nullable: bool,
     pub date_part: DatePart,
     pub args: Vec<Expression>,
     pub cache: SchemaCache<Schema>,
@@ -585,6 +714,7 @@ pub struct SearchedCaseExpr {
     pub when_branch: Vec<WhenBranch>,
     pub else_branch: Box<Expression>,
     pub cache: SchemaCache<Schema>,
+    pub is_nullable: bool,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -593,12 +723,14 @@ pub struct SimpleCaseExpr {
     pub when_branch: Vec<WhenBranch>,
     pub else_branch: Box<Expression>,
     pub cache: SchemaCache<Schema>,
+    pub is_nullable: bool,
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct WhenBranch {
     pub when: Box<Expression>,
     pub then: Box<Expression>,
+    pub is_nullable: bool,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -607,6 +739,7 @@ pub struct CastExpr {
     pub to: Type,
     pub on_null: Box<Expression>,
     pub on_error: Box<Expression>,
+    pub is_nullable: bool,
     pub cache: SchemaCache<Schema>,
 }
 
@@ -654,12 +787,14 @@ pub struct SubqueryExpr {
     pub output_expr: Box<Expression>,
     pub subquery: Box<Stage>,
     pub cache: SchemaCache<Schema>,
+    pub is_nullable: bool,
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct SubqueryComparison {
     pub operator: SubqueryComparisonOp,
     pub modifier: SubqueryModifier,
+    pub is_nullable: bool,
     pub argument: Box<Expression>,
     pub subquery_expr: SubqueryExpr,
     pub cache: SchemaCache<Schema>,
@@ -701,11 +836,29 @@ pub enum MatchQuery {
     Comparison(MatchLanguageComparison),
 }
 
-#[derive(PartialEq, Eq, Debug, Clone, Hash)]
+#[derive(Eq, Debug, Clone)]
 pub struct FieldPath {
     pub key: Key,
     pub fields: Vec<String>,
+    pub is_nullable: bool,
     pub cache: SchemaCache<Schema>,
+}
+
+impl std::hash::Hash for FieldPath {
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.key.hash(state);
+        self.fields.hash(state);
+    }
+}
+
+impl PartialEq for FieldPath {
+    fn eq(&self, other: &Self) -> bool {
+        // ignore is_nullable for equality
+        // because we generate FieldPaths in some places where nullability
+        // is unknown.
+        self.key == other.key
+            && self.fields == other.fields
+    }
 }
 
 impl TryFrom<Expression> for FieldPath {
@@ -746,6 +899,7 @@ impl TryFrom<FieldAccess> for FieldPath {
                         FieldPath {
                             key,
                             fields,
+                            is_nullable: value.is_nullable,
                             cache: value.cache,
                         });
                 }
@@ -775,6 +929,7 @@ impl TryFrom<&FieldAccess> for FieldPath {
                         FieldPath {
                             key: key.clone(),
                             fields,
+                            is_nullable: value.is_nullable,
                             cache: value.cache.clone(),
                         });
                 }

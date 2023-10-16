@@ -58,8 +58,12 @@ test_lower_joins!(
             source: mir_collection("bar"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
-                args: vec![*mir_field_access("foo", "a"), *mir_field_access("bar", "b")],
+                args: vec![
+                    *mir_field_access("foo", "a", false),
+                    *mir_field_access("bar", "b", false)
+                ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         })),
@@ -71,8 +75,12 @@ test_lower_joins!(
         right: mir_collection("bar"),
         condition: Some(Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Eq,
-            args: vec![*mir_field_access("foo", "a"), *mir_field_access("bar", "b")],
+            args: vec![
+                *mir_field_access("foo", "a", false),
+                *mir_field_access("bar", "b", false)
+            ],
             cache: SchemaCache::new(),
+            is_nullable: false,
         })),
         cache: SchemaCache::new(),
     })

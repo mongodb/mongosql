@@ -32,7 +32,7 @@ macro_rules! test_algebrize {
 
             let res: Result<_, Error> = algebrizer.$method($ast $(, $source)?);
             $(assert!(matches!(res, $expected_pat));)?
-            $(assert_eq!(res, $expected);)?
+            $(assert_eq!($expected, res);)?
 
             #[allow(unused_variables)]
             if let Err(e) = res{
@@ -277,6 +277,7 @@ mod expression {
             expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
             field: "a".into(),
             cache: SchemaCache::new(),
+            is_nullable: true
         })),
         input = ast::Expression::Subpath(ast::SubpathExpr {
             expr: Box::new(ast::Expression::Identifier("foo".into())),
@@ -306,6 +307,7 @@ mod expression {
             expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
             field: "a".into(),
             cache: SchemaCache::new(),
+            is_nullable: true
         })),
         input = ast::Expression::Subpath(ast::SubpathExpr {
             expr: Box::new(ast::Expression::Identifier("foo".into())),
@@ -335,6 +337,7 @@ mod expression {
             expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
             field: "a".into(),
             cache: SchemaCache::new(),
+            is_nullable: true
         })),
         input = ast::Expression::Identifier("a".into()),
         env = map! {
@@ -354,6 +357,7 @@ mod expression {
             expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
             field: "a".into(),
             cache: SchemaCache::new(),
+            is_nullable: false
         })),
         input = ast::Expression::Identifier("a".into()),
         env = map! {
@@ -373,6 +377,7 @@ mod expression {
             expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
             field: "a".into(),
             cache: SchemaCache::new(),
+            is_nullable: true
         })),
         input = ast::Expression::Identifier("a".into()),
         env = map! {
@@ -393,6 +398,7 @@ mod expression {
             expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
             field: "a".into(),
             cache: SchemaCache::new(),
+            is_nullable: false
         })),
         input = ast::Expression::Identifier("a".into()),
         env = map! {
@@ -413,6 +419,7 @@ mod expression {
             expr: Box::new(mir::Expression::Reference(Key::bot(0u16).into())),
             field: "a".into(),
             cache: SchemaCache::new(),
+            is_nullable: false
         })),
         input = ast::Expression::Identifier("a".into()),
         env = map! {
@@ -457,9 +464,11 @@ mod expression {
                 expr: Box::new(mir::Expression::Reference(("test", 1u16).into())),
                 field: "a".into(),
                 cache: SchemaCache::new(),
+                is_nullable: false
             })),
             field: "c".into(),
             cache: SchemaCache::new(),
+            is_nullable: true
         })),
         input = ast::Expression::Subpath(ast::SubpathExpr {
             expr: Box::new(ast::Expression::Identifier("a".into())),
@@ -532,9 +541,11 @@ mod expression {
                 expr: Box::new(mir::Expression::Reference(("super_test", 0u16).into())),
                 field: "a".into(),
                 cache: SchemaCache::new(),
+                is_nullable: false
             })),
             field: "c".into(),
             cache: SchemaCache::new(),
+            is_nullable: false
         })),
         input = ast::Expression::Subpath(ast::SubpathExpr {
             expr: Box::new(ast::Expression::Identifier("a".into())),
@@ -572,6 +583,7 @@ mod expression {
             expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
             field: "a".into(),
             cache: SchemaCache::new(),
+            is_nullable: true
         })),
         // test MongoSQL: SELECT (SELECT foo.a FROM bar) FROM foo => (foo.a)
         input = ast::Expression::Subpath(ast::SubpathExpr {
@@ -607,9 +619,11 @@ mod expression {
                 expr: Box::new(mir::Expression::Reference(("bar", 1u16).into())),
                 field: "foo".into(),
                 cache: SchemaCache::new(),
+                is_nullable: true
             })),
             field: "a".into(),
             cache: SchemaCache::new(),
+            is_nullable: true
         })),
         //test MongoSQL: SELECT (SELECT bar.foo.a FROM bar) FROM foo => (bar.foo.a)
         input = ast::Expression::Subpath(ast::SubpathExpr {
@@ -693,6 +707,7 @@ mod expression {
                     mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Binary(ast::BinaryExpr {
@@ -730,6 +745,7 @@ mod expression {
                     mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Binary(ast::BinaryExpr {
@@ -767,6 +783,7 @@ mod expression {
                     mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: true,
             }
         )),
         input = ast::Expression::Binary(ast::BinaryExpr {
@@ -804,6 +821,7 @@ mod expression {
                     mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Binary(ast::BinaryExpr {
@@ -841,6 +859,7 @@ mod expression {
                     mir::Expression::Literal(mir::LiteralValue::String("42".into()).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Binary(ast::BinaryExpr {
@@ -878,6 +897,7 @@ mod expression {
                     mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Binary(ast::BinaryExpr {
@@ -897,6 +917,7 @@ mod expression {
                     mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Binary(ast::BinaryExpr {
@@ -916,6 +937,7 @@ mod expression {
                     mir::LiteralValue::Integer(42).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Unary(ast::UnaryExpr {
@@ -948,6 +970,7 @@ mod expression {
                     mir::LiteralValue::Integer(42).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Unary(ast::UnaryExpr {
@@ -980,6 +1003,7 @@ mod expression {
                     mir::LiteralValue::String("hello".into()).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Function(ast::FunctionExpr {
@@ -1003,6 +1027,7 @@ mod expression {
                     )
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Trim(ast::TrimExpr {
@@ -1028,6 +1053,7 @@ mod expression {
                     )
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Trim(ast::TrimExpr {
@@ -1053,6 +1079,7 @@ mod expression {
                     )
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Trim(ast::TrimExpr {
@@ -1105,9 +1132,11 @@ mod expression {
                         function: mir::ScalarFunction::CurrentTimestamp,
                         args: vec![],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
@@ -1130,9 +1159,11 @@ mod expression {
                         function: mir::ScalarFunction::CurrentTimestamp,
                         args: vec![],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
@@ -1155,9 +1186,11 @@ mod expression {
                         function: mir::ScalarFunction::CurrentTimestamp,
                         args: vec![],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
@@ -1180,9 +1213,11 @@ mod expression {
                         function: mir::ScalarFunction::CurrentTimestamp,
                         args: vec![],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
@@ -1205,9 +1240,11 @@ mod expression {
                         function: mir::ScalarFunction::CurrentTimestamp,
                         args: vec![],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
@@ -1230,9 +1267,11 @@ mod expression {
                         function: mir::ScalarFunction::CurrentTimestamp,
                         args: vec![],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
@@ -1255,9 +1294,11 @@ mod expression {
                         function: mir::ScalarFunction::CurrentTimestamp,
                         args: vec![],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
@@ -1280,9 +1321,11 @@ mod expression {
                         function: mir::ScalarFunction::CurrentTimestamp,
                         args: vec![],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
@@ -1305,9 +1348,11 @@ mod expression {
                         function: mir::ScalarFunction::CurrentTimestamp,
                         args: vec![],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
@@ -1353,6 +1398,7 @@ mod expression {
         expected = Ok(mir::Expression::DateFunction(
             mir::DateFunctionApplication {
                 function: mir::DateFunction::Add,
+                is_nullable: false,
                 date_part: mir::DatePart::Quarter,
                 args: vec![
                     mir::Expression::Literal(mir::LiteralExpr {
@@ -1363,6 +1409,7 @@ mod expression {
                         function: mir::ScalarFunction::CurrentTimestamp,
                         args: vec![],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                 ],
                 cache: SchemaCache::new(),
@@ -1387,17 +1434,20 @@ mod expression {
         expected = Ok(mir::Expression::DateFunction(
             mir::DateFunctionApplication {
                 function: mir::DateFunction::Diff,
+                is_nullable: false,
                 date_part: mir::DatePart::Week,
                 args: vec![
                     mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                         function: mir::ScalarFunction::CurrentTimestamp,
                         args: vec![],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                     mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                         function: mir::ScalarFunction::CurrentTimestamp,
                         args: vec![],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                     mir::Expression::Literal(mir::LiteralExpr {
                         value: mir::LiteralValue::String("sunday".to_string()),
@@ -1431,12 +1481,14 @@ mod expression {
         expected = Ok(mir::Expression::DateFunction(
             mir::DateFunctionApplication {
                 function: mir::DateFunction::Trunc,
+                is_nullable: false,
                 date_part: mir::DatePart::Year,
                 args: vec![
                     mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                         function: mir::ScalarFunction::CurrentTimestamp,
                         args: vec![],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                     mir::Expression::Literal(mir::LiteralExpr {
                         value: mir::LiteralValue::String("sunday".to_string()),
@@ -1489,11 +1541,13 @@ mod expression {
                 then: Box::new(mir::Expression::Literal(
                     mir::LiteralValue::String("bar".into()).into()
                 )),
+                is_nullable: false,
             }],
             else_branch: Box::new(mir::Expression::Literal(
                 mir::LiteralValue::String("foo".into()).into()
             )),
             cache: SchemaCache::new(),
+            is_nullable: true,
         })),
         input = ast::Expression::Case(ast::CaseExpr {
             expr: None,
@@ -1517,9 +1571,11 @@ mod expression {
                 then: Box::new(mir::Expression::Literal(
                     mir::LiteralValue::String("bar".into()).into()
                 )),
+                is_nullable: false,
             }],
             else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::Null.into())),
             cache: SchemaCache::new(),
+            is_nullable: true,
         })),
         input = ast::Expression::Case(ast::CaseExpr {
             expr: None,
@@ -1565,11 +1621,13 @@ mod expression {
                 then: Box::new(mir::Expression::Literal(
                     mir::LiteralValue::String("bar".into()).into()
                 )),
+                is_nullable: false,
             }],
             else_branch: Box::new(mir::Expression::Literal(
                 mir::LiteralValue::String("foo".into()).into()
             )),
             cache: SchemaCache::new(),
+            is_nullable: false,
         })),
         input = ast::Expression::Case(ast::CaseExpr {
             expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
@@ -1596,9 +1654,11 @@ mod expression {
                 then: Box::new(mir::Expression::Literal(
                     mir::LiteralValue::String("bar".into()).into()
                 )),
+                is_nullable: false,
             }],
             else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::Null.into())),
             cache: SchemaCache::new(),
+            is_nullable: false,
         })),
         input = ast::Expression::Case(ast::CaseExpr {
             expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
@@ -1646,6 +1706,7 @@ mod expression {
             on_error: Box::new(mir::Expression::Literal(
                 mir::LiteralValue::String("was_error".into()).into()
             )),
+            is_nullable: false,
             cache: SchemaCache::new(),
         })),
         input = ast::Expression::Cast(ast::CastExpr {
@@ -1669,6 +1730,7 @@ mod expression {
             to: mir::Type::String,
             on_null: Box::new(mir::Expression::Literal(mir::LiteralValue::Null.into())),
             on_error: Box::new(mir::Expression::Literal(mir::LiteralValue::Null.into())),
+            is_nullable: true,
             cache: SchemaCache::new(),
         })),
         input = ast::Expression::Cast(ast::CastExpr {
@@ -1823,6 +1885,7 @@ mod expression {
                     mir::Expression::Literal(mir::LiteralValue::Integer(10).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Function(ast::FunctionExpr {
@@ -1846,6 +1909,7 @@ mod expression {
                     mir::Expression::Literal(mir::LiteralValue::Integer(10).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: true,
             }
         )),
         input = ast::Expression::Function(ast::FunctionExpr {
@@ -1868,6 +1932,7 @@ mod expression {
                     mir::LiteralValue::Integer(10).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: true,
             }
         )),
         input = ast::Expression::Function(ast::FunctionExpr {
@@ -1888,6 +1953,7 @@ mod expression {
                     mir::LiteralValue::Integer(10).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: true,
             }
         )),
         input = ast::Expression::Function(ast::FunctionExpr {
@@ -1908,6 +1974,7 @@ mod expression {
                     mir::LiteralValue::Integer(10).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: true,
             }
         )),
         input = ast::Expression::Function(ast::FunctionExpr {
@@ -1928,6 +1995,7 @@ mod expression {
                     mir::LiteralValue::Integer(1).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Function(ast::FunctionExpr {
@@ -1948,6 +2016,7 @@ mod expression {
                     mir::LiteralValue::Integer(4).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Function(ast::FunctionExpr {
@@ -1969,6 +2038,7 @@ mod expression {
                     mir::LiteralValue::Integer(10).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Function(ast::FunctionExpr {
@@ -1990,6 +2060,7 @@ mod expression {
                     mir::LiteralValue::Double(1.5).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Function(ast::FunctionExpr {
@@ -2011,6 +2082,7 @@ mod expression {
                     mir::LiteralValue::Integer(1).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Function(ast::FunctionExpr {
@@ -2032,6 +2104,7 @@ mod expression {
                     mir::LiteralValue::Double(1.5).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Function(ast::FunctionExpr {
@@ -2054,6 +2127,7 @@ mod expression {
                     mir::Expression::Literal(mir::LiteralValue::Integer(10).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: true,
             }
         )),
         input = ast::Expression::Function(ast::FunctionExpr {
@@ -2077,6 +2151,7 @@ mod expression {
                     mir::Expression::Literal(mir::LiteralValue::Integer(10).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )),
         input = ast::Expression::Function(ast::FunctionExpr {
@@ -3322,6 +3397,7 @@ mod from_clause {
                                     mir::Expression::Reference(("bar", 1u16).into()),
                                 ],
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         }
                     )
                 },
@@ -3411,6 +3487,7 @@ mod from_clause {
                             args: vec![mir::Expression::Reference(("bar1", 1u16).into()),
                                        mir::Expression::Reference(("bar2", 1u16).into())],
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         }
                     )
                 },
@@ -3493,14 +3570,17 @@ mod from_clause {
                             expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
                             field: "a".to_string(),
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         }),
                         mir::Expression::FieldAccess(mir::FieldAccess {
                             expr: Box::new(mir::Expression::Reference(("bar", 0u16).into())),
                             field: "b".to_string(),
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         })
                     ],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 }
             )),
             cache: SchemaCache::new(),
@@ -3604,11 +3684,13 @@ mod from_clause {
                         expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
                             expr: Box::new(mir::Expression::Reference(mir::ReferenceExpr {
                                 key: ("arr", 0u16).into(),
-                                cache: SchemaCache::new()
+                                cache: SchemaCache::new(),
                             })),
-                            field: "a".to_string(), cache: SchemaCache::new()
+                            field: "a".to_string(), cache: SchemaCache::new(),
+                            is_nullable: false,
                         })),
-                        field: "b".to_string(), cache: SchemaCache::new()
+                        field: "b".to_string(), cache: SchemaCache::new(),
+                        is_nullable: false,
                     })},
                 cache: SchemaCache::new()
             })},
@@ -3666,10 +3748,13 @@ mod from_clause {
                                     cache: SchemaCache::new()
                                 })),
                                 field: "a".to_string(),
-                                cache: SchemaCache::new()
+                                cache: SchemaCache::new(),
+                                is_nullable: false,
                             })),
                             field: "b".to_string(),
-                            cache: SchemaCache::new()
+                            cache: SchemaCache::new(),
+                            is_nullable: false,
+
                         }),
                         "x_y".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
                             expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
@@ -3678,10 +3763,12 @@ mod from_clause {
                                     cache: SchemaCache::new()
                                 })),
                                 field: "x".to_string(),
-                                cache: SchemaCache::new()
+                                cache: SchemaCache::new(),
+                                is_nullable: false,
                             })),
                             field: "y".to_string(),
-                            cache: SchemaCache::new()
+                            cache: SchemaCache::new(),
+                            is_nullable: false,
                         })
                     },
                     cache: SchemaCache::new()
@@ -3773,13 +3860,16 @@ mod from_clause {
                                     cache: SchemaCache::new()
                                 })),
                                 field: "a".to_string(),
-                                cache: SchemaCache::new()
+                                cache: SchemaCache::new(),
+                                is_nullable: false,
                             })),
                             field: "b".to_string(),
-                            cache: SchemaCache::new()
+                            cache: SchemaCache::new(),
+                            is_nullable: false,
                         })),
                         field: "c".to_string(),
-                        cache: SchemaCache::new()
+                        cache: SchemaCache::new(),
+                        is_nullable: false,
                     })},
                 cache: SchemaCache::new()
             })},
@@ -3849,6 +3939,7 @@ mod from_clause {
                     key: ("foo", 0u16).into(),
                     fields: vec!["arr".to_string()],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 },
                 index: None,
                 outer: false,
@@ -3877,6 +3968,7 @@ mod from_clause {
                     key: ("foo", 0u16).into(),
                     fields: vec!["arr".to_string()],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 },
                 index: Some("i".into()),
                 outer: true,
@@ -3907,6 +3999,7 @@ mod from_clause {
                     key: ("foo", 0u16).into(),
                     fields: vec!["doc".to_string(), "arr".to_string()],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 },
                 index: None,
                 outer: false,
@@ -4181,11 +4274,13 @@ mod order_by_clause {
                     key: ("foo", 0u16).into(),
                     fields: vec!["a".to_string()],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 }),
                 mir::SortSpecification::Desc(mir::FieldPath {
                     key: ("foo", 0u16).into(),
                     fields: vec!["b".to_string()],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })
             ],
             cache: SchemaCache::new(),
@@ -4240,6 +4335,7 @@ mod order_by_clause {
                 key: ("arr", 0u16).into(),
                 fields: vec!["a".to_string()],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),],
             cache: SchemaCache::new(),
         })),
@@ -4294,6 +4390,7 @@ mod group_by_clause {
                 expr: Box::new(mir::Expression::Reference(("arr", 0u16).into())),
                 field: "a".to_string(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
         })
     }
@@ -4316,10 +4413,12 @@ mod group_by_clause {
                         expr: Box::new(mir::Expression::Reference(("arr", 0u16).into())),
                         field: "a".to_string(),
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                     mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
         })
     }
@@ -4333,6 +4432,7 @@ mod group_by_clause {
                     expr: Box::new(mir::Expression::Reference(("arr", 0u16).into())),
                     field: "a".to_string(),
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })),
                 distinct: true,
             }),
@@ -4620,6 +4720,7 @@ mod subquery {
                         expr: Box::new(Expression::Reference(("foo", 1u16).into())),
                         field: "b".into(),
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 }.into())
             },
@@ -4748,6 +4849,7 @@ mod subquery {
                 expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
                 field: "a_0".to_string(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })),
             subquery: Box::new(Stage::Project(Project {
                 source: Box::new(mir_array(1u16)),
@@ -4757,12 +4859,14 @@ mod subquery {
                             expr: Box::new(Expression::Reference(("arr", 1u16).into())),
                             field: "a".into(),
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         })
                     }.into())
                 },
                 cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
+            is_nullable: false,
         })),
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
@@ -4790,6 +4894,7 @@ mod subquery {
                 expr: Box::new(Expression::Reference((DatasourceName::Bottom, 2u16).into())),
                 field: "b_0".to_string(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })),
             subquery: Box::new(Stage::Project(Project {
                 source: Box::new(mir_array(2u16)),
@@ -4799,12 +4904,14 @@ mod subquery {
                             expr: Box::new(Expression::Reference(("foo", 1u16).into())),
                             field: "b".into(),
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         })
                     }.into())
                 },
                 cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
+            is_nullable: false,
         })),
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
@@ -4863,6 +4970,7 @@ mod subquery {
                 expr: Box::new(Expression::Reference(("arr", 1u16).into())),
                 field: "a".to_string(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })),
             subquery: Box::new(Stage::Project(Project {
                 source: Box::new(mir_array(1u16)),
@@ -4872,6 +4980,7 @@ mod subquery {
                 cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
+            is_nullable: false,
         })),
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
@@ -4933,9 +5042,11 @@ mod subquery {
                 expr: Box::new(Expression::Reference(("arr", 1u16).into())),
                 field: "a".to_string(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })),
             subquery: Box::new(mir_array(1u16)),
             cache: SchemaCache::new(),
+            is_nullable: false,
         })),
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {
@@ -5017,23 +5128,18 @@ mod subquery {
                     expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
                     field: "a_0".to_string(),
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })),
                 subquery: Box::new(Stage::Project(Project {
                     source: Box::new(mir_array(1u16)),
-                    expression: map! {
-                        (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
-                            "a_0".into() => Expression::FieldAccess(FieldAccess {
-                                expr: Box::new(Expression::Reference(("arr", 1u16).into())),
-                                field: "a".into(),
-                                cache: SchemaCache::new(),
-                            })
-                        }.into())
-                    },
+                    expression: map! {(DatasourceName::Bottom,1u16).into()=>Expression::Document(unchecked_unique_linked_hash_map!{"a_0".into()=>Expression::FieldAccess(FieldAccess{expr:Box::new(Expression::Reference(("arr",1u16).into())),field:"a".into(),cache:SchemaCache::new(),is_nullable:false,})}.into())},
                     cache: SchemaCache::new(),
                 })),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             },
             cache: SchemaCache::new(),
+            is_nullable: false,
         })),
         input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(5))),
@@ -5070,6 +5176,7 @@ mod subquery {
                     expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
                     field: "a_0".to_string(),
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })),
                 subquery: Box::new(Stage::Project(Project {
                     source: Box::new(mir_array(1u16)),
@@ -5079,14 +5186,17 @@ mod subquery {
                                 expr: Box::new(Expression::Reference(("arr", 1u16).into())),
                                 field: "a".into(),
                                 cache: SchemaCache::new(),
+                                is_nullable: false,
                             })
                         }.into())
                     },
                     cache: SchemaCache::new(),
                 })),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             },
             cache: SchemaCache::new(),
+            is_nullable: false,
         })),
         input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(5))),
@@ -5121,12 +5231,14 @@ mod subquery {
                 expr: Box::new(Expression::Reference(("foo", 1u16).into())),
                 field: "b".to_string(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })),
             subquery_expr: SubqueryExpr {
                 output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference((DatasourceName::Bottom, 2u16).into())),
                     field: "a_0".to_string(),
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })),
                 subquery: Box::new(Stage::Project(Project {
                     source: Box::new(mir_array(2u16)),
@@ -5136,14 +5248,17 @@ mod subquery {
                                 expr: Box::new(Expression::Reference(("arr", 2u16).into())),
                                 field: "a".into(),
                                 cache: SchemaCache::new(),
+                                is_nullable: false,
                             })
                         }.into())
                     },
                     cache: SchemaCache::new(),
                 })),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             },
             cache: SchemaCache::new(),
+            is_nullable: false,
         })),
         input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
             expr: Box::new(ast::Expression::Identifier("b".into())),
@@ -5213,6 +5328,7 @@ mod subquery {
                 expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
                 field: "x".to_string(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })),
             subquery: Box::new(Stage::Limit(Limit {
                 source: Box::new(Stage::Project(Project {
@@ -5233,6 +5349,7 @@ mod subquery {
                                 expr: Box::new(Expression::Reference(("bar", 1u16).into())),
                                 field: "x".into(),
                                 cache: SchemaCache::new(),
+                                is_nullable: true,
                             })
                         }.into())
                     },
@@ -5242,6 +5359,7 @@ mod subquery {
                 cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
+            is_nullable: false,
         })),
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {

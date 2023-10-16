@@ -18,7 +18,6 @@ lazy_static! {
         Namespace {db: "test_db".to_string(), collection: "local".to_string()} => Schema::Document(Document {
             keys: map! {
                 "not_null".to_string() => Schema::Atomic(Atomic::Integer),
-                "must_be_null".to_string() => Schema::Atomic(Atomic::Null),
                 "may_be_null".to_string() => INTEGER_OR_NULLISH.clone(),
             },
             required: set! {"not_null".to_string()},
@@ -27,7 +26,6 @@ lazy_static! {
         Namespace {db: "test_db".to_string(), collection: "foreign".to_string()} => Schema::Document(Document {
             keys: map! {
                 "not_null".to_string() => Schema::Atomic(Atomic::Integer),
-                "must_be_null".to_string() => Schema::Atomic(Atomic::Null),
                 "may_be_null".to_string() => INTEGER_OR_NULLISH.clone(),
             },
             required: set! {"not_null".to_string()},
@@ -95,10 +93,11 @@ fn make_equality_condition(arg1: Expression, arg2: Expression) -> Expression {
         function: ScalarFunction::Eq,
         args: vec![arg1, arg2],
         cache: SchemaCache::new(),
+        is_nullable: false,
     })
 }
 
-mod do_not_rewrite {
+mod do_not_change {
     use super::*;
 
     test_determine_join_semantics_no_op!(
@@ -117,8 +116,8 @@ mod do_not_rewrite {
                 cache: SchemaCache::new(),
             })),
             condition: Some(make_equality_condition(
-                *mir_field_access("local", "may_be_null"),
-                *mir_field_access("arr", "a"),
+                *mir_field_access("local", "may_be_null", true),
+                *mir_field_access("arr", "a", false),
             )),
             cache: SchemaCache::new(),
         })
@@ -129,7 +128,7 @@ mod do_not_rewrite {
     test_determine_join_semantics_no_op!(
         equality_condition_with_pure_local_arg_and_impure_other,
         make_standard_join(Some(make_equality_condition(
-            *mir_field_access("local", "may_be_null"),
+            *mir_field_access("local", "may_be_null", true),
             Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Document(
                     unchecked_unique_linked_hash_map! {
@@ -139,6 +138,7 @@ mod do_not_rewrite {
                 )),
                 field: "a".to_string(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })
         )))
     );
@@ -146,7 +146,7 @@ mod do_not_rewrite {
     test_determine_join_semantics_no_op!(
         equality_condition_with_pure_foreign_arg_and_impure_other,
         make_standard_join(Some(make_equality_condition(
-            *mir_field_access("foreign", "may_be_null"),
+            *mir_field_access("foreign", "may_be_null", true),
             Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Document(
                     unchecked_unique_linked_hash_map! {
@@ -156,6 +156,7 @@ mod do_not_rewrite {
                 )),
                 field: "a".to_string(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })
         )))
     );
@@ -174,10 +175,11 @@ mod do_not_rewrite {
             ScalarFunctionApplication {
                 function: ScalarFunction::Lt,
                 args: vec![
-                    *mir_field_access("local", "may_be_null"),
-                    *mir_field_access("foreign", "may_be_null"),
+                    *mir_field_access("local", "may_be_null", true),
+                    *mir_field_access("foreign", "may_be_null", true),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )))
     );
@@ -188,42 +190,21 @@ mod do_not_rewrite {
             ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
                 args: vec![
-                    *mir_field_access("local", "may_be_null"),
-                    *mir_field_access("local", "not_null"),
+                    *mir_field_access("local", "may_be_null", true),
+                    *mir_field_access("local", "not_null", false),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         )))
     );
 }
 
-mod rewrite {
+mod change {
     use super::*;
 
     test_determine_join_semantics!(
-        when_local_must_be_nullable_change_condition_to_false,
-        expected = make_standard_join(Some(Expression::Literal(
-            LiteralValue::Boolean(false).into()
-        ))),
-        input = make_standard_join(Some(make_equality_condition(
-            *mir_field_access("local", "must_be_null"),
-            *mir_field_access("foreign", "may_be_null"),
-        )))
-    );
-
-    test_determine_join_semantics!(
-        when_foreign_must_be_nullable_change_condition_to_false,
-        expected = make_standard_join(Some(Expression::Literal(
-            LiteralValue::Boolean(false).into()
-        ))),
-        input = make_standard_join(Some(make_equality_condition(
-            *mir_field_access("local", "may_be_null"),
-            *mir_field_access("foreign", "must_be_null"),
-        )))
-    );
-
-    test_determine_join_semantics!(
-        when_local_must_not_be_nullable_rewrite_without_special_filter,
+        when_local_must_not_be_nullable_change_without_special_filter,
         expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: mir_collection("local"),
@@ -233,13 +214,13 @@ mod rewrite {
             cache: SchemaCache::new(),
         })),
         input = make_standard_join(Some(make_equality_condition(
-            *mir_field_access("local", "not_null"),
-            *mir_field_access("foreign", "may_be_null"),
+            *mir_field_access("local", "not_null", false),
+            *mir_field_access("foreign", "may_be_null", true),
         )))
     );
 
     test_determine_join_semantics!(
-        when_foreign_must_not_be_nullable_rewrite_without_special_filter,
+        when_foreign_must_not_be_nullable_change_without_special_filter,
         expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: mir_collection("local"),
@@ -249,8 +230,8 @@ mod rewrite {
             cache: SchemaCache::new(),
         })),
         input = make_standard_join(Some(make_equality_condition(
-            *mir_field_access("local", "may_be_null"),
-            *mir_field_access("foreign", "not_null"),
+            *mir_field_access("local", "may_be_null", true),
+            *mir_field_access("foreign", "not_null", false),
         )))
     );
 
@@ -265,13 +246,13 @@ mod rewrite {
             cache: SchemaCache::new(),
         })),
         input = make_standard_join(Some(make_equality_condition(
-            *mir_field_access("foreign", "not_null"),
-            *mir_field_access("local", "not_null"),
+            *mir_field_access("foreign", "not_null", false),
+            *mir_field_access("local", "not_null", false),
         )))
     );
 
     test_determine_join_semantics!(
-        when_both_may_be_nullable_rewrite_with_special_filter,
+        when_both_may_be_nullable_change_with_special_filter,
         expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: Box::new(Stage::Filter(Filter {
@@ -282,6 +263,7 @@ mod rewrite {
                             expr: Box::new(Expression::Reference(("local", 0u16).into())),
                             field: "may_be_null".to_string(),
                             cache: SchemaCache::new(),
+                            is_nullable: true,
                         },
                         cache: SchemaCache::new(),
                     }
@@ -294,8 +276,8 @@ mod rewrite {
             cache: SchemaCache::new(),
         })),
         input = make_standard_join(Some(make_equality_condition(
-            *mir_field_access("local", "may_be_null"),
-            *mir_field_access("foreign", "may_be_null"),
+            *mir_field_access("local", "may_be_null", true),
+            *mir_field_access("foreign", "may_be_null", true),
         )))
     );
 }

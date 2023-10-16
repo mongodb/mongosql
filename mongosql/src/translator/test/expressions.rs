@@ -260,6 +260,7 @@ mod document {
                     expr: Box::new(mir::Expression::Reference(("f", 0u16).into())),
                     field: "x".to_string(),
                     cache: mir::schema::SchemaCache::new(),
+                    is_nullable: false,
                 }),
                 "$foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
                 "y".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(3).into()),
@@ -302,6 +303,7 @@ mod date_function {
         )),
         input = mir::Expression::DateFunction(mir::DateFunctionApplication {
             function: mir::DateFunction::Add,
+            is_nullable: false,
             date_part: mir::DatePart::Year,
             args: vec![
                 mir::Expression::Literal(mir::LiteralExpr {
@@ -312,9 +314,10 @@ mod date_function {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
                     cache: mir::schema::SchemaCache::new(),
+                    is_nullable: true,
                 }),
             ],
-            cache: mir::schema::SchemaCache::new()
+            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -338,17 +341,20 @@ mod date_function {
         )),
         input = mir::Expression::DateFunction(mir::DateFunctionApplication {
             function: mir::DateFunction::Diff,
+            is_nullable: false,
             date_part: mir::DatePart::Year,
             args: vec![
                 mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
                     cache: mir::schema::SchemaCache::new(),
+                    is_nullable: true,
                 }),
                 mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
                     cache: mir::schema::SchemaCache::new(),
+                    is_nullable: true,
                 }),
                 mir::Expression::Literal(mir::LiteralExpr {
                     value: mir::LiteralValue::String("sunday".to_string()),
@@ -375,12 +381,14 @@ mod date_function {
         )),
         input = mir::Expression::DateFunction(mir::DateFunctionApplication {
             function: mir::DateFunction::Trunc,
+            is_nullable: false,
             date_part: mir::DatePart::Year,
             args: vec![
                 mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::CurrentTimestamp,
                     args: vec![],
                     cache: mir::schema::SchemaCache::new(),
+                    is_nullable: true,
                 }),
                 mir::Expression::Literal(mir::LiteralExpr {
                     value: mir::LiteralValue::String("sunday".to_string()),
@@ -413,6 +421,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::String("world".into()).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -434,6 +443,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -451,6 +461,7 @@ mod scalar_function {
                 mir::LiteralValue::Integer(19).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -466,6 +477,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Pos,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -483,6 +495,7 @@ mod scalar_function {
                 mir::LiteralValue::Integer(32).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -498,6 +511,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Neg,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -519,6 +533,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -540,6 +555,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -561,6 +577,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
     test_translate_expression!(
@@ -583,6 +600,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(3).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -604,6 +622,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -625,6 +644,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -648,6 +668,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(3).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -669,6 +690,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -686,6 +708,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(20).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -709,6 +732,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(3).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -726,6 +750,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -747,6 +772,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -768,6 +794,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -789,6 +816,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -810,6 +838,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -831,6 +860,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -852,6 +882,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -873,6 +904,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -894,6 +926,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -915,6 +948,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -936,6 +970,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -957,6 +992,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -978,6 +1014,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1001,6 +1038,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1024,6 +1062,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1041,6 +1080,7 @@ mod scalar_function {
                 mir::LiteralValue::Boolean(false).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1056,6 +1096,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Not,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1077,6 +1118,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Boolean(false).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1098,6 +1140,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1119,6 +1162,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Boolean(false).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1140,6 +1184,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1165,6 +1210,7 @@ mod scalar_function {
                  mir::Expression::Literal(mir::LiteralValue::String("foo".into()).into()),
              ],
              cache: mir::schema::SchemaCache::new(),
+             is_nullable: true,
          }),
      );
 
@@ -1186,6 +1232,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Boolean(false).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1207,6 +1254,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1228,6 +1276,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Boolean(false).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1249,6 +1298,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1277,6 +1327,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(0).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1305,6 +1356,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1327,6 +1379,7 @@ mod scalar_function {
                 .into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1342,6 +1395,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Size,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into())],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1363,6 +1417,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::String("world".into()).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1384,6 +1439,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1403,6 +1459,7 @@ mod scalar_function {
                 mir::LiteralValue::String("hello".into()).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1418,6 +1475,7 @@ mod scalar_function {
             function: mir::ScalarFunction::CharLength,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1437,6 +1495,7 @@ mod scalar_function {
                 mir::LiteralValue::String("hello".into()).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1452,6 +1511,7 @@ mod scalar_function {
             function: mir::ScalarFunction::OctetLength,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1471,6 +1531,7 @@ mod scalar_function {
                 mir::LiteralValue::String("hello".into()).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1486,6 +1547,7 @@ mod scalar_function {
             function: mir::ScalarFunction::BitLength,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1503,6 +1565,7 @@ mod scalar_function {
                 mir::LiteralValue::Double(3.5).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1518,6 +1581,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Abs,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1535,6 +1599,7 @@ mod scalar_function {
                 mir::LiteralValue::Double(3.5).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1550,6 +1615,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Ceil,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1567,6 +1633,7 @@ mod scalar_function {
                 mir::LiteralValue::Double(3.5).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1582,6 +1649,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Floor,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1603,6 +1671,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Double(3.5).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1624,6 +1693,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1645,6 +1715,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Double(3.5).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1666,6 +1737,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1687,6 +1759,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Double(3.5).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1708,6 +1781,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1725,6 +1799,7 @@ mod scalar_function {
                 mir::LiteralValue::Double(3.5).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1740,6 +1815,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Radians,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1761,6 +1837,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(3).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1782,6 +1859,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1799,6 +1877,7 @@ mod scalar_function {
                 mir::LiteralValue::Double(3.5).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1814,6 +1893,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Cos,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1831,6 +1911,7 @@ mod scalar_function {
                 mir::LiteralValue::Double(3.5).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1846,6 +1927,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Sin,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1863,6 +1945,7 @@ mod scalar_function {
                 mir::LiteralValue::Double(3.5).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1878,6 +1961,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Tan,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1899,6 +1983,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1920,6 +2005,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1939,6 +2025,7 @@ mod scalar_function {
                 mir::LiteralValue::String("hello".into()).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1954,6 +2041,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Upper,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -1973,6 +2061,7 @@ mod scalar_function {
                 mir::LiteralValue::String("hello".into()).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -1988,6 +2077,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Lower,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -2009,6 +2099,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2028,6 +2119,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2049,6 +2141,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2068,6 +2161,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2089,6 +2183,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2108,6 +2203,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2131,6 +2227,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -2154,6 +2251,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -2169,6 +2267,7 @@ mod scalar_function {
             function: mir::ScalarFunction::CurrentTimestamp,
             args: vec![],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -2198,9 +2297,11 @@ mod scalar_function {
                 to: mir::Type::Datetime,
                 on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                is_nullable: true,
                 cache: mir::schema::SchemaCache::new(),
             })],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2216,6 +2317,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Year,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2245,9 +2347,11 @@ mod scalar_function {
                 to: mir::Type::Datetime,
                 on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                is_nullable: true,
                 cache: mir::schema::SchemaCache::new(),
             })],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2263,6 +2367,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Month,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2292,9 +2397,11 @@ mod scalar_function {
                 to: mir::Type::Datetime,
                 on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                is_nullable: true,
                 cache: mir::schema::SchemaCache::new(),
             })],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2310,6 +2417,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Day,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2339,9 +2447,11 @@ mod scalar_function {
                 to: mir::Type::Datetime,
                 on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                is_nullable: true,
                 cache: mir::schema::SchemaCache::new(),
             })],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2357,6 +2467,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Hour,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2386,9 +2497,11 @@ mod scalar_function {
                 to: mir::Type::Datetime,
                 on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                is_nullable: true,
                 cache: mir::schema::SchemaCache::new(),
             })],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2404,6 +2517,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Minute,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2433,9 +2547,11 @@ mod scalar_function {
                 to: mir::Type::Datetime,
                 on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                is_nullable: true,
                 cache: mir::schema::SchemaCache::new(),
             })],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2451,6 +2567,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Second,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2480,9 +2597,11 @@ mod scalar_function {
                 to: mir::Type::Datetime,
                 on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                is_nullable: true,
                 cache: mir::schema::SchemaCache::new(),
             })],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2498,6 +2617,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Week,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2527,9 +2647,11 @@ mod scalar_function {
                 to: mir::Type::Datetime,
                 on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                is_nullable: true,
                 cache: mir::schema::SchemaCache::new(),
             })],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2545,6 +2667,7 @@ mod scalar_function {
             function: mir::ScalarFunction::DayOfYear,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2574,9 +2697,11 @@ mod scalar_function {
                 to: mir::Type::Datetime,
                 on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                is_nullable: true,
                 cache: mir::schema::SchemaCache::new(),
             })],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2592,6 +2717,7 @@ mod scalar_function {
             function: mir::ScalarFunction::IsoWeek,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2621,9 +2747,11 @@ mod scalar_function {
                 to: mir::Type::Datetime,
                 on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
                 on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                is_nullable: true,
                 cache: mir::schema::SchemaCache::new(),
             })],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2639,6 +2767,7 @@ mod scalar_function {
             function: mir::ScalarFunction::IsoWeekday,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2662,6 +2791,7 @@ mod scalar_function {
                 .into()),
             ],
             cache: mir::schema::SchemaCache::new(),
+is_nullable: false,
         }),
     );
 
@@ -2677,6 +2807,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Sqrt,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -2694,6 +2825,7 @@ mod scalar_function {
                 mir::LiteralValue::Integer(4).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -2709,6 +2841,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Degrees,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -2726,6 +2859,7 @@ mod scalar_function {
                 mir::LiteralValue::Integer(30).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 }
@@ -2752,6 +2886,7 @@ mod cast {
             to: mir::Type::Datetime,
             on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
             on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+            is_nullable: true,
             cache: mir::schema::SchemaCache::new(),
         }),
     );
@@ -2775,6 +2910,7 @@ mod cast {
             to: mir::Type::Array,
             on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
             on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+            is_nullable: true,
             cache: mir::schema::SchemaCache::new(),
         }),
     );
@@ -2798,6 +2934,7 @@ mod cast {
             to: mir::Type::Document,
             on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
             on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+            is_nullable: true,
             cache: mir::schema::SchemaCache::new(),
         }),
     );
@@ -2854,11 +2991,13 @@ mod searched_case {
                                 })
                             ],
                             cache: mir::schema::SchemaCache::new(),
+                            is_nullable: true,
                         }
                     )),
                     then: Box::new(mir::Expression::Literal(
                         mir::LiteralValue::Integer(5).into()
                     )),
+                    is_nullable: true,
                 },
                 mir::WhenBranch {
                     when: Box::new(mir::Expression::ScalarFunction(
@@ -2875,17 +3014,20 @@ mod searched_case {
                                 })
                             ],
                             cache: mir::schema::SchemaCache::new(),
+                            is_nullable: true,
                         }
                     )),
                     then: Box::new(mir::Expression::Literal(
                         mir::LiteralValue::Integer(6).into()
                     )),
+                    is_nullable: true,
                 },
             ],
             else_branch: Box::new(mir::Expression::Literal(
                 mir::LiteralValue::Integer(7).into()
             )),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 }
@@ -2942,6 +3084,7 @@ mod simple_case {
                     then: Box::new(mir::Expression::Literal(
                         mir::LiteralValue::Integer(5).into()
                     )),
+                    is_nullable: false,
                 },
                 mir::WhenBranch {
                     when: Box::new(mir::Expression::Literal(
@@ -2950,12 +3093,14 @@ mod simple_case {
                     then: Box::new(mir::Expression::Literal(
                         mir::LiteralValue::Integer(6).into()
                     )),
+                    is_nullable: false,
                 },
             ],
             else_branch: Box::new(mir::Expression::Literal(
                 mir::LiteralValue::Integer(7).into()
             )),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -3006,6 +3151,7 @@ mod simple_case {
                     then: Box::new(mir::Expression::Literal(
                         mir::LiteralValue::Integer(5).into()
                     )),
+                    is_nullable: true,
                 },
                 mir::WhenBranch {
                     when: Box::new(mir::Expression::Literal(
@@ -3014,12 +3160,14 @@ mod simple_case {
                     then: Box::new(mir::Expression::Literal(
                         mir::LiteralValue::Integer(6).into()
                     )),
+                    is_nullable: true,
                 },
             ],
             else_branch: Box::new(mir::Expression::Literal(
                 mir::LiteralValue::Integer(7).into()
             )),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -3070,6 +3218,7 @@ mod simple_case {
                     then: Box::new(mir::Expression::Literal(
                         mir::LiteralValue::Integer(5).into()
                     )),
+                    is_nullable: true,
                 },
                 mir::WhenBranch {
                     when: Box::new(mir::Expression::Literal(
@@ -3078,12 +3227,14 @@ mod simple_case {
                     then: Box::new(mir::Expression::Literal(
                         mir::LiteralValue::Integer(6).into()
                     )),
+                    is_nullable: false,
                 },
             ],
             else_branch: Box::new(mir::Expression::Literal(
                 mir::LiteralValue::Integer(7).into()
             )),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -3167,23 +3318,27 @@ mod simple_case {
                             value: mir::LiteralValue::Integer(2),
                             cache: mir::schema::SchemaCache::new(),
                         })),
+                        is_nullable: false,
                     }],
                     else_branch: Box::new(mir::Expression::Literal(mir::LiteralExpr {
                         value: mir::LiteralValue::Integer(1),
                         cache: mir::schema::SchemaCache::new(),
                     })),
                     cache: mir::schema::SchemaCache::new(),
+                    is_nullable: false,
                 })),
                 then: Box::new(mir::Expression::Literal(mir::LiteralExpr {
                     value: mir::LiteralValue::String("YES".to_string()),
                     cache: mir::schema::SchemaCache::new(),
                 })),
+                is_nullable: false,
             }],
             else_branch: Box::new(mir::Expression::Literal(mir::LiteralExpr {
                 value: mir::LiteralValue::String("NO".to_string()),
                 cache: mir::schema::SchemaCache::new(),
             })),
-            cache: mir::schema::SchemaCache::new()
+            cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 }
@@ -3583,6 +3738,7 @@ mod field_access {
             expr: mir::Expression::Reference(("f", 0u16).into()).into(),
             field: "sub".to_string(),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -3602,9 +3758,11 @@ mod field_access {
                 expr: mir::Expression::Reference(("f", 0u16).into()).into(),
                 field: "sub1".to_string(),
                 cache: mir::schema::SchemaCache::new(),
+                is_nullable: false,
             })
             .into(),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -3632,6 +3790,7 @@ mod field_access {
             .into(),
             field: "sub".to_string(),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
     test_translate_expression!(
@@ -3646,6 +3805,7 @@ mod field_access {
             expr: mir::Expression::Literal(mir::LiteralValue::String("f".into()).into()).into(),
             field: "sub".to_string(),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
     test_translate_expression!(
@@ -3658,6 +3818,7 @@ mod field_access {
             expr: mir::Expression::Reference(("f", 0u16).into()).into(),
             field: "$sub".to_string(),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -3675,6 +3836,7 @@ mod field_access {
             expr: mir::Expression::Reference(("f", 0u16).into()).into(),
             field: "s$ub".to_string(),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -3695,6 +3857,7 @@ mod field_access {
             expr: mir::Expression::Reference(("f", 0u16).into()).into(),
             field: "s.ub".to_string(),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -3715,6 +3878,7 @@ mod field_access {
             expr: mir::Expression::Reference(("f", 0u16).into()).into(),
             field: "".to_string(),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -3765,6 +3929,7 @@ mod subquery {
                 cache: mir::schema::SchemaCache::new(),
             })),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -3793,6 +3958,7 @@ mod subquery {
                 expr: Box::new(mir::Expression::Reference((Bottom, 1u16).into())),
                 field: "a".to_string(),
                 cache: mir::schema::SchemaCache::new(),
+                is_nullable: false,
             })),
             subquery: Box::new(mir::Stage::Project(mir::Project {
                 source: Box::new(mir::Stage::Collection(mir::Collection {
@@ -3807,6 +3973,7 @@ mod subquery {
                                 expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
                                 field: "a".to_string(),
                                 cache: mir::schema::SchemaCache::new(),
+                                is_nullable: false,
                             }),
                         },
                         cache: mir::schema::SchemaCache::new(),
@@ -3815,6 +3982,7 @@ mod subquery {
                 cache: mir::schema::SchemaCache::new(),
             })),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -3863,6 +4031,7 @@ mod subquery {
                 expr: Box::new(mir::Expression::Reference((Bottom, 1u16).into())),
                 field: "a".to_string(),
                 cache: mir::schema::SchemaCache::new(),
+                is_nullable: false,
             })),
             subquery: Box::new(mir::Stage::Project(mir::Project {
                 source: Box::new(mir::Stage::Collection(mir::Collection {
@@ -3880,14 +4049,17 @@ mod subquery {
                                         expr: Box::new(mir::Expression::Reference(("Foo coll-ß", 0u16).into())),
                                         field: "a".into(),
                                         cache: mir::schema::SchemaCache::new(),
+                                        is_nullable: false,
                                     }),
                                     mir::Expression::FieldAccess(mir::FieldAccess{
                                         expr: Box::new(mir::Expression::Reference(("foo_coll_ß", 0u16).into())),
                                         field: "a".into(),
                                         cache: mir::schema::SchemaCache::new(),
+                                        is_nullable: false,
                                     }),
                                 ],
                                 cache: mir::schema::SchemaCache::new(),
+                                is_nullable: true,
                             }),
                         },
                         cache: mir::schema::SchemaCache::new(),
@@ -3896,6 +4068,7 @@ mod subquery {
                 cache: mir::schema::SchemaCache::new(),
             })),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -3947,6 +4120,7 @@ mod subquery {
                 cache: mir::schema::SchemaCache::new(),
             })),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -3970,6 +4144,7 @@ mod subquery {
                 expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
                 field: "a.b".to_string(),
                 cache: mir::schema::SchemaCache::new(),
+                is_nullable: false,
             })),
             subquery: Box::new(mir::Stage::Project(mir::Project {
                 source: Box::new(mir::Stage::Collection(mir::Collection {
@@ -3983,6 +4158,7 @@ mod subquery {
                 cache: mir::schema::SchemaCache::new(),
             })),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -4000,6 +4176,7 @@ mod subquery {
                 cache: mir::schema::SchemaCache::new(),
             })),
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 }
@@ -4051,6 +4228,7 @@ mod subquery_comparison {
                     expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
                     field: "a".to_string(),
                     cache: mir::schema::SchemaCache::new(),
+                    is_nullable: false,
                 })),
                 subquery: Box::new(mir::Stage::Project(mir::Project {
                     source: Box::new(mir::Stage::Collection(mir::Collection {
@@ -4065,6 +4243,7 @@ mod subquery_comparison {
                                     expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
                                     field: "a".to_string(),
                                     cache: mir::schema::SchemaCache::new(),
+                                    is_nullable: false,
                                 })
                             },
                             cache: mir::schema::SchemaCache::new(),
@@ -4073,8 +4252,10 @@ mod subquery_comparison {
                     cache: mir::schema::SchemaCache::new(),
                 })),
                 cache: mir::schema::SchemaCache::new(),
+                is_nullable: false,
             },
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
         catalog = Catalog::new(map! {
             Namespace { db: "test".to_string(), collection: "foo".to_string() } => Schema::Document(Document {
@@ -4123,6 +4304,7 @@ mod subquery_comparison {
                     expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
                     field: "a".to_string(),
                     cache: mir::schema::SchemaCache::new(),
+                    is_nullable: false,
                 })),
                 subquery: Box::new(mir::Stage::Project(mir::Project {
                     source: Box::new(mir::Stage::Collection(mir::Collection {
@@ -4137,6 +4319,7 @@ mod subquery_comparison {
                                     expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
                                     field: "a".to_string(),
                                     cache: mir::schema::SchemaCache::new(),
+                                    is_nullable: false,
                                 })
                             },
                             cache: mir::schema::SchemaCache::new(),
@@ -4145,8 +4328,10 @@ mod subquery_comparison {
                     cache: mir::schema::SchemaCache::new(),
                 })),
                 cache: mir::schema::SchemaCache::new(),
+                is_nullable: false,
             },
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
         catalog = Catalog::new(map! {
             Namespace { db: "test".to_string(), collection: "foo".to_string() } => Schema::Document(Document {
@@ -4198,6 +4383,7 @@ mod subquery_comparison {
                     expr: Box::new(mir::Expression::Reference((Bottom, 1u16).into())),
                     field: "a".to_string(),
                     cache: mir::schema::SchemaCache::new(),
+                    is_nullable: false,
                 })),
                 subquery: Box::new(mir::Stage::Project(mir::Project {
                     source: Box::new(mir::Stage::Collection(mir::Collection {
@@ -4212,6 +4398,7 @@ mod subquery_comparison {
                                     expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
                                     field: "a".to_string(),
                                     cache: mir::schema::SchemaCache::new(),
+                                    is_nullable: false,
                                 }),
                             },
                             cache: mir::schema::SchemaCache::new(),
@@ -4220,8 +4407,10 @@ mod subquery_comparison {
                     cache: mir::schema::SchemaCache::new(),
                 })),
                 cache: mir::schema::SchemaCache::new(),
+                is_nullable: false,
             },
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -4314,6 +4503,7 @@ mod subquery_exists {
                         expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
                         field: "a".into(),
                         cache: mir::schema::SchemaCache::new(),
+                        is_nullable: false,
                     })
                 }.into())
             },
@@ -4351,6 +4541,7 @@ mod mql_intrinsic {
                     expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
                     field: "x".to_string(),
                     cache: mir::schema::SchemaCache::new(),
+                    is_nullable: false,
                 },
                 cache: mir::schema::SchemaCache::new(),
             }

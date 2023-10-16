@@ -34,6 +34,7 @@ mod flatten_node {
                     Expression::Literal(LiteralValue::Integer(2).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -50,9 +51,11 @@ mod flatten_node {
                             Expression::Literal(LiteralValue::Integer(2).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -72,9 +75,11 @@ mod flatten_node {
                             Expression::Literal(LiteralValue::Integer(2).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -91,9 +96,11 @@ mod flatten_node {
                             Expression::Literal(LiteralValue::Integer(2).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -111,6 +118,7 @@ mod flatten_node {
                     Expression::Literal(LiteralValue::Integer(4).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -130,11 +138,14 @@ mod flatten_node {
                                 Expression::Literal(LiteralValue::Integer(4).into())
                             ],
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         })],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -157,10 +168,12 @@ mod flatten_node {
                             Expression::Literal(LiteralValue::Integer(1).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                     Expression::Literal(LiteralValue::Integer(1).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -190,6 +203,7 @@ mod flatten_node {
                                                 )
                                             ],
                                             cache: SchemaCache::new(),
+                                            is_nullable: false,
                                         }),
                                         Expression::ScalarFunction(ScalarFunctionApplication {
                                             function: ScalarFunction::Mul,
@@ -202,18 +216,23 @@ mod flatten_node {
                                                 )
                                             ],
                                             cache: SchemaCache::new(),
+                                            is_nullable: false,
                                         })
                                     ],
                                     cache: SchemaCache::new(),
+                                    is_nullable: false,
                                 })
                             ],
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         })],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     },),
                     Expression::Literal(LiteralValue::Integer(1).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -234,9 +253,11 @@ mod flatten_node {
                             Expression::Literal(LiteralValue::Integer(1).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -253,9 +274,11 @@ mod flatten_node {
                             Expression::Literal(LiteralValue::Integer(1).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -272,6 +295,7 @@ mod flatten_node {
                     Expression::Literal(LiteralValue::String("baz".to_string()).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -288,9 +312,11 @@ mod flatten_node {
                             Expression::Literal(LiteralValue::String("baz".to_string()).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -308,6 +334,7 @@ mod flatten_node {
                     Expression::Literal(LiteralValue::Integer(1).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -324,9 +351,11 @@ mod flatten_node {
                             Expression::Literal(LiteralValue::Integer(1).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -344,6 +373,7 @@ mod flatten_node {
                     Expression::Literal(LiteralValue::Integer(1).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -360,9 +390,11 @@ mod flatten_node {
                             Expression::Literal(LiteralValue::Integer(1).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -380,6 +412,7 @@ mod flatten_node {
                     mir::Expression::Literal(mir::LiteralValue::Boolean(true).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -396,9 +429,11 @@ mod flatten_node {
                             mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -416,6 +451,7 @@ mod flatten_node {
                     mir::Expression::Literal(mir::LiteralValue::Boolean(true).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -432,9 +468,11 @@ mod flatten_node {
                             mir::Expression::Literal(mir::LiteralValue::Boolean(true).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -452,6 +490,7 @@ mod flatten_node {
                     mir::Expression::Literal(mir::LiteralValue::String("c".into()).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),
@@ -468,9 +507,11 @@ mod flatten_node {
                             mir::Expression::Literal(mir::LiteralValue::String("c".into()).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),

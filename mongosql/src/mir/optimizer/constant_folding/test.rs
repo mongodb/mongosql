@@ -71,6 +71,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Boolean(false).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -91,6 +92,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Boolean(true).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -113,6 +115,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Null.into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -133,6 +136,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Null.into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -148,6 +152,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Null.into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -163,6 +168,7 @@ mod constant_folding {
                     Expression::Reference(("foo", 1u16).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -178,6 +184,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Null.into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -193,6 +200,7 @@ mod constant_folding {
                     Expression::Reference(("foo", 1u16).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -213,6 +221,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Null.into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -235,6 +244,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Boolean(false).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -258,6 +268,7 @@ mod constant_folding {
                     Expression::Reference(("foo", 1u16).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -275,6 +286,7 @@ mod constant_folding {
                 function: ScalarFunction::Or,
                 args: vec![],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -298,6 +310,7 @@ mod constant_folding {
                     Expression::Reference(("foo", 1u16).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -315,6 +328,7 @@ mod constant_folding {
                 function: ScalarFunction::And,
                 args: vec![],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -336,6 +350,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(1).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -353,6 +368,7 @@ mod constant_folding {
                 function: ScalarFunction::Add,
                 args: vec![],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -375,6 +391,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Long(-1).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -390,6 +407,7 @@ mod constant_folding {
                     Expression::Reference(("a", 0u16).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -404,6 +422,7 @@ mod constant_folding {
                     Expression::Reference(("a", 0u16).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -425,6 +444,7 @@ mod constant_folding {
                     Expression::Reference(("a", 0u16).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -446,6 +466,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Long(2).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -463,6 +484,7 @@ mod constant_folding {
                 function: ScalarFunction::Mul,
                 args: vec![],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -485,6 +507,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Double(2.0).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -506,6 +529,7 @@ mod constant_folding {
                     Expression::Reference(("a", 0u16).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -531,10 +555,12 @@ mod constant_folding {
                             Expression::Literal(LiteralValue::Null.into()),
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                     Expression::Reference(("a", 0u16).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -551,6 +577,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Double(6.0).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -567,6 +594,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Double(3.0).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -583,6 +611,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Double(16.0).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -599,6 +628,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Double(4.0).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -619,6 +649,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Long(0).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -639,6 +670,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Long(2).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -668,6 +700,7 @@ mod constant_folding {
                             Expression::Literal(LiteralValue::Integer(2).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Sub,
@@ -676,6 +709,7 @@ mod constant_folding {
                             Expression::Literal(LiteralValue::Long(2).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Sub,
@@ -684,6 +718,7 @@ mod constant_folding {
                             Expression::Literal(LiteralValue::Double(1.0).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                 ]
                 .into()
@@ -707,6 +742,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Long(0).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -727,6 +763,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Long(2).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -747,6 +784,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Long(1).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -776,6 +814,7 @@ mod constant_folding {
                             Expression::Literal(LiteralValue::Integer(2).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Div,
@@ -784,6 +823,7 @@ mod constant_folding {
                             Expression::Literal(LiteralValue::Long(2).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Div,
@@ -792,6 +832,7 @@ mod constant_folding {
                             Expression::Literal(LiteralValue::Double(1.0).into())
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                 ]
                 .into()
@@ -815,6 +856,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Boolean(true).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -835,6 +877,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Boolean(false).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -855,6 +898,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(0).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -875,6 +919,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(0).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -895,6 +940,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Long(0).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -915,6 +961,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Long(0).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -935,6 +982,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Double(1.0).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -955,6 +1003,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Double(1.0).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -975,6 +1024,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Long(1).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -995,6 +1045,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Long(1).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1015,6 +1066,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Long(1).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1035,6 +1087,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Long(1).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1050,6 +1103,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Long(1).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1062,6 +1116,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Long(1).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1082,6 +1137,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Long(1).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1103,6 +1159,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(2).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1124,6 +1181,7 @@ mod constant_folding {
                     Expression::Reference(("foo", 1u16).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1147,10 +1205,12 @@ mod constant_folding {
                             Expression::Literal(LiteralValue::Integer(2).into()),
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                     Expression::Literal(LiteralValue::Boolean(true).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1167,6 +1227,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(3).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1183,6 +1244,7 @@ mod constant_folding {
                             Expression::Literal(LiteralValue::Integer(-1).into()),
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Add,
@@ -1191,9 +1253,11 @@ mod constant_folding {
                             Expression::Literal(LiteralValue::Integer(2).into()),
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1211,6 +1275,7 @@ mod constant_folding {
                 function: ScalarFunction::Pos,
                 args: vec![Expression::Literal(LiteralValue::Integer(2).into())],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1228,6 +1293,7 @@ mod constant_folding {
                 function: ScalarFunction::Neg,
                 args: vec![Expression::Literal(LiteralValue::Integer(2).into())],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1245,6 +1311,7 @@ mod constant_folding {
                 function: ScalarFunction::Not,
                 args: vec![Expression::Literal(LiteralValue::Boolean(true).into())],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1266,6 +1333,7 @@ mod constant_folding {
                     LiteralValue::String("aaBBcC".to_string()).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1287,6 +1355,7 @@ mod constant_folding {
                     LiteralValue::String("aaBBcC".to_string()).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1304,6 +1373,7 @@ mod constant_folding {
                 function: ScalarFunction::Lower,
                 args: vec![Expression::Literal(LiteralValue::Null.into()),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1326,6 +1396,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::String("aAABBCCa".to_string()).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1348,6 +1419,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::String("aAABBCCa".to_string()).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1370,6 +1442,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::String("aAABBCCa".to_string()).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1390,6 +1463,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Null.into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1417,9 +1491,11 @@ mod constant_folding {
                             Expression::Literal(LiteralValue::Integer(3).into()),
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1442,6 +1518,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(6).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1465,6 +1542,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(-1).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1488,6 +1566,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(5).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1511,6 +1590,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(11).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1534,6 +1614,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(4).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1557,6 +1638,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(20).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1578,6 +1660,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Null.into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1600,6 +1683,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::String("world".to_string()).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1617,6 +1701,7 @@ mod constant_folding {
                     Expression::Reference(("a", 0u16).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1633,6 +1718,7 @@ mod constant_folding {
                     Expression::Reference(("a", 0u16).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1652,6 +1738,7 @@ mod constant_folding {
                 function: ScalarFunction::Concat,
                 args: vec![],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1673,6 +1760,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::String("world".to_string()).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1692,6 +1780,7 @@ mod constant_folding {
                     LiteralValue::String("hello world".to_string()).into()
                 )],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),],
             cache: SchemaCache::new(),
         }),
@@ -1711,6 +1800,7 @@ mod constant_folding {
                     LiteralValue::String("ááá🇷🇺ááá".to_string()).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),],
             cache: SchemaCache::new(),
         }),
@@ -1730,6 +1820,7 @@ mod constant_folding {
                     LiteralValue::String("hello world".to_string()).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),],
             cache: SchemaCache::new(),
         }),
@@ -1749,6 +1840,7 @@ mod constant_folding {
                     LiteralValue::String("ááá🇷🇺ááá".to_string()).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),],
             cache: SchemaCache::new(),
         }),
@@ -1768,6 +1860,7 @@ mod constant_folding {
                     LiteralValue::String("hello world".to_string()).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1787,6 +1880,7 @@ mod constant_folding {
                     LiteralValue::String("ááá🇷🇺ááá".to_string()).into()
                 ),],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1810,6 +1904,7 @@ mod constant_folding {
                     .into()
                 )],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1827,6 +1922,7 @@ mod constant_folding {
                 function: ScalarFunction::Size,
                 args: vec![Expression::Array(vec![].into())],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1844,6 +1940,7 @@ mod constant_folding {
                 function: ScalarFunction::Coalesce,
                 args: vec![],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1866,6 +1963,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(1).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1886,6 +1984,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Null.into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1916,6 +2015,7 @@ mod constant_folding {
                     .into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1934,6 +2034,7 @@ mod constant_folding {
                     Expression::Reference(("a", 0u16).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1949,6 +2050,7 @@ mod constant_folding {
                     Expression::Reference(("a", 0u16).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1968,6 +2070,7 @@ mod constant_folding {
                 function: ScalarFunction::MergeObjects,
                 args: vec![],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -1987,6 +2090,7 @@ mod constant_folding {
                     Expression::Reference(("a", 0u16).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2006,6 +2110,7 @@ mod constant_folding {
                     Expression::Reference(("a", 0u16).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2026,6 +2131,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(1).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2046,6 +2152,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(2).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2068,6 +2175,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::String("a".into()).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2085,6 +2193,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::String("b".into()).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2099,6 +2208,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::String("b".into()).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2129,6 +2239,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(1).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2157,6 +2268,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(1).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2190,6 +2302,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(-2).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2223,6 +2336,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(2).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2253,6 +2367,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(1).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2287,6 +2402,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(2).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2321,6 +2437,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(-5).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2355,6 +2472,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(5).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2389,6 +2507,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(5).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2417,6 +2536,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(1).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2445,6 +2565,7 @@ mod constant_folding {
                     Expression::Literal(LiteralValue::Integer(-1).into())
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),],
             cache: SchemaCache::new(),
         }),
@@ -2463,6 +2584,7 @@ mod constant_folding {
                 to: Type::Boolean,
                 on_null: Expression::Literal(LiteralValue::Null.into()).into(),
                 on_error: Expression::Literal(LiteralValue::Null.into()).into(),
+                is_nullable: true,
                 cache: SchemaCache::new(),
             })],
             cache: SchemaCache::new(),
@@ -2477,6 +2599,7 @@ mod constant_folding {
                 to: Type::String,
                 on_null: Expression::Literal(LiteralValue::Null.into()).into(),
                 on_error: Expression::Literal(LiteralValue::Null.into()).into(),
+                is_nullable: true,
                 cache: SchemaCache::new(),
             })],
             cache: SchemaCache::new(),
@@ -2488,6 +2611,7 @@ mod constant_folding {
                 to: Type::String,
                 on_null: Expression::Literal(LiteralValue::Null.into()).into(),
                 on_error: Expression::Literal(LiteralValue::Null.into()).into(),
+                is_nullable: true,
                 cache: SchemaCache::new(),
             })],
             cache: SchemaCache::new(),
@@ -2512,6 +2636,7 @@ mod constant_folding {
                 to: Type::Array,
                 on_null: Expression::Literal(LiteralValue::Null.into()).into(),
                 on_error: Expression::Literal(LiteralValue::Null.into()).into(),
+                is_nullable: true,
                 cache: SchemaCache::new(),
             })],
             cache: SchemaCache::new(),
@@ -2533,6 +2658,7 @@ mod constant_folding {
                 to: Type::Array,
                 on_null: Expression::Literal(LiteralValue::Null.into()).into(),
                 on_error: Expression::Literal(LiteralValue::String("error".into()).into()).into(),
+                is_nullable: true,
                 cache: SchemaCache::new(),
             })],
             cache: SchemaCache::new(),
@@ -2557,6 +2683,7 @@ mod constant_folding {
                 to: Type::Document,
                 on_null: Expression::Literal(LiteralValue::Null.into()).into(),
                 on_error: Expression::Literal(LiteralValue::Null.into()).into(),
+                is_nullable: true,
                 cache: SchemaCache::new(),
             })],
             cache: SchemaCache::new(),
@@ -2578,6 +2705,7 @@ mod constant_folding {
                 to: Type::Document,
                 on_null: Expression::Literal(LiteralValue::Null.into()).into(),
                 on_error: Expression::Literal(LiteralValue::String("error".into()).into()).into(),
+                is_nullable: true,
                 cache: SchemaCache::new(),
             })],
             cache: SchemaCache::new(),
@@ -2599,6 +2727,7 @@ mod constant_folding {
                 to: Type::Array,
                 on_null: Expression::Literal(LiteralValue::String("null".into()).into()).into(),
                 on_error: Expression::Literal(LiteralValue::String("error".into()).into()).into(),
+                is_nullable: false,
                 cache: SchemaCache::new(),
             })],
             cache: SchemaCache::new(),
@@ -2693,6 +2822,7 @@ mod constant_folding {
                         Expression::Literal(LiteralValue::String("world".to_string()).into()),
                     ],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })
                 .into(),
                 target_type: TypeOrMissing::Type(Type::String),
@@ -2718,16 +2848,19 @@ mod constant_folding {
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Integer(3).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 3".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Integer(2).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 2".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     }
                 ],
                 else_branch: Expression::Literal(LiteralValue::String("else".into()).into()).into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2742,16 +2875,19 @@ mod constant_folding {
                     WhenBranch {
                         when: Expression::Reference(("a", 0u16).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 3".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Integer(2).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 2".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     }
                 ],
                 else_branch: Expression::Literal(LiteralValue::String("else".into()).into()).into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2763,16 +2899,19 @@ mod constant_folding {
                     WhenBranch {
                         when: Expression::Reference(("a", 0u16).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 3".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Integer(2).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 2".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     }
                 ],
                 else_branch: Expression::Literal(LiteralValue::String("else".into()).into()).into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2785,10 +2924,12 @@ mod constant_folding {
                 expr: Expression::Literal(LiteralValue::Integer(2).into()).into(),
                 when_branch: vec![WhenBranch {
                     when: Expression::Reference(("a", 0u16).into()).into(),
-                    then: Expression::Literal(LiteralValue::String("then a".into()).into()).into()
+                    then: Expression::Literal(LiteralValue::String("then a".into()).into()).into(),
+                    is_nullable: false,
                 },],
                 else_branch: Expression::Literal(LiteralValue::String("else".into()).into()).into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2800,21 +2941,25 @@ mod constant_folding {
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Integer(3).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 3".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                     WhenBranch {
                         when: Expression::Reference(("a", 0u16).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then a".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Integer(4).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 4".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                 ],
                 else_branch: Expression::Literal(LiteralValue::String("else".into()).into()).into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2836,16 +2981,19 @@ mod constant_folding {
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Integer(3).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 3".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Integer(4).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 4".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     }
                 ],
                 else_branch: Expression::Literal(LiteralValue::String("else".into()).into()).into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2860,16 +3008,19 @@ mod constant_folding {
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Integer(4).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 4".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Integer(4).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 4".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                 ],
                 else_branch: Expression::Literal(LiteralValue::String("else".into()).into()).into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2881,16 +3032,19 @@ mod constant_folding {
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Integer(4).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 4".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Integer(4).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 4".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                 ],
                 else_branch: Expression::Literal(LiteralValue::String("else".into()).into()).into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2911,16 +3065,19 @@ mod constant_folding {
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Boolean(false).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then false".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Boolean(true).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then true".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     }
                 ],
                 else_branch: Expression::Literal(LiteralValue::String("else".into()).into()).into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2934,16 +3091,19 @@ mod constant_folding {
                     WhenBranch {
                         when: Expression::Reference(("a", 0u16).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 3".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Boolean(true).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then true".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: true,
                     }
                 ],
                 else_branch: Expression::Literal(LiteralValue::String("else".into()).into()).into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2954,16 +3114,19 @@ mod constant_folding {
                     WhenBranch {
                         when: Expression::Reference(("a", 0u16).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 3".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Boolean(true).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then true".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: true,
                     }
                 ],
                 else_branch: Expression::Literal(LiteralValue::String("else".into()).into()).into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2975,10 +3138,12 @@ mod constant_folding {
             array: vec![Expression::SearchedCase(SearchedCaseExpr {
                 when_branch: vec![WhenBranch {
                     when: Expression::Reference(("a", 0u16).into()).into(),
-                    then: Expression::Literal(LiteralValue::String("then 3".into()).into()).into()
+                    then: Expression::Literal(LiteralValue::String("then 3".into()).into()).into(),
+                    is_nullable: false,
                 },],
                 else_branch: Expression::Literal(LiteralValue::String("else".into()).into()).into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -2989,12 +3154,14 @@ mod constant_folding {
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Boolean(false).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then false".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                     WhenBranch {
                         when: Expression::Reference(("a", 0u16).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 3".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::String("false".into()).into())
@@ -3002,11 +3169,13 @@ mod constant_folding {
                         then: Expression::Literal(
                             LiteralValue::String("then false string".into()).into()
                         )
-                        .into()
+                        .into(),
+                        is_nullable: false,
                     },
                 ],
                 else_branch: Expression::Literal(LiteralValue::String("else".into()).into()).into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -3027,16 +3196,19 @@ mod constant_folding {
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Boolean(false).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then false".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     },
                     WhenBranch {
                         when: Expression::Literal(LiteralValue::Integer(4).into()).into(),
                         then: Expression::Literal(LiteralValue::String("then 4".into()).into())
-                            .into()
+                            .into(),
+                        is_nullable: false,
                     }
                 ],
                 else_branch: Expression::Literal(LiteralValue::String("else".into()).into()).into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -3057,6 +3229,7 @@ mod constant_folding {
                 .into(),
                 field: "a".into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -3072,6 +3245,7 @@ mod constant_folding {
                 .into(),
                 field: "b".into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -3084,6 +3258,7 @@ mod constant_folding {
                 .into(),
                 field: "b".into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -3096,6 +3271,7 @@ mod constant_folding {
                 expr: Expression::Reference(("a", 0u16).into()).into(),
                 field: "a".into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -3105,6 +3281,7 @@ mod constant_folding {
                 expr: Expression::Reference(("a", 0u16).into()).into(),
                 field: "a".into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })],
             cache: SchemaCache::new(),
         }),
@@ -3215,12 +3392,15 @@ mod constant_folding {
                                     })),
                                     field: "a".to_string(),
                                     cache: SchemaCache::new(),
+                                    is_nullable: false,
                                 })),
                                 field: "b".to_string(),
                                 cache: SchemaCache::new(),
+                                is_nullable: false,
                             })),
                             field: "c".to_string(),
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         }),
                     },
                     cache: SchemaCache::new(),

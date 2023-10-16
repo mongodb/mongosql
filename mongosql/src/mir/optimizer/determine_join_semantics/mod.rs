@@ -28,10 +28,10 @@ use crate::{
         optimizer::Optimizer,
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        EquiJoin, Expression, FieldAccess, FieldExistence, FieldPath, Filter, Join, LiteralValue,
-        MQLExpression, MQLStage, ScalarFunction, ScalarFunctionApplication, Stage,
+        EquiJoin, Expression, FieldAccess, FieldExistence, FieldPath, Filter, MQLExpression,
+        MQLStage, ScalarFunction, ScalarFunctionApplication, Stage,
     },
-    schema::{ResultSet, Satisfaction, NULLISH},
+    schema::ResultSet,
     SchemaCheckingMode,
 };
 
@@ -103,6 +103,7 @@ impl<'a> JoinSemanticsOptimizerVisitor<'a> {
         match condition {
             Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
+                is_nullable: _,
                 args,
                 cache: _,
             }) if args.len() == 2 => {
@@ -170,63 +171,33 @@ impl<'a> Visitor for JoinSemanticsOptimizerVisitor<'a> {
                         // -- one from the left and one from the right -- we cannot rewrite.
                         None => node,
                         Some((local_field, foreign_field)) => {
-                            // Establish the SchemaInferenceState at this point in the pipeline
-                            // by using the merged environments from the left and right sources
-                            let state = SchemaInferenceState::new(
-                                self.schema_state.scope_level,
-                                left_schema.schema_env.clone(),
-                                self.schema_state.catalog,
-                                self.schema_state.schema_checking_mode,
-                            );
-                            let state = state
-                                .with_merged_schema_env(right_schema.schema_env.clone())
-                                .unwrap();
-                            let local_field_nullable =
-                                local_field.schema(&state).unwrap().satisfies(&NULLISH);
-                            let foreign_field_nullable =
-                                foreign_field.schema(&state).unwrap().satisfies(&NULLISH);
-
-                            match (local_field_nullable, foreign_field_nullable) {
-                                (Satisfaction::Must, _) | (_, Satisfaction::Must) => {
-                                    Stage::Join(Join {
-                                        join_type: j.join_type,
-                                        left: j.left.clone(),
-                                        right: j.right.clone(),
-                                        condition: Some(Expression::Literal(
-                                            LiteralValue::Boolean(false).into(),
-                                        )),
-                                        cache: SchemaCache::new(),
-                                    })
-                                }
-                                (Satisfaction::Not, _) | (_, Satisfaction::Not) => {
-                                    Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
-                                        join_type: j.join_type,
+                            if local_field.is_nullable && foreign_field.is_nullable {
+                                Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+                                    join_type: j.join_type,
+                                    source: Box::new(Stage::Filter(Filter {
                                         source: j.left.clone(),
-                                        from: j.right.clone(),
-                                        local_field: Box::new(local_field),
-                                        foreign_field: Box::new(foreign_field),
+                                        condition: Expression::MQLIntrinsic(
+                                            MQLExpression::FieldExistence(FieldExistence {
+                                                field_access: local_field.clone().into(),
+                                                cache: SchemaCache::new(),
+                                            }),
+                                        ),
                                         cache: SchemaCache::new(),
-                                    }))
-                                }
-                                (Satisfaction::May, Satisfaction::May) => {
-                                    Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
-                                        join_type: j.join_type,
-                                        source: Box::new(Stage::Filter(Filter {
-                                            source: j.left.clone(),
-                                            condition: Expression::MQLIntrinsic(
-                                                MQLExpression::FieldExistence(FieldExistence {
-                                                    field_access: local_field.clone().into(),
-                                                    cache: SchemaCache::new(),
-                                                }),
-                                            ),
-                                            cache: SchemaCache::new(),
-                                        })),
-                                        from: j.right.clone(),
-                                        local_field: Box::new(local_field),
-                                        foreign_field: Box::new(foreign_field),
-                                        cache: SchemaCache::new(),
-                                    }))
-                                }
+                                    })),
+                                    from: j.right.clone(),
+                                    local_field: Box::new(local_field),
+                                    foreign_field: Box::new(foreign_field),
+                                    cache: SchemaCache::new(),
+                                }))
+                            } else {
+                                Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+                                    join_type: j.join_type,
+                                    source: j.left.clone(),
+                                    from: j.right.clone(),
+                                    local_field: Box::new(local_field),
+                                    foreign_field: Box::new(foreign_field),
+                                    cache: SchemaCache::new(),
+                                }))
                             }
                         }
                     }
@@ -246,6 +217,7 @@ impl From<FieldPath> for FieldAccess {
         let mut ret = FieldAccess {
             expr: Box::new(Expression::Reference(value.key.into())),
             field: first.unwrap(),
+            is_nullable: value.is_nullable,
             cache: SchemaCache::new(),
         };
 
@@ -253,6 +225,7 @@ impl From<FieldPath> for FieldAccess {
             ret = FieldAccess {
                 expr: Box::new(Expression::FieldAccess(ret)),
                 field,
+                is_nullable: value.is_nullable,
                 cache: SchemaCache::new(),
             }
         }

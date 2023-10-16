@@ -228,7 +228,7 @@ pub enum Expression {
 }
 
 #[allow(dead_code)]
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum MQLOperator {
     // String operators
     Concat,
@@ -322,7 +322,7 @@ pub enum MQLOperator {
 }
 
 #[allow(dead_code)]
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum SQLOperator {
     // Arithmetic operators
     Pos,
@@ -653,7 +653,7 @@ pub struct DateFunctionApplication{
     pub args: Vec<Expression>,
 }
 
-#[derive(PartialEq, Eq, Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone, Copy)]
 pub enum TrimOperator {
     Trim,
     LTrim,

@@ -444,6 +444,7 @@ mod standard {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                     field: "a".to_string(),
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })),
                 target_type: Type::Boolean,
                 cache: SchemaCache::new(),
@@ -477,6 +478,7 @@ mod standard {
                     expr: Box::new(Expression::Reference(("bar", 0u16).into())),
                     field: "b".to_string(),
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })),
                 target_type: Type::Boolean,
                 cache: SchemaCache::new(),
@@ -493,6 +495,7 @@ mod standard {
                 expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
                 field: "a".into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })),
             subquery: Box::new(Stage::Project(Project {
                 source: Box::new(Stage::Join(Join {
@@ -512,6 +515,7 @@ mod standard {
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                             field: "a".to_string(),
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         })),
                         target_type: Type::Boolean,
                         cache: SchemaCache::new(),
@@ -524,12 +528,14 @@ mod standard {
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                             field: "a".into(),
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         })
                     }.into())
                 },
                 cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::Document( Document{

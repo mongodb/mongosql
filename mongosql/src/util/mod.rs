@@ -170,7 +170,11 @@ pub(crate) fn mir_project_bot_collection(collection_name: &str) -> Box<mir::Stag
 }
 
 #[cfg(test)]
-pub(crate) fn mir_field_access(key_name: &str, field_name: &str) -> Box<mir::Expression> {
+pub(crate) fn mir_field_access(
+    key_name: &str,
+    field_name: &str,
+    is_nullable: bool,
+) -> Box<mir::Expression> {
     Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
         expr: Box::new(mir::Expression::Reference(mir::ReferenceExpr {
             key: Key::named(key_name, 0u16),
@@ -178,6 +182,7 @@ pub(crate) fn mir_field_access(key_name: &str, field_name: &str) -> Box<mir::Exp
         })),
         field: field_name.to_string(),
         cache: mir::schema::SchemaCache::new(),
+        is_nullable,
     }))
 }
 
@@ -191,6 +196,7 @@ pub(crate) fn mir_field_path(datasource_name: &str, field_names: Vec<&str>) -> m
         },
         fields: field_names.into_iter().map(String::from).collect(),
         cache: mir::schema::SchemaCache::new(),
+        is_nullable: false,
     }
 }
 

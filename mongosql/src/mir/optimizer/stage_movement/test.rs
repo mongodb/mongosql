@@ -85,6 +85,7 @@ fn mir_field_access(ref_name: &str, field_name: &str) -> mir::Expression {
         expr: Box::new(mir_reference(ref_name)),
         field: field_name.to_string(),
         cache: mir::schema::SchemaCache::new(),
+        is_nullable: false,
     })
 }
 
@@ -228,6 +229,7 @@ test_move_stage!(
                                 mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                             ],
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         }
                     ),
                     cache: SchemaCache::new(),
@@ -284,6 +286,7 @@ test_move_stage!(
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 }
             ),
             cache: SchemaCache::new(),
@@ -318,6 +321,7 @@ test_move_stage!(
                     key: Key::bot(0u16),
                     fields: vec!["x".to_string()],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 },
                 index: None,
                 outer: false,
@@ -332,6 +336,7 @@ test_move_stage!(
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 }
             ),
             cache: SchemaCache::new(),
@@ -362,6 +367,7 @@ test_move_stage!(
                     key: Key::bot(0u16),
                     fields: vec!["x".to_string()],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 },
                 index: None,
                 outer: false,
@@ -376,6 +382,7 @@ test_move_stage!(
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 }
             ),
             cache: SchemaCache::new(),
@@ -402,6 +409,7 @@ test_move_stage!(
                                 function: mir::ScalarFunction::Add,
                                 args: vec![],
                                 cache: SchemaCache::new(),
+                                is_nullable: false,
                             }),
                        },
                        cache: SchemaCache::new(),
@@ -415,6 +423,7 @@ test_move_stage!(
                        key: Key::bot(0u16),
                        fields: vec!["y".to_string()],
                        cache: SchemaCache::new(),
+                       is_nullable: false,
                    }
                ),
            ],
@@ -438,6 +447,7 @@ test_move_stage!(
                                 function: mir::ScalarFunction::Add,
                                 args: vec![],
                                 cache: SchemaCache::new(),
+                                is_nullable: false,
                             }),
                        },
                        cache: SchemaCache::new(),
@@ -451,6 +461,7 @@ test_move_stage!(
                        key: Key::bot(0u16),
                        fields: vec!["y".to_string()],
                        cache: SchemaCache::new(),
+                       is_nullable: false,
                    }
                ),
            ],
@@ -476,6 +487,7 @@ test_move_stage!(
                     key: Key::named("bar", 0u16),
                     fields: vec!["y".to_string()],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 }),],
                 cache: SchemaCache::new(),
             })
@@ -487,6 +499,7 @@ test_move_stage!(
                             expr: Box::new(mir::Expression::Reference(("bar", 0u16).into())),
                             field: "y".to_string(),
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         }),
                     },
                     cache: SchemaCache::new(),
@@ -514,6 +527,7 @@ test_move_stage!(
                                  expr: Box::new(mir::Expression::Reference(("bar", 0u16).into())),
                                  field: "y".to_string(),
                                  cache: SchemaCache::new(),
+                                 is_nullable: false,
                              }),
                         },
                         cache: SchemaCache::new(),
@@ -526,6 +540,7 @@ test_move_stage!(
                 key: Key::bot(0u16),
                 fields: vec!["y".to_string()],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),],
             cache: SchemaCache::new(),
         })
@@ -552,6 +567,7 @@ test_move_stage!(
                         key: Key::named("bar", 0u16),
                         fields: vec!["y".to_string()],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                     arg: LiteralValue::Integer(43),
                     cache: SchemaCache::new(),
@@ -566,6 +582,7 @@ test_move_stage!(
                             expr: Box::new(mir::Expression::Reference(("bar", 0u16).into())),
                             field: "y".to_string(),
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         }),
                     },
                     cache: SchemaCache::new(),
@@ -593,6 +610,7 @@ test_move_stage!(
                                  expr: Box::new(mir::Expression::Reference(("bar", 0u16).into())),
                                  field: "y".to_string(),
                                  cache: SchemaCache::new(),
+                                 is_nullable: false,
                              }),
                         },
                         cache: SchemaCache::new(),
@@ -607,6 +625,7 @@ test_move_stage!(
                     key: Key::bot(0u16),
                     fields: vec!["y".to_string()],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 }),
                 arg: LiteralValue::Integer(43),
                 cache: SchemaCache::new(),
@@ -636,6 +655,7 @@ test_move_stage!(
                                 key: Key::named("bar", 0u16),
                                 fields: vec!["x".to_string(), "a".to_string()],
                                 cache: SchemaCache::new(),
+                                is_nullable: false,
                             }
                         ),
                     ],
@@ -647,6 +667,7 @@ test_move_stage!(
                             key: Key::named("bar", 0u16),
                             fields: vec!["x".to_string(), "b".to_string()],
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         }
                     ),
                 ],
@@ -657,6 +678,7 @@ test_move_stage!(
                      expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
                      field: "x".to_string(),
                      cache: SchemaCache::new(),
+                    is_nullable: false,
                 }),
             }),
             cache: SchemaCache::new(),
@@ -679,6 +701,7 @@ test_move_stage!(
                              expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
                              field: "x".to_string(),
                              cache: SchemaCache::new(),
+                            is_nullable: false,
                         }),
                     }),
                     cache: SchemaCache::new(),
@@ -689,6 +712,7 @@ test_move_stage!(
                             key: Key::named("bar", 0u16),
                             fields: vec!["a".to_string()],
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         }
                     ),
                 ],
@@ -698,9 +722,10 @@ test_move_stage!(
             specs: vec![
                 SortSpecification::Desc(
                     mir::FieldPath {
-                         key: Key::named("bar", 0u16),
-                         fields: vec!["b".to_string()],
-                         cache: SchemaCache::new(),
+                        key: Key::named("bar", 0u16),
+                        fields: vec!["b".to_string()],
+                        cache: SchemaCache::new(),
+                        is_nullable: false,
                     }
                 ),
             ],
@@ -733,6 +758,7 @@ test_move_stage!(
                     key: Key::named("bar", 0u16),
                     fields: vec!["x".to_string(), "b".to_string()],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 },),],
                 cache: SchemaCache::new(),
             })
@@ -742,6 +768,7 @@ test_move_stage!(
                      expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
                      field: "x".to_string(),
                      cache: SchemaCache::new(),
+                    is_nullable: false,
                 }),
             }),
             cache: SchemaCache::new(),
@@ -771,6 +798,7 @@ test_move_stage!(
                          expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
                          field: "x".to_string(),
                          cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                 }),
                 cache: SchemaCache::new(),
@@ -780,6 +808,7 @@ test_move_stage!(
                 key: Key::named("bar", 0u16),
                 fields: vec!["b".to_string()],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),],
             cache: SchemaCache::new(),
         })
@@ -813,6 +842,7 @@ test_move_stage!(
                                mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                            ],
                            cache: SchemaCache::new(),
+                           is_nullable: false,
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
@@ -829,6 +859,7 @@ test_move_stage!(
                             mir::Expression::Literal(mir::LiteralValue::Integer(54).into()),
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }
                 ),
                 cache: SchemaCache::new(),
@@ -868,12 +899,13 @@ test_move_stage!(
                 }).into(),
                  condition: Expression::ScalarFunction(
                      mir::ScalarFunctionApplication {
-                         function: mir::ScalarFunction::Lt,
-                         args: vec![
-                             mir::Expression::Reference(Key::named("bar", 0u16).into()),
-                             mir::Expression::Literal(mir::LiteralValue::Integer(54).into()),
-                         ],
-                         cache: SchemaCache::new(),
+                        function: mir::ScalarFunction::Lt,
+                        args: vec![
+                            mir::Expression::Reference(Key::named("bar", 0u16).into()),
+                            mir::Expression::Literal(mir::LiteralValue::Integer(54).into()),
+                        ],
+                        cache: SchemaCache::new(),
+                        is_nullable: false,
                      }
                  ),
                 cache: SchemaCache::new(),
@@ -887,6 +919,7 @@ test_move_stage!(
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 }
             ),
             cache: SchemaCache::new(),
@@ -938,6 +971,7 @@ test_move_stage!(
                                 mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                             ],
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         }
                     ),
                     cache: SchemaCache::new(),
@@ -1014,6 +1048,7 @@ test_move_stage!(
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 }
             ),
             cache: SchemaCache::new(),
@@ -1045,6 +1080,7 @@ test_move_stage!(
                 mir::Expression::Reference(Key::named("bar2", 0u16).into()),
             ],
             cache: SchemaCache::new(),
+            is_nullable: false,
         })),
         join_type: JoinType::Inner,
         cache: SchemaCache::new(),
@@ -1075,6 +1111,7 @@ test_move_stage!(
                 mir::Expression::Reference(Key::named("bar2", 0u16).into()),
             ],
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
         cache: SchemaCache::new(),
     }),
@@ -1106,9 +1143,11 @@ test_move_stage!(
                         mir::Expression::Reference(Key::named("bar2", 0u16).into()),
                     ],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })
             ],
             cache: SchemaCache::new(),
+            is_nullable: false,
         })),
         join_type: JoinType::Inner,
         cache: SchemaCache::new(),
@@ -1141,6 +1180,7 @@ test_move_stage!(
                 mir::Expression::Reference(Key::named("bar2", 0u16).into()),
             ],
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
         cache: SchemaCache::new(),
     }),
@@ -1170,10 +1210,12 @@ test_move_stage!(
                                     }).into(),
                                     field: "x".into(),
                                     cache: SchemaCache::new(),
+                                    is_nullable: false,
                                 }),
                                 mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                             ],
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         }
                     ),
                     cache: SchemaCache::new(),
@@ -1264,6 +1306,7 @@ test_move_stage!(
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 }
             ),
             cache: SchemaCache::new(),
@@ -1315,6 +1358,7 @@ test_move_stage!(
                                 mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                             ],
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         }
                     ),
                     cache: SchemaCache::new(),
@@ -1389,6 +1433,7 @@ test_move_stage!(
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 }
             ),
             cache: SchemaCache::new(),
@@ -1422,6 +1467,7 @@ test_move_stage!(
                                 mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                             ],
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         }
                     ),
                     cache: SchemaCache::new(),
@@ -1512,6 +1558,7 @@ test_move_stage!(
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 }
             ),
             cache: SchemaCache::new(),
@@ -1538,10 +1585,12 @@ test_move_stage!(
                             Expression::FieldAccess(FieldAccess {
                                 expr: Box::new(Expression::Reference(("bar", 1u16).into())),
                                 field: "y".to_string(),
+                                is_nullable: false,
                                 cache: SchemaCache::new(),
                             }),
                             Expression::Literal(LiteralValue::Integer(100).into()),
                         ],
+                        is_nullable: false,
                         cache: SchemaCache::new(),
                     }),
                     cache: SchemaCache::new(),
@@ -1585,6 +1634,7 @@ test_move_stage!(
                 mir_field_access("bar", "y"),
                 Expression::Literal(LiteralValue::Integer(100).into()),
             ],
+            is_nullable: false,
             cache: SchemaCache::new(),
         }),
         cache: SchemaCache::new(),
@@ -1608,6 +1658,7 @@ test_move_stage!(
                     mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         })
@@ -1625,6 +1676,7 @@ test_move_stage!(
                 mir::Expression::Reference(Key::named("bar2", 0u16).into()),
             ],
             cache: SchemaCache::new(),
+            is_nullable: false,
         })),
         join_type: JoinType::Inner,
         cache: SchemaCache::new(),
@@ -1656,6 +1708,7 @@ test_move_stage!(
                     mir::Expression::Reference(Key::named("bar2", 0u16).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         })
@@ -1667,6 +1720,7 @@ test_move_stage!(
                 mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
             ],
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
         cache: SchemaCache::new(),
     }),
@@ -1691,6 +1745,7 @@ test_move_stage!(
                                 mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                             ],
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         }
                     ),
                     cache: SchemaCache::new(),
@@ -1709,6 +1764,7 @@ test_move_stage!(
                 key: Key::bot(0u16),
                 fields: vec!["x".to_string()],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             },
             index: None,
             outer: false,
@@ -1723,6 +1779,7 @@ test_move_stage!(
                     mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         ),
         cache: SchemaCache::new(),
@@ -1750,6 +1807,7 @@ test_move_stage!(
                     key: Key::bot(0u16),
                     fields: vec!["x".to_string()],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 },
                 index: None,
                 outer: false,
@@ -1764,6 +1822,7 @@ test_move_stage!(
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 }
             ),
             cache: SchemaCache::new(),
@@ -1776,6 +1835,7 @@ test_move_stage!(
                     mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }
         ),
         cache: SchemaCache::new(),

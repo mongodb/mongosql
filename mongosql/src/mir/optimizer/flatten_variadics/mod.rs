@@ -68,6 +68,7 @@ impl Visitor for ScalarFunctionApplicationVisitor {
             | ScalarFunction::Or
             | ScalarFunction::Concat => ScalarFunctionApplication {
                 function: node.function,
+                is_nullable: node.is_nullable,
                 args: node
                     .args
                     .iter()

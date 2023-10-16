@@ -80,6 +80,7 @@ impl Group {
             ret.insert(FieldPath {
                 key: Key::bot(self.scope),
                 fields: vec![agg.alias.clone()],
+                is_nullable: true,
                 cache: SchemaCache::new(),
             });
         }
@@ -95,6 +96,9 @@ impl Unwind {
             let _ = ret.insert(FieldPath {
                 key: self.path.key.clone(),
                 fields: vec![index.clone()],
+                // an index field can, rarely, be null. We do not use the nullablity
+                // for anything, anyway.
+                is_nullable: true,
                 cache: SchemaCache::new(),
             });
         }

@@ -1,43 +1,9 @@
 use crate::{
-    mir::{binding_tuple, schema::errors::Error, visitor::Visitor, *},
+    mir::{visitor::Visitor, *},
     schema::{Document, Satisfaction, Schema, NULLISH},
 };
 
 impl FieldAccess {
-    /// Get the datasource Key at the root of a FieldAccess
-    pub(crate) fn get_root_datasource(self) -> Result<binding_tuple::Key, Error> {
-        match *self.expr {
-            Expression::Reference(r) => Ok(r.key),
-            Expression::FieldAccess(f) => f.get_root_datasource(),
-            _ => Err(Error::InvalidUnwindPath),
-        }
-    }
-
-    /// Get the field path of a FieldAccess. In the returned path, the
-    /// last element is the beginning of the path and the first is the
-    /// end of the path.  This method is specifically intended for use
-    /// with set_field_schema (later in the file) and is therefore not
-    /// available publicly.
-    pub(in crate::mir) fn get_field_path(self) -> Result<Vec<String>, Error> {
-        fn get_field_path_aux(
-            e: Expression,
-            path: &mut Vec<String>,
-        ) -> Result<&mut Vec<String>, Error> {
-            match e {
-                Expression::Reference(_) => Ok(path),
-                Expression::FieldAccess(f) => {
-                    path.push(f.field.clone());
-                    get_field_path_aux(*f.expr, path)
-                }
-                _ => Err(Error::InvalidUnwindPath),
-            }
-        }
-
-        let mut v = vec![];
-        let path = get_field_path_aux(Expression::FieldAccess(self), &mut v)?;
-        Ok(path.clone())
-    }
-
     /// If this FieldAccess is "pure", then return the scope of its root
     /// Reference. A "pure" FieldAccess consists only of other FieldAccess
     /// expressions up the expr tree, ending at a Reference.
@@ -176,18 +142,6 @@ pub fn set_field_schema(
             })
         }
     }
-}
-
-/// get_optimized_field_accesses gets all optimized field accesses
-/// in the provided Filter stage's condition.
-pub fn get_optimized_field_accesses(filter: &Filter) -> Vec<FieldAccess> {
-    let mut visitor = FieldExistenceFieldAccessGatherer {
-        optimized_field_accesses: vec![],
-    };
-
-    visitor.visit_expression(filter.condition.clone());
-
-    visitor.optimized_field_accesses
 }
 
 struct FieldExistenceFieldAccessGatherer {

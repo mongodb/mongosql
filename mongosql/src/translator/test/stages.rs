@@ -240,6 +240,7 @@ mod project {
                         })),
                         field: "b".to_string(),
                         cache: mir::schema::SchemaCache::new(),
+                        is_nullable: false,
                     })),
                     target_type: mir::Type::Document,
                     cache: mir::schema::SchemaCache::new(),
@@ -462,6 +463,7 @@ mod group {
                         })),
                         field: "x".into(),
                         cache: mir::schema::SchemaCache::new(),
+                        is_nullable: false,
                     }
                 )),
             ],
@@ -540,6 +542,7 @@ mod group {
                         })),
                         field: "x".into(),
                         cache: mir::schema::SchemaCache::new(),
+                        is_nullable: false,
                     }
                 )),
             ],
@@ -677,6 +680,7 @@ mod sort {
                         key: ("bar", 0u16).into(),
                         fields: vec!["a".to_string()],
                         cache: mir::schema::SchemaCache::new(),
+                        is_nullable: false,
                     }
                 ),
                 mir::SortSpecification::Asc(
@@ -684,6 +688,7 @@ mod sort {
                         key: ("baz", 0u16).into(),
                         fields: vec!["a".to_string()],
                         cache: mir::schema::SchemaCache::new(),
+                        is_nullable: false,
                     }
                 )
             ],
@@ -730,11 +735,13 @@ mod sort {
                     key: ("foo", 0u16).into(),
                     fields: vec!["bar".to_string()],
                     cache: mir::schema::SchemaCache::new(),
+                    is_nullable: false,
                 }),
                 mir::SortSpecification::Asc(mir::FieldPath {
                     key: ("foo", 0u16).into(),
                     fields: vec!["baz".to_string()],
                     cache: mir::schema::SchemaCache::new(),
+                    is_nullable: false,
                 })
             ],
             cache: mir::schema::SchemaCache::new()
@@ -779,6 +786,7 @@ mod sort {
                     key: ("foo", 0u16).into(),
                     fields: vec!["bar".to_string(), "quz".to_string()],
                     cache: mir::schema::SchemaCache::new(),
+                    is_nullable: false,
                 }),
                 mir::SortSpecification::Asc(mir::FieldPath {
                     key: ("foo", 0u16).into(),
@@ -788,6 +796,7 @@ mod sort {
                         "bazzle".to_string()
                     ],
                     cache: mir::schema::SchemaCache::new(),
+                    is_nullable: false,
                 })
             ],
             cache: mir::schema::SchemaCache::new()
@@ -970,6 +979,7 @@ mod join {
                         mir::Expression::Reference(("bar", 0u16).into())
                     ],
                     cache: mir::schema::SchemaCache::new(),
+                    is_nullable: true,
                 }
             )),
             cache: mir::schema::SchemaCache::new(),
@@ -1093,91 +1103,94 @@ mod join {
     );
 
     test_translate_stage!(
-        joins_retain_aliases_for_left_and_right,
-        expected = Ok(air::Stage::Project(air::Project {
-            source: Box::new(air::Stage::Join(air::Join {
-                left: air::Stage::Project(air::Project {
-                    source: Box::new(air::Stage::Collection(
-                        air::Collection{
-                            db:"test_db".to_string(), collection:"foo".to_string()
-                        })),
-                        specifications: unchecked_unique_linked_hash_map!(
-                            "t1".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                        )
-                    }).into(),
-                right: air::Stage::Project(air::Project {
-                    source: Box::new(air::Stage::Collection(
-                        air::Collection{
-                            db:"test_db".to_string(), collection:"bar".to_string()
-                        })),
-                        specifications: unchecked_unique_linked_hash_map!(
-                            "t2".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                        )
-                    }).into(),
-                join_type: air::JoinType::Inner,
-                let_vars: Some(vec![air::LetVariable {
-                    name: "vt1_0".to_string(),
-                    expr: Box::new(air::Expression::FieldRef("t1".to_string().into())),
-                }]),
-                condition: Some(air::Expression::SQLSemanticOperator(
-                    air::SQLSemanticOperator {
-                        op: air::SQLOperator::Eq,
-                        args: vec![
-                            air::Expression::Variable("vt1_0.a".to_string().into()),
-                            air::Expression::FieldRef("t2.b".to_string().into())
-                        ]
-                    }
-                )),
+            joins_retain_aliases_for_left_and_right,
+            expected = Ok(air::Stage::Project(air::Project {
+                source: Box::new(air::Stage::Join(air::Join {
+                    left: air::Stage::Project(air::Project {
+                        source: Box::new(air::Stage::Collection(
+                            air::Collection{
+                                db:"test_db".to_string(), collection:"foo".to_string()
+                            })),
+                            specifications: unchecked_unique_linked_hash_map!(
+                                "t1".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
+                            )
+                        }).into(),
+                    right: air::Stage::Project(air::Project {
+                        source: Box::new(air::Stage::Collection(
+                            air::Collection{
+                                db:"test_db".to_string(), collection:"bar".to_string()
+                            })),
+                            specifications: unchecked_unique_linked_hash_map!(
+                                "t2".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
+                            )
+                        }).into(),
+                    join_type: air::JoinType::Inner,
+                    let_vars: Some(vec![air::LetVariable {
+                        name: "vt1_0".to_string(),
+                        expr: Box::new(air::Expression::FieldRef("t1".to_string().into())),
+                    }]),
+                    condition: Some(air::Expression::SQLSemanticOperator(
+                        air::SQLSemanticOperator {
+                            op: air::SQLOperator::Eq,
+                            args: vec![
+                                air::Expression::Variable("vt1_0.a".to_string().into()),
+                                air::Expression::FieldRef("t2.b".to_string().into())
+                            ]
+                        }
+                    )),
+                })),
+                specifications: unchecked_unique_linked_hash_map!(
+                    "bar".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("t2".to_string().into())),
+                    "foo".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("t1".to_string().into())),
+                )
             })),
-            specifications: unchecked_unique_linked_hash_map!(
-                "bar".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("t2".to_string().into())),
-                "foo".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("t1".to_string().into())),
-            )
-        })),
-        input = mir::Stage::Project(mir::Project {
-            source: Box::new(mir::Stage::Join(mir::Join {
-                join_type: mir::JoinType::Inner,
-                left: mir::Stage::Project(mir::Project {
-                    source: input_collection("foo"),
-                    expression: map! {
-                        Key::named("t1", 0u16) => mir::Expression::Reference(("foo".to_string(), 0u16).into()),
-                    },
-                    cache: mir::schema::SchemaCache::new(),
-                }).into(),
-                right: mir::Stage::Project(mir::Project {
-                    source: input_collection("bar"),
-                    expression: map! {
-                        Key::named("t2", 0u16) => mir::Expression::Reference(("bar".to_string(), 0u16).into()),
-                    },
-                    cache: mir::schema::SchemaCache::new(),
-                }).into(),
-                condition: Some(mir::Expression::ScalarFunction(
-                    mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::Eq,
-                        args: vec![
-                            mir::Expression::FieldAccess(mir::FieldAccess{
-                                expr: mir::Expression::Reference(("t1".to_string(), 0u16).into()).into(),
-                                field: "a".to_string(),
-                                cache: mir::schema::SchemaCache::new(),
-                            }),
-                            mir::Expression::FieldAccess(mir::FieldAccess{
-                                expr: mir::Expression::Reference(("t2".to_string(), 0u16).into()).into(),
-                                field: "b".to_string(),
-                                cache: mir::schema::SchemaCache::new(),
-                            }),
-                        ],
+            input = mir::Stage::Project(mir::Project {
+                source: Box::new(mir::Stage::Join(mir::Join {
+                    join_type: mir::JoinType::Inner,
+                    left: mir::Stage::Project(mir::Project {
+                        source: input_collection("foo"),
+                        expression: map! {
+                            Key::named("t1", 0u16) => mir::Expression::Reference(("foo".to_string(), 0u16).into()),
+                        },
                         cache: mir::schema::SchemaCache::new(),
-                    }
-                )),
+                    }).into(),
+                    right: mir::Stage::Project(mir::Project {
+                        source: input_collection("bar"),
+                        expression: map! {
+                            Key::named("t2", 0u16) => mir::Expression::Reference(("bar".to_string(), 0u16).into()),
+                        },
+                        cache: mir::schema::SchemaCache::new(),
+                    }).into(),
+                    condition: Some(mir::Expression::ScalarFunction(
+                        mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::Eq,
+                            args: vec![
+                                mir::Expression::FieldAccess(mir::FieldAccess{
+                                    expr: mir::Expression::Reference(("t1".to_string(), 0u16).into()).into(),
+                                    field: "a".to_string(),
+                                    cache: mir::schema::SchemaCache::new(),
+                                    is_nullable: false,
+                                }),
+                                mir::Expression::FieldAccess(mir::FieldAccess{
+                                    expr: mir::Expression::Reference(("t2".to_string(), 0u16).into()).into(),
+                                    field: "b".to_string(),
+                                    cache: mir::schema::SchemaCache::new(),
+                                    is_nullable: false,
+                                }),
+                            ],
+                            cache: mir::schema::SchemaCache::new(),
+                            is_nullable: true,
+                        }
+                    )),
+                    cache: mir::schema::SchemaCache::new(),
+                })),
+                expression: BindingTuple(map! {
+                    Key::named("foo", 0u16) => mir::Expression::Reference(("t1".to_string(), 0u16).into()),
+                    Key::named("bar", 0u16) => mir::Expression::Reference(("t2".to_string(), 0u16).into()),
+                }),
                 cache: mir::schema::SchemaCache::new(),
-            })),
-            expression: BindingTuple(map! {
-                Key::named("foo", 0u16) => mir::Expression::Reference(("t1".to_string(), 0u16).into()),
-                Key::named("bar", 0u16) => mir::Expression::Reference(("t2".to_string(), 0u16).into()),
-            }),
-            cache: mir::schema::SchemaCache::new()
-        })
-    );
+            })
+        );
 
     test_translate_stage!(
         ensure_let_variables_start_with_lowercase_letters_not_underscore_or_uppercase,
@@ -1539,6 +1552,7 @@ mod derived {
                             })),
                             field: "a".to_string(),
                             cache: mir::schema::SchemaCache::new(),
+                            is_nullable: false,
                         })),
                         target_type: mir::Type::Int32,
                         cache: mir::schema::SchemaCache::new(),
@@ -1578,6 +1592,7 @@ mod unwind {
                 key: ("foo",0u16).into(),
                 fields: vec!["bar".to_string()],
                 cache: mir::schema::SchemaCache::new(),
+                is_nullable: false,
             },
             index: None,
             outer: false,
@@ -1606,6 +1621,7 @@ mod unwind {
                 key: ("foo",0u16).into(),
                 fields: vec!["bar".to_string()],
                 cache: mir::schema::SchemaCache::new(),
+                is_nullable: false,
             },
             index: None,
             outer: true,
@@ -1633,6 +1649,7 @@ mod unwind {
                 key: ("foo",0u16).into(),
                 fields: vec!["bar".to_string()],
                 cache: mir::schema::SchemaCache::new(),
+                is_nullable: false,
             },
             index: Some("i".into()),
             outer: true,
@@ -1680,6 +1697,7 @@ mod unwind {
                         key: ("foo", 0u16).into(),
                         fields: vec!["arr".to_string()],
                         cache: mir::schema::SchemaCache::new(),
+                        is_nullable: true,
                     },
                     index: Some("idx".into()),
                     outer: false,
@@ -1692,10 +1710,12 @@ mod unwind {
                             expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
                             field: "arr".into(),
                             cache: mir::schema::SchemaCache::new(),
+                            is_nullable: true,
                         }),
                         mir::Expression::Literal(mir::LiteralValue::Integer(0).into()),
                     ],
                     cache: mir::schema::SchemaCache::new(),
+                    is_nullable: true,
                 }),
                 cache: mir::schema::SchemaCache::new(),
             })),
@@ -1706,11 +1726,13 @@ mod unwind {
                             expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
                             field: "arr".into(),
                             cache: mir::schema::SchemaCache::new(),
+                            is_nullable: false,
                         }),
                         "idx".into() => mir::Expression::FieldAccess(mir::FieldAccess {
                             expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
                             field: "idx".into(),
                             cache: mir::schema::SchemaCache::new(),
+                            is_nullable: false,
                         })
                     },
                     cache: mir::schema::SchemaCache::new(),
@@ -1764,6 +1786,7 @@ mod mql_intrinsic {
                         key: ("f", 0u16).into(),
                         fields: vec!["a".to_string()],
                         cache: mir::schema::SchemaCache::new(),
+                        is_nullable: false,
                     }),
                     arg: mir::LiteralValue::Integer(1),
                     cache: mir::schema::SchemaCache::new(),
@@ -2055,6 +2078,7 @@ mod subquery_expr {
                                 expr: Box::new(mir::Expression::Reference((Bottom, 1u16).into())),
                                 field: "bar".to_string(),
                                 cache: mir::schema::SchemaCache::new(),
+                                is_nullable: false,
                             })),
                             subquery: Box::new(mir::Stage::Limit(mir::Limit {
                                 source: Box::new(mir::Stage::Project(mir::Project {
@@ -2076,6 +2100,7 @@ mod subquery_expr {
                                                     expr: Box::new(mir::Expression::Reference(("q", 0u16).into())),
                                                     field: "bar".to_string(),
                                                     cache: mir::schema::SchemaCache::new(),
+                                                    is_nullable: false,
                                                 }),
                                             },
                                             cache: mir::schema::SchemaCache::new(),
@@ -2087,6 +2112,7 @@ mod subquery_expr {
                                 cache: mir::schema::SchemaCache::new(),
                             })),
                             cache: mir::schema::SchemaCache::new(),
+                            is_nullable: false,
                         }),
                     },
                     cache: mir::schema::SchemaCache::new(),

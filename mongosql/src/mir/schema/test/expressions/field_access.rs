@@ -20,6 +20,7 @@ test_schema!(
         expr: Box::new(Expression::Literal(LiteralValue::Long(1).into())),
         field: "foo".to_string(),
         cache: SchemaCache::new(),
+        is_nullable: false,
     }),
 );
 
@@ -34,6 +35,7 @@ test_schema!(
         expr: Box::new(Expression::Reference(("bar", 0u16).into())),
         field: "foo".to_string(),
         cache: SchemaCache::new(),
+        is_nullable: false,
     }),
     schema_env = map! {("bar", 0u16).into() => Schema::Document(
         Document {
@@ -51,6 +53,7 @@ test_schema!(
         expr: Box::new(Expression::Reference(("bar", 0u16).into())),
         field: "foo".to_string(),
         cache: SchemaCache::new(),
+        is_nullable: false,
     }),
     schema_env = map! {("bar", 0u16).into() => Schema::Document(
         Document {
@@ -68,6 +71,7 @@ test_schema!(
         expr: Box::new(Expression::Reference(("bar", 0u16).into())),
         field: "foo".to_string(),
         cache: SchemaCache::new(),
+        is_nullable: false,
     }),
     schema_env = map! {("bar", 0u16).into() => Schema::Document(
         Document {
@@ -87,6 +91,7 @@ test_schema!(
         expr: Box::new(Expression::Reference(("bar", 0u16).into())),
         field: "foo".to_string(),
         cache: SchemaCache::new(),
+        is_nullable: false,
     }),
     schema_env = map! {("bar", 0u16).into() =>
         Schema::AnyOf(set!{
@@ -116,6 +121,7 @@ test_schema!(
         expr: Box::new(Expression::Reference(("bar", 0u16).into())),
         field: "foo".to_string(),
         cache: SchemaCache::new(),
+        is_nullable: false,
     }),
     schema_env = map! {("bar", 0u16).into() =>
         Schema::AnyOf(set!{

@@ -26,9 +26,11 @@ mod searched {
             when_branch: vec![WhenBranch {
                 when: Box::new(Expression::Literal(LiteralValue::Integer(1).into())),
                 then: Box::new(Expression::Literal(LiteralValue::Integer(2).into())),
+                is_nullable: false,
             }],
             else_branch: Box::new(Expression::Literal(LiteralValue::Null.into())),
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -39,6 +41,7 @@ mod searched {
             when_branch: vec![],
             else_branch: Box::new(Expression::Literal(LiteralValue::Long(1).into())),
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -54,14 +57,17 @@ mod searched {
                 WhenBranch {
                     when: Box::new(Expression::Literal(LiteralValue::Boolean(true).into())),
                     then: Box::new(Expression::Literal(LiteralValue::Integer(1).into())),
+                    is_nullable: false,
                 },
                 WhenBranch {
                     when: Box::new(Expression::Literal(LiteralValue::Boolean(true).into())),
                     then: Box::new(Expression::Literal(LiteralValue::Long(2).into())),
+                    is_nullable: false,
                 }
             ],
             else_branch: Box::new(Expression::Literal(LiteralValue::Null.into())),
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 }
@@ -84,9 +90,11 @@ mod simple {
             when_branch: vec![WhenBranch {
                 when: Box::new(Expression::Literal(LiteralValue::Integer(1).into())),
                 then: Box::new(Expression::Literal(LiteralValue::Integer(2).into())),
+                is_nullable: false,
             }],
             else_branch: Box::new(Expression::Literal(LiteralValue::Null.into())),
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -98,6 +106,7 @@ mod simple {
             when_branch: vec![],
             else_branch: Box::new(Expression::Literal(LiteralValue::Long(2).into())),
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -114,14 +123,17 @@ mod simple {
                 WhenBranch {
                     when: Box::new(Expression::Literal(LiteralValue::Integer(2).into())),
                     then: Box::new(Expression::Literal(LiteralValue::Integer(3).into())),
+                    is_nullable: false,
                 },
                 WhenBranch {
                     when: Box::new(Expression::Literal(LiteralValue::Long(4).into())),
                     then: Box::new(Expression::Literal(LiteralValue::Long(5).into())),
+                    is_nullable: false,
                 }
             ],
             else_branch: Box::new(Expression::Literal(LiteralValue::Null.into())),
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 }

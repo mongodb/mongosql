@@ -47,6 +47,7 @@ mod exists {
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                             field: "a".into(),
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         })
                     }.into())
                 },
@@ -92,6 +93,7 @@ mod exists {
                                 Expression::Literal(LiteralValue::Integer(2).into()),
                                 Expression::Literal(LiteralValue::Integer(3).into())
                             ],
+                            is_nullable: false,
                         cache: SchemaCache::new(),
                         })
                 },
@@ -120,6 +122,7 @@ mod subquery_expr {
                 expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
                 field: "_2".into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })),
             subquery: Box::new(Stage::Project(Project {
                 source: Box::new(Stage::Collection(Collection {
@@ -135,6 +138,7 @@ mod subquery_expr {
                 cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
         catalog = Catalog::new(map! {
             Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
@@ -153,6 +157,7 @@ mod subquery_expr {
                 expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
                 field: "a".into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })),
             subquery: Box::new(Stage::Project(Project {
                 source: Box::new(Stage::Array(ArraySource {
@@ -166,12 +171,14 @@ mod subquery_expr {
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                             field: "a".into(),
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         })
                     }.into())
                 },
                 cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::Document( Document{
@@ -195,6 +202,7 @@ mod subquery_expr {
                 expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                 field: "a".into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })),
             subquery: Box::new(Stage::Project(Project {
                 source: Box::new(Stage::Collection(Collection {
@@ -208,12 +216,14 @@ mod subquery_expr {
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                             field: "a".into(),
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         })
                     }.into())
                 },
                 cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::Document( Document{
@@ -241,6 +251,7 @@ mod subquery_expr {
                 cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -253,6 +264,7 @@ mod subquery_expr {
                 expr: Box::new(Expression::Reference(("foo", 1u16).into())),
                 field: "a".into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })),
             subquery: Box::new(Stage::Array(ArraySource {
                 array: vec![Expression::Document(
@@ -265,6 +277,7 @@ mod subquery_expr {
                 cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -281,6 +294,7 @@ mod subquery_expr {
                 cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
         catalog = Catalog::new(map! {
             Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
@@ -297,6 +311,7 @@ mod subquery_expr {
                 expr: Box::new(Expression::Reference(("foo", 1u16).into())),
                 field: "a".into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })),
             subquery: Box::new(Stage::Array(ArraySource {
                 array: vec![
@@ -317,6 +332,7 @@ mod subquery_expr {
                 cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 }
@@ -336,6 +352,7 @@ mod subquery_comparison {
                     expr: Box::new(Expression::Reference(("foo", 1u16).into())),
                     field: "a".into(),
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })),
                 subquery: Box::new(Stage::Array(ArraySource {
                     array: vec![Expression::Document(
@@ -348,8 +365,10 @@ mod subquery_comparison {
                     cache: SchemaCache::new(),
                 })),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             },
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 
@@ -368,6 +387,7 @@ mod subquery_comparison {
                     expr: Box::new(Expression::Reference(("foo", 1u16).into())),
                     field: "a".into(),
                     cache: SchemaCache::new(),
+                    is_nullable: true,
                 })),
                 subquery: Box::new(Stage::Array(ArraySource {
                     array: vec![
@@ -388,8 +408,10 @@ mod subquery_comparison {
                     cache: SchemaCache::new(),
                 })),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             },
             cache: SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 
@@ -412,6 +434,7 @@ mod subquery_comparison {
                     expr: Box::new(Expression::Reference(("foo", 1u16).into())),
                     field: "a".into(),
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })),
                 subquery: Box::new(Stage::Array(ArraySource {
                     array: vec![Expression::Document(
@@ -424,8 +447,10 @@ mod subquery_comparison {
                     cache: SchemaCache::new(),
                 })),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             },
             cache: SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 }

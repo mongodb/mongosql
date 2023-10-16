@@ -1,14 +1,13 @@
 use crate::{
     air::{self, LetVariable, MQLOperator, SQLOperator, TrimOperator},
     mapping_registry::{MqlMappingRegistry, MqlMappingRegistryValue, MqlReferenceType},
-    mir::{self, schema::CachedSchema},
-    schema,
+    mir::{self, ScalarFunction},
     translator::{Error, MqlTranslator, Result},
 };
 use mongosql_datastructures::binding_tuple::{BindingTuple, DatasourceName, Key};
 use std::collections::BTreeMap;
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ScalarFunctionType {
     Divide,
     Mql(MQLOperator),
@@ -163,16 +162,6 @@ impl MqlTranslator {
         let_bindings
     }
 
-    pub(crate) fn schema_is_nullish(expr: mir::Expression) -> bool {
-        match expr.get_cached_schema() {
-            Some(schema_result) => match schema_result {
-                Ok(schema) => schema::NULLISH.satisfies(&schema) != schema::Satisfaction::Not,
-                Err(_) => true,
-            },
-            None => true,
-        }
-    }
-
     pub(crate) fn translate_literal_value(&self, lit: mir::LiteralValue) -> air::LiteralValue {
         match lit {
             mir::LiteralValue::Null => air::LiteralValue::Null,
@@ -249,16 +238,10 @@ impl From<mir::DateFunction> for air::DateFunction {
 }
 
 pub(crate) fn scalar_function_to_scalar_function_type(
+    is_nullable: bool,
     function: mir::ScalarFunction,
-    args: Vec<mir::Expression>,
 ) -> ScalarFunctionType {
-    use mir::ScalarFunction;
-
-    let any_arg_may_satisfy_null_or_missing = args
-        .iter()
-        .any(|expr| MqlTranslator::schema_is_nullish(expr.clone()));
-
-    if any_arg_may_satisfy_null_or_missing {
+    if is_nullable {
         ScalarFunctionType::from(function)
     } else {
         match function {

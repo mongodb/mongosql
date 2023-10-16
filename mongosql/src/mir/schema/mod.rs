@@ -3,7 +3,7 @@ use crate::{
     map,
     mir::{
         binding_tuple,
-        schema::util::{get_optimized_field_accesses, lift_array_schemas, set_field_schema},
+        schema::util::{lift_array_schemas, set_field_schema},
         *,
     },
     schema::{
@@ -43,8 +43,17 @@ impl<T: Clone> SchemaCacheContents<T> {
 }
 
 /// SchemaCache caches a `Result` because `schema()` methods are fallible and always return a Result.
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Eq)]
 pub struct SchemaCache<T: Clone>(RefCell<Option<SchemaCacheContents<Result<T, Error>>>>);
+
+// impl Debug for SchemaCache<T>
+
+impl<T: Clone> std::fmt::Debug for SchemaCache<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // We don't want to print the contents of the cache, so we just print the type.
+        write!(f, "<SchemaCache...>")
+    }
+}
 
 impl<T: Clone> PartialEq for SchemaCache<T> {
     fn eq(&self, _other: &Self) -> bool {
@@ -94,21 +103,7 @@ pub trait CachedSchema {
 
     /// Cached call to `check_schema()`.
     fn schema(&self, state: &SchemaInferenceState) -> Result<Self::ReturnType, Error> {
-        // This mutable borrow of the cache will be released when schema() is complete.
-        let mut cache = self.get_cache().0.borrow_mut();
-        match &*cache {
-            Some(contents) => contents.result.clone(),
-            _ => {
-                let schema_result = self.check_schema(state);
-                cache.replace(SchemaCacheContents::new(schema_result.clone()));
-                schema_result
-            }
-        }
-    }
-
-    /// Invalidate the cache.
-    fn invalidate_cache(&self) {
-        self.get_cache().0.replace(None);
+        self.check_schema(state)
     }
 }
 
@@ -211,6 +206,20 @@ impl<'a> SchemaInferenceState<'a> {
 impl CachedSchema for Stage {
     type ReturnType = ResultSet;
 
+    /// Cached call to `check_schema()`.
+    fn schema(&self, state: &SchemaInferenceState) -> Result<Self::ReturnType, Error> {
+        // This mutable borrow of the cache will be released when schema() is complete.
+        let mut cache = self.get_cache().0.borrow_mut();
+        match &*cache {
+            Some(contents) => contents.result.clone(),
+            _ => {
+                let schema_result = self.check_schema(state);
+                cache.replace(SchemaCacheContents::new(schema_result.clone()));
+                schema_result
+            }
+        }
+    }
+
     fn get_cache(&self) -> &SchemaCache<Self::ReturnType> {
         match self {
             Stage::Filter(s) => &s.cache,
@@ -242,7 +251,7 @@ impl CachedSchema for Stage {
     fn check_schema(&self, state: &SchemaInferenceState) -> Result<ResultSet, Error> {
         match self {
             Stage::Filter(f) => {
-                let mut source_result_set = f.source.schema(state)?;
+                let source_result_set = f.source.schema(state)?;
                 let state = state.with_merged_schema_env(source_result_set.schema_env.clone())?;
                 let cond_schema = f.condition.schema(&state)?;
                 if !state.check_satisfies(&cond_schema, &BOOLEAN_OR_NULLISH) {
@@ -251,33 +260,6 @@ impl CachedSchema for Stage {
                         required: BOOLEAN_OR_NULLISH.clone(),
                         found: cond_schema,
                     });
-                }
-
-                // For each FieldExistence in the condition, we must update
-                // the result set schema to indicate that the optimized
-                // field is never nullish.
-                let optimized_field_accesses = get_optimized_field_accesses(f);
-                for ofa in optimized_field_accesses {
-                    let ofa_schema = Expression::FieldAccess(ofa.clone()).schema(&state)?;
-
-                    let ofa_datasource = ofa.clone().get_root_datasource()?;
-                    let ofa_non_nullish_schema = Schema::simplify(&ofa_schema.subtract_nullish());
-
-                    match source_result_set.schema_env.get(&ofa_datasource.clone()) {
-                        None => unreachable!("optimized fields must always exist in the schema"),
-                        Some(ofa_datasource_schema) => {
-                            let updated_ofa_datasource_schema = set_field_schema(
-                                ofa_datasource_schema.clone(),
-                                &mut ofa.get_field_path()?,
-                                ofa_non_nullish_schema,
-                                true,
-                            );
-
-                            source_result_set
-                                .schema_env
-                                .insert(ofa_datasource, updated_ofa_datasource_schema);
-                        }
-                    }
                 }
 
                 Ok(ResultSet {
@@ -1206,29 +1188,7 @@ impl CachedSchema for Expression {
             Expression::Document(DocumentExpr { document, .. }) => {
                 Expression::document_schema(state, document)
             }
-            Expression::FieldAccess(FieldAccess {
-                expr,
-                field,
-                cache: _cache,
-            }) => {
-                let accessee_schema = expr.schema(state)?;
-                if accessee_schema.satisfies(&ANY_DOCUMENT) == Satisfaction::Not {
-                    return Err(Error::SchemaChecking {
-                        name: "FieldAccess",
-                        required: ANY_DOCUMENT.clone(),
-                        found: accessee_schema,
-                    });
-                }
-                if accessee_schema.contains_field(field) == Satisfaction::Not {
-                    let found_keys = accessee_schema.keys();
-                    if found_keys.is_empty() {
-                        return Err(Error::AccessMissingField(field.clone(), None));
-                    } else {
-                        return Err(Error::AccessMissingField(field.clone(), Some(found_keys)));
-                    }
-                }
-                Ok(Expression::get_field_schema(&accessee_schema, field))
-            }
+            Expression::FieldAccess(fa) => fa.schema(state),
             Expression::DateFunction(d) => d.schema(state),
             Expression::ScalarFunction(f) => f.schema(state),
             Expression::Cast(c) => c.schema(state),
@@ -1292,6 +1252,31 @@ impl LiteralValue {
             Long(_) => Schema::Atomic(Atomic::Long),
             Double(_) => Schema::Atomic(Atomic::Double),
         })
+    }
+}
+
+impl FieldAccess {
+    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+        let accessee_schema = self.expr.schema(state)?;
+        if accessee_schema.satisfies(&ANY_DOCUMENT) == Satisfaction::Not {
+            return Err(Error::SchemaChecking {
+                name: "FieldAccess",
+                required: ANY_DOCUMENT.clone(),
+                found: accessee_schema,
+            });
+        }
+        if accessee_schema.contains_field(&self.field) == Satisfaction::Not {
+            let found_keys = accessee_schema.keys();
+            if found_keys.is_empty() {
+                return Err(Error::AccessMissingField(self.field.clone(), None));
+            } else {
+                return Err(Error::AccessMissingField(
+                    self.field.clone(),
+                    Some(found_keys),
+                ));
+            }
+        }
+        Ok(Expression::get_field_schema(&accessee_schema, &self.field))
     }
 }
 

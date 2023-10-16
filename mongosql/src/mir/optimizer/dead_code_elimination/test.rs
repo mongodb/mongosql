@@ -99,12 +99,14 @@ test_dead_code_elimination!(
                             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
                             field: "a".to_string(),
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         }),
                     }),
                     OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
                         expr: Box::new(Expression::Reference(("bar", 0u16).into())),
                         field: "b".to_string(),
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })),
                 ],
                 aggregations: vec![AliasedAggregation {
@@ -116,6 +118,7 @@ test_dead_code_elimination!(
                             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
                             field: "c".to_string(),
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         })),
                     }),
                 }],
@@ -149,12 +152,14 @@ test_dead_code_elimination!(
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                         field: "a".to_string(),
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 }),
                 OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                     field: "b".to_string(),
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })),
             ],
             aggregations: vec![AliasedAggregation {
@@ -166,6 +171,7 @@ test_dead_code_elimination!(
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                         field: "c".to_string(),
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })),
                 }),
             }],
@@ -192,12 +198,14 @@ test_dead_code_elimination!(
                             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
                             field: "a".to_string(),
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         })
                     }),
                     OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
                         expr: Box::new(Expression::Reference(("bar", 0u16).into())),
                         field: "b".to_string(),
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })),
                 ],
                 aggregations: vec![AliasedAggregation {
@@ -209,6 +217,7 @@ test_dead_code_elimination!(
                             expr: Box::new(Expression::Reference(("bar", 0u16).into())),
                             field: "c".to_string(),
                             cache: SchemaCache::new(),
+                            is_nullable: false,
                         })),
                     }),
                 }],
@@ -229,7 +238,8 @@ test_dead_code_elimination!(
                             key: mir::binding_tuple::Key::bot(0), cache: SchemaCache::new()
                         })),
                         field: "_agg1".to_string(),
-                        cache: SchemaCache::new()
+                        cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 ),
                 cache: SchemaCache::new()
@@ -253,12 +263,14 @@ test_dead_code_elimination!(
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                         field: "a".to_string(),
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 }),
                 OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                     field: "b".to_string(),
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })),
             ],
             aggregations: vec![AliasedAggregation {
@@ -270,6 +282,7 @@ test_dead_code_elimination!(
                         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                         field: "c".to_string(),
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     })),
                 }),
             }],
@@ -284,7 +297,8 @@ test_dead_code_elimination!(
                             key: mir::binding_tuple::Key::bot(0), cache: SchemaCache::new()
                         })),
                         field: "_agg1".to_string(),
-                        cache: SchemaCache::new()
+                        cache: SchemaCache::new(),
+                        is_nullable: false,
                     })
                 ),
                 cache: SchemaCache::new()
@@ -311,12 +325,14 @@ test_dead_code_elimination!(
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                     field: "a".to_string(),
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })
             }),
             OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference(("bad", 0u16).into())),
                 field: "b".to_string(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })),
         ],
         aggregations: vec![AliasedAggregation {
@@ -328,6 +344,7 @@ test_dead_code_elimination!(
                     expr: Box::new(Expression::Reference(("bad", 0u16).into())),
                     field: "c".to_string(),
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })),
             }),
         }],
@@ -349,12 +366,14 @@ test_dead_code_elimination!(
                     expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                     field: "a".to_string(),
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })
             }),
             OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference(("bad", 0u16).into())),
                 field: "b".to_string(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             })),
         ],
         aggregations: vec![AliasedAggregation {
@@ -366,6 +385,7 @@ test_dead_code_elimination!(
                     expr: Box::new(Expression::Reference(("bad", 0u16).into())),
                     field: "c".to_string(),
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })),
             }),
         }],

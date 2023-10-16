@@ -34,7 +34,7 @@ impl SQLNullSemanticsOperatorsDesugarerVisitor {
             .into_iter()
             .map(|let_var| {
                 MQLSemanticOperator(air::MQLSemanticOperator {
-                    op: op.clone(),
+                    op,
                     args: vec![Variable(let_var.name.into()), Literal(lit_val.clone())],
                 })
             })

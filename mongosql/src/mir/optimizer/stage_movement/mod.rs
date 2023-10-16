@@ -320,6 +320,38 @@ impl<'a> StageMovementVisitor<'a> {
         }
     }
 
+    // This merges the condition from a filter into a join on attribute, producing
+    // a logically equivalent condition in one expression.
+    fn create_new_join_condition(
+        join_condition: Option<Expression>,
+        filter_condition: Expression,
+    ) -> Option<Expression> {
+        match join_condition {
+            None => Some(filter_condition),
+            Some(Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::And,
+                is_nullable,
+                mut args,
+                cache,
+            })) => {
+                let filter_is_nullable = filter_condition.is_nullable();
+                args.push(filter_condition);
+                Some(Expression::ScalarFunction(ScalarFunctionApplication {
+                    function: ScalarFunction::And,
+                    is_nullable: is_nullable || filter_is_nullable,
+                    args,
+                    cache,
+                }))
+            }
+            Some(condition) => Some(Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::And,
+                is_nullable: condition.is_nullable() || filter_condition.is_nullable(),
+                args: vec![condition, filter_condition],
+                cache: SchemaCache::new(),
+            })),
+        }
+    }
+
     fn handle_offset(&mut self, node: Stage) -> Stage {
         if let Stage::Offset(ref o) = node {
             return if o.source.is_offset_invalidating() {
@@ -368,15 +400,7 @@ impl<'a> StageMovementVisitor<'a> {
                     stage
                 } else if let Stage::Filter(f) = stage {
                     if let Stage::Join(j) = *f.source {
-                        let condition = if j.condition.is_none() {
-                            Some(f.condition)
-                        } else {
-                            Some(Expression::ScalarFunction(ScalarFunctionApplication {
-                                function: ScalarFunction::And,
-                                args: vec![j.condition.unwrap(), f.condition],
-                                cache: SchemaCache::new(),
-                            }))
-                        };
+                        let condition = Self::create_new_join_condition(j.condition, f.condition);
                         Stage::Join(Join { condition, ..j })
                     } else {
                         unreachable!()
@@ -435,7 +459,7 @@ impl<'a> StageMovementVisitor<'a> {
 
     // A source prevents a reorder if it is a terminal source: Collection, Array, or if
     // it is a Sort and the current node is also a Sort or Group because reordering Sorts amongst themselves
-    // actually changes semantics and reordering Groups will change sort order.
+    // actually changes is_nullable and reordering Groups will change sort order.
     fn source_prevents_reorder(node: &Stage) -> bool {
         match *node {
             Stage::Sort(ref n) => matches!(

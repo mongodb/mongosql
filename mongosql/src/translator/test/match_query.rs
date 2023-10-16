@@ -46,6 +46,7 @@ fn mir_field_input() -> Option<mir::FieldPath> {
         key: ("f", 0u16).into(),
         fields: vec!["a".to_string()],
         cache: mir::schema::SchemaCache::new(),
+        is_nullable: false,
     })
 }
 
@@ -387,6 +388,7 @@ mod match_path {
             key: ("f", 0u16).into(),
             fields: vec!["x".to_string(), "y".to_string()],
             cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         };
 
         let expected: Result<Option<air::FieldRef>> = Ok(Some("f.x.y".to_string().into()));

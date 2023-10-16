@@ -3,6 +3,7 @@ resolver = "2"
 
 members = [
     "benchmark/pipeline_generator",
+    "benchmark/profiler",
     "e2e-tests",
     "mongosql-datastructures",
     "mongosql-c",
@@ -11,3 +12,8 @@ members = [
     "visitgen",
     "visitgen-test",
 ]
+
+[profile.release]
+lto = "fat"
+codegen-units = 1
+debug = true

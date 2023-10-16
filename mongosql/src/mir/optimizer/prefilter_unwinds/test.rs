@@ -16,6 +16,7 @@ fn mir_field_access(ref_name: &str, field_name: &str) -> mir::Expression {
         expr: Box::new(mir_reference(ref_name)),
         field: field_name.to_string(),
         cache: mir::schema::SchemaCache::new(),
+        is_nullable: false,
     })
 }
 
@@ -116,6 +117,7 @@ test_prefilter! {
                             )
                         ],
                         cache: SchemaCache::new(),
+                is_nullable: false,
                     }),
                 cache: SchemaCache::new(),
         }),
@@ -137,6 +139,7 @@ test_prefilter! {
                             )
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                 cache: SchemaCache::new(),
         }),
@@ -162,6 +165,7 @@ test_prefilter_no_op! {
                         )
                     ],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 }),
             cache: SchemaCache::new(),
     }),
@@ -220,6 +224,7 @@ test_prefilter! {
                             )
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                 cache: SchemaCache::new(),
         }),
@@ -244,6 +249,7 @@ test_prefilter! {
                             )
                         ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                 cache: SchemaCache::new(),
         }),
@@ -272,6 +278,7 @@ test_prefilter_no_op! {
                         )
                     ],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 }),
             cache: SchemaCache::new(),
     }),
@@ -300,6 +307,7 @@ test_prefilter_no_op! {
                         )
                     ],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 }),
             cache: SchemaCache::new(),
     }),
@@ -323,10 +331,12 @@ test_prefilter_no_op! {
                         function: ScalarFunction::Add,
                         args: vec![ mir_field_access("foo", "bar"), Expression::Literal(Integer(1).into()) ],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     } ),
                     Expression::Literal( Integer(42).into(), )
                 ],
                 cache: SchemaCache::new(),
+                    is_nullable: false,
             }),
         cache: SchemaCache::new(),
     }),
@@ -350,6 +360,7 @@ test_prefilter_no_op! {
                         function: ScalarFunction::Add,
                         args: vec![mir_field_access("foo", "idx")],
                         cache: SchemaCache::new(),
+                        is_nullable: false,
                     }),
                     Expression::Literal(
                         Integer(42).into(),
@@ -359,6 +370,7 @@ test_prefilter_no_op! {
                     )
                 ],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }),
         cache: SchemaCache::new(),
     }),

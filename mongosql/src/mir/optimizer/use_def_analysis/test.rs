@@ -161,6 +161,7 @@ fn mir_field_access(ref_name: &str, field_name: &str) -> mir::Expression {
         expr: Box::new(mir_reference(ref_name)),
         field: field_name.to_string(),
         cache: mir::schema::SchemaCache::new(),
+        is_nullable: false,
     })
 }
 
@@ -251,6 +252,7 @@ test_method!(
                 key: Key::named("foo", 0),
                 fields: vec!["bar".to_string(), "arr".to_string()],
                 cache: SchemaCache::new(),
+                is_nullable: false,
             },
             mir_field_path("foo", vec!["idx"]),
         };
@@ -262,6 +264,7 @@ test_method!(
             key: Key::named("foo", 0),
             fields: vec!["bar".to_string(), "arr".to_string()],
             cache: SchemaCache::new(),
+            is_nullable: false,
         },
         index: Some("idx".to_string()),
         outer: false,
@@ -289,10 +292,12 @@ test_field_uses!(
                     function: ScalarFunction::Add,
                     args: vec![mir_field_access("bar", "y"), mir_field_access("bar", "x"),],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })
             ],
 
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
         cache: SchemaCache::new(),
     }),
@@ -332,10 +337,12 @@ test_datasource_uses!(
                     function: ScalarFunction::Add,
                     args: vec![mir_reference("y"), mir_reference("x"),],
                     cache: SchemaCache::new(),
+                    is_nullable: false,
                 })
             ],
 
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
         cache: SchemaCache::new(),
     }),
@@ -393,6 +400,7 @@ test_substitute!(
             function: ScalarFunction::Eq,
             args: vec![mir_int_expr(42), mir_int_expr(55),],
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
         cache: SchemaCache::new(),
     })),
@@ -402,6 +410,7 @@ test_substitute!(
             function: ScalarFunction::Eq,
             args: vec![mir_reference("x"), mir_reference("y"),],
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
         cache: SchemaCache::new(),
     }),
@@ -440,6 +449,7 @@ test_substitute!(
                         })),
                         field: "x2".to_string(),
                         cache: mir::schema::SchemaCache::new(),
+                        is_nullable: false,
                     }),
                     "y".to_string() => mir::Expression::FieldAccess( mir::FieldAccess {
                         expr: Box::new(mir::Expression::Reference( mir::ReferenceExpr {
@@ -448,6 +458,7 @@ test_substitute!(
                         })),
                         field: "y2".to_string(),
                         cache: mir::schema::SchemaCache::new(),
+                        is_nullable: false,
                     }),
                 },
                 cache: mir::schema::SchemaCache::new(),
@@ -682,6 +693,7 @@ test_substitute!(
             function: ScalarFunction::Eq,
             args: vec![mir_int_expr(42), mir_int_expr(55),],
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
         cache: SchemaCache::new(),
     })),
@@ -691,6 +703,7 @@ test_substitute!(
             function: ScalarFunction::Eq,
             args: vec![mir_reference("x"), mir_reference("y"),],
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
         cache: SchemaCache::new(),
     }),

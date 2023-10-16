@@ -98,6 +98,7 @@ fn field_path(field: &str) -> Option<FieldPath> {
         key: ("foo", 0u16).into(),
         fields: vec![field.to_string()],
         cache: SchemaCache::new(),
+        is_nullable: false,
     })
 }
 
@@ -108,7 +109,7 @@ fn field_path(field: &str) -> Option<FieldPath> {
 // the cost is inconsequential.
 fn valid_is() -> Expression {
     Expression::Is(IsExpr {
-        expr: mir_field_access("foo", "str"),
+        expr: mir_field_access("foo", "str", false),
         target_type: TypeOrMissing::Type(Type::String),
         cache: SchemaCache::new(),
     })
@@ -124,7 +125,7 @@ fn valid_match_is() -> MatchQuery {
 
 fn valid_is_null() -> Expression {
     Expression::Is(IsExpr {
-        expr: mir_field_access("foo", "str"),
+        expr: mir_field_access("foo", "str", false),
         target_type: TypeOrMissing::Type(Type::Null),
         cache: SchemaCache::new(),
     })
@@ -152,7 +153,7 @@ fn invalid_is() -> Expression {
 
 fn valid_like() -> Expression {
     Expression::Like(LikeExpr {
-        expr: mir_field_access("foo", "str"),
+        expr: mir_field_access("foo", "str", false),
         pattern: Box::new(Expression::Literal(LiteralExpr {
             value: LiteralValue::String("abc".to_string()),
             cache: SchemaCache::new(),
@@ -188,8 +189,8 @@ fn invalid_like_expr() -> Expression {
 
 fn invalid_like_pat() -> Expression {
     Expression::Like(LikeExpr {
-        expr: mir_field_access("foo", "str"),
-        pattern: mir_field_access("foo", "pat"),
+        expr: mir_field_access("foo", "str", false),
+        pattern: mir_field_access("foo", "pat", false),
         escape: None,
         cache: SchemaCache::new(),
     })
@@ -199,13 +200,14 @@ fn comp_expr() -> Expression {
     Expression::ScalarFunction(ScalarFunctionApplication {
         function: ScalarFunction::Lt,
         args: vec![
-            *mir_field_access("foo", "int"),
+            *mir_field_access("foo", "int", false),
             Expression::Literal(LiteralExpr {
                 value: LiteralValue::Integer(10),
                 cache: SchemaCache::new(),
             }),
         ],
         cache: SchemaCache::new(),
+        is_nullable: false,
     })
 }
 
@@ -237,6 +239,7 @@ test_rewrite_to_match_language_no_op!(
             invalid_like_pat(), // not rewritable - pattern not constant
         ],
         cache: SchemaCache::new(),
+        is_nullable: false,
     }))
 );
 
@@ -250,6 +253,7 @@ test_rewrite_to_match_language_no_op!(
             comp_expr(),  // not rewritable - invalid expression
         ],
         cache: SchemaCache::new(),
+        is_nullable: false,
     }))
 );
 
@@ -262,6 +266,7 @@ test_rewrite_to_match_language_no_op!(
             invalid_like_pat(), // not rewritable - pattern not constant
         ],
         cache: SchemaCache::new(),
+        is_nullable: false,
     }))
 );
 
@@ -275,6 +280,7 @@ test_rewrite_to_match_language_no_op!(
             comp_expr(),  // not rewritable - invalid expression
         ],
         cache: SchemaCache::new(),
+        is_nullable: false,
     }))
 );
 
@@ -305,7 +311,7 @@ test_rewrite_to_match_language!(
         cache: SchemaCache::new(),
     })),
     input = filter_stage(Expression::Like(LikeExpr {
-        expr: mir_field_access("foo", "str"),
+        expr: mir_field_access("foo", "str", false),
         pattern: Box::new(Expression::Literal(LiteralExpr {
             value: LiteralValue::String("a|__|_%|%".to_string()),
             cache: SchemaCache::new(),
@@ -326,6 +332,7 @@ test_rewrite_to_match_language!(
         function: ScalarFunction::And,
         args: vec![valid_like(), valid_is()],
         cache: SchemaCache::new(),
+        is_nullable: false,
     }))
 );
 
@@ -340,5 +347,6 @@ test_rewrite_to_match_language!(
         function: ScalarFunction::Or,
         args: vec![valid_like(), valid_is()],
         cache: SchemaCache::new(),
+        is_nullable: false,
     }))
 );

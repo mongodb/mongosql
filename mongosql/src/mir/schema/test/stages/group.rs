@@ -36,6 +36,7 @@ fn group_aliased_ref() -> OptionallyAliasedExpr {
             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
             field: "a".into(),
             cache: SchemaCache::new(),
+            is_nullable: false,
         }),
     })
 }
@@ -45,6 +46,7 @@ fn group_non_aliased_ref() -> OptionallyAliasedExpr {
         expr: Box::new(Expression::Reference(("foo", 0u16).into())),
         field: "b".into(),
         cache: SchemaCache::new(),
+        is_nullable: false,
     }))
 }
 
@@ -222,6 +224,7 @@ test_schema!(
                 expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                 field: "a".into(),
                 cache: SchemaCache::new(),
+                is_nullable: false,
             }))
         ],
         aggregations: vec![],

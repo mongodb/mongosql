@@ -328,7 +328,8 @@ impl MqlTranslator {
             .map(|x| self.translate_expression(x))
             .collect::<Result<Vec<air::Expression>>>()?;
 
-        let op = scalar_function_to_scalar_function_type(scalar_func.function, scalar_func.args);
+        let op =
+            scalar_function_to_scalar_function_type(scalar_func.is_nullable, scalar_func.function);
 
         match op {
             ScalarFunctionType::Divide => Ok(air::Expression::SqlDivide(air::SqlDivide {
@@ -388,12 +389,11 @@ impl MqlTranslator {
         let expr = self.translate_expression(*simple_case.expr.clone())?;
         let default = self.translate_expression(*simple_case.else_branch)?.into();
 
-        let expr_is_nullish = Self::schema_is_nullish(*simple_case.expr);
         let branches = simple_case
             .when_branch
             .iter()
             .map(|branch| {
-                let case = if expr_is_nullish || Self::schema_is_nullish(*branch.when.clone()) {
+                let case = if branch.is_nullable {
                     air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
                         op: SQLOperator::Eq,
                         args: vec![
@@ -468,10 +468,7 @@ impl MqlTranslator {
             SubqueryModifier::All => air::SubqueryModifier::All,
         };
 
-        let op_type = if MqlTranslator::schema_is_nullish(*subquery_comparison.argument.clone())
-            || MqlTranslator::schema_is_nullish(
-                *subquery_comparison.subquery_expr.output_expr.clone(),
-            ) {
+        let op_type = if subquery_comparison.is_nullable {
             SubqueryComparisonOpType::Sql
         } else {
             SubqueryComparisonOpType::Mql
