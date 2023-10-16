@@ -2,7 +2,7 @@
 /// Stage Movement
 ///
 /// The Stage Movement passes moves stages up in the MIR query plan as high as possible
-/// in order to impove the usage of indexes and reduce the number of generated documents.
+/// in order to improve the usage of indexes and reduce the number of generated documents.
 ///
 /// Filter and MatchFilter stages are moved both to improve the usage of indexes and reduce the
 /// number of computations on documents that are eventually thrown away.
@@ -39,7 +39,7 @@ impl Stage {
             Stage::Filter(_) => true,
             Stage::Project(_) => false,
             // It's possible to have a Group that does not modify cardinality and thus invalidate
-            // an offset, but we can consider that a very rare occurence.
+            // an offset, but we can consider that a very rare occurrence.
             Stage::Group(_) => true,
             Stage::Limit(_) => true,
             // ordering of two Offsets does not matter. Offset 5, Offset 3 = Offset 3, Offset 5.
@@ -52,7 +52,7 @@ impl Stage {
             // We can push the offset into the derived query.
             Stage::Derived(_) => false,
             // It's possible to have an Unwind that does not modify cardinality and thus invalidate
-            // an offset, but we can consider that a very rare occurence.
+            // an offset, but we can consider that a very rare occurrence.
             Stage::Unwind(_) => true,
             Stage::MQLIntrinsic(_) => true,
             Stage::Sentinel => unreachable!(),
@@ -136,11 +136,12 @@ impl Stage {
                     ..n
                 }),
             ),
+            // Only consider the LHS for EquiJoins since the RHS must
+            // remain as just a collection source.
             Stage::MQLIntrinsic(MQLStage::EquiJoin(n)) => (
-                vec![*n.source, *n.from],
+                vec![*n.source],
                 Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
                     source: Box::new(Stage::Sentinel),
-                    from: Box::new(Stage::Sentinel),
                     ..n
                 })),
             ),
@@ -207,10 +208,11 @@ impl Stage {
                 ..s
             }),
             Stage::Collection(_) | Stage::Array(_) => self,
+            // Only consider the LHS for EquiJoins since the RHS must
+            // remain as just a collection source.
             Stage::MQLIntrinsic(MQLStage::EquiJoin(s)) => {
                 Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
                     source: sources.swap_remove(0).into(),
-                    from: sources.swap_remove(0).into(),
                     ..s
                 }))
             }
@@ -254,7 +256,7 @@ impl StageMovementOptimizer {
     }
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 enum BubbleUpSide {
     Left,
     Right,
@@ -395,7 +397,7 @@ impl<'a> StageMovementVisitor<'a> {
                 let left_schema = n.left.schema(&self.schema_state).unwrap();
                 let right_schema = n.right.schema(&self.schema_state).unwrap();
                 let (stage, changed) =
-                    self.dual_source(node, datasource_uses, left_schema, right_schema);
+                    self.dual_source(node, datasource_uses, left_schema, right_schema, false);
                 if changed {
                     stage
                 } else if let Stage::Filter(f) = stage {
@@ -418,7 +420,17 @@ impl<'a> StageMovementVisitor<'a> {
                 let right_schema = n.right.schema(&self.schema_state).unwrap();
                 // Set does not have an On field, so we ignore the changed bool second return
                 // value.
-                self.dual_source(node, datasource_uses, left_schema, right_schema)
+                self.dual_source(node, datasource_uses, left_schema, right_schema, false)
+                    .0
+            }
+            // For EquiJoin, we can only move stages up the LHS (source) since the
+            // RHS (from) must always remain a simple collection source. The dual_source
+            // method ensures that the stage, node, is only able to move up the Left
+            // source if possible.
+            Stage::MQLIntrinsic(MQLStage::EquiJoin(ref n)) => {
+                let left_schema = n.source.schema(&self.schema_state).unwrap();
+                let right_schema = n.from.schema(&self.schema_state).unwrap();
+                self.dual_source(node, datasource_uses, left_schema, right_schema, true)
                     .0
             }
             source => {
@@ -468,14 +480,12 @@ impl<'a> StageMovementVisitor<'a> {
                     | Stage::Array(_)
                     | Stage::Sort(_)
                     | Stage::Group(_)
-                    | Stage::MQLIntrinsic(MQLStage::EquiJoin(_))
                     | Stage::MQLIntrinsic(MQLStage::LateralJoin(_))
             ),
             Stage::Filter(ref n) => matches!(
                 &*n.source,
                 Stage::Collection(_)
                     | Stage::Array(_)
-                    | Stage::MQLIntrinsic(MQLStage::EquiJoin(_))
                     | Stage::MQLIntrinsic(MQLStage::LateralJoin(_))
             ),
             Stage::MQLIntrinsic(MQLStage::MatchFilter(ref n)) => {
@@ -483,7 +493,6 @@ impl<'a> StageMovementVisitor<'a> {
                     &*n.source,
                     Stage::Collection(_)
                         | Stage::Array(_)
-                        | Stage::MQLIntrinsic(MQLStage::EquiJoin(_))
                         | Stage::MQLIntrinsic(MQLStage::LateralJoin(_))
                 )
             }
@@ -491,15 +500,18 @@ impl<'a> StageMovementVisitor<'a> {
         }
     }
 
-    // Handle movement for dual_source stages (Join, Set).
-    // the bool return value is true when a change is made. We can use a false value to move a
-    // filter into the On field for a Join.
+    // Handle movement for dual_source stages (Join, Set, EquiJoin).
+    // The bool return value is true when a change is made. We can use a false
+    // value to move a filter into the On field for a Join.
+    // It is invalid to move a stage up the RHS of an EquiJoin, so that is
+    // prevented here.
     fn dual_source(
         &mut self,
         node: Stage,
         datasource_uses: HashSet<Key>,
         left_schema: ResultSet,
         right_schema: ResultSet,
+        left_only: bool,
     ) -> (Stage, bool) {
         let mut side = BubbleUpSide::Both;
         // An interesting side affect of how this is architected is that a Filter
@@ -541,7 +553,17 @@ impl<'a> StageMovementVisitor<'a> {
                 }
             }
         }
-        (self.bubble_up(Self::handle_def_user, node, side), true)
+
+        // If left_only is true (if the stage we are attempting to move above
+        // is an EquiJoin), we must ensure the BubbleUpSide is not Right. It is
+        // only valid to bubble up on the Left side. Both is also acceptable (in
+        // the case the stage being moved uses no datasources) since EquiJoin's
+        // 'from' field is not considered a source in this optimization.
+        if left_only && side == BubbleUpSide::Right {
+            (node, false)
+        } else {
+            (self.bubble_up(Self::handle_def_user, node, side), true)
+        }
     }
 }
 

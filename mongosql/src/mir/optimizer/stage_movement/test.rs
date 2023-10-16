@@ -103,16 +103,19 @@ macro_rules! test_move_stage {
                     optimizer::stage_movement::StageMovementVisitor,
                     schema::{SchemaCache, SchemaCheckingMode, SchemaInferenceState},
                     visitor::Visitor,
-                    Collection, Derived,
+                    Collection, Derived, EquiJoin,
                     Expression::{self, *},
-                    FieldAccess, Filter, Group, Join, JoinType, Limit, LiteralExpr, LiteralValue,
+                    FieldAccess, FieldPath, Filter, Group, Join, JoinType, Limit, LiteralExpr,
+                    LiteralValue,
                     LiteralValue::*,
                     MQLStage, MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp,
-                    MatchQuery, Offset, Project, ReferenceExpr, Set, SetOperation, Sort,
-                    SortSpecification, Stage, Unwind,
+                    MatchQuery, Offset, Project, ReferenceExpr, ScalarFunction,
+                    ScalarFunctionApplication, Set, SetOperation, Sort, SortSpecification, Stage,
+                    Unwind,
                 },
                 schema::SchemaEnvironment,
                 set, unchecked_unique_linked_hash_map,
+                util::{mir_field_path, mir_raw_collection_with_db},
             };
             #[allow(unused)]
             let input = $input;
@@ -127,6 +130,12 @@ macro_rules! test_move_stage {
             };
             assert_eq!(expected, visitor.visit_stage(input));
         }
+    };
+}
+
+macro_rules! test_move_stage_no_op {
+    ($func_name:ident, $input:expr) => {
+        test_move_stage! { $func_name, expected = $input, input = $input, }
     };
 }
 
@@ -1724,6 +1733,190 @@ test_move_stage!(
         }),
         cache: SchemaCache::new(),
     }),
+);
+
+test_move_stage!(
+    move_filter_above_equijoin,
+    expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        join_type: JoinType::Inner,
+        source: Box::new(Stage::Filter(Filter {
+            source: mir_raw_collection_with_db("foo", "bar"),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::Gt,
+                args: vec![
+                    mir_field_access("bar", "y"),
+                    Expression::Literal(LiteralValue::Integer(0).into()),
+                ],
+                is_nullable: true,
+                cache: SchemaCache::new(),
+            }),
+            cache: SchemaCache::new(),
+        })),
+        from: mir_raw_collection_with_db("foo", "bar2"),
+        local_field: Box::new(mir_field_path("bar", vec!["date0"])),
+        foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
+        cache: SchemaCache::new(),
+    })),
+    input = Stage::Filter(Filter {
+        source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+            join_type: JoinType::Inner,
+            source: mir_raw_collection_with_db("foo", "bar"),
+            from: mir_raw_collection_with_db("foo", "bar2"),
+            local_field: Box::new(mir_field_path("bar", vec!["date0"])),
+            foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
+            cache: SchemaCache::new(),
+        }))),
+        condition: Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Gt,
+            args: vec![
+                mir_field_access("bar", "y"),
+                Expression::Literal(LiteralValue::Integer(0).into()),
+            ],
+            is_nullable: true,
+            cache: SchemaCache::new(),
+        }),
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage_no_op!(
+    cannot_move_filter_above_right_side_of_equijoin,
+    Stage::Filter(Filter {
+        source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+            join_type: JoinType::Inner,
+            source: mir_raw_collection_with_db("foo", "bar"),
+            from: mir_raw_collection_with_db("foo", "bar2"),
+            local_field: Box::new(mir_field_path("bar", vec!["date0"])),
+            foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
+            cache: SchemaCache::new(),
+        }))),
+        condition: Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::Gt,
+            args: vec![
+                Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::FieldAccess(FieldAccess {
+                        expr: Box::new(mir_field_access("bar2", "x")),
+                        field: "a".to_string(),
+                        is_nullable: false,
+                        cache: SchemaCache::new(),
+                    })),
+                    field: "b".to_string(),
+                    is_nullable: false,
+                    cache: SchemaCache::new(),
+                }),
+                Expression::Literal(LiteralValue::Integer(0).into()),
+            ],
+            is_nullable: true,
+            cache: SchemaCache::new(),
+        }),
+        cache: SchemaCache::new(),
+    })
+);
+
+test_move_stage!(
+    move_match_filter_above_equijoin,
+    expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        join_type: JoinType::Inner,
+        source: Box::new(Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+            source: mir_raw_collection_with_db("foo", "bar"),
+            condition: MatchQuery::Comparison(MatchLanguageComparison {
+                function: MatchLanguageComparisonOp::Eq,
+                input: Some(mir_field_path("bar", vec!["y"])),
+                arg: LiteralValue::Integer(43),
+                cache: SchemaCache::new(),
+            }),
+            cache: SchemaCache::new(),
+        }))),
+        from: mir_raw_collection_with_db("foo", "bar2"),
+        local_field: Box::new(mir_field_path("bar", vec!["date0"])),
+        foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
+        cache: SchemaCache::new(),
+    })),
+    input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+            join_type: JoinType::Inner,
+            source: mir_raw_collection_with_db("foo", "bar"),
+            from: mir_raw_collection_with_db("foo", "bar2"),
+            local_field: Box::new(mir_field_path("bar", vec!["date0"])),
+            foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
+            cache: SchemaCache::new(),
+        }))),
+        condition: MatchQuery::Comparison(MatchLanguageComparison {
+            function: MatchLanguageComparisonOp::Eq,
+            input: Some(mir_field_path("bar", vec!["y"])),
+            arg: LiteralValue::Integer(43),
+            cache: SchemaCache::new(),
+        }),
+        cache: SchemaCache::new(),
+    })),
+);
+
+test_move_stage_no_op!(
+    cannot_move_match_filter_above_right_side_of_equijoin,
+    Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+            join_type: JoinType::Inner,
+            source: mir_raw_collection_with_db("foo", "bar"),
+            from: mir_raw_collection_with_db("foo", "bar2"),
+            local_field: Box::new(mir_field_path("bar", vec!["date0"])),
+            foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
+            cache: SchemaCache::new(),
+        }))),
+        condition: MatchQuery::Comparison(MatchLanguageComparison {
+            function: MatchLanguageComparisonOp::Eq,
+            input: Some(mir_field_path("bar2", vec!["x", "a", "b"],)),
+            arg: LiteralValue::Double(2.4),
+            cache: SchemaCache::new(),
+        }),
+        cache: SchemaCache::new(),
+    }))
+);
+
+test_move_stage!(
+    move_sort_above_equijoin,
+    expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+        join_type: JoinType::Inner,
+        source: Box::new(Stage::Sort(Sort {
+            source: mir_raw_collection_with_db("foo", "bar"),
+            specs: vec![SortSpecification::Asc(mir_field_path("bar", vec!["y"]))],
+            cache: SchemaCache::new(),
+        })),
+        from: mir_raw_collection_with_db("foo", "bar2"),
+        local_field: Box::new(mir_field_path("bar", vec!["date0"])),
+        foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
+        cache: SchemaCache::new(),
+    })),
+    input = Stage::Sort(Sort {
+        source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+            join_type: JoinType::Inner,
+            source: mir_raw_collection_with_db("foo", "bar"),
+            from: mir_raw_collection_with_db("foo", "bar2"),
+            local_field: Box::new(mir_field_path("bar", vec!["date0"])),
+            foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
+            cache: SchemaCache::new(),
+        }))),
+        specs: vec![SortSpecification::Asc(mir_field_path("bar", vec!["y"]))],
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage_no_op!(
+    cannot_move_sort_above_right_side_of_equijoin,
+    Stage::Sort(Sort {
+        source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
+            join_type: JoinType::Inner,
+            source: mir_raw_collection_with_db("foo", "bar"),
+            from: mir_raw_collection_with_db("foo", "bar2"),
+            local_field: Box::new(mir_field_path("bar", vec!["date0"])),
+            foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
+            cache: SchemaCache::new(),
+        }))),
+        specs: vec![SortSpecification::Asc(mir_field_path(
+            "bar2",
+            vec!["x", "a", "b"],
+        ))],
+        cache: SchemaCache::new(),
+    })
 );
 
 test_move_stage!(

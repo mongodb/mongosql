@@ -74,6 +74,15 @@ pub(crate) fn mir_collection(collection_name: &str) -> Box<mir::Stage> {
 }
 
 #[cfg(test)]
+pub(crate) fn mir_raw_collection_with_db(db_name: &str, collection_name: &str) -> Box<mir::Stage> {
+    Box::new(mir::Stage::Collection(mir::Collection {
+        db: db_name.to_string(),
+        collection: collection_name.to_string(),
+        cache: mir::schema::SchemaCache::new(),
+    }))
+}
+
+#[cfg(test)]
 pub(crate) fn mir_project_collection(collection_name: &str) -> Box<mir::Stage> {
     Box::new(mir::Stage::Project(mir::Project {
         source: Box::new(mir::Stage::Collection(mir::Collection {
