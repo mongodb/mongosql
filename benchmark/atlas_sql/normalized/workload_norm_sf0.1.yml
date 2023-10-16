@@ -41,20 +41,12 @@ Actors:
   - LoadConfig:
       Path: phase/q7_normalized.yml
       Key: q7_normalized
-  # SF0.1 q8 and q9 take > 24 hours to complete
-  #  - LoadConfig:
-  #      Path: phase/q8_normalized.yml
-  #      Key: q8_normalized
-  #  - LoadConfig:
-  #      Path: phase/q9_normalized.yml
-  #      Key: q9_normalized
   - LoadConfig:
-      Path: ../phase_noop.yml
-      Key: NoopPhase
+      Path: phase/q8_normalized.yml
+      Key: q8_normalized
   - LoadConfig:
-      Path: ../phase_noop.yml
-      Key: NoopPhase
-
+      Path: phase/q9_normalized.yml
+      Key: q9_normalized
   - LoadConfig:
       Path: phase/q10_normalized.yml
       Key: q10_normalized
@@ -77,29 +69,22 @@ Actors:
   - LoadConfig:
       Path: phase/q16_normalized.yml
       Key: q16_normalized
-  # SF0.1 q17 and q18 take > 24 hours to complete
-  #  - LoadConfig:
-  #      Path: phase/q17_normalized.yml
-  #      Key: q17_normalized
-  #  the query fails to parse
-  #  skip reason: SQL-1635
-  #  - LoadConfig:
-  #      Path: phase/q18_normalized.yml
-  #      Key: q18_normalized
+  - LoadConfig:
+      Path: phase/q17_normalized.yml
+      Key: q17_normalized
+  # skip reason: SQL-1635
+  # - LoadConfig:
+  #     Path: phase/q18_normalized.yml
+  #     Key: q18_normalized
   - LoadConfig:
       Path: ../phase_noop.yml
       Key: NoopPhase
-  - LoadConfig:
-      Path: ../phase_noop.yml
-      Key: NoopPhase
-
   - LoadConfig:
       Path: phase/q19_normalized.yml
       Key: q19_normalized
-  # skip reason: SQL-1539
-  #   - LoadConfig:
-  #       Path: phase/q20_normalized.yml
-  #       Key: q20_normalized
+  - LoadConfig:
+      Path: phase/q20_normalized.yml
+      Key: q20_normalized
   - LoadConfig:
       Path: ../phase_noop.yml
       Key: NoopPhase
@@ -110,7 +95,6 @@ Actors:
       Path: phase/q22_normalized.yml
       Key: q22_normalized
 
-
   # -- Start of Custom Queries --
   - LoadConfig:
       Path: phase/q19_custom_normalized.yml
@@ -120,3 +104,4 @@ Actors:
   - LoadConfig:
       Path: phase/q15_normalized.yml
       Key: TPCHNormalizedQuery15DropView
+

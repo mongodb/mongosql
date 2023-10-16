@@ -740,7 +740,6 @@ tasks:
     depends_on:
       - name: tpch-0.001-normalized-validation
     allow_for_git_tag: false
-    disable: true
     commands:
       - func: "install rust toolchain"
       - func: "run TPC-H benchmark"
@@ -996,24 +995,39 @@ buildvariants:
     activate: false
     run_on: [ ubuntu2204-large ]
     tasks:
-      - name: tpch-0.001-normalized-atlas-sql
-      - name: tpch-0.001-denormalized-atlas-sql
-      - name: tpch-0.001-normalized-bic
-      - name: tpch-0.001-denormalized-bic
+      # - name: tpch-0.001-normalized-atlas-sql
+      # - name: tpch-0.001-denormalized-atlas-sql
+      # - name: tpch-0.001-normalized-bic
+      # - name: tpch-0.001-denormalized-bic
       - name: tpch-0.01-normalized-atlas-sql
-      - name: tpch-0.01-denormalized-atlas-sql
-      - name: tpch-0.01-normalized-bic
-      - name: tpch-0.01-denormalized-bic
-      - name: tpch-0.1-normalized-atlas-sql
-      - name: tpch-0.1-denormalized-atlas-sql
-      - name: tpch-0.1-normalized-bic
-      - name: tpch-0.1-denormalized-bic
-      - name: tpch-1-normalized-atlas-sql
-      - name: tpch-1-denormalized-atlas-sql
-      - name: tpch-1-normalized-bic
-      - name: tpch-1-denormalized-bic
+      # - name: tpch-0.01-denormalized-atlas-sql
+      # - name: tpch-0.01-normalized-bic
+      # - name: tpch-0.01-denormalized-bic
+      # - name: tpch-0.1-normalized-atlas-sql
+      # - name: tpch-0.1-denormalized-atlas-sql
+      # - name: tpch-0.1-normalized-bic
+      # - name: tpch-0.1-denormalized-bic
+      # - name: tpch-1-normalized-atlas-sql
+      # - name: tpch-1-denormalized-atlas-sql
+      # - name: tpch-1-normalized-bic
+      # - name: tpch-1-denormalized-bic
       - name: tpch-0.001-normalized-validation
-      - name: tpch-0.001-denormalized-validation
+      # - name: tpch-0.001-denormalized-validation
+
+  - name: tpch-monthly
+    display_name: "TPC-H Monthly"
+    activate: false
+    run_on: [ ubuntu2204-large ]
+    tasks:
+      - name: tpch-0.1-normalized-atlas-sql
+      - name: tpch-0.001-normalized-validation
+
+  - name: tpch-validation
+    display_name: "TPC-H Validation"
+    run_on: [ ubuntu2204-large ]
+    tasks:
+      - name: tpch-0.001-normalized-validation
+
 
   - name: release
     display_name: "Release"
