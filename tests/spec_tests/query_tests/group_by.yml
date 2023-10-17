@@ -528,7 +528,7 @@ tests:
     algebrize_error: "* argument only valid in COUNT function"
 
   - description: ADD_TO_SET requires all elements have statically mutually comparable type
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE ADD_TO_SET(a) AS gset"
+    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE ADD_TO_SET(a) AS gset"
     should_compile: false
     algebrize_error: 'cannot have "AddToArray DISTINCT" aggregations over the schema: Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false }) as it is not comparable to itself'
 
@@ -557,7 +557,7 @@ tests:
     algebrize_error: "* argument only valid in COUNT function"
 
   - description: AVG requires a statically numeric argument
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE AVG(a) AS gavg"
+    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE AVG(a) AS gavg"
     should_compile: false
     algebrize_error: 'schema checking failed for Avg: required AnyOf({Missing, Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal), Atomic(Null)}), found Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false })'
 
@@ -649,12 +649,12 @@ tests:
         }
 
   - description: MAX star is currently an error
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE MAX(*) AS gmax"
+    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE MAX(*) AS gmax"
     should_compile: false
     algebrize_error: "* argument only valid in COUNT function"
 
   - description: MAX must have statically mutually comparable type
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE MAX(a) AS gmax"
+    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE MAX(a) AS gmax"
     should_compile: false
     algebrize_error: 'cannot have "Max" aggregations over the schema: Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false }) as it is not comparable to itself'
 
@@ -666,7 +666,7 @@ tests:
       - { "": { "a": { "$numberInt": "2" }, "gmerge": { "a": "d" } } }
 
   - description: MERGE_DOCUMENTS star is currently an error
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE MERGE_DOCUMENTS(*) AS gmerge"
+    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE MERGE_DOCUMENTS(*) AS gmerge"
     should_compile: false
     algebrize_error: "* argument only valid in COUNT function"
 
@@ -691,7 +691,7 @@ tests:
     algebrize_error: "* argument only valid in COUNT function"
 
   - description: MIN must have statically mutually comparable type
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE MIN(a) AS gmin"
+    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE MIN(a) AS gmin"
     should_compile: false
     algebrize_error: 'cannot have "Min" aggregations over the schema: Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false }) as it is not comparable to itself'
 
@@ -716,12 +716,12 @@ tests:
         }
 
   - description: STDDEV_POP star is currently an error
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE STDDEV_POP(*) AS gstdp"
+    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE STDDEV_POP(*) AS gstdp"
     should_compile: false
     algebrize_error: "* argument only valid in COUNT function"
 
   - description: STDDEV_POP requires a statically numeric argument
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE STDDEV_POP(a) AS gstdp"
+    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE STDDEV_POP(a) AS gstdp"
     should_compile: false
     algebrize_error: 'schema checking failed for StddevPop: required AnyOf({Missing, Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal), Atomic(Null)}), found Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false })'
 
@@ -740,12 +740,12 @@ tests:
       - { "": { "a": { "$numberInt": "111" }, "gstds": null } }
 
   - description: STDDEV_SAMP star is currently an error
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE STDDEV_SAMP(*) AS gstds"
+    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE STDDEV_SAMP(*) AS gstds"
     should_compile: false
     algebrize_error: "* argument only valid in COUNT function"
 
   - description: STDDEV_SAMP requires a statically numeric argument
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE STDDEV_SAMP(a) AS gstds"
+    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE STDDEV_SAMP(a) AS gstds"
     should_compile: false
     algebrize_error: 'schema checking failed for StddevSamp: required AnyOf({Missing, Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal), Atomic(Null)}), found Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false })'
 
@@ -760,11 +760,11 @@ tests:
         }
 
   - description: SUM star is currently an error
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE SUM(*) AS gsum"
+    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE SUM(*) AS gsum"
     should_compile: false
     algebrize_error: "* argument only valid in COUNT function"
 
   - description: SUM requires a statically numeric argument
-    query: "SELECT * FROM foo.baz AS arr GROUP BY a AS a AGGREGATE SUM(a) AS gsum"
+    query: "SELECT * FROM foo.baz AS arr GROUP BY a.a AS a AGGREGATE SUM(a) AS gsum"
     should_compile: false
     algebrize_error: 'schema checking failed for Sum: required AnyOf({Missing, Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal), Atomic(Null)}), found Document(Document { keys: {"a": AnyOf({Atomic(Integer), Atomic(Null)}), "b": AnyOf({Atomic(Integer), Atomic(Null)})}, required: {"a", "b"}, additional_properties: false })'

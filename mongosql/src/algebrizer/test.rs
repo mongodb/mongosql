@@ -42,6 +42,42 @@ macro_rules! test_algebrize {
     };
 }
 
+macro_rules! test_algebrize_expr_and_schema_check {
+    ($func_name:ident, method = $method:ident, $(expected = $expected:expr,)? $(expected_error_code = $expected_error_code:literal,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
+        #[test]
+        fn $func_name() {
+            #[allow(unused)]
+            use crate::{
+                algebrizer::{Algebrizer, Error},
+                catalog::Catalog,
+                SchemaCheckingMode,
+                mir::schema::CachedSchema,
+            };
+
+            #[allow(unused_mut, unused_assignments)]
+            let mut catalog = Catalog::default();
+            $(catalog = $catalog;)?
+
+            #[allow(unused_mut, unused_assignments)]
+            let mut schema_checking_mode = SchemaCheckingMode::Strict;
+            $(schema_checking_mode = $schema_checking_mode;)?
+
+            #[allow(unused_mut, unused_assignments)]
+            let mut algebrizer = Algebrizer::new("test".into(), &catalog, 0u16, schema_checking_mode);
+            $(algebrizer = Algebrizer::with_schema_env("test".into(), $env, &catalog, 1u16, schema_checking_mode);)?
+
+            let res: Result<_, Error> = algebrizer.$method($ast $(, $source)?);
+            let res = res.unwrap().schema(&algebrizer.schema_inference_state()).map_err(|e|Error::SchemaChecking(e));
+            $(assert_eq!($expected, res);)?
+
+            #[allow(unused_variables)]
+            if let Err(e) = res{
+                $(assert_eq!($expected_error_code, e.code()))?
+            }
+        }
+    };
+}
+
 macro_rules! test_user_error_messages {
     ($func_name:ident, input = $input:expr, expected = $expected:expr) => {
         #[test]
@@ -716,7 +752,7 @@ mod expression {
             right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         }),
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         add_wrong_types,
         method = algebrize_expression,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -754,7 +790,7 @@ mod expression {
             right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         }),
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         sub_wrong_types,
         method = algebrize_expression,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -792,7 +828,7 @@ mod expression {
             right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         }),
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         div_wrong_types,
         method = algebrize_expression,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -830,7 +866,7 @@ mod expression {
             right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         }),
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         mul_wrong_types,
         method = algebrize_expression,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -868,7 +904,7 @@ mod expression {
             right: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
         }),
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         concat_wrong_types,
         method = algebrize_expression,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -926,6 +962,46 @@ mod expression {
             right: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
         }),
     );
+    test_algebrize!(
+        and_bool_and_int,
+        method = algebrize_expression,
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::And,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(false).into()),
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
+                ],
+                cache: SchemaCache::new(),
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(0))),
+            op: ast::BinaryOp::And,
+            right: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+        }),
+    );
+    test_algebrize!(
+        or_int_and_int,
+        method = algebrize_expression,
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Or,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(false).into()),
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
+                ],
+                cache: SchemaCache::new(),
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(0))),
+            op: ast::BinaryOp::Or,
+            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+        }),
+    );
 
     test_algebrize!(
         neg_unary_op,
@@ -945,7 +1021,7 @@ mod expression {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         }),
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         neg_wrong_type,
         method = algebrize_expression,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -978,7 +1054,7 @@ mod expression {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         }),
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         pos_wrong_type,
         method = algebrize_expression,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -1090,7 +1166,7 @@ mod expression {
             ))),
         }),
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         trim_arg_must_be_string_or_null,
         method = algebrize_expression,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -1105,7 +1181,7 @@ mod expression {
             arg: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         }),
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         trim_escape_must_be_string,
         method = algebrize_expression,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -1364,7 +1440,7 @@ mod expression {
             })),
         }),
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         extract_must_be_date,
         method = algebrize_expression,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -1586,7 +1662,7 @@ mod expression {
             else_branch: None,
         }),
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         searched_case_when_condition_is_not_bool,
         method = algebrize_expression,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -1669,7 +1745,7 @@ mod expression {
             else_branch: None,
         }),
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         simple_case_operand_and_when_operand_not_comparable,
         method = algebrize_expression,
         expected = Err(Error::SchemaChecking(
@@ -1756,7 +1832,7 @@ mod expression {
             target_type: ast::Type::Int32,
         }),
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         type_assert_fail,
         method = algebrize_expression,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -1786,7 +1862,7 @@ mod expression {
             target_type: ast::TypeOrMissing::Type(ast::Type::Int32),
         }),
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         is_recursive_failure,
         method = algebrize_expression,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -1843,7 +1919,7 @@ mod expression {
             escape: None,
         }),
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         like_expr_must_be_string,
         method = algebrize_expression,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -1858,7 +1934,7 @@ mod expression {
             escape: None,
         }),
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         like_pattern_must_be_string,
         method = algebrize_expression,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -2182,7 +2258,7 @@ mod aggregation {
             set_quantifier: Some(ast::SetQuantifier::All),
         },
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         count_distinct_star_is_error,
         method = algebrize_aggregation,
         expected = Err(Error::SchemaChecking(
@@ -2231,7 +2307,7 @@ mod aggregation {
             set_quantifier: Some(ast::SetQuantifier::Distinct),
         },
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         count_distinct_expr_argument_not_self_comparable_is_error,
         method = algebrize_aggregation,
         expected = Err(Error::SchemaChecking(
@@ -2297,7 +2373,7 @@ mod aggregation {
             set_quantifier: Some(ast::SetQuantifier::Distinct),
         },
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         sum_argument_must_be_numeric,
         method = algebrize_aggregation,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -2352,7 +2428,7 @@ mod aggregation {
         },
     );
 
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         avg_argument_must_be_numeric,
         method = algebrize_aggregation,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -2406,7 +2482,7 @@ mod aggregation {
             set_quantifier: Some(ast::SetQuantifier::Distinct),
         },
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         stddevpop_argument_must_be_numeric,
         method = algebrize_aggregation,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -2460,7 +2536,7 @@ mod aggregation {
             set_quantifier: Some(ast::SetQuantifier::Distinct),
         },
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         stddevsamp_argument_must_be_numeric,
         method = algebrize_aggregation,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
@@ -2651,7 +2727,7 @@ mod aggregation {
             set_quantifier: Some(ast::SetQuantifier::All),
         },
     );
-    test_algebrize!(
+    test_algebrize_expr_and_schema_check!(
         mergedocuments_argument_must_be_document,
         method = algebrize_aggregation,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
