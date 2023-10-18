@@ -205,7 +205,7 @@ pub(crate) fn mir_field_path(datasource_name: &str, field_names: Vec<&str>) -> m
         },
         fields: field_names.into_iter().map(String::from).collect(),
         cache: mir::schema::SchemaCache::new(),
-        is_nullable: false,
+        is_nullable: true,
     }
 }
 

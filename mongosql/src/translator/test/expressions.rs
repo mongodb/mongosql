@@ -174,8 +174,10 @@ mod array {
 }
 
 mod document {
-    use crate::unchecked_unique_linked_hash_map;
-    use crate::{air, mapping_registry::*, mir, translator::Error};
+    use crate::{
+        air, mapping_registry::*, mir, translator::Error, unchecked_unique_linked_hash_map,
+        util::mir_field_access,
+    };
 
     test_translate_expression!(
         empty,
@@ -256,12 +258,7 @@ mod document {
         input = mir::Expression::Document(
             unchecked_unique_linked_hash_map! {
                 "foo.bar".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
-                "x".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
-                    expr: Box::new(mir::Expression::Reference(("f", 0u16).into())),
-                    field: "x".to_string(),
-                    cache: mir::schema::SchemaCache::new(),
-                    is_nullable: false,
-                }),
+                "x".to_string() => *mir_field_access("f", "x", true),
                 "$foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
                 "y".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(3).into()),
             }.into(),
@@ -303,7 +300,7 @@ mod date_function {
         )),
         input = mir::Expression::DateFunction(mir::DateFunctionApplication {
             function: mir::DateFunction::Add,
-            is_nullable: false,
+            is_nullable: true,
             date_part: mir::DatePart::Year,
             args: vec![
                 mir::Expression::Literal(mir::LiteralExpr {
@@ -341,7 +338,7 @@ mod date_function {
         )),
         input = mir::Expression::DateFunction(mir::DateFunctionApplication {
             function: mir::DateFunction::Diff,
-            is_nullable: false,
+            is_nullable: true,
             date_part: mir::DatePart::Year,
             args: vec![
                 mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
@@ -381,7 +378,7 @@ mod date_function {
         )),
         input = mir::Expression::DateFunction(mir::DateFunctionApplication {
             function: mir::DateFunction::Trunc,
-            is_nullable: false,
+            is_nullable: true,
             date_part: mir::DatePart::Year,
             args: vec![
                 mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
@@ -443,7 +440,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -477,7 +474,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Pos,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -511,7 +508,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Neg,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -555,31 +552,10 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
-    test_translate_expression_with_schema_info!(
-        sub_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Subtract,
-                args: vec![
-                    air::Expression::Literal(air::LiteralValue::Integer(32)),
-                    air::Expression::Literal(air::LiteralValue::Integer(19)),
-                ],
-            }
-        )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Sub,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
-            ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
-    );
     test_translate_expression!(
         addition_with_more_than_two_operands,
         expected = Ok(air::Expression::MQLSemanticOperator(
@@ -605,6 +581,28 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        sub_no_nullish,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Subtract,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Integer(19)),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Sub,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         sub_nullish,
         expected = Ok(air::Expression::MQLSemanticOperator(
             air::MQLSemanticOperator {
@@ -622,29 +620,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
-    );
-
-    test_translate_expression_with_schema_info!(
-        mul_no_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::Multiply,
-                args: vec![
-                    air::Expression::Literal(air::LiteralValue::Integer(32)),
-                    air::Expression::Literal(air::LiteralValue::Integer(19)),
-                ],
-            }
-        )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Mul,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
-            ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -673,6 +649,28 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        mul_no_nullish,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Multiply,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::Integer(32)),
+                    air::Expression::Literal(air::LiteralValue::Integer(19)),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Mul,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         mul_nullish,
         expected = Ok(air::Expression::MQLSemanticOperator(
             air::MQLSemanticOperator {
@@ -690,25 +688,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
-    );
-
-    test_translate_expression_with_schema_info!(
-        div_no_nullish,
-        expected = Ok(air::Expression::SqlDivide(air::SqlDivide {
-            dividend: Box::new(air::Expression::Literal(air::LiteralValue::Integer(32))),
-            divisor: Box::new(air::Expression::Literal(air::LiteralValue::Integer(20))),
-            on_error: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
-        })),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Div,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(20).into()),
-            ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -737,6 +717,24 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        div_no_nullish,
+        expected = Ok(air::Expression::SqlDivide(air::SqlDivide {
+            dividend: Box::new(air::Expression::Literal(air::LiteralValue::Integer(32))),
+            divisor: Box::new(air::Expression::Literal(air::LiteralValue::Integer(20))),
+            on_error: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
+        })),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Div,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(20).into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         div_nullish,
         expected = Ok(air::Expression::SqlDivide(air::SqlDivide {
             dividend: Box::new(air::Expression::Literal(air::LiteralValue::Integer(32))),
@@ -750,7 +748,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1276,7 +1274,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Boolean(false).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1356,7 +1354,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1531,7 +1529,7 @@ mod scalar_function {
                 mir::LiteralValue::String("hello".into()).into()
             ),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
+            is_nullable: false,
         }),
     );
 
@@ -1581,7 +1579,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Abs,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1615,7 +1613,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Ceil,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1649,7 +1647,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Floor,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1671,7 +1669,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Double(3.5).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
+            is_nullable: false,
         }),
     );
 
@@ -1781,7 +1779,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::Null.into()),
             ],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1815,7 +1813,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Radians,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2119,7 +2117,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2161,7 +2159,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2203,7 +2201,7 @@ mod scalar_function {
                 mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
             ],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2317,7 +2315,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Year,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2367,7 +2365,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Month,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2417,7 +2415,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Day,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2467,7 +2465,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Hour,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2517,7 +2515,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Minute,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2567,7 +2565,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Second,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2617,7 +2615,7 @@ mod scalar_function {
             function: mir::ScalarFunction::Week,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2667,7 +2665,7 @@ mod scalar_function {
             function: mir::ScalarFunction::DayOfYear,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2717,7 +2715,7 @@ mod scalar_function {
             function: mir::ScalarFunction::IsoWeek,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2767,7 +2765,7 @@ mod scalar_function {
             function: mir::ScalarFunction::IsoWeekday,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2791,23 +2789,7 @@ mod scalar_function {
                 .into()),
             ],
             cache: mir::schema::SchemaCache::new(),
-is_nullable: false,
-        }),
-    );
-
-    test_translate_expression_with_schema_info!(
-        sqrt_nullish,
-        expected = Ok(air::Expression::SQLSemanticOperator(
-            air::SQLSemanticOperator {
-                op: air::SQLOperator::Sqrt,
-                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
-            }
-        )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Sqrt,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
+            is_nullable: false,
         }),
     );
 
@@ -2830,18 +2812,18 @@ is_nullable: false,
     );
 
     test_translate_expression_with_schema_info!(
-        degrees_nullish,
-        expected = Ok(air::Expression::MQLSemanticOperator(
-            air::MQLSemanticOperator {
-                op: air::MQLOperator::RadiansToDegrees,
+        sqrt_nullish,
+        expected = Ok(air::Expression::SQLSemanticOperator(
+            air::SQLSemanticOperator {
+                op: air::SQLOperator::Sqrt,
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Degrees,
+            function: mir::ScalarFunction::Sqrt,
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2860,6 +2842,22 @@ is_nullable: false,
             ),],
             cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
+        degrees_nullish,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::RadiansToDegrees,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Degrees,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
         }),
     );
 }
@@ -3729,17 +3727,13 @@ mod field_access {
         air,
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir, unchecked_unique_linked_hash_map,
+        util::mir_field_access,
     };
 
     test_translate_expression!(
         from_reference,
         expected = Ok(air::Expression::FieldRef("f.sub".to_string().into())),
-        input = mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: mir::Expression::Reference(("f", 0u16).into()).into(),
-            field: "sub".to_string(),
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        input = *mir_field_access("f", "sub", true),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(
@@ -3754,15 +3748,9 @@ mod field_access {
         expected = Ok(air::Expression::FieldRef("f.sub1.sub2".to_string().into())),
         input = mir::Expression::FieldAccess(mir::FieldAccess {
             field: "sub2".to_string(),
-            expr: mir::Expression::FieldAccess(mir::FieldAccess {
-                expr: mir::Expression::Reference(("f", 0u16).into()).into(),
-                field: "sub1".to_string(),
-                cache: mir::schema::SchemaCache::new(),
-                is_nullable: false,
-            })
-            .into(),
+            expr: mir_field_access("f", "sub1", true),
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -3790,7 +3778,7 @@ mod field_access {
             .into(),
             field: "sub".to_string(),
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
     test_translate_expression!(
@@ -3805,7 +3793,7 @@ mod field_access {
             expr: mir::Expression::Literal(mir::LiteralValue::String("f".into()).into()).into(),
             field: "sub".to_string(),
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
     test_translate_expression!(
@@ -3814,12 +3802,7 @@ mod field_access {
             field: "$sub".to_string(),
             input: Box::new(air::Expression::FieldRef("f".to_string().into())),
         })),
-        input = mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: mir::Expression::Reference(("f", 0u16).into()).into(),
-            field: "$sub".to_string(),
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        input = *mir_field_access("f", "$sub", true),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(
@@ -3832,12 +3815,7 @@ mod field_access {
     test_translate_expression!(
         field_contains_dollar,
         expected = Ok(air::Expression::FieldRef("f.s$ub".to_string().into())),
-        input = mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: mir::Expression::Reference(("f", 0u16).into()).into(),
-            field: "s$ub".to_string(),
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        input = *mir_field_access("f", "s$ub", true),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(
@@ -3853,12 +3831,7 @@ mod field_access {
             field: "s.ub".to_string(),
             input: Box::new(air::Expression::FieldRef("f".to_string().into()))
         })),
-        input = mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: mir::Expression::Reference(("f", 0u16).into()).into(),
-            field: "s.ub".to_string(),
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        input = *mir_field_access("f", "s.ub", true),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(
@@ -3874,12 +3847,7 @@ mod field_access {
             field: "".to_string(),
             input: Box::new(air::Expression::FieldRef("f".to_string().into()))
         })),
-        input = mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: mir::Expression::Reference(("f", 0u16).into()).into(),
-            field: "".to_string(),
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        input = *mir_field_access("f", "", true),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(
@@ -3897,7 +3865,7 @@ mod subquery {
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{self, binding_tuple::DatasourceName::Bottom},
         unchecked_unique_linked_hash_map,
-        util::ROOT,
+        util::{mir_field_access, ROOT},
     };
 
     test_translate_expression!(
@@ -3958,7 +3926,7 @@ mod subquery {
                 expr: Box::new(mir::Expression::Reference((Bottom, 1u16).into())),
                 field: "a".to_string(),
                 cache: mir::schema::SchemaCache::new(),
-                is_nullable: false,
+                is_nullable: true,
             })),
             subquery: Box::new(mir::Stage::Project(mir::Project {
                 source: Box::new(mir::Stage::Collection(mir::Collection {
@@ -3969,12 +3937,7 @@ mod subquery {
                 expression: map! {
                     (Bottom, 1u16).into() => mir::Expression::Document(mir::DocumentExpr {
                         document: unchecked_unique_linked_hash_map! {
-                            "a".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
-                                expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-                                field: "a".to_string(),
-                                cache: mir::schema::SchemaCache::new(),
-                                is_nullable: false,
-                            }),
+                            "a".to_string() => *mir_field_access("foo", "a", true),
                         },
                         cache: mir::schema::SchemaCache::new(),
                     })
@@ -3982,7 +3945,7 @@ mod subquery {
                 cache: mir::schema::SchemaCache::new(),
             })),
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -4045,18 +4008,8 @@ mod subquery {
                             "a".to_string() => mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                                 function: mir::ScalarFunction::Eq,
                                 args: vec![
-                                    mir::Expression::FieldAccess(mir::FieldAccess{
-                                        expr: Box::new(mir::Expression::Reference(("Foo coll-ß", 0u16).into())),
-                                        field: "a".into(),
-                                        cache: mir::schema::SchemaCache::new(),
-                                        is_nullable: false,
-                                    }),
-                                    mir::Expression::FieldAccess(mir::FieldAccess{
-                                        expr: Box::new(mir::Expression::Reference(("foo_coll_ß", 0u16).into())),
-                                        field: "a".into(),
-                                        cache: mir::schema::SchemaCache::new(),
-                                        is_nullable: false,
-                                    }),
+                                    *mir_field_access("Foo coll-ß", "a", true),
+                                    *mir_field_access("foo_coll_ß", "a", true),
                                 ],
                                 cache: mir::schema::SchemaCache::new(),
                                 is_nullable: true,
@@ -4068,7 +4021,7 @@ mod subquery {
                 cache: mir::schema::SchemaCache::new(),
             })),
             cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -4190,6 +4143,7 @@ mod subquery_comparison {
         mir::{self, binding_tuple::DatasourceName::Bottom},
         schema::{Atomic, Document, Schema, ANY_DOCUMENT},
         set, unchecked_unique_linked_hash_map,
+        util::mir_field_access,
     };
 
     test_translate_expression_with_schema_info!(
@@ -4228,7 +4182,7 @@ mod subquery_comparison {
                     expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
                     field: "a".to_string(),
                     cache: mir::schema::SchemaCache::new(),
-                    is_nullable: false,
+                    is_nullable: true,
                 })),
                 subquery: Box::new(mir::Stage::Project(mir::Project {
                     source: Box::new(mir::Stage::Collection(mir::Collection {
@@ -4243,7 +4197,7 @@ mod subquery_comparison {
                                     expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
                                     field: "a".to_string(),
                                     cache: mir::schema::SchemaCache::new(),
-                                    is_nullable: false,
+                                    is_nullable: true,
                                 })
                             },
                             cache: mir::schema::SchemaCache::new(),
@@ -4252,7 +4206,7 @@ mod subquery_comparison {
                     cache: mir::schema::SchemaCache::new(),
                 })),
                 cache: mir::schema::SchemaCache::new(),
-                is_nullable: false,
+                is_nullable: true,
             },
             cache: mir::schema::SchemaCache::new(),
             is_nullable: true,
@@ -4394,12 +4348,7 @@ mod subquery_comparison {
                     expression: map! {
                         (Bottom, 1u16).into() => mir::Expression::Document(mir::DocumentExpr {
                             document: unchecked_unique_linked_hash_map! {
-                                "a".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
-                                    expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-                                    field: "a".to_string(),
-                                    cache: mir::schema::SchemaCache::new(),
-                                    is_nullable: false,
-                                }),
+                                "a".to_string() => *mir_field_access("foo", "a", true),
                             },
                             cache: mir::schema::SchemaCache::new(),
                         })
@@ -4407,7 +4356,7 @@ mod subquery_comparison {
                     cache: mir::schema::SchemaCache::new(),
                 })),
                 cache: mir::schema::SchemaCache::new(),
-                is_nullable: false,
+                is_nullable: true,
             },
             cache: mir::schema::SchemaCache::new(),
             is_nullable: true,
@@ -4440,7 +4389,7 @@ mod subquery_exists {
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
         mir::{self, binding_tuple::DatasourceName::Bottom},
         unchecked_unique_linked_hash_map,
-        util::ROOT,
+        util::{mir_field_access, ROOT},
     };
 
     test_translate_expression!(
@@ -4499,12 +4448,7 @@ mod subquery_exists {
             })),
             expression: map! {
                 (Bottom, 1u16).into() => mir::Expression::Document(unchecked_unique_linked_hash_map! {
-                    "a".into() => mir::Expression::FieldAccess(mir::FieldAccess{
-                        expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-                        field: "a".into(),
-                        cache: mir::schema::SchemaCache::new(),
-                        is_nullable: false,
-                    })
+                    "a".into() => *mir_field_access("foo", "a", true)
                 }.into())
             },
             cache: mir::schema::SchemaCache::new(),
@@ -4541,7 +4485,7 @@ mod mql_intrinsic {
                     expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
                     field: "x".to_string(),
                     cache: mir::schema::SchemaCache::new(),
-                    is_nullable: false,
+                    is_nullable: true,
                 },
                 cache: mir::schema::SchemaCache::new(),
             }

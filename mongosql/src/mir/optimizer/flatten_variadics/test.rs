@@ -1,6 +1,5 @@
 mod flatten_node {
-    use crate::mir;
-    use crate::mir::{schema::SchemaCache, *};
+    use crate::mir::{self, schema::SchemaCache, *};
     macro_rules! test_flatten_variadic_functions {
         ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
             #[test]

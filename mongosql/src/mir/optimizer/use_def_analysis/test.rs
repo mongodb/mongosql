@@ -1,7 +1,7 @@
 use crate::{
     mir::{self, optimizer::use_def_analysis::FieldPath},
     unchecked_unique_linked_hash_map,
-    util::mir_field_path,
+    util::{mir_field_access, mir_field_path},
 };
 
 macro_rules! test_method {
@@ -156,15 +156,6 @@ fn mir_reference(name: &str) -> mir::Expression {
     })
 }
 
-fn mir_field_access(ref_name: &str, field_name: &str) -> mir::Expression {
-    mir::Expression::FieldAccess(mir::FieldAccess {
-        expr: Box::new(mir_reference(ref_name)),
-        field: field_name.to_string(),
-        cache: mir::schema::SchemaCache::new(),
-        is_nullable: false,
-    })
-}
-
 test_method!(
     project_defines,
     method = defines,
@@ -248,24 +239,14 @@ test_method!(
     method = opaque_field_defines,
     expected = {
         let expected: HashSet<FieldPath> = set! {
-            mir::FieldPath {
-                key: Key::named("foo", 0),
-                fields: vec!["bar".to_string(), "arr".to_string()],
-                cache: SchemaCache::new(),
-                is_nullable: false,
-            },
+            mir_field_path("foo", vec!["bar", "arr"]),
             mir_field_path("foo", vec!["idx"]),
         };
         expected
     },
     input = Unwind {
         source: mir_collection_stage(),
-        path: mir::FieldPath {
-            key: Key::named("foo", 0),
-            fields: vec!["bar".to_string(), "arr".to_string()],
-            cache: SchemaCache::new(),
-            is_nullable: false,
-        },
+        path: mir_field_path("foo", vec!["bar", "arr"]),
         index: Some("idx".to_string()),
         outer: false,
         cache: SchemaCache::new(),
@@ -287,17 +268,20 @@ test_field_uses!(
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Lt,
             args: vec![
-                mir_field_access("foo", "x"),
+                *mir_field_access("foo", "x", true),
                 Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::Add,
-                    args: vec![mir_field_access("bar", "y"), mir_field_access("bar", "x"),],
+                    args: vec![
+                        *mir_field_access("bar", "y", true),
+                        *mir_field_access("bar", "x", true),
+                    ],
                     cache: SchemaCache::new(),
-                    is_nullable: false,
+                    is_nullable: true,
                 })
             ],
 
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         cache: SchemaCache::new(),
     }),
@@ -442,24 +426,8 @@ test_substitute!(
         Key::named("foo",0) =>
             mir::Expression::Document(mir::DocumentExpr {
                 document: unchecked_unique_linked_hash_map! {
-                    "x".to_string() => mir::Expression::FieldAccess( mir::FieldAccess {
-                        expr: Box::new(mir::Expression::Reference( mir::ReferenceExpr {
-                            key: Key::named("bar", 0u16),
-                            cache: mir::schema::SchemaCache::new(),
-                        })),
-                        field: "x2".to_string(),
-                        cache: mir::schema::SchemaCache::new(),
-                        is_nullable: false,
-                    }),
-                    "y".to_string() => mir::Expression::FieldAccess( mir::FieldAccess {
-                        expr: Box::new(mir::Expression::Reference( mir::ReferenceExpr {
-                            key: Key::named("bar", 0u16),
-                            cache: mir::schema::SchemaCache::new(),
-                        })),
-                        field: "y2".to_string(),
-                        cache: mir::schema::SchemaCache::new(),
-                        is_nullable: false,
-                    }),
+                    "x".to_string() => *mir_field_access("bar", "x2", true),
+                    "y".to_string() => *mir_field_access("bar", "y2", true),
                 },
                 cache: mir::schema::SchemaCache::new(),
           })
@@ -485,7 +453,7 @@ test_substitute!(
         cache: SchemaCache::new(),
     }),
     theta = map! {
-        Key::named("foo",0) => mir_field_access("bar", "a"),
+        Key::named("foo",0) => *mir_field_access("bar", "a", true),
     },
 );
 
@@ -581,8 +549,8 @@ test_substitute!(
     }),
     theta = map! {
         Key::named("x",0) => mir::Expression::Document(unchecked_unique_linked_hash_map! {
-            "a".to_string() => mir_field_access("y", "a"),
-            "b".to_string() => mir_field_access("y", "b"),
+            "a".to_string() => *mir_field_access("y", "a", true),
+            "b".to_string() => *mir_field_access("y", "b", true),
         }.into()),
     },
 );
@@ -611,8 +579,8 @@ test_substitute!(
     })),
     theta = map! {
         Key::named("x",0) => mir::Expression::Document(unchecked_unique_linked_hash_map! {
-            "a".to_string() => mir_field_access("y", "a"),
-            "b".to_string() => mir_field_access("y", "b"),
+            "a".to_string() => *mir_field_access("y", "a", true),
+            "b".to_string() => *mir_field_access("y", "b", true),
         }.into()),
     },
 );
@@ -638,10 +606,10 @@ test_substitute!(
     theta = map! {
         Key::named("x",0) => mir::Expression::Document(unchecked_unique_linked_hash_map! {
             "a".to_string() => mir::Expression::Document(unchecked_unique_linked_hash_map! {
-                "c".to_string() => mir_field_access("y", "a"),
+                "c".to_string() => *mir_field_access("y", "a", true),
             }.into()),
             "b".to_string() => mir::Expression::Document(unchecked_unique_linked_hash_map! {
-                "d".to_string() => mir_field_access("y", "b"),
+                "d".to_string() => *mir_field_access("y", "b", true),
             }.into()),
         }.into()),
     },
@@ -660,8 +628,8 @@ test_substitute!(
     }),
     theta = map! {
         Key::named("z",0) => mir::Expression::Document(unchecked_unique_linked_hash_map! {
-            "a".to_string() => mir_field_access("y", "a"),
-            "b".to_string() => mir_field_access("y", "b"),
+            "a".to_string() => *mir_field_access("y", "a", true),
+            "b".to_string() => *mir_field_access("y", "b", true),
         }.into()),
     },
 );
