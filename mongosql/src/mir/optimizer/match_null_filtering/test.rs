@@ -462,7 +462,7 @@ mod all_fields_always_nullable {
                                     }),
                                 ],
                                 cache: SchemaCache::new(),
-                        is_nullable: false,
+                                is_nullable: false,
                             }),
                             cache: SchemaCache::new(),
                         })),
