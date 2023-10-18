@@ -23,7 +23,7 @@ fn make_unwind(index: Option<String>, outer: bool) -> Stage {
             key: ("foo", 0u16).into(),
             fields: vec!["arr".to_string()],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         },
         index,
         outer,

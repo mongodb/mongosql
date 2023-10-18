@@ -23,7 +23,7 @@ mod mql_intrinsic {
                 expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                 field: "x".to_string(),
                 cache: SchemaCache::new(),
-                is_nullable: false,
+                is_nullable: true,
             },
             cache: SchemaCache::new()
         })),

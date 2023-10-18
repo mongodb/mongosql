@@ -30,7 +30,7 @@ mod substring {
                 Expression::Literal(LiteralValue::Integer(3).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -50,7 +50,7 @@ mod substring {
                 Expression::Literal(LiteralValue::Integer(1).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -70,7 +70,7 @@ mod substring {
                 Expression::Literal(LiteralValue::String("def".to_string()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -84,7 +84,7 @@ mod substring {
                 Expression::Literal(LiteralValue::Integer(1).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -99,7 +99,7 @@ mod substring {
                 Expression::Literal(LiteralValue::Integer(2).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -114,7 +114,7 @@ mod substring {
                 Expression::Literal(LiteralValue::Integer(2).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -132,7 +132,7 @@ mod substring {
                 Expression::Reference(("integer_or_null", 0u16).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("integer_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)])},
     );
@@ -156,7 +156,7 @@ mod and {
                 Expression::Literal(LiteralValue::Boolean(true).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
     );
@@ -176,7 +176,7 @@ mod and {
                 Expression::Reference(("bar", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
     );
@@ -191,7 +191,7 @@ mod and {
                 Expression::Literal(LiteralValue::Boolean(true).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Boolean)},
     );
@@ -209,7 +209,7 @@ mod and {
                 Expression::Literal(LiteralValue::Boolean(true).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Atomic(Atomic::Null)])},
     );
@@ -227,7 +227,7 @@ mod and {
                 Expression::Literal(LiteralValue::Boolean(true).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Missing])},
     );
@@ -242,7 +242,7 @@ mod and {
                 Expression::Literal(LiteralValue::Boolean(true).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
@@ -266,7 +266,7 @@ mod or {
                 Expression::Literal(LiteralValue::Boolean(true).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
     );
@@ -286,7 +286,7 @@ mod or {
                 Expression::Reference(("bar", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
     );
@@ -301,7 +301,7 @@ mod or {
                 Expression::Literal(LiteralValue::Boolean(true).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Boolean)},
     );
@@ -319,7 +319,7 @@ mod or {
                 Expression::Literal(LiteralValue::Boolean(true).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Atomic(Atomic::Null)])},
     );
@@ -337,7 +337,7 @@ mod or {
                 Expression::Literal(LiteralValue::Boolean(true).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Missing])},
     );
@@ -352,7 +352,7 @@ mod or {
                 Expression::Literal(LiteralValue::Boolean(true).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
@@ -373,7 +373,7 @@ mod not {
             function: ScalarFunction::Not,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
     );
@@ -385,7 +385,7 @@ mod not {
             function: ScalarFunction::Not,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Boolean)},
     );
@@ -400,7 +400,7 @@ mod not {
             function: ScalarFunction::Not,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Atomic(Atomic::Null)])},
     );
@@ -415,7 +415,7 @@ mod not {
             function: ScalarFunction::Not,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Missing])},
     );
@@ -427,7 +427,7 @@ mod not {
             function: ScalarFunction::Not,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
@@ -446,7 +446,7 @@ mod trim {
                 Expression::Literal(LiteralValue::String("hello".into()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
     );
@@ -464,7 +464,7 @@ mod trim {
                 Expression::Literal(LiteralValue::String("hello".into()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
@@ -482,7 +482,7 @@ mod trim {
                 Expression::Literal(LiteralValue::String("hello".into()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
@@ -497,7 +497,7 @@ mod trim {
                 Expression::Literal(LiteralValue::String("hello".into()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
@@ -512,7 +512,7 @@ mod trim {
                 Expression::Literal(LiteralValue::String("hello".into()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
     );
@@ -530,7 +530,7 @@ mod trim {
                 Expression::Literal(LiteralValue::String("hello".into()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
@@ -548,7 +548,7 @@ mod trim {
                 Expression::Literal(LiteralValue::String("hello".into()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
@@ -563,7 +563,7 @@ mod trim {
                 Expression::Literal(LiteralValue::String("hello".into()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
@@ -578,7 +578,7 @@ mod trim {
                 Expression::Literal(LiteralValue::String("hello".into()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
     );
@@ -596,7 +596,7 @@ mod trim {
                 Expression::Literal(LiteralValue::String("hello".into()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
@@ -614,7 +614,7 @@ mod trim {
                 Expression::Literal(LiteralValue::String("hello".into()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
@@ -629,7 +629,7 @@ mod trim {
                 Expression::Literal(LiteralValue::String("hello".into()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
@@ -648,7 +648,7 @@ mod concat {
                 Expression::Literal(LiteralValue::String("hello".into()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
     );
@@ -666,7 +666,7 @@ mod concat {
                 Expression::Literal(LiteralValue::String("hello".into()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
@@ -684,7 +684,7 @@ mod concat {
                 Expression::Literal(LiteralValue::String("hello".into()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
@@ -699,7 +699,7 @@ mod concat {
                 Expression::Literal(LiteralValue::String("hello".into()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
@@ -715,7 +715,7 @@ mod lower {
             function: ScalarFunction::Lower,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
     );
@@ -730,7 +730,7 @@ mod lower {
             function: ScalarFunction::Lower,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
@@ -745,7 +745,7 @@ mod lower {
             function: ScalarFunction::Lower,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
@@ -757,7 +757,7 @@ mod lower {
             function: ScalarFunction::Lower,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
@@ -773,7 +773,7 @@ mod upper {
             function: ScalarFunction::Upper,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
     );
@@ -788,7 +788,7 @@ mod upper {
             function: ScalarFunction::Upper,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
@@ -803,7 +803,7 @@ mod upper {
             function: ScalarFunction::Upper,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
@@ -815,7 +815,7 @@ mod upper {
             function: ScalarFunction::Upper,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
@@ -831,7 +831,7 @@ mod year {
             function: ScalarFunction::Year,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
     );
@@ -846,7 +846,7 @@ mod year {
             function: ScalarFunction::Year,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
     );
@@ -861,7 +861,7 @@ mod year {
             function: ScalarFunction::Year,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
     );
@@ -873,7 +873,7 @@ mod year {
             function: ScalarFunction::Year,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
@@ -889,7 +889,7 @@ mod month {
             function: ScalarFunction::Month,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
     );
@@ -904,7 +904,7 @@ mod month {
             function: ScalarFunction::Month,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
     );
@@ -919,7 +919,7 @@ mod month {
             function: ScalarFunction::Month,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
     );
@@ -931,7 +931,7 @@ mod month {
             function: ScalarFunction::Month,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
@@ -947,7 +947,7 @@ mod day {
             function: ScalarFunction::Day,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
     );
@@ -962,7 +962,7 @@ mod day {
             function: ScalarFunction::Day,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
     );
@@ -977,7 +977,7 @@ mod day {
             function: ScalarFunction::Day,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
     );
@@ -989,7 +989,7 @@ mod day {
             function: ScalarFunction::Day,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
@@ -1005,7 +1005,7 @@ mod minute {
             function: ScalarFunction::Minute,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
     );
@@ -1020,7 +1020,7 @@ mod minute {
             function: ScalarFunction::Minute,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
     );
@@ -1035,7 +1035,7 @@ mod minute {
             function: ScalarFunction::Minute,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
     );
@@ -1047,7 +1047,7 @@ mod minute {
             function: ScalarFunction::Minute,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
@@ -1063,7 +1063,7 @@ mod hour {
             function: ScalarFunction::Hour,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
     );
@@ -1078,7 +1078,7 @@ mod hour {
             function: ScalarFunction::Hour,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
     );
@@ -1093,7 +1093,7 @@ mod hour {
             function: ScalarFunction::Hour,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
     );
@@ -1105,7 +1105,7 @@ mod hour {
             function: ScalarFunction::Hour,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
@@ -1121,7 +1121,7 @@ mod arithmetic {
             function: ScalarFunction::Add,
             args: vec![],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1132,7 +1132,7 @@ mod arithmetic {
             function: ScalarFunction::Mul,
             args: vec![Expression::Literal(LiteralValue::Double(1.0).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1148,7 +1148,7 @@ mod arithmetic {
                 Expression::Literal(LiteralValue::Long(3).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1164,7 +1164,7 @@ mod arithmetic {
                 Expression::Reference(("bar", 0u16).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Missing},
     );
@@ -1181,7 +1181,7 @@ mod arithmetic {
                 Expression::Literal(LiteralValue::Double(3.0).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Decimal)},
     );
@@ -1197,7 +1197,7 @@ mod arithmetic {
                 Expression::Literal(LiteralValue::Long(3).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1212,7 +1212,7 @@ mod arithmetic {
                 Expression::Literal(LiteralValue::Integer(3).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1226,7 +1226,7 @@ mod arithmetic {
                 Expression::Literal(LiteralValue::Integer(2).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1245,7 +1245,7 @@ mod arithmetic {
                 Expression::Reference(("foo", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("bar", 0u16).into() =>Schema::AnyOf(set![
@@ -1275,7 +1275,7 @@ mod arithmetic {
                 Expression::Reference(("baz", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::AnyOf(set![
@@ -1308,7 +1308,7 @@ mod arithmetic {
                 Expression::Reference(("baz", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::AnyOf(set![
@@ -1337,7 +1337,7 @@ mod arithmetic {
                 Expression::Reference(("baz", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::AnyOf(set![
@@ -1368,7 +1368,7 @@ mod arithmetic {
                 Expression::Reference(("baz", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::AnyOf(set![
@@ -1397,7 +1397,7 @@ mod arithmetic {
                 Expression::Reference(("baz", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::AnyOf(set![
@@ -1428,7 +1428,7 @@ mod arithmetic {
                 Expression::Reference(("foo", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("bar", 0u16).into() =>Schema::AnyOf(set![
@@ -1465,7 +1465,7 @@ mod arithmetic {
                 Expression::Reference(("foo", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("bar", 0u16).into() =>Schema::AnyOf(set![
@@ -1490,7 +1490,7 @@ mod arithmetic {
                 Expression::Reference(("bar", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::Atomic(Atomic::Double),
@@ -1514,7 +1514,7 @@ mod arithmetic {
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::Sum,
             arg: Box::new(Expression::Reference(("foo", 0u16).into())),
-            distinct: false,
+            distinct: true,
         }),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::Any,
@@ -1535,7 +1535,7 @@ mod arithmetic {
                 Expression::Reference(("bar", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::Atomic(Atomic::Double),
@@ -1573,7 +1573,7 @@ mod arithmetic {
                 Expression::Reference(("bar", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::Atomic(Atomic::Double),
@@ -1597,7 +1597,7 @@ mod arithmetic {
                 function: ScalarFunction::Sub,
                 args: vec![Expression::Literal(LiteralValue::Integer(1).into())],
                 cache: SchemaCache::new(),
-                is_nullable: false,
+                is_nullable: true,
             }),
         );
 
@@ -1617,7 +1617,7 @@ mod arithmetic {
                     Expression::Literal(LiteralValue::Integer(3).into())
                 ],
                 cache: SchemaCache::new(),
-                is_nullable: false,
+                is_nullable: true,
             }),
         );
 
@@ -1643,7 +1643,7 @@ mod arithmetic {
                     Expression::Literal(LiteralValue::Integer(2).into()),
                 ],
                 cache: SchemaCache::new(),
-                is_nullable: false,
+                is_nullable: true,
             }),
         );
 
@@ -1669,7 +1669,7 @@ mod arithmetic {
                     Expression::Literal(LiteralValue::Boolean(true).into()),
                 ],
                 cache: SchemaCache::new(),
-                is_nullable: false,
+                is_nullable: true,
             }),
         );
 
@@ -1698,7 +1698,7 @@ mod arithmetic {
                     Expression::Literal(LiteralValue::Integer(4).into()),
                 ],
                 cache: SchemaCache::new(),
-                is_nullable: false,
+                is_nullable: true,
             }),
         );
     }
@@ -1722,7 +1722,7 @@ mod abs {
                 Expression::Literal(LiteralValue::Integer(2).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1747,7 +1747,7 @@ mod abs {
                 LiteralValue::String("abc".to_string()).into()
             )],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -1770,7 +1770,7 @@ mod ceil {
                 Expression::Literal(LiteralValue::Integer(2).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1795,7 +1795,7 @@ mod ceil {
                 LiteralValue::String("abc".to_string()).into()
             )],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -1818,7 +1818,7 @@ mod degrees {
                 Expression::Literal(LiteralValue::Integer(2).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1843,7 +1843,7 @@ mod degrees {
                 LiteralValue::String("abc".to_string()).into()
             )],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1854,7 +1854,7 @@ mod degrees {
             function: ScalarFunction::Degrees,
             args: vec![Expression::Literal(LiteralValue::Integer(2).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1865,7 +1865,7 @@ mod degrees {
             function: ScalarFunction::Degrees,
             args: vec![Expression::Literal(LiteralValue::Long(2).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -1888,7 +1888,7 @@ mod floor {
                 Expression::Literal(LiteralValue::Integer(2).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1913,7 +1913,7 @@ mod floor {
                 LiteralValue::String("abc".to_string()).into()
             )],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -1937,7 +1937,7 @@ mod log {
                 Expression::Literal(LiteralValue::Integer(3).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1963,7 +1963,7 @@ mod log {
                 Expression::Literal(LiteralValue::Integer(2).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -1989,7 +1989,7 @@ mod log {
                 Expression::Literal(LiteralValue::String("abc".to_string()).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -2013,7 +2013,7 @@ mod mod_func {
                 Expression::Literal(LiteralValue::Integer(3).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2039,7 +2039,7 @@ mod mod_func {
                 Expression::Literal(LiteralValue::Integer(2).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2065,7 +2065,7 @@ mod mod_func {
                 Expression::Literal(LiteralValue::String("abc".to_string()).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -2089,7 +2089,7 @@ mod pow {
                 Expression::Literal(LiteralValue::Integer(3).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2115,7 +2115,7 @@ mod pow {
                 Expression::Literal(LiteralValue::Integer(2).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2141,7 +2141,7 @@ mod pow {
                 Expression::Literal(LiteralValue::String("abc".to_string()).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -2165,7 +2165,7 @@ mod round {
                 Expression::Literal(LiteralValue::Integer(3).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2191,7 +2191,7 @@ mod round {
                 Expression::Literal(LiteralValue::Integer(2).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2215,7 +2215,7 @@ mod round {
                 Expression::Literal(LiteralValue::String("abc".to_string()).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -2238,7 +2238,7 @@ mod cos {
                 Expression::Literal(LiteralValue::Integer(2).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2263,7 +2263,7 @@ mod cos {
                 LiteralValue::String("abc".to_string()).into()
             )],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2274,7 +2274,7 @@ mod cos {
             function: ScalarFunction::Cos,
             args: vec![Expression::Literal(LiteralValue::Integer(2).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -2297,7 +2297,7 @@ mod sin {
                 Expression::Literal(LiteralValue::Integer(2).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2322,7 +2322,7 @@ mod sin {
                 LiteralValue::String("abc".to_string()).into()
             )],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2333,7 +2333,7 @@ mod sin {
             function: ScalarFunction::Sin,
             args: vec![Expression::Literal(LiteralValue::Double(2.8).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -2356,7 +2356,7 @@ mod tan {
                 Expression::Literal(LiteralValue::Integer(2).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2381,7 +2381,7 @@ mod tan {
                 LiteralValue::String("abc".to_string()).into()
             )],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2392,7 +2392,7 @@ mod tan {
             function: ScalarFunction::Sin,
             args: vec![Expression::Literal(LiteralValue::Long(2).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -2415,7 +2415,7 @@ mod radians {
                 Expression::Literal(LiteralValue::Integer(2).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2440,7 +2440,7 @@ mod radians {
                 LiteralValue::String("abc".to_string()).into()
             )],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -2463,7 +2463,7 @@ mod sqrt {
                 Expression::Literal(LiteralValue::Integer(2).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2488,7 +2488,7 @@ mod sqrt {
                 LiteralValue::String("abc".to_string()).into()
             )],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -2508,7 +2508,7 @@ mod comparison {
             function: ScalarFunction::Lt,
             args: vec![Expression::Literal(LiteralValue::Integer(1).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2527,7 +2527,7 @@ mod comparison {
                 Expression::Literal(LiteralValue::String("abc".to_string()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2541,7 +2541,7 @@ mod comparison {
                 Expression::Literal(LiteralValue::Integer(2).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2558,7 +2558,7 @@ mod comparison {
                 Expression::Reference(("integer_or_null", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("integer_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)])},
     );
@@ -2573,7 +2573,7 @@ mod comparison {
                 Expression::Literal(LiteralValue::Null.into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2591,7 +2591,7 @@ mod comparison {
             )
         ],
         cache: SchemaCache::new(),
-        is_nullable: false,
+        is_nullable: true,
     }),
 );
 
@@ -2611,7 +2611,7 @@ mod comparison {
                 )
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2631,7 +2631,7 @@ mod comparison {
                 )
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2651,7 +2651,7 @@ mod comparison {
                 )
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -2671,7 +2671,7 @@ mod between {
             function: ScalarFunction::Between,
             args: vec![Expression::Literal(LiteralValue::Integer(1).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2691,7 +2691,7 @@ mod between {
                 Expression::Literal(LiteralValue::Integer(2).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2711,7 +2711,7 @@ mod between {
                 Expression::Literal(LiteralValue::String("abc".to_string()).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2729,7 +2729,7 @@ mod between {
                 Expression::Literal(LiteralValue::Long(3).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2753,7 +2753,7 @@ mod between {
                 Expression::Reference(("long_or_null", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("integer_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)]),
@@ -2775,7 +2775,7 @@ mod between {
                 Expression::Literal(LiteralValue::Null.into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -2797,7 +2797,7 @@ mod merge_objects {
                 LiteralValue::String("abc".to_string()).into()
             ),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -2808,7 +2808,7 @@ mod merge_objects {
             function: ScalarFunction::MergeObjects,
             args: vec![Expression::Reference(("bar", 0u16).into()),],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
     );
@@ -2828,7 +2828,7 @@ mod merge_objects {
                 Expression::Reference(("bar", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
     );
@@ -2856,7 +2856,7 @@ mod merge_objects {
                 Expression::Reference(("car", 0u16).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::Document(
@@ -2898,7 +2898,7 @@ mod merge_objects {
                 Expression::Reference(("foo", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::Document(
@@ -2960,7 +2960,7 @@ mod merge_objects {
                 Expression::Reference(("foo", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::AnyOf(set![
@@ -3035,7 +3035,7 @@ mod computed_field_access {
                 Expression::Literal(LiteralValue::Long(3).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3054,7 +3054,7 @@ mod computed_field_access {
                 Expression::Literal(LiteralValue::Long(2).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3073,7 +3073,7 @@ mod computed_field_access {
                 Expression::Literal(LiteralValue::String("field".to_string()).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![ANY_DOCUMENT.clone(), Schema::Missing])},
     );
@@ -3093,7 +3093,7 @@ mod computed_field_access {
                 Expression::Literal(LiteralValue::Long(42).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
     );
@@ -3113,7 +3113,7 @@ mod computed_field_access {
                 Expression::Reference(("baz", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone(),
         ("baz", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
@@ -3129,7 +3129,7 @@ mod computed_field_access {
                 Expression::Literal(LiteralValue::String("field".to_string()).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
     );
@@ -3145,7 +3145,7 @@ mod current_timestamp {
             function: ScalarFunction::CurrentTimestamp,
             args: vec![],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3161,7 +3161,7 @@ mod current_timestamp {
             function: ScalarFunction::CurrentTimestamp,
             args: vec![Expression::Literal(LiteralValue::Integer(1).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -3181,7 +3181,7 @@ mod nullif {
             function: ScalarFunction::NullIf,
             args: vec![Expression::Literal(LiteralValue::Integer(1).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3200,7 +3200,7 @@ mod nullif {
                 Expression::Literal(LiteralValue::String("abc".to_string()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3219,7 +3219,7 @@ mod nullif {
                 Expression::Literal(LiteralValue::String("abc".to_string()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3244,7 +3244,7 @@ mod nullif {
                 Expression::Reference(("bar", 0u16).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)]),
@@ -3265,7 +3265,7 @@ mod nullif {
                 Expression::Literal(LiteralValue::String("def".to_string()).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3282,7 +3282,7 @@ mod nullif {
                 Expression::Literal(LiteralValue::Integer(1).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("missing", 0u16).into() => Schema::Missing,
@@ -3302,7 +3302,7 @@ mod nullif {
                 Expression::Literal(LiteralValue::Long(2).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3322,7 +3322,7 @@ mod nullif {
                 Expression::Reference(("bar", 0u16).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)]),
@@ -3346,7 +3346,7 @@ mod coalesce {
             function: ScalarFunction::Coalesce,
             args: vec![],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3362,7 +3362,7 @@ mod coalesce {
                 Expression::Literal(LiteralValue::Double(2.0).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! { ("null_or_missing", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing]) },
     );
@@ -3383,7 +3383,7 @@ mod coalesce {
                 Expression::Literal(LiteralValue::Double(2.0).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("integer_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)]),
             ("null_or_missing", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing])
@@ -3405,7 +3405,7 @@ mod coalesce {
                 Expression::Reference(("null_or_missing", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("any", 0u16).into() => Schema::Any,
             ("missing", 0u16).into() => Schema::Missing,
@@ -3423,7 +3423,7 @@ mod coalesce {
                 Expression::Literal(LiteralValue::Integer(1).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("any", 0u16).into() => Schema::Any},
     );
@@ -3439,7 +3439,7 @@ mod coalesce {
                 Expression::Reference(("null_or_missing", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("missing", 0u16).into() => Schema::Missing,
             ("null_or_missing", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing])
@@ -3460,7 +3460,7 @@ mod coalesce {
                 Expression::Reference(("long_or_missing", 0u16).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("integer_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)]),
             ("long_or_missing", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Long), Schema::Missing])
@@ -3483,7 +3483,7 @@ mod slice {
             function: ScalarFunction::Slice,
             args: vec![Expression::Reference(("array", 0u16).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
@@ -3505,7 +3505,7 @@ mod slice {
                 Expression::Literal(LiteralValue::Integer(3).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
@@ -3525,7 +3525,7 @@ mod slice {
                 Expression::Literal(LiteralValue::Integer(1).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3548,7 +3548,7 @@ mod slice {
                 Expression::Literal(LiteralValue::Long(1).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
@@ -3569,7 +3569,7 @@ mod slice {
                 Expression::Literal(LiteralValue::Integer(2).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3593,7 +3593,7 @@ mod slice {
                 Expression::Literal(LiteralValue::Integer(1).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
@@ -3618,7 +3618,7 @@ mod slice {
                 Expression::Literal(LiteralValue::String("abc".to_string()).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
@@ -3633,7 +3633,7 @@ mod slice {
                 Expression::Literal(LiteralValue::Integer(1).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
@@ -3649,7 +3649,7 @@ mod slice {
                 Expression::Literal(LiteralValue::Integer(2).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
@@ -3672,7 +3672,7 @@ mod split {
                 LiteralValue::String("a-b-c".to_string()).into()
             )],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3692,7 +3692,7 @@ mod split {
                 Expression::Literal(LiteralValue::Integer(1).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3712,7 +3712,7 @@ mod split {
                 Expression::Literal(LiteralValue::Integer(1).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3732,7 +3732,7 @@ mod split {
                 Expression::Literal(LiteralValue::String("1".to_string()).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3750,7 +3750,7 @@ mod split {
                 Expression::Literal(LiteralValue::Integer(1).into()),
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }
@@ -3770,7 +3770,7 @@ mod size {
             function: ScalarFunction::Size,
             args: vec![],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3790,7 +3790,7 @@ mod size {
             function: ScalarFunction::Size,
             args: vec![Expression::Literal(LiteralValue::Integer(1).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3801,7 +3801,7 @@ mod size {
             function: ScalarFunction::Size,
             args: vec![Expression::Reference(("array", 0u16).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
@@ -3816,7 +3816,7 @@ mod size {
             function: ScalarFunction::Size,
             args: vec![Expression::Reference(("array_or_null", 0u16).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! { ("array_or_null", 0u16).into() =>
         Schema::AnyOf(set![ANY_ARRAY.clone(), Schema::Atomic(Atomic::Null)]) },
@@ -3833,7 +3833,7 @@ mod pos {
             function: ScalarFunction::Pos,
             args: vec![Expression::Literal(LiteralValue::Integer(1).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3849,7 +3849,7 @@ mod pos {
             function: ScalarFunction::Pos,
             args: vec![],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3868,7 +3868,7 @@ mod pos {
             function: ScalarFunction::Pos,
             args: vec![Expression::Reference(("bar", 0u16).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
@@ -3887,7 +3887,7 @@ mod neg {
             function: ScalarFunction::Pos,
             args: vec![Expression::Literal(LiteralValue::Double(1.0).into())],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 
@@ -3906,7 +3906,7 @@ mod neg {
                 Expression::Literal(LiteralValue::Integer(2).into())
             ],
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
     );
 }

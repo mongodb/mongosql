@@ -16,7 +16,7 @@ fn mir_field_access(ref_name: &str, field_name: &str) -> mir::Expression {
         expr: Box::new(mir_reference(ref_name)),
         field: field_name.to_string(),
         cache: mir::schema::SchemaCache::new(),
-        is_nullable: false,
+        is_nullable: true,
     })
 }
 

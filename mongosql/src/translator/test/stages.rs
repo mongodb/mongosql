@@ -240,7 +240,7 @@ mod project {
                         })),
                         field: "b".to_string(),
                         cache: mir::schema::SchemaCache::new(),
-                        is_nullable: false,
+                        is_nullable: true,
                     })),
                     target_type: mir::Type::Document,
                     cache: mir::schema::SchemaCache::new(),
@@ -463,7 +463,7 @@ mod group {
                         })),
                         field: "x".into(),
                         cache: mir::schema::SchemaCache::new(),
-                        is_nullable: false,
+                        is_nullable: true,
                     }
                 )),
             ],
@@ -542,7 +542,7 @@ mod group {
                         })),
                         field: "x".into(),
                         cache: mir::schema::SchemaCache::new(),
-                        is_nullable: false,
+                        is_nullable: true,
                     }
                 )),
             ],
@@ -680,7 +680,7 @@ mod sort {
                         key: ("bar", 0u16).into(),
                         fields: vec!["a".to_string()],
                         cache: mir::schema::SchemaCache::new(),
-                        is_nullable: false,
+                        is_nullable: true,
                     }
                 ),
                 mir::SortSpecification::Asc(
@@ -688,7 +688,7 @@ mod sort {
                         key: ("baz", 0u16).into(),
                         fields: vec!["a".to_string()],
                         cache: mir::schema::SchemaCache::new(),
-                        is_nullable: false,
+                        is_nullable: true,
                     }
                 )
             ],
@@ -735,13 +735,13 @@ mod sort {
                     key: ("foo", 0u16).into(),
                     fields: vec!["bar".to_string()],
                     cache: mir::schema::SchemaCache::new(),
-                    is_nullable: false,
+                    is_nullable: true,
                 }),
                 mir::SortSpecification::Asc(mir::FieldPath {
                     key: ("foo", 0u16).into(),
                     fields: vec!["baz".to_string()],
                     cache: mir::schema::SchemaCache::new(),
-                    is_nullable: false,
+                    is_nullable: true,
                 })
             ],
             cache: mir::schema::SchemaCache::new()
@@ -786,7 +786,7 @@ mod sort {
                     key: ("foo", 0u16).into(),
                     fields: vec!["bar".to_string(), "quz".to_string()],
                     cache: mir::schema::SchemaCache::new(),
-                    is_nullable: false,
+                    is_nullable: true,
                 }),
                 mir::SortSpecification::Asc(mir::FieldPath {
                     key: ("foo", 0u16).into(),
@@ -796,7 +796,7 @@ mod sort {
                         "bazzle".to_string()
                     ],
                     cache: mir::schema::SchemaCache::new(),
-                    is_nullable: false,
+                    is_nullable: true,
                 })
             ],
             cache: mir::schema::SchemaCache::new()
@@ -1169,13 +1169,13 @@ mod join {
                                     expr: mir::Expression::Reference(("t1".to_string(), 0u16).into()).into(),
                                     field: "a".to_string(),
                                     cache: mir::schema::SchemaCache::new(),
-                                    is_nullable: false,
+                                    is_nullable: true,
                                 }),
                                 mir::Expression::FieldAccess(mir::FieldAccess{
                                     expr: mir::Expression::Reference(("t2".to_string(), 0u16).into()).into(),
                                     field: "b".to_string(),
                                     cache: mir::schema::SchemaCache::new(),
-                                    is_nullable: false,
+                                    is_nullable: true,
                                 }),
                             ],
                             cache: mir::schema::SchemaCache::new(),
@@ -1552,7 +1552,7 @@ mod derived {
                             })),
                             field: "a".to_string(),
                             cache: mir::schema::SchemaCache::new(),
-                            is_nullable: false,
+                            is_nullable: true,
                         })),
                         target_type: mir::Type::Int32,
                         cache: mir::schema::SchemaCache::new(),
@@ -1592,7 +1592,7 @@ mod unwind {
                 key: ("foo",0u16).into(),
                 fields: vec!["bar".to_string()],
                 cache: mir::schema::SchemaCache::new(),
-                is_nullable: false,
+                is_nullable: true,
             },
             index: None,
             outer: false,
@@ -1621,7 +1621,7 @@ mod unwind {
                 key: ("foo",0u16).into(),
                 fields: vec!["bar".to_string()],
                 cache: mir::schema::SchemaCache::new(),
-                is_nullable: false,
+                is_nullable: true,
             },
             index: None,
             outer: true,
@@ -1649,7 +1649,7 @@ mod unwind {
                 key: ("foo",0u16).into(),
                 fields: vec!["bar".to_string()],
                 cache: mir::schema::SchemaCache::new(),
-                is_nullable: false,
+                is_nullable: true,
             },
             index: Some("i".into()),
             outer: true,
@@ -1726,13 +1726,13 @@ mod unwind {
                             expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
                             field: "arr".into(),
                             cache: mir::schema::SchemaCache::new(),
-                            is_nullable: false,
+                            is_nullable: true,
                         }),
                         "idx".into() => mir::Expression::FieldAccess(mir::FieldAccess {
                             expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
                             field: "idx".into(),
                             cache: mir::schema::SchemaCache::new(),
-                            is_nullable: false,
+                            is_nullable: true,
                         })
                     },
                     cache: mir::schema::SchemaCache::new(),
@@ -1786,7 +1786,7 @@ mod mql_intrinsic {
                         key: ("f", 0u16).into(),
                         fields: vec!["a".to_string()],
                         cache: mir::schema::SchemaCache::new(),
-                        is_nullable: false,
+                        is_nullable: true,
                     }),
                     arg: mir::LiteralValue::Integer(1),
                     cache: mir::schema::SchemaCache::new(),
@@ -2078,7 +2078,7 @@ mod subquery_expr {
                                 expr: Box::new(mir::Expression::Reference((Bottom, 1u16).into())),
                                 field: "bar".to_string(),
                                 cache: mir::schema::SchemaCache::new(),
-                                is_nullable: false,
+                                is_nullable: true,
                             })),
                             subquery: Box::new(mir::Stage::Limit(mir::Limit {
                                 source: Box::new(mir::Stage::Project(mir::Project {
@@ -2100,7 +2100,7 @@ mod subquery_expr {
                                                     expr: Box::new(mir::Expression::Reference(("q", 0u16).into())),
                                                     field: "bar".to_string(),
                                                     cache: mir::schema::SchemaCache::new(),
-                                                    is_nullable: false,
+                                                    is_nullable: true,
                                                 }),
                                             },
                                             cache: mir::schema::SchemaCache::new(),
@@ -2112,7 +2112,7 @@ mod subquery_expr {
                                 cache: mir::schema::SchemaCache::new(),
                             })),
                             cache: mir::schema::SchemaCache::new(),
-                            is_nullable: false,
+                            is_nullable: true,
                         }),
                     },
                     cache: mir::schema::SchemaCache::new(),

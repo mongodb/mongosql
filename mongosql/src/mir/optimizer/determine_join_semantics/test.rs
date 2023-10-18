@@ -93,7 +93,7 @@ fn make_equality_condition(arg1: Expression, arg2: Expression) -> Expression {
         function: ScalarFunction::Eq,
         args: vec![arg1, arg2],
         cache: SchemaCache::new(),
-        is_nullable: false,
+        is_nullable: true,
     })
 }
 
@@ -156,7 +156,7 @@ mod do_not_change {
                 )),
                 field: "a".to_string(),
                 cache: SchemaCache::new(),
-                is_nullable: false,
+                is_nullable: true,
             })
         )))
     );
@@ -179,7 +179,7 @@ mod do_not_change {
                     *mir_field_access("foreign", "may_be_null", true),
                 ],
                 cache: SchemaCache::new(),
-                is_nullable: false,
+                is_nullable: true,
             }
         )))
     );
@@ -194,7 +194,7 @@ mod do_not_change {
                     *mir_field_access("local", "not_null", false),
                 ],
                 cache: SchemaCache::new(),
-                is_nullable: false,
+                is_nullable: true,
             }
         )))
     );
