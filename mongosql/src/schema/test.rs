@@ -427,7 +427,7 @@ mod from_json {
 
     test_from_json_schema!(
         items_set_bson_type_not_array,
-        schema_schema = Ok(AnyOf(set![Atomic(Integer)])),
+        schema_schema = Ok(Atomic(Integer)),
         json_schema = json_schema::Schema {
             bson_type: Some(BsonType::Multiple(vec![BsonTypeName::Int,])),
             items: Some(Items::Single(Box::new(json_schema::Schema {
