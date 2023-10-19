@@ -30,6 +30,10 @@ pub enum Error {
     CannotConvertBsonTypeToAtomic(json_schema::BsonTypeName),
     #[error("{0}")]
     FieldConflictInNonNamespacedResult(String),
+    #[error("{0}")]
+    InvalidBottomField(String),
+    #[error("{0}")]
+    InvalidNamespace(String),
 }
 
 impl From<namespace_error::Error> for Error {

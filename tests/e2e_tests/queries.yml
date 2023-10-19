@@ -13,6 +13,19 @@
           "b": { "$numberInt": "1" },
           "coll": "foo",
         }
+    "foo2":
+      - {
+          "_id": 0,
+          "a": { "$numberInt": "4" },
+          "b": { "$numberInt": "5" },
+          "coll": "foo",
+        }
+      - {
+          "_id": 1,
+          "a": { "$numberInt": "5" },
+          "b": { "$numberInt": "4" },
+          "coll": "foo",
+        }
     "_foo":
       - {
           "_id": 0,
@@ -61,6 +74,19 @@
     "testquerydb":
       {
         "foo":
+          {
+            "bsonType": "object",
+            "required": ["_id", "a", "b", "coll"],
+            "additionalProperties": false,
+            "properties":
+              {
+                "_id": { "bsonType": "int" },
+                "a": { "bsonType": "int" },
+                "b": { "bsonType": "int" },
+                "coll": { "bsonType": "string" },
+              },
+          },
+        "foo2":
           {
             "bsonType": "object",
             "required": ["_id", "a", "b", "coll"],
@@ -714,3 +740,12 @@ tests:
       - { "bar": { "_id": 1, "a": 2, "b": 1, "coll": "bar" }, "": { "a": 1, "b": 2 } }
       - { "bar": { "_id": 0, "a": 1, "b": 2, "coll": "bar" }, "": { "a": 2, "b": 1 } }
       - { "bar": { "_id": 1, "a": 2, "b": 1, "coll": "bar" }, "": { "a": 2, "b": 1 } }
+
+  - description: Select pulls colls from proper collections
+    query: "SELECT foo.a, foo2.b from foo, foo2"
+    current_db: testquerydb
+    result:
+      - { "": { "a": 1, "b": 4 } }
+      - { "": { "a": 1, "b": 5 } }
+      - { "": { "a": 2, "b": 4 } }
+      - { "": { "a": 2, "b": 5 } }

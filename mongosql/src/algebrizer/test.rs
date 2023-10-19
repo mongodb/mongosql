@@ -2824,6 +2824,30 @@ mod select_clause {
         catalog = catalog(vec![("test", "baz")]),
     );
     test_algebrize!(
+        select_non_neighboring_duplicate_bot_key,
+        method = algebrize_select_clause,
+        expected = Err(Error::DuplicateDocumentKey("a".into())),
+        expected_error_code = 3023,
+        input = ast::SelectClause {
+            set_quantifier: ast::SetQuantifier::All,
+            body: ast::SelectBody::Values(vec![
+                ast::SelectValuesExpression::Expression(ast::Expression::Document(multimap! {
+                    "a".into() => ast::Expression::Literal(ast::Literal::Integer(42)),
+                },)),
+                ast::SelectValuesExpression::Substar("bar".into()),
+                ast::SelectValuesExpression::Expression(ast::Expression::Document(multimap! {
+                    "a".into() => ast::Expression::Literal(ast::Literal::Integer(42)),
+                },)),
+            ]),
+        },
+        source = source(),
+        env = map! {
+            ("foo", 0u16).into() => ANY_DOCUMENT.clone(),
+            ("bar", 1u16).into() => ANY_DOCUMENT.clone(),
+        },
+        catalog = catalog(vec![("test", "baz")]),
+    );
+    test_algebrize!(
         select_bot_and_double_substar,
         method = algebrize_select_clause,
         expected = Ok(mir::Stage::Project(mir::Project {

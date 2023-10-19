@@ -36,7 +36,7 @@ use crate::{
     translator::MqlTranslator,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
+use std::collections::{BTreeSet, HashMap};
 
 /// Contains all the information needed to execute the MQL translation of a SQL query.
 #[derive(Debug)]
@@ -58,6 +58,7 @@ pub fn translate_sql(
     // parse the query and apply syntactic rewrites
     let ast = parser::parse_query(sql)?;
     let ast = ast::rewrites::rewrite_query(ast)?;
+    let select_order = get_select_order(&ast);
 
     // construct the algebrizer and use it to build an mir plan
     let algebrizer = Algebrizer::new(current_db, catalog, 0u16, sql_options.schema_checking_mode);
@@ -108,6 +109,8 @@ pub fn translate_sql(
 
     let result_set_schema =
         mql_schema_env_to_json_schema(schema_env, &translator.mapping_registry, sql_options)?;
+    let result_set_schema =
+        order_result_set_metadata(result_set_schema, select_order, sql_options)?;
 
     Ok(Translation {
         target_db,
@@ -133,6 +136,22 @@ pub fn get_namespaces(current_db: &str, sql: &str) -> Result<BTreeSet<Namespace>
         })
         .collect();
     Ok(namespaces)
+}
+
+// get_select_order uses pattern matching to parse the select body from the rewritten AST.
+// Only parse if it is a non-distinct SelectQuery, otherwise return none (we won't attempt reordering).
+pub fn get_select_order(ast: &ast::Query) -> Option<ast::SelectBody> {
+    match ast {
+        ast::Query::Select(ast::SelectQuery {
+            select_clause:
+                ast::SelectClause {
+                    set_quantifier: ast::SetQuantifier::All,
+                    body: b,
+                },
+            ..
+        }) => Some(b.clone()),
+        _ => None,
+    }
 }
 
 // mql_schema_env_to_json_schema converts a SchemaEnvironment to a json_schema::Schema with an
@@ -202,4 +221,85 @@ fn exclude_namespace_in_result_set_schema_keys(
             }
         })
         .collect::<Result<std::collections::BTreeMap<String, Schema>>>()
+}
+
+// order_result_set_metadata takes the select body parsed from the AST, and uses it to
+// order the result_set_metadata by select order (result set metadata is in an arbitrary order at this point).
+pub fn order_result_set_metadata(
+    result_set_schema: json_schema::Schema,
+    select_order: Option<ast::SelectBody>,
+    sql_options: SqlOptions,
+) -> Result<json_schema::Schema> {
+    let body = if let Some(body) = select_order {
+        body
+    } else {
+        return Ok(result_set_schema);
+    };
+    match body {
+        ast::SelectBody::Values(v) => {
+            // to simplify lookups, create two maps: one mapping namespaces to schemas (helpful for substars), and one mapping the bottom fields to their schemas (helpful for expressions)
+            let (mut namespace_to_schema, mut bottom_fields) = match sql_options.exclude_namespaces
+            {
+                ExcludeNamespacesOption::ExcludeNamespaces => {
+                    // if we are not using namespaces, all fields will be at the top level, and we won't need a map from namespaces to schema
+                    (
+                        HashMap::new(),
+                        HashMap::from_iter(result_set_schema.properties),
+                    )
+                }
+                ExcludeNamespacesOption::IncludeNamespaces => {
+                    let mut schema_map = HashMap::from_iter(result_set_schema.properties);
+                    let bottom_fields = match schema_map.remove("") {
+                        None => HashMap::new(),
+                        Some(s) => HashMap::from_iter(s.properties),
+                    };
+                    (schema_map, bottom_fields)
+                }
+            };
+            let mut ordered_properties: Vec<(String, json_schema::Schema)> = Vec::new();
+            for expr in v {
+                match expr {
+                    // if we have an expression, get it from bottom and add it to the ordered metadata
+                    ast::SelectValuesExpression::Expression(e) => {
+                        if let ast::Expression::Document(d) = e {
+                            for document_pair in d {
+                                let schema = bottom_fields.remove(&document_pair.key).ok_or(
+                                    result::Error::JsonSchemaConversion(
+                                        schema::Error::InvalidBottomField(
+                                            document_pair.key.clone(),
+                                        ),
+                                    ),
+                                )?;
+                                match sql_options.exclude_namespaces {
+                                    ExcludeNamespacesOption::ExcludeNamespaces => {
+                                        ordered_properties.push((document_pair.key, schema));
+                                    }
+                                    ExcludeNamespacesOption::IncludeNamespaces => {
+                                        let mut value = json_schema::Schema::default();
+                                        value.properties.push((document_pair.key, schema));
+                                        ordered_properties.push(("".to_string(), value));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // for substars, take the whole schema for the namespaces and add it to the metadata
+                    ast::SelectValuesExpression::Substar(s) => {
+                        let schema = namespace_to_schema.remove(&s.datasource).ok_or(
+                            result::Error::JsonSchemaConversion(schema::Error::InvalidNamespace(
+                                s.datasource.clone(),
+                            )),
+                        )?;
+                        ordered_properties.push((s.datasource, schema));
+                    }
+                }
+            }
+            Ok(json_schema::Schema {
+                properties: ordered_properties,
+                ..result_set_schema
+            })
+        }
+        // if we get a Standard select body after AST rewrites, this should just be select *. No need to update
+        _ => Ok(result_set_schema),
+    }
 }
