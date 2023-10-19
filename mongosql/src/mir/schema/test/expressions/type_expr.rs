@@ -55,7 +55,7 @@ mod cast {
                 LiteralValue::String("abc".to_string()).into()
             )),
             on_error: Box::new(Expression::Literal(LiteralValue::Boolean(true).into())),
-            is_nullable: false,
+            is_nullable: true,
             cache: SchemaCache::new(),
         }),
     );
@@ -74,7 +74,7 @@ mod cast {
                 LiteralValue::String("abc".to_string()).into()
             )),
             on_error: Box::new(Expression::Literal(LiteralValue::Boolean(true).into())),
-            is_nullable: false,
+            is_nullable: true,
             cache: SchemaCache::new(),
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
@@ -97,7 +97,7 @@ mod cast {
                 LiteralValue::String("abc".to_string()).into()
             )),
             on_error: Box::new(Expression::Literal(LiteralValue::Boolean(true).into())),
-            is_nullable: false,
+            is_nullable: true,
             cache: SchemaCache::new(),
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![

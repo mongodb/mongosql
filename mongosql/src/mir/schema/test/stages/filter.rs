@@ -101,7 +101,7 @@ test_schema!(
             expr: Expression::Reference(("foo", 0u16).into()).into(),
             field: "bar".into(),
             cache: SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: true,
         }),
         cache: SchemaCache::new(),
     }),
