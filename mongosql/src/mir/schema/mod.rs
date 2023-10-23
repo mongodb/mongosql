@@ -1784,8 +1784,8 @@ impl ScalarFunction {
                 &[STRING_OR_NULLISH.clone()],
                 Schema::Atomic(Atomic::Integer),
             ),
-            Year | Month | Day | Hour | Minute | Second | Week | IsoWeek | IsoWeekday
-            | DayOfYear => self.propagate_fixed_null_arguments(
+            Year | Month | Day | Hour | Minute | Second | Millisecond | Week | IsoWeek
+            | IsoWeekday | DayOfWeek | DayOfYear => self.propagate_fixed_null_arguments(
                 state,
                 arg_schemas,
                 &[DATE_OR_NULLISH.clone()],

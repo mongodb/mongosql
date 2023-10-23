@@ -518,7 +518,9 @@ pub enum ScalarFunction {
     Hour,
     Minute,
     Second,
+    Millisecond,
     Week,
+    DayOfWeek,
     DayOfYear,
     IsoWeek,
     IsoWeekday,
@@ -546,9 +548,11 @@ impl ScalarFunction {
             ScalarFunction::Hour => "Hour",
             ScalarFunction::Minute => "Minute",
             ScalarFunction::Second => "Second",
+            ScalarFunction::Millisecond => "Millisecond",
             ScalarFunction::Week => "Week",
             ScalarFunction::IsoWeek => "IsoWeek",
             ScalarFunction::IsoWeekday => "IsoWeekday",
+            ScalarFunction::DayOfWeek => "DayOfWeek",
             ScalarFunction::DayOfYear => "DayOfYear",
             ScalarFunction::Abs => "Abs",
             ScalarFunction::Ceil => "Ceil",
@@ -630,9 +634,11 @@ impl ScalarFunction {
             | ScalarFunction::Hour
             | ScalarFunction::Minute
             | ScalarFunction::Second
+            | ScalarFunction::Millisecond
             | ScalarFunction::Week
             | ScalarFunction::IsoWeek
             | ScalarFunction::IsoWeekday
+            | ScalarFunction::DayOfWeek
             | ScalarFunction::DayOfYear
             | ScalarFunction::Abs
             | ScalarFunction::Ceil
@@ -680,6 +686,7 @@ pub enum DatePart {
     Hour,
     Minute,
     Second,
+    Millisecond,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]

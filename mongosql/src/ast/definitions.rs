@@ -226,6 +226,15 @@ pub enum Expression {
     TypeAssertion(TypeAssertionExpr),
 }
 
+impl Expression {
+    pub fn into_date_part(self) -> Option<DatePart> {
+        match self {
+            Expression::Identifier(i) => i.as_str().try_into().ok(),
+            _ => None
+        }
+    }
+}
+
 #[derive(PartialEq, Debug, Clone)]
 pub struct DocumentPair {
     pub key: String,
@@ -311,7 +320,9 @@ pub enum DatePart {
     Hour,
     Minute,
     Second,
+    Millisecond,
     DayOfYear,
+    DayOfWeek,
     IsoWeek,
     IsoWeekday,
 }
@@ -382,6 +393,21 @@ pub enum FunctionName {
     Substring,
     Tan,
     Upper,
+
+    // Date funcs
+    DateAdd,
+    DateDiff,
+    DateTrunc,
+    Year,
+    Month,
+    Week,
+    DayOfWeek,
+    DayOfMonth,
+    DayOfYear,
+    Hour,
+    Minute,
+    Second,
+    Millisecond,
 }
 
 impl TryFrom<FunctionName> for TrimSpec {
@@ -392,6 +418,61 @@ impl TryFrom<FunctionName> for TrimSpec {
             FunctionName::LTrim => Ok(TrimSpec::Leading),
             FunctionName::RTrim => Ok(TrimSpec::Trailing),
             _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<FunctionName> for DatePart {
+    type Error = ();
+
+    fn try_from(name: FunctionName) -> Result<Self, Self::Error> {
+        match name {
+            FunctionName::Year => Ok(DatePart::Year),
+            FunctionName::Month => Ok(DatePart::Month),
+            FunctionName::Week => Ok(DatePart::Week),
+            FunctionName::DayOfWeek => Ok(DatePart::DayOfWeek),
+            FunctionName::DayOfMonth => Ok(DatePart::Day),
+            FunctionName::DayOfYear => Ok(DatePart::DayOfYear),
+            FunctionName::Hour => Ok(DatePart::Hour),
+            FunctionName::Minute => Ok(DatePart::Minute),
+            FunctionName::Second => Ok(DatePart::Second),
+            FunctionName::Millisecond => Ok(DatePart::Millisecond),
+            _ => Err(()),
+        }
+    }
+}
+
+impl TryFrom<&str> for DatePart {
+    type Error = String;
+
+    fn try_from(name: &str) -> Result<Self, Self::Error> {
+        match name.to_uppercase().as_str() {
+            "SQL_TSI_FRAC_SECOND" => Ok(DatePart::Millisecond),
+            "SQL_TSI_SECOND" => Ok(DatePart::Second),
+            "SQL_TSI_MINUTE" => Ok(DatePart::Minute),
+            "SQL_TSI_HOUR" => Ok(DatePart::Hour),
+            "SQL_TSI_DAY" => Ok(DatePart::Day),
+            "SQL_TSI_DAYOFYEAR" => Ok(DatePart::DayOfYear),
+            "SQL_TSI_WEEK" => Ok(DatePart::Week),
+            "SQL_TSI_MONTH" => Ok(DatePart::Month),
+            "SQL_TSI_QUARTER" => Ok(DatePart::Quarter),
+            "SQL_TSI_YEAR" => Ok(DatePart::Year),
+            "MILLISECOND" => Ok(DatePart::Millisecond),
+            "SECOND" => Ok(DatePart::Second),
+            "MINUTE" => Ok(DatePart::Minute),
+            "HOUR" => Ok(DatePart::Hour),
+            "DAY" => Ok(DatePart::Day),
+            "DAY_OF_YEAR" => Ok(DatePart::DayOfYear),
+            "DAYOFYEAR" => Ok(DatePart::DayOfYear),
+            "DAY_OF_WEEK" => Ok(DatePart::DayOfWeek),
+            "DAYOFWEEK" => Ok(DatePart::DayOfWeek),
+            "ISO_WEEKDAY" => Ok(DatePart::IsoWeekday),
+            "WEEK" => Ok(DatePart::Week),
+            "ISO_WEEK" => Ok(DatePart::IsoWeek),
+            "MONTH" => Ok(DatePart::Month),
+            "QUARTER" => Ok(DatePart::Quarter),
+            "YEAR" => Ok(DatePart::Year),
+            _ => Err(format!("unknown date part {name}")),
         }
     }
 }
@@ -453,6 +534,23 @@ impl TryFrom<&str> for FunctionName {
             "TAN" => Ok(FunctionName::Tan),
             "UCASE" => Ok(FunctionName::Upper),
             "UPPER" => Ok(FunctionName::Upper),
+
+            "DATEADD" => Ok(FunctionName::DateAdd),
+            "DATEDIFF" => Ok(FunctionName::DateDiff),
+            "DATETRUNC" => Ok(FunctionName::DateTrunc),
+            "TIMESTAMPADD" => Ok(FunctionName::DateAdd),
+            "TIMESTAMPDIFF" => Ok(FunctionName::DateDiff),
+            "TIMESTAMPTRUNC" => Ok(FunctionName::DateTrunc),
+            "YEAR" => Ok(FunctionName::Year),
+            "MONTH" => Ok(FunctionName::Month),
+            "WEEK" => Ok(FunctionName::Week),
+            "DAYOFWEEK" => Ok(FunctionName::DayOfWeek),
+            "DAYOFMONTH" => Ok(FunctionName::DayOfMonth),
+            "DAYOFYEAR" => Ok(FunctionName::DayOfYear),
+            "HOUR" => Ok(FunctionName::Hour),
+            "MINUTE" => Ok(FunctionName::Minute),
+            "SECOND" => Ok(FunctionName::Second),
+            "MILLISECOND" => Ok(FunctionName::Millisecond),
             _ => Err(format!("unknown function {name}")),
         }
     }
@@ -504,6 +602,19 @@ impl FunctionName {
             FunctionName::Sum => "SUM",
             FunctionName::Tan => "TAN",
             FunctionName::Upper => "UPPER",
+            FunctionName::DateAdd => "DATEADD",
+            FunctionName::DateDiff => "DATEDIFF",
+            FunctionName::DateTrunc => "DATETRUNC",
+            FunctionName::Year => "YEAR",
+            FunctionName::Month => "MONTH",
+            FunctionName::Week => "WEEK",
+            FunctionName::DayOfWeek => "DAYOFWEEK",
+            FunctionName::DayOfMonth => "DAYOFMONTH",
+            FunctionName::DayOfYear => "DAYOFYEAR",
+            FunctionName::Hour => "HOUR",
+            FunctionName::Minute => "MINUTE",
+            FunctionName::Second => "SECOND",
+            FunctionName::Millisecond => "MILLISECOND",
         }
     }
 
@@ -551,7 +662,20 @@ impl FunctionName {
             | FunctionName::Sqrt
             | FunctionName::Substring
             | FunctionName::Tan
-            | FunctionName::Upper => false,
+            | FunctionName::Upper
+            | FunctionName::DateAdd
+            | FunctionName::DateDiff
+            | FunctionName::DateTrunc
+            | FunctionName::Year
+            | FunctionName::Month
+            | FunctionName::Week
+            | FunctionName::DayOfWeek
+            | FunctionName::DayOfMonth
+            | FunctionName::DayOfYear
+            | FunctionName::Hour
+            | FunctionName::Minute
+            | FunctionName::Second
+            | FunctionName::Millisecond => false,
         }
     }
 }

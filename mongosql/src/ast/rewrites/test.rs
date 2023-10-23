@@ -1076,4 +1076,256 @@ mod scalar_functions {
         }),
         input = "SELECT RTRIM(' stuff ', 'more stuff')",
     );
+    test_rewrite!(
+        timestamp_add,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT DATEADD(YEAR, 2, d)"),
+        input = "SELECT TIMESTAMPADD(YEAR, 2, d)",
+    );
+    test_rewrite!(
+        date_add_incorrect_arg_count,
+        pass = ScalarFunctionsRewritePass,
+        expected = Err(Error::IncorrectArgumentCount {
+            name: "DATEADD",
+            required: "3",
+            found: 2
+        }),
+        input = "SELECT DATEADD(YEAR, 2)",
+    );
+    test_rewrite!(
+        timestamp_diff,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT DATEDIFF(QUARTER, d1, d2, 'sunday')"),
+        input = "SELECT TIMESTAMPDIFF(QUARTER, d1, d2)",
+    );
+    test_rewrite!(
+        timestamp_diff_4_args,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT DATEDIFF(MILLISECOND, d1, d2, 'monday')"),
+        input = "SELECT TIMESTAMPDIFF(SQL_TSI_FRAC_SECOND, d1, d2, 'monday')",
+    );
+    test_rewrite!(
+        date_diff_incorrect_arg_count,
+        pass = ScalarFunctionsRewritePass,
+        expected = Err(Error::IncorrectArgumentCount {
+            name: "DATEDIFF",
+            required: "3 or 4",
+            found: 2
+        }),
+        input = "SELECT DATEDIFF(QUARTER, d1)",
+    );
+    test_rewrite!(
+        timestamp_trunc,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT DATETRUNC(YEAR, d, 'sunday')"),
+        input = "SELECT TIMESTAMPTRUNC(YEAR, d)",
+    );
+    test_rewrite!(
+        timestamp_trunc_3_args,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT DATETRUNC(YEAR, d, 'monday')"),
+        input = "SELECT TIMESTAMPTRUNC(YEAR, d, 'monday')",
+    );
+    test_rewrite!(
+        date_trunc_incorrect_arg_count,
+        pass = ScalarFunctionsRewritePass,
+        expected = Err(Error::IncorrectArgumentCount {
+            name: "DATETRUNC",
+            required: "2 or 3",
+            found: 1
+        }),
+        input = "SELECT DATETRUNC(YEAR)",
+    );
+    test_rewrite!(
+        year,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(YEAR FROM d)"),
+        input = "SELECT YEAR(d)",
+    );
+    test_rewrite!(
+        month,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(MONTH FROM d)"),
+        input = "SELECT MONTH(d)",
+    );
+    test_rewrite!(
+        week,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(WEEK FROM d)"),
+        input = "SELECT WEEK(d)",
+    );
+    test_rewrite!(
+        dayofmonth,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(DAY FROM d)"),
+        input = "SELECT DAYOFMONTH(d)",
+    );
+    test_rewrite!(
+        dayofyear,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(DAY_OF_YEAR FROM d)"),
+        input = "SELECT DAYOFYEAR(d)",
+    );
+    test_rewrite!(
+        dayofweek,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(DAY_OF_WEEK FROM d)"),
+        input = "SELECT DAYOFWEEK(d)",
+    );
+    test_rewrite!(
+        hour,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(HOUR FROM d)"),
+        input = "SELECT HOUR(d)",
+    );
+    test_rewrite!(
+        second,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(SECOND FROM d)"),
+        input = "SELECT SECOND(d)",
+    );
+    test_rewrite!(
+        millisecond,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(MILLISECOND FROM d)"),
+        input = "SELECT MILLISECOND(d)",
+    );
+    test_rewrite!(
+        extract_sql_tsi_frac_second,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(MILLISECOND FROM d)"),
+        input = "SELECT EXTRACT(SQL_TSI_FRAC_SECOND FROM d)",
+    );
+    test_rewrite!(
+        extract_sql_tsi_second,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(SECOND FROM d)"),
+        input = "SELECT EXTRACT(SQL_TSI_SECOND FROM d)",
+    );
+    test_rewrite!(
+        extract_sql_tsi_minute,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(MINUTE FROM d)"),
+        input = "SELECT EXTRACT(SQL_TSI_MINUTE FROM d)",
+    );
+    test_rewrite!(
+        extract_sql_tsi_hour,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(HOUR FROM d)"),
+        input = "SELECT EXTRACT(SQL_TSI_HOUR FROM d)",
+    );
+    test_rewrite!(
+        extract_sql_tsi_day,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(DAY FROM d)"),
+        input = "SELECT EXTRACT(SQL_TSI_DAY FROM d)",
+    );
+    test_rewrite!(
+        extract_sql_tsi_dayofyear,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(DAY_OF_YEAR FROM d)"),
+        input = "SELECT EXTRACT(SQL_TSI_DAYOFYEAR FROM d)",
+    );
+    test_rewrite!(
+        extract_sql_tsi_week,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(WEEK FROM d)"),
+        input = "SELECT EXTRACT(SQL_TSI_WEEK FROM d)",
+    );
+    test_rewrite!(
+        extract_sql_tsi_month,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(MONTH FROM d)"),
+        input = "SELECT EXTRACT(SQL_TSI_MONTH FROM d)",
+    );
+    test_rewrite!(
+        extract_sql_tsi_quarter,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(QUARTER FROM d)"),
+        input = "SELECT EXTRACT(SQL_TSI_QUARTER FROM d)",
+    );
+    test_rewrite!(
+        extract_sql_tsi_year,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(YEAR FROM d)"),
+        input = "SELECT EXTRACT(SQL_TSI_YEAR FROM d)",
+    );
+    test_rewrite!(
+        extract_millisecond,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(MILLISECOND FROM d)"),
+        input = "SELECT EXTRACT(MILLISECOND FROM d)",
+    );
+    test_rewrite!(
+        extract_second,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(SECOND FROM d)"),
+        input = "SELECT EXTRACT(SECOND FROM d)",
+    );
+    test_rewrite!(
+        extract_minute,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(MINUTE FROM d)"),
+        input = "SELECT EXTRACT(MINUTE FROM d)",
+    );
+    test_rewrite!(
+        extract_hour,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(HOUR FROM d)"),
+        input = "SELECT EXTRACT(HOUR FROM d)",
+    );
+    test_rewrite!(
+        extract_day,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(DAY FROM d)"),
+        input = "SELECT EXTRACT(DAY FROM d)",
+    );
+    test_rewrite!(
+        extract_day_of_year,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(DAY_OF_YEAR FROM d)"),
+        input = "SELECT EXTRACT(DAY_OF_YEAR FROM d)",
+    );
+    test_rewrite!(
+        extract_dayofyear,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(DAY_OF_YEAR FROM d)"),
+        input = "SELECT EXTRACT(DAYOFYEAR FROM d)",
+    );
+    test_rewrite!(
+        extract_iso_weekday,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(ISO_WEEKDAY FROM d)"),
+        input = "SELECT EXTRACT(ISO_WEEKDAY FROM d)",
+    );
+    test_rewrite!(
+        extract_week,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(WEEK FROM d)"),
+        input = "SELECT EXTRACT(WEEK FROM d)",
+    );
+    test_rewrite!(
+        extract_iso_week,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(ISO_WEEK FROM d)"),
+        input = "SELECT EXTRACT(ISO_WEEK FROM d)",
+    );
+    test_rewrite!(
+        extract_month,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(MONTH FROM d)"),
+        input = "SELECT EXTRACT(MONTH FROM d)",
+    );
+    test_rewrite!(
+        extract_quarter,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(QUARTER FROM d)"),
+        input = "SELECT EXTRACT(QUARTER FROM d)",
+    );
+    test_rewrite!(
+        extract_year,
+        pass = ScalarFunctionsRewritePass,
+        expected = Ok("SELECT EXTRACT(YEAR FROM d)"),
+        input = "SELECT EXTRACT(YEAR FROM d)",
+    );
 }

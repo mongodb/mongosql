@@ -1194,6 +1194,13 @@ tests:
       - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1654142116000' } }, 'datepart': { '$numberInt': '13' }, 'datediff': { '$numberLong': '69127386' }, 'datetrunc': { '$date': { '$numberLong': '1654142113000' } } } }
       - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1654142110000' } }, 'datepart': { '$numberInt': '13' }, 'datediff': { '$numberLong': '-102734405' }, 'datetrunc': { '$date': { '$numberLong': '1654142113000' } } } }
 
+  - description: MILLISECOND correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(MILLISECOND, interval, date1), 'datepart': EXTRACT(MILLISECOND FROM date1), 'datediff': DATEDIFF(MILLISECOND, date1, date2), 'datetrunc': DATETRUNC(MILLISECOND, date1)} FROM dates AS d"
+    result:
+      - { '': { 'interval': { '$numberInt': '3' }, 'dateadd': { '$date': { '$numberLong': '1654142113003' } }, 'datepart': { '$numberInt': '0' }, 'datediff': { '$numberLong': '69127386000' }, 'datetrunc': { '$date': { '$numberLong': '1654142113000' } } } }
+      - { '': { 'interval': { '$numberLong': '-3' }, 'dateadd': { '$date': { '$numberLong': '1654142112997' } }, 'datepart': { '$numberInt': '0' }, 'datediff': { '$numberLong': '-102734405000' }, 'datetrunc': { '$date': { '$numberLong': '1654142113000' } } } }
+
   - description: QUARTER correctness tests
     current_db: foo
     query: "SELECT VALUE {'interval': interval, 'dateadd': DATEADD(QUARTER, interval, date1), 'datediff': DATEDIFF(QUARTER, date1, date2), 'datetrunc': DATETRUNC(QUARTER, date1)} FROM dates AS d"
@@ -1226,6 +1233,12 @@ tests:
     result:
       - { '': { 'datepart': { '$numberInt': '4' } } }
 
+  - description: DAYOFWEEK correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'datepart': EXTRACT(DAYOFWEEK FROM date1)} FROM datepart AS d"
+    result:
+      - { '': { 'datepart': { '$numberInt': '5' } } }
+
   - description: DATEDIFF startOfWeek correctness tests
     current_db: foo
     query: "SELECT VALUE {'sunday': DATEDIFF(WEEK, date1, date2, 'sunday'), 'friday': DATEDIFF(WEEK, date1, date2, 'friday')} FROM dates AS d"
@@ -1233,8 +1246,21 @@ tests:
       - { '': { 'sunday': { '$numberLong': '114' }, 'friday': { '$numberLong': '115' } } }
       - { '': { 'sunday': { '$numberLong': '-170' }, 'friday': { '$numberLong': '-169' } } }
 
+  - description: TIMESTAMPDIFF startOfWeek correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'sunday': TIMESTAMPDIFF(WEEK, date1, date2, 'sunday'), 'friday': TIMESTAMPDIFF(WEEK, date1, date2, 'friday')} FROM dates AS d"
+    result:
+      - { '': { 'sunday': { '$numberLong': '114' }, 'friday': { '$numberLong': '115' } } }
+      - { '': { 'sunday': { '$numberLong': '-170' }, 'friday': { '$numberLong': '-169' } } }
+
   - description: DATETRUNC startOfWeek correctness tests
     current_db: foo
     query: "SELECT VALUE {'sunday': DATETRUNC(WEEK, date1, 'sunday'), 'friday': DATETRUNC(WEEK, date1, 'friday')} FROM datepart AS d"
+    result:
+      - { '': { 'sunday': { '$date': { '$numberLong': '1653782400000' } }, 'friday': { '$date': { '$numberLong': '1653609600000' } } } }
+
+  - description: TIMESTAMPTRUNC startOfWeek correctness tests
+    current_db: foo
+    query: "SELECT VALUE {'sunday': TIMESTAMPTRUNC(WEEK, date1, 'sunday'), 'friday': TIMESTAMPTRUNC(WEEK, date1, 'friday')} FROM datepart AS d"
     result:
       - { '': { 'sunday': { '$date': { '$numberLong': '1653782400000' } }, 'friday': { '$date': { '$numberLong': '1653609600000' } } } }

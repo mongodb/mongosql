@@ -304,7 +304,9 @@ pub enum MQLOperator {
     Hour,
     Minute,
     Second,
+    Millisecond,
     Week,
+    DayOfWeek,
     DayOfYear,
     IsoWeek,
     IsoDayOfWeek,
@@ -637,6 +639,7 @@ pub enum DatePart {
     Hour,
     Minute,
     Second,
+    Millisecond,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]

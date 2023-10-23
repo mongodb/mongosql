@@ -81,9 +81,22 @@ impl TryFrom<ast::FunctionName> for mir::ScalarFunction {
             ast::FunctionName::Tan => mir::ScalarFunction::Tan,
             ast::FunctionName::Upper => mir::ScalarFunction::Upper,
             ast::FunctionName::Round => mir::ScalarFunction::Round,
-            ast::FunctionName::LTrim | ast::FunctionName::RTrim | ast::FunctionName::Log10 => {
-                unreachable!()
-            }
+            ast::FunctionName::DayOfWeek => mir::ScalarFunction::DayOfWeek,
+            ast::FunctionName::LTrim
+            | ast::FunctionName::RTrim
+            | ast::FunctionName::Log10
+            | ast::FunctionName::DateAdd
+            | ast::FunctionName::DateDiff
+            | ast::FunctionName::DateTrunc
+            | ast::FunctionName::Year
+            | ast::FunctionName::Month
+            | ast::FunctionName::Week
+            | ast::FunctionName::DayOfMonth
+            | ast::FunctionName::DayOfYear
+            | ast::FunctionName::Hour
+            | ast::FunctionName::Minute
+            | ast::FunctionName::Second
+            | ast::FunctionName::Millisecond => unreachable! {},
             ast::FunctionName::AddToArray
             | ast::FunctionName::AddToSet
             | ast::FunctionName::Avg
@@ -148,7 +161,20 @@ impl TryFrom<ast::FunctionName> for mir::AggregationFunction {
             | ast::FunctionName::Sqrt
             | ast::FunctionName::Substring
             | ast::FunctionName::Tan
-            | ast::FunctionName::Upper => {
+            | ast::FunctionName::Upper
+            | ast::FunctionName::DateAdd
+            | ast::FunctionName::DateDiff
+            | ast::FunctionName::DateTrunc
+            | ast::FunctionName::Year
+            | ast::FunctionName::Month
+            | ast::FunctionName::Week
+            | ast::FunctionName::DayOfWeek
+            | ast::FunctionName::DayOfMonth
+            | ast::FunctionName::DayOfYear
+            | ast::FunctionName::Hour
+            | ast::FunctionName::Minute
+            | ast::FunctionName::Second
+            | ast::FunctionName::Millisecond => {
                 return Err(Error::ScalarInPlaceOfAggregation(f.pretty_print().unwrap()))
             }
         })
@@ -1216,8 +1242,10 @@ impl<'a> Algebrizer<'a> {
             Hour => Ok(mir::ScalarFunction::Hour),
             Minute => Ok(mir::ScalarFunction::Minute),
             Second => Ok(mir::ScalarFunction::Second),
+            Millisecond => Ok(mir::ScalarFunction::Millisecond),
             Week => Ok(mir::ScalarFunction::Week),
             DayOfYear => Ok(mir::ScalarFunction::DayOfYear),
+            DayOfWeek => Ok(mir::ScalarFunction::DayOfWeek),
             IsoWeek => Ok(mir::ScalarFunction::IsoWeek),
             IsoWeekday => Ok(mir::ScalarFunction::IsoWeekday),
             Quarter => Err(Error::InvalidExtractDatePart(e.extract_spec)),
@@ -1248,9 +1276,10 @@ impl<'a> Algebrizer<'a> {
             Hour => Ok(mir::DatePart::Hour),
             Minute => Ok(mir::DatePart::Minute),
             Second => Ok(mir::DatePart::Second),
+            Millisecond => Ok(mir::DatePart::Millisecond),
             Week => Ok(mir::DatePart::Week),
             Quarter => Ok(mir::DatePart::Quarter),
-            IsoWeek | IsoWeekday | DayOfYear => {
+            IsoWeek | IsoWeekday | DayOfYear | DayOfWeek => {
                 Err(Error::InvalidDateFunctionDatePart(d.date_part))
             }
         }?;

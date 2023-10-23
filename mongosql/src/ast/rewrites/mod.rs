@@ -55,6 +55,8 @@ pub enum Error {
         required: &'static str,
         found: usize,
     },
+    #[error("invalid date part: {0}")]
+    InvalidDatePart(&'static str),
 }
 
 /// A fallible transformation that can be applied to a query

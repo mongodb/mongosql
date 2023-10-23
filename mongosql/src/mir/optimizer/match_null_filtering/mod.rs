@@ -326,7 +326,9 @@ impl ScalarFunction {
             | ScalarFunction::Hour
             | ScalarFunction::Minute
             | ScalarFunction::Second
+            | ScalarFunction::Millisecond
             | ScalarFunction::Week
+            | ScalarFunction::DayOfWeek
             | ScalarFunction::DayOfYear
             | ScalarFunction::IsoWeek
             | ScalarFunction::IsoWeekday

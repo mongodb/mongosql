@@ -1360,6 +1360,33 @@ mod expression {
         }),
     );
     test_algebrize!(
+        extract_millsecond,
+        method = algebrize_expression,
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Millisecond,
+                args: vec![mir::Expression::ScalarFunction(
+                    mir::ScalarFunctionApplication {
+                        function: mir::ScalarFunction::CurrentTimestamp,
+                        args: vec![],
+                        cache: SchemaCache::new(),
+                        is_nullable: false,
+                    }
+                ),],
+                cache: SchemaCache::new(),
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Extract(ast::ExtractExpr {
+            extract_spec: ast::DatePart::Millisecond,
+            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::CurrentTimestamp,
+                args: ast::FunctionArguments::Args(vec![]),
+                set_quantifier: Some(ast::SetQuantifier::All)
+            })),
+        }),
+    );
+    test_algebrize!(
         extract_day_of_year,
         method = algebrize_expression,
         expected = Ok(mir::Expression::ScalarFunction(
@@ -1406,6 +1433,33 @@ mod expression {
         )),
         input = ast::Expression::Extract(ast::ExtractExpr {
             extract_spec: ast::DatePart::IsoWeek,
+            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::CurrentTimestamp,
+                args: ast::FunctionArguments::Args(vec![]),
+                set_quantifier: Some(ast::SetQuantifier::All)
+            })),
+        }),
+    );
+    test_algebrize!(
+        extract_day_of_week,
+        method = algebrize_expression,
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::DayOfWeek,
+                args: vec![mir::Expression::ScalarFunction(
+                    mir::ScalarFunctionApplication {
+                        function: mir::ScalarFunction::CurrentTimestamp,
+                        args: vec![],
+                        cache: SchemaCache::new(),
+                        is_nullable: false,
+                    }
+                ),],
+                cache: SchemaCache::new(),
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Extract(ast::ExtractExpr {
+            extract_spec: ast::DatePart::DayOfWeek,
             arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
                 function: ast::FunctionName::CurrentTimestamp,
                 args: ast::FunctionArguments::Args(vec![]),

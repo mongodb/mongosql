@@ -317,54 +317,11 @@ LiteralEscape: Expression = {
     },
 }
 
-StandaredDateSpec: DatePart = {
-  YEAR => DatePart::Year,
-  MONTH => DatePart::Month,
-  DAY => DatePart::Day,
-  HOUR => DatePart::Hour,
-  MINUTE => DatePart::Minute,
-  SECOND => DatePart::Second,
-  WEEK => DatePart::Week,
-}
-
-DateFunctionSpec: DatePart = {
-  StandaredDateSpec,
-  QUARTER => DatePart::Quarter,
-}
-
-ExtractSpec: DatePart = {
-  StandaredDateSpec,
-  DAY_OF_YEAR => DatePart::DayOfYear,
-  ISO_WEEK => DatePart::IsoWeek,
-  ISO_WEEKDAY => DatePart::IsoWeekday,
-}
-
 Extract: ExtractExpr = {
-  EXTRACT LEFT_PAREN <f:ExtractSpec> FROM <e:Expression> RIGHT_PAREN => ExtractExpr {
-    extract_spec: f,
+  EXTRACT LEFT_PAREN <i:ID> FROM <e:Expression> RIGHT_PAREN =>? Ok(ExtractExpr {
+    extract_spec: i.try_into()?,
     arg: Box::new(e),
-  },
-}
-
-DateFunction: DateFunctionExpr = {
-  DATEADD LEFT_PAREN <d:DateFunctionSpec> COMMA <e1:Expression> COMMA <e2:Expression> RIGHT_PAREN =>
-     DateFunctionExpr {
-        function: DateFunctionName::Add,
-        date_part: d,
-        args: vec![e1, e2]
-     },
-  DATEDIFF LEFT_PAREN <d:DateFunctionSpec> COMMA <e1:Expression> COMMA <e2:Expression> <e3:(COMMA <Expression>)?> RIGHT_PAREN =>
-     DateFunctionExpr {
-        function: DateFunctionName::Diff,
-        date_part: d,
-        args: vec![e1, e2, e3.unwrap_or(Expression::Literal(Literal::String("sunday".to_string())))]
-     },
-  DATETRUNC LEFT_PAREN <d:DateFunctionSpec> COMMA <e1:Expression> <e2:(COMMA <Expression>)?> RIGHT_PAREN =>
-     DateFunctionExpr {
-        function: DateFunctionName::Trunc,
-        date_part: d,
-        args: vec![e1, e2.unwrap_or(Expression::Literal(Literal::String("sunday".to_string())))]
-     },
+  }),
 }
 
 // This production uses `Tier6Expr` instead of `Expression IN Expression` to avoid
@@ -567,7 +524,6 @@ BottomExpr: Box<Expression> = {
   ExistsExpr => Box::new(<>),
   Trim => Box::new(Expression::Trim(<>)),
   Extract => Box::new(Expression::Extract(<>)),
-  DateFunction => Box::new(Expression::DateFunction(<>)),
   FunctionExpr => Box::new(Expression::Function(<>)),
   Identifier => Box::new(Expression::Identifier(<>)),
   Literal => Box::new(Expression::Literal(<>)),
@@ -820,11 +776,6 @@ match {
   r"(?i)cross" => CROSS,
   r"(?i)current_timestamp" => CURRENT_TIMESTAMP,
   r"(?i)date" => DATE,
-  r"(?i)dateadd" => DATEADD,
-  r"(?i)datediff" => DATEDIFF,
-  r"(?i)datetrunc" => DATETRUNC,
-  r"(?i)day" => DAY,
-  r"(?i)day_of_year" => DAY_OF_YEAR,
   r"(?i)dbpointer" => DBPOINTER,
   r"(?i)dec" => DEC,
   r"(?i)decimal" => DECIMAL,
@@ -847,15 +798,12 @@ match {
   r"(?i)from" => FROM,
   r"(?i)group" => GROUP,
   r"(?i)having" => HAVING,
-  r"(?i)hour" => HOUR,
   r"(?i)in" => IN,
   r"(?i)index" => INDEX,
   r"(?i)inner" => INNER,
   r"(?i)int" => INT_TYPE,
   r"(?i)integer" => INTEGER,
   r"(?i)is" => IS,
-  r"(?i)iso_week" => ISO_WEEK,
-  r"(?i)iso_weekday" => ISO_WEEKDAY,
   r"(?i)javascript" => JAVASCRIPT,
   r"(?i)javascriptwithscope" => JAVASCRIPT_WITH_SCOPE,
   r"(?i)join" => JOIN,
@@ -866,9 +814,7 @@ match {
   r"(?i)long" => LONG,
   r"(?i)maxkey" => MAXKEY,
   r"(?i)minkey" => MINKEY,
-  r"(?i)minute" => MINUTE,
   r"(?i)missing" => MISSING,
-  r"(?i)month" => MONTH,
   r"(?i)natural" => NATURAL,
   r"(?i)not" => NOT,
   r"(?i)not\s+in" => NOT_IN,
@@ -885,12 +831,10 @@ match {
   r"(?i)path" => PATH,
   r"(?i)position" => POSITION,
   r"(?i)precision" => PRECISION,
-  r"(?i)quarter" => QUARTER,
   r"(?i)real" => REAL,
   r"(?i)regex" => REGEX,
   r"(?i)right" => RIGHT,
   r"(?i)rows?\s+only" => ROWS_ONLY,
-  r"(?i)second" => SECOND,
   r"(?i)separator" => SEPARATOR,
   r"(?i)smallint" => SMALLINT,
   r"(?i)some" => SOME,
@@ -908,11 +852,9 @@ match {
   r"(?i)unwind" => UNWIND,
   r"(?i)values?" => VALUE,
   r"(?i)varchar" => VARCHAR,
-  r"(?i)week" => WEEK,
   r"(?i)when" => WHEN,
   r"(?i)where" => WHERE,
   r"(?i)with" => WITH,
-  r"(?i)year" => YEAR,
   r"[0-9]+" => INT,
   r#"'([^\x00']|'')*'"# => STRING,
 } else {

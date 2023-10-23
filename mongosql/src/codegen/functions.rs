@@ -49,6 +49,7 @@ impl MqlCodeGenerator {
             Hour => "hour",
             Minute => "minute",
             Second => "second",
+            Millisecond => "millisecond",
             Week => "week",
             Quarter => "quarter",
         }}}
@@ -131,7 +132,9 @@ impl MqlCodeGenerator {
             Hour => "$hour",
             Minute => "$minute",
             Second => "$second",
+            Millisecond => "$millisecond",
             Week => "$week",
+            DayOfWeek => "$dayOfWeek",
             DayOfYear => "$dayOfYear",
             IsoWeek => "$isoWeek",
             IsoDayOfWeek => "$isoDayOfWeek",

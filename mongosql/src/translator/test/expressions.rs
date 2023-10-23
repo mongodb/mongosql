@@ -2420,6 +2420,56 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        day_of_week_no_nullish,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::DayOfWeek,
+                args: vec![air::Expression::Convert(air::Convert {
+                    input: air::Expression::Literal(air::LiteralValue::String(
+                        "2012-12-20T12:12:12Z".to_string()
+                    ))
+                    .into(),
+                    to: air::Type::Datetime,
+                    on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                }),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::DayOfWeek,
+            args: vec![mir::Expression::Cast(mir::CastExpr {
+                expr: mir::Expression::Literal(
+                    mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
+                )
+                .into(),
+                to: mir::Type::Datetime,
+                on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                is_nullable: true,
+                cache: mir::schema::SchemaCache::new(),
+            })],
+            cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
+        day_of_week_nullish,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::DayOfWeek,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::DayOfWeek,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         hour_no_nullish,
         expected = Ok(air::Expression::MQLSemanticOperator(
             air::MQLSemanticOperator {
@@ -2566,6 +2616,56 @@ mod scalar_function {
             args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
             cache: mir::schema::SchemaCache::new(),
             is_nullable: true,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
+        millisecond_no_nullish,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Millisecond,
+                args: vec![air::Expression::Convert(air::Convert {
+                    input: air::Expression::Literal(air::LiteralValue::String(
+                        "2012-12-20T12:12:12Z".to_string()
+                    ))
+                    .into(),
+                    to: air::Type::Datetime,
+                    on_error: air::Expression::Literal(air::LiteralValue::Null).into(),
+                    on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
+                }),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Millisecond,
+            args: vec![mir::Expression::Cast(mir::CastExpr {
+                expr: mir::Expression::Literal(
+                    mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
+                )
+                .into(),
+                to: mir::Type::Datetime,
+                on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                is_nullable: true,
+                cache: mir::schema::SchemaCache::new(),
+            })],
+            cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
+        millisecond_nullish,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::Second,
+                args: vec![air::Expression::Literal(air::LiteralValue::Null),],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Second,
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
+            cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
         }),
     );
 

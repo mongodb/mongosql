@@ -528,7 +528,8 @@ mod arbitrary {
                 4 => Self::Function(FunctionExpr::arbitrary(nested_g)),
                 5 => Self::Trim(TrimExpr::arbitrary(nested_g)),
                 6 => Self::Extract(ExtractExpr::arbitrary(nested_g)),
-                7 => Self::DateFunction(DateFunctionExpr::arbitrary(nested_g)),
+                // We no longer parse to DateFunction, it is only created by rewrites
+                7 => Self::Function(FunctionExpr::arbitrary(nested_g)),
                 8 => Self::Cast(CastExpr::arbitrary(nested_g)),
                 9 => Self::Array(
                     (0..rand_len(MIN_COMPOSITE_DATA_LEN, MAX_COMPOSITE_DATA_LEN))
@@ -808,6 +809,19 @@ mod arbitrary {
                 35 => Self::LTrim,
                 36 => Self::RTrim,
                 37 => Self::Log10,
+                38 => Self::DateAdd,
+                39 => Self::DateDiff,
+                40 => Self::DateTrunc,
+                41 => Self::Year,
+                42 => Self::Month,
+                43 => Self::Week,
+                44 => Self::DayOfWeek,
+                45 => Self::DayOfMonth,
+                46 => Self::DayOfYear,
+                47 => Self::Hour,
+                48 => Self::Minute,
+                49 => Self::Second,
+                50 => Self::Millisecond,
                 _ => panic!("missing FunctionName variant(s)"),
             }
         }
@@ -841,6 +855,8 @@ mod arbitrary {
                 4 => Self::Minute,
                 5 => Self::Second,
                 6 => Self::Week,
+                7 => Self::Quarter,
+                8 => Self::Millisecond,
                 _ => panic!("missing DatePart variant(s)"),
             }
         }

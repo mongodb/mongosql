@@ -223,6 +223,7 @@ impl From<mir::DatePart> for air::DatePart {
             mir::DatePart::Hour => air::DatePart::Hour,
             mir::DatePart::Minute => air::DatePart::Minute,
             mir::DatePart::Second => air::DatePart::Second,
+            mir::DatePart::Millisecond => air::DatePart::Millisecond,
         }
     }
 }
@@ -346,7 +347,9 @@ impl From<mir::ScalarFunction> for ScalarFunctionType {
             Hour => ScalarFunctionType::Mql(MQLOperator::Hour),
             Minute => ScalarFunctionType::Mql(MQLOperator::Minute),
             Second => ScalarFunctionType::Mql(MQLOperator::Second),
+            Millisecond => ScalarFunctionType::Mql(MQLOperator::Millisecond),
             Week => ScalarFunctionType::Mql(MQLOperator::Week),
+            DayOfWeek => ScalarFunctionType::Mql(MQLOperator::DayOfWeek),
             DayOfYear => ScalarFunctionType::Mql(MQLOperator::DayOfYear),
             IsoWeek => ScalarFunctionType::Mql(MQLOperator::IsoWeek),
             IsoWeekday => ScalarFunctionType::Mql(MQLOperator::IsoDayOfWeek),
