@@ -43,7 +43,10 @@ macro_rules! test_codegen_stage {
 }
 
 mod union_with {
-    use crate::air::*;
+    use crate::{
+        air::*,
+        util::{air_collection_stage, air_documents_stage},
+    };
     use bson::doc;
 
     test_codegen_stage!(
@@ -55,14 +58,8 @@ mod union_with {
                 doc!{"$unionWith": {"coll": "b", "pipeline": []}}],
         }),
         input = Stage::UnionWith(UnionWith {
-            source: Stage::Collection(Collection {
-                db: "foo".to_string(),
-                collection: "a".to_string(),
-            }).into(),
-            pipeline: Stage::Collection(Collection {
-                db: "bar".to_string(),
-                collection: "b".to_string(),
-            }).into(),
+            source: air_collection_stage("foo", "a"),
+            pipeline: air_collection_stage("bar", "b"),
         }),
     );
     test_codegen_stage!(
@@ -77,12 +74,8 @@ mod union_with {
                 ]}}],
         }),
         input = Stage::UnionWith(UnionWith {
-            source: Stage::Documents(Documents {
-                array: vec![Expression::Literal(LiteralValue::Integer(1))],
-            }).into(),
-            pipeline: Stage::Documents(Documents {
-                array: vec![Expression::Literal(LiteralValue::Integer(2))],
-            }).into(),
+            source: air_documents_stage(vec![Expression::Literal(LiteralValue::Integer(1))]),
+            pipeline: air_documents_stage(vec![Expression::Literal(LiteralValue::Integer(2))]),
         }),
     );
     test_codegen_stage!(
@@ -95,13 +88,8 @@ mod union_with {
                 doc!{"$unionWith": {"coll": "b", "pipeline": []}}],
         }),
         input = Stage::UnionWith(UnionWith {
-            source: Stage::Documents(Documents {
-                array: vec![Expression::Literal(LiteralValue::Integer(1))],
-            }).into(),
-            pipeline: Stage::Collection(Collection {
-                db: "bar".to_string(),
-                collection: "b".to_string(),
-            }).into(),
+            source: air_documents_stage(vec![Expression::Literal(LiteralValue::Integer(1))]),
+            pipeline: air_collection_stage("bar", "b"),
         }),
     );
     test_codegen_stage!(
@@ -115,13 +103,8 @@ mod union_with {
                 ]}}],
         }),
         input = Stage::UnionWith(UnionWith {
-            source: Stage::Collection(Collection {
-                db: "foo".to_string(),
-                collection: "a".to_string(),
-            }).into(),
-            pipeline: Stage::Documents(Documents {
-                array: vec![Expression::Literal(LiteralValue::Integer(1))],
-            }).into(),
+            source: air_collection_stage("foo", "a"),
+            pipeline: air_documents_stage(vec![Expression::Literal(LiteralValue::Integer(1))]),
         }),
     );
     test_codegen_stage!(
@@ -138,18 +121,10 @@ mod union_with {
             ],
         }),
         input = Stage::UnionWith(UnionWith {
-            source: Stage::Collection(Collection {
-                db: "foo".to_string(),
-                collection: "a".to_string(),
-            }).into(),
+            source: air_collection_stage("foo", "a"),
             pipeline: Stage::UnionWith(UnionWith {
-                source: Stage::Collection(Collection {
-                    db: "bar".to_string(),
-                    collection: "b".to_string(),
-                }).into(),
-                pipeline: Stage::Documents(Documents {
-                    array: vec![Expression::Literal(LiteralValue::Integer(1))],
-                }).into(),
+                source: air_collection_stage("bar", "b"),
+                pipeline: air_documents_stage(vec![Expression::Literal(LiteralValue::Integer(1))]),
             }).into(),
         }),
     );
@@ -157,8 +132,12 @@ mod union_with {
 
 mod sort {
     use crate::{
-        air::Expression::*, air::LiteralValue::*, air::SortSpecification::*, air::*,
+        air::Expression::*,
+        air::LiteralValue::*,
+        air::SortSpecification::*,
+        air::*,
         unchecked_unique_linked_hash_map,
+        util::{air_collection_stage, air_documents_stage},
     };
     use bson::bson;
 
@@ -173,12 +152,7 @@ mod sort {
         }),
         input = Stage::Sort(Sort {
             specs: vec![],
-            source: Box::new(
-                Stage::Collection( Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                }),
-            ),
+            source: air_collection_stage("mydb", "col"),
         }),
     );
 
@@ -194,12 +168,10 @@ mod sort {
         }),
         input = Stage::Sort(Sort {
             specs: vec![Asc("foo".to_string())],
-            source: Box::new(
-                Stage::Documents(Documents {
-                    array: vec![Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(1))}),
-                                Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(2))})],
-                })
-            )
+            source: air_documents_stage(vec![
+                Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(1))}),
+                Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(2))})
+            ]),
         }),
     );
 
@@ -216,19 +188,16 @@ mod sort {
         }),
         input = Stage::Sort(Sort {
             specs: vec![Desc("foo".to_string()), Asc("bar".to_string())],
-            source: Box::new(
-                Stage::Documents(Documents {
-                    array: vec![Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(1)), "bar".to_string() => Literal(Integer(3))}),
-                                Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(2)), "bar".to_string() => Literal(Integer(4))})],
-                })
-            )
+            source: air_documents_stage(vec![
+                Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(1)), "bar".to_string() => Literal(Integer(3))}),
+                Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(2)), "bar".to_string() => Literal(Integer(4))})
+            ]),
         }),
     );
 }
 
 mod match_stage {
-    use crate::air::*;
-
+    use crate::{air::*, util::air_collection_stage};
     use bson::doc;
 
     test_codegen_stage!(
@@ -239,12 +208,7 @@ mod match_stage {
             pipeline: vec![doc!{"$match": {"$expr": { "$eq": [{ "$literal": 1}, { "$literal": 2}]}}}],
         }),
         input = Stage::Match(Match::ExprLanguage(ExprLanguage {
-            source:Box::new(
-                Stage::Collection( Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })
-            ),
+            source: air_collection_stage("mydb", "col"),
             expr : Box::new(
                 Expression::MQLSemanticOperator( MQLSemanticOperator {
                     op: MQLOperator::Eq,
@@ -262,12 +226,7 @@ mod match_stage {
             pipeline: vec![doc!{"$match": {"a": {"$eq": 1}}}],
         }),
         input = Stage::Match(Match::MatchLanguage(MatchLanguage {
-            source:Box::new(
-                Stage::Collection( Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })
-            ),
+            source: air_collection_stage("mydb", "col"),
             expr : Box::new(
                 MatchQuery::Comparison(MatchLanguageComparison {
                     function: MatchLanguageComparisonOp::Eq,
@@ -297,7 +256,7 @@ mod collection {
 }
 
 mod project {
-    use crate::{air::*, unchecked_unique_linked_hash_map};
+    use crate::{air::*, unchecked_unique_linked_hash_map, util::air_collection_stage};
     use bson::doc;
 
     test_codegen_stage!(
@@ -308,12 +267,7 @@ mod project {
             pipeline: vec![doc!{"$project": {"foo": "$col", "bar": {"$literal": 19}}}],
         }),
         input = Stage::Project(Project {
-            source: Box::new(
-                Stage::Collection( Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                }),
-            ),
+            source: air_collection_stage("mydb", "col"),
             specifications: unchecked_unique_linked_hash_map! {
                 "foo".to_string() => ProjectItem::Assignment(Expression::FieldRef("col".into())),
                 "bar".to_string() => ProjectItem::Assignment(Expression::Literal(LiteralValue::Integer(19))),
@@ -329,12 +283,7 @@ mod project {
             pipeline: vec![doc!{"$project": {"include": 1, "exclude": 0}}],
         }),
         input = Stage::Project(Project {
-            source: Box::new(
-                Stage::Collection( Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                }),
-            ),
+            source: air_collection_stage("mydb", "col"),
             specifications: unchecked_unique_linked_hash_map! {
                 "include".to_string() => ProjectItem::Inclusion,
                 "exclude".to_string() => ProjectItem::Exclusion,
@@ -350,12 +299,7 @@ mod project {
             pipeline: vec![doc!{"$project": {"_id": "$col", "bar": {"$literal": 19}}}],
         }),
         input = Stage::Project(Project {
-            source: Box::new(
-                Stage::Collection( Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                }),
-            ),
+            source: air_collection_stage("mydb", "col"),
             specifications: unchecked_unique_linked_hash_map! {
                 "_id".to_string() => ProjectItem::Assignment(Expression::FieldRef("col".into())),
                 "bar".to_string() => ProjectItem::Assignment(Expression::Literal(LiteralValue::Integer(19))),
@@ -365,7 +309,7 @@ mod project {
 }
 
 mod group {
-    use crate::air::*;
+    use crate::{air::*, util::air_collection_stage};
     use bson::doc;
 
     test_codegen_stage!(
@@ -382,11 +326,7 @@ mod group {
             ],
         }),
         input = Stage::Group(Group {
-            source: Box::new(
-                Stage::Collection( Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
+            source: air_collection_stage("mydb", "col"),
             keys: vec![
                 NameExprPair {
                     name: "foo".into(),
@@ -439,11 +379,7 @@ mod group {
             ],
         }),
         input = Stage::Group(Group {
-            source: Box::new(
-                Stage::Collection( Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
+            source: air_collection_stage("mydb", "col"),
             keys: vec![
                 NameExprPair {
                     name: "foo".into(),
@@ -474,11 +410,7 @@ mod group {
             ],
         }),
         input = Stage::Group(Group {
-            source: Box::new(
-                Stage::Collection( Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
+            source: air_collection_stage("mydb", "col"),
             keys: vec![
                 NameExprPair {
                     name: "foo".into(),
@@ -498,7 +430,7 @@ mod group {
 }
 
 mod unwind {
-    use crate::{air::*, unchecked_unique_linked_hash_map};
+    use crate::{air::*, unchecked_unique_linked_hash_map, util::air_collection_stage};
     use bson::doc;
 
     test_codegen_stage!(
@@ -511,10 +443,7 @@ mod unwind {
             ],
         }),
         input = Stage::Unwind(Unwind {
-            source: Box::new(Stage::Collection(Collection {
-                db: "mydb".to_string(),
-                collection: "col".to_string(),
-            })),
+            source: air_collection_stage("mydb", "col"),
             path: Expression::FieldRef("array".into()),
             index: None,
             outer: false
@@ -531,10 +460,7 @@ mod unwind {
             ],
         }),
         input = Stage::Unwind(Unwind {
-            source: Box::new(Stage::Collection(Collection {
-                db: "mydb".to_string(),
-                collection: "col".to_string(),
-            })),
+            source: air_collection_stage("mydb", "col"),
             path: Expression::FieldRef("array".into()),
             index: Some("i".into()),
             outer: false
@@ -551,10 +477,7 @@ mod unwind {
             ],
         }),
         input = Stage::Unwind(Unwind {
-            source: Box::new(Stage::Collection(Collection {
-                db: "mydb".to_string(),
-                collection: "col".to_string(),
-            })),
+            source: air_collection_stage("mydb", "col"),
             path: Expression::FieldRef("array".into()),
             index: None,
             outer: true
@@ -570,10 +493,7 @@ mod unwind {
             ],
         }),
         input = Stage::Unwind(Unwind {
-            source: Box::new(Stage::Collection(Collection {
-                db: "mydb".to_string(),
-                collection: "col".to_string(),
-            })),
+            source: air_collection_stage("mydb", "col"),
             path: Expression::FieldRef("array".into()),
             index: Some("i".into()),
             outer: true
@@ -591,10 +511,7 @@ mod unwind {
         }),
         input = Stage::Unwind(Unwind {
             source: Box::new(Stage::Project(Project {
-                source: Box::new(Stage::Collection(Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
+                source: air_collection_stage("mydb", "col"),
                 specifications: unchecked_unique_linked_hash_map! {
                     "foo".to_string() => ProjectItem::Assignment(Expression::FieldRef("col".into())),
                 },
@@ -638,7 +555,7 @@ mod documents {
 }
 
 mod replace_with {
-    use crate::{air::*, unchecked_unique_linked_hash_map};
+    use crate::{air::*, unchecked_unique_linked_hash_map, util::air_collection_stage};
 
     test_codegen_stage!(
         simple,
@@ -650,12 +567,7 @@ mod replace_with {
             ],
         }),
         input = Stage::ReplaceWith(ReplaceWith {
-            source: Box::new(
-                Stage::Collection(Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                }),
-            ),
+            source: air_collection_stage("mydb", "col"),
             new_root: Box::new(Expression::Literal(LiteralValue::String("$name".to_string()))),
         }),
     );
@@ -676,12 +588,7 @@ mod replace_with {
             ],
         }),
         input = Stage::ReplaceWith(ReplaceWith {
-            source: Box::new(
-                Stage::Collection(Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                }),
-            ),
+            source: air_collection_stage("mydb", "col"),
             new_root: Box::new(
                 Expression::Document(unchecked_unique_linked_hash_map! {
                     "$mergeDocuments".to_string() => Expression::Array(vec![
@@ -699,20 +606,17 @@ mod replace_with {
 }
 
 mod lookup {
-    use crate::air::*;
+    use crate::{
+        air::*,
+        util::{air_collection_stage, air_documents_stage},
+    };
 
     macro_rules! test_input {
         ($let_vars:expr) => {
             Stage::Lookup(Lookup {
-                source: Box::new(Stage::Collection(Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
+                source: air_collection_stage("mydb", "col"),
                 let_vars: $let_vars,
-                pipeline: Box::new(Stage::Collection(Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
+                pipeline: air_collection_stage("mydb", "col"),
                 as_var: "as_var".to_string(),
             })
         };
@@ -728,14 +632,9 @@ mod lookup {
             ],
         }),
         input = Stage::Lookup(Lookup {
-            source: Box::new(Stage::Collection(Collection {
-                db: "mydb".to_string(),
-                collection: "col".to_string(),
-            })),
+            source: air_collection_stage("mydb", "col"),
             let_vars: None,
-            pipeline: Box::new(Stage::Documents(Documents {
-                array: vec![],
-            })),
+            pipeline: air_documents_stage(vec![]),
             as_var: "as_var".to_string()
         }),
     );
@@ -762,15 +661,9 @@ mod lookup {
             ],
         }),
         input = Stage::Lookup(Lookup {
-            source: Box::new(Stage::Collection(Collection {
-                db: "mydb".to_string(),
-                collection: "col".to_string(),
-            })),
+            source: air_collection_stage("mydb", "col"),
             let_vars: None,
-            pipeline: Box::new(Stage::Collection(Collection {
-                db: "mydb2".to_string(),
-                collection: "col2".to_string()
-            })),
+            pipeline: air_collection_stage("mydb2", "col2"),
             as_var: "as_var".to_string()
         }),
     );
@@ -821,7 +714,7 @@ mod lookup {
 }
 
 mod skip {
-    use crate::air::*;
+    use crate::{air::*, util::air_collection_stage};
     use bson::Bson;
 
     test_codegen_stage!(
@@ -834,17 +727,14 @@ mod skip {
             ],
         }),
         input = Stage::Skip(Skip {
-            source: Box::new(Stage::Collection(Collection {
-                db: "mydb".to_string(),
-                collection: "col".to_string(),
-            })),
+            source: air_collection_stage("mydb", "col"),
             skip: 10,
         }),
     );
 }
 
 mod limit {
-    use crate::air::*;
+    use crate::{air::*, util::air_collection_stage};
     use bson::Bson;
 
     test_codegen_stage!(
@@ -857,17 +747,18 @@ mod limit {
             ],
         }),
         input = Stage::Limit(Limit {
-            source: Box::new(Stage::Collection(Collection {
-                db: "mydb".to_string(),
-                collection: "col".to_string(),
-            })),
+            source: air_collection_stage("mydb", "col"),
             limit: 123,
         }),
     );
 }
 
 mod join {
-    use crate::{air::*, unchecked_unique_linked_hash_map, util::ROOT};
+    use crate::{
+        air::*,
+        unchecked_unique_linked_hash_map,
+        util::{air_documents_stage, air_project_collection, ROOT},
+    };
 
     test_codegen_stage!(
         simple_inner_join,
@@ -879,24 +770,8 @@ mod join {
         }),
         input = Stage::Join(Join {
             condition: None,
-            left: Box::new(Stage::Project(Project {
-                source: Box::new(Stage::Collection(Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
-                specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => ProjectItem::Assignment(ROOT.clone()),
-                )
-            })),
-            right: Box::new(Stage::Project(Project {
-                source: Box::new(Stage::Collection(Collection {
-                    db: "mydb".to_string(),
-                    collection: "col2".to_string(),
-                })),
-                specifications: unchecked_unique_linked_hash_map!(
-                    "col2".to_string() => ProjectItem::Assignment(ROOT.clone()),
-                )
-            })),
+            left: air_project_collection(Some("mydb"), "col", None),
+            right: air_project_collection(Some("mydb"), "col2", None),
             let_vars: None,
             join_type: JoinType::Inner,
         }),
@@ -912,24 +787,8 @@ mod join {
         }),
         input = Stage::Join(Join {
             condition: None,
-            left: Box::new(Stage::Project(Project {
-                source: Box::new(Stage::Collection(Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
-                specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => ProjectItem::Assignment(ROOT.clone()),
-                )
-            })),
-            right: Box::new(Stage::Project(Project {
-                source: Box::new(Stage::Collection(Collection {
-                    db: "mydb2".to_string(),
-                    collection: "col2".to_string(),
-                })),
-                specifications: unchecked_unique_linked_hash_map!(
-                    "col2".to_string() => ProjectItem::Assignment(ROOT.clone()),
-                )
-            })),
+            left: air_project_collection(Some("mydb"), "col", None),
+            right: air_project_collection(Some("mydb2"), "col2", None),
             let_vars: None,
             join_type: JoinType::Left,
         }),
@@ -952,24 +811,8 @@ mod join {
         }),
         input = Stage::Join(Join {
             condition: Some(Expression::Literal(LiteralValue::Boolean(true))),
-            left: Box::new(Stage::Project(Project {
-                source: Box::new(Stage::Collection(Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
-                specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => ProjectItem::Assignment(ROOT.clone()),
-                )
-            })),
-            right: Box::new(Stage::Project(Project {
-                source: Box::new(Stage::Collection(Collection {
-                    db: "mydb2".to_string(),
-                    collection: "col2".to_string(),
-                })),
-                specifications: unchecked_unique_linked_hash_map!(
-                    "col2".to_string() => ProjectItem::Assignment(ROOT.clone()),
-                )
-            })),
+            left: air_project_collection(Some("mydb"), "col", None),
+            right: air_project_collection(Some("mydb2"), "col2", None),
             let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef("col".into()))}]),
             join_type: JoinType::Left,
         }),
@@ -998,24 +841,8 @@ mod join {
                     Expression::FieldRef("col2".into()),
                 ]
             })),
-            left: Box::new(Stage::Project(Project {
-                source: Box::new(Stage::Collection(Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
-                specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => ProjectItem::Assignment(ROOT.clone())
-                )
-            })),
-            right: Box::new(Stage::Project(Project {
-                source: Box::new(Stage::Collection(Collection {
-                    db: "mydb2".to_string(),
-                    collection: "col2".to_string(),
-                })),
-                specifications: unchecked_unique_linked_hash_map!(
-                    "col2".to_string() => ProjectItem::Assignment(ROOT.clone())
-                )
-            })),
+            left: air_project_collection(Some("mydb"), "col", None),
+            right: air_project_collection(Some("mydb2"), "col2", None),
             let_vars: Some(vec![LetVariable{name: "vcol_0".to_string(), expr: Box::new(Expression::FieldRef("col".into()))}]),
             join_type: JoinType::Left,
         }),
@@ -1037,19 +864,9 @@ mod join {
         }),
         input = Stage::Join(Join {
             condition: None,
-            left: Box::new(Stage::Project(Project {
-                source: Box::new(Stage::Collection(Collection {
-                    db: "mydb".to_string(),
-                    collection: "col".to_string(),
-                })),
-                specifications: unchecked_unique_linked_hash_map!(
-                    "col".to_string() => ProjectItem::Assignment(ROOT.clone())
-                )
-            })),
+            left: air_project_collection(Some("mydb"), "col", None),
             right: Box::new(Stage::Project(Project {
-                source: Box::new(Stage::Documents(Documents {
-                    array: vec![Expression::Literal(LiteralValue::Integer(1)), Expression::Literal(LiteralValue::Integer(1))]
-                })),
+                source: air_documents_stage(vec![Expression::Literal(LiteralValue::Integer(1)), Expression::Literal(LiteralValue::Integer(1))]),
                 specifications: unchecked_unique_linked_hash_map!(
                     "arr".to_string() => ProjectItem::Assignment(ROOT.clone())
                 )
@@ -1063,7 +880,7 @@ mod join {
 mod equijoin {
     use crate::{
         air,
-        util::{air_collection, air_pipeline_collection},
+        util::{air_collection_raw, air_project_collection},
     };
 
     test_codegen_stage!(
@@ -1085,8 +902,8 @@ mod equijoin {
         }),
         input = air::Stage::EquiJoin(air::EquiJoin {
             join_type: air::JoinType::Inner,
-            source: air_pipeline_collection("foo"),
-            from: air_collection("bar"),
+            source: air_project_collection(None, "foo", None),
+            from: air_collection_raw("test_db", "bar"),
             local_field: "foo.a".into(),
             foreign_field: "a".into(),
             as_name: "bar".to_string(),
@@ -1112,8 +929,8 @@ mod equijoin {
         }),
         input = air::Stage::EquiJoin(air::EquiJoin {
             join_type: air::JoinType::Left,
-            source: air_pipeline_collection("foo"),
-            from: air_collection("bar"),
+            source: air_project_collection(None, "foo", None),
+            from: air_collection_raw("test_db", "bar"),
             local_field: "foo.a".into(),
             foreign_field: "a".into(),
             as_name: "x".to_string(),
@@ -1124,7 +941,7 @@ mod equijoin {
 mod equilookup {
     use crate::{
         air,
-        util::{air_db_collection, air_pipeline_collection},
+        util::{air_collection_raw, air_project_collection},
     };
 
     test_codegen_stage!(
@@ -1143,8 +960,8 @@ mod equilookup {
             }],
         }),
         input = air::Stage::EquiLookup(air::EquiLookup {
-            source: air_pipeline_collection("foo"),
-            from: air_db_collection("test_db", "bar"),
+            source: air_project_collection(None, "foo", None),
+            from: air_collection_raw("test_db", "bar"),
             local_field: "foo.a".into(),
             foreign_field: "bar.a".into(),
             as_var: "stuff".to_string(),
@@ -1170,8 +987,8 @@ mod equilookup {
             }],
         }),
         input = air::Stage::EquiLookup(air::EquiLookup {
-            source: air_pipeline_collection("foo"),
-            from: air_db_collection("t2", "bar"),
+            source: air_project_collection(None, "foo", None),
+            from: air_collection_raw("t2", "bar"),
             local_field: "foo.a".into(),
             foreign_field: "bar.a".into(),
             as_var: "stuff".to_string(),

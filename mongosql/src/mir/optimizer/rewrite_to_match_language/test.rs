@@ -8,7 +8,7 @@ use crate::{
     },
     schema::{Atomic, Document, Schema, SchemaEnvironment},
     set, unchecked_unique_linked_hash_map,
-    util::mir_field_access,
+    util::{mir_collection, mir_field_access, mir_field_path},
     SchemaCheckingMode,
 };
 use lazy_static::lazy_static;
@@ -54,17 +54,9 @@ macro_rules! test_rewrite_to_match_language_no_op {
     };
 }
 
-fn collection_source(collection: &str) -> Box<Stage> {
-    Box::new(Stage::Collection(Collection {
-        db: "db".to_string(),
-        collection: collection.to_string(),
-        cache: SchemaCache::new(),
-    }))
-}
-
 fn singleton_project(expr: Expression) -> Stage {
     Stage::Project(Project {
-        source: collection_source("foo"),
+        source: mir_collection("db", "foo"),
         expression: map! {
             ("foo", 0u16).into() => Expression::Document(DocumentExpr {
                 document: unchecked_unique_linked_hash_map! {
@@ -79,7 +71,7 @@ fn singleton_project(expr: Expression) -> Stage {
 
 fn filter_stage(condition: Expression) -> Stage {
     Stage::Filter(Filter {
-        source: collection_source("foo"),
+        source: mir_collection("db", "foo"),
         condition,
         cache: SchemaCache::new(),
     })
@@ -87,19 +79,10 @@ fn filter_stage(condition: Expression) -> Stage {
 
 fn match_filter_stage(condition: MatchQuery) -> Stage {
     Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-        source: collection_source("foo"),
+        source: mir_collection("db", "foo"),
         condition,
         cache: SchemaCache::new(),
     }))
-}
-
-fn field_path(field: &str) -> Option<FieldPath> {
-    Some(FieldPath {
-        key: ("foo", 0u16).into(),
-        fields: vec![field.to_string()],
-        cache: SchemaCache::new(),
-        is_nullable: true,
-    })
 }
 
 // The following "helper functions" cannot exist as static variables since
@@ -117,7 +100,7 @@ fn valid_is() -> Expression {
 
 fn valid_match_is() -> MatchQuery {
     MatchQuery::Type(MatchLanguageType {
-        input: field_path("str"),
+        input: Some(mir_field_path("foo", vec!["str"])),
         target_type: TypeOrMissing::Type(Type::String),
         cache: SchemaCache::new(),
     })
@@ -134,7 +117,7 @@ fn valid_is_null() -> Expression {
 fn valid_match_is_null() -> MatchQuery {
     MatchQuery::Comparison(MatchLanguageComparison {
         function: MatchLanguageComparisonOp::Eq,
-        input: field_path("str"),
+        input: Some(mir_field_path("foo", vec!["str"])),
         arg: LiteralValue::Null,
         cache: SchemaCache::new(),
     })
@@ -165,7 +148,7 @@ fn valid_like() -> Expression {
 
 fn valid_match_like() -> MatchQuery {
     MatchQuery::Regex(MatchLanguageRegex {
-        input: field_path("str"),
+        input: Some(mir_field_path("foo", vec!["str"])),
         regex: "^abc$".to_string(),
         options: "si".to_string(),
         cache: SchemaCache::new(),
@@ -305,7 +288,7 @@ test_rewrite_to_match_language!(
 test_rewrite_to_match_language!(
     rewrite_valid_like_with_escape,
     expected = match_filter_stage(MatchQuery::Regex(MatchLanguageRegex {
-        input: field_path("str"),
+        input: Some(mir_field_path("foo", vec!["str"])),
         regex: "^a_._.*%$".to_string(),
         options: "si".to_string(),
         cache: SchemaCache::new(),

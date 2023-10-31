@@ -7,7 +7,9 @@ use crate::{
         *,
     },
     schema::{Atomic, Document, Schema, SchemaEnvironment},
-    set, unchecked_unique_linked_hash_map, SchemaCheckingMode,
+    set, unchecked_unique_linked_hash_map,
+    util::mir_collection,
+    SchemaCheckingMode,
 };
 use lazy_static::lazy_static;
 
@@ -46,19 +48,11 @@ macro_rules! test_dead_code_elimination {
     };
 }
 
-fn collection_source(collection: &str) -> Box<Stage> {
-    Box::new(Stage::Collection(Collection {
-        db: "db".to_string(),
-        collection: collection.to_string(),
-        cache: SchemaCache::new(),
-    }))
-}
-
 test_dead_code_elimination!(
     cannot_eliminate_non_project_source_for_group,
     expected = Stage::Group(Group {
         source: Box::new(Stage::Filter(Filter {
-            source: collection_source("bar"),
+            source: mir_collection("db", "bar"),
             condition: Expression::Literal(LiteralExpr {
                 value: LiteralValue::Boolean(true),
                 cache: SchemaCache::new(),
@@ -72,7 +66,7 @@ test_dead_code_elimination!(
     }),
     input = Stage::Group(Group {
         source: Box::new(Stage::Filter(Filter {
-            source: collection_source("bar"),
+            source: mir_collection("db", "bar"),
             condition: Expression::Literal(LiteralExpr {
                 value: LiteralValue::Boolean(true),
                 cache: SchemaCache::new(),
@@ -91,7 +85,7 @@ test_dead_code_elimination!(
     expected = Stage::Project(Project {
         source: Box::new(Stage::Project(Project {
             source: Box::new(Stage::Group(Group {
-                source: collection_source("bar"),
+                source: mir_collection("db", "bar"),
                 keys: vec![
                     OptionallyAliasedExpr::Aliased(AliasedExpr {
                         alias: "a".to_string(),
@@ -139,7 +133,7 @@ test_dead_code_elimination!(
     input = Stage::Project(Project {
         source: Box::new(Stage::Group(Group {
             source: Box::new(Stage::Project(Project {
-                source: collection_source("bar"),
+                source: mir_collection("db", "bar"),
                 expression: map! {
                     ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
                 },
@@ -190,7 +184,7 @@ test_dead_code_elimination!(
     expected = Stage::Project(Project {
         source: Box::new(Stage::Project(Project {
             source: Box::new(Stage::Group(Group {
-                source: collection_source("bar"),
+                source: mir_collection("db", "bar"),
                 keys: vec![
                     OptionallyAliasedExpr::Aliased(AliasedExpr {
                         alias: "a".to_string(),
@@ -250,7 +244,7 @@ test_dead_code_elimination!(
     input = Stage::Project(Project {
         source: Box::new(Stage::Group(Group {
             source: Box::new(Stage::Project(Project {
-                source: collection_source("bar"),
+                source: mir_collection("db", "bar"),
                 expression: map! {
                     ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
                 },
@@ -312,7 +306,7 @@ test_dead_code_elimination!(
     cannot_eliminate_project_source_for_group_if_not_all_sources_are_substitutable,
     expected = Stage::Group(Group {
         source: Box::new(Stage::Project(Project {
-            source: collection_source("bar"),
+            source: mir_collection("db", "bar"),
             expression: map! {
                 ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
             },
@@ -353,7 +347,7 @@ test_dead_code_elimination!(
     }),
     input = Stage::Group(Group {
         source: Box::new(Stage::Project(Project {
-            source: collection_source("bar"),
+            source: mir_collection("db", "bar"),
             expression: map! {
                 ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
             },

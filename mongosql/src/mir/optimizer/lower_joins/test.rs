@@ -7,7 +7,7 @@ use crate::{
         ScalarFunctionApplication, Stage,
     },
     schema::SchemaEnvironment,
-    util::{mir_collection, mir_field_access},
+    util::{mir_field_access, mir_project_collection},
 };
 
 macro_rules! test_lower_joins {
@@ -42,8 +42,8 @@ test_lower_joins_no_op!(
     do_not_rewrite_if_no_condition,
     Stage::Join(Join {
         join_type: JoinType::Inner,
-        left: mir_collection("foo"),
-        right: mir_collection("bar"),
+        left: mir_project_collection(None, "foo", None, None),
+        right: mir_project_collection(None, "bar", None, None),
         condition: None,
         cache: SchemaCache::new(),
     })
@@ -53,9 +53,9 @@ test_lower_joins!(
     rewrite_if_condition,
     expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
         join_type: JoinType::Inner,
-        source: mir_collection("foo"),
+        source: mir_project_collection(None, "foo", None, None),
         subquery: Box::new(Stage::Filter(Filter {
-            source: mir_collection("bar"),
+            source: mir_project_collection(None, "bar", None, None),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
                 args: vec![
@@ -71,8 +71,8 @@ test_lower_joins!(
     })),
     input = Stage::Join(Join {
         join_type: JoinType::Inner,
-        left: mir_collection("foo"),
-        right: mir_collection("bar"),
+        left: mir_project_collection(None, "foo", None, None),
+        right: mir_project_collection(None, "bar", None, None),
         condition: Some(Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Eq,
             args: vec![

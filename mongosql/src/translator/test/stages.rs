@@ -3,7 +3,7 @@ macro_rules! test_translate_stage {
         #[test]
         fn $func_name() {
             #[allow(unused_imports)]
-            use crate::{air, mir, options, translator};
+            use crate::{air, mir, options, translator, util};
             let mut translator = translator::MqlTranslator::new(options::SqlOptions::default());
             let expected = $expected;
             let actual = translator.translate_stage($input);
@@ -33,7 +33,7 @@ mod filter {
         basic,
         expected = Ok(air::Stage::Match(air::Match::ExprLanguage(
             air::ExprLanguage {
-                source: Box::new(air::Stage::Documents(air::Documents { array: vec![] })),
+                source: util::air_documents_stage(vec![]),
                 expr: Box::new(air::Expression::Literal(air::LiteralValue::Integer(42))),
             }
         ))),
@@ -56,21 +56,14 @@ mod project {
     test_translate_stage!(
         project,
         expected = Ok(air::Stage::Project(air::Project {
-            source: Box::new(air::Stage::Collection(air::Collection {
-                db: "test_db".to_string(),
-                collection: "foo".to_string()
-            })),
+            source: util::air_collection_stage("test_db", "foo"),
             specifications: unchecked_unique_linked_hash_map! {
                 "__bot".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                 "bar".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(1)))
             }
         })),
         input = mir::Stage::Project(mir::Project {
-            source: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test_db".into(),
-                collection: "foo".into(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            source: util::mir_collection("test_db", "foo"),
             expression: BindingTuple(map! {
                 Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
                 Key::named("bar", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
@@ -81,86 +74,37 @@ mod project {
 
     test_translate_stage!(
         project_key_contains_dots,
-        expected = Ok(air::Stage::Project(air::Project {
-            source: Box::new(air::Stage::Collection(air::Collection {
-                db: "test_db".to_string(),
-                collection: "foo.bar.baz".to_string()
-            })),
-            specifications: unchecked_unique_linked_hash_map! {
-                "foo_bar_baz".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-            }
-        })),
-        input = mir::Stage::Project(mir::Project {
-            source: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test_db".into(),
-                collection: "foo.bar.baz".into(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
-            expression: BindingTuple(map! {
-                Key::named("foo.bar.baz", 0u16) => mir::Expression::Reference(("foo.bar.baz", 0u16).into()),
-            }),
-            cache: mir::schema::SchemaCache::new(),
-        })
+        expected = Ok(*util::air_project_collection(
+            None,
+            "foo.bar.baz",
+            Some("foo_bar_baz"),
+        )),
+        input = *util::mir_project_collection(None, "foo.bar.baz", None, None)
     );
 
     test_translate_stage!(
         project_key_starts_with_dollar,
-        expected = Ok(air::Stage::Project(air::Project {
-            source: Box::new(air::Stage::Collection(air::Collection {
-                db: "test_db".to_string(),
-                collection: "$foo".to_string()
-            })),
-            specifications: unchecked_unique_linked_hash_map! {
-                "_foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-            }
-        })),
-        input = mir::Stage::Project(mir::Project {
-            source: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test_db".into(),
-                collection: "$foo".into(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
-            expression: BindingTuple(map! {
-                Key::named("$foo", 0u16) => mir::Expression::Reference(("$foo", 0u16).into()),
-            }),
-            cache: mir::schema::SchemaCache::new(),
-        })
+        expected = Ok(*util::air_project_collection(None, "$foo", Some("_foo"))),
+        input = *util::mir_project_collection(None, "$foo", None, None)
     );
 
     test_translate_stage!(
         project_key_is_empty,
         expected = Err(Error::InvalidProjectField),
-        input = mir::Stage::Project(mir::Project {
-            source: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test_db".into(),
-                collection: "".into(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
-            expression: BindingTuple(map! {
-                Key::named("", 0u16) => mir::Expression::Reference(("", 0u16).into()),
-            }),
-            cache: mir::schema::SchemaCache::new(),
-        })
+        input = *util::mir_project_collection(None, "", None, None)
     );
 
     test_translate_stage!(
         project_key_starts_with_special_characters_conflicts_with_other_project_key,
         expected = Ok(air::Stage::Project(air::Project {
-            source: Box::new(air::Stage::Collection(air::Collection {
-                db: "test_db".to_string(),
-                collection: "$foo.bar".to_string()
-            })),
+            source: util::air_collection_stage("test_db", "$foo.bar"),
             specifications: unchecked_unique_linked_hash_map! {
                 "__foo_bar".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                 "_foo_bar".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(1))),
             }
         })),
         input = mir::Stage::Project(mir::Project {
-            source: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test_db".into(),
-                collection: "$foo.bar".into(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            source: util::mir_collection("test_db", "$foo.bar"),
             expression: BindingTuple(map! {
                 Key::named("$foo.bar", 0u16) => mir::Expression::Reference(("$foo.bar", 0u16).into()),
                 Key::named("_foo_bar", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
@@ -172,10 +116,7 @@ mod project {
     test_translate_stage!(
         project_with_user_bot_conflict,
         expected = Ok(air::Stage::Project(air::Project {
-            source: Box::new(air::Stage::Collection(air::Collection {
-                db: "test_db".to_string(),
-                collection: "foo".to_string()
-            })),
+            source: util::air_collection_stage("test_db", "foo"),
             specifications: unchecked_unique_linked_hash_map! {
                 "___bot".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                 // reordered because BindingTuple uses BTreeMap
@@ -185,11 +126,7 @@ mod project {
             }
         })),
         input = mir::Stage::Project(mir::Project {
-            source: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test_db".into(),
-                collection: "foo".into(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            source: util::mir_collection("test_db", "foo"),
             expression: BindingTuple(map! {
                 Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
                 Key::named("__bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
@@ -203,45 +140,16 @@ mod project {
     test_translate_stage!(
         select_values_non_literal_document_expr_correctness_test,
         expected = Ok(air::Stage::Project(air::Project {
-            source: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Collection(air::Collection {
-                    db: "mydb".to_string(),
-                    collection: "foo".to_string(),
-                })),
-                specifications: unchecked_unique_linked_hash_map!(
-                    "t1".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                ),
-            })),
+            source: util::air_project_collection(Some("mydb"), "foo", Some("t1")),
             specifications: unchecked_unique_linked_hash_map!(
                 "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("t1.b".to_string().into())),
             ),
         })),
         input = mir::Stage::Project(mir::Project {
-            source: Box::new(mir::Stage::Project(mir::Project {
-                source: Box::new(mir::Stage::Collection(mir::Collection {
-                    db: "mydb".to_string(),
-                    collection: "foo".to_string(),
-                    cache: mir::schema::SchemaCache::new(),
-                })),
-                expression: map! {
-                    Key::named("t1", 0u16) => mir::Expression::Reference(mir::ReferenceExpr {
-                        key: Key::named("foo", 0u16),
-                        cache: mir::schema::SchemaCache::new(),
-                    }),
-                },
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            source: util::mir_project_collection(Some("mydb"), "foo", Some("t1"), None),
             expression: BindingTuple(map! {
                 Key::bot(0) => mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
-                    expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess{
-                        expr: Box::new(mir::Expression::Reference(mir::ReferenceExpr {
-                            key: Key::named("t1", 0u16),
-                            cache: mir::schema::SchemaCache::new(),
-                        })),
-                        field: "b".to_string(),
-                        cache: mir::schema::SchemaCache::new(),
-                        is_nullable: true,
-                    })),
+                    expr: util::mir_field_access("t1", "b", true),
                     target_type: mir::Type::Document,
                     cache: mir::schema::SchemaCache::new(),
                 }),
@@ -252,17 +160,14 @@ mod project {
 }
 
 mod group {
-    use crate::{map, translator::Error, unchecked_unique_linked_hash_map, util::ROOT};
+    use crate::{translator::Error, unchecked_unique_linked_hash_map, util::ROOT};
     use mongosql_datastructures::binding_tuple::Key;
 
     test_translate_stage!(
         group_count_star,
         expected = Ok(air::Stage::Project(air::Project {
             source: air::Stage::Group(air::Group {
-                source: Box::new(air::Stage::Collection(air::Collection {
-                    db: "test_db".into(),
-                    collection: "foo".into()
-                })),
+                source: util::air_collection_stage("test_db", "foo"),
                 keys: vec![air::NameExprPair {
                     name: "x_key".into(),
                     expr: ROOT.clone()
@@ -293,11 +198,7 @@ mod group {
             }
         })),
         input = mir::Stage::Group(mir::Group {
-            source: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test_db".into(),
-                collection: "foo".into(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            source: util::mir_collection("test_db", "foo"),
             keys: vec![mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
                 alias: "x_key".into(),
                 expr: mir::Expression::Reference(mir::ReferenceExpr {
@@ -324,10 +225,7 @@ mod group {
         group_normal_operators,
         expected = Ok(air::Stage::Project(air::Project {
             source: air::Stage::Group(air::Group {
-                source: Box::new(air::Stage::Collection(air::Collection {
-                    db: "test_db".into(),
-                    collection: "foo".into()
-                })),
+                source: util::air_collection_stage("test_db", "foo"),
                 keys: vec![air::NameExprPair {
                     name: "x_key".into(),
                     expr: ROOT.clone()
@@ -357,11 +255,7 @@ mod group {
             }
         })),
         input = mir::Stage::Group(mir::Group {
-            source: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test_db".into(),
-                collection: "foo".into(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            source: util::mir_collection("test_db", "foo"),
             keys: vec![mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
                 alias: "x_key".into(),
                 expr: mir::Expression::Reference(mir::ReferenceExpr {
@@ -404,15 +298,7 @@ mod group {
         group_key_conflict,
         expected = Ok(air::Stage::Project(air::Project {
             source: air::Stage::Group(air::Group {
-                source: Box::new(air::Stage::Project(air::Project {
-                    source: Box::new(air::Stage::Collection(air::Collection {
-                        db: "test_db".into(),
-                        collection: "foo".into()
-                    })),
-                    specifications: unchecked_unique_linked_hash_map! {
-                        "foo".to_string() => air::ProjectItem::Assignment(ROOT.clone())
-                    },
-                })),
+                source: util::air_project_collection(None, "foo", None),
                 keys: vec![
                     air::NameExprPair {
                         name: "__unaliasedKey2".into(),
@@ -436,17 +322,7 @@ mod group {
             }
         })),
         input = mir::Stage::Group(mir::Group {
-            source: Box::new(mir::Stage::Project(mir::Project {
-                source: Box::new(mir::Stage::Collection(mir::Collection {
-                    db: "test_db".into(),
-                    collection: "foo".into(),
-                    cache: mir::schema::SchemaCache::new(),
-                })),
-                expression: map! {
-                    ("foo", 0u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
-                },
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            source: util::mir_project_collection(None, "foo", None, None),
             keys: vec![
                 mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
                     alias: "__unaliasedKey2".into(),
@@ -455,17 +331,7 @@ mod group {
                         cache: mir::schema::SchemaCache::new(),
                     })
                 }),
-                mir::OptionallyAliasedExpr::Unaliased(mir::Expression::FieldAccess(
-                    mir::FieldAccess {
-                        expr: Box::new(mir::Expression::Reference(mir::ReferenceExpr {
-                            key: Key::named("foo", 0u16),
-                            cache: mir::schema::SchemaCache::new(),
-                        })),
-                        field: "x".into(),
-                        cache: mir::schema::SchemaCache::new(),
-                        is_nullable: true,
-                    }
-                )),
+                mir::OptionallyAliasedExpr::Unaliased(*util::mir_field_access("foo", "x", true)),
             ],
             aggregations: vec![],
             cache: mir::schema::SchemaCache::new(),
@@ -477,15 +343,7 @@ mod group {
         aggregation_alias_id_conflict,
         expected = Ok(air::Stage::Project(air::Project {
             source: air::Stage::Group(air::Group {
-                source: Box::new(air::Stage::Project(air::Project {
-                    source: Box::new(air::Stage::Collection(air::Collection {
-                        db: "test_db".into(),
-                        collection: "foo".into()
-                    })),
-                    specifications: unchecked_unique_linked_hash_map! {
-                        "foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                    },
-                })),
+                source: util::air_project_collection(None, "foo", None),
                 keys: vec![
                     air::NameExprPair {
                         name: "__unaliasedKey2".into(),
@@ -515,17 +373,7 @@ mod group {
             }
         })),
         input = mir::Stage::Group(mir::Group {
-            source: Box::new(mir::Stage::Project(mir::Project {
-                source: Box::new(mir::Stage::Collection(mir::Collection {
-                    db: "test_db".into(),
-                    collection: "foo".into(),
-                    cache: mir::schema::SchemaCache::new(),
-                })),
-                expression: map! {
-                    ("foo", 0u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
-                },
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            source: util::mir_project_collection(None, "foo", None, None),
             keys: vec![
                 mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
                     alias: "__unaliasedKey2".into(),
@@ -534,17 +382,7 @@ mod group {
                         cache: mir::schema::SchemaCache::new(),
                     })
                 }),
-                mir::OptionallyAliasedExpr::Unaliased(mir::Expression::FieldAccess(
-                    mir::FieldAccess {
-                        expr: Box::new(mir::Expression::Reference(mir::ReferenceExpr {
-                            key: Key::named("foo", 0u16),
-                            cache: mir::schema::SchemaCache::new(),
-                        })),
-                        field: "x".into(),
-                        cache: mir::schema::SchemaCache::new(),
-                        is_nullable: true,
-                    }
-                )),
+                mir::OptionallyAliasedExpr::Unaliased(*util::mir_field_access("foo", "x", true)),
             ],
             aggregations: vec![mir::AliasedAggregation {
                 alias: "_id".into(),
@@ -559,11 +397,7 @@ mod group {
         unaliased_group_key_with_no_datasource_is_error,
         expected = Err(Error::InvalidGroupKey),
         input = mir::Stage::Group(mir::Group {
-            source: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test_db".into(),
-                collection: "foo".into(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            source: util::mir_collection("test_db", "foo"),
             keys: vec![mir::OptionallyAliasedExpr::Unaliased(
                 mir::Expression::Reference(mir::ReferenceExpr {
                     key: Key::named("foo", 0u16),
@@ -584,18 +418,11 @@ mod limit {
     test_translate_stage!(
         simple,
         expected = Ok(air::Stage::Limit(air::Limit {
-            source: Box::new(air::Stage::Collection(air::Collection {
-                db: "test_db".into(),
-                collection: "col".into(),
-            })),
+            source: util::air_collection_stage("test_db", "col"),
             limit: 1i64,
         })),
         input = mir::Stage::Limit(mir::Limit {
-            source: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test_db".into(),
-                collection: "col".into(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            source: util::mir_collection("test_db", "col"),
             limit: 1,
             cache: mir::schema::SchemaCache::new(),
         })
@@ -604,11 +431,7 @@ mod limit {
         out_of_i64_range,
         expected = Err(Error::LimitOutOfI64Range(u64::MAX)),
         input = mir::Stage::Limit(mir::Limit {
-            source: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test_db".into(),
-                collection: "col".into(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            source: util::mir_collection("test_db", "col"),
             limit: u64::MAX,
             cache: mir::schema::SchemaCache::new(),
         })
@@ -619,18 +442,11 @@ mod offset {
     test_translate_stage!(
         simple,
         expected = Ok(air::Stage::Skip(air::Skip {
-            source: Box::new(air::Stage::Collection(air::Collection {
-                db: "test_db".to_string(),
-                collection: "foo".to_string()
-            })),
+            source: util::air_collection_stage("test_db", "foo"),
             skip: 10,
         })),
         input = mir::Stage::Offset(mir::Offset {
-            source: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test_db".to_string(),
-                collection: "foo".to_string(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            source: util::mir_collection("test_db", "foo"),
             offset: 10,
             cache: mir::schema::SchemaCache::new(),
         })
@@ -645,10 +461,7 @@ mod sort {
         sort_stage_multi_key_reference,
         expected = Ok(air::Stage::Sort(air::Sort {
                 source: air::Stage::Project(air::Project {
-                    source: Box::new(air::Stage::Collection(air::Collection {
-                        db: "test_db".to_string(),
-                        collection: "foo".to_string(),
-                    })),
+                    source: util::air_collection_stage("test_db", "foo"),
                     specifications: unchecked_unique_linked_hash_map!{
                         "__bot".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                         "bar".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(1))),
@@ -662,11 +475,7 @@ mod sort {
         })),
         input = mir::Stage::Sort(mir::Sort {
             source: mir::Stage::Project(mir::Project {
-                source: Box::new(mir::Stage::Collection(mir::Collection {
-                    db: "test_db".into(),
-                    collection: "foo".into(),
-                    cache: mir::schema::SchemaCache::new(),
-                })),
+                source: util::mir_collection("test_db", "foo"),
                 expression: BindingTuple(map! {
                     Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
                     Key::named("bar", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
@@ -675,22 +484,8 @@ mod sort {
             cache: mir::schema::SchemaCache::new(),
         }).into(),
             specs: vec![
-                mir::SortSpecification::Desc(
-                    mir::FieldPath {
-                        key: ("bar", 0u16).into(),
-                        fields: vec!["a".to_string()],
-                        cache: mir::schema::SchemaCache::new(),
-                        is_nullable: true,
-                    }
-                ),
-                mir::SortSpecification::Asc(
-                    mir::FieldPath {
-                        key: ("baz", 0u16).into(),
-                        fields: vec!["a".to_string()],
-                        cache: mir::schema::SchemaCache::new(),
-                        is_nullable: true,
-                    }
-                )
+                mir::SortSpecification::Desc(util::mir_field_path("bar", vec!["a"])),
+                mir::SortSpecification::Asc(util::mir_field_path("baz", vec!["a"]))
             ],
             cache: mir::schema::SchemaCache::new(),
         })
@@ -699,50 +494,17 @@ mod sort {
     test_translate_stage!(
         sort_stage_multi_key_field_access,
         expected = Ok(air::Stage::Sort(air::Sort {
-            source: air::Stage::Project(air::Project {
-                source: air::Stage::Collection(air::Collection {
-                    db: "test_db".into(),
-                    collection: "foo".into(),
-                })
-                .into(),
-                specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                }
-            })
-            .into(),
-
+            source: util::air_project_collection(None, "foo", None),
             specs: vec![
                 air::SortSpecification::Desc("foo.bar".to_string()),
                 air::SortSpecification::Asc("foo.baz".to_string())
             ],
         })),
         input = mir::Stage::Sort(mir::Sort {
-            source: mir::Stage::Project(mir::Project {
-                source: mir::Stage::Collection(mir::Collection {
-                    db: "test_db".into(),
-                    collection: "foo".into(),
-                    cache: mir::schema::SchemaCache::new(),
-                })
-                .into(),
-                expression: map! {
-                    ("foo", 0u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
-                },
-                cache: mir::schema::SchemaCache::new(),
-            })
-            .into(),
+            source: util::mir_project_collection(None, "foo", None, None),
             specs: vec![
-                mir::SortSpecification::Desc(mir::FieldPath {
-                    key: ("foo", 0u16).into(),
-                    fields: vec!["bar".to_string()],
-                    cache: mir::schema::SchemaCache::new(),
-                    is_nullable: true,
-                }),
-                mir::SortSpecification::Asc(mir::FieldPath {
-                    key: ("foo", 0u16).into(),
-                    fields: vec!["baz".to_string()],
-                    cache: mir::schema::SchemaCache::new(),
-                    is_nullable: true,
-                })
+                mir::SortSpecification::Desc(util::mir_field_path("foo", vec!["bar"])),
+                mir::SortSpecification::Asc(util::mir_field_path("foo", vec!["baz"]))
             ],
             cache: mir::schema::SchemaCache::new()
         })
@@ -751,53 +513,20 @@ mod sort {
     test_translate_stage!(
         sort_stage_nested_key,
         expected = Ok(air::Stage::Sort(air::Sort {
-            source: air::Stage::Project(air::Project {
-                source: air::Stage::Collection(air::Collection {
-                    db: "test_db".into(),
-                    collection: "foo".into(),
-                })
-                .into(),
-                specifications: unchecked_unique_linked_hash_map! {
-                    "foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                }
-            })
-            .into(),
+            source: util::air_project_collection(None, "foo", None),
             specs: vec![
                 air::SortSpecification::Desc("foo.bar.quz".to_string()),
                 air::SortSpecification::Asc("foo.baz.fizzle.bazzle".to_string())
             ],
         })),
         input = mir::Stage::Sort(mir::Sort {
-            source: mir::Stage::Project(mir::Project {
-                source: mir::Stage::Collection(mir::Collection {
-                    db: "test_db".into(),
-                    collection: "foo".into(),
-                    cache: mir::schema::SchemaCache::new(),
-                })
-                .into(),
-                expression: map! {
-                    ("foo", 0u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
-                },
-                cache: mir::schema::SchemaCache::new(),
-            })
-            .into(),
+            source: util::mir_project_collection(None, "foo", None, None),
             specs: vec![
-                mir::SortSpecification::Desc(mir::FieldPath {
-                    key: ("foo", 0u16).into(),
-                    fields: vec!["bar".to_string(), "quz".to_string()],
-                    cache: mir::schema::SchemaCache::new(),
-                    is_nullable: true,
-                }),
-                mir::SortSpecification::Asc(mir::FieldPath {
-                    key: ("foo", 0u16).into(),
-                    fields: vec![
-                        "baz".to_string(),
-                        "fizzle".to_string(),
-                        "bazzle".to_string()
-                    ],
-                    cache: mir::schema::SchemaCache::new(),
-                    is_nullable: true,
-                })
+                mir::SortSpecification::Desc(util::mir_field_path("foo", vec!["bar", "quz"])),
+                mir::SortSpecification::Asc(util::mir_field_path(
+                    "foo",
+                    vec!["baz", "fizzle", "bazzle"],
+                ))
             ],
             cache: mir::schema::SchemaCache::new()
         })
@@ -911,37 +640,22 @@ mod array {
 }
 
 mod join {
-    use crate::{air, map, mir, unchecked_unique_linked_hash_map, util::ROOT};
+    use crate::{map, unchecked_unique_linked_hash_map, util::ROOT};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
-
-    fn input_collection(collection_name: &str) -> Box<mir::Stage> {
-        Box::new(mir::Stage::Collection(mir::Collection {
-            db: "test_db".into(),
-            collection: collection_name.into(),
-            cache: mir::schema::SchemaCache::new(),
-        }))
-    }
-
-    fn transformed_collection(collection_name: &str) -> Box<air::Stage> {
-        Box::new(air::Stage::Collection(air::Collection {
-            db: "test_db".into(),
-            collection: collection_name.into(),
-        }))
-    }
 
     test_translate_stage!(
         join_without_condition,
         expected = Ok(air::Stage::Join(air::Join {
             join_type: air::JoinType::Inner,
-            left: transformed_collection("foo"),
-            right: transformed_collection("bar"),
+            left: util::air_collection_stage("test_db", "foo"),
+            right: util::air_collection_stage("test_db", "bar"),
             let_vars: None,
             condition: None
         })),
         input = mir::Stage::Join(mir::Join {
             join_type: mir::JoinType::Inner,
-            left: input_collection("foo"),
-            right: input_collection("bar"),
+            left: util::mir_collection("test_db", "foo"),
+            right: util::mir_collection("test_db", "bar"),
             condition: None,
             cache: mir::schema::SchemaCache::new(),
         })
@@ -951,8 +665,8 @@ mod join {
         left_join_with_condition,
         expected = Ok(air::Stage::Join(air::Join {
             join_type: air::JoinType::Left,
-            left: transformed_collection("foo"),
-            right: transformed_collection("bar"),
+            left: util::air_collection_stage("test_db", "foo"),
+            right: util::air_collection_stage("test_db", "bar"),
             let_vars: Some(vec![air::LetVariable {
                 name: "vfoo_0".to_string(),
                 expr: Box::new(ROOT.clone()),
@@ -969,8 +683,8 @@ mod join {
         })),
         input = mir::Stage::Join(mir::Join {
             join_type: mir::JoinType::Left,
-            left: input_collection("foo"),
-            right: input_collection("bar"),
+            left: util::mir_collection("test_db", "foo"),
+            right: util::mir_collection("test_db", "bar"),
             condition: Some(mir::Expression::ScalarFunction(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Eq,
@@ -992,22 +706,12 @@ mod join {
             join_type: air::JoinType::Inner,
             left: Box::new(air::Stage::Join(air::Join {
                 join_type: air::JoinType::Inner,
-                left: Box::new(air::Stage::Project(air::Project {
-                    source: transformed_collection("Foo"),
-                    specifications: unchecked_unique_linked_hash_map! {
-                        "Foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                    },
-                })),
-                right: Box::new(air::Stage::Project(air::Project {
-                    source: transformed_collection("foo"),
-                    specifications: unchecked_unique_linked_hash_map! {
-                        "foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                    },
-                })),
+                left: util::air_project_collection(None, "Foo", None),
+                right: util::air_project_collection(None, "foo", None),
                 condition: None,
                 let_vars: None,
             })),
-            right: transformed_collection("bar"),
+            right: util::air_collection_stage("test_db", "bar"),
             let_vars: Some(vec![
                 air::LetVariable {
                     name: "vfoo_0".to_string(),
@@ -1026,38 +730,13 @@ mod join {
             )),
             left: mir::Stage::Join(mir::Join {
                 condition: None,
-                left: Box::new(mir::Stage::Project(mir::Project {
-                    source: Box::new(mir::Stage::Collection(mir::Collection {
-                        db: "test_db".to_string(),
-                        collection: "Foo".to_string(),
-                        cache: mir::schema::SchemaCache::new(),
-                    })),
-                    expression: map! {
-                        ("Foo", 0u16).into() => mir::Expression::Reference(("Foo", 0u16).into()),
-                    },
-                    cache: mir::schema::SchemaCache::new(),
-                })),
-                right: Box::new(mir::Stage::Project(mir::Project {
-                    source: Box::new(mir::Stage::Collection(mir::Collection {
-                        db: "test_db".to_string(),
-                        collection: "foo".to_string(),
-                        cache: mir::schema::SchemaCache::new(),
-                    })),
-                    expression: map! {
-                        ("foo", 0u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
-                    },
-                    cache: mir::schema::SchemaCache::new(),
-                })),
+                left: util::mir_project_collection(None, "Foo", None, None),
+                right: util::mir_project_collection(None, "foo", None, None),
                 join_type: mir::JoinType::Inner,
                 cache: mir::schema::SchemaCache::new(),
             })
             .into(),
-            right: mir::Stage::Collection(mir::Collection {
-                db: "test_db".to_string(),
-                collection: "bar".to_string(),
-                cache: mir::schema::SchemaCache::new(),
-            })
-            .into(),
+            right: util::mir_collection("test_db", "bar"),
             join_type: mir::JoinType::Inner,
             cache: mir::schema::SchemaCache::new(),
         })
@@ -1067,27 +746,17 @@ mod join {
         test_translate_array,
         expected = Ok(air::Stage::Join(air::Join {
             condition: None,
-            left: Box::new(air::Stage::Collection(air::Collection {
-                db: "mydb".to_string(),
-                collection: "col".to_string(),
-            })),
-            right: Box::new(air::Stage::Documents(air::Documents {
-                array: vec![
-                    air::Expression::Literal(air::LiteralValue::Integer(1)),
-                    air::Expression::Literal(air::LiteralValue::Integer(1))
-                ]
-            })),
+            left: util::air_collection_stage("mydb", "col"),
+            right: util::air_documents_stage(vec![
+                air::Expression::Literal(air::LiteralValue::Integer(1)),
+                air::Expression::Literal(air::LiteralValue::Integer(1))
+            ]),
             let_vars: None,
             join_type: air::JoinType::Left,
         })),
         input = mir::Stage::Join(mir::Join {
             condition: None,
-            left: mir::Stage::Collection(mir::Collection {
-                db: "mydb".to_string(),
-                collection: "col".to_string(),
-                cache: mir::schema::SchemaCache::new(),
-            })
-            .into(),
+            left: util::mir_collection("mydb", "col"),
             right: mir::Stage::Array(mir::ArraySource {
                 array: vec![
                     mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
@@ -1103,94 +772,56 @@ mod join {
     );
 
     test_translate_stage!(
-            joins_retain_aliases_for_left_and_right,
-            expected = Ok(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Join(air::Join {
-                    left: air::Stage::Project(air::Project {
-                        source: Box::new(air::Stage::Collection(
-                            air::Collection{
-                                db:"test_db".to_string(), collection:"foo".to_string()
-                            })),
-                            specifications: unchecked_unique_linked_hash_map!(
-                                "t1".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                            )
-                        }).into(),
-                    right: air::Stage::Project(air::Project {
-                        source: Box::new(air::Stage::Collection(
-                            air::Collection{
-                                db:"test_db".to_string(), collection:"bar".to_string()
-                            })),
-                            specifications: unchecked_unique_linked_hash_map!(
-                                "t2".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                            )
-                        }).into(),
-                    join_type: air::JoinType::Inner,
-                    let_vars: Some(vec![air::LetVariable {
-                        name: "vt1_0".to_string(),
-                        expr: Box::new(air::Expression::FieldRef("t1".to_string().into())),
-                    }]),
-                    condition: Some(air::Expression::SQLSemanticOperator(
-                        air::SQLSemanticOperator {
-                            op: air::SQLOperator::Eq,
-                            args: vec![
-                                air::Expression::Variable("vt1_0.a".to_string().into()),
-                                air::Expression::FieldRef("t2.b".to_string().into())
-                            ]
-                        }
-                    )),
-                })),
-                specifications: unchecked_unique_linked_hash_map!(
-                    "bar".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("t2".to_string().into())),
-                    "foo".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("t1".to_string().into())),
-                )
+        joins_retain_aliases_for_left_and_right,
+        expected = Ok(air::Stage::Project(air::Project {
+            source: Box::new(air::Stage::Join(air::Join {
+                left: util::air_project_collection(None, "foo", Some("t1")),
+                right: util::air_project_collection(None, "bar", Some("t2")),
+                join_type: air::JoinType::Inner,
+                let_vars: Some(vec![air::LetVariable {
+                    name: "vt1_0".to_string(),
+                    expr: Box::new(air::Expression::FieldRef("t1".to_string().into())),
+                }]),
+                condition: Some(air::Expression::SQLSemanticOperator(
+                    air::SQLSemanticOperator {
+                        op: air::SQLOperator::Eq,
+                        args: vec![
+                            air::Expression::Variable("vt1_0.a".to_string().into()),
+                            air::Expression::FieldRef("t2.b".to_string().into())
+                        ]
+                    }
+                )),
             })),
-            input = mir::Stage::Project(mir::Project {
-                source: Box::new(mir::Stage::Join(mir::Join {
-                    join_type: mir::JoinType::Inner,
-                    left: mir::Stage::Project(mir::Project {
-                        source: input_collection("foo"),
-                        expression: map! {
-                            Key::named("t1", 0u16) => mir::Expression::Reference(("foo".to_string(), 0u16).into()),
-                        },
+            specifications: unchecked_unique_linked_hash_map!(
+                "bar".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("t2".to_string().into())),
+                "foo".to_string() => air::ProjectItem::Assignment(air::Expression::FieldRef("t1".to_string().into())),
+            )
+        })),
+        input = mir::Stage::Project(mir::Project {
+            source: Box::new(mir::Stage::Join(mir::Join {
+                join_type: mir::JoinType::Inner,
+                left: util::mir_project_collection(None, "foo", Some("t1"), None),
+                right: util::mir_project_collection(None, "bar", Some("t2"), None),
+                condition: Some(mir::Expression::ScalarFunction(
+                    mir::ScalarFunctionApplication {
+                        function: mir::ScalarFunction::Eq,
+                        args: vec![
+                            *util::mir_field_access("t1", "a", true),
+                            *util::mir_field_access("t2", "b", true),
+                        ],
                         cache: mir::schema::SchemaCache::new(),
-                    }).into(),
-                    right: mir::Stage::Project(mir::Project {
-                        source: input_collection("bar"),
-                        expression: map! {
-                            Key::named("t2", 0u16) => mir::Expression::Reference(("bar".to_string(), 0u16).into()),
-                        },
-                        cache: mir::schema::SchemaCache::new(),
-                    }).into(),
-                    condition: Some(mir::Expression::ScalarFunction(
-                        mir::ScalarFunctionApplication {
-                            function: mir::ScalarFunction::Eq,
-                            args: vec![
-                                mir::Expression::FieldAccess(mir::FieldAccess{
-                                    expr: mir::Expression::Reference(("t1".to_string(), 0u16).into()).into(),
-                                    field: "a".to_string(),
-                                    cache: mir::schema::SchemaCache::new(),
-                                    is_nullable: true,
-                                }),
-                                mir::Expression::FieldAccess(mir::FieldAccess{
-                                    expr: mir::Expression::Reference(("t2".to_string(), 0u16).into()).into(),
-                                    field: "b".to_string(),
-                                    cache: mir::schema::SchemaCache::new(),
-                                    is_nullable: true,
-                                }),
-                            ],
-                            cache: mir::schema::SchemaCache::new(),
-                            is_nullable: true,
-                        }
-                    )),
-                    cache: mir::schema::SchemaCache::new(),
-                })),
-                expression: BindingTuple(map! {
-                    Key::named("foo", 0u16) => mir::Expression::Reference(("t1".to_string(), 0u16).into()),
-                    Key::named("bar", 0u16) => mir::Expression::Reference(("t2".to_string(), 0u16).into()),
-                }),
+                        is_nullable: true,
+                    }
+                )),
                 cache: mir::schema::SchemaCache::new(),
-            })
-        );
+            })),
+            expression: BindingTuple(map! {
+                Key::named("foo", 0u16) => mir::Expression::Reference(("t1".to_string(), 0u16).into()),
+                Key::named("bar", 0u16) => mir::Expression::Reference(("t2".to_string(), 0u16).into()),
+            }),
+            cache: mir::schema::SchemaCache::new(),
+        })
+    );
 
     test_translate_stage!(
         ensure_let_variables_start_with_lowercase_letters_not_underscore_or_uppercase,
@@ -1198,22 +829,12 @@ mod join {
             join_type: air::JoinType::Inner,
             left: Box::new(air::Stage::Join(air::Join {
                 join_type: air::JoinType::Inner,
-                left: Box::new(air::Stage::Project(air::Project {
-                    source: transformed_collection("foo"),
-                    specifications: unchecked_unique_linked_hash_map! {
-                        "Foo".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                    },
-                })),
-                right: Box::new(air::Stage::Project(air::Project {
-                    source: transformed_collection("bar"),
-                    specifications: unchecked_unique_linked_hash_map! {
-                        "_bar".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                    },
-                })),
+                left: util::air_project_collection(None, "foo", Some("Foo")),
+                right: util::air_project_collection(None, "bar", Some("_bar")),
                 condition: None,
                 let_vars: None,
             })),
-            right: transformed_collection("bar"),
+            right: util::air_collection_stage("test_db", "bar"),
             let_vars: Some(vec![
                 air::LetVariable {
                     name: "vfoo_0".to_string(),
@@ -1232,38 +853,13 @@ mod join {
             )),
             left: mir::Stage::Join(mir::Join {
                 condition: None,
-                left: Box::new(mir::Stage::Project(mir::Project {
-                    source: Box::new(mir::Stage::Collection(mir::Collection {
-                        db: "test_db".to_string(),
-                        collection: "foo".to_string(),
-                        cache: mir::schema::SchemaCache::new(),
-                    })),
-                    expression: map! {
-                        ("Foo", 0u16).into() => mir::Expression::Reference(("foo", 0u16).into()),
-                    },
-                    cache: mir::schema::SchemaCache::new(),
-                })),
-                right: Box::new(mir::Stage::Project(mir::Project {
-                    source: Box::new(mir::Stage::Collection(mir::Collection {
-                        db: "test_db".to_string(),
-                        collection: "bar".to_string(),
-                        cache: mir::schema::SchemaCache::new(),
-                    })),
-                    expression: map! {
-                        ("_bar", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
-                    },
-                    cache: mir::schema::SchemaCache::new(),
-                })),
+                left: util::mir_project_collection(None, "foo", Some("Foo"), None),
+                right: util::mir_project_collection(None, "bar", Some("_bar"), None),
                 join_type: mir::JoinType::Inner,
                 cache: mir::schema::SchemaCache::new(),
             })
             .into(),
-            right: mir::Stage::Collection(mir::Collection {
-                db: "test_db".to_string(),
-                collection: "bar".to_string(),
-                cache: mir::schema::SchemaCache::new(),
-            })
-            .into(),
+            right: util::mir_collection("test_db", "bar"),
             join_type: mir::JoinType::Inner,
             cache: mir::schema::SchemaCache::new(),
         })
@@ -1271,29 +867,24 @@ mod join {
 }
 
 mod equijoin {
-    use crate::{
-        map,
-        translator::Error,
-        util::{air_collection, air_pipeline_collection, mir_collection, mir_field_path},
-    };
-    use mongosql_datastructures::binding_tuple::Key;
+    use crate::translator::Error;
 
     test_translate_stage!(
         inner_join,
         expected = Ok(air::Stage::EquiJoin(air::EquiJoin {
             join_type: air::JoinType::Inner,
-            source: air_pipeline_collection("foo"),
-            from: air_collection("bar"),
+            source: util::air_project_collection(None, "foo", None),
+            from: util::air_collection_raw("test_db", "bar"),
             local_field: "foo.a".into(),
             foreign_field: "a".into(),
             as_name: "bar".to_string(),
         })),
         input = mir::Stage::MQLIntrinsic(mir::MQLStage::EquiJoin(mir::EquiJoin {
             join_type: mir::JoinType::Inner,
-            source: mir_collection("foo"),
-            from: mir_collection("bar"),
-            local_field: Box::new(mir_field_path("foo", vec!["a"])),
-            foreign_field: Box::new(mir_field_path("bar", vec!["a"])),
+            source: util::mir_project_collection(None, "foo", None, None),
+            from: util::mir_project_collection(None, "bar", None, None),
+            local_field: Box::new(util::mir_field_path("foo", vec!["a"])),
+            foreign_field: Box::new(util::mir_field_path("bar", vec!["a"])),
             cache: mir::schema::SchemaCache::new(),
         }))
     );
@@ -1302,28 +893,18 @@ mod equijoin {
         left_join,
         expected = Ok(air::Stage::EquiJoin(air::EquiJoin {
             join_type: air::JoinType::Left,
-            source: air_pipeline_collection("foo"),
-            from: air_collection("bar"),
+            source: util::air_project_collection(None, "foo", None),
+            from: util::air_collection_raw("test_db", "bar"),
             local_field: "foo.a".into(),
             foreign_field: "a".into(),
             as_name: "x".to_string(),
         })),
         input = mir::Stage::MQLIntrinsic(mir::MQLStage::EquiJoin(mir::EquiJoin {
             join_type: mir::JoinType::Left,
-            source: mir_collection("foo"),
-            from: Box::new(mir::Stage::Project(mir::Project {
-                source: Box::new(mir::Stage::Collection(mir::Collection {
-                    db: "test_db".to_string(),
-                    collection: "bar".to_string(),
-                    cache: mir::schema::SchemaCache::new(),
-                })),
-                expression: map! {
-                    Key::named("x", 0u16) => mir::Expression::Reference(("bar".to_string(), 0u16).into()),
-                },
-                cache: mir::schema::SchemaCache::new(),
-            })),
-            local_field: Box::new(mir_field_path("foo", vec!["a"])),
-            foreign_field: Box::new(mir_field_path("x", vec!["a"])),
+            source: util::mir_project_collection(None, "foo", None, None),
+            from: util::mir_project_collection(None, "bar", Some("x"), None),
+            local_field: Box::new(util::mir_field_path("foo", vec!["a"])),
+            foreign_field: Box::new(util::mir_field_path("x", vec!["a"])),
             cache: mir::schema::SchemaCache::new(),
         }))
     );
@@ -1333,33 +914,30 @@ mod equijoin {
         expected = Err(Error::ExpectedCollection),
         input = mir::Stage::MQLIntrinsic(mir::MQLStage::EquiJoin(mir::EquiJoin {
             join_type: mir::JoinType::Left,
-            source: mir_collection("foo"),
+            source: util::mir_project_collection(None, "foo", None, None),
             from: mir::Stage::Array(mir::ArraySource {
                 array: vec![],
                 alias: "foo".into(),
                 cache: mir::schema::SchemaCache::new()
             })
             .into(),
-            local_field: Box::new(mir_field_path("foo", vec!["a"])),
-            foreign_field: Box::new(mir_field_path("bar", vec!["a"])),
+            local_field: Box::new(util::mir_field_path("foo", vec!["a"])),
+            foreign_field: Box::new(util::mir_field_path("bar", vec!["a"])),
             cache: mir::schema::SchemaCache::new(),
         }))
     );
 }
 
 mod lateral_join {
-    use crate::{
-        map, unchecked_unique_linked_hash_map,
-        util::{air_pipeline_collection, mir_collection, ROOT},
-    };
+    use crate::{map, unchecked_unique_linked_hash_map};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
     test_translate_stage!(
         lateral_join_inner_simple,
         expected = Ok(air::Stage::Join(air::Join {
             join_type: air::JoinType::Inner,
-            left: air_pipeline_collection("foo"),
-            right: air_pipeline_collection("bar"),
+            left: util::air_project_collection(None, "foo", None),
+            right: util::air_project_collection(None, "bar", None),
             let_vars: Some(vec![air::LetVariable {
                 name: "vfoo_0".to_string(),
                 expr: Box::new(air::Expression::FieldRef(air::FieldRef {
@@ -1371,8 +949,8 @@ mod lateral_join {
         })),
         input = mir::Stage::MQLIntrinsic(mir::MQLStage::LateralJoin(mir::LateralJoin {
             join_type: mir::JoinType::Inner,
-            source: mir_collection("foo"),
-            subquery: mir_collection("bar"),
+            source: util::mir_project_collection(None, "foo", None, None),
+            subquery: util::mir_project_collection(None, "bar", None, None),
             cache: mir::schema::SchemaCache::new(),
         }))
     );
@@ -1382,22 +960,12 @@ mod lateral_join {
         expected = Ok(air::Stage::Project(air::Project {
             source: Box::new(air::Stage::Join(air::Join {
                 join_type: air::JoinType::Left,
-                left: air::Stage::Project(air::Project {
-                    source: Box::new(air::Stage::Collection(
-                        air::Collection{
-                            db:"test_db".to_string(), collection:"foo".to_string()
-                        })),
-                        specifications: unchecked_unique_linked_hash_map!(
-                            "t1".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                        )
-                    }).into(),
+                left: util::air_project_collection(None, "foo", Some("t1")),
                 right: air::Stage::Project(air::Project {
-                    source: Box::new(air::Stage::Collection(
-                        air::Collection{
-                            db:"test_db".to_string(), collection:"bar".to_string()
-                        })),
-                        specifications: unchecked_unique_linked_hash_map!()
-                    }).into(),
+                    source: util::air_collection_stage("test_db", "bar"),
+                    specifications: unchecked_unique_linked_hash_map!()
+                })
+                .into(),
                 let_vars: Some(vec![air::LetVariable {
                     name: "vt1_0".to_string(),
                     expr: Box::new(air::Expression::FieldRef("t1".to_string().into())),
@@ -1409,30 +977,19 @@ mod lateral_join {
             )
         })),
         input = mir::Stage::Project(mir::Project {
-            source: Box::new(mir::Stage::MQLIntrinsic(mir::MQLStage::LateralJoin(mir::LateralJoin {
-                join_type: mir::JoinType::Left,
-                source: mir::Stage::Project(mir::Project {
-                    source: Box::new(mir::Stage::Collection(mir::Collection {
-                        db: "test_db".into(),
-                        collection: "foo".into(),
+            source: Box::new(mir::Stage::MQLIntrinsic(mir::MQLStage::LateralJoin(
+                mir::LateralJoin {
+                    join_type: mir::JoinType::Left,
+                    source: util::mir_project_collection(None, "foo", Some("t1"), None),
+                    subquery: mir::Stage::Project(mir::Project {
+                        source: util::mir_collection("test_db", "bar"),
+                        expression: map! {},
                         cache: mir::schema::SchemaCache::new(),
-                    })),
-                    expression: map! {
-                        Key::named("t1", 0u16) => mir::Expression::Reference(("foo".to_string(), 0u16).into()),
-                    },
+                    })
+                    .into(),
                     cache: mir::schema::SchemaCache::new(),
-                }).into(),
-                subquery: mir::Stage::Project(mir::Project {
-                    source: Box::new(mir::Stage::Collection(mir::Collection {
-                        db: "test_db".into(),
-                        collection: "bar".into(),
-                        cache: mir::schema::SchemaCache::new(),
-                    })),
-                    expression: map! {},
-                    cache: mir::schema::SchemaCache::new(),
-                }).into(),
-                cache: mir::schema::SchemaCache::new(),
-            }))),
+                }
+            ))),
             expression: BindingTuple(map! {
                 Key::named("foo", 0u16) => mir::Expression::Reference(("t1".to_string(), 0u16).into()),
             }),
@@ -1445,29 +1002,13 @@ mod set {
     test_translate_stage!(
         simple,
         expected = Ok(air::Stage::UnionWith(air::UnionWith {
-            source: Box::new(air::Stage::Collection(air::Collection {
-                db: "foo".into(),
-                collection: "a".into(),
-            })),
-            pipeline: Box::new(air::Stage::Collection(air::Collection {
-                db: "bar".into(),
-                collection: "b".into(),
-            })),
+            source: util::air_collection_stage("foo", "a"),
+            pipeline: util::air_collection_stage("bar", "b"),
         })),
         input = mir::Stage::Set(mir::Set {
             operation: mir::SetOperation::UnionAll,
-            left: mir::Stage::Collection(mir::Collection {
-                db: "foo".to_string(),
-                collection: "a".to_string(),
-                cache: mir::schema::SchemaCache::new(),
-            })
-            .into(),
-            right: mir::Stage::Collection(mir::Collection {
-                db: "bar".to_string(),
-                collection: "b".to_string(),
-                cache: mir::schema::SchemaCache::new(),
-            })
-            .into(),
+            left: util::mir_collection("foo", "a"),
+            right: util::mir_collection("bar", "b"),
             cache: mir::schema::SchemaCache::new(),
         })
     );
@@ -1480,10 +1021,7 @@ mod derived {
     test_translate_stage!(
         derived,
         expected = Ok(air::Stage::Project(air::Project {
-            source: Box::new(air::Stage::Collection(air::Collection {
-                db: "test_db".to_string(),
-                collection: "foo".to_string()
-            })),
+            source: util::air_collection_stage("test_db", "foo"),
             specifications: unchecked_unique_linked_hash_map! {
                 "__bot".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                 "bar".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(1)))
@@ -1491,11 +1029,7 @@ mod derived {
         })),
         input = mir::Stage::Derived(mir::Derived {
             source: Box::new(mir::Stage::Project(mir::Project {
-                source: Box::new(mir::Stage::Collection(mir::Collection {
-                    db: "test_db".into(),
-                    collection: "foo".into(),
-                    cache: mir::schema::SchemaCache::new(),
-                })),
+                source: util::mir_collection("test_db", "foo"),
                 expression: BindingTuple(map! {
                     Key::bot(0) => mir::Expression::Reference(("foo", 1u16).into()),
                     Key::named("bar", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
@@ -1510,10 +1044,7 @@ mod derived {
         nested_derived_tables_correctness_test,
         expected = Ok(air::Stage::Project(air::Project {
             source: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Collection(air::Collection {
-                    db: "foo".to_string(),
-                    collection: "bar".to_string()
-                })),
+                source: util::air_collection_stage("foo", "bar"),
                 specifications: unchecked_unique_linked_hash_map! {
                     "__bot".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                     "d2".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(1)))
@@ -1527,11 +1058,7 @@ mod derived {
             source: Box::new(mir::Stage::Project(mir::Project {
                 source: Box::new(mir::Stage::Derived(mir::Derived {
                     source: Box::new(mir::Stage::Project(mir::Project {
-                        source: Box::new(mir::Stage::Collection(mir::Collection {
-                            db: "foo".to_string(),
-                            collection: "bar".to_string(),
-                            cache: mir::schema::SchemaCache::new(),
-                        })),
+                        source: util::mir_collection("foo", "bar"),
                         expression: BindingTuple(map! {
                             Key::bot(1) => mir::Expression::Reference(mir::ReferenceExpr {
                                 key: Key::named("bar", 2u16),
@@ -1545,15 +1072,7 @@ mod derived {
                 })),
                 expression: BindingTuple(map! {
                     Key::bot(0) => mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
-                        expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
-                            expr: Box::new(mir::Expression::Reference(mir::ReferenceExpr {
-                                key: Key::named("d2", 0u16),
-                                cache: mir::schema::SchemaCache::new(),
-                            })),
-                            field: "a".to_string(),
-                            cache: mir::schema::SchemaCache::new(),
-                            is_nullable: true,
-                        })),
+                        expr: util::mir_field_access("d2", "a", true),
                         target_type: mir::Type::Int32,
                         cache: mir::schema::SchemaCache::new(),
                     }),
@@ -1566,34 +1085,20 @@ mod derived {
 }
 
 mod unwind {
-    use crate::{
-        air::ExprLanguage, map, unchecked_unique_linked_hash_map, util::air_variable_from_root,
-    };
+    use crate::{air::ExprLanguage, map, unchecked_unique_linked_hash_map};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
     test_translate_stage! {
         unwind,
         expected = Ok(air::Stage::Unwind(air::Unwind {
-            source: Box::new(air::Stage::Collection(air::Collection {
-                db: "test_db".to_string(),
-                collection: "foo".to_string()
-            })),
-            path: air::Expression::Variable("ROOT.bar".to_string().into()),
+            source: util::air_collection_stage("test_db", "foo"),
+            path: util::air_variable_from_root("bar"),
             index: None,
             outer: false,
         })),
         input = mir::Stage::Unwind(mir::Unwind {
-            source: Box::new(mir::Stage::Collection(mir::Collection{
-                db: "test_db".into(),
-                collection: "foo".into(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
-            path: mir::FieldPath {
-                key: ("foo",0u16).into(),
-                fields: vec!["bar".to_string()],
-                cache: mir::schema::SchemaCache::new(),
-                is_nullable: true,
-            },
+            source: util::mir_collection("test_db", "foo"),
+            path: util::mir_field_path("foo", vec!["bar"]),
             index: None,
             outer: false,
             cache: mir::schema::SchemaCache::new(),
@@ -1603,26 +1108,14 @@ mod unwind {
     test_translate_stage! {
         unwind_outer,
         expected = Ok(air::Stage::Unwind(air::Unwind {
-            source: Box::new(air::Stage::Collection(air::Collection {
-                db: "test_db".to_string(),
-                collection: "foo".to_string()
-            })),
-            path: air::Expression::Variable("ROOT.bar".to_string().into()),
+            source: util::air_collection_stage("test_db", "foo"),
+            path: util::air_variable_from_root("bar"),
             index: None,
             outer: true,
         })),
         input = mir::Stage::Unwind(mir::Unwind {
-            source: Box::new(mir::Stage::Collection(mir::Collection{
-                db: "test_db".into(),
-                collection: "foo".into(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
-            path: mir::FieldPath {
-                key: ("foo",0u16).into(),
-                fields: vec!["bar".to_string()],
-                cache: mir::schema::SchemaCache::new(),
-                is_nullable: true,
-            },
+            source: util::mir_collection("test_db", "foo"),
+            path: util::mir_field_path("foo", vec!["bar"]),
             index: None,
             outer: true,
             cache: mir::schema::SchemaCache::new(),
@@ -1631,26 +1124,14 @@ mod unwind {
     test_translate_stage! {
         unwind_index,
         expected = Ok(air::Stage::Unwind(air::Unwind {
-            source: Box::new(air::Stage::Collection(air::Collection {
-                db: "test_db".to_string(),
-                collection: "foo".to_string(),
-            })),
-            path: air::Expression::Variable("ROOT.bar".to_string().into()),
+            source: util::air_collection_stage("test_db", "foo"),
+            path: util::air_variable_from_root("bar"),
             index: Some("i".to_string()),
             outer: true,
         })),
         input = mir::Stage::Unwind(mir::Unwind {
-            source: Box::new(mir::Stage::Collection(mir::Collection{
-                db: "test_db".into(),
-                collection: "foo".into(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
-            path: mir::FieldPath {
-                key: ("foo",0u16).into(),
-                fields: vec!["bar".to_string()],
-                cache: mir::schema::SchemaCache::new(),
-                is_nullable: true,
-            },
+            source: util::mir_collection("test_db", "foo"),
+            path: util::mir_field_path("foo", vec!["bar"]),
             index: Some("i".into()),
             outer: true,
             cache: mir::schema::SchemaCache::new(),
@@ -1662,43 +1143,31 @@ mod unwind {
         expected = Ok(air::Stage::Project(air::Project {
             source: Box::new(air::Stage::Match(air::Match::ExprLanguage(ExprLanguage {
                 source: Box::new(air::Stage::Unwind(air::Unwind {
-                    source: Box::new(air::Stage::Collection(air::Collection {
-                        db: "test".to_string(),
-                        collection: "foo".to_string(),
-                    })),
-                    path: air_variable_from_root("arr"),
+                    source: util::air_collection_stage("test_db", "foo"),
+                    path: util::air_variable_from_root("arr"),
                     index: Some("idx".to_string()),
                     outer: false,
                 })),
                 expr: Box::new(air::Expression::SQLSemanticOperator(air::SQLSemanticOperator {
                     op: air::SQLOperator::Gt,
                     args: vec![
-                        air_variable_from_root("arr"),
+                        util::air_variable_from_root("arr"),
                         air::Expression::Literal(air::LiteralValue::Integer(0)),
                     ],
                 })),
             }))),
             specifications: unchecked_unique_linked_hash_map! {
                 "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::Document(unchecked_unique_linked_hash_map! {
-                    "arr".to_string() => air_variable_from_root("arr"),
-                    "idx".to_string() => air_variable_from_root("idx")
+                    "arr".to_string() => util::air_variable_from_root("arr"),
+                    "idx".to_string() => util::air_variable_from_root("idx")
                 })),
             },
         })),
         input = mir::Stage::Project(mir::Project {
             source: Box::new(mir::Stage::Filter(mir::Filter {
                 source: Box::new(mir::Stage::Unwind(mir::Unwind {
-                    source: Box::new(mir::Stage::Collection(mir::Collection {
-                        db: "test".into(),
-                        collection: "foo".into(),
-                        cache: mir::schema::SchemaCache::new(),
-                    })),
-                    path: mir::FieldPath {
-                        key: ("foo", 0u16).into(),
-                        fields: vec!["arr".to_string()],
-                        cache: mir::schema::SchemaCache::new(),
-                        is_nullable: true,
-                    },
+                    source: util::mir_collection("test_db", "foo"),
+                    path: util::mir_field_path("foo", vec!["arr"]),
                     index: Some("idx".into()),
                     outer: false,
                     cache: mir::schema::SchemaCache::new(),
@@ -1706,12 +1175,7 @@ mod unwind {
                 condition: mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Gt,
                     args: vec![
-                        mir::Expression::FieldAccess(mir::FieldAccess {
-                            expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-                            field: "arr".into(),
-                            cache: mir::schema::SchemaCache::new(),
-                            is_nullable: true,
-                        }),
+                        *util::mir_field_access("foo", "arr", true),
                         mir::Expression::Literal(mir::LiteralValue::Integer(0).into()),
                     ],
                     cache: mir::schema::SchemaCache::new(),
@@ -1722,18 +1186,8 @@ mod unwind {
             expression: BindingTuple(map! {
                 Key::bot(0) => mir::Expression::Document(mir::DocumentExpr {
                     document: unchecked_unique_linked_hash_map! {
-                        "arr".into() => mir::Expression::FieldAccess(mir::FieldAccess {
-                            expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-                            field: "arr".into(),
-                            cache: mir::schema::SchemaCache::new(),
-                            is_nullable: true,
-                        }),
-                        "idx".into() => mir::Expression::FieldAccess(mir::FieldAccess {
-                            expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-                            field: "idx".into(),
-                            cache: mir::schema::SchemaCache::new(),
-                            is_nullable: true,
-                        })
+                        "arr".into() => *util::mir_field_access("foo", "arr", true),
+                        "idx".into() => *util::mir_field_access("foo", "idx", true),
                     },
                     cache: mir::schema::SchemaCache::new(),
                 }),
@@ -1745,22 +1199,11 @@ mod unwind {
 
 mod mql_intrinsic {
     mod match_filter {
-        use crate::{map, unchecked_unique_linked_hash_map, util::ROOT};
-        use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
-
         test_translate_stage!(
             basic,
             expected = Ok(air::Stage::Match(air::Match::MatchLanguage(
                 air::MatchLanguage {
-                    source: Box::new(air::Stage::Project(air::Project {
-                        source: Box::new(air::Stage::Collection(air::Collection {
-                            db: "test_db".to_string(),
-                            collection: "foo".to_string()
-                        })),
-                        specifications: unchecked_unique_linked_hash_map! {
-                            "f".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                        },
-                    })),
+                    source: util::air_project_collection(None, "foo", Some("f")),
                     expr: Box::new(air::MatchQuery::Comparison(air::MatchLanguageComparison {
                         function: air::MatchLanguageComparisonOp::Lt,
                         input: Some("f.a".to_string().into()),
@@ -1769,25 +1212,10 @@ mod mql_intrinsic {
                 }
             ))),
             input = mir::Stage::MQLIntrinsic(mir::MQLStage::MatchFilter(mir::MatchFilter {
-                source: Box::new(mir::Stage::Project(mir::Project {
-                    source: Box::new(mir::Stage::Collection(mir::Collection {
-                        db: "test_db".into(),
-                        collection: "foo".into(),
-                        cache: mir::schema::SchemaCache::new(),
-                    })),
-                    expression: BindingTuple(map! {
-                        Key::named("f", 0u16) => mir::Expression::Reference(("foo", 0u16).into()),
-                    }),
-                    cache: mir::schema::SchemaCache::new(),
-                })),
+                source: util::mir_project_collection(None, "foo", Some("f"), None),
                 condition: mir::MatchQuery::Comparison(mir::MatchLanguageComparison {
                     function: mir::MatchLanguageComparisonOp::Lt,
-                    input: Some(mir::FieldPath {
-                        key: ("f", 0u16).into(),
-                        fields: vec!["a".to_string()],
-                        cache: mir::schema::SchemaCache::new(),
-                        is_nullable: true,
-                    }),
+                    input: Some(util::mir_field_path("f", vec!["a"])),
                     arg: mir::LiteralValue::Integer(1),
                     cache: mir::schema::SchemaCache::new(),
                 }),
@@ -1798,15 +1226,7 @@ mod mql_intrinsic {
 }
 
 mod translate_plan {
-    use crate::{
-        map, mir, unchecked_unique_linked_hash_map,
-        util::{
-            air_project_bot_collection, air_project_collection,
-            air_project_collection_with_expected_rename, mir_collection,
-            mir_project_bot_collection, mir_project_collection, sql_options_exclude_namespaces,
-            ROOT,
-        },
-    };
+    use crate::{map, mir, unchecked_unique_linked_hash_map, util, util::ROOT};
     use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
 
     test_translate_plan!(
@@ -1814,10 +1234,7 @@ mod translate_plan {
         expected = Ok(
             air::Stage::ReplaceWith(air::ReplaceWith {
                 source: air::Stage::Project(air::Project {
-                    source: Box::new(air::Stage::Collection(air::Collection {
-                        db: "test_db".to_string(),
-                        collection: "foo".to_string(),
-                    })),
+                    source: util::air_collection_stage("test_db", "foo"),
                     specifications: unchecked_unique_linked_hash_map!{
                         "___bot".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
                         "____bot".to_string() => air::ProjectItem::Assignment(air::Expression::Literal(air::LiteralValue::Integer(4))),
@@ -1835,11 +1252,7 @@ mod translate_plan {
                 }).into()
             })),
         input = mir::Stage::Project(mir::Project {
-            source: Box::new(mir::Stage::Collection(mir::Collection {
-                db: "test_db".into(),
-                collection: "foo".into(),
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            source: util::mir_collection("test_db", "foo"),
             expression: BindingTuple(map! {
                 Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
                 Key::named("__bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
@@ -1862,22 +1275,20 @@ mod translate_plan {
                         join_type: air::JoinType::Inner,
                         left: Box::new(air::Stage::Join(air::Join {
                             join_type: air::JoinType::Inner,
-                            left: air_project_collection_with_expected_rename("$foo", "_foo"),
-                            right: air_project_collection_with_expected_rename(
-                                "bar.baz", "bar_baz"
-                            ),
+                            left: util::air_project_collection(None, "$foo", Some("_foo")),
+                            right: util::air_project_collection(None, "bar.baz", Some("bar_baz")),
                             let_vars: None,
                             condition: None,
                         })),
-                        right: air_project_collection_with_expected_rename("$_foo", "__foo"),
+                        right: util::air_project_collection(None, "$_foo", Some("__foo")),
                         let_vars: None,
                         condition: None,
                     })),
-                    right: air_project_collection_with_expected_rename("_foo", "___foo"),
+                    right: util::air_project_collection(None, "_foo", Some("___foo")),
                     let_vars: None,
                     condition: None,
                 })),
-                right: air_project_collection("bar"),
+                right: util::air_project_collection(None, "bar", None),
                 let_vars: None,
                 condition: None,
             })),
@@ -1923,20 +1334,20 @@ mod translate_plan {
                     join_type: mir::JoinType::Inner,
                     left: Box::new(mir::Stage::Join(mir::Join {
                         join_type: mir::JoinType::Inner,
-                        left: mir_project_collection("$foo"),
-                        right: mir_project_collection("bar.baz"),
+                        left: util::mir_project_collection(None, "$foo", None, None),
+                        right: util::mir_project_collection(None, "bar.baz", None, None),
                         condition: None,
                         cache: mir::schema::SchemaCache::new(),
                     })),
-                    right: mir_project_collection("$_foo"),
+                    right: util::mir_project_collection(None, "$_foo", None, None),
                     condition: None,
                     cache: mir::schema::SchemaCache::new(),
                 })),
-                right: mir_project_collection("_foo"),
+                right: util::mir_project_collection(None, "_foo", None, None),
                 condition: None,
                 cache: mir::schema::SchemaCache::new(),
             })),
-            right: mir_project_collection("bar"),
+            right: util::mir_project_collection(None, "bar", None, None),
             condition: None,
             cache: mir::schema::SchemaCache::new(),
         }),
@@ -1945,10 +1356,10 @@ mod translate_plan {
     test_translate_plan!(
         single_non_namespaced_results,
         expected = Ok(air::Stage::ReplaceWith(air::ReplaceWith {
-            source: air_project_collection("foo"),
+            source: util::air_project_collection(None, "foo", None),
             new_root: Box::new(air::Expression::FieldRef("foo".into())),
         })),
-        input = *mir_collection("foo"),
+        input = *util::mir_project_collection(None, "foo", None, None),
         options = crate::options::SqlOptions::new(
             crate::options::ExcludeNamespacesOption::ExcludeNamespaces,
             crate::SchemaCheckingMode::default()
@@ -1962,12 +1373,12 @@ mod translate_plan {
                 join_type: air::JoinType::Inner,
                 left: Box::new(air::Stage::Join(air::Join {
                     join_type: air::JoinType::Inner,
-                    left: air_project_collection("foo"),
-                    right: air_project_collection("bar"),
+                    left: util::air_project_collection(None, "foo", None),
+                    right: util::air_project_collection(None, "bar", None),
                     let_vars: None,
                     condition: None,
                 })),
-                right: air_project_collection("baz"),
+                right: util::air_project_collection(None, "baz", None),
                 let_vars: None,
                 condition: None,
             })),
@@ -1986,47 +1397,38 @@ mod translate_plan {
             join_type: mir::JoinType::Inner,
             left: Box::new(mir::Stage::Join(mir::Join {
                 join_type: mir::JoinType::Inner,
-                left: mir_project_collection("foo"),
-                right: mir_project_collection("bar"),
+                left: util::mir_project_collection(None, "foo", None, None),
+                right: util::mir_project_collection(None, "bar", None, None),
                 condition: None,
                 cache: mir::schema::SchemaCache::new(),
             })),
-            right: mir_project_collection("baz"),
+            right: util::mir_project_collection(None, "baz", None, None),
             condition: None,
             cache: mir::schema::SchemaCache::new(),
         }),
-        options = sql_options_exclude_namespaces(),
+        options = util::sql_options_exclude_namespaces(),
     );
 
     test_translate_plan!(
         non_namespaced_handles_bot,
         expected = Ok(air::Stage::ReplaceWith(air::ReplaceWith {
-            source: air_project_bot_collection("foo"),
+            source: util::air_project_collection(None, "foo", Some("__bot")),
             new_root: Box::new(air::Expression::FieldRef("__bot".into()))
         })),
-        input = *mir_project_bot_collection("foo"),
-        options = sql_options_exclude_namespaces(),
+        input = *util::mir_project_bot_collection("foo"),
+        options = util::sql_options_exclude_namespaces(),
     );
 }
 
 mod subquery_expr {
     use crate::{
         map, mir::binding_tuple::DatasourceName::Bottom, unchecked_unique_linked_hash_map,
-        util::ROOT,
     };
 
     test_translate_stage!(
         unqualified_correlated_reference,
         expected = Ok(air::Stage::Project(air::Project {
-            source: Box::new(air::Stage::Project(air::Project {
-                source: Box::new(air::Stage::Collection(air::Collection {
-                    db: "foo".to_string(),
-                    collection: "schema_coll".to_string(),
-                })),
-                specifications: unchecked_unique_linked_hash_map! {
-                    "q".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                },
-            })),
+            source: util::air_project_collection(Some("foo"), "schema_coll", Some("q")),
             specifications: unchecked_unique_linked_hash_map! {
                 "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::Document(unchecked_unique_linked_hash_map! {
                     "bar".to_string() => air::Expression::Subquery(air::Subquery {
@@ -2037,15 +1439,7 @@ mod subquery_expr {
                         output_path: vec!["__bot".to_string(), "bar".to_string()],
                         pipeline: Box::new(air::Stage::Limit(air::Limit {
                             source: Box::new(air::Stage::Project(air::Project {
-                                source: Box::new(air::Stage::Project(air::Project {
-                                    source: Box::new(air::Stage::Collection(air::Collection {
-                                        db: "foo".to_string(),
-                                        collection: "schema_foo".to_string(),
-                                    })),
-                                    specifications: unchecked_unique_linked_hash_map! {
-                                        "q".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-                                    },
-                                })),
+                                source: util::air_project_collection(Some("foo"), "schema_foo", Some("q")),
                                 specifications: unchecked_unique_linked_hash_map! {
                                     "__bot".to_string() => air::ProjectItem::Assignment(air::Expression::Document(unchecked_unique_linked_hash_map! {
                                         "bar".to_string() => air::Expression::Variable("vq_0.bar".to_string().into()),
@@ -2059,17 +1453,7 @@ mod subquery_expr {
             },
         })),
         input = mir::Stage::Project(mir::Project {
-            source: Box::new(mir::Stage::Project(mir::Project {
-                source: Box::new(mir::Stage::Collection(mir::Collection {
-                    db: "foo".to_string(),
-                    collection: "schema_coll".to_string(),
-                    cache: mir::schema::SchemaCache::new(),
-                })),
-                expression: map! {
-                    ("q".to_string(), 0u16).into() => mir::Expression::Reference(("schema_coll".to_string(), 0u16).into()),
-                },
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            source: util::mir_project_collection(Some("foo"), "schema_coll", Some("q"), None),
             expression: map! {
                 (Bottom, 0u16).into() => mir::Expression::Document(mir::DocumentExpr {
                     document: unchecked_unique_linked_hash_map! {
@@ -2082,26 +1466,11 @@ mod subquery_expr {
                             })),
                             subquery: Box::new(mir::Stage::Limit(mir::Limit {
                                 source: Box::new(mir::Stage::Project(mir::Project {
-                                    source: Box::new(mir::Stage::Project(mir::Project {
-                                        source: Box::new(mir::Stage::Collection(mir::Collection {
-                                            db: "foo".to_string(),
-                                            collection: "schema_foo".to_string(),
-                                            cache: mir::schema::SchemaCache::new(),
-                                        })),
-                                        expression: map! {
-                                            ("q", 1u16).into() => mir::Expression::Reference(("schema_foo", 1u16).into()),
-                                        },
-                                        cache: mir::schema::SchemaCache::new(),
-                                    })),
+                                    source: util::mir_project_collection(Some("foo"), "schema_foo", Some("q"), Some(1)),
                                     expression: map! {
                                         (Bottom, 1u16).into() => mir::Expression::Document(mir::DocumentExpr {
                                             document: unchecked_unique_linked_hash_map! {
-                                                "bar".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
-                                                    expr: Box::new(mir::Expression::Reference(("q", 0u16).into())),
-                                                    field: "bar".to_string(),
-                                                    cache: mir::schema::SchemaCache::new(),
-                                                    is_nullable: true,
-                                                }),
+                                                "bar".to_string() => *util::mir_field_access("q", "bar", true),
                                             },
                                             cache: mir::schema::SchemaCache::new(),
                                         })

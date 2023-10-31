@@ -1,7 +1,7 @@
 use crate::{
     mir::{self, optimizer::use_def_analysis::FieldPath},
     unchecked_unique_linked_hash_map,
-    util::{mir_field_access, mir_field_path},
+    util::{mir_collection, mir_field_access, mir_field_path},
 };
 
 macro_rules! test_method {
@@ -112,15 +112,6 @@ macro_rules! test_substitute {
     };
 }
 
-fn mir_collection_stage() -> Box<mir::Stage> {
-    mir::Stage::Collection(mir::Collection {
-        db: "foo".into(),
-        collection: "bar".into(),
-        cache: mir::schema::SchemaCache::new(),
-    })
-    .into()
-}
-
 fn mir_int_key(alias: &str, i: i32) -> mir::OptionallyAliasedExpr {
     mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
         alias: alias.into(),
@@ -173,7 +164,7 @@ test_method!(
         expected
     },
     input = Project {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         expression: map! {
             Key::named("x", 0) => Literal(LiteralExpr {
                 value: Integer(0),
@@ -200,7 +191,7 @@ test_method!(
         expected
     },
     input = Group {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         keys: vec![
             mir_int_key("a", 1),
             mir_int_key("b", 2),
@@ -222,7 +213,7 @@ test_method!(
         expected
     },
     input = Group {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         keys: vec![
             mir_int_key("a", 1),
             mir_int_key("b", 2),
@@ -245,7 +236,7 @@ test_method!(
         expected
     },
     input = Unwind {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         path: mir_field_path("foo", vec!["bar", "arr"]),
         index: Some("idx".to_string()),
         outer: false,
@@ -264,7 +255,7 @@ test_field_uses!(
         expected
     }),
     input = Stage::Filter(Filter {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Lt,
             args: vec![
@@ -296,7 +287,7 @@ test_field_uses!(
         expected
     }),
     input = Stage::Sort(Sort {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         specs: vec![
             SortSpecification::Asc(mir_field_path("foo", vec!["x"])),
             SortSpecification::Desc(mir_field_path("foo", vec!["y"])),
@@ -312,7 +303,7 @@ test_datasource_uses!(
         expected
     },
     input = Stage::Filter(Filter {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Lt,
             args: vec![
@@ -338,7 +329,7 @@ test_datasource_uses!(
         expected
     },
     input = Stage::Sort(Sort {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         specs: vec![
             SortSpecification::Asc(mir_field_path("x", vec!["a"])),
             SortSpecification::Desc(mir_field_path("y", vec!["b"])),
@@ -355,7 +346,7 @@ test_datasource_uses!(
         expected
     },
     input = Stage::Group(Group {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         keys: vec![
             OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "a".to_string(),
@@ -379,7 +370,7 @@ test_datasource_uses!(
 test_substitute!(
     filter_substitute,
     expected = Some(Stage::Filter(Filter {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Eq,
             args: vec![mir_int_expr(42), mir_int_expr(55),],
@@ -389,7 +380,7 @@ test_substitute!(
         cache: SchemaCache::new(),
     })),
     stage = Stage::Filter(Filter {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Eq,
             args: vec![mir_reference("x"), mir_reference("y"),],
@@ -407,7 +398,7 @@ test_substitute!(
 test_substitute!(
     sort_substitute_doc,
     expected = Some(Stage::Sort(Sort {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         specs: vec![
             SortSpecification::Asc(mir_field_path("bar", vec!["x2", "a", "b"])),
             SortSpecification::Desc(mir_field_path("bar", vec!["y2"])),
@@ -415,7 +406,7 @@ test_substitute!(
         cache: SchemaCache::new(),
     })),
     stage = Stage::Sort(Sort {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         specs: vec![
             SortSpecification::Asc(mir_field_path("foo", vec!["x", "a", "b"])),
             SortSpecification::Desc(mir_field_path("foo", vec!["y"])),
@@ -437,7 +428,7 @@ test_substitute!(
 test_substitute!(
     sort_substitute_access,
     expected = Some(Stage::Sort(Sort {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         specs: vec![
             SortSpecification::Asc(mir_field_path("bar", vec!["a", "x", "a"])),
             SortSpecification::Desc(mir_field_path("bar", vec!["a", "y"])),
@@ -445,7 +436,7 @@ test_substitute!(
         cache: SchemaCache::new(),
     })),
     stage = Stage::Sort(Sort {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         specs: vec![
             SortSpecification::Asc(mir_field_path("foo", vec!["x", "a"])),
             SortSpecification::Desc(mir_field_path("foo", vec!["y"])),
@@ -460,7 +451,7 @@ test_substitute!(
 test_substitute!(
     sort_substitute_ref,
     expected = Some(Stage::Sort(Sort {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         specs: vec![
             SortSpecification::Asc(mir_field_path("bar", vec!["x"])),
             SortSpecification::Desc(mir_field_path("bar", vec!["y"])),
@@ -468,7 +459,7 @@ test_substitute!(
         cache: SchemaCache::new(),
     })),
     stage = Stage::Sort(Sort {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         specs: vec![
             SortSpecification::Asc(mir_field_path("foo", vec!["x"])),
             SortSpecification::Desc(mir_field_path("foo", vec!["y"])),
@@ -483,7 +474,7 @@ test_substitute!(
 test_substitute!(
     group_substitute,
     expected = Some(Stage::Group(Group {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         keys: vec![
             OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "a".to_string(),
@@ -503,7 +494,7 @@ test_substitute!(
         cache: SchemaCache::new(),
     })),
     stage = Stage::Group(Group {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         keys: vec![
             OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "a".to_string(),
@@ -532,7 +523,7 @@ test_substitute!(
 test_substitute!(
     sort_attempt_substitute_succeeds_two_levels,
     expected = Some(Stage::Sort(Sort {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         specs: vec![
             SortSpecification::Asc(mir_field_path("y", vec!["a"])),
             SortSpecification::Desc(mir_field_path("y", vec!["b"])),
@@ -540,7 +531,7 @@ test_substitute!(
         cache: SchemaCache::new(),
     })),
     stage = Stage::Sort(Sort {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         specs: vec![
             SortSpecification::Asc(mir_field_path("x", vec!["a"])),
             SortSpecification::Desc(mir_field_path("x", vec!["b"])),
@@ -558,7 +549,7 @@ test_substitute!(
 test_substitute!(
     match_filter_attempt_substitute_succeeds_two_levels,
     expected = Some(Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         condition: MatchQuery::Comparison(MatchLanguageComparison {
             function: MatchLanguageComparisonOp::Eq,
             input: Some(mir_field_path("y", vec!["a"])),
@@ -568,7 +559,7 @@ test_substitute!(
         cache: SchemaCache::new(),
     }))),
     stage = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         condition: MatchQuery::Comparison(MatchLanguageComparison {
             function: MatchLanguageComparisonOp::Eq,
             input: Some(mir_field_path("x", vec!["a"])),
@@ -588,7 +579,7 @@ test_substitute!(
 test_substitute!(
     sort_attempt_substitute_succeeds_three_levels,
     expected = Some(Stage::Sort(Sort {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         specs: vec![
             SortSpecification::Asc(mir_field_path("y", vec!["a"])),
             SortSpecification::Desc(mir_field_path("y", vec!["b"])),
@@ -596,7 +587,7 @@ test_substitute!(
         cache: SchemaCache::new(),
     })),
     stage = Stage::Sort(Sort {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         specs: vec![
             SortSpecification::Asc(mir_field_path("x", vec!["a", "c"])),
             SortSpecification::Desc(mir_field_path("x", vec!["b", "d"])),
@@ -619,7 +610,7 @@ test_substitute!(
     sort_attempt_substitute_fails_missing_key,
     expected = None,
     stage = Stage::Sort(Sort {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         specs: vec![
             SortSpecification::Asc(mir_field_path("x", vec!["a"])),
             SortSpecification::Desc(mir_field_path("x", vec!["b"])),
@@ -638,7 +629,7 @@ test_substitute!(
     sort_attempt_substitute_fails_not_field_path,
     expected = None,
     stage = Stage::Sort(Sort {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         specs: vec![
             SortSpecification::Asc(mir_field_path("x", vec!["a"])),
             SortSpecification::Desc(mir_field_path("x", vec!["b"])),
@@ -656,7 +647,7 @@ test_substitute!(
 test_substitute!(
     non_sort_attempt_substitute_trivially_succeeds,
     expected = Some(Stage::Filter(Filter {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Eq,
             args: vec![mir_int_expr(42), mir_int_expr(55),],
@@ -666,7 +657,7 @@ test_substitute!(
         cache: SchemaCache::new(),
     })),
     stage = Stage::Filter(Filter {
-        source: mir_collection_stage(),
+        source: mir_collection("foo", "bar"),
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Eq,
             args: vec![mir_reference("x"), mir_reference("y"),],

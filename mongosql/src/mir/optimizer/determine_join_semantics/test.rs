@@ -8,7 +8,7 @@ use crate::{
     },
     schema::{Atomic, Document, Schema, SchemaEnvironment, INTEGER_OR_NULLISH},
     set, unchecked_unique_linked_hash_map,
-    util::{mir_collection, mir_field_access, mir_field_path},
+    util::{mir_field_access, mir_field_path, mir_project_collection},
     SchemaCheckingMode,
 };
 use lazy_static::lazy_static;
@@ -81,8 +81,8 @@ macro_rules! test_determine_join_semantics_no_op {
 fn make_standard_join(condition: Option<Expression>) -> Stage {
     Stage::Join(Join {
         join_type: JoinType::Inner,
-        left: mir_collection("local"),
-        right: mir_collection("foreign"),
+        left: mir_project_collection(None, "local", None, None),
+        right: mir_project_collection(None, "foreign", None, None),
         condition,
         cache: SchemaCache::new(),
     })
@@ -104,7 +104,7 @@ mod do_not_change {
         right_not_collection,
         Stage::Join(Join {
             join_type: JoinType::Inner,
-            left: mir_collection("local"),
+            left: mir_project_collection(None, "local", None, None),
             right: Box::new(Stage::Array(ArraySource {
                 array: vec![Expression::Document(
                     unchecked_unique_linked_hash_map! {
@@ -207,8 +207,8 @@ mod change {
         when_local_must_not_be_nullable_change_without_special_filter,
         expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
-            source: mir_collection("local"),
-            from: mir_collection("foreign"),
+            source: mir_project_collection(None, "local", None, None),
+            from: mir_project_collection(None, "foreign", None, None),
             local_field: Box::new(mir_field_path("local", vec!["not_null"])),
             foreign_field: Box::new(mir_field_path("foreign", vec!["may_be_null"])),
             cache: SchemaCache::new(),
@@ -223,8 +223,8 @@ mod change {
         when_foreign_must_not_be_nullable_change_without_special_filter,
         expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
-            source: mir_collection("local"),
-            from: mir_collection("foreign"),
+            source: mir_project_collection(None, "local", None, None),
+            from: mir_project_collection(None, "foreign", None, None),
             local_field: Box::new(mir_field_path("local", vec!["may_be_null"])),
             foreign_field: Box::new(mir_field_path("foreign", vec!["not_null"])),
             cache: SchemaCache::new(),
@@ -239,8 +239,8 @@ mod change {
         local_and_foreign_can_appear_on_either_side_of_condition,
         expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
-            source: mir_collection("local"),
-            from: mir_collection("foreign"),
+            source: mir_project_collection(None, "local", None, None),
+            from: mir_project_collection(None, "foreign", None, None),
             local_field: Box::new(mir_field_path("local", vec!["not_null"])),
             foreign_field: Box::new(mir_field_path("foreign", vec!["not_null"])),
             cache: SchemaCache::new(),
@@ -256,7 +256,7 @@ mod change {
         expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
             source: Box::new(Stage::Filter(Filter {
-                source: mir_collection("local"),
+                source: mir_project_collection(None, "local", None, None),
                 condition: Expression::MQLIntrinsic(MQLExpression::FieldExistence(
                     FieldExistence {
                         field_access: FieldAccess {
@@ -270,7 +270,7 @@ mod change {
                 )),
                 cache: SchemaCache::new(),
             })),
-            from: mir_collection("foreign"),
+            from: mir_project_collection(None, "foreign", None, None),
             local_field: Box::new(mir_field_path("local", vec!["may_be_null"])),
             foreign_field: Box::new(mir_field_path("foreign", vec!["may_be_null"])),
             cache: SchemaCache::new(),

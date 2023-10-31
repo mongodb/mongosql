@@ -4,11 +4,12 @@ use crate::{
     mir::{
         optimizer::{match_null_filtering::MatchNullFilteringOptimizer, Optimizer},
         schema::{SchemaCache, SchemaCheckingMode, SchemaInferenceState},
-        Collection, Derived, ExistsExpr, Expression, FieldAccess, FieldExistence, Filter,
-        LiteralExpr, LiteralValue, MQLExpression, Project, ScalarFunction,
-        ScalarFunctionApplication, Stage, SubqueryExpr,
+        Derived, ExistsExpr, Expression, FieldAccess, FieldExistence, Filter, LiteralExpr,
+        LiteralValue, MQLExpression, Project, ScalarFunction, ScalarFunctionApplication, Stage,
+        SubqueryExpr,
     },
     unchecked_unique_linked_hash_map,
+    util::mir_collection,
 };
 
 macro_rules! test_match_null_filtering {
@@ -33,14 +34,6 @@ macro_rules! test_match_null_filtering {
             assert_eq!(expected, actual);
         }
     };
-}
-
-fn collection_source(collection: &str) -> Box<Stage> {
-    Box::new(Stage::Collection(Collection {
-        db: "db".to_string(),
-        collection: collection.to_string(),
-        cache: SchemaCache::new(),
-    }))
 }
 
 fn field_access_expr(
@@ -80,7 +73,7 @@ mod all_fields_always_nullable {
         ignore_literals,
         expected = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
-                source: collection_source("foo"),
+                source: mir_collection("db", "foo"),
                 condition: field_existence_expr("foo", vec!["nullable_a"], 0u16),
                 cache: SchemaCache::new(),
             })),
@@ -99,7 +92,7 @@ mod all_fields_always_nullable {
             cache: SchemaCache::new(),
         }),
         input = Stage::Filter(Filter {
-            source: collection_source("foo"),
+            source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
                 args: vec![
@@ -120,7 +113,7 @@ mod all_fields_always_nullable {
         multiple_field_refs,
         expected = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
-                source: collection_source("foo"),
+                source: mir_collection("db", "foo"),
                 condition: Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::And,
                     args: vec![
@@ -144,7 +137,7 @@ mod all_fields_always_nullable {
             cache: SchemaCache::new(),
         }),
         input = Stage::Filter(Filter {
-            source: collection_source("foo"),
+            source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
                 args: vec![
@@ -162,7 +155,7 @@ mod all_fields_always_nullable {
         multiple_field_refs_with_nested_operators_should_all_flip_no_null,
         expected = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
-                source: collection_source("foo"),
+                source: mir_collection("db", "foo"),
                 condition: Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::And,
                     args: vec![
@@ -202,7 +195,7 @@ mod all_fields_always_nullable {
             cache: SchemaCache::new(),
         }),
         input = Stage::Filter(Filter {
-            source: collection_source("foo"),
+            source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Or,
                 args: vec![
@@ -236,7 +229,7 @@ mod all_fields_always_nullable {
         fields_extracted_from_nested_ops,
         expected = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
-                source: collection_source("foo"),
+                source: mir_collection("db", "foo"),
                 condition: Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::And,
                     args: vec![
@@ -282,7 +275,7 @@ mod all_fields_always_nullable {
             cache: SchemaCache::new(),
         }),
         input = Stage::Filter(Filter {
-            source: collection_source("foo"),
+            source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::And,
                 args: vec![
@@ -322,7 +315,7 @@ mod all_fields_always_nullable {
         duplicate_field_refs_not_filtered_multiple_times,
         expected = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
-                source: collection_source("foo"),
+                source: mir_collection("db", "foo"),
                 condition: field_existence_expr("foo", vec!["nullable_a"], 0u16),
                 cache: SchemaCache::new(),
             })),
@@ -360,7 +353,7 @@ mod all_fields_always_nullable {
             cache: SchemaCache::new(),
         }),
         input = Stage::Filter(Filter {
-            source: collection_source("foo"),
+            source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::And,
                 args: vec![
@@ -400,7 +393,7 @@ mod all_fields_always_nullable {
         nested_field_refs_with_same_name_but_different_parents_both_filtered,
         expected = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
-                source: collection_source("foo"),
+                source: mir_collection("db", "foo"),
                 condition: Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::And,
                     args: vec![
@@ -424,7 +417,7 @@ mod all_fields_always_nullable {
             cache: SchemaCache::new(),
         }),
         input = Stage::Filter(Filter {
-            source: collection_source("foo"),
+            source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
                 args: vec![
@@ -441,14 +434,14 @@ mod all_fields_always_nullable {
     test_match_null_filtering!(
         nested_filter_stage,
         expected = Stage::Project(Project {
-            source: collection_source("foo"),
+            source: mir_collection("db", "foo"),
             expression: map! {
                 ("foo", 0u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                     "sub".to_string() => Expression::Subquery(SubqueryExpr {
                         output_expr: Box::new(field_access_expr("foo", vec!["nullable_a"], 1u16, true)),
                         subquery: Box::new(Stage::Filter(Filter {
                             source: Box::new(Stage::Filter(Filter {
-                                source: collection_source("foo"),
+                                source: mir_collection("db", "foo"),
                                 condition: field_existence_expr("foo", vec!["nullable_a"], 1u16),
                                 cache: SchemaCache::new(),
                             })),
@@ -474,13 +467,13 @@ mod all_fields_always_nullable {
             cache: SchemaCache::new(),
         }),
         input = Stage::Project(Project {
-            source: collection_source("foo"),
+            source: mir_collection("db", "foo"),
             expression: map! {
                 ("foo", 0u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
                     "sub".to_string() => Expression::Subquery(SubqueryExpr {
                         output_expr: Box::new(field_access_expr("foo", vec!["nullable_a"], 1u16, true)),
                         subquery: Box::new(Stage::Filter(Filter {
-                            source:  collection_source("foo"),
+                            source:  mir_collection("db", "foo"),
                             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                                 function: ScalarFunction::Eq,
                                 args: vec![
@@ -510,7 +503,7 @@ mod all_fields_always_nullable {
             source: Box::new(Stage::Filter(Filter {
                 source: Box::new(Stage::Filter(Filter {
                     source: Box::new(Stage::Filter(Filter {
-                        source: collection_source("foo"),
+                        source: mir_collection("db", "foo"),
                         condition: field_existence_expr("foo", vec!["nullable_b"], 0u16),
                         cache: SchemaCache::new(),
                     })),
@@ -547,7 +540,7 @@ mod all_fields_always_nullable {
         }),
         input = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
-                source: collection_source("foo"),
+                source: mir_collection("db", "foo"),
                 condition: Expression::ScalarFunction(ScalarFunctionApplication {
                     function: ScalarFunction::Eq,
                     args: vec![
@@ -581,11 +574,11 @@ mod all_fields_always_nullable {
         derived_stages_impact_scope_level,
         expected = Stage::Derived(Derived {
             source: Box::new(Stage::Filter(Filter {
-                source: collection_source("foo"),
+                source: mir_collection("db", "foo"),
                 condition: Expression::Exists(ExistsExpr {
                     stage: Box::new(Stage::Filter(Filter {
                         source: Box::new(Stage::Filter(Filter {
-                            source: collection_source("nested"),
+                            source: mir_collection("db", "nested"),
                             condition: field_existence_expr("nested", vec!["nullable_field"], 2u16),
                             cache: SchemaCache::new(),
                         })),
@@ -610,10 +603,10 @@ mod all_fields_always_nullable {
         }),
         input = Stage::Derived(Derived {
             source: Box::new(Stage::Filter(Filter {
-                source: collection_source("foo"),
+                source: mir_collection("db", "foo"),
                 condition: Expression::Exists(ExistsExpr {
                     stage: Box::new(Stage::Filter(Filter {
-                        source: collection_source("nested"),
+                        source: mir_collection("db", "nested"),
                         condition: Expression::ScalarFunction(ScalarFunctionApplication {
                             function: ScalarFunction::Eq,
                             args: vec![
@@ -641,7 +634,7 @@ mod mixed_field_nullability {
         multiple_field_refs_only_nullable_fields_are_filtered,
         expected = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
-                source: collection_source("foo"),
+                source: mir_collection("db", "foo"),
                 condition: field_existence_expr("foo", vec!["nullable_b"], 0u16),
                 cache: SchemaCache::new(),
             })),
@@ -657,7 +650,7 @@ mod mixed_field_nullability {
             cache: SchemaCache::new(),
         }),
         input = Stage::Filter(Filter {
-            source: collection_source("foo"),
+            source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
                 args: vec![
@@ -674,7 +667,7 @@ mod mixed_field_nullability {
     test_match_null_filtering!(
         no_nullable_fields_does_not_create_filter,
         expected = Stage::Filter(Filter {
-            source: collection_source("foo"),
+            source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
                 args: vec![
@@ -687,7 +680,7 @@ mod mixed_field_nullability {
             cache: SchemaCache::new(),
         }),
         input = Stage::Filter(Filter {
-            source: collection_source("foo"),
+            source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
                 args: vec![

@@ -55,17 +55,33 @@ macro_rules! unchecked_unique_linked_hash_map {
 use crate::mir;
 #[cfg(test)]
 use mongosql_datastructures::binding_tuple::{BindingTuple, Key};
+
+/// mir_project_collection creates a mir::Project stage with a mir::Collection
+/// source. A collection_name must be specified; database name, expected name,
+/// and scope are optional. If no database name is provided, the default name
+/// is "test_db". If no expected name is provided, the default name is the
+/// collection name. If no scope is provided, the default scope is 0. The
+/// Project stage's expression contains one mapping -- the collection at the
+/// scope mapped to a Reference with the same data.
 #[cfg(test)]
-pub(crate) fn mir_collection(collection_name: &str) -> Box<mir::Stage> {
+pub(crate) fn mir_project_collection(
+    db_name: Option<&str>,
+    collection_name: &str,
+    expected_name: Option<&str>,
+    scope: Option<u16>,
+) -> Box<mir::Stage> {
+    let db_name = db_name.unwrap_or("test_db");
+    let expected_name = expected_name.unwrap_or(collection_name);
+    let scope = scope.unwrap_or(0u16);
     Box::new(mir::Stage::Project(mir::Project {
         source: Box::new(mir::Stage::Collection(mir::Collection {
-            db: "test_db".into(),
+            db: db_name.into(),
             collection: collection_name.into(),
             cache: mir::schema::SchemaCache::new(),
         })),
         expression: BindingTuple(map! {
-            Key::named(collection_name, 0u16) => mir::Expression::Reference(mir::ReferenceExpr {
-                key: Key::named(collection_name, 0u16),
+            Key::named(expected_name, scope) => mir::Expression::Reference(mir::ReferenceExpr {
+                key: Key::named(collection_name, scope),
                 cache: mir::schema::SchemaCache::new(),
             }),
         }),
@@ -73,94 +89,15 @@ pub(crate) fn mir_collection(collection_name: &str) -> Box<mir::Stage> {
     }))
 }
 
+/// mir_collection creates a mir::Collection with the specified db and
+/// collection names. It does not wrap the Collection in a Project stage.
 #[cfg(test)]
-pub(crate) fn mir_raw_collection_with_db(db_name: &str, collection_name: &str) -> Box<mir::Stage> {
+pub(crate) fn mir_collection(db_name: &str, collection_name: &str) -> Box<mir::Stage> {
     Box::new(mir::Stage::Collection(mir::Collection {
         db: db_name.to_string(),
         collection: collection_name.to_string(),
         cache: mir::schema::SchemaCache::new(),
     }))
-}
-
-#[cfg(test)]
-pub(crate) fn mir_project_collection(collection_name: &str) -> Box<mir::Stage> {
-    Box::new(mir::Stage::Project(mir::Project {
-        source: Box::new(mir::Stage::Collection(mir::Collection {
-            db: "test_db".into(),
-            collection: collection_name.into(),
-            cache: mir::schema::SchemaCache::new(),
-        })),
-        expression: BindingTuple(map! {
-            Key::named(collection_name, 0u16) => mir::Expression::Reference(mir::ReferenceExpr {
-                key: Key::named(collection_name, 0u16),
-                cache: mir::schema::SchemaCache::new(),
-            }),
-        }),
-        cache: mir::schema::SchemaCache::new(),
-    }))
-}
-
-#[cfg(test)]
-pub(crate) fn air_collection(collection_name: &str) -> air::Collection {
-    air::Collection {
-        db: "test_db".into(),
-        collection: collection_name.into(),
-    }
-}
-
-#[cfg(test)]
-pub(crate) fn air_db_collection(db_name: &str, collection_name: &str) -> air::Collection {
-    air::Collection {
-        db: db_name.into(),
-        collection: collection_name.into(),
-    }
-}
-
-#[cfg(test)]
-pub(crate) fn air_pipeline_collection(collection_name: &str) -> Box<air::Stage> {
-    air::Stage::Project(air::Project {
-        source: air::Stage::Collection(air_collection(collection_name)).into(),
-        specifications: unchecked_unique_linked_hash_map! {
-            collection_name.to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-        },
-    })
-    .into()
-}
-
-#[cfg(test)]
-pub(crate) fn air_project_collection(collection_name: &str) -> Box<air::Stage> {
-    air::Stage::Project(air::Project {
-        source: air::Stage::Collection(air_collection(collection_name)).into(),
-        specifications: unchecked_unique_linked_hash_map! {
-            collection_name.to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-        },
-    })
-    .into()
-}
-
-#[cfg(test)]
-pub(crate) fn air_project_collection_with_expected_rename(
-    collection_name: &str,
-    expected_rename: &str,
-) -> Box<air::Stage> {
-    air::Stage::Project(air::Project {
-        source: air::Stage::Collection(air_collection(collection_name)).into(),
-        specifications: unchecked_unique_linked_hash_map! {
-            expected_rename.to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-        },
-    })
-    .into()
-}
-
-#[cfg(test)]
-pub(crate) fn air_project_bot_collection(collection_name: &str) -> Box<air::Stage> {
-    air::Stage::Project(air::Project {
-        source: air::Stage::Collection(air_collection(collection_name)).into(),
-        specifications: unchecked_unique_linked_hash_map! {
-            "__bot".to_string() => air::ProjectItem::Assignment(ROOT.clone()),
-        },
-    })
-    .into()
 }
 
 #[cfg(test)]
@@ -186,7 +123,7 @@ pub(crate) fn mir_field_access(
 ) -> Box<mir::Expression> {
     Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
         expr: Box::new(mir::Expression::Reference(mir::ReferenceExpr {
-            key: Key::named(key_name, 0u16),
+            key: make_key(key_name),
             cache: mir::schema::SchemaCache::new(),
         })),
         field: field_name.to_string(),
@@ -198,15 +135,71 @@ pub(crate) fn mir_field_access(
 #[cfg(test)]
 pub(crate) fn mir_field_path(datasource_name: &str, field_names: Vec<&str>) -> mir::FieldPath {
     mir::FieldPath {
-        key: if datasource_name == "__bot__" {
-            Key::bot(0u16)
-        } else {
-            Key::named(datasource_name, 0u16)
-        },
+        key: make_key(datasource_name),
         fields: field_names.into_iter().map(String::from).collect(),
         cache: mir::schema::SchemaCache::new(),
         is_nullable: true,
     }
+}
+
+#[cfg(test)]
+fn make_key(key_name: &str) -> Key {
+    if key_name == "__bot__" {
+        Key::bot(0)
+    } else {
+        Key::named(key_name, 0)
+    }
+}
+
+/// air_project_collection creates an air::Project stage with an air::Collection
+/// source. A collection_name must be specified; database name and expected name
+/// are optional. If no database name is provided, the default name is "test_db"
+/// and if no expected name is provided, the default is the collection name. The
+/// Project stage's specifications contain one mapping -- the expected name
+/// mapped to the ROOT variable.
+#[cfg(test)]
+pub(crate) fn air_project_collection(
+    db_name: Option<&str>,
+    collection_name: &str,
+    expected_name: Option<&str>,
+) -> Box<air::Stage> {
+    let db_name = db_name.unwrap_or("test_db");
+    let expected_name = expected_name.unwrap_or(collection_name);
+    Box::new(air::Stage::Project(air::Project {
+        source: air_collection_stage(db_name, collection_name),
+        specifications: unchecked_unique_linked_hash_map! {
+            expected_name.to_string() => air::ProjectItem::Assignment(ROOT.clone()),
+        },
+    }))
+}
+
+/// air_collection_raw creates an air::Collection with the specified db and
+/// collection names. It does not wrap the Collection in a Project stage. It
+/// is returned as an air::Collection, not an air::Stage or Box<air::Stage>.
+#[cfg(test)]
+pub(crate) fn air_collection_raw(db_name: &str, collection_name: &str) -> air::Collection {
+    air::Collection {
+        db: db_name.to_string(),
+        collection: collection_name.to_string(),
+    }
+}
+
+/// air_collection_stage creates an air::Collection with the specified db and
+/// collection names. It does not wrap the Collection in Project stage. It is
+/// returned as a Box<air::Stage>.
+#[cfg(test)]
+pub(crate) fn air_collection_stage(db_name: &str, collection_name: &str) -> Box<air::Stage> {
+    Box::new(air::Stage::Collection(air_collection_raw(
+        db_name,
+        collection_name,
+    )))
+}
+
+/// air_documents_stage creates an air::Documents with the specified array
+/// vector. It is returned as a Box<air::Stage>.
+#[cfg(test)]
+pub(crate) fn air_documents_stage(array: Vec<air::Expression>) -> Box<air::Stage> {
+    Box::new(air::Stage::Documents(air::Documents { array }))
 }
 
 #[cfg(test)]

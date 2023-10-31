@@ -13,7 +13,7 @@ use crate::{
     },
     schema::{Atomic, Document, ResultSet, Schema, BOOLEAN_OR_NULLISH},
     set, test_schema, unchecked_unique_linked_hash_map,
-    util::{mir_collection, mir_field_path},
+    util::{mir_field_path, mir_project_collection},
 };
 use mongosql_datastructures::binding_tuple::DatasourceName::Bottom;
 
@@ -44,7 +44,7 @@ mod equijoin {
                 alias: "foo".into(),
                 cache: SchemaCache::new(),
             })),
-            from: mir_collection("bar"),
+            from: mir_project_collection(None, "bar", None, None),
             local_field: Box::new(mir_field_path("foo", vec!["a"])),
             foreign_field: Box::new(mir_field_path("bar", vec!["a"])),
             cache: SchemaCache::new(),
@@ -72,7 +72,7 @@ mod equijoin {
                 alias: "foo".into(),
                 cache: SchemaCache::new(),
             })),
-            from: mir_collection("bar"),
+            from: mir_project_collection(None, "bar", None, None),
             local_field: Box::new(mir_field_path("foo", vec!["a"])),
             foreign_field: Box::new(mir_field_path("bar", vec!["a"])),
             cache: SchemaCache::new(),
@@ -98,7 +98,7 @@ mod equijoin {
                 alias: "foo".into(),
                 cache: SchemaCache::new(),
             })),
-            from: mir_collection("bar"),
+            from: mir_project_collection(None, "bar", None, None),
             local_field: Box::new(mir_field_path("foo", vec!["a"])),
             foreign_field: Box::new(mir_field_path("bar", vec!["s"])),
             cache: SchemaCache::new(),
@@ -137,7 +137,7 @@ mod lateral {
                 alias: "foo".into(),
                 cache: SchemaCache::new(),
             })),
-            subquery: mir_collection("bar"),
+            subquery: mir_project_collection(None, "bar", None, None),
             cache: SchemaCache::new(),
         })),
         catalog = Catalog::new(map! {
@@ -163,7 +163,7 @@ mod lateral {
                 alias: "foo".into(),
                 cache: SchemaCache::new(),
             })),
-            subquery: mir_collection("bar"),
+            subquery: mir_project_collection(None, "bar", None, None),
             cache: SchemaCache::new(),
         })),
         catalog = Catalog::new(map! {

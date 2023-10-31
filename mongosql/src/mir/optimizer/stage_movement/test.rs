@@ -1,6 +1,6 @@
 use crate::{
     catalog::Catalog,
-    map, mir,
+    map,
     schema::{self, Schema},
     set,
 };
@@ -69,26 +69,6 @@ lazy_static! {
     });
 }
 
-fn mir_reference(name: &str) -> mir::Expression {
-    mir::Expression::Reference(mir::ReferenceExpr {
-        key: if name == "__bot__" {
-            mir::binding_tuple::Key::bot(0)
-        } else {
-            mir::binding_tuple::Key::named(name, 0)
-        },
-        cache: mir::schema::SchemaCache::new(),
-    })
-}
-
-fn mir_field_access(ref_name: &str, field_name: &str) -> mir::Expression {
-    mir::Expression::FieldAccess(mir::FieldAccess {
-        expr: Box::new(mir_reference(ref_name)),
-        field: field_name.to_string(),
-        cache: mir::schema::SchemaCache::new(),
-        is_nullable: true,
-    })
-}
-
 macro_rules! test_move_stage {
     ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
         #[test]
@@ -115,7 +95,7 @@ macro_rules! test_move_stage {
                 },
                 schema::SchemaEnvironment,
                 set, unchecked_unique_linked_hash_map,
-                util::{mir_field_path, mir_raw_collection_with_db},
+                util::{mir_collection, mir_field_access, mir_field_path},
             };
             #[allow(unused)]
             let input = $input;
@@ -145,11 +125,7 @@ test_move_stage!(
         source: Stage::Project(Project {
             source: Stage::Offset(Offset {
                 source: Stage::Offset(Offset {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     offset: 44,
                     cache: SchemaCache::new(),
                 }).into(),
@@ -157,22 +133,20 @@ test_move_stage!(
                 cache: SchemaCache::new(),
             }).into(),
             expression: BindingTuple(map! {
-                Key::bot(0) => mir::Expression::Document(mir::DocumentExpr {
-                    document: unchecked_unique_linked_hash_map! {
+                Key::bot(0) => mir::Expression::Document(
+                    unchecked_unique_linked_hash_map! {
                         "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                    },
-                    cache: SchemaCache::new(),
-                })
+                    }.into()
+                )
             }),
             cache: SchemaCache::new(),
         }).into(),
         expression: BindingTuple(map! {
-            Key::bot(0) => mir::Expression::Document(mir::DocumentExpr {
-                document: unchecked_unique_linked_hash_map! {
+            Key::bot(0) => mir::Expression::Document(
+                unchecked_unique_linked_hash_map! {
                     "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(43).into()),
-                },
-                cache: SchemaCache::new(),
-            })
+                }.into()
+            )
         }),
         cache: SchemaCache::new(),
     }),
@@ -180,18 +154,13 @@ test_move_stage!(
         source: Stage::Offset(Offset {
             source: Stage::Project(Project {
                 source: Stage::Project(Project {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
-                        Key::bot(0) => mir::Expression::Document(mir::DocumentExpr {
-                        document: unchecked_unique_linked_hash_map! {
-                            "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                        },
-                        cache: SchemaCache::new(),
-                        })
+                        Key::bot(0) => mir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
+                                "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+                            }.into()
+                        )
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
@@ -220,21 +189,16 @@ test_move_stage!(
         source: Stage::Project(Project {
             source: Stage::Project(Project {
                 source: Stage::Filter(Filter {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     condition: Expression::ScalarFunction(
                         mir::ScalarFunctionApplication {
                             function: mir::ScalarFunction::Lt,
                             args: vec![
-                                mir::Expression::Document(mir::DocumentExpr {
-                                    document: unchecked_unique_linked_hash_map! {
+                                mir::Expression::Document(
+                                    unchecked_unique_linked_hash_map! {
                                         "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                                    },
-                                    cache: SchemaCache::new(),
-                                }),
+                                    }.into()
+                                ),
                                 mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                             ],
                             cache: SchemaCache::new(),
@@ -244,12 +208,11 @@ test_move_stage!(
                     cache: SchemaCache::new(),
                 }).into(),
                 expression: BindingTuple(map! {
-                    Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                        document: unchecked_unique_linked_hash_map! {
+                    Key::named("bar", 0u16) => mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {
                             "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                        },
-                        cache: SchemaCache::new(),
-                    }),
+                        }.into()
+                    ),
                 }),
                 cache: SchemaCache::new(),
             }).into(),
@@ -266,18 +229,13 @@ test_move_stage!(
         source: Stage::Filter(Filter {
             source: Stage::Project(Project {
                 source: Stage::Project(Project {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
-                        Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map! {
+                        Key::named("bar", 0u16) => mir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
                                 "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                            },
-                            cache: SchemaCache::new(),
-                        }),
+                            }.into()
+                        ),
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
@@ -311,27 +269,17 @@ test_move_stage!(
         source: Stage::Filter(Filter {
             source: Stage::Unwind(Unwind {
                 source: Stage::Project(Project {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
-                        Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map! {
+                        Key::named("bar", 0u16) => mir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
                                 "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                            },
-                            cache: SchemaCache::new(),
-                        }),
+                            }.into()
+                        ),
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
-                path: mir::FieldPath {
-                    key: Key::bot(0u16),
-                    fields: vec!["x".to_string()],
-                    cache: SchemaCache::new(),
-                    is_nullable: true,
-                },
+                path: mir_field_path("__bot__", vec!["x"]),
                 index: None,
                 outer: false,
                 cache: SchemaCache::new(),
@@ -341,7 +289,7 @@ test_move_stage!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Lt,
                     args: vec![
-                        mir_field_access("__bot__", "x"),
+                        *mir_field_access("__bot__", "x", true),
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
@@ -357,27 +305,17 @@ test_move_stage!(
         source: Stage::Filter(Filter {
             source: Stage::Unwind(Unwind {
                 source: Stage::Project(Project {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
-                        Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map! {
+                        Key::named("bar", 0u16) => mir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
                                 "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                            },
-                            cache: SchemaCache::new(),
-                        }),
+                            }.into()
+                        ),
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
-                path: mir::FieldPath {
-                    key: Key::bot(0u16),
-                    fields: vec!["x".to_string()],
-                    cache: SchemaCache::new(),
-                    is_nullable: true,
-                },
+                path: mir_field_path("__bot__", vec!["x"]),
                 index: None,
                 outer: false,
                 cache: SchemaCache::new(),
@@ -387,7 +325,7 @@ test_move_stage!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Lt,
                     args: vec![
-                        mir_field_access("__bot__", "x"),
+                        *mir_field_access("__bot__", "x", true),
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
@@ -406,35 +344,23 @@ test_move_stage!(
     expected = Stage::Limit(Limit {
         source: Stage::Sort(Sort {
             source: Stage::Project(Project {
-                source: Stage::Collection(Collection {
-                    db: "foo".to_string(),
-                    collection: "bar".to_string(),
-                    cache: SchemaCache::new(),
-                }).into(),
+                source: mir_collection("foo", "bar"),
                 expression: BindingTuple(map! {
-                    Key::bot(0u16) => mir::Expression::Document(mir::DocumentExpr {
-                        document: unchecked_unique_linked_hash_map! {
+                    Key::bot(0u16) => mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {
                             "y".to_string() => mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                                 function: mir::ScalarFunction::Add,
                                 args: vec![],
                                 cache: SchemaCache::new(),
                                 is_nullable: true,
                             }),
-                       },
-                       cache: SchemaCache::new(),
-                   }),
+                       }.into()
+                    ),
                }),
                cache: SchemaCache::new(),
            }).into(),
            specs: vec![
-               SortSpecification::Asc(
-                   mir::FieldPath {
-                       key: Key::bot(0u16),
-                       fields: vec!["y".to_string()],
-                       cache: SchemaCache::new(),
-                       is_nullable: true,
-                   }
-               ),
+               SortSpecification::Asc(mir_field_path("__bot__", vec!["y"])),
            ],
            cache: SchemaCache::new(),
         }).into(),
@@ -444,35 +370,23 @@ test_move_stage!(
     input = Stage::Limit(Limit {
         source: Stage::Sort(Sort {
             source: Stage::Project(Project {
-                source: Stage::Collection(Collection {
-                    db: "foo".to_string(),
-                    collection: "bar".to_string(),
-                    cache: SchemaCache::new(),
-                }).into(),
+                source: mir_collection("foo", "bar"),
                 expression: BindingTuple(map! {
-                    Key::bot(0u16) => mir::Expression::Document(mir::DocumentExpr {
-                        document: unchecked_unique_linked_hash_map! {
+                    Key::bot(0u16) => mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {
                             "y".to_string() => mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                                 function: mir::ScalarFunction::Add,
                                 args: vec![],
                                 cache: SchemaCache::new(),
                                 is_nullable: true,
                             }),
-                       },
-                       cache: SchemaCache::new(),
-                   }),
+                       }.into()
+                    ),
                }),
                cache: SchemaCache::new(),
            }).into(),
            specs: vec![
-               SortSpecification::Asc(
-                   mir::FieldPath {
-                       key: Key::bot(0u16),
-                       fields: vec!["y".to_string()],
-                       cache: SchemaCache::new(),
-                       is_nullable: true,
-                   }
-               ),
+               SortSpecification::Asc(mir_field_path("__bot__", vec!["y"])),
            ],
            cache: SchemaCache::new(),
         }).into(),
@@ -486,33 +400,17 @@ test_move_stage!(
     expected = Stage::Limit(Limit {
         source: Stage::Project(Project {
             source: Stage::Sort(Sort {
-                source: Stage::Collection(Collection {
-                    db: "foo".to_string(),
-                    collection: "bar".to_string(),
-                    cache: SchemaCache::new(),
-                })
-                .into(),
-                specs: vec![SortSpecification::Asc(mir::FieldPath {
-                    key: Key::named("bar", 0u16),
-                    fields: vec!["y".to_string()],
-                    cache: SchemaCache::new(),
-                    is_nullable: true,
-                }),],
+                source: mir_collection("foo", "bar"),
+                specs: vec![SortSpecification::Asc(mir_field_path("bar", vec!["y"]))],
                 cache: SchemaCache::new(),
             })
             .into(),
             expression: BindingTuple(map! {
-                Key::bot(0u16) => mir::Expression::Document(mir::DocumentExpr {
-                    document: unchecked_unique_linked_hash_map! {
-                        "y".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
-                            expr: Box::new(mir::Expression::Reference(("bar", 0u16).into())),
-                            field: "y".to_string(),
-                            cache: SchemaCache::new(),
-                            is_nullable: true,
-                        }),
-                    },
-                    cache: SchemaCache::new(),
-                }),
+                Key::bot(0u16) => mir::Expression::Document(
+                    unchecked_unique_linked_hash_map! {
+                        "y".to_string() => *mir_field_access("bar", "y", true),
+                    }.into()
+                ),
             }),
             cache: SchemaCache::new(),
         })
@@ -523,34 +421,18 @@ test_move_stage!(
     input = Stage::Limit(Limit {
         source: Stage::Sort(Sort {
             source: Stage::Project(Project {
-                source: Stage::Collection(Collection {
-                    db: "foo".to_string(),
-                    collection: "bar".to_string(),
-                    cache: SchemaCache::new(),
-                })
-                .into(),
+                source: mir_collection("foo", "bar"),
                 expression: BindingTuple(map! {
-                     Key::bot(0u16) => mir::Expression::Document(mir::DocumentExpr {
-                         document: unchecked_unique_linked_hash_map! {
-                             "y".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
-                                 expr: Box::new(mir::Expression::Reference(("bar", 0u16).into())),
-                                 field: "y".to_string(),
-                                 cache: SchemaCache::new(),
-                                 is_nullable: true,
-                             }),
-                        },
-                        cache: SchemaCache::new(),
-                    }),
+                     Key::bot(0u16) => mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {
+                             "y".to_string() => *mir_field_access("bar", "y", true),
+                        }.into()
+                    ),
                 }),
                 cache: SchemaCache::new(),
             })
             .into(),
-            specs: vec![SortSpecification::Asc(mir::FieldPath {
-                key: Key::bot(0u16),
-                fields: vec!["y".to_string()],
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            }),],
+            specs: vec![SortSpecification::Asc(mir_field_path("__bot__", vec!["y"]))],
             cache: SchemaCache::new(),
         })
         .into(),
@@ -564,20 +446,10 @@ test_move_stage!(
     expected = Stage::Limit(Limit {
         source: Stage::Project(Project {
             source: Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-                source: Stage::Collection(Collection {
-                    db: "foo".to_string(),
-                    collection: "bar".to_string(),
-                    cache: SchemaCache::new(),
-                })
-                .into(),
+                source: mir_collection("foo", "bar"),
                 condition: MatchQuery::Comparison(MatchLanguageComparison {
                     function: MatchLanguageComparisonOp::Eq,
-                    input: Some(mir::FieldPath {
-                        key: Key::named("bar", 0u16),
-                        fields: vec!["y".to_string()],
-                        cache: SchemaCache::new(),
-                        is_nullable: true,
-                    }),
+                    input: Some(mir_field_path("bar", vec!["y"])),
                     arg: LiteralValue::Integer(43),
                     cache: SchemaCache::new(),
                 }),
@@ -585,17 +457,11 @@ test_move_stage!(
             }))
             .into(),
             expression: BindingTuple(map! {
-                Key::bot(0u16) => mir::Expression::Document(mir::DocumentExpr {
-                    document: unchecked_unique_linked_hash_map! {
-                        "y".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
-                            expr: Box::new(mir::Expression::Reference(("bar", 0u16).into())),
-                            field: "y".to_string(),
-                            cache: SchemaCache::new(),
-                            is_nullable: true,
-                        }),
-                    },
-                    cache: SchemaCache::new(),
-                }),
+                Key::bot(0u16) => mir::Expression::Document(
+                    unchecked_unique_linked_hash_map! {
+                        "y".to_string() => *mir_field_access("bar", "y", true),
+                    }.into()
+                ),
             }),
             cache: SchemaCache::new(),
         })
@@ -606,36 +472,20 @@ test_move_stage!(
     input = Stage::Limit(Limit {
         source: Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
             source: Stage::Project(Project {
-                source: Stage::Collection(Collection {
-                    db: "foo".to_string(),
-                    collection: "bar".to_string(),
-                    cache: SchemaCache::new(),
-                })
-                .into(),
+                source: mir_collection("foo", "bar"),
                 expression: BindingTuple(map! {
-                     Key::bot(0u16) => mir::Expression::Document(mir::DocumentExpr {
-                         document: unchecked_unique_linked_hash_map! {
-                             "y".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
-                                 expr: Box::new(mir::Expression::Reference(("bar", 0u16).into())),
-                                 field: "y".to_string(),
-                                 cache: SchemaCache::new(),
-                                 is_nullable: true,
-                             }),
-                        },
-                        cache: SchemaCache::new(),
-                    }),
+                     Key::bot(0u16) => mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {
+                             "y".to_string() => *mir_field_access("bar", "y", true),
+                        }.into()
+                    ),
                 }),
                 cache: SchemaCache::new(),
             })
             .into(),
             condition: MatchQuery::Comparison(MatchLanguageComparison {
                 function: MatchLanguageComparisonOp::Eq,
-                input: Some(mir::FieldPath {
-                    key: Key::bot(0u16),
-                    fields: vec!["y".to_string()],
-                    cache: SchemaCache::new(),
-                    is_nullable: true,
-                }),
+                input: Some(mir_field_path("__bot__", vec!["y"])),
                 arg: LiteralValue::Integer(43),
                 cache: SchemaCache::new(),
             }),
@@ -653,42 +503,23 @@ test_move_stage!(
         source: Stage::Project(Project {
             source: Stage::Sort(Sort {
                 source: Stage::Sort(Sort {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
-                    specs: vec![
-                        SortSpecification::Asc(
-                            mir::FieldPath {
-                                key: Key::named("bar", 0u16),
-                                fields: vec!["x".to_string(), "a".to_string()],
-                                cache: SchemaCache::new(),
-                                is_nullable: true,
-                            }
-                        ),
-                    ],
+                    source: mir_collection("foo", "bar"),
+                    specs: vec![SortSpecification::Asc(mir_field_path(
+                        "bar",
+                        vec!["x", "a"]
+                    ))],
                     cache: SchemaCache::new(),
-                }).into(),
-                specs: vec![
-                    SortSpecification::Desc(
-                        mir::FieldPath {
-                            key: Key::named("bar", 0u16),
-                            fields: vec!["x".to_string(), "b".to_string()],
-                            cache: SchemaCache::new(),
-                            is_nullable: true,
-                        }
-                    ),
-                ],
+                })
+                .into(),
+                specs: vec![SortSpecification::Desc(mir_field_path(
+                    "bar",
+                    vec!["x", "b"],
+                ))],
                 cache: SchemaCache::new(),
-            }).into(),
+            })
+            .into(),
             expression: BindingTuple(map! {
-                Key::named("bar", 0u16) => mir::Expression::FieldAccess(mir::FieldAccess {
-                     expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
-                     field: "x".to_string(),
-                     cache: SchemaCache::new(),
-                    is_nullable: true,
-                }),
+                Key::named("bar", 0u16) => *mir_field_access("bar", "x", true),
             }),
             cache: SchemaCache::new(),
         })
@@ -700,46 +531,21 @@ test_move_stage!(
         source: Stage::Sort(Sort {
             source: Stage::Sort(Sort {
                 source: Stage::Project(Project {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
-                        Key::named("bar", 0u16) => mir::Expression::FieldAccess(mir::FieldAccess {
-                             expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
-                             field: "x".to_string(),
-                             cache: SchemaCache::new(),
-                            is_nullable: true,
-                        }),
+                        Key::named("bar", 0u16) => *mir_field_access("bar", "x", true),
                     }),
                     cache: SchemaCache::new(),
-                }).into(),
-                specs: vec![
-                    SortSpecification::Asc(
-                        mir::FieldPath {
-                            key: Key::named("bar", 0u16),
-                            fields: vec!["a".to_string()],
-                            cache: SchemaCache::new(),
-                            is_nullable: true,
-                        }
-                    ),
-                ],
+                })
+                .into(),
+                specs: vec![SortSpecification::Asc(mir_field_path("bar", vec!["a"],))],
                 cache: SchemaCache::new(),
             })
             .into(),
-            specs: vec![
-                SortSpecification::Desc(
-                    mir::FieldPath {
-                        key: Key::named("bar", 0u16),
-                        fields: vec!["b".to_string()],
-                        cache: SchemaCache::new(),
-                        is_nullable: true,
-                    }
-                ),
-            ],
+            specs: vec![SortSpecification::Desc(mir_field_path("bar", vec!["b"],))],
             cache: SchemaCache::new(),
-        }).into(),
+        })
+        .into(),
         limit: 10,
         cache: SchemaCache::new(),
     }),
@@ -751,34 +557,22 @@ test_move_stage!(
         source: Stage::Project(Project {
             source: Stage::Sort(Sort {
                 source: Stage::Group(Group {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    })
-                    .into(),
+                    source: mir_collection("foo", "bar"),
                     cache: SchemaCache::new(),
                     keys: vec![],
                     aggregations: vec![],
                     scope: 0
                 })
                 .into(),
-                specs: vec![SortSpecification::Desc(mir::FieldPath {
-                    key: Key::named("bar", 0u16),
-                    fields: vec!["x".to_string(), "b".to_string()],
-                    cache: SchemaCache::new(),
-                    is_nullable: true,
-                },),],
+                specs: vec![SortSpecification::Desc(mir_field_path(
+                    "bar",
+                    vec!["x", "b"],
+                ))],
                 cache: SchemaCache::new(),
             })
             .into(),
             expression: BindingTuple(map! {
-                Key::named("bar", 0u16) => mir::Expression::FieldAccess(mir::FieldAccess {
-                     expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
-                     field: "x".to_string(),
-                     cache: SchemaCache::new(),
-                    is_nullable: true,
-                }),
+                Key::named("bar", 0u16) => *mir_field_access("bar", "x", true),
             }),
             cache: SchemaCache::new(),
         })
@@ -790,12 +584,7 @@ test_move_stage!(
         source: Stage::Sort(Sort {
             source: Stage::Project(Project {
                 source: Stage::Group(Group {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    })
-                    .into(),
+                    source: mir_collection("foo", "bar"),
                     cache: SchemaCache::new(),
                     keys: vec![],
                     aggregations: vec![],
@@ -803,22 +592,12 @@ test_move_stage!(
                 })
                 .into(),
                 expression: BindingTuple(map! {
-                    Key::named("bar", 0u16) => mir::Expression::FieldAccess(mir::FieldAccess {
-                         expr: mir::Expression::Reference(Key::named("bar", 0u16).into()).into(),
-                         field: "x".to_string(),
-                         cache: SchemaCache::new(),
-                        is_nullable: true,
-                    }),
+                    Key::named("bar", 0u16) => *mir_field_access("bar", "x", true),
                 }),
                 cache: SchemaCache::new(),
             })
             .into(),
-            specs: vec![SortSpecification::Desc(mir::FieldPath {
-                key: Key::named("bar", 0u16),
-                fields: vec!["b".to_string()],
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            }),],
+            specs: vec![SortSpecification::Desc(mir_field_path("bar", vec!["b"],))],
             cache: SchemaCache::new(),
         })
         .into(),
@@ -833,21 +612,16 @@ test_move_stage!(
         source: Stage::Project(Project {
             source: Stage::Filter(Filter {
                 source: Stage::Filter(Filter {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     condition: Expression::ScalarFunction(
                        mir::ScalarFunctionApplication {
                            function: mir::ScalarFunction::Lt,
                            args: vec![
-                               mir::Expression::Document(mir::DocumentExpr {
-                                   document: unchecked_unique_linked_hash_map! {
+                               mir::Expression::Document(
+                                    unchecked_unique_linked_hash_map! {
                                        "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                                   },
-                                   cache: SchemaCache::new(),
-                               }),
+                                   }.into()
+                                ),
                                mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                            ],
                            cache: SchemaCache::new(),
@@ -859,12 +633,11 @@ test_move_stage!(
                     mir::ScalarFunctionApplication {
                         function: mir::ScalarFunction::Lt,
                         args: vec![
-                            mir::Expression::Document(mir::DocumentExpr {
-                                document: unchecked_unique_linked_hash_map! {
+                            mir::Expression::Document(
+                                unchecked_unique_linked_hash_map! {
                                     "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                                },
-                                cache: SchemaCache::new(),
-                            }),
+                                }.into()
+                            ),
                             mir::Expression::Literal(mir::LiteralValue::Integer(54).into()),
                         ],
                         cache: SchemaCache::new(),
@@ -874,12 +647,11 @@ test_move_stage!(
                 cache: SchemaCache::new(),
             }).into(),
             expression: BindingTuple(map! {
-                Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                    document: unchecked_unique_linked_hash_map! {
+                Key::named("bar", 0u16) => mir::Expression::Document(
+                    unchecked_unique_linked_hash_map! {
                         "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                    },
-                    cache: SchemaCache::new(),
-                }),
+                    }.into()
+                ),
             }),
             cache: SchemaCache::new(),
         })
@@ -891,18 +663,13 @@ test_move_stage!(
         source: Stage::Filter(Filter {
             source: Stage::Filter(Filter {
                 source: Stage::Project(Project {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
-                        Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map! {
+                        Key::named("bar", 0u16) => mir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
                                 "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                            },
-                            cache: SchemaCache::new(),
-                        }),
+                            }.into()
+                        ),
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
@@ -943,40 +710,30 @@ test_move_stage!(
     expected = Stage::Limit(Limit {
         source: Stage::Join( Join {
             left: Stage::Project(Project {
-                source: Stage::Collection(Collection {
-                    db: "foo".to_string(),
-                    collection: "bar".to_string(),
-                    cache: SchemaCache::new(),
-                }).into(),
+                source: mir_collection("foo", "bar"),
                 expression: BindingTuple(map! {
                     // In any real query, "bar" will be bound to a Document, but we just use a
                     // Literal for simplicity.
-                    Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                        document: unchecked_unique_linked_hash_map! {
+                    Key::named("bar", 0u16) => mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {
                             "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                        },
-                        cache: SchemaCache::new(),
-                    }),
+                        }.into()
+                    ),
                 }),
                 cache: SchemaCache::new(),
             }).into(),
             right: Stage::Project(Project {
                 source: Stage::Filter(Filter {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar2".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar2"),
                     condition: Expression::ScalarFunction(
                         mir::ScalarFunctionApplication {
                             function: mir::ScalarFunction::Lt,
                             args: vec![
-                                mir::Expression::Document(mir::DocumentExpr {
-                                    document: unchecked_unique_linked_hash_map! {
+                                mir::Expression::Document(
+                                    unchecked_unique_linked_hash_map! {
                                         "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                                    },
-                                    cache: SchemaCache::new(),
-                                }),
+                                    }.into()
+                                ),
                                 mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                             ],
                             cache: SchemaCache::new(),
@@ -988,12 +745,11 @@ test_move_stage!(
                 expression: BindingTuple(map! {
                     // In any real query, "bar" will be bound to a Document, but we just use a
                     // Literal for simplicity.
-                    Key::named("bar2", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                        document: unchecked_unique_linked_hash_map! {
+                    Key::named("bar2", 0u16) => mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {
                             "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                        },
-                        cache: SchemaCache::new(),
-                    }),
+                        }.into()
+                    ),
                 }),
                 cache: SchemaCache::new(),
             }).into(),
@@ -1009,38 +765,28 @@ test_move_stage!(
         source: Stage::Filter(Filter {
             source: Stage::Join( Join {
                 left: Stage::Project(Project {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
                         // In any real query, "bar" will be bound to a Document, but we just use a
                         // Literal for simplicity.
-                        Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map! {
+                        Key::named("bar", 0u16) => mir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
                                 "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                            },
-                            cache: SchemaCache::new(),
-                        }),
+                            }.into()
+                        ),
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
                 right: Stage::Project(Project {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar2".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar2"),
                     expression: BindingTuple(map! {
                         // In any real query, "bar" will be bound to a Document, but we just use a
                         // Literal for simplicity.
-                        Key::named("bar2", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map! {
+                        Key::named("bar2", 0u16) => mir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
                                 "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                            },
-                            cache: SchemaCache::new(),
-                        }),
+                            }.into()
+                        ),
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
@@ -1070,18 +816,8 @@ test_move_stage!(
 test_move_stage!(
     move_filter_under_join_into_none_on,
     expected = Stage::Join(Join {
-        left: Stage::Collection(Collection {
-            db: "foo".to_string(),
-            collection: "bar".to_string(),
-            cache: SchemaCache::new(),
-        })
-        .into(),
-        right: Stage::Collection(Collection {
-            db: "foo".to_string(),
-            collection: "bar2".to_string(),
-            cache: SchemaCache::new(),
-        })
-        .into(),
+        left: mir_collection("foo", "bar"),
+        right: mir_collection("foo", "bar2"),
         condition: Some(Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Lt,
             args: vec![
@@ -1096,18 +832,8 @@ test_move_stage!(
     }),
     input = Stage::Filter(Filter {
         source: Stage::Join(Join {
-            left: Stage::Collection(Collection {
-                db: "foo".to_string(),
-                collection: "bar".to_string(),
-                cache: SchemaCache::new(),
-            })
-            .into(),
-            right: Stage::Collection(Collection {
-                db: "foo".to_string(),
-                collection: "bar2".to_string(),
-                cache: SchemaCache::new(),
-            })
-            .into(),
+            left: mir_collection("foo", "bar"),
+            right: mir_collection("foo", "bar2"),
             condition: None,
             join_type: JoinType::Inner,
             cache: SchemaCache::new(),
@@ -1129,18 +855,8 @@ test_move_stage!(
 test_move_stage!(
     move_filter_under_join_into_some_on,
     expected = Stage::Join(Join {
-        left: Stage::Collection(Collection {
-            db: "foo".to_string(),
-            collection: "bar".to_string(),
-            cache: SchemaCache::new(),
-        })
-        .into(),
-        right: Stage::Collection(Collection {
-            db: "foo".to_string(),
-            collection: "bar2".to_string(),
-            cache: SchemaCache::new(),
-        })
-        .into(),
+        left: mir_collection("foo", "bar"),
+        right: mir_collection("foo", "bar2"),
         condition: Some(Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::And,
             args: vec![
@@ -1163,18 +879,8 @@ test_move_stage!(
     }),
     input = Stage::Filter(Filter {
         source: Stage::Join(Join {
-            left: Stage::Collection(Collection {
-                db: "foo".to_string(),
-                collection: "bar".to_string(),
-                cache: SchemaCache::new(),
-            })
-            .into(),
-            right: Stage::Collection(Collection {
-                db: "foo".to_string(),
-                collection: "bar2".to_string(),
-                cache: SchemaCache::new(),
-            })
-            .into(),
+            left: mir_collection("foo", "bar"),
+            right: mir_collection("foo", "bar2"),
             condition: Some(mir::Expression::Literal(
                 mir::LiteralValue::Integer(42).into()
             )),
@@ -1201,22 +907,17 @@ test_move_stage!(
         source: Stage::Join( Join {
             left: Stage::Project(Project {
                 source: Stage::Filter(Filter {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     condition: Expression::ScalarFunction(
                         mir::ScalarFunctionApplication {
                             function: mir::ScalarFunction::Lt,
                             args: vec![
                                 mir::Expression::FieldAccess(mir::FieldAccess {
-                                    expr: mir::Expression::Document(mir::DocumentExpr {
-                                        document: unchecked_unique_linked_hash_map! {
+                                    expr: mir::Expression::Document(
+                                        unchecked_unique_linked_hash_map! {
                                             "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                                        },
-                                        cache: SchemaCache::new(),
-                                    }).into(),
+                                        }.into()
+                                    ).into(),
                                     field: "x".into(),
                                     cache: SchemaCache::new(),
                                     is_nullable: true,
@@ -1230,30 +931,23 @@ test_move_stage!(
                     cache: SchemaCache::new(),
                 }).into(),
                 expression: BindingTuple(map! {
-                    Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                        document: unchecked_unique_linked_hash_map! {
+                    Key::named("bar", 0u16) => mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {
                             "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                        },
-                        cache: SchemaCache::new(),
-                    }),
+                        }.into()
+                    ),
                 }),
                 cache: SchemaCache::new(),
             }).into(),
             right: Stage::Project(Project {
-                source: Stage::Collection(Collection {
-                    db: "foo".to_string(),
-                    collection: "bar2".to_string(),
-                    cache: SchemaCache::new(),
-                }).into(),
+                source: mir_collection("foo", "bar2"),
                 expression: BindingTuple(map! {
                     // In any real query, "bar" will be bound to a Document, but we just use a
                     // Literal for simplicity.
-                    Key::named("bar2", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                        document: unchecked_unique_linked_hash_map! {
+                    Key::named("bar2", 0u16) => mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {
                             "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                        },
-                        cache: SchemaCache::new(),
-                    }),
+                        }.into()),
                 }),
                 cache: SchemaCache::new(),
             }).into(),
@@ -1269,36 +963,26 @@ test_move_stage!(
         source: Stage::Filter(Filter {
             source: Stage::Join( Join {
                 left: Stage::Project(Project {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
-                        Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map! {
+                        Key::named("bar", 0u16) => mir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
                                 "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                            },
-                            cache: SchemaCache::new(),
-                        }),
+                            }.into()
+                        ),
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
                 right: Stage::Project(Project {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar2".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar2"),
                     expression: BindingTuple(map! {
                         // In any real query, "bar" will be bound to a Document, but we just use a
                         // Literal for simplicity.
-                        Key::named("bar2", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map! {
+                        Key::named("bar2", 0u16) => mir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
                                 "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                            },
-                            cache: SchemaCache::new(),
-                        }),
+                            }.into()
+                        ),
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
@@ -1311,7 +995,7 @@ test_move_stage!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Lt,
                     args: vec![
-                        mir_field_access("bar", "x"),
+                        *mir_field_access("bar", "x", true),
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
@@ -1330,40 +1014,30 @@ test_move_stage!(
     expected = Stage::Limit(Limit {
         source: Stage::Set( Set {
             left: Stage::Project(Project {
-                source: Stage::Collection(Collection {
-                    db: "foo".to_string(),
-                    collection: "bar".to_string(),
-                    cache: SchemaCache::new(),
-                }).into(),
+                source: mir_collection("foo", "bar"),
                 expression: BindingTuple(map! {
                     // In any real query, "bar" will be bound to a Document, but we just use a
                     // Literal for simplicity.
-                    Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                        document: unchecked_unique_linked_hash_map! {
+                    Key::named("bar", 0u16) => mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {
                             "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                        },
-                        cache: SchemaCache::new(),
-                    }),
+                        }.into()
+                    ),
                 }),
                 cache: SchemaCache::new(),
             }).into(),
             right: Stage::Project(Project {
                 source: Stage::Filter(Filter {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar2".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar2"),
                     condition: Expression::ScalarFunction(
                         mir::ScalarFunctionApplication {
                             function: mir::ScalarFunction::Lt,
                             args: vec![
-                                mir::Expression::Document(mir::DocumentExpr {
-                                    document: unchecked_unique_linked_hash_map! {
+                                mir::Expression::Document(
+                                    unchecked_unique_linked_hash_map! {
                                         "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                                    },
-                                    cache: SchemaCache::new(),
-                                }),
+                                    }.into()
+                                ),
                                 mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                             ],
                             cache: SchemaCache::new(),
@@ -1375,12 +1049,11 @@ test_move_stage!(
                 expression: BindingTuple(map! {
                     // In any real query, "bar" will be bound to a Document, but we just use a
                     // Literal for simplicity.
-                    Key::named("bar2", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                        document: unchecked_unique_linked_hash_map! {
+                    Key::named("bar2", 0u16) => mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {
                             "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                        },
-                        cache: SchemaCache::new(),
-                    }),
+                        }.into()
+                    ),
                 }),
                 cache: SchemaCache::new(),
             }).into(),
@@ -1395,38 +1068,27 @@ test_move_stage!(
         source: Stage::Filter(Filter {
             source: Stage::Set( Set {
                 left: Stage::Project(Project {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
                         // In any real query, "bar" will be bound to a Document, but we just use a
                         // Literal for simplicity.
-                        Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map! {
+                        Key::named("bar", 0u16) => mir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
                                 "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                            },
-                            cache: SchemaCache::new(),
-                        }),
+                            }.into()),
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
                 right: Stage::Project(Project {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar2".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar2"),
                     expression: BindingTuple(map! {
                         // In any real query, "bar" will be bound to a Document, but we just use a
                         // Literal for simplicity.
-                        Key::named("bar2", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map! {
+                        Key::named("bar2", 0u16) => mir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
                                 "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                            },
-                            cache: SchemaCache::new(),
-                        }),
+                            }.into()
+                        ),
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
@@ -1458,21 +1120,16 @@ test_move_stage!(
         source: Stage::Set( Set {
             left: Stage::Project(Project {
                 source: Stage::Filter(Filter {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     condition: Expression::ScalarFunction(
                         mir::ScalarFunctionApplication {
                             function: mir::ScalarFunction::Lt,
                             args: vec![
-                                mir::Expression::Document(mir::DocumentExpr {
-                                    document: unchecked_unique_linked_hash_map! {
+                                mir::Expression::Document(
+                                    unchecked_unique_linked_hash_map! {
                                         "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                                    },
-                                    cache: SchemaCache::new(),
-                                }),
+                                    }.into()
+                                ),
                                 mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                             ],
                             cache: SchemaCache::new(),
@@ -1484,30 +1141,24 @@ test_move_stage!(
                 expression: BindingTuple(map! {
                     // In any real query, "bar" will be bound to a Document, but we just use a
                     // Literal for simplicity.
-                    Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                        document: unchecked_unique_linked_hash_map! {
+                    Key::named("bar", 0u16) => mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {
                             "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                        },
-                        cache: SchemaCache::new(),
-                    }),
+                        }.into()
+                    ),
                 }),
                 cache: SchemaCache::new(),
             }).into(),
             right: Stage::Project(Project {
-                source: Stage::Collection(Collection {
-                    db: "foo".to_string(),
-                    collection: "bar2".to_string(),
-                    cache: SchemaCache::new(),
-                }).into(),
+                source: mir_collection("foo", "bar2"),
                 expression: BindingTuple(map! {
                     // In any real query, "bar" will be bound to a Document, but we just use a
                     // Literal for simplicity.
-                    Key::named("bar2", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                        document: unchecked_unique_linked_hash_map! {
+                    Key::named("bar2", 0u16) => mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {
                             "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                        },
-                        cache: SchemaCache::new(),
-                    }),
+                        }.into()
+                    ),
                 }),
                 cache: SchemaCache::new(),
             }).into(),
@@ -1520,38 +1171,28 @@ test_move_stage!(
     }),
     input = Stage::Limit(Limit {
         source: Stage::Filter(Filter {
-            source: Stage::Set( Set {
+            source: Stage::Set(Set {
                 left: Stage::Project(Project {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
-                        Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map! {
+                        Key::named("bar", 0u16) => mir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
                                 "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                            },
-                            cache: SchemaCache::new(),
-                        }),
+                            }.into()
+                        ),
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
                 right: Stage::Project(Project {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar2".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar2"),
                     expression: BindingTuple(map! {
                         // In any real query, "bar" will be bound to a Document, but we just use a
                         // Literal for simplicity.
-                        Key::named("bar2", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map! {
+                        Key::named("bar2", 0u16) => mir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
                                 "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                            },
-                            cache: SchemaCache::new(),
-                        }),
+                            }.into()
+                        ),
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
@@ -1583,11 +1224,7 @@ test_move_stage!(
         source: Box::new(Stage::Project(Project {
             source: Box::new(Stage::Project(Project {
                 source: Box::new(Stage::Filter(Filter {
-                    source: Box::new(Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    })),
+                    source: mir_collection("foo", "bar"),
                     condition: Expression::ScalarFunction(mir::ScalarFunctionApplication {
                         function: mir::ScalarFunction::Lt,
                         args: vec![
@@ -1620,11 +1257,7 @@ test_move_stage!(
         source: Box::new(Stage::Derived(Derived {
             source: Box::new(Stage::Project(Project {
                 source: Box::new(Stage::Project(Project {
-                    source: Box::new(Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    })),
+                    source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
                         Key::named("bar", 1u16) => Expression::Reference(("bar", 1u16).into()),
                     }),
@@ -1640,7 +1273,7 @@ test_move_stage!(
         condition: Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Lt,
             args: vec![
-                mir_field_access("bar", "y"),
+                *mir_field_access("bar", "y", true),
                 Expression::Literal(LiteralValue::Integer(100).into()),
             ],
             is_nullable: true,
@@ -1654,12 +1287,7 @@ test_move_stage!(
     move_two_filters_under_join_one_into_none_on_and_other_filter_above_join_because_filters_can_reorder,
     expected = Stage::Join(Join {
         left: Stage::Filter(Filter {
-            source: Stage::Collection(Collection {
-                db: "foo".to_string(),
-                collection: "bar".to_string(),
-                cache: SchemaCache::new(),
-            })
-            .into(),
+            source: mir_collection("foo", "bar"),
             condition: Expression::ScalarFunction(mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Eq,
                 args: vec![
@@ -1672,12 +1300,7 @@ test_move_stage!(
             cache: SchemaCache::new(),
         })
         .into(),
-        right: Stage::Collection(Collection {
-            db: "foo".to_string(),
-            collection: "bar2".to_string(),
-            cache: SchemaCache::new(),
-        })
-        .into(),
+        right: mir_collection("foo", "bar2"),
         condition: Some(Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Lt,
             args: vec![
@@ -1693,18 +1316,8 @@ test_move_stage!(
     input = Stage::Filter(Filter {
         source: Stage::Filter(Filter {
             source: Stage::Join(Join {
-                left: Stage::Collection(Collection {
-                    db: "foo".to_string(),
-                    collection: "bar".to_string(),
-                    cache: SchemaCache::new(),
-                })
-                .into(),
-                right: Stage::Collection(Collection {
-                    db: "foo".to_string(),
-                    collection: "bar2".to_string(),
-                    cache: SchemaCache::new(),
-                })
-                .into(),
+                left: mir_collection("foo", "bar"),
+                right: mir_collection("foo", "bar2"),
                 condition: None,
                 join_type: JoinType::Inner,
                 cache: SchemaCache::new(),
@@ -1740,11 +1353,11 @@ test_move_stage!(
     expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
         join_type: JoinType::Inner,
         source: Box::new(Stage::Filter(Filter {
-            source: mir_raw_collection_with_db("foo", "bar"),
+            source: mir_collection("foo", "bar"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Gt,
                 args: vec![
-                    mir_field_access("bar", "y"),
+                    *mir_field_access("bar", "y", true),
                     Expression::Literal(LiteralValue::Integer(0).into()),
                 ],
                 is_nullable: true,
@@ -1752,7 +1365,7 @@ test_move_stage!(
             }),
             cache: SchemaCache::new(),
         })),
-        from: mir_raw_collection_with_db("foo", "bar2"),
+        from: mir_collection("foo", "bar2"),
         local_field: Box::new(mir_field_path("bar", vec!["date0"])),
         foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
         cache: SchemaCache::new(),
@@ -1760,8 +1373,8 @@ test_move_stage!(
     input = Stage::Filter(Filter {
         source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
-            source: mir_raw_collection_with_db("foo", "bar"),
-            from: mir_raw_collection_with_db("foo", "bar2"),
+            source: mir_collection("foo", "bar"),
+            from: mir_collection("foo", "bar2"),
             local_field: Box::new(mir_field_path("bar", vec!["date0"])),
             foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
             cache: SchemaCache::new(),
@@ -1769,7 +1382,7 @@ test_move_stage!(
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Gt,
             args: vec![
-                mir_field_access("bar", "y"),
+                *mir_field_access("bar", "y", true),
                 Expression::Literal(LiteralValue::Integer(0).into()),
             ],
             is_nullable: true,
@@ -1784,8 +1397,8 @@ test_move_stage_no_op!(
     Stage::Filter(Filter {
         source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
-            source: mir_raw_collection_with_db("foo", "bar"),
-            from: mir_raw_collection_with_db("foo", "bar2"),
+            source: mir_collection("foo", "bar"),
+            from: mir_collection("foo", "bar2"),
             local_field: Box::new(mir_field_path("bar", vec!["date0"])),
             foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
             cache: SchemaCache::new(),
@@ -1795,7 +1408,7 @@ test_move_stage_no_op!(
             args: vec![
                 Expression::FieldAccess(FieldAccess {
                     expr: Box::new(Expression::FieldAccess(FieldAccess {
-                        expr: Box::new(mir_field_access("bar2", "x")),
+                        expr: Box::new(*mir_field_access("bar2", "x", true)),
                         field: "a".to_string(),
                         is_nullable: true,
                         cache: SchemaCache::new(),
@@ -1818,7 +1431,7 @@ test_move_stage!(
     expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
         join_type: JoinType::Inner,
         source: Box::new(Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-            source: mir_raw_collection_with_db("foo", "bar"),
+            source: mir_collection("foo", "bar"),
             condition: MatchQuery::Comparison(MatchLanguageComparison {
                 function: MatchLanguageComparisonOp::Eq,
                 input: Some(mir_field_path("bar", vec!["y"])),
@@ -1827,7 +1440,7 @@ test_move_stage!(
             }),
             cache: SchemaCache::new(),
         }))),
-        from: mir_raw_collection_with_db("foo", "bar2"),
+        from: mir_collection("foo", "bar2"),
         local_field: Box::new(mir_field_path("bar", vec!["date0"])),
         foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
         cache: SchemaCache::new(),
@@ -1835,8 +1448,8 @@ test_move_stage!(
     input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
         source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
-            source: mir_raw_collection_with_db("foo", "bar"),
-            from: mir_raw_collection_with_db("foo", "bar2"),
+            source: mir_collection("foo", "bar"),
+            from: mir_collection("foo", "bar2"),
             local_field: Box::new(mir_field_path("bar", vec!["date0"])),
             foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
             cache: SchemaCache::new(),
@@ -1856,8 +1469,8 @@ test_move_stage_no_op!(
     Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
         source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
-            source: mir_raw_collection_with_db("foo", "bar"),
-            from: mir_raw_collection_with_db("foo", "bar2"),
+            source: mir_collection("foo", "bar"),
+            from: mir_collection("foo", "bar2"),
             local_field: Box::new(mir_field_path("bar", vec!["date0"])),
             foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
             cache: SchemaCache::new(),
@@ -1877,11 +1490,11 @@ test_move_stage!(
     expected = Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
         join_type: JoinType::Inner,
         source: Box::new(Stage::Sort(Sort {
-            source: mir_raw_collection_with_db("foo", "bar"),
+            source: mir_collection("foo", "bar"),
             specs: vec![SortSpecification::Asc(mir_field_path("bar", vec!["y"]))],
             cache: SchemaCache::new(),
         })),
-        from: mir_raw_collection_with_db("foo", "bar2"),
+        from: mir_collection("foo", "bar2"),
         local_field: Box::new(mir_field_path("bar", vec!["date0"])),
         foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
         cache: SchemaCache::new(),
@@ -1889,8 +1502,8 @@ test_move_stage!(
     input = Stage::Sort(Sort {
         source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
-            source: mir_raw_collection_with_db("foo", "bar"),
-            from: mir_raw_collection_with_db("foo", "bar2"),
+            source: mir_collection("foo", "bar"),
+            from: mir_collection("foo", "bar2"),
             local_field: Box::new(mir_field_path("bar", vec!["date0"])),
             foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
             cache: SchemaCache::new(),
@@ -1905,8 +1518,8 @@ test_move_stage_no_op!(
     Stage::Sort(Sort {
         source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
-            source: mir_raw_collection_with_db("foo", "bar"),
-            from: mir_raw_collection_with_db("foo", "bar2"),
+            source: mir_collection("foo", "bar"),
+            from: mir_collection("foo", "bar2"),
             local_field: Box::new(mir_field_path("bar", vec!["date0"])),
             foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
             cache: SchemaCache::new(),
@@ -1925,11 +1538,7 @@ test_move_stage!(
         source: Stage::Unwind(Unwind {
             source: Stage::Project(Project {
                 source: Stage::Filter(Filter {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     condition: Expression::ScalarFunction(
                         mir::ScalarFunctionApplication {
                             function: mir::ScalarFunction::Lt,
@@ -1944,21 +1553,15 @@ test_move_stage!(
                     cache: SchemaCache::new(),
                 }).into(),
                 expression: BindingTuple(map! {
-                    Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                        document: unchecked_unique_linked_hash_map! {
+                    Key::named("bar", 0u16) => mir::Expression::Document(
+                        unchecked_unique_linked_hash_map! {
                             "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                        },
-                        cache: SchemaCache::new(),
-                    }),
+                        }.into()
+                    ),
                 }),
                 cache: SchemaCache::new(),
             }).into(),
-            path: mir::FieldPath {
-                key: Key::bot(0u16),
-                fields: vec!["x".to_string()],
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            },
+            path: mir_field_path("__bot__", vec!["x"]),
             index: None,
             outer: false,
             cache: SchemaCache::new(),
@@ -1968,7 +1571,7 @@ test_move_stage!(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Lt,
                 args: vec![
-                    mir_field_access("__bot__", "x"),
+                    *mir_field_access("__bot__", "x", true),
                     mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                 ],
                 cache: SchemaCache::new(),
@@ -1981,27 +1584,17 @@ test_move_stage!(
         source: Stage::Filter(Filter {
             source: Stage::Unwind(Unwind {
                 source: Stage::Project(Project {
-                    source: Stage::Collection(Collection {
-                        db: "foo".to_string(),
-                        collection: "bar".to_string(),
-                        cache: SchemaCache::new(),
-                    }).into(),
+                    source: mir_collection("foo", "bar"),
                     expression: BindingTuple(map! {
-                        Key::named("bar", 0u16) => mir::Expression::Document(mir::DocumentExpr {
-                            document: unchecked_unique_linked_hash_map! {
+                        Key::named("bar", 0u16) => mir::Expression::Document(
+                            unchecked_unique_linked_hash_map! {
                                 "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
-                            },
-                            cache: SchemaCache::new(),
-                        }),
+                            }.into()
+                        ),
                     }),
                     cache: SchemaCache::new(),
                 }).into(),
-                path: mir::FieldPath {
-                    key: Key::bot(0u16),
-                    fields: vec!["x".to_string()],
-                    cache: SchemaCache::new(),
-                    is_nullable: true,
-                },
+                path: mir_field_path("__bot__", vec!["x"]),
                 index: None,
                 outer: false,
                 cache: SchemaCache::new(),
@@ -2011,7 +1604,7 @@ test_move_stage!(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Lt,
                     args: vec![
-                        mir_field_access("__bot__", "x"),
+                        *mir_field_access("__bot__", "x", true),
                         mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
                     ],
                     cache: SchemaCache::new(),
