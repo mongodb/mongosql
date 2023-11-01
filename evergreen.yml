@@ -357,13 +357,15 @@ functions:
           echo "starting mongodb"
           $MONGODB_TEST_RHEL_VERSION/bin/mongod --dbpath data_db &
 
-          echo "run spec tests"
+          echo "run query spec tests"
           go test -v ./... -tags spectests | tee spec-test-results.txt
-          cargo test -- --ignored --skip run_index_usage_tests
           pkill mongod
+          
+          echo "run rewrite and type constraint spec tests"
+          cargo test -- --ignored --skip run_index_usage_tests --skip run_query_tests
 
-  # Just running the index usage tests on RHEL 7.6 for now
-  "run index usage tests":
+  # Just running the spec tests on RHEL 7.6 for now
+  "run rust integration tests":
     - command: shell.exec
       type: test
       params:
@@ -379,54 +381,14 @@ functions:
 
           echo "starting mongodb"
           $MONGODB_TEST_RHEL_VERSION/bin/mongod --dbpath data_db &
-
-          echo "run index usage tests"
-          cargo test --features index-test --package e2e-tests
+          
+          echo ${description}
+          set +e
+          cargo test ${cargo_test_flags}
+          EXITCODE=$?
           pkill mongod
-
-  # Just running the rust query tests on RHEL 7.6 for now
-  "run rust query tests":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-
-          echo "downloading mongodb"
-          curl -O https://fastdl.mongodb.org/linux/$MONGODB_TEST_RHEL_VERSION.tgz
-          tar zxvf $MONGODB_TEST_RHEL_VERSION.tgz
-          mkdir -p data_db
-
-          echo "starting mongodb"
-          $MONGODB_TEST_RHEL_VERSION/bin/mongod --dbpath data_db &
-
-          echo "run query tests"
-          cargo test --features query-test --package e2e-tests
-          pkill mongod
-
-  # Just running the rust e2e tests on RHEL 7.6 for now
-  "run rust e2e tests":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-
-          echo "downloading mongodb"
-          curl -O https://fastdl.mongodb.org/linux/$MONGODB_TEST_RHEL_VERSION.tgz
-          tar zxvf $MONGODB_TEST_RHEL_VERSION.tgz
-          mkdir -p data_db
-
-          echo "starting mongodb"
-          $MONGODB_TEST_RHEL_VERSION/bin/mongod --dbpath data_db &
-
-          echo "run e2e tests"
-          cargo test --features query-test,e2e-test --package e2e-tests
-          pkill mongod
+          set -e
+          exit $EXITCODE
 
   "run rust tests":
     - command: shell.exec
@@ -653,17 +615,33 @@ tasks:
   - name: test-index-usage
     commands:
       - func: "install rust toolchain"
-      - func: "run index usage tests"
+      - func: "run rust integration tests"
+        vars:
+          description: "run index usage tests"
+          cargo_test_flags: >-
+            --features=index-test
+            --package=e2e-tests
+
 
   - name: test-rust-query
     commands:
       - func: "install rust toolchain"
-      - func: "run rust query tests"
+      - func: "run rust integration tests"
+        vars:
+          description: "run rust query tests"
+          cargo_test_flags: >-
+            --features=query-test
+            --package=e2e-tests
 
   - name: test-rust-e2e
     commands:
       - func: "install rust toolchain"
-      - func: "run rust e2e tests"
+      - func: "run rust integration tests"
+        vars:
+          description: "run rust e2e tests"
+          cargo_test_flags: >-
+            --features=query-test,e2e-test
+            --package=e2e-tests
 
   - name: release
     git_tag_only: true
