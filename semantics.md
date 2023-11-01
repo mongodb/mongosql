@@ -3063,6 +3063,12 @@ TRIM(spec \' \' FROM str)
   and may evaluate to MISSING. If any argument is NULL or MISSING, or a `delimiter` evaluates
   to an empty string, the result is NULL.
 
+- REPLACE(`string`, `redex`, `replacement`) => `string`
+  - Searches `string` for occurrences of `redex`, and replaces those occurrences with `replacement`.
+    This is part of the [ODBC standard](https://learn.microsoft.com/en-us/sql/odbc/reference/appendixes/string-functions)
+
+  As with all String functions, the `redex` and `replacement` are case sensitive.
+
 ##### Datetime Value Scalar Functions
 
 Datetime value scalar functions are those which return datetime values.

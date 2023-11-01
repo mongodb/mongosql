@@ -772,6 +772,17 @@ tests:
       - {'': {'str': 'abc', 'start': {'$numberInt': '1'}, 'length': null, 'substr': null}}
       - {'': {'str': 'abc', 'start': {'$numberInt': '1'}, 'substr': null}}
 
+  - description: REPLACE correctness test
+    current_db: foo
+    query: "SELECT VALUE {'s': s, 'v': REPLACE(s, 'c', 'fff')} FROM `fold` AS c"
+    result:
+      - {'': {'s': '', 'v': ''}}
+      - {'': {'s': 'abcd', 'v': 'abfffd'}}
+      - {'': {'s': 'aBcD', 'v': 'aBfffD'}}
+      - {'': {'s': 'ABCD', 'v': 'ABCD'}}
+      - {'': {'s': null, 'v': null}}
+      - {'': {'v': null}}
+
   - description: UPPER correctness test
     current_db: foo
     query: "SELECT VALUE {'s': s, 'v': UPPER(s)} FROM `fold` AS c"

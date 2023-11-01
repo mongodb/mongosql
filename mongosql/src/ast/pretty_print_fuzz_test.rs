@@ -822,6 +822,7 @@ mod arbitrary {
                 48 => Self::Minute,
                 49 => Self::Second,
                 50 => Self::Millisecond,
+                51 => Self::Replace,
                 _ => panic!("missing FunctionName variant(s)"),
             }
         }

@@ -650,6 +650,23 @@ mod mql_semantic_operator {
     );
 
     test_codegen_expression!(
+        replace_all,
+        expected = Ok(bson!({ "$replaceAll": {
+            "input": { "$literal": "foo"},
+            "find": { "$literal": "o" },
+            "replacement": { "$literal": "f" }
+        }})),
+        input = MQLSemanticOperator(MQLSemanticOperator {
+            op: ReplaceAll,
+            args: vec![
+                Literal(String("foo".to_string())),
+                Literal(String("o".to_string())),
+                Literal(String("f".to_string())),
+            ],
+        })
+    );
+
+    test_codegen_expression!(
         substr_bytes,
         expected = Ok(
             bson!({ "$substrBytes": [{ "$literal": "foo"}, { "$literal": 1 }, { "$literal": 2 }]})

@@ -383,6 +383,7 @@ pub enum FunctionName {
     Position,
     Pow,
     Radians,
+    Replace,
     Round,
     RTrim,
     Sin,
@@ -520,6 +521,7 @@ impl TryFrom<&str> for FunctionName {
             "POW" => Ok(FunctionName::Pow),
             "POWER" => Ok(FunctionName::Pow),
             "RADIANS" => Ok(FunctionName::Radians),
+            "REPLACE" => Ok(FunctionName::Replace),
             "ROUND" => Ok(FunctionName::Round),
             "RTRIM" => Ok(FunctionName::RTrim),
             "SIN" => Ok(FunctionName::Sin),
@@ -589,6 +591,7 @@ impl FunctionName {
             FunctionName::Position => "POSITION",
             FunctionName::Pow => "POW",
             FunctionName::Radians => "RADIANS",
+            FunctionName::Replace => "REPLACE",
             FunctionName::Round => "ROUND",
             FunctionName::RTrim => "RTRIM",
             FunctionName::Size => "SIZE",
@@ -653,6 +656,7 @@ impl FunctionName {
             | FunctionName::Position
             | FunctionName::Pow
             | FunctionName::Radians
+            | FunctionName::Replace
             | FunctionName::Round
             | FunctionName::RTrim
             | FunctionName::Sin

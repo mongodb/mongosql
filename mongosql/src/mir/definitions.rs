@@ -502,6 +502,7 @@ pub enum ScalarFunction {
     Tan,
 
     // String value scalar functions
+    Replace,
     Substring,
     Upper,
     Lower,
@@ -579,6 +580,7 @@ impl ScalarFunction {
             ScalarFunction::Position => "Position",
             ScalarFunction::Pow => "Pow",
             ScalarFunction::Radians => "Radians",
+            ScalarFunction::Replace => "Replace",
             ScalarFunction::Round => "Round",
             ScalarFunction::Sin => "Sin",
             ScalarFunction::Size => "Size",
@@ -662,6 +664,7 @@ impl ScalarFunction {
             | ScalarFunction::Position
             | ScalarFunction::Pow
             | ScalarFunction::Radians
+            | ScalarFunction::Replace
             | ScalarFunction::Size
             | ScalarFunction::Slice
             | ScalarFunction::Sqrt

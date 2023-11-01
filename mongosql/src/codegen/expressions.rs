@@ -9,6 +9,10 @@ impl MqlCodeGenerator {
     pub fn codegen_expression(&self, expr: air::Expression) -> Result<Bson> {
         use air::Expression::*;
         match expr {
+            MQLSemanticOperator(air::MQLSemanticOperator {
+                op: air::MQLOperator::ReplaceAll,
+                args,
+            }) => self.codegen_replace_all(args),
             MQLSemanticOperator(mql_op) => self.codegen_mql_semantic_operator(mql_op),
             SQLSemanticOperator(sql_op) => self.codegen_sql_semantic_operator(sql_op),
             Literal(lit) => self.codegen_literal(lit),
@@ -34,6 +38,26 @@ impl MqlCodeGenerator {
             Array(array) => self.codegen_array(array),
             Document(document) => self.codegen_document(document),
         }
+    }
+
+    // If we ever support another function that uses this document-style arguments, we should
+    // abstract this to something like:
+    // fn code_gen_mql_semantic_operator_with_document_args(
+    //     &self,
+    //     arg_names: &[&str],
+    //     mql_op: air::MQLSemanticOperator) -> Result<Bson>
+    // At this point, it is overkill.
+    fn codegen_replace_all(&self, args: Vec<air::Expression>) -> Result<Bson> {
+        // $replaceAll uses a document format for args that goes against
+        // most other scalar functions in mongodb, unfortunately.
+        let ops = ["input", "find", "replacement"]
+            .into_iter()
+            .zip(args)
+            .map(|(arg_name, arg)| Ok((arg_name.to_string(), self.codegen_expression(arg)?)))
+            .collect::<Result<bson::Document>>()?;
+        // We still use to_mql_op so that all MQL operator names can be found in one place.
+        let operator = Self::to_mql_op(air::MQLOperator::ReplaceAll);
+        Ok(bson::bson!({ operator: Bson::Document(ops)}))
     }
 
     fn codegen_mql_semantic_operator(&self, mql_op: air::MQLSemanticOperator) -> Result<Bson> {

@@ -1090,6 +1090,132 @@ mod expression {
             set_quantifier: Some(ast::SetQuantifier::All),
         }),
     );
+
+    test_algebrize!(
+        replace,
+        method = algebrize_expression,
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Replace,
+                args: vec![
+                    mir::Expression::Literal(
+                        mir::LiteralValue::String(" hello world ".into()).into()
+                    ),
+                    mir::Expression::Literal(mir::LiteralValue::String("wo".into()).into()),
+                    mir::Expression::Literal(mir::LiteralValue::String("wowow".into()).into()),
+                ],
+                cache: SchemaCache::new(),
+                is_nullable: false,
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Replace,
+            args: ast::FunctionArguments::Args(vec![
+                ast::Expression::Literal(ast::Literal::String(" hello world ".to_string())),
+                ast::Expression::Literal(ast::Literal::String("wo".to_string())),
+                ast::Expression::Literal(ast::Literal::String("wowow".to_string())),
+            ]),
+            set_quantifier: None,
+        }),
+    );
+    test_algebrize!(
+        replace_null_one,
+        method = algebrize_expression,
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Replace,
+                args: vec![
+                    mir::Expression::Literal(mir::LiteralValue::Null.into()),
+                    mir::Expression::Literal(mir::LiteralValue::String("wo".into()).into()),
+                    mir::Expression::Literal(mir::LiteralValue::String("wowow".into()).into()),
+                ],
+                cache: SchemaCache::new(),
+                is_nullable: true,
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Replace,
+            args: ast::FunctionArguments::Args(vec![
+                ast::Expression::Literal(ast::Literal::Null),
+                ast::Expression::Literal(ast::Literal::String("wo".to_string())),
+                ast::Expression::Literal(ast::Literal::String("wowow".to_string())),
+            ]),
+            set_quantifier: None,
+        }),
+    );
+    test_algebrize!(
+        replace_null_two,
+        method = algebrize_expression,
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Replace,
+                args: vec![
+                    mir::Expression::Literal(
+                        mir::LiteralValue::String(" hello world ".into()).into()
+                    ),
+                    mir::Expression::Literal(mir::LiteralValue::Null.into()),
+                    mir::Expression::Literal(mir::LiteralValue::String("wowow".into()).into()),
+                ],
+                cache: SchemaCache::new(),
+                is_nullable: true,
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Replace,
+            args: ast::FunctionArguments::Args(vec![
+                ast::Expression::Literal(ast::Literal::String(" hello world ".to_string())),
+                ast::Expression::Literal(ast::Literal::Null),
+                ast::Expression::Literal(ast::Literal::String("wowow".to_string())),
+            ]),
+            set_quantifier: None,
+        }),
+    );
+    test_algebrize!(
+        replace_null_three,
+        method = algebrize_expression,
+        expected = Ok(mir::Expression::ScalarFunction(
+            mir::ScalarFunctionApplication {
+                function: mir::ScalarFunction::Replace,
+                args: vec![
+                    mir::Expression::Literal(
+                        mir::LiteralValue::String(" hello world ".into()).into()
+                    ),
+                    mir::Expression::Literal(mir::LiteralValue::String("wo".into()).into()),
+                    mir::Expression::Literal(mir::LiteralValue::Null.into()),
+                ],
+                cache: SchemaCache::new(),
+                is_nullable: true,
+            }
+        )),
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Replace,
+            args: ast::FunctionArguments::Args(vec![
+                ast::Expression::Literal(ast::Literal::String(" hello world ".to_string())),
+                ast::Expression::Literal(ast::Literal::String("wo".to_string())),
+                ast::Expression::Literal(ast::Literal::Null),
+            ]),
+            set_quantifier: None,
+        }),
+    );
+    test_algebrize_expr_and_schema_check!(
+        replace_args_must_be_string_or_null,
+        method = algebrize_expression,
+        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+            name: "Replace",
+            required: STRING_OR_NULLISH.clone(),
+            found: Schema::Atomic(Atomic::Integer),
+        })),
+        expected_error_code = 1002,
+        input = ast::Expression::Function(ast::FunctionExpr {
+            function: ast::FunctionName::Replace,
+            args: ast::FunctionArguments::Args(vec![
+                ast::Expression::Literal(ast::Literal::Integer(42)),
+                ast::Expression::Literal(ast::Literal::Integer(42)),
+                ast::Expression::Literal(ast::Literal::Integer(42)),
+            ]),
+            set_quantifier: None,
+        }),
+    );
     test_algebrize!(
         ltrim,
         method = algebrize_expression,

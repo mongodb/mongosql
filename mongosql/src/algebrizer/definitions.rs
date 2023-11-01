@@ -72,6 +72,7 @@ impl TryFrom<ast::FunctionName> for mir::ScalarFunction {
             ast::FunctionName::Position => mir::ScalarFunction::Position,
             ast::FunctionName::Pow => mir::ScalarFunction::Pow,
             ast::FunctionName::Radians => mir::ScalarFunction::Radians,
+            ast::FunctionName::Replace => mir::ScalarFunction::Replace,
             ast::FunctionName::Sin => mir::ScalarFunction::Sin,
             ast::FunctionName::Size => mir::ScalarFunction::Size,
             ast::FunctionName::Slice => mir::ScalarFunction::Slice,
@@ -153,6 +154,7 @@ impl TryFrom<ast::FunctionName> for mir::AggregationFunction {
             | ast::FunctionName::Pow
             | ast::FunctionName::Round
             | ast::FunctionName::Radians
+            | ast::FunctionName::Replace
             | ast::FunctionName::RTrim
             | ast::FunctionName::Sin
             | ast::FunctionName::Size

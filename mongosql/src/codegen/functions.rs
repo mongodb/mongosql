@@ -119,6 +119,7 @@ impl MqlCodeGenerator {
             StddevSamp => "$stdDevSamp",
 
             // String value scalar functions
+            ReplaceAll => "$replaceAll",
             SubstrCP => "$substrCP",
             SubstrBytes => "$substrBytes",
             ToUpper => "$toUpper",

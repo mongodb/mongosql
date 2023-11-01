@@ -312,6 +312,7 @@ impl ScalarFunction {
             | ScalarFunction::Sin
             | ScalarFunction::Sqrt
             | ScalarFunction::Tan
+            | ScalarFunction::Replace
             | ScalarFunction::Substring
             | ScalarFunction::Upper
             | ScalarFunction::Lower

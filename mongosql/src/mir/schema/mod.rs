@@ -1792,6 +1792,16 @@ impl ScalarFunction {
                 Schema::Atomic(Atomic::Integer),
             ),
             // String value scalar functions.
+            Replace => self.propagate_fixed_null_arguments(
+                state,
+                arg_schemas,
+                &[
+                    STRING_OR_NULLISH.clone(),
+                    STRING_OR_NULLISH.clone(),
+                    STRING_OR_NULLISH.clone(),
+                ],
+                Schema::Atomic(Atomic::String),
+            ),
             Substring => self.get_substring_schema(state, arg_schemas),
             Split => self.propagate_fixed_null_arguments(
                 state,

@@ -1964,6 +1964,54 @@ mod scalar_function {
     );
 
     test_translate_expression_with_schema_info!(
+        replace_no_nullish,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::ReplaceAll,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::String("hello".into())),
+                    air::Expression::Literal(air::LiteralValue::String("el".into())),
+                    air::Expression::Literal(air::LiteralValue::String("lo".into())),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Replace,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
+                mir::Expression::Literal(mir::LiteralValue::String("el".into()).into()),
+                mir::Expression::Literal(mir::LiteralValue::String("lo".into()).into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+            is_nullable: false,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
+        replace_nullish,
+        expected = Ok(air::Expression::MQLSemanticOperator(
+            air::MQLSemanticOperator {
+                op: air::MQLOperator::ReplaceAll,
+                args: vec![
+                    air::Expression::Literal(air::LiteralValue::String("hello".into())),
+                    air::Expression::Literal(air::LiteralValue::Null),
+                    air::Expression::Literal(air::LiteralValue::String("hello".into())),
+                ],
+            }
+        )),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+            function: mir::ScalarFunction::Replace,
+            args: vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
+                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
+            ],
+            cache: mir::schema::SchemaCache::new(),
+            is_nullable: true,
+        }),
+    );
+
+    test_translate_expression_with_schema_info!(
         substring_no_nullish,
         expected = Ok(air::Expression::MQLSemanticOperator(
             air::MQLSemanticOperator {

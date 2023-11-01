@@ -291,6 +291,7 @@ pub enum MQLOperator {
     StddevSamp,
 
     // String value scalar functions
+    ReplaceAll,
     SubstrCP,
     SubstrBytes,
     ToUpper,

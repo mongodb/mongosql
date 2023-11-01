@@ -331,6 +331,7 @@ impl From<mir::ScalarFunction> for ScalarFunctionType {
             Tan => ScalarFunctionType::Sql(SQLOperator::Tan),
 
             // String value scalar functions
+            Replace => ScalarFunctionType::Mql(MQLOperator::ReplaceAll),
             Substring => ScalarFunctionType::Sql(SQLOperator::SubstrCP),
             Upper => ScalarFunctionType::Sql(SQLOperator::ToUpper),
             Lower => ScalarFunctionType::Sql(SQLOperator::ToLower),
