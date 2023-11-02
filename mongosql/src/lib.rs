@@ -29,6 +29,7 @@ mod util;
 use crate::{
     algebrizer::Algebrizer,
     catalog::Catalog,
+    json_schema::{BsonType, BsonTypeName},
     mir::schema::CachedSchema,
     options::{ExcludeNamespacesOption, SqlOptions},
     result::Result,
@@ -275,9 +276,16 @@ pub fn order_result_set_metadata(
                                         ordered_properties.push((document_pair.key, schema));
                                     }
                                     ExcludeNamespacesOption::IncludeNamespaces => {
-                                        let mut value = json_schema::Schema::default();
-                                        value.properties.push((document_pair.key, schema));
-                                        ordered_properties.push(("".to_string(), value));
+                                        ordered_properties.push((
+                                            "".to_string(),
+                                            json_schema::Schema {
+                                                bson_type: Some(BsonType::Single(
+                                                    BsonTypeName::Object,
+                                                )),
+                                                properties: vec![(document_pair.key, schema)],
+                                                ..Default::default()
+                                            },
+                                        ));
                                     }
                                 }
                             }
