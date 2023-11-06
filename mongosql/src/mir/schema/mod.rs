@@ -1146,39 +1146,15 @@ impl Expression {
     }
 }
 
-impl CachedSchema for Expression {
-    type ReturnType = Schema;
-
-    fn get_cache(&self) -> &SchemaCache<Self::ReturnType> {
-        match self {
-            Expression::Literal(s) => &s.cache,
-            Expression::Reference(r) => &r.cache,
-            Expression::Array(a) => &a.cache,
-            Expression::Document(d) => &d.cache, // TODO: investigate how to add a cache on the hashmap
-            Expression::DateFunction(d) => &d.cache,
-            Expression::ScalarFunction(s) => &s.cache,
-            Expression::Cast(s) => &s.cache,
-            Expression::SearchedCase(s) => &s.cache,
-            Expression::SimpleCase(s) => &s.cache,
-            Expression::TypeAssertion(s) => &s.cache,
-            Expression::Is(s) => &s.cache,
-            Expression::Like(s) => &s.cache,
-            Expression::FieldAccess(s) => &s.cache,
-            Expression::Subquery(s) => &s.cache,
-            Expression::SubqueryComparison(s) => &s.cache,
-            Expression::Exists(s) => &s.cache, // schema is always always boolean after checking the boxed stage, which is cached
-            Expression::MQLIntrinsic(MQLExpression::FieldExistence(s)) => &s.cache,
-        }
-    }
-
+impl Expression {
     /// Recursively schema checks this expression, its arguments, and
     /// all contained expressions/stages. If schema checking succeeds,
     /// returns a [`Schema`] describing this expression's schema. The
     /// provided [`SchemaInferenceState`] should include schema
     /// information for all datasources in scope.
-    fn check_schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
+    pub fn schema(&self, state: &SchemaInferenceState) -> Result<Schema, Error> {
         match self {
-            Expression::Literal(lit) => lit.value.schema(state),
+            Expression::Literal(lit) => lit.schema(state),
             Expression::Reference(ReferenceExpr { key, .. }) => state
                 .env
                 .get(key)
@@ -1234,9 +1210,7 @@ impl CachedSchema for Expression {
                     Satisfaction::Must => Ok(Schema::Atomic(Atomic::Null)),
                 }
             }
-            Expression::MQLIntrinsic(MQLExpression::FieldExistence(_)) => {
-                Ok(Schema::Atomic(Atomic::Boolean))
-            }
+            Expression::MQLIntrinsicFieldExistence(_) => Ok(Schema::Atomic(Atomic::Boolean)),
         }
     }
 }

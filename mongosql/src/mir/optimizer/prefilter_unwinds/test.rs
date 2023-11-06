@@ -7,17 +7,14 @@ fn mir_reference(name: &str) -> mir::Expression {
         } else {
             mir::binding_tuple::Key::named(name, 0)
         },
-        cache: mir::schema::SchemaCache::new(),
     })
 }
 
 fn mir_field_access(ref_name: &str, field_name: &str) -> mir::Expression {
-    mir::Expression::FieldAccess(mir::FieldAccess {
-        expr: Box::new(mir_reference(ref_name)),
-        field: field_name.to_string(),
-        cache: mir::schema::SchemaCache::new(),
-        is_nullable: true,
-    })
+    mir::Expression::FieldAccess(mir::FieldAccess::new(
+        Box::new(mir_reference(ref_name)),
+        field_name.to_string(),
+    ))
 }
 
 macro_rules! test_prefilter {
@@ -33,7 +30,7 @@ macro_rules! test_prefilter {
                 visitor::Visitor,
                 ElemMatch,
                 Expression::{self, *},
-                Filter, Group, Join, JoinType, Limit, LiteralExpr,
+                Filter, Group, Join, JoinType, Limit,
                 LiteralValue::*,
                 MQLStage, MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp,
                 MatchLanguageLogical, MatchLanguageLogicalOp, MatchQuery, ScalarFunction,
@@ -108,17 +105,12 @@ test_prefilter! {
                     cache: SchemaCache::new(),
                 }).into(),
                 condition: Expression::ScalarFunction(
-                    ScalarFunctionApplication {
-                        function: ScalarFunction::Eq,
-                        args: vec![
+                    ScalarFunctionApplication::new(ScalarFunction::Eq,vec![
                             mir_field_access("foo", "bar"),
                             Expression::Literal(
-                                Integer(42).into(),
+                                Integer(42),
                             )
-                        ],
-                        cache: SchemaCache::new(),
-                is_nullable: false,
-                    }),
+                        ],)),
                 cache: SchemaCache::new(),
         }),
     input = Stage::Filter(Filter {
@@ -130,17 +122,12 @@ test_prefilter! {
                     cache: SchemaCache::new(),
                 }).into(),
                 condition: Expression::ScalarFunction(
-                    ScalarFunctionApplication {
-                        function: ScalarFunction::Eq,
-                        args: vec![
+                    ScalarFunctionApplication::new(ScalarFunction::Eq,vec![
                             mir_field_access("foo", "bar"),
                             Expression::Literal(
-                                Integer(42).into(),
+                                Integer(42),
                             )
-                        ],
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    }),
+                        ],)),
                 cache: SchemaCache::new(),
         }),
 }
@@ -156,17 +143,12 @@ test_prefilter_no_op! {
                 cache: SchemaCache::new(),
             }).into(),
             condition: Expression::ScalarFunction(
-                ScalarFunctionApplication {
-                    function: ScalarFunction::Eq,
-                    args: vec![
+                ScalarFunctionApplication::new(ScalarFunction::Eq,vec![
                         mir_field_access("foo", "idx"),
                         Expression::Literal(
-                            Integer(42).into(),
+                            Integer(42),
                         )
-                    ],
-                    cache: SchemaCache::new(),
-                    is_nullable: false,
-                }),
+                    ],)),
             cache: SchemaCache::new(),
     }),
 }
@@ -212,20 +194,15 @@ test_prefilter! {
                     cache: SchemaCache::new(),
                 }).into(),
                 condition: Expression::ScalarFunction(
-                    ScalarFunctionApplication {
-                        function: ScalarFunction::Between,
-                        args: vec![
+                    ScalarFunctionApplication::new(ScalarFunction::Between,vec![
                             mir_field_access("foo", "bar"),
                             Expression::Literal(
-                                Integer(42).into(),
+                                Integer(42),
                             ),
                             Expression::Literal(
-                                Integer(46).into(),
+                                Integer(46),
                             )
-                        ],
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    }),
+                        ],)),
                 cache: SchemaCache::new(),
         }),
     input = Stage::Filter(Filter {
@@ -237,20 +214,15 @@ test_prefilter! {
                     cache: SchemaCache::new(),
                 }).into(),
                 condition: Expression::ScalarFunction(
-                    ScalarFunctionApplication {
-                        function: ScalarFunction::Between,
-                        args: vec![
+                    ScalarFunctionApplication::new(ScalarFunction::Between,vec![
                             mir_field_access("foo", "bar"),
                             Expression::Literal(
-                                Integer(42).into(),
+                                Integer(42),
                             ),
                             Expression::Literal(
-                                Integer(46).into(),
+                                Integer(46),
                             )
-                        ],
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    }),
+                        ],)),
                 cache: SchemaCache::new(),
         }),
 }
@@ -266,20 +238,15 @@ test_prefilter_no_op! {
                 cache: SchemaCache::new(),
             }).into(),
             condition: Expression::ScalarFunction(
-                ScalarFunctionApplication {
-                    function: ScalarFunction::Between,
-                    args: vec![
+                ScalarFunctionApplication::new(ScalarFunction::Between,vec![
                         mir_field_access("foo", "idx"),
                         Expression::Literal(
-                            Integer(42).into(),
+                            Integer(42),
                         ),
                         Expression::Literal(
-                            Integer(46).into(),
+                            Integer(46),
                         )
-                    ],
-                    cache: SchemaCache::new(),
-                    is_nullable: false,
-                }),
+                    ],)),
             cache: SchemaCache::new(),
     }),
 }
@@ -298,17 +265,12 @@ test_prefilter_no_op! {
                 cache: SchemaCache::new(),
             }).into(),
             condition: Expression::ScalarFunction(
-                ScalarFunctionApplication {
-                    function: ScalarFunction::Eq,
-                    args: vec![
+                ScalarFunctionApplication::new(ScalarFunction::Eq,vec![
                         mir_field_access("foo", "i"),
                         Expression::Literal(
-                            Integer(42).into(),
+                            Integer(42),
                         )
-                    ],
-                    cache: SchemaCache::new(),
-                    is_nullable: false,
-                }),
+                    ],)),
             cache: SchemaCache::new(),
     }),
 }
@@ -327,16 +289,10 @@ test_prefilter_no_op! {
             ScalarFunctionApplication {
                 function: ScalarFunction::Eq,
                 args: vec![
-                    Expression::ScalarFunction( ScalarFunctionApplication {
-                        function: ScalarFunction::Add,
-                        args: vec![ mir_field_access("foo", "bar"), Expression::Literal(Integer(1).into()) ],
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    } ),
-                    Expression::Literal( Integer(42).into(), )
+                    Expression::ScalarFunction( ScalarFunctionApplication::new(ScalarFunction::Add,vec![ mir_field_access("foo", "bar"), Expression::Literal(Integer(1)) ],) ),
+                    Expression::Literal( Integer(42), )
                 ],
-                cache: SchemaCache::new(),
-                    is_nullable: false,
+                is_nullable: false,
             }),
         cache: SchemaCache::new(),
     }),
@@ -359,17 +315,15 @@ test_prefilter_no_op! {
                     Expression::ScalarFunction( ScalarFunctionApplication{
                         function: ScalarFunction::Add,
                         args: vec![mir_field_access("foo", "idx")],
-                        cache: SchemaCache::new(),
                         is_nullable: false,
                     }),
                     Expression::Literal(
-                        Integer(42).into(),
+                        Integer(42),
                     ),
                     Expression::Literal(
-                        Integer(46).into(),
+                        Integer(46),
                     )
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
         cache: SchemaCache::new(),

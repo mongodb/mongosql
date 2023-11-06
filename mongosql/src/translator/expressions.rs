@@ -23,7 +23,7 @@ impl MqlTranslator {
             mir::Expression::FieldAccess(field_access) => self.translate_field_access(field_access),
             mir::Expression::Is(is) => self.translate_is(is),
             mir::Expression::Like(like_expr) => self.translate_like(like_expr),
-            mir::Expression::Literal(lit) => self.translate_literal(lit.value),
+            mir::Expression::Literal(lit) => self.translate_literal(lit),
             mir::Expression::Reference(reference) => self.translate_reference(reference.key),
 
             mir::Expression::ScalarFunction(scalar_func) => {
@@ -40,9 +40,7 @@ impl MqlTranslator {
                 self.translate_subquery_comparison(subquery_comparison)
             }
             mir::Expression::TypeAssertion(ta) => self.translate_expression(*ta.expr),
-            mir::Expression::MQLIntrinsic(mir::MQLExpression::FieldExistence(o)) => {
-                self.translate_field_existence(o)
-            }
+            mir::Expression::MQLIntrinsicFieldExistence(fa) => self.translate_field_existence(fa),
         }
     }
 
@@ -492,12 +490,12 @@ impl MqlTranslator {
     /// A FieldExistence is a special node that represents an existence assertion in a Match
     /// condition. The goal of this expression is to ensure its argument exists and is not
     /// null. We achieve this in MQL via { $gt: [ <expr>, null ] }.
-    fn translate_field_existence(&self, ome: mir::FieldExistence) -> Result<air::Expression> {
+    fn translate_field_existence(&self, ome: mir::FieldAccess) -> Result<air::Expression> {
         Ok(air::Expression::MQLSemanticOperator(
             air::MQLSemanticOperator {
                 op: MQLOperator::Gt,
                 args: vec![
-                    self.translate_field_access(ome.field_access)?,
+                    self.translate_field_access(ome)?,
                     air::Expression::Literal(air::LiteralValue::Null),
                 ],
             },

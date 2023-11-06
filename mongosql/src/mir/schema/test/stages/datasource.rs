@@ -114,8 +114,8 @@ mod array {
         }),
         input = Stage::Array(ArraySource {
             array: vec![
-                Expression::Literal(LiteralValue::Integer(42).into()),
-                Expression::Literal(LiteralValue::Double(42f64).into())
+                Expression::Literal(LiteralValue::Integer(42)),
+                Expression::Literal(LiteralValue::Double(42f64))
             ],
             alias: "foo".into(),
             cache: SchemaCache::new(),
@@ -141,7 +141,7 @@ mod array {
         input = Stage::Array(ArraySource {
             array: vec![Expression::Document(
                 unchecked_unique_linked_hash_map! {
-                    "bar".into() => Expression::Literal(LiteralValue::Integer(1).into())
+                    "bar".into() => Expression::Literal(LiteralValue::Integer(1))
                 }
                 .into()
             )],
@@ -175,13 +175,13 @@ mod array {
             array: vec![
                 Expression::Document(
                     unchecked_unique_linked_hash_map! {
-                    "bar".into() => Expression::Literal(LiteralValue::Integer(1).into())
+                    "bar".into() => Expression::Literal(LiteralValue::Integer(1))
                     }
                     .into()
                 ),
                 Expression::Document(
                     unchecked_unique_linked_hash_map! {
-                    "car".into() => Expression::Literal(LiteralValue::Integer(1).into())
+                    "car".into() => Expression::Literal(LiteralValue::Integer(1))
                     }
                     .into()
                 )

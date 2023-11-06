@@ -53,10 +53,7 @@ test_dead_code_elimination!(
     expected = Stage::Group(Group {
         source: Box::new(Stage::Filter(Filter {
             source: mir_collection("db", "bar"),
-            condition: Expression::Literal(LiteralExpr {
-                value: LiteralValue::Boolean(true),
-                cache: SchemaCache::new(),
-            }),
+            condition: Expression::Literal(LiteralValue::Boolean(true),),
             cache: SchemaCache::new(),
         })),
         keys: vec![],
@@ -67,10 +64,7 @@ test_dead_code_elimination!(
     input = Stage::Group(Group {
         source: Box::new(Stage::Filter(Filter {
             source: mir_collection("db", "bar"),
-            condition: Expression::Literal(LiteralExpr {
-                value: LiteralValue::Boolean(true),
-                cache: SchemaCache::new(),
-            }),
+            condition: Expression::Literal(LiteralValue::Boolean(true),),
             cache: SchemaCache::new(),
         })),
         keys: vec![],
@@ -89,31 +83,25 @@ test_dead_code_elimination!(
                 keys: vec![
                     OptionallyAliasedExpr::Aliased(AliasedExpr {
                         alias: "a".to_string(),
-                        expr: Expression::FieldAccess(FieldAccess {
-                            expr: Box::new(Expression::Reference(("bar", 0u16).into())),
-                            field: "a".to_string(),
-                            cache: SchemaCache::new(),
-                            is_nullable: false,
-                        }),
+                        expr: Expression::FieldAccess(FieldAccess::new(
+                            Box::new(Expression::Reference(("bar", 0u16).into())),
+                            "a".to_string(),
+                        )),
                     }),
-                    OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
-                        expr: Box::new(Expression::Reference(("bar", 0u16).into())),
-                        field: "b".to_string(),
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })),
+                    OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess::new(
+                        Box::new(Expression::Reference(("bar", 0u16).into())),
+                        "b".to_string(),
+                    ))),
                 ],
                 aggregations: vec![AliasedAggregation {
                     alias: "agg".to_string(),
                     agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                         function: AggregationFunction::Avg,
                         distinct: false,
-                        arg: Box::new(Expression::FieldAccess(FieldAccess {
-                            expr: Box::new(Expression::Reference(("bar", 0u16).into())),
-                            field: "c".to_string(),
-                            cache: SchemaCache::new(),
-                            is_nullable: false,
-                        })),
+                        arg: Box::new(Expression::FieldAccess(FieldAccess::new(
+                            Box::new(Expression::Reference(("bar", 0u16).into())),
+                            "c".to_string(),
+                        ))),
                     }),
                 }],
                 scope: 0u16,
@@ -142,31 +130,25 @@ test_dead_code_elimination!(
             keys: vec![
                 OptionallyAliasedExpr::Aliased(AliasedExpr {
                     alias: "a".to_string(),
-                    expr: Expression::FieldAccess(FieldAccess {
-                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".to_string(),
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })
+                    expr: Expression::FieldAccess(FieldAccess::new(
+                        Box::new(Expression::Reference(("foo", 0u16).into())),
+                        "a".to_string(),
+                    ))
                 }),
-                OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                    field: "b".to_string(),
-                    cache: SchemaCache::new(),
-                    is_nullable: false,
-                })),
+                OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess::new(
+                    Box::new(Expression::Reference(("foo", 0u16).into())),
+                    "b".to_string(),
+                ))),
             ],
             aggregations: vec![AliasedAggregation {
                 alias: "agg".to_string(),
                 agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::Avg,
                     distinct: false,
-                    arg: Box::new(Expression::FieldAccess(FieldAccess {
-                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "c".to_string(),
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })),
+                    arg: Box::new(Expression::FieldAccess(FieldAccess::new(
+                        Box::new(Expression::Reference(("foo", 0u16).into())),
+                        "c".to_string(),
+                    ))),
                 }),
             }],
             scope: 0u16,
@@ -188,31 +170,25 @@ test_dead_code_elimination!(
                 keys: vec![
                     OptionallyAliasedExpr::Aliased(AliasedExpr {
                         alias: "a".to_string(),
-                        expr: Expression::FieldAccess(FieldAccess {
-                            expr: Box::new(Expression::Reference(("bar", 0u16).into())),
-                            field: "a".to_string(),
-                            cache: SchemaCache::new(),
-                            is_nullable: false,
-                        })
+                        expr: Expression::FieldAccess(FieldAccess::new(
+                            Box::new(Expression::Reference(("bar", 0u16).into())),
+                            "a".to_string(),
+                        ))
                     }),
-                    OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
-                        expr: Box::new(Expression::Reference(("bar", 0u16).into())),
-                        field: "b".to_string(),
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })),
+                    OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess::new(
+                        Box::new(Expression::Reference(("bar", 0u16).into())),
+                        "b".to_string(),
+                    ))),
                 ],
                 aggregations: vec![AliasedAggregation {
                     alias: "agg".to_string(),
                     agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                         function: AggregationFunction::Avg,
                         distinct: false,
-                        arg: Box::new(Expression::FieldAccess(FieldAccess {
-                            expr: Box::new(Expression::Reference(("bar", 0u16).into())),
-                            field: "c".to_string(),
-                            cache: SchemaCache::new(),
-                            is_nullable: false,
-                        })),
+                        arg: Box::new(Expression::FieldAccess(FieldAccess::new(
+                            Box::new(Expression::Reference(("bar", 0u16).into())),
+                            "c".to_string(),
+                        ))),
                     }),
                 }],
                 scope: 0u16,
@@ -229,14 +205,12 @@ test_dead_code_elimination!(
                 document: unchecked_unique_linked_hash_map!(
                     "agg".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
                         expr: Box::new(mir::Expression::Reference(mir::ReferenceExpr{
-                            key: mir::binding_tuple::Key::bot(0), cache: SchemaCache::new()
+                            key: mir::binding_tuple::Key::bot(0),
                         })),
                         field: "_agg1".to_string(),
-                        cache: SchemaCache::new(),
                         is_nullable: false,
                     })
                 ),
-                cache: SchemaCache::new()
             })
         },
         cache: SchemaCache::new(),
@@ -253,31 +227,25 @@ test_dead_code_elimination!(
             keys: vec![
                 OptionallyAliasedExpr::Aliased(AliasedExpr {
                     alias: "a".to_string(),
-                    expr: Expression::FieldAccess(FieldAccess {
-                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "a".to_string(),
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })
+                    expr: Expression::FieldAccess(FieldAccess::new(
+                        Box::new(Expression::Reference(("foo", 0u16).into())),
+                        "a".to_string(),
+                    ))
                 }),
-                OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                    field: "b".to_string(),
-                    cache: SchemaCache::new(),
-                    is_nullable: false,
-                })),
+                OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess::new(
+                    Box::new(Expression::Reference(("foo", 0u16).into())),
+                    "b".to_string(),
+                ))),
             ],
             aggregations: vec![AliasedAggregation {
                 alias: "agg".to_string(),
                 agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::Avg,
                     distinct: false,
-                    arg: Box::new(Expression::FieldAccess(FieldAccess {
-                        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                        field: "c".to_string(),
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })),
+                    arg: Box::new(Expression::FieldAccess(FieldAccess::new(
+                        Box::new(Expression::Reference(("foo", 0u16).into())),
+                        "c".to_string(),
+                    ))),
                 }),
             }],
             scope: 0u16,
@@ -288,14 +256,12 @@ test_dead_code_elimination!(
                 document: unchecked_unique_linked_hash_map!(
                     "agg".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
                         expr: Box::new(mir::Expression::Reference(mir::ReferenceExpr{
-                            key: mir::binding_tuple::Key::bot(0), cache: SchemaCache::new()
+                            key: mir::binding_tuple::Key::bot(0),
                         })),
                         field: "_agg1".to_string(),
-                        cache: SchemaCache::new(),
                         is_nullable: false,
                     })
                 ),
-                cache: SchemaCache::new()
             })
         },
         cache: SchemaCache::new(),
@@ -315,31 +281,25 @@ test_dead_code_elimination!(
         keys: vec![
             OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "a".to_string(),
-                expr: Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                    field: "a".to_string(),
-                    cache: SchemaCache::new(),
-                    is_nullable: false,
-                })
+                expr: Expression::FieldAccess(FieldAccess::new(
+                    Box::new(Expression::Reference(("foo", 0u16).into())),
+                    "a".to_string(),
+                ))
             }),
-            OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
-                expr: Box::new(Expression::Reference(("bad", 0u16).into())),
-                field: "b".to_string(),
-                cache: SchemaCache::new(),
-                is_nullable: false,
-            })),
+            OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess::new(
+                Box::new(Expression::Reference(("bad", 0u16).into())),
+                "b".to_string(),
+            ))),
         ],
         aggregations: vec![AliasedAggregation {
             alias: "agg".to_string(),
             agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                 function: AggregationFunction::Avg,
                 distinct: false,
-                arg: Box::new(Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(("bad", 0u16).into())),
-                    field: "c".to_string(),
-                    cache: SchemaCache::new(),
-                    is_nullable: false,
-                })),
+                arg: Box::new(Expression::FieldAccess(FieldAccess::new(
+                    Box::new(Expression::Reference(("bad", 0u16).into())),
+                    "c".to_string(),
+                ))),
             }),
         }],
         scope: 0u16,
@@ -356,31 +316,25 @@ test_dead_code_elimination!(
         keys: vec![
             OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "a".to_string(),
-                expr: Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                    field: "a".to_string(),
-                    cache: SchemaCache::new(),
-                    is_nullable: false,
-                })
+                expr: Expression::FieldAccess(FieldAccess::new(
+                    Box::new(Expression::Reference(("foo", 0u16).into())),
+                    "a".to_string(),
+                ))
             }),
-            OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
-                expr: Box::new(Expression::Reference(("bad", 0u16).into())),
-                field: "b".to_string(),
-                cache: SchemaCache::new(),
-                is_nullable: false,
-            })),
+            OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess::new(
+                Box::new(Expression::Reference(("bad", 0u16).into())),
+                "b".to_string(),
+            ))),
         ],
         aggregations: vec![AliasedAggregation {
             alias: "agg".to_string(),
             agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                 function: AggregationFunction::Avg,
                 distinct: false,
-                arg: Box::new(Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(("bad", 0u16).into())),
-                    field: "c".to_string(),
-                    cache: SchemaCache::new(),
-                    is_nullable: false,
-                })),
+                arg: Box::new(Expression::FieldAccess(FieldAccess::new(
+                    Box::new(Expression::Reference(("bad", 0u16).into())),
+                    "c".to_string(),
+                ))),
             }),
         }],
         scope: 0u16,

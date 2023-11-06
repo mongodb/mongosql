@@ -22,7 +22,6 @@ fn make_unwind(index: Option<String>, outer: bool) -> Stage {
         path: FieldPath {
             key: ("foo", 0u16).into(),
             fields: vec!["arr".to_string()],
-            cache: SchemaCache::new(),
             is_nullable: true,
         },
         index,
@@ -227,7 +226,6 @@ mod no_index {
             path: FieldPath {
                 key: ("bar", 0u16).into(),
                 fields: vec!["arr".to_string()],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             },
             index: None,
@@ -680,7 +678,6 @@ mod index_does_not_conflict {
             path: FieldPath {
                 key: ("foo", 0u16).into(),
                 fields: vec!["a".to_string(), "b".to_string(), "arr".to_string()],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             },
             index: Some("idx".into()),
@@ -750,7 +747,6 @@ mod index_does_not_conflict {
             path: FieldPath {
                 key: ("foo", 0u16).into(),
                 fields: vec!["arr".to_string()],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             },
             index: Some("idx".into()),

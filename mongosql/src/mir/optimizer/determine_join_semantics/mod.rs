@@ -28,8 +28,8 @@ use crate::{
         optimizer::Optimizer,
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        EquiJoin, Expression, FieldAccess, FieldExistence, FieldPath, Filter, MQLExpression,
-        MQLStage, ScalarFunction, ScalarFunctionApplication, Stage,
+        EquiJoin, Expression, FieldAccess, FieldPath, Filter, MQLStage, ScalarFunction,
+        ScalarFunctionApplication, Stage,
     },
     schema::ResultSet,
     SchemaCheckingMode,
@@ -105,7 +105,6 @@ impl<'a> JoinSemanticsOptimizerVisitor<'a> {
                 function: ScalarFunction::Eq,
                 is_nullable: _,
                 args,
-                cache: _,
             }) if args.len() == 2 => {
                 let arg1: FieldPath = match args.get(0).unwrap().try_into() {
                     Ok(fp) => fp,
@@ -176,11 +175,8 @@ impl<'a> Visitor for JoinSemanticsOptimizerVisitor<'a> {
                                     join_type: j.join_type,
                                     source: Box::new(Stage::Filter(Filter {
                                         source: j.left.clone(),
-                                        condition: Expression::MQLIntrinsic(
-                                            MQLExpression::FieldExistence(FieldExistence {
-                                                field_access: local_field.clone().into(),
-                                                cache: SchemaCache::new(),
-                                            }),
+                                        condition: Expression::MQLIntrinsicFieldExistence(
+                                            local_field.clone().into(),
                                         ),
                                         cache: SchemaCache::new(),
                                     })),
@@ -218,7 +214,6 @@ impl From<FieldPath> for FieldAccess {
             expr: Box::new(Expression::Reference(value.key.into())),
             field: first.unwrap(),
             is_nullable: value.is_nullable,
-            cache: SchemaCache::new(),
         };
 
         for field in fields {
@@ -226,19 +221,8 @@ impl From<FieldPath> for FieldAccess {
                 expr: Box::new(Expression::FieldAccess(ret)),
                 field,
                 is_nullable: value.is_nullable,
-                cache: SchemaCache::new(),
             }
         }
-
-        // Unlike FieldAccess, FieldPath stores schema for the full path instead
-        // of per-component. This means that the cache corresponds to the schema
-        // of the most deeply nested field component.
-        // Here, we use the FieldPath's cache as the cache value for the most
-        // deeply nested component of the FieldAccess. The ancestors of this
-        // FieldAccess expression have their cache values set to empty since we
-        // do not (conveniently) have that information available.
-        ret.cache = value.cache;
-
         ret
     }
 }

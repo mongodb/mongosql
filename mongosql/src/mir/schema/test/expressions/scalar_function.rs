@@ -1,9 +1,6 @@
 use crate::{
     map,
-    mir::{
-        schema::{Error as mir_error, SchemaCache},
-        *,
-    },
+    mir::{schema::Error as mir_error, *},
     schema::{
         Atomic, Document, Satisfaction, Schema, ANY_ARRAY, ANY_DOCUMENT, BOOLEAN_OR_NULLISH,
         INTEGER_OR_NULLISH, NON_NULLISH, NUMERIC_OR_NULLISH, STRING_OR_NULLISH,
@@ -22,16 +19,14 @@ mod substring {
             required: STRING_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::Integer),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Substring,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into()),
-                Expression::Literal(LiteralValue::Integer(3).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Substring,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Literal(LiteralValue::Integer(3))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -42,16 +37,14 @@ mod substring {
             required: INTEGER_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Substring,
-            args: vec![
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
-                Expression::Literal(LiteralValue::String("def".to_string()).into()),
-                Expression::Literal(LiteralValue::Integer(1).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Substring,
+            vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Literal(LiteralValue::String("def".to_string())),
+                Expression::Literal(LiteralValue::Integer(1))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -62,60 +55,52 @@ mod substring {
             required: INTEGER_OR_NULLISH.clone(),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Substring,
-            args: vec![
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::String("def".to_string()).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Substring,
+            vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::String("def".to_string()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
         substring_with_start_arg,
         expected = Ok(Schema::Atomic(Atomic::String)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Substring,
-            args: vec![
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
-                Expression::Literal(LiteralValue::Integer(1).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Substring,
+            vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Literal(LiteralValue::Integer(1))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
         substring_with_start_and_length_args,
         expected = Ok(Schema::Atomic(Atomic::String)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Substring,
-            args: vec![
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Substring,
+            vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
         substring_with_null_arg,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Substring,
-            args: vec![
-                Expression::Literal(LiteralValue::Null.into()),
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Substring,
+            vec![
+                Expression::Literal(LiteralValue::Null),
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -124,16 +109,14 @@ mod substring {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null),
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Substring,
-            args: vec![
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
-                Expression::Literal(LiteralValue::Integer(1).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Substring,
+            vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Literal(LiteralValue::Integer(1)),
                 Expression::Reference(("integer_or_null", 0u16).into())
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("integer_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)])},
     );
 }
@@ -149,15 +132,13 @@ mod and {
             required: BOOLEAN_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::And,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::And,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::Boolean(true).into())
+                Expression::Literal(LiteralValue::Boolean(true))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
     );
 
@@ -169,30 +150,26 @@ mod and {
             required: BOOLEAN_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::And,
-            args: vec![
-                Expression::Literal(LiteralValue::Boolean(true).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::And,
+            vec![
+                Expression::Literal(LiteralValue::Boolean(true)),
                 Expression::Reference(("bar", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
     );
 
     test_schema!(
         and_must_be_bool,
         expected = Ok(Schema::Atomic(Atomic::Boolean)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::And,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::And,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::Boolean(true).into())
+                Expression::Literal(LiteralValue::Boolean(true))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Boolean)},
     );
 
@@ -202,15 +179,13 @@ mod and {
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::And,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::And,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::Boolean(true).into())
+                Expression::Literal(LiteralValue::Boolean(true))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Atomic(Atomic::Null)])},
     );
 
@@ -220,30 +195,26 @@ mod and {
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::And,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::And,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::Boolean(true).into())
+                Expression::Literal(LiteralValue::Boolean(true))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Missing])},
     );
 
     test_schema!(
         and_must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::And,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::And,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::Boolean(true).into())
+                Expression::Literal(LiteralValue::Boolean(true))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
 }
@@ -259,15 +230,13 @@ mod or {
             required: BOOLEAN_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Or,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Or,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::Boolean(true).into())
+                Expression::Literal(LiteralValue::Boolean(true))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
     );
 
@@ -279,30 +248,26 @@ mod or {
             required: BOOLEAN_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Or,
-            args: vec![
-                Expression::Literal(LiteralValue::Boolean(true).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Or,
+            vec![
+                Expression::Literal(LiteralValue::Boolean(true)),
                 Expression::Reference(("bar", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
     );
 
     test_schema!(
         or_must_be_bool,
         expected = Ok(Schema::Atomic(Atomic::Boolean)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Or,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Or,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::Boolean(true).into())
+                Expression::Literal(LiteralValue::Boolean(true))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Boolean)},
     );
 
@@ -312,15 +277,13 @@ mod or {
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Or,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Or,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::Boolean(true).into())
+                Expression::Literal(LiteralValue::Boolean(true))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Atomic(Atomic::Null)])},
     );
 
@@ -330,30 +293,26 @@ mod or {
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Or,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Or,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::Boolean(true).into())
+                Expression::Literal(LiteralValue::Boolean(true))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Missing])},
     );
 
     test_schema!(
         or_must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Or,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Or,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::Boolean(true).into())
+                Expression::Literal(LiteralValue::Boolean(true))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
 }
@@ -369,24 +328,20 @@ mod not {
             required: BOOLEAN_OR_NULLISH.clone(),
             found: NUMERIC_OR_NULLISH.clone(),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Not,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Not,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
     );
 
     test_schema!(
         not_must_be_bool,
         expected = Ok(Schema::Atomic(Atomic::Boolean)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Not,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Not,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Boolean)},
     );
 
@@ -396,12 +351,10 @@ mod not {
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Not,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Not,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Atomic(Atomic::Null)])},
     );
 
@@ -411,24 +364,20 @@ mod not {
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Not,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Not,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Boolean), Schema::Missing])},
     );
 
     test_schema!(
         not_must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Not,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Not,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
 }
@@ -439,15 +388,13 @@ mod trim {
     test_schema!(
         ltrim_must_be_string,
         expected = Ok(Schema::Atomic(Atomic::String)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::LTrim,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::LTrim,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("hello".into()).into())
+                Expression::Literal(LiteralValue::String("hello".into()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
     );
 
@@ -457,15 +404,13 @@ mod trim {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::LTrim,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::LTrim,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("hello".into()).into())
+                Expression::Literal(LiteralValue::String("hello".into()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
 
@@ -475,45 +420,39 @@ mod trim {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::LTrim,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::LTrim,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("hello".into()).into())
+                Expression::Literal(LiteralValue::String("hello".into()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
 
     test_schema!(
         ltrim_must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::LTrim,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::LTrim,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("hello".into()).into())
+                Expression::Literal(LiteralValue::String("hello".into()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
 
     test_schema!(
         rtrim_must_be_string,
         expected = Ok(Schema::Atomic(Atomic::String)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::RTrim,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::RTrim,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("hello".into()).into())
+                Expression::Literal(LiteralValue::String("hello".into()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
     );
 
@@ -523,15 +462,13 @@ mod trim {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::RTrim,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::RTrim,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("hello".into()).into())
+                Expression::Literal(LiteralValue::String("hello".into()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
 
@@ -541,45 +478,39 @@ mod trim {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::RTrim,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::RTrim,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("hello".into()).into())
+                Expression::Literal(LiteralValue::String("hello".into()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
 
     test_schema!(
         rtrim_must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::RTrim,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::RTrim,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("hello".into()).into())
+                Expression::Literal(LiteralValue::String("hello".into()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
 
     test_schema!(
         btrim_must_be_string,
         expected = Ok(Schema::Atomic(Atomic::String)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::BTrim,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::BTrim,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("hello".into()).into())
+                Expression::Literal(LiteralValue::String("hello".into()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
     );
 
@@ -589,15 +520,13 @@ mod trim {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::BTrim,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::BTrim,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("hello".into()).into())
+                Expression::Literal(LiteralValue::String("hello".into()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
 
@@ -607,30 +536,26 @@ mod trim {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::BTrim,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::BTrim,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("hello".into()).into())
+                Expression::Literal(LiteralValue::String("hello".into()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
 
     test_schema!(
         btrim_must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::BTrim,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::BTrim,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("hello".into()).into())
+                Expression::Literal(LiteralValue::String("hello".into()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
 }
@@ -641,15 +566,13 @@ mod concat {
     test_schema!(
         concat_must_be_string,
         expected = Ok(Schema::Atomic(Atomic::String)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Concat,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Concat,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("hello".into()).into())
+                Expression::Literal(LiteralValue::String("hello".into()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
     );
 
@@ -659,15 +582,13 @@ mod concat {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Concat,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Concat,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("hello".into()).into())
+                Expression::Literal(LiteralValue::String("hello".into()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
 
@@ -677,30 +598,26 @@ mod concat {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Concat,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Concat,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("hello".into()).into())
+                Expression::Literal(LiteralValue::String("hello".into()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
 
     test_schema!(
         concat_must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Concat,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Concat,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("hello".into()).into())
+                Expression::Literal(LiteralValue::String("hello".into()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
 }
@@ -711,12 +628,10 @@ mod lower {
     test_schema!(
         lower_must_be_string,
         expected = Ok(Schema::Atomic(Atomic::String)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Lower,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Lower,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
     );
 
@@ -726,12 +641,10 @@ mod lower {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Lower,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Lower,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
 
@@ -741,24 +654,20 @@ mod lower {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Lower,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Lower,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
 
     test_schema!(
         lower_must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Lower,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Lower,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
 }
@@ -769,12 +678,10 @@ mod upper {
     test_schema!(
         upper_must_be_string,
         expected = Ok(Schema::Atomic(Atomic::String)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Upper,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Upper,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
     );
 
@@ -784,12 +691,10 @@ mod upper {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Upper,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Upper,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
     );
 
@@ -799,24 +704,20 @@ mod upper {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Upper,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Upper,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
 
     test_schema!(
         upper_must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Upper,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Upper,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
 }
@@ -827,12 +728,10 @@ mod year {
     test_schema!(
         year_must_be_string,
         expected = Ok(Schema::Atomic(Atomic::Integer)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Year,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Year,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
     );
 
@@ -842,12 +741,10 @@ mod year {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Year,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Year,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
     );
 
@@ -857,24 +754,20 @@ mod year {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Year,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Year,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
     );
 
     test_schema!(
         year_must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Year,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Year,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
 }
@@ -885,12 +778,10 @@ mod month {
     test_schema!(
         month_must_be_string,
         expected = Ok(Schema::Atomic(Atomic::Integer)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Month,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Month,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
     );
 
@@ -900,12 +791,10 @@ mod month {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Month,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Month,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
     );
 
@@ -915,24 +804,20 @@ mod month {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Month,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Month,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
     );
 
     test_schema!(
         month_must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Month,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Month,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
 }
@@ -943,12 +828,10 @@ mod day {
     test_schema!(
         day_must_be_string,
         expected = Ok(Schema::Atomic(Atomic::Integer)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Day,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Day,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
     );
 
@@ -958,12 +841,10 @@ mod day {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Day,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Day,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
     );
 
@@ -973,24 +854,20 @@ mod day {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Day,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Day,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
     );
 
     test_schema!(
         day_must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Day,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Day,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
 }
@@ -1001,12 +878,10 @@ mod minute {
     test_schema!(
         minute_must_be_string,
         expected = Ok(Schema::Atomic(Atomic::Integer)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Minute,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Minute,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
     );
 
@@ -1016,12 +891,10 @@ mod minute {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Minute,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Minute,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
     );
 
@@ -1031,24 +904,20 @@ mod minute {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Minute,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Minute,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
     );
 
     test_schema!(
         minute_must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Minute,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Minute,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
 }
@@ -1059,12 +928,10 @@ mod hour {
     test_schema!(
         hour_must_be_string,
         expected = Ok(Schema::Atomic(Atomic::Integer)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Hour,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Hour,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Date)},
     );
 
@@ -1074,12 +941,10 @@ mod hour {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Hour,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Hour,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Atomic(Atomic::Null)])},
     );
 
@@ -1089,24 +954,20 @@ mod hour {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Hour,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Hour,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Date), Schema::Missing])},
     );
 
     test_schema!(
         hour_must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Hour,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Hour,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
     );
 }
@@ -1117,117 +978,101 @@ mod arithmetic {
     test_schema!(
         variadic_arg_arithmetic_no_args_returns_integer,
         expected = Ok(Schema::Atomic(Atomic::Integer)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Add,
-            args: vec![],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Add,
+            vec![],
+        )),
     );
 
     test_schema!(
         variadic_arg_arithmetic_one_arg_returns_that_type,
         expected = Ok(Schema::Atomic(Atomic::Double)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Mul,
-            args: vec![Expression::Literal(LiteralValue::Double(1.0).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Mul,
+            vec![Expression::Literal(LiteralValue::Double(1.0))],
+        )),
     );
 
     test_schema!(
         arithmetic_null_takes_priority,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Mul,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Null.into()),
-                Expression::Literal(LiteralValue::Double(2.0).into()),
-                Expression::Literal(LiteralValue::Long(3).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Mul,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Null),
+                Expression::Literal(LiteralValue::Double(2.0)),
+                Expression::Literal(LiteralValue::Long(3))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
         arithmetic_missing_takes_priority_as_null_result,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Mul,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Double(2.0).into()),
-                Expression::Literal(LiteralValue::Long(3).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Mul,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Double(2.0)),
+                Expression::Literal(LiteralValue::Long(3)),
                 Expression::Reference(("bar", 0u16).into())
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Missing},
     );
 
     test_schema!(
         arithmetic_decimal_takes_priority,
         expected = Ok(Schema::Atomic(Atomic::Decimal)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Add,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Add,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::Long(2).into()),
-                Expression::Literal(LiteralValue::Double(3.0).into())
+                Expression::Literal(LiteralValue::Long(2)),
+                Expression::Literal(LiteralValue::Double(3.0))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Decimal)},
     );
 
     test_schema!(
         arithmetic_double_takes_priority,
         expected = Ok(Schema::Atomic(Atomic::Double)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Mul,
-            args: vec![
-                Expression::Literal(LiteralValue::Double(1.0).into()),
-                Expression::Literal(LiteralValue::Integer(2).into()),
-                Expression::Literal(LiteralValue::Long(3).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Mul,
+            vec![
+                Expression::Literal(LiteralValue::Double(1.0)),
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Literal(LiteralValue::Long(3))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
         arithmetic_long_takes_priority,
         expected = Ok(Schema::Atomic(Atomic::Long)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Add,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Long(2).into()),
-                Expression::Literal(LiteralValue::Integer(3).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Add,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Long(2)),
+                Expression::Literal(LiteralValue::Integer(3))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
         arithmetic_integer_takes_priority,
         expected = Ok(Schema::Atomic(Atomic::Integer)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Mul,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Mul,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -1238,15 +1083,13 @@ mod arithmetic {
             Schema::Atomic(Atomic::Double),
             Schema::Atomic(Atomic::Decimal),
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Add,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Add,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Reference(("foo", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("bar", 0u16).into() =>Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Double),
@@ -1267,16 +1110,14 @@ mod arithmetic {
             Schema::Atomic(Atomic::Decimal),
             Schema::Atomic(Atomic::Double),
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Mul,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Mul,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Reference(("foo", 0u16).into()),
                 Expression::Reference(("baz", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Decimal),
@@ -1300,16 +1141,14 @@ mod arithmetic {
             Schema::Atomic(Atomic::Double),
             Schema::Atomic(Atomic::Null),
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Mul,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Mul,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Reference(("foo", 0u16).into()),
                 Expression::Reference(("baz", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Decimal),
@@ -1329,16 +1168,14 @@ mod arithmetic {
     test_schema!(
         arithmetic_must_be_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Mul,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Mul,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Reference(("foo", 0u16).into()),
                 Expression::Reference(("baz", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Decimal),
@@ -1360,16 +1197,14 @@ mod arithmetic {
             Schema::Atomic(Atomic::Double),
             Schema::Atomic(Atomic::Null),
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Mul,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Mul,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Reference(("foo", 0u16).into()),
                 Expression::Reference(("baz", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Decimal),
@@ -1389,16 +1224,14 @@ mod arithmetic {
     test_schema!(
         arithmetic_must_be_missing,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Mul,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Mul,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Reference(("foo", 0u16).into()),
                 Expression::Reference(("baz", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Decimal),
@@ -1421,15 +1254,13 @@ mod arithmetic {
             Schema::Atomic(Atomic::Long),
             Schema::Atomic(Atomic::Integer),
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Add,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Add,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Reference(("foo", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("bar", 0u16).into() =>Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Decimal),
@@ -1458,15 +1289,13 @@ mod arithmetic {
             Schema::Atomic(Atomic::Decimal),
             Schema::Atomic(Atomic::Double),
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Add,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Add,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Reference(("foo", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("bar", 0u16).into() =>Schema::AnyOf(set![
                 Schema::Atomic(Atomic::Decimal),
@@ -1483,15 +1312,13 @@ mod arithmetic {
             Schema::Atomic(Atomic::Decimal),
             Schema::Atomic(Atomic::Double),
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Add,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Add,
+            vec![
                 Expression::Reference(("foo", 0u16).into()),
                 Expression::Reference(("bar", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::Atomic(Atomic::Double),
             ("bar", 0u16).into() =>Schema::AnyOf(set![
@@ -1528,15 +1355,13 @@ mod arithmetic {
             Schema::Atomic(Atomic::Decimal),
             Schema::Atomic(Atomic::Double),
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Add,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Add,
+            vec![
                 Expression::Reference(("foo", 0u16).into()),
                 Expression::Reference(("bar", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::Atomic(Atomic::Double),
             ("bar", 0u16).into() =>Schema::AnyOf(set![
@@ -1566,15 +1391,13 @@ mod arithmetic {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Add,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Add,
+            vec![
                 Expression::Reference(("foo", 0u16).into()),
                 Expression::Reference(("bar", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::Atomic(Atomic::Double),
             ("bar", 0u16).into() =>Schema::Atomic(Atomic::String),
@@ -1593,12 +1416,10 @@ mod arithmetic {
                 required: 2,
                 found: 1
             }),
-            input = Expression::ScalarFunction(ScalarFunctionApplication {
-                function: ScalarFunction::Sub,
-                args: vec![Expression::Literal(LiteralValue::Integer(1).into())],
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            }),
+            input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Sub,
+                vec![Expression::Literal(LiteralValue::Integer(1))],
+            )),
         );
 
         test_schema!(
@@ -1609,16 +1430,14 @@ mod arithmetic {
                 required: 2,
                 found: 3
             }),
-            input = Expression::ScalarFunction(ScalarFunctionApplication {
-                function: ScalarFunction::Div,
-                args: vec![
-                    Expression::Literal(LiteralValue::Integer(1).into()),
-                    Expression::Literal(LiteralValue::Integer(2).into()),
-                    Expression::Literal(LiteralValue::Integer(3).into())
+            input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Div,
+                vec![
+                    Expression::Literal(LiteralValue::Integer(1)),
+                    Expression::Literal(LiteralValue::Integer(2)),
+                    Expression::Literal(LiteralValue::Integer(3))
                 ],
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            }),
+            )),
         );
 
         test_schema!(
@@ -1636,15 +1455,13 @@ mod arithmetic {
                 ]),
                 found: Schema::Atomic(Atomic::String),
             }),
-            input = Expression::ScalarFunction(ScalarFunctionApplication {
-                function: ScalarFunction::Sub,
-                args: vec![
-                    Expression::Literal(LiteralValue::String("abc".to_string()).into()),
-                    Expression::Literal(LiteralValue::Integer(2).into()),
+            input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Sub,
+                vec![
+                    Expression::Literal(LiteralValue::String("abc".to_string())),
+                    Expression::Literal(LiteralValue::Integer(2)),
                 ],
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            }),
+            )),
         );
 
         test_schema!(
@@ -1662,15 +1479,13 @@ mod arithmetic {
                 ]),
                 found: Schema::Atomic(Atomic::Boolean),
             }),
-            input = Expression::ScalarFunction(ScalarFunctionApplication {
-                function: ScalarFunction::Div,
-                args: vec![
-                    Expression::Literal(LiteralValue::Integer(1).into()),
-                    Expression::Literal(LiteralValue::Boolean(true).into()),
+            input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Div,
+                vec![
+                    Expression::Literal(LiteralValue::Integer(1)),
+                    Expression::Literal(LiteralValue::Boolean(true)),
                 ],
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            }),
+            )),
         );
 
         test_schema!(
@@ -1688,18 +1503,16 @@ mod arithmetic {
                 ]),
                 found: Schema::Atomic(Atomic::Boolean),
             }),
-            input = Expression::ScalarFunction(ScalarFunctionApplication {
-                function: ScalarFunction::Add,
-                args: vec![
-                    Expression::Literal(LiteralValue::Integer(1).into()),
-                    Expression::Literal(LiteralValue::Integer(2).into()),
-                    Expression::Literal(LiteralValue::Integer(3).into()),
-                    Expression::Literal(LiteralValue::Boolean(true).into()),
-                    Expression::Literal(LiteralValue::Integer(4).into()),
+            input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Add,
+                vec![
+                    Expression::Literal(LiteralValue::Integer(1)),
+                    Expression::Literal(LiteralValue::Integer(2)),
+                    Expression::Literal(LiteralValue::Integer(3)),
+                    Expression::Literal(LiteralValue::Boolean(true)),
+                    Expression::Literal(LiteralValue::Integer(4)),
                 ],
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            }),
+            )),
         );
     }
 }
@@ -1715,15 +1528,13 @@ mod abs {
             required: 1,
             found: 2
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Abs,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Abs,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -1741,14 +1552,10 @@ mod abs {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Abs,
-            args: vec![Expression::Literal(
-                LiteralValue::String("abc".to_string()).into()
-            )],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Abs,
+            vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
+        )),
     );
 }
 
@@ -1763,15 +1570,13 @@ mod ceil {
             required: 1,
             found: 2
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Ceil,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Ceil,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -1789,14 +1594,10 @@ mod ceil {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Ceil,
-            args: vec![Expression::Literal(
-                LiteralValue::String("abc".to_string()).into()
-            )],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Ceil,
+            vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
+        )),
     );
 }
 
@@ -1811,15 +1612,13 @@ mod degrees {
             required: 1,
             found: 2
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Degrees,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Degrees,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -1837,36 +1636,28 @@ mod degrees {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Degrees,
-            args: vec![Expression::Literal(
-                LiteralValue::String("abc".to_string()).into()
-            )],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Degrees,
+            vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
+        )),
     );
 
     test_schema!(
         degrees_returns_double_schema_for_integer_arg,
         expected = Ok(Schema::Atomic(Atomic::Double)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Degrees,
-            args: vec![Expression::Literal(LiteralValue::Integer(2).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Degrees,
+            vec![Expression::Literal(LiteralValue::Integer(2))],
+        )),
     );
 
     test_schema!(
         degrees_returns_double_schema_for_long_arg,
         expected = Ok(Schema::Atomic(Atomic::Double)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Degrees,
-            args: vec![Expression::Literal(LiteralValue::Long(2).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Degrees,
+            vec![Expression::Literal(LiteralValue::Long(2))],
+        )),
     );
 }
 
@@ -1881,15 +1672,13 @@ mod floor {
             required: 1,
             found: 2
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Floor,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Floor,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -1907,14 +1696,10 @@ mod floor {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Floor,
-            args: vec![Expression::Literal(
-                LiteralValue::String("abc".to_string()).into()
-            )],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Floor,
+            vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
+        )),
     );
 }
 
@@ -1929,16 +1714,14 @@ mod log {
             required: 2,
             found: 3
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Log,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into()),
-                Expression::Literal(LiteralValue::Integer(3).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Log,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Literal(LiteralValue::Integer(3))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -1956,15 +1739,13 @@ mod log {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Log,
-            args: vec![
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
-                Expression::Literal(LiteralValue::Integer(2).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Log,
+            vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Literal(LiteralValue::Integer(2)),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -1982,15 +1763,13 @@ mod log {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Log,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(2).into()),
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Log,
+            vec![
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Literal(LiteralValue::String("abc".to_string())),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 }
 
@@ -2005,16 +1784,14 @@ mod mod_func {
             required: 2,
             found: 3
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Mod,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into()),
-                Expression::Literal(LiteralValue::Integer(3).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Mod,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Literal(LiteralValue::Integer(3))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -2032,15 +1809,13 @@ mod mod_func {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Mod,
-            args: vec![
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
-                Expression::Literal(LiteralValue::Integer(2).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Mod,
+            vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Literal(LiteralValue::Integer(2)),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -2058,15 +1833,13 @@ mod mod_func {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Mod,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(2).into()),
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Mod,
+            vec![
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Literal(LiteralValue::String("abc".to_string())),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 }
 
@@ -2081,16 +1854,14 @@ mod pow {
             required: 2,
             found: 3
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Pow,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into()),
-                Expression::Literal(LiteralValue::Integer(3).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Pow,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Literal(LiteralValue::Integer(3))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -2108,15 +1879,13 @@ mod pow {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Pow,
-            args: vec![
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
-                Expression::Literal(LiteralValue::Integer(2).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Pow,
+            vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Literal(LiteralValue::Integer(2)),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -2134,15 +1903,13 @@ mod pow {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Pow,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(2).into()),
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Pow,
+            vec![
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Literal(LiteralValue::String("abc".to_string())),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 }
 
@@ -2157,16 +1924,14 @@ mod round {
             required: 2,
             found: 3
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Round,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into()),
-                Expression::Literal(LiteralValue::Integer(3).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Round,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Literal(LiteralValue::Integer(3))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -2184,15 +1949,13 @@ mod round {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Round,
-            args: vec![
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
-                Expression::Literal(LiteralValue::Integer(2).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Round,
+            vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Literal(LiteralValue::Integer(2)),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -2208,15 +1971,13 @@ mod round {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Round,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(2).into()),
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Round,
+            vec![
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Literal(LiteralValue::String("abc".to_string())),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 }
 
@@ -2231,15 +1992,13 @@ mod cos {
             required: 1,
             found: 2
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Cos,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Cos,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -2257,25 +2016,19 @@ mod cos {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Cos,
-            args: vec![Expression::Literal(
-                LiteralValue::String("abc".to_string()).into()
-            )],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Cos,
+            vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
+        )),
     );
 
     test_schema!(
         cos_returns_double_schema_for_integer_arg,
         expected = Ok(Schema::Atomic(Atomic::Double)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Cos,
-            args: vec![Expression::Literal(LiteralValue::Integer(2).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Cos,
+            vec![Expression::Literal(LiteralValue::Integer(2))],
+        )),
     );
 }
 
@@ -2290,15 +2043,13 @@ mod sin {
             required: 1,
             found: 2
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Sin,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Sin,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -2316,25 +2067,19 @@ mod sin {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Sin,
-            args: vec![Expression::Literal(
-                LiteralValue::String("abc".to_string()).into()
-            )],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Sin,
+            vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
+        )),
     );
 
     test_schema!(
         sin_returns_double_schema_for_double_arg,
         expected = Ok(Schema::Atomic(Atomic::Double)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Sin,
-            args: vec![Expression::Literal(LiteralValue::Double(2.8).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Sin,
+            vec![Expression::Literal(LiteralValue::Double(2.8))],
+        )),
     );
 }
 
@@ -2349,15 +2094,13 @@ mod tan {
             required: 1,
             found: 2
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Tan,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Tan,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -2375,25 +2118,19 @@ mod tan {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Tan,
-            args: vec![Expression::Literal(
-                LiteralValue::String("abc".to_string()).into()
-            )],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Tan,
+            vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
+        )),
     );
 
     test_schema!(
         tan_returns_double_schema_for_long_arg,
         expected = Ok(Schema::Atomic(Atomic::Double)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Sin,
-            args: vec![Expression::Literal(LiteralValue::Long(2).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Sin,
+            vec![Expression::Literal(LiteralValue::Long(2))],
+        )),
     );
 }
 
@@ -2408,15 +2145,13 @@ mod radians {
             required: 1,
             found: 2
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Radians,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Radians,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -2434,14 +2169,10 @@ mod radians {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Radians,
-            args: vec![Expression::Literal(
-                LiteralValue::String("abc".to_string()).into()
-            )],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Radians,
+            vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
+        )),
     );
 }
 
@@ -2456,15 +2187,13 @@ mod sqrt {
             required: 1,
             found: 2
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Sqrt,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Sqrt,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -2482,14 +2211,10 @@ mod sqrt {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Sqrt,
-            args: vec![Expression::Literal(
-                LiteralValue::String("abc".to_string()).into()
-            )],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Sqrt,
+            vec![Expression::Literal(LiteralValue::String("abc".to_string()))],
+        )),
     );
 }
 
@@ -2504,12 +2229,10 @@ mod comparison {
             required: 2,
             found: 1
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Lt,
-            args: vec![Expression::Literal(LiteralValue::Integer(1).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Lt,
+            vec![Expression::Literal(LiteralValue::Integer(1))],
+        )),
     );
 
     test_schema!(
@@ -2520,29 +2243,25 @@ mod comparison {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
         )),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Lte,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::String("abc".to_string()).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Lte,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::String("abc".to_string()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
         comp_op_returns_boolean_schema_for_non_nullish_comparison,
         expected = Ok(Schema::Atomic(Atomic::Boolean)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Eq,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Eq,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -2551,30 +2270,26 @@ mod comparison {
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Gt,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Gt,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
                 Expression::Reference(("integer_or_null", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("integer_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)])},
     );
 
     test_schema!(
         comp_op_returns_null_schema_for_nullish_comparison,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Gte,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Null.into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Gte,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Null),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -2584,13 +2299,11 @@ mod comparison {
     input = Expression::ScalarFunction(ScalarFunctionApplication {
         function: ScalarFunction::Lte,
         args: vec![
-            Expression::Literal(LiteralValue::Integer(1).into()),
+            Expression::Literal(LiteralValue::Integer(1)),
             Expression::Literal(
                 LiteralValue::String(r#"{"$oid":"5ca4bbcea2dd94ee58162a6a"}"#.to_string())
-                    .into()
             )
         ],
-        cache: SchemaCache::new(),
         is_nullable: true,
     }),
 );
@@ -2604,13 +2317,11 @@ mod comparison {
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Eq,
             args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(
-                    LiteralValue::String(r#"{"$timestamp":{"t":1565545664,"i":1}}"#.to_string())
-                        .into()
-                )
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::String(
+                    r#"{"$timestamp":{"t":1565545664,"i":1}}"#.to_string()
+                ))
             ],
-            cache: SchemaCache::new(),
             is_nullable: true,
         }),
     );
@@ -2625,12 +2336,11 @@ mod comparison {
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Eq,
             args: vec![
-                Expression::Literal(LiteralValue::Double(55.55).into()),
-                Expression::Literal(
-                    LiteralValue::String(r#"{"$numberDouble":"55.55"}"#.to_string()).into()
-                )
+                Expression::Literal(LiteralValue::Double(55.55)),
+                Expression::Literal(LiteralValue::String(
+                    r#"{"$numberDouble":"55.55"}"#.to_string()
+                ))
             ],
-            cache: SchemaCache::new(),
             is_nullable: true,
         }),
     );
@@ -2645,12 +2355,11 @@ mod comparison {
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Eq,
             args: vec![
-                Expression::Literal(LiteralValue::Double(55.55).into()),
-                Expression::Literal(
-                    LiteralValue::String(r#"{"$numberDecimal":"55.55"}"#.to_string()).into()
-                )
+                Expression::Literal(LiteralValue::Double(55.55)),
+                Expression::Literal(LiteralValue::String(
+                    r#"{"$numberDecimal":"55.55"}"#.to_string()
+                ))
             ],
-            cache: SchemaCache::new(),
             is_nullable: true,
         }),
     );
@@ -2667,12 +2376,10 @@ mod between {
             required: 3,
             found: 1
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Between,
-            args: vec![Expression::Literal(LiteralValue::Integer(1).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Between,
+            vec![Expression::Literal(LiteralValue::Integer(1))],
+        )),
     );
 
     test_schema!(
@@ -2683,16 +2390,14 @@ mod between {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
         )),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Between,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
-                Expression::Literal(LiteralValue::Integer(2).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Between,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Literal(LiteralValue::Integer(2)),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -2703,16 +2408,14 @@ mod between {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
         )),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Between,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into()),
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Between,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Literal(LiteralValue::String("abc".to_string())),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -2721,16 +2424,14 @@ mod between {
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::Boolean)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Between,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into()),
-                Expression::Literal(LiteralValue::Long(3).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Between,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Literal(LiteralValue::Long(3))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -2745,16 +2446,14 @@ mod between {
                 Schema::Atomic(Atomic::Null)
             ]),
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Between,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Between,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
                 Expression::Reference(("integer_or_null", 0u16).into()),
                 Expression::Reference(("long_or_null", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("integer_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)]),
             ("long_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Long), Schema::Atomic(Atomic::Null)])
@@ -2767,16 +2466,14 @@ mod between {
             Schema::Atomic(Atomic::Null),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Between,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Null.into()),
-                Expression::Literal(LiteralValue::Null.into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Between,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Null),
+                Expression::Literal(LiteralValue::Null),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 }
 
@@ -2791,25 +2488,19 @@ mod merge_objects {
             required: ANY_DOCUMENT.clone(),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::MergeObjects,
-            args: vec![Expression::Literal(
-                LiteralValue::String("abc".to_string()).into()
-            ),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::MergeObjects,
+            vec![Expression::Literal(LiteralValue::String("abc".to_string())),],
+        )),
     );
 
     test_schema!(
         merge_objects_ok_to_be_one_any_document,
         expected = Ok(ANY_DOCUMENT.clone()),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::MergeObjects,
-            args: vec![Expression::Reference(("bar", 0u16).into()),],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::MergeObjects,
+            vec![Expression::Reference(("bar", 0u16).into()),],
+        )),
         schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
     );
 
@@ -2821,15 +2512,13 @@ mod merge_objects {
             ANY_DOCUMENT.clone(),
             Satisfaction::May,
         )),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::MergeObjects,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::MergeObjects,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Reference(("bar", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
     );
 
@@ -2849,15 +2538,13 @@ mod merge_objects {
             }),
             Satisfaction::Must,
         )),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::MergeObjects,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::MergeObjects,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Reference(("car", 0u16).into())
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::Document(
             Document {
@@ -2890,16 +2577,14 @@ mod merge_objects {
             },
             additional_properties: false,
         })),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::MergeObjects,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::MergeObjects,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Reference(("baz", 0u16).into()),
                 Expression::Reference(("foo", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::Document(
             Document {
@@ -2953,15 +2638,13 @@ mod merge_objects {
             },
             additional_properties: false,
         })),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::MergeObjects,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::MergeObjects,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Reference(("foo", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::AnyOf(set![
                 Schema::Document(
@@ -3027,16 +2710,14 @@ mod computed_field_access {
             required: 2,
             found: 3
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::ComputedFieldAccess,
-            args: vec![
-                Expression::Literal(LiteralValue::Long(1).into()),
-                Expression::Literal(LiteralValue::Long(2).into()),
-                Expression::Literal(LiteralValue::Long(3).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::ComputedFieldAccess,
+            vec![
+                Expression::Literal(LiteralValue::Long(1)),
+                Expression::Literal(LiteralValue::Long(2)),
+                Expression::Literal(LiteralValue::Long(3))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -3047,15 +2728,13 @@ mod computed_field_access {
             required: ANY_DOCUMENT.clone(),
             found: Schema::Atomic(Atomic::Long),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::ComputedFieldAccess,
-            args: vec![
-                Expression::Literal(LiteralValue::Long(1).into()),
-                Expression::Literal(LiteralValue::Long(2).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::ComputedFieldAccess,
+            vec![
+                Expression::Literal(LiteralValue::Long(1)),
+                Expression::Literal(LiteralValue::Long(2)),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -3066,15 +2745,13 @@ mod computed_field_access {
             required: ANY_DOCUMENT.clone(),
             found: Schema::AnyOf(set![ANY_DOCUMENT.clone(), Schema::Missing]),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::ComputedFieldAccess,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::ComputedFieldAccess,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("field".to_string()).into()),
+                Expression::Literal(LiteralValue::String("field".to_string())),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![ANY_DOCUMENT.clone(), Schema::Missing])},
     );
 
@@ -3086,15 +2763,13 @@ mod computed_field_access {
             required: Schema::Atomic(Atomic::String),
             found: Schema::Atomic(Atomic::Long),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::ComputedFieldAccess,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::ComputedFieldAccess,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::Long(42).into()),
+                Expression::Literal(LiteralValue::Long(42)),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
     );
 
@@ -3106,15 +2781,13 @@ mod computed_field_access {
             required: Schema::Atomic(Atomic::String),
             found: Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing]),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::ComputedFieldAccess,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::ComputedFieldAccess,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
                 Expression::Reference(("baz", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone(),
         ("baz", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
     );
@@ -3122,15 +2795,13 @@ mod computed_field_access {
     test_schema!(
         computed_field_access_valid_args,
         expected = Ok(Schema::Any),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::ComputedFieldAccess,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::ComputedFieldAccess,
+            vec![
                 Expression::Reference(("bar", 0u16).into()),
-                Expression::Literal(LiteralValue::String("field".to_string()).into()),
+                Expression::Literal(LiteralValue::String("field".to_string())),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("bar", 0u16).into() => ANY_DOCUMENT.clone()},
     );
 }
@@ -3141,12 +2812,10 @@ mod current_timestamp {
     test_schema!(
         current_timestamp_no_arg,
         expected = Ok(Schema::Atomic(Atomic::Date)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::CurrentTimestamp,
-            args: vec![],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::CurrentTimestamp,
+            vec![],
+        )),
     );
 
     test_schema!(
@@ -3157,12 +2826,10 @@ mod current_timestamp {
             required: 0,
             found: 1
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::CurrentTimestamp,
-            args: vec![Expression::Literal(LiteralValue::Integer(1).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::CurrentTimestamp,
+            vec![Expression::Literal(LiteralValue::Integer(1))],
+        )),
     );
 }
 
@@ -3177,12 +2844,10 @@ mod nullif {
             required: 2,
             found: 1,
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::NullIf,
-            args: vec![Expression::Literal(LiteralValue::Integer(1).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::NullIf,
+            vec![Expression::Literal(LiteralValue::Integer(1))],
+        )),
     );
 
     test_schema!(
@@ -3193,15 +2858,13 @@ mod nullif {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String)
         )),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::NullIf,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::String("abc".to_string()).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::NullIf,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::String("abc".to_string()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -3212,15 +2875,13 @@ mod nullif {
             Schema::Atomic(Atomic::Boolean),
             Schema::Atomic(Atomic::String)
         )),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::NullIf,
-            args: vec![
-                Expression::Literal(LiteralValue::Boolean(true).into()),
-                Expression::Literal(LiteralValue::String("abc".to_string()).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::NullIf,
+            vec![
+                Expression::Literal(LiteralValue::Boolean(true)),
+                Expression::Literal(LiteralValue::String("abc".to_string()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -3237,15 +2898,13 @@ mod nullif {
                 Schema::Atomic(Atomic::String)
             ])
         )),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::NullIf,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::NullIf,
+            vec![
                 Expression::Reference(("foo", 0u16).into()),
                 Expression::Reference(("bar", 0u16).into())
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)]),
             ("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::String)])
@@ -3258,15 +2917,13 @@ mod nullif {
             Schema::Atomic(Atomic::String),
             Schema::Atomic(Atomic::Null),
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::NullIf,
-            args: vec![
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
-                Expression::Literal(LiteralValue::String("def".to_string()).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::NullIf,
+            vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Literal(LiteralValue::String("def".to_string()))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -3275,15 +2932,13 @@ mod nullif {
             Schema::Atomic(Atomic::Null),
             Schema::Atomic(Atomic::Null),
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::NullIf,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::NullIf,
+            vec![
                 Expression::Reference(("missing", 0u16).into()),
-                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(1)),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("missing", 0u16).into() => Schema::Missing,
         },
@@ -3295,15 +2950,13 @@ mod nullif {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null),
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::NullIf,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Long(2).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::NullIf,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Long(2))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -3315,15 +2968,13 @@ mod nullif {
             ]),
             Schema::Atomic(Atomic::Null),
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::NullIf,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::NullIf,
+            vec![
                 Expression::Reference(("foo", 0u16).into()),
                 Expression::Reference(("bar", 0u16).into())
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Long)]),
             ("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Double), Schema::Atomic(Atomic::Decimal)])
@@ -3342,28 +2993,24 @@ mod coalesce {
             required: 1,
             found: 0,
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Coalesce,
-            args: vec![],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Coalesce,
+            vec![],
+        )),
     );
 
     test_schema!(
         coalesce_returns_first_non_nullish_arg_omitting_null_and_missing,
         expected = Ok(Schema::Atomic(Atomic::Long)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Coalesce,
-            args: vec![
-                Expression::Literal(LiteralValue::Null.into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Coalesce,
+            vec![
+                Expression::Literal(LiteralValue::Null),
                 Expression::Reference(("null_or_missing", 0u16).into()),
-                Expression::Literal(LiteralValue::Long(1).into()),
-                Expression::Literal(LiteralValue::Double(2.0).into()),
+                Expression::Literal(LiteralValue::Long(1)),
+                Expression::Literal(LiteralValue::Double(2.0)),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! { ("null_or_missing", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing]) },
     );
 
@@ -3373,18 +3020,16 @@ mod coalesce {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Long)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Coalesce,
-            args: vec![
-                Expression::Literal(LiteralValue::Null.into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Coalesce,
+            vec![
+                Expression::Literal(LiteralValue::Null),
                 Expression::Reference(("integer_or_null", 0u16).into()),
                 Expression::Reference(("null_or_missing", 0u16).into()),
-                Expression::Literal(LiteralValue::Long(1).into()),
-                Expression::Literal(LiteralValue::Double(2.0).into()),
+                Expression::Literal(LiteralValue::Long(1)),
+                Expression::Literal(LiteralValue::Double(2.0)),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("integer_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)]),
             ("null_or_missing", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing])
         },
@@ -3396,17 +3041,15 @@ mod coalesce {
             NON_NULLISH.clone(),
             Schema::Atomic(Atomic::Null),
         ]))),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Coalesce,
-            args: vec![
-                Expression::Literal(LiteralValue::Null.into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Coalesce,
+            vec![
+                Expression::Literal(LiteralValue::Null),
                 Expression::Reference(("any", 0u16).into()),
                 Expression::Reference(("missing", 0u16).into()),
                 Expression::Reference(("null_or_missing", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("any", 0u16).into() => Schema::Any,
             ("missing", 0u16).into() => Schema::Missing,
             ("null_or_missing", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing])
@@ -3416,31 +3059,27 @@ mod coalesce {
     test_schema!(
         coalesce_with_any_schema_and_non_nullish_arg_yields_non_nullish_schema,
         expected = Ok(NON_NULLISH.clone()),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Coalesce,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Coalesce,
+            vec![
                 Expression::Reference(("any", 0u16).into()),
-                Expression::Literal(LiteralValue::Integer(1).into())
+                Expression::Literal(LiteralValue::Integer(1))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("any", 0u16).into() => Schema::Any},
     );
 
     test_schema!(
         coalesce_with_only_nullish_args_yields_only_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Coalesce,
-            args: vec![
-                Expression::Literal(LiteralValue::Null.into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Coalesce,
+            vec![
+                Expression::Literal(LiteralValue::Null),
                 Expression::Reference(("missing", 0u16).into()),
                 Expression::Reference(("null_or_missing", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("missing", 0u16).into() => Schema::Missing,
             ("null_or_missing", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing])
         },
@@ -3453,15 +3092,13 @@ mod coalesce {
             Schema::Atomic(Atomic::Null),
             Schema::Atomic(Atomic::Long),
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Coalesce,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Coalesce,
+            vec![
                 Expression::Reference(("integer_or_null", 0u16).into()),
                 Expression::Reference(("long_or_missing", 0u16).into()),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! {("integer_or_null", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer), Schema::Atomic(Atomic::Null)]),
             ("long_or_missing", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Long), Schema::Missing])
         },
@@ -3479,12 +3116,10 @@ mod slice {
             required: 2,
             found: 1,
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Slice,
-            args: vec![Expression::Reference(("array", 0u16).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Slice,
+            vec![Expression::Reference(("array", 0u16).into())],
+        )),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
 
@@ -3496,17 +3131,15 @@ mod slice {
             required: 2,
             found: 4,
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Slice,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Slice,
+            vec![
                 Expression::Reference(("array", 0u16).into()),
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into()),
-                Expression::Literal(LiteralValue::Integer(3).into())
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2)),
+                Expression::Literal(LiteralValue::Integer(3))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
 
@@ -3518,15 +3151,13 @@ mod slice {
             required: ANY_ARRAY.clone(),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Slice,
-            args: vec![
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
-                Expression::Literal(LiteralValue::Integer(1).into()),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Slice,
+            vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Literal(LiteralValue::Integer(1)),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -3541,15 +3172,13 @@ mod slice {
             ]),
             found: Schema::Atomic(Atomic::Long),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Slice,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Slice,
+            vec![
                 Expression::Reference(("array", 0u16).into()),
-                Expression::Literal(LiteralValue::Long(1).into()),
+                Expression::Literal(LiteralValue::Long(1)),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
 
@@ -3561,16 +3190,14 @@ mod slice {
             required: ANY_ARRAY.clone(),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Slice,
-            args: vec![
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Slice,
+            vec![
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_schema!(
@@ -3585,16 +3212,14 @@ mod slice {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Slice,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Slice,
+            vec![
                 Expression::Reference(("array", 0u16).into()),
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
-                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::String("abc".to_string())),
+                Expression::Literal(LiteralValue::Integer(1)),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
 
@@ -3610,47 +3235,41 @@ mod slice {
             ]),
             found: Schema::Atomic(Atomic::String),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Slice,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Slice,
+            vec![
                 Expression::Reference(("array", 0u16).into()),
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::String("abc".to_string()).into()),
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::String("abc".to_string())),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
 
     test_schema!(
         slice_with_length_arg,
         expected = Ok(ANY_ARRAY.clone()),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Slice,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Slice,
+            vec![
                 Expression::Reference(("array", 0u16).into()),
-                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(1)),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
 
     test_schema!(
         slice_with_start_and_length_arg,
         expected = Ok(ANY_ARRAY.clone()),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Slice,
-            args: vec![
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Slice,
+            vec![
                 Expression::Reference(("array", 0u16).into()),
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into()),
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2)),
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
 }
@@ -3668,10 +3287,9 @@ mod split {
         }),
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Split,
-            args: vec![Expression::Literal(
-                LiteralValue::String("a-b-c".to_string()).into()
-            )],
-            cache: SchemaCache::new(),
+            args: vec![Expression::Literal(LiteralValue::String(
+                "a-b-c".to_string()
+            ))],
             is_nullable: true,
         }),
     );
@@ -3687,11 +3305,10 @@ mod split {
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Split,
             args: vec![
-                Expression::Literal(LiteralValue::Integer(5).into()),
-                Expression::Literal(LiteralValue::String("-".to_string()).into()),
-                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::Integer(5)),
+                Expression::Literal(LiteralValue::String("-".to_string())),
+                Expression::Literal(LiteralValue::Integer(1)),
             ],
-            cache: SchemaCache::new(),
             is_nullable: true,
         }),
     );
@@ -3707,11 +3324,10 @@ mod split {
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Split,
             args: vec![
-                Expression::Literal(LiteralValue::String("a-b-c".to_string()).into()),
-                Expression::Literal(LiteralValue::Integer(5).into()),
-                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::String("a-b-c".to_string())),
+                Expression::Literal(LiteralValue::Integer(5)),
+                Expression::Literal(LiteralValue::Integer(1)),
             ],
-            cache: SchemaCache::new(),
             is_nullable: true,
         }),
     );
@@ -3727,11 +3343,10 @@ mod split {
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Split,
             args: vec![
-                Expression::Literal(LiteralValue::String("a-b-c".to_string()).into()),
-                Expression::Literal(LiteralValue::String("-".to_string()).into()),
-                Expression::Literal(LiteralValue::String("1".to_string()).into()),
+                Expression::Literal(LiteralValue::String("a-b-c".to_string())),
+                Expression::Literal(LiteralValue::String("-".to_string())),
+                Expression::Literal(LiteralValue::String("1".to_string())),
             ],
-            cache: SchemaCache::new(),
             is_nullable: true,
         }),
     );
@@ -3745,11 +3360,10 @@ mod split {
         input = Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Split,
             args: vec![
-                Expression::Literal(LiteralValue::String("a-b-c".to_string()).into()),
-                Expression::Literal(LiteralValue::String("".to_string()).into()),
-                Expression::Literal(LiteralValue::Integer(1).into()),
+                Expression::Literal(LiteralValue::String("a-b-c".to_string())),
+                Expression::Literal(LiteralValue::String("".to_string())),
+                Expression::Literal(LiteralValue::Integer(1)),
             ],
-            cache: SchemaCache::new(),
             is_nullable: true,
         }),
     );
@@ -3766,12 +3380,10 @@ mod size {
             required: 1,
             found: 0,
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Size,
-            args: vec![],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Size,
+            vec![],
+        )),
     );
 
     test_schema!(
@@ -3786,23 +3398,19 @@ mod size {
             ]),
             found: Schema::Atomic(Atomic::Integer),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Size,
-            args: vec![Expression::Literal(LiteralValue::Integer(1).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Size,
+            vec![Expression::Literal(LiteralValue::Integer(1))],
+        )),
     );
 
     test_schema!(
         size_of_array,
         expected = Ok(Schema::Atomic(Atomic::Integer)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Size,
-            args: vec![Expression::Reference(("array", 0u16).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Size,
+            vec![Expression::Reference(("array", 0u16).into())],
+        )),
         schema_env = map! { ("array", 0u16).into() => ANY_ARRAY.clone() },
     );
 
@@ -3812,12 +3420,10 @@ mod size {
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::Null)
         ])),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Size,
-            args: vec![Expression::Reference(("array_or_null", 0u16).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Size,
+            vec![Expression::Reference(("array_or_null", 0u16).into())],
+        )),
         schema_env = map! { ("array_or_null", 0u16).into() =>
         Schema::AnyOf(set![ANY_ARRAY.clone(), Schema::Atomic(Atomic::Null)]) },
     );
@@ -3829,12 +3435,10 @@ mod pos {
     test_schema!(
         unary_pos,
         expected = Ok(Schema::Atomic(Atomic::Integer)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Pos,
-            args: vec![Expression::Literal(LiteralValue::Integer(1).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Pos,
+            vec![Expression::Literal(LiteralValue::Integer(1))],
+        )),
     );
 
     test_schema!(
@@ -3845,12 +3449,10 @@ mod pos {
             required: 1,
             found: 0
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Pos,
-            args: vec![],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Pos,
+            vec![],
+        )),
     );
 
     test_schema!(
@@ -3864,12 +3466,10 @@ mod pos {
                 Schema::Atomic(Atomic::String),
             ]),
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Pos,
-            args: vec![Expression::Reference(("bar", 0u16).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Pos,
+            vec![Expression::Reference(("bar", 0u16).into())],
+        )),
         schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![
             Schema::Atomic(Atomic::Integer),
             Schema::Atomic(Atomic::String),
@@ -3883,12 +3483,10 @@ mod neg {
     test_schema!(
         unary_neg,
         expected = Ok(Schema::Atomic(Atomic::Double)),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Pos,
-            args: vec![Expression::Literal(LiteralValue::Double(1.0).into())],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Pos,
+            vec![Expression::Literal(LiteralValue::Double(1.0))],
+        )),
     );
 
     test_schema!(
@@ -3899,14 +3497,12 @@ mod neg {
             required: 1,
             found: 2
         }),
-        input = Expression::ScalarFunction(ScalarFunctionApplication {
-            function: ScalarFunction::Neg,
-            args: vec![
-                Expression::Literal(LiteralValue::Integer(1).into()),
-                Expression::Literal(LiteralValue::Integer(2).into())
+        input = Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Neg,
+            vec![
+                Expression::Literal(LiteralValue::Integer(1)),
+                Expression::Literal(LiteralValue::Integer(2))
             ],
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 }

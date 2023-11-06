@@ -51,19 +51,19 @@ mod limit {
                 array: vec![
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(1).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(1))
                         }
                         .into()
                     ),
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(2).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(2))
                         }
                         .into()
                     ),
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(3).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(3))
                         }
                         .into()
                     )
@@ -88,19 +88,19 @@ mod limit {
                 array: vec![
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(1).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(1))
                         }
                         .into()
                     ),
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(2).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(2))
                         }
                         .into()
                     ),
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(3).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(3))
                         }
                         .into()
                     )
@@ -200,19 +200,19 @@ mod offset {
                 array: vec![
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(1).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(1))
                         }
                         .into()
                     ),
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(2).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(2))
                         }
                         .into()
                     ),
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(3).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(3))
                         }
                         .into()
                     )
@@ -237,19 +237,19 @@ mod offset {
                 array: vec![
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(1).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(1))
                         }
                         .into()
                     ),
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(2).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(2))
                         }
                         .into()
                     ),
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(3).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(3))
                         }
                         .into()
                     )

@@ -17,7 +17,7 @@ macro_rules! test_method {
                     schema::SchemaCache,
                     Collection,
                     Expression::{self, *},
-                    Filter, Group, LiteralExpr,
+                    Filter, Group,
                     LiteralValue::*,
                     Project, Stage, Unwind,
                 },
@@ -48,7 +48,7 @@ macro_rules! test_method_uses {
                     AggregationExpr, AggregationFunction, AggregationFunctionApplication,
                     AliasedAggregation, AliasedExpr, Collection,
                     Expression::{self, *},
-                    Filter, Group, LiteralExpr,
+                    Filter, Group,
                     LiteralValue::*,
                     OptionallyAliasedExpr, ReferenceExpr, ScalarFunction,
                     ScalarFunctionApplication, Sort, SortSpecification, Stage,
@@ -91,7 +91,7 @@ macro_rules! test_substitute {
                     AggregationExpr, AggregationFunction, AggregationFunctionApplication,
                     AliasedAggregation, AliasedExpr, Collection,
                     Expression::{self, *},
-                    Filter, Group, LiteralExpr,
+                    Filter, Group,
                     LiteralValue::*,
                     MQLStage, MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp,
                     MatchQuery, OptionallyAliasedExpr, ReferenceExpr, ScalarFunction,
@@ -115,22 +115,18 @@ macro_rules! test_substitute {
 fn mir_int_key(alias: &str, i: i32) -> mir::OptionallyAliasedExpr {
     mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
         alias: alias.into(),
-        expr: mir::Expression::Literal(mir::LiteralValue::Integer(i).into()),
+        expr: mir::Expression::Literal(mir::LiteralValue::Integer(i)),
     })
 }
 
 fn mir_unalaised_key() -> mir::OptionallyAliasedExpr {
     mir::OptionallyAliasedExpr::Unaliased(mir::Expression::Reference(mir::ReferenceExpr {
         key: mir::binding_tuple::Key::named("foo", 0),
-        cache: mir::schema::SchemaCache::new(),
     }))
 }
 
 fn mir_int_expr(i: i32) -> mir::Expression {
-    mir::Expression::Literal(mir::LiteralExpr {
-        value: mir::LiteralValue::Integer(i),
-        cache: mir::schema::SchemaCache::new(),
-    })
+    mir::Expression::Literal(mir::LiteralValue::Integer(i))
 }
 
 fn mir_count_agg(alias: &str) -> mir::AliasedAggregation {
@@ -143,7 +139,6 @@ fn mir_count_agg(alias: &str) -> mir::AliasedAggregation {
 fn mir_reference(name: &str) -> mir::Expression {
     mir::Expression::Reference(mir::ReferenceExpr {
         key: mir::binding_tuple::Key::named(name, 0),
-        cache: mir::schema::SchemaCache::new(),
     })
 }
 
@@ -152,28 +147,16 @@ test_method!(
     method = defines,
     expected = {
         let expected: HashMap<Key, Expression> = map! {
-            Key::named("x", 0) => Literal(LiteralExpr {
-                value: Integer(0),
-                cache: SchemaCache::new(),
-            }),
-            Key::bot(0) => Literal(LiteralExpr {
-                value: Integer(0),
-                cache: SchemaCache::new(),
-            }),
+            Key::named("x", 0) => Literal(Integer(0),),
+            Key::bot(0) => Literal(Integer(0),),
         };
         expected
     },
     input = Project {
         source: mir_collection("foo", "bar"),
         expression: map! {
-            Key::named("x", 0) => Literal(LiteralExpr {
-                value: Integer(0),
-                cache: SchemaCache::new(),
-            }),
-            Key::bot(0) => Literal(LiteralExpr {
-                value: Integer(0),
-                cache: SchemaCache::new(),
-            })
+            Key::named("x", 0) => Literal(Integer(0),),
+            Key::bot(0) => Literal(Integer(0),)
         },
         cache: SchemaCache::new(),
     },
@@ -266,12 +249,9 @@ test_field_uses!(
                         *mir_field_access("bar", "y", true),
                         *mir_field_access("bar", "x", true),
                     ],
-                    cache: SchemaCache::new(),
                     is_nullable: true,
                 })
             ],
-
-            cache: SchemaCache::new(),
             is_nullable: true,
         }),
         cache: SchemaCache::new(),
@@ -308,15 +288,11 @@ test_datasource_uses!(
             function: ScalarFunction::Lt,
             args: vec![
                 mir_reference("x"),
-                Expression::ScalarFunction(ScalarFunctionApplication {
-                    function: ScalarFunction::Add,
-                    args: vec![mir_reference("y"), mir_reference("x"),],
-                    cache: SchemaCache::new(),
-                    is_nullable: false,
-                })
+                Expression::ScalarFunction(ScalarFunctionApplication::new(
+                    ScalarFunction::Add,
+                    vec![mir_reference("y"), mir_reference("x"),],
+                ))
             ],
-
-            cache: SchemaCache::new(),
             is_nullable: false,
         }),
         cache: SchemaCache::new(),
@@ -374,7 +350,6 @@ test_substitute!(
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Eq,
             args: vec![mir_int_expr(42), mir_int_expr(55),],
-            cache: SchemaCache::new(),
             is_nullable: false,
         }),
         cache: SchemaCache::new(),
@@ -384,7 +359,6 @@ test_substitute!(
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Eq,
             args: vec![mir_reference("x"), mir_reference("y"),],
-            cache: SchemaCache::new(),
             is_nullable: false,
         }),
         cache: SchemaCache::new(),
@@ -420,7 +394,6 @@ test_substitute!(
                     "x".to_string() => *mir_field_access("bar", "x2", true),
                     "y".to_string() => *mir_field_access("bar", "y2", true),
                 },
-                cache: mir::schema::SchemaCache::new(),
           })
     },
 );
@@ -651,7 +624,6 @@ test_substitute!(
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Eq,
             args: vec![mir_int_expr(42), mir_int_expr(55),],
-            cache: SchemaCache::new(),
             is_nullable: false,
         }),
         cache: SchemaCache::new(),
@@ -661,7 +633,6 @@ test_substitute!(
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Eq,
             args: vec![mir_reference("x"), mir_reference("y"),],
-            cache: SchemaCache::new(),
             is_nullable: false,
         }),
         cache: SchemaCache::new(),

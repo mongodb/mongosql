@@ -24,7 +24,7 @@ use crate::{
         optimizer::Optimizer,
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        Expression, FieldPath, IsExpr, LikeExpr, LiteralExpr, LiteralValue, MQLStage, MatchFilter,
+        Expression, FieldPath, IsExpr, LikeExpr, LiteralValue, MQLStage, MatchFilter,
         MatchLanguageComparison, MatchLanguageComparisonOp, MatchLanguageLogical,
         MatchLanguageLogicalOp, MatchLanguageRegex, MatchLanguageType, MatchQuery, ScalarFunction,
         Stage, Type, TypeOrMissing,
@@ -82,10 +82,7 @@ impl MatchLanguageRewriterVisitor {
         };
 
         let pat = match *like.pattern {
-            Expression::Literal(LiteralExpr {
-                value: LiteralValue::String(p),
-                cache: _,
-            }) => p,
+            Expression::Literal(LiteralValue::String(p)) => p,
             _ => return None,
         };
 

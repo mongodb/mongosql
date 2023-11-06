@@ -1,5 +1,5 @@
 use crate::{
-    mir::{visitor::Visitor, *},
+    mir::*,
     schema::{Document, Satisfaction, Schema, NULLISH},
 };
 
@@ -141,22 +141,5 @@ pub fn set_field_schema(
                 additional_properties: d.additional_properties,
             })
         }
-    }
-}
-
-struct FieldExistenceFieldAccessGatherer {
-    optimized_field_accesses: Vec<FieldAccess>,
-}
-
-impl Visitor for FieldExistenceFieldAccessGatherer {
-    // Do not walk nested stages.
-    fn visit_stage(&mut self, node: Stage) -> Stage {
-        node
-    }
-
-    fn visit_field_existence(&mut self, node: FieldExistence) -> FieldExistence {
-        self.optimized_field_accesses
-            .push(node.field_access.clone());
-        node
     }
 }

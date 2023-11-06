@@ -10,7 +10,7 @@ use crate::{
 };
 
 fn true_mir() -> Expression {
-    Expression::Literal(LiteralValue::Boolean(true).into())
+    Expression::Literal(LiteralValue::Boolean(true))
 }
 
 fn test_source() -> Stage {
@@ -39,7 +39,7 @@ test_schema!(
     expected_pat = Ok(ResultSet { .. }),
     input = Stage::Filter(Filter {
         source: Box::new(test_source()),
-        condition: Expression::Literal(LiteralValue::Null.into()),
+        condition: Expression::Literal(LiteralValue::Null),
         cache: SchemaCache::new(),
     }),
     catalog = Catalog::new(map! {
@@ -75,7 +75,7 @@ test_schema!(
     }),
     input = Stage::Filter(Filter {
         source: Box::new(test_source()),
-        condition: Expression::Literal(LiteralValue::Integer(123).into()),
+        condition: Expression::Literal(LiteralValue::Integer(123)),
         cache: SchemaCache::new(),
     }),
     catalog = Catalog::new(map! {
@@ -97,12 +97,10 @@ test_schema!(
     }),
     input = Stage::Filter(Filter {
         source: Box::new(test_source()),
-        condition: Expression::FieldAccess(FieldAccess {
-            expr: Expression::Reference(("foo", 0u16).into()).into(),
-            field: "bar".into(),
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        condition: Expression::FieldAccess(FieldAccess::new(
+            Expression::Reference(("foo", 0u16).into()).into(),
+            "bar".into(),
+        )),
         cache: SchemaCache::new(),
     }),
     catalog = Catalog::new(map! {
@@ -119,7 +117,7 @@ test_schema!(
     input = Stage::Filter(Filter {
         source: Stage::Array(ArraySource {
             alias: "arr".into(),
-            array: vec![Expression::Literal(LiteralValue::Null.into())],
+            array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         })
         .into(),
@@ -155,7 +153,7 @@ test_schema!(
         condition: true_mir(),
         source: Stage::Array(ArraySource {
             alias: "arr".into(),
-            array: vec![Expression::Document(unchecked_unique_linked_hash_map!{"a".into() => Expression::Literal(LiteralValue::Null.into()),}.into())],
+            array: vec![Expression::Document(unchecked_unique_linked_hash_map!{"a".into() => Expression::Literal(LiteralValue::Null),}.into())],
             cache: SchemaCache::new(),
         }).into(),
         cache: SchemaCache::new(),

@@ -62,7 +62,6 @@ test_lower_joins!(
                     *mir_field_access("foo", "a", false),
                     *mir_field_access("bar", "b", false)
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -79,7 +78,6 @@ test_lower_joins!(
                 *mir_field_access("foo", "a", false),
                 *mir_field_access("bar", "b", false)
             ],
-            cache: SchemaCache::new(),
             is_nullable: false,
         })),
         cache: SchemaCache::new(),

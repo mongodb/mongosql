@@ -42,12 +42,10 @@ fn air_field_input() -> Option<air::FieldRef> {
 }
 
 fn mir_field_input() -> Option<mir::FieldPath> {
-    Some(mir::FieldPath {
-        key: ("f", 0u16).into(),
-        fields: vec!["a".to_string()],
-        cache: mir::schema::SchemaCache::new(),
-        is_nullable: true,
-    })
+    Some(mir::FieldPath::new(
+        ("f", 0u16).into(),
+        vec!["a".to_string()],
+    ))
 }
 
 mod logical {
@@ -384,12 +382,7 @@ mod match_path {
             sql_options: SqlOptions::default(),
         };
 
-        let input = mir::FieldPath {
-            key: ("f", 0u16).into(),
-            fields: vec!["x".to_string(), "y".to_string()],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        };
+        let input = mir::FieldPath::new(("f", 0u16).into(), vec!["x".to_string(), "y".to_string()]);
 
         let expected: Result<Option<air::FieldRef>> = Ok(Some("f.x.y".to_string().into()));
         let actual = translator.translate_field_path(input);

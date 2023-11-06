@@ -62,7 +62,6 @@ fn singleton_project(expr: Expression) -> Stage {
                 document: unchecked_unique_linked_hash_map! {
                     "expr".to_string() => expr,
                 },
-                cache: SchemaCache::new(),
             }),
         },
         cache: SchemaCache::new(),
@@ -94,7 +93,6 @@ fn valid_is() -> Expression {
     Expression::Is(IsExpr {
         expr: mir_field_access("foo", "str", true),
         target_type: TypeOrMissing::Type(Type::String),
-        cache: SchemaCache::new(),
     })
 }
 
@@ -110,7 +108,6 @@ fn valid_is_null() -> Expression {
     Expression::Is(IsExpr {
         expr: mir_field_access("foo", "str", true),
         target_type: TypeOrMissing::Type(Type::Null),
-        cache: SchemaCache::new(),
     })
 }
 
@@ -125,24 +122,16 @@ fn valid_match_is_null() -> MatchQuery {
 
 fn invalid_is() -> Expression {
     Expression::Is(IsExpr {
-        expr: Box::new(Expression::Literal(LiteralExpr {
-            value: LiteralValue::Integer(1),
-            cache: SchemaCache::new(),
-        })),
+        expr: Box::new(Expression::Literal(LiteralValue::Integer(1))),
         target_type: TypeOrMissing::Type(Type::Int32),
-        cache: SchemaCache::new(),
     })
 }
 
 fn valid_like() -> Expression {
     Expression::Like(LikeExpr {
         expr: mir_field_access("foo", "str", true),
-        pattern: Box::new(Expression::Literal(LiteralExpr {
-            value: LiteralValue::String("abc".to_string()),
-            cache: SchemaCache::new(),
-        })),
+        pattern: Box::new(Expression::Literal(LiteralValue::String("abc".to_string()))),
         escape: None,
-        cache: SchemaCache::new(),
     })
 }
 
@@ -157,16 +146,9 @@ fn valid_match_like() -> MatchQuery {
 
 fn invalid_like_expr() -> Expression {
     Expression::Like(LikeExpr {
-        expr: Box::new(Expression::Literal(LiteralExpr {
-            value: LiteralValue::String("abc".to_string()),
-            cache: SchemaCache::new(),
-        })),
-        pattern: Box::new(Expression::Literal(LiteralExpr {
-            value: LiteralValue::String("abc".to_string()),
-            cache: SchemaCache::new(),
-        })),
+        expr: Box::new(Expression::Literal(LiteralValue::String("abc".to_string()))),
+        pattern: Box::new(Expression::Literal(LiteralValue::String("abc".to_string()))),
         escape: None,
-        cache: SchemaCache::new(),
     })
 }
 
@@ -175,23 +157,17 @@ fn invalid_like_pat() -> Expression {
         expr: mir_field_access("foo", "str", true),
         pattern: mir_field_access("foo", "pat", true),
         escape: None,
-        cache: SchemaCache::new(),
     })
 }
 
 fn comp_expr() -> Expression {
-    Expression::ScalarFunction(ScalarFunctionApplication {
-        function: ScalarFunction::Lt,
-        args: vec![
+    Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Lt,
+        vec![
             *mir_field_access("foo", "int", true),
-            Expression::Literal(LiteralExpr {
-                value: LiteralValue::Integer(10),
-                cache: SchemaCache::new(),
-            }),
+            Expression::Literal(LiteralValue::Integer(10)),
         ],
-        cache: SchemaCache::new(),
-        is_nullable: true,
-    })
+    ))
 }
 
 test_rewrite_to_match_language_no_op!(only_rewrite_is_in_match, singleton_project(valid_is()));
@@ -215,15 +191,13 @@ test_rewrite_to_match_language_no_op!(
 
 test_rewrite_to_match_language_no_op!(
     cannot_rewrite_conjunction_if_any_element_is_not_rewritable,
-    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
-        function: ScalarFunction::And,
-        args: vec![
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::And,
+        vec![
             valid_is(),         // rewritable
             invalid_like_pat(), // not rewritable - pattern not constant
-        ],
-        cache: SchemaCache::new(),
-        is_nullable: true,
-    }))
+        ]
+    )))
 );
 
 test_rewrite_to_match_language_no_op!(
@@ -235,22 +209,19 @@ test_rewrite_to_match_language_no_op!(
             valid_like(), // rewritable
             comp_expr(),  // not rewritable - invalid expression
         ],
-        cache: SchemaCache::new(),
         is_nullable: true,
     }))
 );
 
 test_rewrite_to_match_language_no_op!(
     cannot_rewrite_disjunction_if_any_element_is_not_rewritable,
-    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
-        function: ScalarFunction::Or,
-        args: vec![
+    filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Or,
+        vec![
             valid_is(),         // rewritable
             invalid_like_pat(), // not rewritable - pattern not constant
-        ],
-        cache: SchemaCache::new(),
-        is_nullable: true,
-    }))
+        ]
+    )))
 );
 
 test_rewrite_to_match_language_no_op!(
@@ -262,7 +233,6 @@ test_rewrite_to_match_language_no_op!(
             valid_like(), // rewritable
             comp_expr(),  // not rewritable - invalid expression
         ],
-        cache: SchemaCache::new(),
         is_nullable: true,
     }))
 );
@@ -295,12 +265,10 @@ test_rewrite_to_match_language!(
     })),
     input = filter_stage(Expression::Like(LikeExpr {
         expr: mir_field_access("foo", "str", true),
-        pattern: Box::new(Expression::Literal(LiteralExpr {
-            value: LiteralValue::String("a|__|_%|%".to_string()),
-            cache: SchemaCache::new(),
-        })),
+        pattern: Box::new(Expression::Literal(LiteralValue::String(
+            "a|__|_%|%".to_string()
+        ),)),
         escape: Some('|'),
-        cache: SchemaCache::new(),
     }))
 );
 
@@ -311,12 +279,10 @@ test_rewrite_to_match_language!(
         args: vec![valid_match_like(), valid_match_is()],
         cache: SchemaCache::new(),
     })),
-    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
-        function: ScalarFunction::And,
-        args: vec![valid_like(), valid_is()],
-        cache: SchemaCache::new(),
-        is_nullable: true,
-    }))
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::And,
+        vec![valid_like(), valid_is()],
+    )))
 );
 
 test_rewrite_to_match_language!(
@@ -326,10 +292,8 @@ test_rewrite_to_match_language!(
         args: vec![valid_match_like(), valid_match_is()],
         cache: SchemaCache::new(),
     })),
-    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication {
-        function: ScalarFunction::Or,
-        args: vec![valid_like(), valid_is()],
-        cache: SchemaCache::new(),
-        is_nullable: true,
-    }))
+    input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Or,
+        vec![valid_like(), valid_is()],
+    )))
 );

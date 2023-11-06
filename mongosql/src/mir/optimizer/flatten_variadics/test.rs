@@ -28,11 +28,10 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Add,
                 args: vec![
-                    Expression::Literal(LiteralValue::Integer(3).into()),
-                    Expression::Literal(LiteralValue::Integer(1).into()),
-                    Expression::Literal(LiteralValue::Integer(2).into())
+                    Expression::Literal(LiteralValue::Integer(3)),
+                    Expression::Literal(LiteralValue::Integer(1)),
+                    Expression::Literal(LiteralValue::Integer(2))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -42,18 +41,15 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Add,
                 args: vec![
-                    Expression::Literal(LiteralValue::Integer(3).into()),
-                    Expression::ScalarFunction(ScalarFunctionApplication {
-                        function: ScalarFunction::Add,
-                        args: vec![
-                            Expression::Literal(LiteralValue::Integer(1).into()),
-                            Expression::Literal(LiteralValue::Integer(2).into())
+                    Expression::Literal(LiteralValue::Integer(3)),
+                    Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Add,
+                        vec![
+                            Expression::Literal(LiteralValue::Integer(1)),
+                            Expression::Literal(LiteralValue::Integer(2))
                         ],
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })
+                    ))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -66,18 +62,15 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Add,
                 args: vec![
-                    Expression::Literal(LiteralValue::Integer(3).into()),
-                    Expression::ScalarFunction(ScalarFunctionApplication {
-                        function: ScalarFunction::Mul,
-                        args: vec![
-                            Expression::Literal(LiteralValue::Integer(1).into()),
-                            Expression::Literal(LiteralValue::Integer(2).into())
+                    Expression::Literal(LiteralValue::Integer(3)),
+                    Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Mul,
+                        vec![
+                            Expression::Literal(LiteralValue::Integer(1)),
+                            Expression::Literal(LiteralValue::Integer(2))
                         ],
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })
+                    ))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -87,18 +80,15 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Add,
                 args: vec![
-                    Expression::Literal(LiteralValue::Integer(3).into()),
-                    Expression::ScalarFunction(ScalarFunctionApplication {
-                        function: ScalarFunction::Mul,
-                        args: vec![
-                            Expression::Literal(LiteralValue::Integer(1).into()),
-                            Expression::Literal(LiteralValue::Integer(2).into())
+                    Expression::Literal(LiteralValue::Integer(3)),
+                    Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Mul,
+                        vec![
+                            Expression::Literal(LiteralValue::Integer(1)),
+                            Expression::Literal(LiteralValue::Integer(2))
                         ],
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })
+                    ))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -111,12 +101,11 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Add,
                 args: vec![
-                    Expression::Literal(LiteralValue::Integer(3).into()),
-                    Expression::Literal(LiteralValue::Integer(1).into()),
-                    Expression::Literal(LiteralValue::Integer(2).into()),
-                    Expression::Literal(LiteralValue::Integer(4).into())
+                    Expression::Literal(LiteralValue::Integer(3)),
+                    Expression::Literal(LiteralValue::Integer(1)),
+                    Expression::Literal(LiteralValue::Integer(2)),
+                    Expression::Literal(LiteralValue::Integer(4))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -126,24 +115,20 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Add,
                 args: vec![
-                    Expression::Literal(LiteralValue::Integer(3).into()),
+                    Expression::Literal(LiteralValue::Integer(3)),
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Add,
-                        args: vec![Expression::ScalarFunction(ScalarFunctionApplication {
-                            function: ScalarFunction::Add,
-                            args: vec![
-                                Expression::Literal(LiteralValue::Integer(1).into()),
-                                Expression::Literal(LiteralValue::Integer(2).into()),
-                                Expression::Literal(LiteralValue::Integer(4).into())
+                        args: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
+                            ScalarFunction::Add,
+                            vec![
+                                Expression::Literal(LiteralValue::Integer(1)),
+                                Expression::Literal(LiteralValue::Integer(2)),
+                                Expression::Literal(LiteralValue::Integer(4))
                             ],
-                            cache: SchemaCache::new(),
-                            is_nullable: false,
-                        })],
-                        cache: SchemaCache::new(),
+                        ))],
                         is_nullable: false,
                     })
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -156,22 +141,20 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Add,
                 args: vec![
-                    Expression::Literal(LiteralValue::Integer(3).into()),
-                    Expression::Literal(LiteralValue::Integer(4).into()),
+                    Expression::Literal(LiteralValue::Integer(3)),
+                    Expression::Literal(LiteralValue::Integer(4)),
                     Expression::ScalarFunction(ScalarFunctionApplication {
                         function: ScalarFunction::Mul,
                         args: vec![
-                            Expression::Literal(LiteralValue::Integer(2).into()),
-                            Expression::Literal(LiteralValue::Integer(1).into()),
-                            Expression::Literal(LiteralValue::Integer(3).into()),
-                            Expression::Literal(LiteralValue::Integer(1).into())
+                            Expression::Literal(LiteralValue::Integer(2)),
+                            Expression::Literal(LiteralValue::Integer(1)),
+                            Expression::Literal(LiteralValue::Integer(3)),
+                            Expression::Literal(LiteralValue::Integer(1))
                         ],
-                        cache: SchemaCache::new(),
                         is_nullable: false,
                     }),
-                    Expression::Literal(LiteralValue::Integer(1).into())
+                    Expression::Literal(LiteralValue::Integer(1))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -186,51 +169,35 @@ mod flatten_node {
                         args: vec![Expression::ScalarFunction(ScalarFunctionApplication {
                             function: ScalarFunction::Add,
                             args: vec![
-                                Expression::Literal(LiteralValue::Integer(3).into()),
-                                Expression::Literal(LiteralValue::Integer(4).into()),
+                                Expression::Literal(LiteralValue::Integer(3)),
+                                Expression::Literal(LiteralValue::Integer(4)),
                                 Expression::ScalarFunction(ScalarFunctionApplication {
                                     function: ScalarFunction::Mul,
                                     args: vec![
-                                        Expression::ScalarFunction(ScalarFunctionApplication {
-                                            function: ScalarFunction::Mul,
-                                            args: vec![
-                                                Expression::Literal(
-                                                    LiteralValue::Integer(2).into()
-                                                ),
-                                                Expression::Literal(
-                                                    LiteralValue::Integer(1).into()
-                                                )
+                                        Expression::ScalarFunction(ScalarFunctionApplication::new(
+                                            ScalarFunction::Mul,
+                                            vec![
+                                                Expression::Literal(LiteralValue::Integer(2)),
+                                                Expression::Literal(LiteralValue::Integer(1))
                                             ],
-                                            cache: SchemaCache::new(),
-                                            is_nullable: false,
-                                        }),
-                                        Expression::ScalarFunction(ScalarFunctionApplication {
-                                            function: ScalarFunction::Mul,
-                                            args: vec![
-                                                Expression::Literal(
-                                                    LiteralValue::Integer(3).into()
-                                                ),
-                                                Expression::Literal(
-                                                    LiteralValue::Integer(1).into()
-                                                )
+                                        )),
+                                        Expression::ScalarFunction(ScalarFunctionApplication::new(
+                                            ScalarFunction::Mul,
+                                            vec![
+                                                Expression::Literal(LiteralValue::Integer(3)),
+                                                Expression::Literal(LiteralValue::Integer(1))
                                             ],
-                                            cache: SchemaCache::new(),
-                                            is_nullable: false,
-                                        })
+                                        ))
                                     ],
-                                    cache: SchemaCache::new(),
                                     is_nullable: false,
                                 })
                             ],
-                            cache: SchemaCache::new(),
                             is_nullable: false,
                         })],
-                        cache: SchemaCache::new(),
                         is_nullable: false,
                     },),
-                    Expression::Literal(LiteralValue::Integer(1).into())
+                    Expression::Literal(LiteralValue::Integer(1))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -244,18 +211,15 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Sub,
                 args: vec![
-                    Expression::Literal(LiteralValue::Integer(5).into()),
-                    Expression::ScalarFunction(ScalarFunctionApplication {
-                        function: ScalarFunction::Sub,
-                        args: vec![
-                            Expression::Literal(LiteralValue::Integer(2).into()),
-                            Expression::Literal(LiteralValue::Integer(1).into())
+                    Expression::Literal(LiteralValue::Integer(5)),
+                    Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Sub,
+                        vec![
+                            Expression::Literal(LiteralValue::Integer(2)),
+                            Expression::Literal(LiteralValue::Integer(1))
                         ],
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })
+                    ))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -265,18 +229,15 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Sub,
                 args: vec![
-                    Expression::Literal(LiteralValue::Integer(5).into()),
-                    Expression::ScalarFunction(ScalarFunctionApplication {
-                        function: ScalarFunction::Sub,
-                        args: vec![
-                            Expression::Literal(LiteralValue::Integer(2).into()),
-                            Expression::Literal(LiteralValue::Integer(1).into())
+                    Expression::Literal(LiteralValue::Integer(5)),
+                    Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Sub,
+                        vec![
+                            Expression::Literal(LiteralValue::Integer(2)),
+                            Expression::Literal(LiteralValue::Integer(1))
                         ],
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })
+                    ))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -289,11 +250,10 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Concat,
                 args: vec![
-                    Expression::Literal(LiteralValue::String("foo".to_string()).into()),
-                    Expression::Literal(LiteralValue::String("bar".to_string()).into()),
-                    Expression::Literal(LiteralValue::String("baz".to_string()).into())
+                    Expression::Literal(LiteralValue::String("foo".to_string())),
+                    Expression::Literal(LiteralValue::String("bar".to_string())),
+                    Expression::Literal(LiteralValue::String("baz".to_string()))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -303,18 +263,15 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Concat,
                 args: vec![
-                    Expression::Literal(LiteralValue::String("foo".to_string()).into()),
-                    Expression::ScalarFunction(ScalarFunctionApplication {
-                        function: ScalarFunction::Concat,
-                        args: vec![
-                            Expression::Literal(LiteralValue::String("bar".to_string()).into()),
-                            Expression::Literal(LiteralValue::String("baz".to_string()).into())
+                    Expression::Literal(LiteralValue::String("foo".to_string())),
+                    Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Concat,
+                        vec![
+                            Expression::Literal(LiteralValue::String("bar".to_string())),
+                            Expression::Literal(LiteralValue::String("baz".to_string()))
                         ],
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })
+                    ))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -328,11 +285,10 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Add,
                 args: vec![
-                    Expression::Literal(LiteralValue::Integer(5).into()),
-                    Expression::Literal(LiteralValue::Integer(2).into()),
-                    Expression::Literal(LiteralValue::Integer(1).into())
+                    Expression::Literal(LiteralValue::Integer(5)),
+                    Expression::Literal(LiteralValue::Integer(2)),
+                    Expression::Literal(LiteralValue::Integer(1))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -342,18 +298,15 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Add,
                 args: vec![
-                    Expression::Literal(LiteralValue::Integer(5).into()),
-                    Expression::ScalarFunction(ScalarFunctionApplication {
-                        function: ScalarFunction::Add,
-                        args: vec![
-                            Expression::Literal(LiteralValue::Integer(2).into()),
-                            Expression::Literal(LiteralValue::Integer(1).into())
+                    Expression::Literal(LiteralValue::Integer(5)),
+                    Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Add,
+                        vec![
+                            Expression::Literal(LiteralValue::Integer(2)),
+                            Expression::Literal(LiteralValue::Integer(1))
                         ],
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })
+                    ))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -367,11 +320,10 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Mul,
                 args: vec![
-                    Expression::Literal(LiteralValue::Integer(5).into()),
-                    Expression::Literal(LiteralValue::Integer(2).into()),
-                    Expression::Literal(LiteralValue::Integer(1).into())
+                    Expression::Literal(LiteralValue::Integer(5)),
+                    Expression::Literal(LiteralValue::Integer(2)),
+                    Expression::Literal(LiteralValue::Integer(1))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -381,18 +333,15 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Mul,
                 args: vec![
-                    Expression::Literal(LiteralValue::Integer(5).into()),
-                    Expression::ScalarFunction(ScalarFunctionApplication {
-                        function: ScalarFunction::Mul,
-                        args: vec![
-                            Expression::Literal(LiteralValue::Integer(2).into()),
-                            Expression::Literal(LiteralValue::Integer(1).into())
+                    Expression::Literal(LiteralValue::Integer(5)),
+                    Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Mul,
+                        vec![
+                            Expression::Literal(LiteralValue::Integer(2)),
+                            Expression::Literal(LiteralValue::Integer(1))
                         ],
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })
+                    ))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -406,11 +355,10 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::And,
                 args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
-                    mir::Expression::Literal(mir::LiteralValue::Boolean(false).into()),
-                    mir::Expression::Literal(mir::LiteralValue::Boolean(true).into())
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(true))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -420,18 +368,15 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::And,
                 args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
-                    Expression::ScalarFunction(ScalarFunctionApplication {
-                        function: ScalarFunction::And,
-                        args: vec![
-                            mir::Expression::Literal(mir::LiteralValue::Boolean(false).into()),
-                            mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                    Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::And,
+                        vec![
+                            mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
+                            mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
                         ],
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })
+                    ))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -445,11 +390,10 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Or,
                 args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
-                    mir::Expression::Literal(mir::LiteralValue::Boolean(false).into()),
-                    mir::Expression::Literal(mir::LiteralValue::Boolean(true).into())
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(true))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -459,18 +403,15 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Or,
                 args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
-                    Expression::ScalarFunction(ScalarFunctionApplication {
-                        function: ScalarFunction::Or,
-                        args: vec![
-                            mir::Expression::Literal(mir::LiteralValue::Boolean(false).into()),
-                            mir::Expression::Literal(mir::LiteralValue::Boolean(true).into())
+                    mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                    Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Or,
+                        vec![
+                            mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
+                            mir::Expression::Literal(mir::LiteralValue::Boolean(true))
                         ],
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })
+                    ))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -484,11 +425,10 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Concat,
                 args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::String("a".into()).into()),
-                    mir::Expression::Literal(mir::LiteralValue::String("b".into()).into()),
-                    mir::Expression::Literal(mir::LiteralValue::String("c".into()).into())
+                    mir::Expression::Literal(mir::LiteralValue::String("a".into())),
+                    mir::Expression::Literal(mir::LiteralValue::String("b".into())),
+                    mir::Expression::Literal(mir::LiteralValue::String("c".into()))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),
@@ -498,18 +438,15 @@ mod flatten_node {
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::Concat,
                 args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::String("a".into()).into()),
-                    Expression::ScalarFunction(ScalarFunctionApplication {
-                        function: ScalarFunction::Concat,
-                        args: vec![
-                            mir::Expression::Literal(mir::LiteralValue::String("b".into()).into()),
-                            mir::Expression::Literal(mir::LiteralValue::String("c".into()).into())
+                    mir::Expression::Literal(mir::LiteralValue::String("a".into())),
+                    Expression::ScalarFunction(ScalarFunctionApplication::new(
+                        ScalarFunction::Concat,
+                        vec![
+                            mir::Expression::Literal(mir::LiteralValue::String("b".into())),
+                            mir::Expression::Literal(mir::LiteralValue::String("c".into()))
                         ],
-                        cache: SchemaCache::new(),
-                        is_nullable: false,
-                    })
+                    ))
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: false,
             }),
             cache: SchemaCache::new(),

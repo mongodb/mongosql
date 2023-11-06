@@ -24,7 +24,7 @@ mod match_splitting_test {
                 alias: "foo".into(),
                 cache: SchemaCache::new()
             })),
-            condition: Literal(Integer(42).into()),
+            condition: Literal(Integer(42)),
             cache: SchemaCache::new(),
         }),
         input = Stage::Filter(mir::Filter {
@@ -33,7 +33,7 @@ mod match_splitting_test {
                 alias: "foo".into(),
                 cache: SchemaCache::new()
             })),
-            condition: Literal(Integer(42).into()),
+            condition: Literal(Integer(42)),
             cache: SchemaCache::new(),
         }),
     );
@@ -48,28 +48,22 @@ mod match_splitting_test {
                         alias: "foo".into(),
                         cache: SchemaCache::new(),
                     })),
-                    condition: ScalarFunction(ScalarFunctionApplication {
-                        function: Eq,
-                        args: vec![Literal(Integer(1).into()), Literal(Integer(1).into())],
-                        cache: SchemaCache::new(),
-                        is_nullable: true,
-                    }),
+                    condition: ScalarFunction(ScalarFunctionApplication::new(
+                        Eq,
+                        vec![Literal(Integer(1)), Literal(Integer(1))],
+                    )),
                     cache: SchemaCache::new(),
                 })),
-                condition: ScalarFunction(ScalarFunctionApplication {
-                    function: Eq,
-                    args: vec![Literal(Integer(2).into()), Literal(Integer(2).into())],
-                    cache: SchemaCache::new(),
-                    is_nullable: true,
-                }),
+                condition: ScalarFunction(ScalarFunctionApplication::new(
+                    Eq,
+                    vec![Literal(Integer(2)), Literal(Integer(2))],
+                )),
                 cache: SchemaCache::new(),
             })),
-            condition: ScalarFunction(ScalarFunctionApplication {
-                function: Eq,
-                args: vec![Literal(Integer(3).into()), Literal(Integer(3).into())],
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            }),
+            condition: ScalarFunction(ScalarFunctionApplication::new(
+                Eq,
+                vec![Literal(Integer(3)), Literal(Integer(3))],
+            )),
             cache: SchemaCache::new(),
         }),
         input = Stage::Filter(mir::Filter {
@@ -81,27 +75,20 @@ mod match_splitting_test {
             condition: ScalarFunction(ScalarFunctionApplication {
                 function: And,
                 args: vec![
-                    ScalarFunction(ScalarFunctionApplication {
-                        function: Eq,
-                        args: vec![Literal(Integer(1).into()), Literal(Integer(1).into())],
-                        cache: SchemaCache::new(),
-                        is_nullable: true,
-                    }),
-                    ScalarFunction(ScalarFunctionApplication {
-                        function: Eq,
-                        args: vec![Literal(Integer(2).into()), Literal(Integer(2).into())],
-                        cache: SchemaCache::new(),
-                        is_nullable: true,
-                    }),
-                    ScalarFunction(ScalarFunctionApplication {
-                        function: Eq,
-                        args: vec![Literal(Integer(3).into()), Literal(Integer(3).into())],
-                        cache: SchemaCache::new(),
-                        is_nullable: true,
-                    })
+                    ScalarFunction(ScalarFunctionApplication::new(
+                        Eq,
+                        vec![Literal(Integer(1)), Literal(Integer(1))],
+                    )),
+                    ScalarFunction(ScalarFunctionApplication::new(
+                        Eq,
+                        vec![Literal(Integer(2)), Literal(Integer(2))],
+                    )),
+                    ScalarFunction(ScalarFunctionApplication::new(
+                        Eq,
+                        vec![Literal(Integer(3)), Literal(Integer(3))],
+                    ))
                 ],
-                cache: SchemaCache::new(),
-                is_nullable: true,
+                is_nullable: false,
             }),
             cache: SchemaCache::new(),
         }),

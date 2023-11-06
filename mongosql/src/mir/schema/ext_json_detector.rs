@@ -1,14 +1,11 @@
 use bson::Bson;
 use serde_json::Value;
 
-use crate::mir::{schema::Error, Expression, LiteralExpr, LiteralValue};
+use crate::mir::{schema::Error, Expression, LiteralValue};
 
 pub fn ext_json_check(expr: &Expression) -> Result<&Expression, Error> {
     let literal_value = match expr {
-        Expression::Literal(LiteralExpr {
-            value: LiteralValue::String(s),
-            ..
-        }) => s,
+        Expression::Literal(LiteralValue::String(s)) => s,
         _ => return Ok(expr),
     };
 
@@ -60,74 +57,64 @@ pub fn ext_json_check(expr: &Expression) -> Result<&Expression, Error> {
 
 #[cfg(test)]
 mod test {
-    use crate::mir::{schema::SchemaCache, Expression, LiteralExpr, LiteralValue};
+    use crate::mir::{Expression, LiteralValue};
 
     use super::ext_json_check;
 
     #[test]
     fn oid() {
-        assert!(ext_json_check(&Expression::Literal(LiteralExpr {
-            value: LiteralValue::String("5ca4bbcea2dd94ee58162a6a".to_string()),
-            cache: SchemaCache::new()
-        }))
+        assert!(ext_json_check(&Expression::Literal(LiteralValue::String(
+            "5ca4bbcea2dd94ee58162a6a".to_string()
+        ),))
         .is_ok());
-        assert!(ext_json_check(&Expression::Literal(LiteralExpr {
-            value: crate::mir::LiteralValue::String(
+        assert!(
+            ext_json_check(&Expression::Literal(crate::mir::LiteralValue::String(
                 r#"{"$oid":"5ca4bbcea2dd94ee58162a6a"}"#.to_string()
-            ),
-            cache: SchemaCache::new()
-        }))
-        .is_err());
+            ),))
+            .is_err()
+        );
     }
 
     #[test]
     fn bool() {
-        assert!(ext_json_check(&Expression::Literal(LiteralExpr {
-            value: LiteralValue::String("true".to_string()),
-            cache: SchemaCache::new()
-        }))
+        assert!(ext_json_check(&Expression::Literal(LiteralValue::String(
+            "true".to_string()
+        ),))
         .is_ok())
     }
 
     #[test]
     fn int() {
-        assert!(ext_json_check(&Expression::Literal(LiteralExpr {
-            value: LiteralValue::String("55".to_string()),
-            cache: SchemaCache::new()
-        }))
-        .is_ok());
-        assert!(ext_json_check(&Expression::Literal(LiteralExpr {
-            value: LiteralValue::String(r#"{"$numberInt": "55"}"#.to_string()),
-            cache: SchemaCache::new()
-        }))
+        assert!(
+            ext_json_check(&Expression::Literal(LiteralValue::String("55".to_string()),)).is_ok()
+        );
+        assert!(ext_json_check(&Expression::Literal(LiteralValue::String(
+            r#"{"$numberInt": "55"}"#.to_string()
+        ),))
         .is_err());
     }
 
     #[test]
     fn double() {
-        assert!(ext_json_check(&Expression::Literal(LiteralExpr {
-            value: LiteralValue::String("55.55".to_string()),
-            cache: SchemaCache::new()
-        }))
+        assert!(ext_json_check(&Expression::Literal(LiteralValue::String(
+            "55.55".to_string()
+        ),))
         .is_ok());
-        assert!(ext_json_check(&Expression::Literal(LiteralExpr {
-            value: LiteralValue::String(r#"{"$numberDouble": "55.55"}"#.to_string()),
-            cache: SchemaCache::new()
-        }))
+        assert!(ext_json_check(&Expression::Literal(LiteralValue::String(
+            r#"{"$numberDouble": "55.55"}"#.to_string()
+        ),))
         .is_err());
     }
 
     #[test]
     fn decimal() {
-        assert!(ext_json_check(&Expression::Literal(LiteralExpr {
-            value: LiteralValue::String("55.55".to_string()),
-            cache: SchemaCache::new()
-        }))
+        assert!(ext_json_check(&Expression::Literal(LiteralValue::String(
+            "55.55".to_string()
+        ),))
         .is_ok());
-        assert!(ext_json_check(&Expression::Literal(LiteralExpr {
-            value: LiteralValue::String(r#"{"$numberDecimal": "55.55"}"#.to_string()),
-            cache: SchemaCache::new()
-        }))
+        assert!(ext_json_check(&Expression::Literal(LiteralValue::String(
+            r#"{"$numberDecimal": "55.55"}"#.to_string()
+        ),))
         .is_err());
     }
 }

@@ -27,7 +27,7 @@ macro_rules! test_translate_expression_with_schema_info {
     ($func_name:ident, expected = $expected:expr, input = $input:expr, $(mapping_registry = $mapping_registry:expr,)? $(catalog = $catalog:expr,)? $(schema_env = $schema_env:expr,)?) => {
         #[test]
         fn $func_name() {
-            use crate::{translator, mapping_registry::MqlMappingRegistry, options::SqlOptions, catalog::Catalog, mir::schema::{CachedSchema, SchemaCheckingMode, SchemaInferenceState}, schema::SchemaEnvironment};
+            use crate::{translator, mapping_registry::MqlMappingRegistry, options::SqlOptions, catalog::Catalog, mir::schema::{SchemaCheckingMode, SchemaInferenceState}, schema::SchemaEnvironment};
 
             // force the input
             let input = $input;
@@ -63,34 +63,34 @@ mod literal {
     test_translate_expression!(
         null,
         expected = Ok(air::Expression::Literal(air::LiteralValue::Null)),
-        input = mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::Literal(mir::LiteralValue::Null),
     );
     test_translate_expression!(
         boolean,
         expected = Ok(air::Expression::Literal(air::LiteralValue::Boolean(true))),
-        input = mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
+        input = mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
     );
     test_translate_expression!(
         integer,
         expected = Ok(air::Expression::Literal(air::LiteralValue::Integer(1))),
-        input = mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+        input = mir::Expression::Literal(mir::LiteralValue::Integer(1)),
     );
     test_translate_expression!(
         string,
         expected = Ok(air::Expression::Literal(air::LiteralValue::String(
             "foo".to_string()
         ))),
-        input = mir::Expression::Literal(mir::LiteralValue::String("foo".to_string()).into()),
+        input = mir::Expression::Literal(mir::LiteralValue::String("foo".to_string())),
     );
     test_translate_expression!(
         long,
         expected = Ok(air::Expression::Literal(air::LiteralValue::Long(2))),
-        input = mir::Expression::Literal(mir::LiteralValue::Long(2).into()),
+        input = mir::Expression::Literal(mir::LiteralValue::Long(2)),
     );
     test_translate_expression!(
         double,
         expected = Ok(air::Expression::Literal(air::LiteralValue::Double(3.0))),
-        input = mir::Expression::Literal(mir::LiteralValue::Double(3.0).into()),
+        input = mir::Expression::Literal(mir::LiteralValue::Double(3.0)),
     );
 }
 
@@ -149,9 +149,9 @@ mod array {
             air::LiteralValue::String("abc".to_string())
         )])),
         input = mir::Expression::Array(
-            vec![mir::Expression::Literal(
-                mir::LiteralValue::String("abc".into()).into()
-            )]
+            vec![mir::Expression::Literal(mir::LiteralValue::String(
+                "abc".into()
+            ))]
             .into()
         ),
     );
@@ -163,9 +163,9 @@ mod array {
         ])),
         input = mir::Expression::Array(
             vec![
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+                mir::Expression::Literal(mir::LiteralValue::Null),
                 mir::Expression::Array(
-                    vec![mir::Expression::Literal(mir::LiteralValue::Null.into())].into()
+                    vec![mir::Expression::Literal(mir::LiteralValue::Null)].into()
                 )
             ]
             .into()
@@ -192,7 +192,7 @@ mod document {
             unchecked_unique_linked_hash_map! {"foo".to_string() => air::Expression::Literal(air::LiteralValue::Integer(1))}
         )),
         input = mir::Expression::Document(
-            unchecked_unique_linked_hash_map! {"foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),}
+            unchecked_unique_linked_hash_map! {"foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),}
         .into()),
     );
     test_translate_expression!(
@@ -207,9 +207,9 @@ mod document {
         )),
         input = mir::Expression::Document(
             unchecked_unique_linked_hash_map! {
-                "foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                "foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
                 "bar".to_string() => mir::Expression::Document(unchecked_unique_linked_hash_map!{
-                    "baz".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(2).into())
+                    "baz".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(2))
                 }.into()),
             }
             .into()
@@ -223,7 +223,7 @@ mod document {
             value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
         })),
         input = mir::Expression::Document(
-            unchecked_unique_linked_hash_map! {"$foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())}.into()),
+            unchecked_unique_linked_hash_map! {"$foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1))}.into()),
     );
     test_translate_expression!(
         key_containing_dot_becomes_set_field,
@@ -233,7 +233,7 @@ mod document {
             value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
         })),
         input = mir::Expression::Document(
-            unchecked_unique_linked_hash_map! {"foo.bar".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())}.into(),
+            unchecked_unique_linked_hash_map! {"foo.bar".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1))}.into(),
         ),
     );
     test_translate_expression!(
@@ -246,7 +246,9 @@ mod document {
                     field: "x".to_string(),
                     input: Box::new(air::Expression::SetField(air::SetField {
                         field: "foo.bar".to_string(),
-                        input: Box::new(air::Expression::Document(unchecked_unique_linked_hash_map!{})),
+                        input: Box::new(air::Expression::Document(
+                            unchecked_unique_linked_hash_map! {}
+                        )),
                         value: Box::new(air::Expression::Literal(air::LiteralValue::Integer(1))),
                     })),
                     value: Box::new(air::Expression::FieldRef("f.x".to_string().into())),
@@ -257,11 +259,12 @@ mod document {
         })),
         input = mir::Expression::Document(
             unchecked_unique_linked_hash_map! {
-                "foo.bar".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                "foo.bar".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
                 "x".to_string() => *mir_field_access("f", "x", true),
-                "$foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
-                "y".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(3).into()),
-            }.into(),
+                "$foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                "y".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(3)),
+            }
+            .into(),
         ),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -276,7 +279,7 @@ mod document {
         empty_key_disallowed,
         expected = Err(Error::InvalidDocumentKey("".to_string())),
         input = mir::Expression::Document(
-            unchecked_unique_linked_hash_map! {"".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())}.into()),
+            unchecked_unique_linked_hash_map! {"".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1))}.into()),
     );
 }
 
@@ -303,18 +306,12 @@ mod date_function {
             is_nullable: true,
             date_part: mir::DatePart::Year,
             args: vec![
-                mir::Expression::Literal(mir::LiteralExpr {
-                    value: mir::LiteralValue::Integer(5),
-                    cache: mir::schema::SchemaCache::new()
-                }),
-                mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-                    function: mir::ScalarFunction::CurrentTimestamp,
-                    args: vec![],
-                    cache: mir::schema::SchemaCache::new(),
-                    is_nullable: true,
-                }),
+                mir::Expression::Literal(mir::LiteralValue::Integer(5),),
+                mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+                    mir::ScalarFunction::CurrentTimestamp,
+                    vec![],
+                )),
             ],
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -341,24 +338,16 @@ mod date_function {
             is_nullable: true,
             date_part: mir::DatePart::Year,
             args: vec![
-                mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-                    function: mir::ScalarFunction::CurrentTimestamp,
-                    args: vec![],
-                    cache: mir::schema::SchemaCache::new(),
-                    is_nullable: true,
-                }),
-                mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-                    function: mir::ScalarFunction::CurrentTimestamp,
-                    args: vec![],
-                    cache: mir::schema::SchemaCache::new(),
-                    is_nullable: true,
-                }),
-                mir::Expression::Literal(mir::LiteralExpr {
-                    value: mir::LiteralValue::String("sunday".to_string()),
-                    cache: mir::schema::SchemaCache::new()
-                }),
+                mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+                    mir::ScalarFunction::CurrentTimestamp,
+                    vec![],
+                )),
+                mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+                    mir::ScalarFunction::CurrentTimestamp,
+                    vec![],
+                )),
+                mir::Expression::Literal(mir::LiteralValue::String("sunday".to_string()),),
             ],
-            cache: mir::schema::SchemaCache::new()
         }),
     );
     test_translate_expression!(
@@ -381,18 +370,12 @@ mod date_function {
             is_nullable: true,
             date_part: mir::DatePart::Year,
             args: vec![
-                mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-                    function: mir::ScalarFunction::CurrentTimestamp,
-                    args: vec![],
-                    cache: mir::schema::SchemaCache::new(),
-                    is_nullable: true,
-                }),
-                mir::Expression::Literal(mir::LiteralExpr {
-                    value: mir::LiteralValue::String("sunday".to_string()),
-                    cache: mir::schema::SchemaCache::new()
-                }),
+                mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+                    mir::ScalarFunction::CurrentTimestamp,
+                    vec![],
+                )),
+                mir::Expression::Literal(mir::LiteralValue::String("sunday".to_string()),),
             ],
-            cache: mir::schema::SchemaCache::new()
         }),
     );
 }
@@ -411,15 +394,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Concat,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
-                mir::Expression::Literal(mir::LiteralValue::String("world".into()).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Concat,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
+                mir::Expression::Literal(mir::LiteralValue::String("world".into())),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -433,15 +414,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Concat,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Concat,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -452,14 +431,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Integer(19)),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Pos,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::Integer(19).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Pos,
+            vec![mir::Expression::Literal(mir::LiteralValue::Integer(19)),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -470,12 +445,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Pos,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Pos,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -486,14 +459,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Integer(32)),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Neg,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::Integer(32).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Neg,
+            vec![mir::Expression::Literal(mir::LiteralValue::Integer(32)),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -504,12 +473,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Neg,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Neg,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -523,15 +490,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Add,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Add,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -545,15 +510,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Add,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Add,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression!(
@@ -568,16 +531,14 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Add,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(3).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Add,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(3)),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -591,15 +552,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Sub,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Sub,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -613,15 +572,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Sub,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Sub,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression!(
@@ -636,16 +593,14 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Sub,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(3).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Sub,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(3)),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -659,15 +614,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Mul,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Mul,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -681,15 +634,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Mul,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Mul,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression!(
@@ -704,16 +655,14 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Mul,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(3).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Mul,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(3)),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -723,15 +672,13 @@ mod scalar_function {
             divisor: Box::new(air::Expression::Literal(air::LiteralValue::Integer(20))),
             on_error: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
         })),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Div,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(20).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Div,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(20)),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -741,15 +688,13 @@ mod scalar_function {
             divisor: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
             on_error: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
         })),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Div,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Div,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -766,10 +711,9 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Lt,
             args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -785,15 +729,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Lt,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Lt,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -810,10 +752,9 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Lte,
             args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -829,15 +770,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Lte,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Lte,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -854,10 +793,9 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Neq,
             args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -873,15 +811,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Neq,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Neq,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -898,10 +834,9 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Eq,
             args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -917,15 +852,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Eq,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Eq,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -942,10 +875,9 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Gt,
             args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -961,15 +893,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Gt,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Gt,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -986,10 +916,9 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Gte,
             args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -1005,15 +934,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Gte,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Gte,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1031,11 +958,10 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Between,
             args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(19).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(19)),
             ],
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -1052,16 +978,14 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Between,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(32).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Between,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Null),
+                mir::Expression::Literal(mir::LiteralValue::Integer(32)),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1074,10 +998,7 @@ mod scalar_function {
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Not,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::Boolean(false).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Boolean(false)),],
             is_nullable: false,
         }),
     );
@@ -1090,12 +1011,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Not,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Not,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1112,10 +1031,9 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::And,
             args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
-                mir::Expression::Literal(mir::LiteralValue::Boolean(false).into()),
+                mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
             ],
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -1131,15 +1049,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::And,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::And,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1156,10 +1072,9 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Or,
             args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
-                mir::Expression::Literal(mir::LiteralValue::Boolean(false).into()),
+                mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
             ],
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -1175,15 +1090,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Or,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Or,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1203,11 +1116,11 @@ mod scalar_function {
              function: mir::ScalarFunction::ComputedFieldAccess,
              args: vec![
                  mir::Expression::Document(
-                     unchecked_unique_linked_hash_map! {"foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),}
+                     unchecked_unique_linked_hash_map! {"foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),}
                  .into()),
-                 mir::Expression::Literal(mir::LiteralValue::String("foo".into()).into()),
+                 mir::Expression::Literal(mir::LiteralValue::String("foo".into())),
              ],
-             cache: mir::schema::SchemaCache::new(),
+
              is_nullable: true,
          }),
      );
@@ -1223,15 +1136,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::NullIf,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
-                mir::Expression::Literal(mir::LiteralValue::Boolean(false).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::NullIf,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1245,15 +1156,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::NullIf,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::NullIf,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1267,15 +1176,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Coalesce,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
-                mir::Expression::Literal(mir::LiteralValue::Boolean(false).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Coalesce,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1289,15 +1196,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Coalesce,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Boolean(true).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Coalesce,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1317,14 +1222,14 @@ mod scalar_function {
             function: mir::ScalarFunction::Slice,
             args: vec![
                 mir::Expression::Array(
-                    vec![mir::Expression::Literal(
-                        mir::LiteralValue::String("abc".into()).into()
-                    )]
+                    vec![mir::Expression::Literal(mir::LiteralValue::String(
+                        "abc".into()
+                    ))]
                     .into()
                 ),
-                mir::Expression::Literal(mir::LiteralValue::Integer(0).into()),
+                mir::Expression::Literal(mir::LiteralValue::Integer(0)),
             ],
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: false,
         }),
     );
@@ -1346,14 +1251,14 @@ mod scalar_function {
             function: mir::ScalarFunction::Slice,
             args: vec![
                 mir::Expression::Array(
-                    vec![mir::Expression::Literal(
-                        mir::LiteralValue::String("abc".into()).into()
-                    )]
+                    vec![mir::Expression::Literal(mir::LiteralValue::String(
+                        "abc".into()
+                    ))]
                     .into()
                 ),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: true,
         }),
     );
@@ -1371,12 +1276,12 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Size,
             args: vec![mir::Expression::Array(
-                vec![mir::Expression::Literal(
-                    mir::LiteralValue::String("abc".into()).into()
-                )]
+                vec![mir::Expression::Literal(mir::LiteralValue::String(
+                    "abc".into()
+                ))]
                 .into()
             ),],
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: false,
         }),
     );
@@ -1389,12 +1294,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null)],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Size,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into())],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Size,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null)],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1411,10 +1314,9 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Position,
             args: vec![
-                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
-                mir::Expression::Literal(mir::LiteralValue::String("world".into()).into()),
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
+                mir::Expression::Literal(mir::LiteralValue::String("world".into())),
             ],
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -1430,15 +1332,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Position,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Position,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1453,10 +1353,9 @@ mod scalar_function {
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::CharLength,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::String("hello".into()).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
+            args: vec![mir::Expression::Literal(mir::LiteralValue::String(
+                "hello".into()
+            )),],
             is_nullable: false,
         }),
     );
@@ -1469,12 +1368,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::CharLength,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::CharLength,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1489,10 +1386,9 @@ mod scalar_function {
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::OctetLength,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::String("hello".into()).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
+            args: vec![mir::Expression::Literal(mir::LiteralValue::String(
+                "hello".into()
+            )),],
             is_nullable: false,
         }),
     );
@@ -1505,12 +1401,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::OctetLength,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::OctetLength,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1523,14 +1417,12 @@ mod scalar_function {
                 )),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::BitLength,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::String("hello".into()).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::BitLength,
+            vec![mir::Expression::Literal(mir::LiteralValue::String(
+                "hello".into()
+            )),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1541,12 +1433,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::BitLength,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::BitLength,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1557,14 +1447,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Double(3.5)),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Abs,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::Double(3.5).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Abs,
+            vec![mir::Expression::Literal(mir::LiteralValue::Double(3.5)),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1575,12 +1461,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Abs,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Abs,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1591,14 +1475,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Double(3.5)),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Ceil,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::Double(3.5).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Ceil,
+            vec![mir::Expression::Literal(mir::LiteralValue::Double(3.5)),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1609,12 +1489,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Ceil,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Ceil,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1625,14 +1503,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Double(3.5)),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Floor,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::Double(3.5).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Floor,
+            vec![mir::Expression::Literal(mir::LiteralValue::Double(3.5)),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1643,12 +1517,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Floor,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Floor,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1662,15 +1534,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Log,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Double(3.5).into()),
-                mir::Expression::Literal(mir::LiteralValue::Double(3.5).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Log,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Double(3.5)),
+                mir::Expression::Literal(mir::LiteralValue::Double(3.5)),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1684,15 +1554,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Log,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Log,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Null),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1706,15 +1574,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Mod,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Double(3.5).into()),
-                mir::Expression::Literal(mir::LiteralValue::Double(3.5).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Mod,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Double(3.5)),
+                mir::Expression::Literal(mir::LiteralValue::Double(3.5)),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1728,15 +1594,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Mod,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Mod,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Null),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1750,15 +1614,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Pow,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Double(3.5).into()),
-                mir::Expression::Literal(mir::LiteralValue::Double(3.5).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Pow,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Double(3.5)),
+                mir::Expression::Literal(mir::LiteralValue::Double(3.5)),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1772,15 +1634,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Pow,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Pow,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Null),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1791,14 +1651,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Double(3.5)),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Radians,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::Double(3.5).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Radians,
+            vec![mir::Expression::Literal(mir::LiteralValue::Double(3.5)),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1809,12 +1665,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Radians,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Radians,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1828,15 +1682,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Round,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Double(3.5).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(3).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Round,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Double(3.5)),
+                mir::Expression::Literal(mir::LiteralValue::Integer(3)),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1850,15 +1702,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Round,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Round,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Null),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1869,14 +1719,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Double(3.5)),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Cos,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::Double(3.5).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Cos,
+            vec![mir::Expression::Literal(mir::LiteralValue::Double(3.5)),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1887,12 +1733,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Cos,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Cos,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1903,14 +1747,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Double(3.5)),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Sin,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::Double(3.5).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Sin,
+            vec![mir::Expression::Literal(mir::LiteralValue::Double(3.5)),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1921,12 +1761,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Sin,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Sin,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1937,14 +1775,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Double(3.5)),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Tan,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::Double(3.5).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Tan,
+            vec![mir::Expression::Literal(mir::LiteralValue::Double(3.5)),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1955,12 +1789,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Tan,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Tan,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -1978,11 +1810,10 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Replace,
             args: vec![
-                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
-                mir::Expression::Literal(mir::LiteralValue::String("el".into()).into()),
-                mir::Expression::Literal(mir::LiteralValue::String("lo".into()).into()),
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
+                mir::Expression::Literal(mir::LiteralValue::String("el".into())),
+                mir::Expression::Literal(mir::LiteralValue::String("lo".into())),
             ],
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -2002,11 +1833,10 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Replace,
             args: vec![
-                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
-                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
+                mir::Expression::Literal(mir::LiteralValue::Null),
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
             ],
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: true,
         }),
     );
@@ -2025,11 +1855,10 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Substring,
             args: vec![
-                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
+                mir::Expression::Literal(mir::LiteralValue::Integer(1)),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
+            is_nullable: false
         }),
     );
 
@@ -2044,15 +1873,13 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Substring,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Substring,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2067,10 +1894,9 @@ mod scalar_function {
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Upper,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::String("hello".into()).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
+            args: vec![mir::Expression::Literal(mir::LiteralValue::String(
+                "hello".into()
+            )),],
             is_nullable: false,
         }),
     );
@@ -2083,12 +1909,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Upper,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Upper,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2103,10 +1927,9 @@ mod scalar_function {
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Lower,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::String("hello".into()).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
+            args: vec![mir::Expression::Literal(mir::LiteralValue::String(
+                "hello".into()
+            )),],
             is_nullable: false,
         }),
     );
@@ -2119,12 +1942,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Lower,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Lower,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2138,15 +1959,13 @@ mod scalar_function {
                 "hello".into()
             ))),
         })),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::BTrim,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
-                mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::BTrim,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
+                mir::Expression::Literal(mir::LiteralValue::String("h".into())),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2158,15 +1977,13 @@ mod scalar_function {
             ))),
             chars: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
         })),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::BTrim,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
-                mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::BTrim,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Null),
+                mir::Expression::Literal(mir::LiteralValue::String("h".into())),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2180,15 +1997,13 @@ mod scalar_function {
                 "hello".into()
             ))),
         })),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::LTrim,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
-                mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::LTrim,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
+                mir::Expression::Literal(mir::LiteralValue::String("h".into())),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2200,15 +2015,13 @@ mod scalar_function {
             ))),
             chars: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
         })),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::LTrim,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
-                mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::LTrim,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Null),
+                mir::Expression::Literal(mir::LiteralValue::String("h".into())),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2222,15 +2035,13 @@ mod scalar_function {
                 "hello".into()
             ))),
         })),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::RTrim,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
-                mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::RTrim,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
+                mir::Expression::Literal(mir::LiteralValue::String("h".into())),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2242,15 +2053,13 @@ mod scalar_function {
             ))),
             chars: Box::new(air::Expression::Literal(air::LiteralValue::Null)),
         })),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::RTrim,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
-                mir::Expression::Literal(mir::LiteralValue::String("h".into()).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::RTrim,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::Null),
+                mir::Expression::Literal(mir::LiteralValue::String("h".into())),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2265,16 +2074,14 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Split,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
-                mir::Expression::Literal(mir::LiteralValue::String("l".into()).into()),
-                mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Split,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
+                mir::Expression::Literal(mir::LiteralValue::String("l".into())),
+                mir::Expression::Literal(mir::LiteralValue::Integer(1)),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2289,16 +2096,14 @@ mod scalar_function {
                 ],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Split,
-            args: vec![
-                mir::Expression::Literal(mir::LiteralValue::String("hello".into()).into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
-                mir::Expression::Literal(mir::LiteralValue::Null.into()),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Split,
+            vec![
+                mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
+                mir::Expression::Literal(mir::LiteralValue::Null),
+                mir::Expression::Literal(mir::LiteralValue::Null),
             ],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2309,12 +2114,10 @@ mod scalar_function {
                 args: vec![],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::CurrentTimestamp,
-            args: vec![],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::CurrentTimestamp,
+            vec![],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2336,17 +2139,16 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Year,
             args: vec![mir::Expression::Cast(mir::CastExpr {
-                expr: mir::Expression::Literal(
-                    mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
-                )
+                expr: mir::Expression::Literal(mir::LiteralValue::String(
+                    "2012-12-20T12:12:12Z".to_string()
+                ))
                 .into(),
                 to: mir::Type::Datetime,
-                on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
-                on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                on_error: mir::Expression::Literal(mir::LiteralValue::Null).into(),
+                on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
-                cache: mir::schema::SchemaCache::new(),
             })],
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: false,
         }),
     );
@@ -2359,12 +2161,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Year,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Year,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2386,17 +2186,16 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Month,
             args: vec![mir::Expression::Cast(mir::CastExpr {
-                expr: mir::Expression::Literal(
-                    mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
-                )
+                expr: mir::Expression::Literal(mir::LiteralValue::String(
+                    "2012-12-20T12:12:12Z".to_string()
+                ))
                 .into(),
                 to: mir::Type::Datetime,
-                on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
-                on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                on_error: mir::Expression::Literal(mir::LiteralValue::Null).into(),
+                on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
-                cache: mir::schema::SchemaCache::new(),
             })],
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: false,
         }),
     );
@@ -2409,12 +2208,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Month,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Month,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2436,17 +2233,16 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Day,
             args: vec![mir::Expression::Cast(mir::CastExpr {
-                expr: mir::Expression::Literal(
-                    mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
-                )
+                expr: mir::Expression::Literal(mir::LiteralValue::String(
+                    "2012-12-20T12:12:12Z".to_string()
+                ))
                 .into(),
                 to: mir::Type::Datetime,
-                on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
-                on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                on_error: mir::Expression::Literal(mir::LiteralValue::Null).into(),
+                on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
-                cache: mir::schema::SchemaCache::new(),
             })],
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: false,
         }),
     );
@@ -2459,12 +2255,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Day,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Day,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2486,17 +2280,15 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::DayOfWeek,
             args: vec![mir::Expression::Cast(mir::CastExpr {
-                expr: mir::Expression::Literal(
-                    mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
-                )
+                expr: mir::Expression::Literal(mir::LiteralValue::String(
+                    "2012-12-20T12:12:12Z".to_string()
+                ))
                 .into(),
                 to: mir::Type::Datetime,
-                on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
-                on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                on_error: mir::Expression::Literal(mir::LiteralValue::Null).into(),
+                on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
-                cache: mir::schema::SchemaCache::new(),
             })],
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -2511,8 +2303,7 @@ mod scalar_function {
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::DayOfWeek,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null),],
             is_nullable: false,
         }),
     );
@@ -2536,17 +2327,16 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Hour,
             args: vec![mir::Expression::Cast(mir::CastExpr {
-                expr: mir::Expression::Literal(
-                    mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
-                )
+                expr: mir::Expression::Literal(mir::LiteralValue::String(
+                    "2012-12-20T12:12:12Z".to_string()
+                ))
                 .into(),
                 to: mir::Type::Datetime,
-                on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
-                on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                on_error: mir::Expression::Literal(mir::LiteralValue::Null).into(),
+                on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
-                cache: mir::schema::SchemaCache::new(),
             })],
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: false,
         }),
     );
@@ -2559,12 +2349,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Hour,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Hour,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2586,17 +2374,16 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Minute,
             args: vec![mir::Expression::Cast(mir::CastExpr {
-                expr: mir::Expression::Literal(
-                    mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
-                )
+                expr: mir::Expression::Literal(mir::LiteralValue::String(
+                    "2012-12-20T12:12:12Z".to_string()
+                ))
                 .into(),
                 to: mir::Type::Datetime,
-                on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
-                on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                on_error: mir::Expression::Literal(mir::LiteralValue::Null).into(),
+                on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
-                cache: mir::schema::SchemaCache::new(),
             })],
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: false,
         }),
     );
@@ -2609,12 +2396,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Minute,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Minute,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2636,17 +2421,16 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Second,
             args: vec![mir::Expression::Cast(mir::CastExpr {
-                expr: mir::Expression::Literal(
-                    mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
-                )
+                expr: mir::Expression::Literal(mir::LiteralValue::String(
+                    "2012-12-20T12:12:12Z".to_string()
+                ))
                 .into(),
                 to: mir::Type::Datetime,
-                on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
-                on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                on_error: mir::Expression::Literal(mir::LiteralValue::Null).into(),
+                on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
-                cache: mir::schema::SchemaCache::new(),
             })],
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: false,
         }),
     );
@@ -2659,12 +2443,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Second,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Second,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2686,17 +2468,15 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Millisecond,
             args: vec![mir::Expression::Cast(mir::CastExpr {
-                expr: mir::Expression::Literal(
-                    mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
-                )
+                expr: mir::Expression::Literal(mir::LiteralValue::String(
+                    "2012-12-20T12:12:12Z".to_string()
+                ))
                 .into(),
                 to: mir::Type::Datetime,
-                on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
-                on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                on_error: mir::Expression::Literal(mir::LiteralValue::Null).into(),
+                on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
-                cache: mir::schema::SchemaCache::new(),
             })],
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -2711,8 +2491,7 @@ mod scalar_function {
         )),
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Second,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
+            args: vec![mir::Expression::Literal(mir::LiteralValue::Null),],
             is_nullable: false,
         }),
     );
@@ -2736,17 +2515,16 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::Week,
             args: vec![mir::Expression::Cast(mir::CastExpr {
-                expr: mir::Expression::Literal(
-                    mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
-                )
+                expr: mir::Expression::Literal(mir::LiteralValue::String(
+                    "2012-12-20T12:12:12Z".to_string()
+                ))
                 .into(),
                 to: mir::Type::Datetime,
-                on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
-                on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                on_error: mir::Expression::Literal(mir::LiteralValue::Null).into(),
+                on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
-                cache: mir::schema::SchemaCache::new(),
             })],
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: false,
         }),
     );
@@ -2759,12 +2537,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Week,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Week,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2786,17 +2562,16 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::DayOfYear,
             args: vec![mir::Expression::Cast(mir::CastExpr {
-                expr: mir::Expression::Literal(
-                    mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
-                )
+                expr: mir::Expression::Literal(mir::LiteralValue::String(
+                    "2012-12-20T12:12:12Z".to_string()
+                ))
                 .into(),
                 to: mir::Type::Datetime,
-                on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
-                on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                on_error: mir::Expression::Literal(mir::LiteralValue::Null).into(),
+                on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
-                cache: mir::schema::SchemaCache::new(),
             })],
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: false,
         }),
     );
@@ -2809,12 +2584,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::DayOfYear,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::DayOfYear,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2836,17 +2609,16 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::IsoWeek,
             args: vec![mir::Expression::Cast(mir::CastExpr {
-                expr: mir::Expression::Literal(
-                    mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
-                )
+                expr: mir::Expression::Literal(mir::LiteralValue::String(
+                    "2012-12-20T12:12:12Z".to_string()
+                ))
                 .into(),
                 to: mir::Type::Datetime,
-                on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
-                on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                on_error: mir::Expression::Literal(mir::LiteralValue::Null).into(),
+                on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
-                cache: mir::schema::SchemaCache::new(),
             })],
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: false,
         }),
     );
@@ -2859,12 +2631,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::IsoWeek,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::IsoWeek,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2886,17 +2656,16 @@ mod scalar_function {
         input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
             function: mir::ScalarFunction::IsoWeekday,
             args: vec![mir::Expression::Cast(mir::CastExpr {
-                expr: mir::Expression::Literal(
-                    mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
-                )
+                expr: mir::Expression::Literal(mir::LiteralValue::String(
+                    "2012-12-20T12:12:12Z".to_string()
+                ))
                 .into(),
                 to: mir::Type::Datetime,
-                on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
-                on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+                on_error: mir::Expression::Literal(mir::LiteralValue::Null).into(),
+                on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
                 is_nullable: true,
-                cache: mir::schema::SchemaCache::new(),
             })],
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: false,
         }),
     );
@@ -2909,12 +2678,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::IsoWeekday,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::IsoWeekday,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2933,10 +2700,10 @@ mod scalar_function {
             function: mir::ScalarFunction::MergeObjects,
             args: vec![
                 mir::Expression::Document(
-                    unchecked_unique_linked_hash_map! {"foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),}
+                    unchecked_unique_linked_hash_map! {"foo".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),}
                 .into()),
             ],
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: false,
         }),
     );
@@ -2949,14 +2716,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Integer(4)),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Sqrt,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::Integer(4).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Sqrt,
+            vec![mir::Expression::Literal(mir::LiteralValue::Integer(4)),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2967,12 +2730,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Sqrt,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Sqrt,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -2983,14 +2744,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Integer(30)),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Degrees,
-            args: vec![mir::Expression::Literal(
-                mir::LiteralValue::Integer(30).into()
-            ),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: false,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Degrees,
+            vec![mir::Expression::Literal(mir::LiteralValue::Integer(30)),],
+        )),
     );
 
     test_translate_expression_with_schema_info!(
@@ -3001,12 +2758,10 @@ mod scalar_function {
                 args: vec![air::Expression::Literal(air::LiteralValue::Null),],
             }
         )),
-        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-            function: mir::ScalarFunction::Degrees,
-            args: vec![mir::Expression::Literal(mir::LiteralValue::Null.into()),],
-            cache: mir::schema::SchemaCache::new(),
-            is_nullable: true,
-        }),
+        input = mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+            mir::ScalarFunction::Degrees,
+            vec![mir::Expression::Literal(mir::LiteralValue::Null),],
+        )),
     );
 }
 
@@ -3025,15 +2780,14 @@ mod cast {
             on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
         })),
         input = mir::Expression::Cast(mir::CastExpr {
-            expr: mir::Expression::Literal(
-                mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
-            )
+            expr: mir::Expression::Literal(mir::LiteralValue::String(
+                "2012-12-20T12:12:12Z".to_string()
+            ))
             .into(),
             to: mir::Type::Datetime,
-            on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
-            on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+            on_error: mir::Expression::Literal(mir::LiteralValue::Null).into(),
+            on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
             is_nullable: true,
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
 
@@ -3049,15 +2803,14 @@ mod cast {
             on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
         })),
         input = mir::Expression::Cast(mir::CastExpr {
-            expr: mir::Expression::Literal(
-                mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
-            )
+            expr: mir::Expression::Literal(mir::LiteralValue::String(
+                "2012-12-20T12:12:12Z".to_string()
+            ))
             .into(),
             to: mir::Type::Array,
-            on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
-            on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+            on_error: mir::Expression::Literal(mir::LiteralValue::Null).into(),
+            on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
             is_nullable: true,
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
 
@@ -3073,15 +2826,14 @@ mod cast {
             on_null: air::Expression::Literal(air::LiteralValue::Null).into(),
         })),
         input = mir::Expression::Cast(mir::CastExpr {
-            expr: mir::Expression::Literal(
-                mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
-            )
+            expr: mir::Expression::Literal(mir::LiteralValue::String(
+                "2012-12-20T12:12:12Z".to_string()
+            ))
             .into(),
             to: mir::Type::Document,
-            on_error: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
-            on_null: mir::Expression::Literal(mir::LiteralValue::Null.into()).into(),
+            on_error: mir::Expression::Literal(mir::LiteralValue::Null).into(),
+            on_null: mir::Expression::Literal(mir::LiteralValue::Null).into(),
             is_nullable: true,
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
 }
@@ -3124,55 +2876,33 @@ mod searched_case {
             when_branch: vec![
                 mir::WhenBranch {
                     when: Box::new(mir::Expression::ScalarFunction(
-                        mir::ScalarFunctionApplication {
-                            function: mir::ScalarFunction::Eq,
-                            args: vec![
-                                mir::Expression::Literal(mir::LiteralExpr {
-                                    value: mir::LiteralValue::Integer(4),
-                                    cache: mir::schema::SchemaCache::new()
-                                }),
-                                mir::Expression::Literal(mir::LiteralExpr {
-                                    value: mir::LiteralValue::Integer(4),
-                                    cache: mir::schema::SchemaCache::new()
-                                })
+                        mir::ScalarFunctionApplication::new(
+                            mir::ScalarFunction::Eq,
+                            vec![
+                                mir::Expression::Literal(mir::LiteralValue::Integer(4),),
+                                mir::Expression::Literal(mir::LiteralValue::Integer(4),)
                             ],
-                            cache: mir::schema::SchemaCache::new(),
-                            is_nullable: true,
-                        }
+                        )
                     )),
-                    then: Box::new(mir::Expression::Literal(
-                        mir::LiteralValue::Integer(5).into()
-                    )),
+                    then: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(5))),
                     is_nullable: true,
                 },
                 mir::WhenBranch {
                     when: Box::new(mir::Expression::ScalarFunction(
-                        mir::ScalarFunctionApplication {
-                            function: mir::ScalarFunction::Eq,
-                            args: vec![
-                                mir::Expression::Literal(mir::LiteralExpr {
-                                    value: mir::LiteralValue::Integer(5),
-                                    cache: mir::schema::SchemaCache::new()
-                                }),
-                                mir::Expression::Literal(mir::LiteralExpr {
-                                    value: mir::LiteralValue::Integer(5),
-                                    cache: mir::schema::SchemaCache::new()
-                                })
+                        mir::ScalarFunctionApplication::new(
+                            mir::ScalarFunction::Eq,
+                            vec![
+                                mir::Expression::Literal(mir::LiteralValue::Integer(5),),
+                                mir::Expression::Literal(mir::LiteralValue::Integer(5),)
                             ],
-                            cache: mir::schema::SchemaCache::new(),
-                            is_nullable: true,
-                        }
+                        )
                     )),
-                    then: Box::new(mir::Expression::Literal(
-                        mir::LiteralValue::Integer(6).into()
-                    )),
+                    then: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(6))),
                     is_nullable: true,
                 },
             ],
-            else_branch: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(7).into()
-            )),
-            cache: mir::schema::SchemaCache::new(),
+            else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(7))),
+
             is_nullable: false,
         }),
     );
@@ -3219,33 +2949,21 @@ mod simple_case {
             }))
         })),
         input = mir::Expression::SimpleCase(mir::SimpleCaseExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(3).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(3))),
             when_branch: vec![
                 mir::WhenBranch {
-                    when: Box::new(mir::Expression::Literal(
-                        mir::LiteralValue::Integer(4).into()
-                    )),
-                    then: Box::new(mir::Expression::Literal(
-                        mir::LiteralValue::Integer(5).into()
-                    )),
+                    when: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(4))),
+                    then: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(5))),
                     is_nullable: false,
                 },
                 mir::WhenBranch {
-                    when: Box::new(mir::Expression::Literal(
-                        mir::LiteralValue::Integer(5).into()
-                    )),
-                    then: Box::new(mir::Expression::Literal(
-                        mir::LiteralValue::Integer(6).into()
-                    )),
+                    when: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(5))),
+                    then: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(6))),
                     is_nullable: false,
                 },
             ],
-            else_branch: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(7).into()
-            )),
-            cache: mir::schema::SchemaCache::new(),
+            else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(7))),
+
             is_nullable: false,
         }),
     );
@@ -3288,31 +3006,21 @@ mod simple_case {
             }))
         })),
         input = mir::Expression::SimpleCase(mir::SimpleCaseExpr {
-            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Null.into())),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
             when_branch: vec![
                 mir::WhenBranch {
-                    when: Box::new(mir::Expression::Literal(
-                        mir::LiteralValue::Integer(4).into()
-                    )),
-                    then: Box::new(mir::Expression::Literal(
-                        mir::LiteralValue::Integer(5).into()
-                    )),
+                    when: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(4))),
+                    then: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(5))),
                     is_nullable: true,
                 },
                 mir::WhenBranch {
-                    when: Box::new(mir::Expression::Literal(
-                        mir::LiteralValue::Integer(5).into()
-                    )),
-                    then: Box::new(mir::Expression::Literal(
-                        mir::LiteralValue::Integer(6).into()
-                    )),
+                    when: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(5))),
+                    then: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(6))),
                     is_nullable: true,
                 },
             ],
-            else_branch: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(7).into()
-            )),
-            cache: mir::schema::SchemaCache::new(),
+            else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(7))),
+
             is_nullable: true,
         }),
     );
@@ -3355,31 +3063,21 @@ mod simple_case {
             }))
         })),
         input = mir::Expression::SimpleCase(mir::SimpleCaseExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(3).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(3))),
             when_branch: vec![
                 mir::WhenBranch {
-                    when: Box::new(mir::Expression::Literal(mir::LiteralValue::Null.into())),
-                    then: Box::new(mir::Expression::Literal(
-                        mir::LiteralValue::Integer(5).into()
-                    )),
+                    when: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+                    then: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(5))),
                     is_nullable: true,
                 },
                 mir::WhenBranch {
-                    when: Box::new(mir::Expression::Literal(
-                        mir::LiteralValue::Integer(5).into()
-                    )),
-                    then: Box::new(mir::Expression::Literal(
-                        mir::LiteralValue::Integer(6).into()
-                    )),
+                    when: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(5))),
+                    then: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(6))),
                     is_nullable: false,
                 },
             ],
-            else_branch: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(7).into()
-            )),
-            cache: mir::schema::SchemaCache::new(),
+            else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(7))),
+
             is_nullable: true,
         }),
     );
@@ -3446,44 +3144,27 @@ mod simple_case {
             })),
         })),
         input = mir::Expression::SimpleCase(mir::SimpleCaseExpr {
-            expr: Box::new(mir::Expression::Literal(mir::LiteralExpr {
-                value: mir::LiteralValue::Integer(1),
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(1),)),
             when_branch: vec![mir::WhenBranch {
                 when: Box::new(mir::Expression::SimpleCase(mir::SimpleCaseExpr {
-                    expr: Box::new(mir::Expression::Literal(mir::LiteralExpr {
-                        value: mir::LiteralValue::Integer(2),
-                        cache: mir::schema::SchemaCache::new(),
-                    })),
+                    expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(2),)),
                     when_branch: vec![mir::WhenBranch {
-                        when: Box::new(mir::Expression::Literal(
-                            mir::LiteralValue::Integer(5).into()
-                        )),
-                        then: Box::new(mir::Expression::Literal(mir::LiteralExpr {
-                            value: mir::LiteralValue::Integer(2),
-                            cache: mir::schema::SchemaCache::new(),
-                        })),
+                        when: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(5))),
+                        then: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(2),)),
                         is_nullable: false,
                     }],
-                    else_branch: Box::new(mir::Expression::Literal(mir::LiteralExpr {
-                        value: mir::LiteralValue::Integer(1),
-                        cache: mir::schema::SchemaCache::new(),
-                    })),
-                    cache: mir::schema::SchemaCache::new(),
+                    else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(1),)),
                     is_nullable: false,
                 })),
-                then: Box::new(mir::Expression::Literal(mir::LiteralExpr {
-                    value: mir::LiteralValue::String("YES".to_string()),
-                    cache: mir::schema::SchemaCache::new(),
-                })),
+                then: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                    "YES".to_string()
+                ),)),
                 is_nullable: false,
             }],
-            else_branch: Box::new(mir::Expression::Literal(mir::LiteralExpr {
-                value: mir::LiteralValue::String("NO".to_string()),
-                cache: mir::schema::SchemaCache::new(),
-            })),
-            cache: mir::schema::SchemaCache::new(),
+            else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                "NO".to_string()
+            ),)),
+
             is_nullable: false,
         }),
     );
@@ -3498,12 +3179,11 @@ mod type_assertion {
             "2012-12-20T12:12:12Z".to_string()
         ))),
         input = mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
-            expr: mir::Expression::Literal(
-                mir::LiteralValue::String("2012-12-20T12:12:12Z".to_string()).into()
-            )
+            expr: mir::Expression::Literal(mir::LiteralValue::String(
+                "2012-12-20T12:12:12Z".to_string()
+            ))
             .into(),
             target_type: mir::Type::Datetime,
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
 }
@@ -3518,11 +3198,8 @@ mod is {
             target_type: air::TypeOrMissing::Number,
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Number,
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3532,11 +3209,8 @@ mod is {
             target_type: air::TypeOrMissing::Missing,
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Missing,
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3546,11 +3220,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::Array),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::Array),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3560,11 +3231,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::BinData),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::BinData),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3574,11 +3242,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::Boolean),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::Boolean),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3588,11 +3253,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::Datetime),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::Datetime),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3602,11 +3264,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::DbPointer),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::DbPointer),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3616,11 +3275,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::Decimal128),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::Decimal128),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3630,11 +3286,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::Document),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::Document),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
 
@@ -3645,11 +3298,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::Double),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::Double),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3659,11 +3309,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::Int32),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::Int32),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3673,11 +3320,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::Int64),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::Int64),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3687,11 +3331,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::Javascript),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::Javascript),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3701,11 +3342,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::JavascriptWithScope),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::JavascriptWithScope),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3715,11 +3353,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::MaxKey),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::MaxKey),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3729,11 +3364,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::MinKey),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::MinKey),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3743,11 +3375,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::Null),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::Null),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3757,11 +3386,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::ObjectId),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::ObjectId),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3771,11 +3397,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::RegularExpression),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::RegularExpression),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3785,11 +3408,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::String),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::String),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3799,11 +3419,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::Symbol),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::Symbol),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3813,11 +3430,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::Timestamp),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::Timestamp),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
     test_translate_expression!(
@@ -3827,11 +3441,8 @@ mod is {
             target_type: air::TypeOrMissing::Type(air::Type::Undefined),
         })),
         input = mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(42).into()
-            )),
+            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::Undefined),
-            cache: mir::schema::SchemaCache::new(),
         }),
     );
 }
@@ -3853,7 +3464,6 @@ mod like {
             expr: mir::Expression::Reference(("input", 0u16).into()).into(),
             pattern: mir::Expression::Reference(("pattern", 0u16).into()).into(),
             escape: Some('\\'),
-            cache: mir::schema::SchemaCache::new(),
         }),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -3897,7 +3507,7 @@ mod field_access {
         input = mir::Expression::FieldAccess(mir::FieldAccess {
             field: "sub2".to_string(),
             expr: mir_field_access("f", "sub1", true),
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: true,
         }),
         mapping_registry = {
@@ -3921,11 +3531,11 @@ mod field_access {
         })),
         input = mir::Expression::FieldAccess(mir::FieldAccess {
             expr: mir::Expression::Document(
-                unchecked_unique_linked_hash_map! {"a".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1).into())}
+                unchecked_unique_linked_hash_map! {"a".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1))}
             .into())
             .into(),
             field: "sub".to_string(),
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: true,
         }),
     );
@@ -3938,9 +3548,9 @@ mod field_access {
             )))
         })),
         input = mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: mir::Expression::Literal(mir::LiteralValue::String("f".into()).into()).into(),
+            expr: mir::Expression::Literal(mir::LiteralValue::String("f".into())).into(),
             field: "sub".to_string(),
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: true,
         }),
     );
@@ -4011,7 +3621,7 @@ mod subquery {
     use crate::{
         air, map,
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
-        mir::{self, binding_tuple::DatasourceName::Bottom},
+        mir::{self, binding_tuple::DatasourceName::Bottom, schema::SchemaCache},
         unchecked_unique_linked_hash_map,
         util::{mir_field_access, ROOT},
     };
@@ -4037,14 +3647,13 @@ mod subquery {
                 source: Box::new(mir::Stage::Collection(mir::Collection {
                     db: "test".to_string(),
                     collection: "foo".to_string(),
-                    cache: mir::schema::SchemaCache::new(),
+                    cache: SchemaCache::new(),
                 })),
                 expression: map! {
                     ("foo", 1u16).into() => mir::Expression::Reference(("foo", 1u16).into()),
                 },
-                cache: mir::schema::SchemaCache::new(),
+                cache: SchemaCache::new(),
             })),
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -4073,26 +3682,25 @@ mod subquery {
             output_expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
                 expr: Box::new(mir::Expression::Reference((Bottom, 1u16).into())),
                 field: "a".to_string(),
-                cache: mir::schema::SchemaCache::new(),
+
                 is_nullable: true,
             })),
             subquery: Box::new(mir::Stage::Project(mir::Project {
                 source: Box::new(mir::Stage::Collection(mir::Collection {
                     db: "test".to_string(),
                     collection: "bar".to_string(),
-                    cache: mir::schema::SchemaCache::new(),
+                    cache: SchemaCache::new(),
                 })),
                 expression: map! {
                     (Bottom, 1u16).into() => mir::Expression::Document(mir::DocumentExpr {
                         document: unchecked_unique_linked_hash_map! {
                             "a".to_string() => *mir_field_access("foo", "a", true),
                         },
-                        cache: mir::schema::SchemaCache::new(),
+
                     })
                 },
-                cache: mir::schema::SchemaCache::new(),
+                cache: SchemaCache::new(),
             })),
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: true,
         }),
         mapping_registry = {
@@ -4141,14 +3749,14 @@ mod subquery {
             output_expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
                 expr: Box::new(mir::Expression::Reference((Bottom, 1u16).into())),
                 field: "a".to_string(),
-                cache: mir::schema::SchemaCache::new(),
+
                 is_nullable: false,
             })),
             subquery: Box::new(mir::Stage::Project(mir::Project {
                 source: Box::new(mir::Stage::Collection(mir::Collection {
                     db: "test".to_string(),
                     collection: "bar".to_string(),
-                    cache: mir::schema::SchemaCache::new(),
+                    cache: SchemaCache::new(),
                 })),
                 expression: map! {
                     (Bottom, 1u16).into() => mir::Expression::Document(mir::DocumentExpr {
@@ -4159,16 +3767,15 @@ mod subquery {
                                     *mir_field_access("Foo coll-ß", "a", true),
                                     *mir_field_access("foo_coll_ß", "a", true),
                                 ],
-                                cache: mir::schema::SchemaCache::new(),
                                 is_nullable: true,
                             }),
                         },
-                        cache: mir::schema::SchemaCache::new(),
+
                     })
                 },
-                cache: mir::schema::SchemaCache::new(),
+                cache: SchemaCache::new(),
             })),
-            cache: mir::schema::SchemaCache::new(),
+
             is_nullable: true,
         }),
         mapping_registry = {
@@ -4212,15 +3819,14 @@ mod subquery {
                 source: Box::new(mir::Stage::Collection(mir::Collection {
                     db: "test".to_string(),
                     collection: "__bot".to_string(),
-                    cache: mir::schema::SchemaCache::new(),
+                    cache: SchemaCache::new(),
                 })),
                 expression: map! {
                     (Bottom, 1u16).into() => mir::Expression::Reference(("__bot", 1u16).into()),
-                    ("__bot", 1u16).into() => mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+                    ("__bot", 1u16).into() => mir::Expression::Literal(mir::LiteralValue::Integer(42)),
                 },
-                cache: mir::schema::SchemaCache::new(),
+                cache: SchemaCache::new(),
             })),
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -4244,21 +3850,20 @@ mod subquery {
             output_expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
                 expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
                 field: "a.b".to_string(),
-                cache: mir::schema::SchemaCache::new(),
+
                 is_nullable: false,
             })),
             subquery: Box::new(mir::Stage::Project(mir::Project {
                 source: Box::new(mir::Stage::Collection(mir::Collection {
                     db: "test".to_string(),
                     collection: "foo".to_string(),
-                    cache: mir::schema::SchemaCache::new(),
+                    cache: SchemaCache::new(),
                 })),
                 expression: map! {
                     ("foo", 1u16).into() => mir::Expression::Reference(("foo", 1u16).into()),
                 },
-                cache: mir::schema::SchemaCache::new(),
+                cache: SchemaCache::new(),
             })),
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -4267,16 +3872,12 @@ mod subquery {
         invalid_output_path,
         expected = Err(crate::translator::Error::SubqueryOutputPathNotFieldRef),
         input = mir::Expression::Subquery(mir::SubqueryExpr {
-            output_expr: Box::new(mir::Expression::Literal(mir::LiteralExpr {
-                value: mir::LiteralValue::Integer(1),
-                cache: mir::schema::SchemaCache::new(),
-            })),
+            output_expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(1),)),
             subquery: Box::new(mir::Stage::Collection(mir::Collection {
                 db: "test".to_string(),
                 collection: "foo".to_string(),
-                cache: mir::schema::SchemaCache::new(),
+                cache: SchemaCache::new(),
             })),
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
     );
@@ -4288,7 +3889,7 @@ mod subquery_comparison {
         catalog::Namespace,
         map,
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
-        mir::{self, binding_tuple::DatasourceName::Bottom},
+        mir::{self, binding_tuple::DatasourceName::Bottom, schema::SchemaCache},
         schema::{Atomic, Document, Schema, ANY_DOCUMENT},
         set, unchecked_unique_linked_hash_map,
         util::mir_field_access,
@@ -4322,21 +3923,19 @@ mod subquery_comparison {
         input = mir::Expression::SubqueryComparison(mir::SubqueryComparison {
             operator: mir::SubqueryComparisonOp::Eq,
             modifier: mir::SubqueryModifier::Any,
-            argument: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(5).into()
-            )),
+            argument: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(5))),
             subquery_expr: mir::SubqueryExpr {
                 output_expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
                     expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
                     field: "a".to_string(),
-                    cache: mir::schema::SchemaCache::new(),
+
                     is_nullable: true,
                 })),
                 subquery: Box::new(mir::Stage::Project(mir::Project {
                     source: Box::new(mir::Stage::Collection(mir::Collection {
                         db: "test".to_string(),
                         collection: "foo".to_string(),
-                        cache: mir::schema::SchemaCache::new(),
+                        cache: SchemaCache::new(),
                     })),
                     expression: map! {
                         ("foo", 1u16).into() => mir::Expression::Document(mir::DocumentExpr {
@@ -4344,19 +3943,16 @@ mod subquery_comparison {
                                 "a".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
                                     expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
                                     field: "a".to_string(),
-                                    cache: mir::schema::SchemaCache::new(),
+
                                     is_nullable: true,
                                 })
                             },
-                            cache: mir::schema::SchemaCache::new(),
                         }),
                     },
-                    cache: mir::schema::SchemaCache::new(),
+                    cache: SchemaCache::new(),
                 })),
-                cache: mir::schema::SchemaCache::new(),
                 is_nullable: true,
             },
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: true,
         }),
         catalog = Catalog::new(map! {
@@ -4398,21 +3994,19 @@ mod subquery_comparison {
         input = mir::Expression::SubqueryComparison(mir::SubqueryComparison {
             operator: mir::SubqueryComparisonOp::Eq,
             modifier: mir::SubqueryModifier::Any,
-            argument: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(5).into()
-            )),
+            argument: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(5))),
             subquery_expr: mir::SubqueryExpr {
                 output_expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
                     expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
                     field: "a".to_string(),
-                    cache: mir::schema::SchemaCache::new(),
+
                     is_nullable: false,
                 })),
                 subquery: Box::new(mir::Stage::Project(mir::Project {
                     source: Box::new(mir::Stage::Collection(mir::Collection {
                         db: "test".to_string(),
                         collection: "foo".to_string(),
-                        cache: mir::schema::SchemaCache::new(),
+                        cache: SchemaCache::new(),
                     })),
                     expression: map! {
                         ("foo", 1u16).into() => mir::Expression::Document(mir::DocumentExpr {
@@ -4420,19 +4014,17 @@ mod subquery_comparison {
                                 "a".to_string() => mir::Expression::FieldAccess(mir::FieldAccess {
                                     expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
                                     field: "a".to_string(),
-                                    cache: mir::schema::SchemaCache::new(),
+
                                     is_nullable: false,
                                 })
                             },
-                            cache: mir::schema::SchemaCache::new(),
+
                         }),
                     },
-                    cache: mir::schema::SchemaCache::new(),
+                    cache: SchemaCache::new(),
                 })),
-                cache: mir::schema::SchemaCache::new(),
                 is_nullable: false,
             },
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: false,
         }),
         catalog = Catalog::new(map! {
@@ -4477,36 +4069,32 @@ mod subquery_comparison {
         input = mir::Expression::SubqueryComparison(mir::SubqueryComparison {
             operator: mir::SubqueryComparisonOp::Gt,
             modifier: mir::SubqueryModifier::All,
-            argument: Box::new(mir::Expression::Literal(
-                mir::LiteralValue::Integer(5).into()
-            )),
+            argument: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(5))),
             subquery_expr: mir::SubqueryExpr {
                 output_expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
                     expr: Box::new(mir::Expression::Reference((Bottom, 1u16).into())),
                     field: "a".to_string(),
-                    cache: mir::schema::SchemaCache::new(),
+
                     is_nullable: false,
                 })),
                 subquery: Box::new(mir::Stage::Project(mir::Project {
                     source: Box::new(mir::Stage::Collection(mir::Collection {
                         db: "test".to_string(),
                         collection: "bar".to_string(),
-                        cache: mir::schema::SchemaCache::new(),
+                        cache: SchemaCache::new(),
                     })),
                     expression: map! {
                         (Bottom, 1u16).into() => mir::Expression::Document(mir::DocumentExpr {
                             document: unchecked_unique_linked_hash_map! {
                                 "a".to_string() => *mir_field_access("foo", "a", true),
                             },
-                            cache: mir::schema::SchemaCache::new(),
+
                         })
                     },
-                    cache: mir::schema::SchemaCache::new(),
+                    cache: SchemaCache::new(),
                 })),
-                cache: mir::schema::SchemaCache::new(),
                 is_nullable: true,
             },
-            cache: mir::schema::SchemaCache::new(),
             is_nullable: true,
         }),
         mapping_registry = {
@@ -4535,7 +4123,7 @@ mod subquery_exists {
     use crate::{
         air, map,
         mapping_registry::{MqlMappingRegistryValue, MqlReferenceType},
-        mir::{self, binding_tuple::DatasourceName::Bottom},
+        mir::{self, binding_tuple::DatasourceName::Bottom, schema::SchemaCache},
         unchecked_unique_linked_hash_map,
         util::{mir_field_access, ROOT},
     };
@@ -4559,12 +4147,12 @@ mod subquery_exists {
                 source: Box::new(mir::Stage::Collection(mir::Collection {
                     db: "test".into(),
                     collection: "foo".into(),
-                    cache: mir::schema::SchemaCache::new(),
+                    cache: SchemaCache::new(),
                 })),
                 expression: map! {
                     ("foo", 1u16).into() => mir::Expression::Reference(("foo", 1u16).into()),
                 },
-                cache: mir::schema::SchemaCache::new(),
+                cache: SchemaCache::new(),
             }))
             .into()
         ),
@@ -4592,14 +4180,14 @@ mod subquery_exists {
             source: Box::new(mir::Stage::Collection(mir::Collection {
                 db: "test".into(),
                 collection: "bar".into(),
-                cache: mir::schema::SchemaCache::new(),
+                    cache: SchemaCache::new(),
             })),
             expression: map! {
                 (Bottom, 1u16).into() => mir::Expression::Document(unchecked_unique_linked_hash_map! {
                     "a".into() => *mir_field_access("foo", "a", true)
                 }.into())
             },
-            cache: mir::schema::SchemaCache::new(),
+                    cache: SchemaCache::new(),
         })).into()),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -4627,17 +4215,11 @@ mod mql_intrinsic {
                 ],
             }
         )),
-        input = mir::Expression::MQLIntrinsic(mir::MQLExpression::FieldExistence(
-            mir::FieldExistence {
-                field_access: mir::FieldAccess {
-                    expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-                    field: "x".to_string(),
-                    cache: mir::schema::SchemaCache::new(),
-                    is_nullable: true,
-                },
-                cache: mir::schema::SchemaCache::new(),
-            }
-        )),
+        input = mir::Expression::MQLIntrinsicFieldExistence(mir::FieldAccess {
+            expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
+            field: "x".to_string(),
+            is_nullable: true,
+        },),
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
             mr.insert(

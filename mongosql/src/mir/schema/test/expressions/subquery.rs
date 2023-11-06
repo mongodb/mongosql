@@ -46,8 +46,7 @@ mod exists {
                         "a".into() => Expression::FieldAccess(FieldAccess{
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                             field: "a".into(),
-                            cache: SchemaCache::new(),
-                            is_nullable: true,
+                            is_nullable: false,
                         })
                     }.into())
                 },
@@ -86,16 +85,11 @@ mod exists {
                 })),
                 expression: map! {
                     ("a", 0u16).into() =>
-                        Expression::ScalarFunction(ScalarFunctionApplication {
-                            function: ScalarFunction::Div,
-                            args: vec![
-                                Expression::Literal(LiteralValue::Integer(1).into()),
-                                Expression::Literal(LiteralValue::Integer(2).into()),
-                                Expression::Literal(LiteralValue::Integer(3).into())
-                            ],
-                            is_nullable: true,
-                        cache: SchemaCache::new(),
-                        })
+                        Expression::ScalarFunction(ScalarFunctionApplication::new(ScalarFunction::Div,vec![
+                                Expression::Literal(LiteralValue::Integer(1)),
+                                Expression::Literal(LiteralValue::Integer(2)),
+                                Expression::Literal(LiteralValue::Integer(3))
+                            ],))
                 },
                 cache: SchemaCache::new(),
             }))
@@ -117,14 +111,12 @@ mod subquery_expr {
             "_2".into(),
             Some(vec!["_1".to_string()])
         )),
-        input = Expression::Subquery(SubqueryExpr {
-            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
-                expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
-                field: "_2".into(),
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            })),
-            subquery: Box::new(Stage::Project(Project {
+        input = Expression::Subquery(SubqueryExpr::new(
+            Box::new(Expression::FieldAccess(FieldAccess::new(
+                Box::new(Expression::Reference((Bottom, 1u16).into())),
+                "_2".into(),
+            ))),
+            Box::new(Stage::Project(Project {
                 source: Box::new(Stage::Collection(Collection {
                     db: "test".into(),
                     collection: "foo".into(),
@@ -132,14 +124,12 @@ mod subquery_expr {
                 })),
                 expression: map! {
                     (Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map! {
-                        "_1".into() => Expression::Literal(LiteralValue::Integer(5).into())
+                        "_1".into() => Expression::Literal(LiteralValue::Integer(5))
                     }.into())
                 },
                 cache: SchemaCache::new(),
             })),
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        )),
         catalog = Catalog::new(map! {
             Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
         }),
@@ -153,12 +143,10 @@ mod subquery_expr {
             Schema::Missing
         ])),
         input = Expression::Subquery(SubqueryExpr {
-            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
-                expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
-                field: "a".into(),
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            })),
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess::new(
+                Box::new(Expression::Reference((Bottom, 1u16).into())),
+                "a".into(),
+            ))),
             subquery: Box::new(Stage::Project(Project {
                 source: Box::new(Stage::Array(ArraySource {
                     array: vec![],
@@ -170,15 +158,13 @@ mod subquery_expr {
                         "a".into() => Expression::FieldAccess(FieldAccess{
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                             field: "a".into(),
-                            cache: SchemaCache::new(),
-                            is_nullable: true,
+                            is_nullable: false,
                         })
                     }.into())
                 },
                 cache: SchemaCache::new(),
             })),
-            cache: SchemaCache::new(),
-            is_nullable: true,
+            is_nullable: false,
         }),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::Document( Document{
@@ -198,12 +184,10 @@ mod subquery_expr {
             ("foo", 0u16).into()
         )),
         input = Expression::Subquery(SubqueryExpr {
-            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
-                expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                field: "a".into(),
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            })),
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess::new(
+                Box::new(Expression::Reference(("foo", 0u16).into())),
+                "a".into(),
+            ))),
             subquery: Box::new(Stage::Project(Project {
                 source: Box::new(Stage::Collection(Collection {
                     db: "test".into(),
@@ -215,15 +199,13 @@ mod subquery_expr {
                         "a".into() => Expression::FieldAccess(FieldAccess{
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                             field: "a".into(),
-                            cache: SchemaCache::new(),
-                            is_nullable: true,
+                            is_nullable: false,
                         })
                     }.into())
                 },
                 cache: SchemaCache::new(),
             })),
-            cache: SchemaCache::new(),
-            is_nullable: true,
+            is_nullable: false,
         }),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::Document( Document{
@@ -250,8 +232,7 @@ mod subquery_expr {
                 alias: "foo".into(),
                 cache: SchemaCache::new(),
             })),
-            cache: SchemaCache::new(),
-            is_nullable: true,
+            is_nullable: false,
         }),
     );
 
@@ -260,24 +241,21 @@ mod subquery_expr {
         subquery_expression_cardinality_must_be_one,
         expected = Ok(Schema::AnyOf(set![Schema::Atomic(Atomic::Integer)])),
         input = Expression::Subquery(SubqueryExpr {
-            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
-                expr: Box::new(Expression::Reference(("foo", 1u16).into())),
-                field: "a".into(),
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            })),
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess::new(
+                Box::new(Expression::Reference(("foo", 1u16).into())),
+                "a".into(),
+            ))),
             subquery: Box::new(Stage::Array(ArraySource {
                 array: vec![Expression::Document(
                     unchecked_unique_linked_hash_map! {
-                        "a".into() => Expression::Literal(LiteralValue::Integer(5).into())
+                        "a".into() => Expression::Literal(LiteralValue::Integer(5))
                     }
                     .into()
                 ),],
                 alias: "foo".into(),
                 cache: SchemaCache::new(),
             })),
-            cache: SchemaCache::new(),
-            is_nullable: true,
+            is_nullable: false,
         }),
     );
 
@@ -293,8 +271,7 @@ mod subquery_expr {
                 collection: "foo".into(),
                 cache: SchemaCache::new(),
             })),
-            cache: SchemaCache::new(),
-            is_nullable: true,
+            is_nullable: false,
         }),
         catalog = Catalog::new(map! {
             Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
@@ -307,23 +284,21 @@ mod subquery_expr {
         expected_error_code = 1008,
         expected = Err(mir_error::InvalidSubqueryCardinality),
         input = Expression::Subquery(SubqueryExpr {
-            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
-                expr: Box::new(Expression::Reference(("foo", 1u16).into())),
-                field: "a".into(),
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            })),
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess::new(
+                Box::new(Expression::Reference(("foo", 1u16).into())),
+                "a".into(),
+            ))),
             subquery: Box::new(Stage::Array(ArraySource {
                 array: vec![
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(5).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(5))
                         }
                         .into()
                     ),
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(6).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(6))
                         }
                         .into()
                     )
@@ -331,8 +306,7 @@ mod subquery_expr {
                 alias: "foo".into(),
                 cache: SchemaCache::new(),
             })),
-            cache: SchemaCache::new(),
-            is_nullable: true,
+            is_nullable: false,
         }),
     );
 }
@@ -346,29 +320,25 @@ mod subquery_comparison {
         input = Expression::SubqueryComparison(SubqueryComparison {
             operator: SubqueryComparisonOp::Eq,
             modifier: SubqueryModifier::All,
-            argument: Box::new(Expression::Literal(LiteralValue::Integer(5).into())),
+            argument: Box::new(Expression::Literal(LiteralValue::Integer(5))),
             subquery_expr: SubqueryExpr {
-                output_expr: Box::new(Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(("foo", 1u16).into())),
-                    field: "a".into(),
-                    cache: SchemaCache::new(),
-                    is_nullable: true,
-                })),
+                output_expr: Box::new(Expression::FieldAccess(FieldAccess::new(
+                    Box::new(Expression::Reference(("foo", 1u16).into())),
+                    "a".into(),
+                ))),
                 subquery: Box::new(Stage::Array(ArraySource {
                     array: vec![Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(5).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(5))
                         }
                         .into()
                     )],
                     alias: "foo".into(),
                     cache: SchemaCache::new(),
                 })),
-                cache: SchemaCache::new(),
-                is_nullable: true,
+                is_nullable: false,
             },
-            cache: SchemaCache::new(),
-            is_nullable: true,
+            is_nullable: false,
         }),
     );
 
@@ -381,25 +351,23 @@ mod subquery_comparison {
         input = Expression::SubqueryComparison(SubqueryComparison {
             operator: SubqueryComparisonOp::Eq,
             modifier: SubqueryModifier::All,
-            argument: Box::new(Expression::Literal(LiteralValue::Integer(5).into())),
+            argument: Box::new(Expression::Literal(LiteralValue::Integer(5))),
             subquery_expr: SubqueryExpr {
-                output_expr: Box::new(Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(("foo", 1u16).into())),
-                    field: "a".into(),
-                    cache: SchemaCache::new(),
-                    is_nullable: true,
-                })),
+                output_expr: Box::new(Expression::FieldAccess(FieldAccess::new(
+                    Box::new(Expression::Reference(("foo", 1u16).into())),
+                    "a".into(),
+                ))),
                 subquery: Box::new(Stage::Array(ArraySource {
                     array: vec![
                         Expression::Document(
                             unchecked_unique_linked_hash_map! {
-                                "a".into() => Expression::Literal(LiteralValue::Integer(5).into())
+                                "a".into() => Expression::Literal(LiteralValue::Integer(5))
                             }
                             .into()
                         ),
                         Expression::Document(
                             unchecked_unique_linked_hash_map! {
-                                "b".into() => Expression::Literal(LiteralValue::Integer(5).into())
+                                "b".into() => Expression::Literal(LiteralValue::Integer(5))
                             }
                             .into()
                         )
@@ -407,10 +375,8 @@ mod subquery_comparison {
                     alias: "foo".into(),
                     cache: SchemaCache::new(),
                 })),
-                cache: SchemaCache::new(),
-                is_nullable: true,
+                is_nullable: false,
             },
-            cache: SchemaCache::new(),
             is_nullable: true,
         }),
     );
@@ -426,30 +392,24 @@ mod subquery_comparison {
         input = Expression::SubqueryComparison(SubqueryComparison {
             operator: SubqueryComparisonOp::Eq,
             modifier: SubqueryModifier::All,
-            argument: Box::new(Expression::Literal(
-                LiteralValue::String("abc".into()).into()
-            )),
+            argument: Box::new(Expression::Literal(LiteralValue::String("abc".into()))),
             subquery_expr: SubqueryExpr {
-                output_expr: Box::new(Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(("foo", 1u16).into())),
-                    field: "a".into(),
-                    cache: SchemaCache::new(),
-                    is_nullable: true,
-                })),
+                output_expr: Box::new(Expression::FieldAccess(FieldAccess::new(
+                    Box::new(Expression::Reference(("foo", 1u16).into())),
+                    "a".into(),
+                ))),
                 subquery: Box::new(Stage::Array(ArraySource {
                     array: vec![Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(5).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(5))
                         }
                         .into()
                     )],
                     alias: "foo".into(),
                     cache: SchemaCache::new(),
                 })),
-                cache: SchemaCache::new(),
-                is_nullable: true,
+                is_nullable: false,
             },
-            cache: SchemaCache::new(),
             is_nullable: true,
         }),
     );

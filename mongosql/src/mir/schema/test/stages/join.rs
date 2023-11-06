@@ -208,7 +208,7 @@ mod standard {
                 alias: "bar".into(),
                 cache: SchemaCache::new(),
             })),
-            condition: Some(Expression::Literal(LiteralValue::Boolean(false).into())),
+            condition: Some(Expression::Literal(LiteralValue::Boolean(false))),
             cache: SchemaCache::new(),
         }),
     );
@@ -226,19 +226,19 @@ mod standard {
                 array: vec![
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(1).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(1))
                         }
                         .into()
                     ),
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(2).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(2))
                         }
                         .into()
                     ),
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(3).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(3))
                         }
                         .into()
                     )
@@ -250,13 +250,13 @@ mod standard {
                 array: vec![
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "b".into() => Expression::Literal(LiteralValue::Integer(5).into())
+                            "b".into() => Expression::Literal(LiteralValue::Integer(5))
                         }
                         .into()
                     ),
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "b".into() => Expression::Literal(LiteralValue::Integer(6).into())
+                            "b".into() => Expression::Literal(LiteralValue::Integer(6))
                         }
                         .into()
                     ),
@@ -282,19 +282,19 @@ mod standard {
                 array: vec![
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(1).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(1))
                         }
                         .into()
                     ),
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(2).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(2))
                         }
                         .into()
                     ),
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "a".into() => Expression::Literal(LiteralValue::Integer(3).into())
+                            "a".into() => Expression::Literal(LiteralValue::Integer(3))
                         }
                         .into()
                     )
@@ -306,13 +306,13 @@ mod standard {
                 array: vec![
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "b".into() => Expression::Literal(LiteralValue::Integer(5).into())
+                            "b".into() => Expression::Literal(LiteralValue::Integer(5))
                         }
                         .into()
                     ),
                     Expression::Document(
                         unchecked_unique_linked_hash_map! {
-                            "b".into() => Expression::Literal(LiteralValue::Integer(6).into())
+                            "b".into() => Expression::Literal(LiteralValue::Integer(6))
                         }
                         .into()
                     ),
@@ -320,7 +320,7 @@ mod standard {
                 alias: "bar".into(),
                 cache: SchemaCache::new(),
             })),
-            condition: Some(Expression::Literal(LiteralValue::Boolean(false).into())),
+            condition: Some(Expression::Literal(LiteralValue::Boolean(false))),
             cache: SchemaCache::new(),
         }),
     );
@@ -365,7 +365,7 @@ mod standard {
                     alias: "car".into(),
                     cache: SchemaCache::new(),
                 })),
-                condition: Some(Expression::Literal(LiteralValue::Boolean(false).into())),
+                condition: Some(Expression::Literal(LiteralValue::Boolean(false))),
                 cache: SchemaCache::new(),
             })),
             condition: None,
@@ -414,7 +414,7 @@ mod standard {
                 alias: "bar".into(),
                 cache: SchemaCache::new(),
             })),
-            condition: Some(Expression::Literal(LiteralValue::Integer(5).into())),
+            condition: Some(Expression::Literal(LiteralValue::Integer(5))),
             cache: SchemaCache::new(),
         }),
     );
@@ -427,7 +427,7 @@ mod standard {
             left: Box::new(Stage::Array(ArraySource {
                 array: vec![Expression::Document(
                     unchecked_unique_linked_hash_map! {
-                        "a".into() => Expression::Literal(LiteralValue::Boolean(true).into())
+                        "a".into() => Expression::Literal(LiteralValue::Boolean(true))
                     }
                     .into()
                 )],
@@ -440,14 +440,11 @@ mod standard {
                 cache: SchemaCache::new(),
             })),
             condition: Some(Expression::TypeAssertion(TypeAssertionExpr {
-                expr: Box::new(Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                    field: "a".to_string(),
-                    cache: SchemaCache::new(),
-                    is_nullable: true,
-                })),
+                expr: Box::new(Expression::FieldAccess(FieldAccess::new(
+                    Box::new(Expression::Reference(("foo", 0u16).into())),
+                    "a".to_string(),
+                ))),
                 target_type: Type::Boolean,
-                cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
         }),
@@ -466,7 +463,7 @@ mod standard {
             right: Box::new(Stage::Array(ArraySource {
                 array: vec![Expression::Document(
                     unchecked_unique_linked_hash_map! {
-                        "b".into() => Expression::Literal(LiteralValue::Boolean(true).into())
+                        "b".into() => Expression::Literal(LiteralValue::Boolean(true))
                     }
                     .into()
                 )],
@@ -474,14 +471,11 @@ mod standard {
                 cache: SchemaCache::new(),
             })),
             condition: Some(Expression::TypeAssertion(TypeAssertionExpr {
-                expr: Box::new(Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::Reference(("bar", 0u16).into())),
-                    field: "b".to_string(),
-                    cache: SchemaCache::new(),
-                    is_nullable: true,
-                })),
+                expr: Box::new(Expression::FieldAccess(FieldAccess::new(
+                    Box::new(Expression::Reference(("bar", 0u16).into())),
+                    "b".to_string(),
+                ))),
                 target_type: Type::Boolean,
-                cache: SchemaCache::new(),
             })),
             cache: SchemaCache::new(),
         }),
@@ -491,12 +485,10 @@ mod standard {
         join_condition_uses_correlated_datasource,
         expected = Ok(Schema::Atomic(Atomic::Boolean)),
         input = Expression::Subquery(SubqueryExpr {
-            output_expr: Box::new(Expression::FieldAccess(FieldAccess {
-                expr: Box::new(Expression::Reference((Bottom, 1u16).into())),
-                field: "a".into(),
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            })),
+            output_expr: Box::new(Expression::FieldAccess(FieldAccess::new(
+                Box::new(Expression::Reference((Bottom, 1u16).into())),
+                "a".into(),
+            ))),
             subquery: Box::new(Stage::Project(Project {
                 source: Box::new(Stage::Join(Join {
                     join_type: JoinType::Left,
@@ -511,14 +503,11 @@ mod standard {
                         cache: SchemaCache::new(),
                     })),
                     condition: Some(Expression::TypeAssertion(TypeAssertionExpr {
-                        expr: Box::new(Expression::FieldAccess(FieldAccess {
-                            expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                            field: "a".to_string(),
-                            cache: SchemaCache::new(),
-                            is_nullable: true,
-                        })),
+                        expr: Box::new(Expression::FieldAccess(FieldAccess::new(
+                            Box::new(Expression::Reference(("foo", 0u16).into())),
+                            "a".to_string(),
+                        ))),
                         target_type: Type::Boolean,
-                        cache: SchemaCache::new(),
                     })),
                     cache: SchemaCache::new(),
                 }),),
@@ -527,14 +516,12 @@ mod standard {
                         "a".into() => Expression::FieldAccess(FieldAccess{
                             expr: Box::new(Expression::Reference(("foo", 0u16).into())),
                             field: "a".into(),
-                            cache: SchemaCache::new(),
                             is_nullable: true,
                         })
                     }.into())
                 },
                 cache: SchemaCache::new(),
             })),
-            cache: SchemaCache::new(),
             is_nullable: true,
         }),
         schema_env = map! {

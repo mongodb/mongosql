@@ -7,7 +7,7 @@ use crate::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
-        FieldAccess, LiteralExpr,
+        FieldAccess, LiteralValue,
     },
     schema::{self, Satisfaction, SchemaEnvironment, BOOLEAN_OR_NULLISH, NULLISH},
     util::unique_linked_hash_map::UniqueLinkedHashMap,
@@ -289,13 +289,8 @@ impl<'a> Algebrizer<'a> {
         expr: mir::Expression,
         field: String,
     ) -> Result<mir::Expression> {
-        let mut fa = FieldAccess {
-            expr: Box::new(expr),
-            field,
-            // nullability will actually be set based on the schema result
-            is_nullable: false,
-            cache: SchemaCache::new(),
-        };
+        let mut fa = FieldAccess::new(Box::new(expr), field);
+
         fa.schema(&self.schema_inference_state()).map(|schema| {
             fa.is_nullable = NULLISH.satisfies(&schema) != Satisfaction::Not;
             Ok(mir::Expression::FieldAccess(fa))
@@ -357,10 +352,11 @@ impl<'a> Algebrizer<'a> {
                 // and algebrize after all expressions have been evaluated.
                 ast::SelectValuesExpression::Expression(e) => match e {
                     ast::Expression::Document(d) => {
-                        if bottom.is_some() {
-                            bottom.as_mut().unwrap().extend(d.into_iter());
+                        bottom = if let Some(mut bottom) = bottom {
+                            bottom.extend(d);
+                            Some(bottom)
                         } else {
-                            bottom = Some(d);
+                            Some(d)
                         }
                     }
                     // If select values are not a document, an error will ultimately be thrown. Algebrize
@@ -574,8 +570,7 @@ impl<'a> Algebrizer<'a> {
                 mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::MergeObjects,
                     is_nullable: false,
-                    args: datasource_refs,
-                    cache: SchemaCache::new()
+                    args: datasource_refs
                 })
             },
         };
@@ -749,10 +744,7 @@ impl<'a> Algebrizer<'a> {
     #[allow(clippy::only_used_in_recursion)] // false positive
     pub fn algebrize_flattened_field_path(&self, key: Key, path: Vec<String>) -> mir::Expression {
         match path.len() {
-            0 => mir::Expression::Reference(mir::ReferenceExpr {
-                key,
-                cache: SchemaCache::new(),
-            }),
+            0 => mir::Expression::Reference(mir::ReferenceExpr { key }),
             _ => self
                 .construct_field_access_expr(
                     self.algebrize_flattened_field_path(key, path.split_last().unwrap().1.to_vec()),
@@ -962,9 +954,7 @@ impl<'a> Algebrizer<'a> {
 
     pub fn algebrize_expression(&self, ast_node: ast::Expression) -> Result<mir::Expression> {
         match ast_node {
-            ast::Expression::Literal(l) => {
-                Ok(mir::Expression::Literal(self.algebrize_literal(l).into()))
-            }
+            ast::Expression::Literal(l) => Ok(mir::Expression::Literal(self.algebrize_literal(l))),
             ast::Expression::Array(a) => Ok(mir::Expression::Array(
                 a.into_iter()
                     .map(|e| self.algebrize_expression(e))
@@ -1085,12 +1075,13 @@ impl<'a> Algebrizer<'a> {
         let function = mir::ScalarFunction::try_from(f.function)?;
         let is_nullable = Self::determine_scalar_function_nullability(function, &args);
 
+        // here we don't use the new constructor because we're setting the
+        // proper nullability
         Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function,
                 is_nullable,
                 args,
-                cache: SchemaCache::new(),
             },
         ))
     }
@@ -1103,29 +1094,16 @@ impl<'a> Algebrizer<'a> {
                 function: mir::ScalarFunction::from(u.op),
                 is_nullable: Self::args_are_nullable(&args),
                 args,
-                cache: SchemaCache::new(),
             },
         ))
     }
 
     fn convert_literal_to_bool(expr: mir::Expression) -> mir::Expression {
         match expr {
-            mir::Expression::Literal(LiteralExpr {
-                value: mir::LiteralValue::Integer(i),
-                cache,
-            }) => match i {
-                0 => mir::Expression::Literal(LiteralExpr {
-                    value: mir::LiteralValue::Boolean(false),
-                    cache: SchemaCache::new(),
-                }),
-                1 => mir::Expression::Literal(LiteralExpr {
-                    value: mir::LiteralValue::Boolean(true),
-                    cache: SchemaCache::new(),
-                }),
-                _ => mir::Expression::Literal(LiteralExpr {
-                    value: mir::LiteralValue::Integer(i),
-                    cache,
-                }),
+            mir::Expression::Literal(mir::LiteralValue::Integer(i)) => match i {
+                0 => mir::Expression::Literal(LiteralValue::Boolean(false)),
+                1 => mir::Expression::Literal(LiteralValue::Boolean(true)),
+                _ => mir::Expression::Literal(LiteralValue::Integer(i)),
             },
             _ => expr,
         }
@@ -1143,8 +1121,8 @@ impl<'a> Algebrizer<'a> {
         match b.op {
             ast::BinaryOp::Comparison(_) => {
                 let (left_schema, right_schema) = (
-                    left.check_schema(&self.schema_inference_state())?,
-                    right.check_schema(&self.schema_inference_state())?,
+                    left.schema(&self.schema_inference_state())?,
+                    right.schema(&self.schema_inference_state())?,
                 );
 
                 // Here we convert integer literals of 1 or 0 to the proper True or False,
@@ -1169,12 +1147,13 @@ impl<'a> Algebrizer<'a> {
         let function = mir::ScalarFunction::try_from(b.op)?;
         let is_nullable = Self::determine_scalar_function_nullability(function, &args);
 
+        // here we don't use the new constructor because we're setting the
+        // calculated nullability
         let scalar_function_expr =
             mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
                 function,
                 is_nullable,
                 args,
-                cache: SchemaCache::new(),
             });
         Ok(scalar_function_expr)
     }
@@ -1183,7 +1162,6 @@ impl<'a> Algebrizer<'a> {
         Ok(mir::Expression::Is(mir::IsExpr {
             expr: Box::new(self.algebrize_expression(*ast_node.expr)?),
             target_type: mir::TypeOrMissing::try_from(ast_node.target_type)?,
-            cache: SchemaCache::new(),
         }))
     }
 
@@ -1192,7 +1170,6 @@ impl<'a> Algebrizer<'a> {
             expr: Box::new(self.algebrize_expression(*ast_node.expr)?),
             pattern: Box::new(self.algebrize_expression(*ast_node.pattern)?),
             escape: ast_node.escape,
-            cache: SchemaCache::new(),
         }))
     }
 
@@ -1210,7 +1187,6 @@ impl<'a> Algebrizer<'a> {
                 function,
                 is_nullable,
                 args,
-                cache: SchemaCache::new(),
             },
         ))
     }
@@ -1230,7 +1206,6 @@ impl<'a> Algebrizer<'a> {
                 function,
                 is_nullable: Self::args_are_nullable(&args),
                 args,
-                cache: SchemaCache::new(),
             },
         ))
     }
@@ -1259,7 +1234,6 @@ impl<'a> Algebrizer<'a> {
                 function,
                 is_nullable,
                 args,
-                cache: SchemaCache::new(),
             },
         ))
     }
@@ -1301,7 +1275,6 @@ impl<'a> Algebrizer<'a> {
                 is_nullable,
                 date_part,
                 args,
-                cache: SchemaCache::new(),
             },
         ))
     }
@@ -1312,14 +1285,10 @@ impl<'a> Algebrizer<'a> {
             ast::Expression::Literal(ast::Literal::String(s)) => {
                 self.construct_field_access_expr(expr, s)?
             }
-            sf => mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::ComputedFieldAccess,
-                // There is really no way to know statically if this can be NULL, so we just
-                // assume it can be.
-                is_nullable: true,
-                args: vec![expr, self.algebrize_expression(sf)?],
-                cache: SchemaCache::new(),
-            }),
+            sf => mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
+                mir::ScalarFunction::ComputedFieldAccess,
+                vec![expr, self.algebrize_expression(sf)?],
+            )),
         })
     }
 
@@ -1327,7 +1296,6 @@ impl<'a> Algebrizer<'a> {
         Ok(mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
             expr: Box::new(self.algebrize_expression(*t.expr)?),
             target_type: mir::Type::try_from(t.target_type)?,
-            cache: SchemaCache::new(),
         }))
     }
 
@@ -1337,7 +1305,7 @@ impl<'a> Algebrizer<'a> {
             .map(|e| self.algebrize_expression(*e))
             .transpose()?
             .map(Box::new)
-            .unwrap_or_else(|| Box::new(mir::Expression::Literal(mir::LiteralValue::Null.into())));
+            .unwrap_or_else(|| Box::new(mir::Expression::Literal(mir::LiteralValue::Null)));
         let expr = c.expr.map(|e| self.algebrize_expression(*e)).transpose()?;
         let when_branch = c
             .when_branch
@@ -1360,16 +1328,13 @@ impl<'a> Algebrizer<'a> {
                     expr,
                     when_branch,
                     else_branch,
-                    cache: SchemaCache::new(),
                     is_nullable: NULLISH.satisfies(&expr_schema) != Satisfaction::Not,
                 }))
             }
-            None => Ok(mir::Expression::SearchedCase(mir::SearchedCaseExpr {
+            None => Ok(mir::Expression::SearchedCase(mir::SearchedCaseExpr::new(
                 when_branch,
                 else_branch,
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            })),
+            ))),
         }
     }
 
@@ -1401,7 +1366,6 @@ impl<'a> Algebrizer<'a> {
                     on_null: Box::new(on_null),
                     on_error: Box::new(on_error),
                     is_nullable,
-                    cache: SchemaCache::new(),
                 }))
             }
         }
@@ -1420,7 +1384,6 @@ impl<'a> Algebrizer<'a> {
                         expr: Box::new(mir::Expression::Reference(key.into())),
                         field: field.to_string(),
                         is_nullable: NULLISH.satisfies(&schema) != Satisfaction::Not,
-                        cache: SchemaCache::new(),
                     }))),
                     None => Err(Error::InvalidSubqueryDegree),
                 }?;
@@ -1428,7 +1391,6 @@ impl<'a> Algebrizer<'a> {
                 Ok(mir::SubqueryExpr {
                     output_expr,
                     subquery,
-                    cache: SchemaCache::new(),
                     is_nullable,
                 })
             }
@@ -1460,7 +1422,6 @@ impl<'a> Algebrizer<'a> {
                 is_nullable,
                 argument: Box::new(argument),
                 subquery_expr: self.algebrize_subquery_expr(*s.subquery)?,
-                cache: SchemaCache::new(),
             },
         ))
     }
@@ -1482,7 +1443,6 @@ impl<'a> Algebrizer<'a> {
             expr: Box::new(expr),
             field: p.subpath,
             is_nullable,
-            cache: SchemaCache::new(),
         }))
     }
 

@@ -193,8 +193,8 @@ fn get_comparison_literal(args: &Vec<Expression>) -> Option<LiteralValue> {
         return None;
     }
     match args.as_slice() {
-        [Expression::Literal(ref lit), Expression::FieldAccess(_)] => Some(lit.value.clone()),
-        [Expression::FieldAccess(_), Expression::Literal(ref lit)] => Some(lit.value.clone()),
+        [Expression::Literal(ref lit), Expression::FieldAccess(_)] => Some(lit.clone()),
+        [Expression::FieldAccess(_), Expression::Literal(ref lit)] => Some(lit.clone()),
         _ => None,
     }
 }
@@ -205,7 +205,7 @@ fn get_between_literals(args: &Vec<Expression>) -> Option<(LiteralValue, Literal
     }
     match args.as_slice() {
         [Expression::FieldAccess(_), Expression::Literal(ref lit1), Expression::Literal(ref lit2)] => {
-            Some((lit1.value.clone(), lit2.value.clone()))
+            Some((lit1.clone(), lit2.clone()))
         }
         _ => None,
     }

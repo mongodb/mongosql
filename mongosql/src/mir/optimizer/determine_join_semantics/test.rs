@@ -89,12 +89,10 @@ fn make_standard_join(condition: Option<Expression>) -> Stage {
 }
 
 fn make_equality_condition(arg1: Expression, arg2: Expression) -> Expression {
-    Expression::ScalarFunction(ScalarFunctionApplication {
-        function: ScalarFunction::Eq,
-        args: vec![arg1, arg2],
-        cache: SchemaCache::new(),
-        is_nullable: true,
-    })
+    Expression::ScalarFunction(ScalarFunctionApplication::new(
+        ScalarFunction::Eq,
+        vec![arg1, arg2],
+    ))
 }
 
 mod do_not_change {
@@ -108,7 +106,7 @@ mod do_not_change {
             right: Box::new(Stage::Array(ArraySource {
                 array: vec![Expression::Document(
                     unchecked_unique_linked_hash_map! {
-                        "a".into() => Expression::Literal(LiteralValue::Integer(5).into())
+                        "a".into() => Expression::Literal(LiteralValue::Integer(5))
                     }
                     .into()
                 )],
@@ -132,12 +130,11 @@ mod do_not_change {
             Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Document(
                     unchecked_unique_linked_hash_map! {
-                        "a".into() => Expression::Literal(LiteralValue::Integer(10).into()),
+                        "a".into() => Expression::Literal(LiteralValue::Integer(10)),
                     }
                     .into()
                 )),
                 field: "a".to_string(),
-                cache: SchemaCache::new(),
                 is_nullable: false,
             })
         )))
@@ -150,12 +147,11 @@ mod do_not_change {
             Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Document(
                     unchecked_unique_linked_hash_map! {
-                        "a".into() => Expression::Literal(LiteralValue::Integer(10).into()),
+                        "a".into() => Expression::Literal(LiteralValue::Integer(10)),
                     }
                     .into()
                 )),
                 field: "a".to_string(),
-                cache: SchemaCache::new(),
                 is_nullable: true,
             })
         )))
@@ -164,8 +160,8 @@ mod do_not_change {
     test_determine_join_semantics_no_op!(
         equality_condition_with_non_field_access_args,
         make_standard_join(Some(make_equality_condition(
-            Expression::Literal(LiteralValue::Integer(1).into()),
-            Expression::Literal(LiteralValue::Integer(2).into()),
+            Expression::Literal(LiteralValue::Integer(1)),
+            Expression::Literal(LiteralValue::Integer(2)),
         )))
     );
 
@@ -178,7 +174,6 @@ mod do_not_change {
                     *mir_field_access("local", "may_be_null", true),
                     *mir_field_access("foreign", "may_be_null", true),
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: true,
             }
         )))
@@ -193,7 +188,6 @@ mod do_not_change {
                     *mir_field_access("local", "may_be_null", true),
                     *mir_field_access("local", "not_null", false),
                 ],
-                cache: SchemaCache::new(),
                 is_nullable: true,
             }
         )))
@@ -257,16 +251,9 @@ mod change {
             join_type: JoinType::Inner,
             source: Box::new(Stage::Filter(Filter {
                 source: mir_project_collection(None, "local", None, None),
-                condition: Expression::MQLIntrinsic(MQLExpression::FieldExistence(
-                    FieldExistence {
-                        field_access: FieldAccess {
-                            expr: Box::new(Expression::Reference(("local", 0u16).into())),
-                            field: "may_be_null".to_string(),
-                            cache: SchemaCache::new(),
-                            is_nullable: true,
-                        },
-                        cache: SchemaCache::new(),
-                    }
+                condition: Expression::MQLIntrinsicFieldExistence(FieldAccess::new(
+                    Box::new(Expression::Reference(("local", 0u16).into())),
+                    "may_be_null".to_string(),
                 )),
                 cache: SchemaCache::new(),
             })),

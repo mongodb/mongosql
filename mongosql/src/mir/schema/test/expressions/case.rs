@@ -1,8 +1,5 @@
 use crate::{
-    mir::{
-        schema::{Error as mir_error, SchemaCache},
-        *,
-    },
+    mir::{schema::Error as mir_error, *},
     schema::{Atomic, Schema},
     set, test_schema,
 };
@@ -24,13 +21,12 @@ mod searched {
         }),
         input = Expression::SearchedCase(SearchedCaseExpr {
             when_branch: vec![WhenBranch {
-                when: Box::new(Expression::Literal(LiteralValue::Integer(1).into())),
-                then: Box::new(Expression::Literal(LiteralValue::Integer(2).into())),
-                is_nullable: true,
+                when: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                then: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                is_nullable: false,
             }],
-            else_branch: Box::new(Expression::Literal(LiteralValue::Null.into())),
-            cache: SchemaCache::new(),
-            is_nullable: true,
+            else_branch: Box::new(Expression::Literal(LiteralValue::Null)),
+            is_nullable: false,
         }),
     );
 
@@ -39,9 +35,8 @@ mod searched {
         expected = Ok(Schema::AnyOf(set![Schema::Atomic(Atomic::Long)])),
         input = Expression::SearchedCase(SearchedCaseExpr {
             when_branch: vec![],
-            else_branch: Box::new(Expression::Literal(LiteralValue::Long(1).into())),
-            cache: SchemaCache::new(),
-            is_nullable: true,
+            else_branch: Box::new(Expression::Literal(LiteralValue::Long(1))),
+            is_nullable: false,
         }),
     );
 
@@ -55,19 +50,18 @@ mod searched {
         input = Expression::SearchedCase(SearchedCaseExpr {
             when_branch: vec![
                 WhenBranch {
-                    when: Box::new(Expression::Literal(LiteralValue::Boolean(true).into())),
-                    then: Box::new(Expression::Literal(LiteralValue::Integer(1).into())),
-                    is_nullable: true,
+                    when: Box::new(Expression::Literal(LiteralValue::Boolean(true))),
+                    then: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                    is_nullable: false,
                 },
                 WhenBranch {
-                    when: Box::new(Expression::Literal(LiteralValue::Boolean(true).into())),
-                    then: Box::new(Expression::Literal(LiteralValue::Long(2).into())),
-                    is_nullable: true,
+                    when: Box::new(Expression::Literal(LiteralValue::Boolean(true))),
+                    then: Box::new(Expression::Literal(LiteralValue::Long(2))),
+                    is_nullable: false,
                 }
             ],
-            else_branch: Box::new(Expression::Literal(LiteralValue::Null.into())),
-            cache: SchemaCache::new(),
-            is_nullable: true,
+            else_branch: Box::new(Expression::Literal(LiteralValue::Null)),
+            is_nullable: false,
         }),
     );
 }
@@ -84,17 +78,14 @@ mod simple {
             Schema::Atomic(Atomic::Integer),
         )),
         input = Expression::SimpleCase(SimpleCaseExpr {
-            expr: Box::new(Expression::Literal(
-                LiteralValue::String("abc".to_string()).into()
-            )),
+            expr: Box::new(Expression::Literal(LiteralValue::String("abc".to_string()))),
             when_branch: vec![WhenBranch {
-                when: Box::new(Expression::Literal(LiteralValue::Integer(1).into())),
-                then: Box::new(Expression::Literal(LiteralValue::Integer(2).into())),
-                is_nullable: true,
+                when: Box::new(Expression::Literal(LiteralValue::Integer(1))),
+                then: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                is_nullable: false,
             }],
-            else_branch: Box::new(Expression::Literal(LiteralValue::Null.into())),
-            cache: SchemaCache::new(),
-            is_nullable: true,
+            else_branch: Box::new(Expression::Literal(LiteralValue::Null)),
+            is_nullable: false,
         }),
     );
 
@@ -102,11 +93,10 @@ mod simple {
         simple_case_with_no_when_branch_uses_else_branch,
         expected = Ok(Schema::AnyOf(set![Schema::Atomic(Atomic::Long)])),
         input = Expression::SimpleCase(SimpleCaseExpr {
-            expr: Box::new(Expression::Literal(LiteralValue::Integer(1).into())),
+            expr: Box::new(Expression::Literal(LiteralValue::Integer(1))),
             when_branch: vec![],
-            else_branch: Box::new(Expression::Literal(LiteralValue::Long(2).into())),
-            cache: SchemaCache::new(),
-            is_nullable: true,
+            else_branch: Box::new(Expression::Literal(LiteralValue::Long(2))),
+            is_nullable: false,
         }),
     );
 
@@ -118,22 +108,21 @@ mod simple {
             Schema::Atomic(Atomic::Null)
         ])),
         input = Expression::SimpleCase(SimpleCaseExpr {
-            expr: Box::new(Expression::Literal(LiteralValue::Integer(1).into())),
+            expr: Box::new(Expression::Literal(LiteralValue::Integer(1))),
             when_branch: vec![
                 WhenBranch {
-                    when: Box::new(Expression::Literal(LiteralValue::Integer(2).into())),
-                    then: Box::new(Expression::Literal(LiteralValue::Integer(3).into())),
-                    is_nullable: true,
+                    when: Box::new(Expression::Literal(LiteralValue::Integer(2))),
+                    then: Box::new(Expression::Literal(LiteralValue::Integer(3))),
+                    is_nullable: false,
                 },
                 WhenBranch {
-                    when: Box::new(Expression::Literal(LiteralValue::Long(4).into())),
-                    then: Box::new(Expression::Literal(LiteralValue::Long(5).into())),
-                    is_nullable: true,
+                    when: Box::new(Expression::Literal(LiteralValue::Long(4))),
+                    then: Box::new(Expression::Literal(LiteralValue::Long(5))),
+                    is_nullable: false,
                 }
             ],
-            else_branch: Box::new(Expression::Literal(LiteralValue::Null.into())),
-            cache: SchemaCache::new(),
-            is_nullable: true,
+            else_branch: Box::new(Expression::Literal(LiteralValue::Null)),
+            is_nullable: false,
         }),
     );
 }

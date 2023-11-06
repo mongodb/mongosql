@@ -19,11 +19,9 @@ use super::Optimizer;
 use crate::mir::LateralJoin;
 use crate::{
     mir::{
-        binding_tuple::Key,
-        schema::{SchemaCache, SchemaInferenceState},
-        visitor::Visitor,
-        Derived, EquiJoin, Expression, Filter, Group, Join, Limit, MQLStage, MatchFilter, Offset,
-        Project, ScalarFunction, ScalarFunctionApplication, Set, Sort, Stage, Unwind,
+        binding_tuple::Key, schema::SchemaInferenceState, visitor::Visitor, Derived, EquiJoin,
+        Expression, Filter, Group, Join, Limit, MQLStage, MatchFilter, Offset, Project,
+        ScalarFunction, ScalarFunctionApplication, Set, Sort, Stage, Unwind,
     },
     schema::ResultSet,
     SchemaCheckingMode,
@@ -334,7 +332,6 @@ impl<'a> StageMovementVisitor<'a> {
                 function: ScalarFunction::And,
                 is_nullable,
                 mut args,
-                cache,
             })) => {
                 let filter_is_nullable = filter_condition.is_nullable();
                 args.push(filter_condition);
@@ -342,14 +339,12 @@ impl<'a> StageMovementVisitor<'a> {
                     function: ScalarFunction::And,
                     is_nullable: is_nullable || filter_is_nullable,
                     args,
-                    cache,
                 }))
             }
             Some(condition) => Some(Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::And,
                 is_nullable: condition.is_nullable() || filter_condition.is_nullable(),
                 args: vec![condition, filter_condition],
-                cache: SchemaCache::new(),
             })),
         }
     }

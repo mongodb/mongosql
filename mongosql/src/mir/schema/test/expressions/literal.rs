@@ -11,37 +11,37 @@ mod scalar {
     test_schema!(
         literal_null,
         expected = Ok(Schema::Atomic(Atomic::Null)),
-        input = Expression::Literal(LiteralValue::Null.into()),
+        input = Expression::Literal(LiteralValue::Null),
     );
 
     test_schema!(
         literal_bool,
         expected = Ok(Schema::Atomic(Atomic::Boolean)),
-        input = Expression::Literal(LiteralValue::Boolean(true).into()),
+        input = Expression::Literal(LiteralValue::Boolean(true)),
     );
 
     test_schema!(
         literal_string,
         expected = Ok(Schema::Atomic(Atomic::String)),
-        input = Expression::Literal(LiteralValue::String("foobar".to_string()).into()),
+        input = Expression::Literal(LiteralValue::String("foobar".to_string())),
     );
 
     test_schema!(
         literal_int,
         expected = Ok(Schema::Atomic(Atomic::Integer)),
-        input = Expression::Literal(LiteralValue::Integer(5).into()),
+        input = Expression::Literal(LiteralValue::Integer(5)),
     );
 
     test_schema!(
         literal_long,
         expected = Ok(Schema::Atomic(Atomic::Long)),
-        input = Expression::Literal(LiteralValue::Long(6).into()),
+        input = Expression::Literal(LiteralValue::Long(6)),
     );
 
     test_schema!(
         literal_double,
         expected = Ok(Schema::Atomic(Atomic::Double)),
-        input = Expression::Literal(LiteralValue::Double(7.0).into()),
+        input = Expression::Literal(LiteralValue::Double(7.0)),
     );
 
     test_schema!(
@@ -73,7 +73,7 @@ mod array {
         expected = Ok(Schema::Array(Box::new(Schema::AnyOf(set![
             Schema::Atomic(Atomic::Null)
         ])))),
-        input = Expression::Array(vec![Expression::Literal(LiteralValue::Null.into())].into()),
+        input = Expression::Array(vec![Expression::Literal(LiteralValue::Null)].into()),
     );
 
     test_schema!(
@@ -84,8 +84,8 @@ mod array {
         ])))),
         input = Expression::Array(
             vec![
-                Expression::Literal(LiteralValue::Null.into()),
-                Expression::Literal(LiteralValue::Null.into())
+                Expression::Literal(LiteralValue::Null),
+                Expression::Literal(LiteralValue::Null)
             ]
             .into()
         ),
@@ -201,10 +201,10 @@ mod array {
         ])))),
         input = Expression::Array(
             vec![
-                Expression::Literal(LiteralValue::Null.into()),
-                Expression::Literal(LiteralValue::String("hello".to_string()).into()),
-                Expression::Literal(LiteralValue::Null.into()),
-                Expression::Literal(LiteralValue::String("world".to_string()).into()),
+                Expression::Literal(LiteralValue::Null),
+                Expression::Literal(LiteralValue::String("hello".to_string())),
+                Expression::Literal(LiteralValue::Null),
+                Expression::Literal(LiteralValue::String("world".to_string())),
             ]
             .into()
         ),
@@ -225,53 +225,59 @@ mod document {
     );
 
     test_schema!(
-    document_literal_all_required,
-    expected = Ok(Schema::Document(Document {
-        keys: map! {
-            "a".to_string() => Schema::Atomic(Atomic::String),
-            "b".to_string() => Schema::Atomic(Atomic::String),
-            "c".to_string() => Schema::Atomic(Atomic::Null),
-            "d".to_string() => Schema::Atomic(Atomic::Long),
-        },
-        required: set! {
-            "a".to_string(),
-            "b".to_string(),
-            "c".to_string(),
-            "d".to_string(),
-        },
-        additional_properties: false,
-    })),
-    input = Expression::Document(unchecked_unique_linked_hash_map! {
-        "a".to_string() => Expression::Literal(LiteralValue::String("Hello".to_string()).into()),
-        "b".to_string() => Expression::Literal(LiteralValue::String("World".to_string()).into()),
-        "c".to_string() => Expression::Literal(LiteralValue::Null.into()),
-        "d".to_string() => Expression::Literal(LiteralValue::Long(42).into()),
-    }.into()),
-);
+        document_literal_all_required,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::String),
+                "b".to_string() => Schema::Atomic(Atomic::String),
+                "c".to_string() => Schema::Atomic(Atomic::Null),
+                "d".to_string() => Schema::Atomic(Atomic::Long),
+            },
+            required: set! {
+                "a".to_string(),
+                "b".to_string(),
+                "c".to_string(),
+                "d".to_string(),
+            },
+            additional_properties: false,
+        })),
+        input = Expression::Document(
+            unchecked_unique_linked_hash_map! {
+                "a".to_string() => Expression::Literal(LiteralValue::String("Hello".to_string())),
+                "b".to_string() => Expression::Literal(LiteralValue::String("World".to_string())),
+                "c".to_string() => Expression::Literal(LiteralValue::Null),
+                "d".to_string() => Expression::Literal(LiteralValue::Long(42)),
+            }
+            .into()
+        ),
+    );
 
     test_schema!(
-    document_literal_some_keys_may_or_must_satisfy_missing,
-    expected = Ok(Schema::Document(Document {
-        keys: map! {
-            "a".to_string() => Schema::Atomic(Atomic::String),
-            "c".to_string() => Schema::Atomic(Atomic::Null),
-            "d".to_string() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing]),
+        document_literal_some_keys_may_or_must_satisfy_missing,
+        expected = Ok(Schema::Document(Document {
+            keys: map! {
+                "a".to_string() => Schema::Atomic(Atomic::String),
+                "c".to_string() => Schema::Atomic(Atomic::Null),
+                "d".to_string() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing]),
+            },
+            required: set! {
+                "a".to_string(),
+                "c".to_string(),
+            },
+            additional_properties: false,
+        })),
+        input = Expression::Document(
+            unchecked_unique_linked_hash_map! {
+                "a".to_string() => Expression::Literal(LiteralValue::String("Hello".to_string())),
+                "b".to_string() => Expression::Reference(("b", 0u16).into()),
+                "c".to_string() => Expression::Literal(LiteralValue::Null),
+                "d".to_string() => Expression::Reference(("a", 0u16).into()),
+            }
+            .into()
+        ),
+        schema_env = map! {
+            ("a", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing]),
+            ("b", 0u16).into() => Schema::Missing,
         },
-        required: set! {
-            "a".to_string(),
-            "c".to_string(),
-        },
-        additional_properties: false,
-    })),
-    input = Expression::Document(unchecked_unique_linked_hash_map! {
-        "a".to_string() => Expression::Literal(LiteralValue::String("Hello".to_string()).into()),
-        "b".to_string() => Expression::Reference(("b", 0u16).into()),
-        "c".to_string() => Expression::Literal(LiteralValue::Null.into()),
-        "d".to_string() => Expression::Reference(("a", 0u16).into()),
-    }.into()),
-    schema_env = map! {
-        ("a", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Null), Schema::Missing]),
-        ("b", 0u16).into() => Schema::Missing,
-    },
-);
+    );
 }

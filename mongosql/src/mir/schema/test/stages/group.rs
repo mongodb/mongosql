@@ -32,22 +32,18 @@ fn group_stage_refs_only() -> Stage {
 fn group_aliased_ref() -> OptionallyAliasedExpr {
     OptionallyAliasedExpr::Aliased(AliasedExpr {
         alias: "A".into(),
-        expr: Expression::FieldAccess(FieldAccess {
-            expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-            field: "a".into(),
-            cache: SchemaCache::new(),
-            is_nullable: true,
-        }),
+        expr: Expression::FieldAccess(FieldAccess::new(
+            Box::new(Expression::Reference(("foo", 0u16).into())),
+            "a".into(),
+        )),
     })
 }
 
 fn group_non_aliased_ref() -> OptionallyAliasedExpr {
-    OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
-        expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-        field: "b".into(),
-        cache: SchemaCache::new(),
-        is_nullable: true,
-    }))
+    OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess::new(
+        Box::new(Expression::Reference(("foo", 0u16).into())),
+        "b".into(),
+    )))
 }
 
 test_schema!(
@@ -190,11 +186,11 @@ test_schema!(
         keys: vec![
             OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "a".into(),
-                expr: Expression::Literal(LiteralValue::Integer(1).into()),
+                expr: Expression::Literal(LiteralValue::Integer(1)),
             }),
             OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "b".into(),
-                expr: Expression::Literal(LiteralValue::String("abc".into()).into()),
+                expr: Expression::Literal(LiteralValue::String("abc".into())),
             })
         ],
         aggregations: vec![],
@@ -218,14 +214,12 @@ test_schema!(
         keys: vec![
             OptionallyAliasedExpr::Aliased(AliasedExpr {
                 alias: "literal".into(),
-                expr: Expression::Literal(LiteralValue::Integer(1).into()),
+                expr: Expression::Literal(LiteralValue::Integer(1)),
             }),
-            OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess {
-                expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                field: "a".into(),
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            }))
+            OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess::new(
+                Box::new(Expression::Reference(("foo", 0u16).into())),
+                "a".into(),
+            )))
         ],
         aggregations: vec![],
         cache: SchemaCache::new(),
@@ -274,7 +268,7 @@ test_schema!(
         })),
         keys: vec![OptionallyAliasedExpr::Aliased(AliasedExpr {
             alias: "literal".into(),
-            expr: Expression::Literal(LiteralValue::Integer(1).into()),
+            expr: Expression::Literal(LiteralValue::Integer(1)),
         })],
         aggregations: vec![
             AliasedAggregation {
@@ -282,7 +276,7 @@ test_schema!(
                 agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::First,
                     distinct: false,
-                    arg: Expression::Literal(LiteralValue::Boolean(true).into()).into(),
+                    arg: Expression::Literal(LiteralValue::Boolean(true)).into(),
                 }),
             },
             AliasedAggregation {
@@ -290,7 +284,7 @@ test_schema!(
                 agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
                     function: AggregationFunction::First,
                     distinct: false,
-                    arg: Expression::Literal(LiteralValue::String("abc".into()).into()).into(),
+                    arg: Expression::Literal(LiteralValue::String("abc".into())).into(),
                 }),
             },
         ],

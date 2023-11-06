@@ -43,7 +43,7 @@ mod filter {
                 alias: "foo".into(),
                 cache: mir::schema::SchemaCache::new(),
             })),
-            condition: mir::Expression::Literal(mir::LiteralValue::Integer(42).into()),
+            condition: mir::Expression::Literal(mir::LiteralValue::Integer(42)),
             cache: mir::schema::SchemaCache::new(),
         })
     );
@@ -66,7 +66,7 @@ mod project {
             source: util::mir_collection("test_db", "foo"),
             expression: BindingTuple(map! {
                 Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
-                Key::named("bar", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                Key::named("bar", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
             }),
             cache: mir::schema::SchemaCache::new(),
         })
@@ -107,7 +107,7 @@ mod project {
             source: util::mir_collection("test_db", "$foo.bar"),
             expression: BindingTuple(map! {
                 Key::named("$foo.bar", 0u16) => mir::Expression::Reference(("$foo.bar", 0u16).into()),
-                Key::named("_foo_bar", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                Key::named("_foo_bar", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
             }),
             cache: mir::schema::SchemaCache::new(),
         })
@@ -129,9 +129,9 @@ mod project {
             source: util::mir_collection("test_db", "foo"),
             expression: BindingTuple(map! {
                 Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
-                Key::named("__bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
-                Key::named("_bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
-                Key::named("____bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(4).into()),
+                Key::named("__bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                Key::named("_bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                Key::named("____bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(4)),
             }),
             cache: mir::schema::SchemaCache::new(),
         })
@@ -151,7 +151,6 @@ mod project {
                 Key::bot(0) => mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
                     expr: util::mir_field_access("t1", "b", true),
                     target_type: mir::Type::Document,
-                    cache: mir::schema::SchemaCache::new(),
                 }),
             }),
             cache: mir::schema::SchemaCache::new(),
@@ -203,7 +202,6 @@ mod group {
                 alias: "x_key".into(),
                 expr: mir::Expression::Reference(mir::ReferenceExpr {
                     key: Key::named("foo", 0u16),
-                    cache: mir::schema::SchemaCache::new(),
                 })
             }),],
             aggregations: vec![
@@ -260,7 +258,6 @@ mod group {
                 alias: "x_key".into(),
                 expr: mir::Expression::Reference(mir::ReferenceExpr {
                     key: Key::named("foo", 0u16),
-                    cache: mir::schema::SchemaCache::new(),
                 })
             }),],
             aggregations: vec![
@@ -271,7 +268,6 @@ mod group {
                         distinct: true,
                         arg: mir::Expression::Reference(mir::ReferenceExpr {
                             key: Key::named("foo", 0u16),
-                            cache: mir::schema::SchemaCache::new(),
                         })
                         .into(),
                     }),
@@ -283,7 +279,6 @@ mod group {
                         distinct: false,
                         arg: mir::Expression::Reference(mir::ReferenceExpr {
                             key: Key::named("foo", 0u16),
-                            cache: mir::schema::SchemaCache::new(),
                         })
                         .into(),
                     }),
@@ -328,7 +323,6 @@ mod group {
                     alias: "__unaliasedKey2".into(),
                     expr: mir::Expression::Reference(mir::ReferenceExpr {
                         key: Key::named("foo", 0u16),
-                        cache: mir::schema::SchemaCache::new(),
                     })
                 }),
                 mir::OptionallyAliasedExpr::Unaliased(*util::mir_field_access("foo", "x", true)),
@@ -379,7 +373,6 @@ mod group {
                     alias: "__unaliasedKey2".into(),
                     expr: mir::Expression::Reference(mir::ReferenceExpr {
                         key: Key::named("foo", 0u16),
-                        cache: mir::schema::SchemaCache::new(),
                     })
                 }),
                 mir::OptionallyAliasedExpr::Unaliased(*util::mir_field_access("foo", "x", true)),
@@ -401,7 +394,6 @@ mod group {
             keys: vec![mir::OptionallyAliasedExpr::Unaliased(
                 mir::Expression::Reference(mir::ReferenceExpr {
                     key: Key::named("foo", 0u16),
-                    cache: mir::schema::SchemaCache::new(),
                 })
             ),],
             aggregations: vec![],
@@ -478,8 +470,8 @@ mod sort {
                 source: util::mir_collection("test_db", "foo"),
                 expression: BindingTuple(map! {
                     Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
-                    Key::named("bar", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
-                    Key::named("baz", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
+                    Key::named("bar", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    Key::named("baz", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(2)),
                 }),
             cache: mir::schema::SchemaCache::new(),
         }).into(),
@@ -570,9 +562,7 @@ mod array {
             array: vec![air::Expression::Literal(air::LiteralValue::Boolean(false))],
         })),
         input = mir::Stage::Array(mir::ArraySource {
-            array: vec![mir::Expression::Literal(
-                mir::LiteralValue::Boolean(false).into()
-            )],
+            array: vec![mir::Expression::Literal(mir::LiteralValue::Boolean(false))],
             alias: "foo".into(),
             cache: mir::schema::SchemaCache::new(),
         })
@@ -607,30 +597,24 @@ mod array {
             array: vec![
                 mir::Expression::Document(mir::DocumentExpr {
                     document: unchecked_unique_linked_hash_map! {
-                        "a".to_string() => mir::Expression::Literal(mir::LiteralExpr {
-                            value: mir::LiteralValue::Integer(1),
-                            cache: mir::schema::SchemaCache::new(),
-                        }),
+                        "a".to_string() => mir::Expression::Literal(
+                            mir::LiteralValue::Integer(1),
+                        ),
                     },
-                    cache: mir::schema::SchemaCache::new(),
                 }),
                 mir::Expression::Document(mir::DocumentExpr {
                     document: unchecked_unique_linked_hash_map! {
-                        "a".to_string() => mir::Expression::Literal(mir::LiteralExpr {
-                            value: mir::LiteralValue::Integer(2),
-                            cache: mir::schema::SchemaCache::new(),
-                        }),
+                        "a".to_string() => mir::Expression::Literal(
+                            mir::LiteralValue::Integer(2),
+                        ),
                     },
-                    cache: mir::schema::SchemaCache::new(),
                 }),
                 mir::Expression::Document(mir::DocumentExpr {
                     document: unchecked_unique_linked_hash_map! {
-                        "a".to_string() => mir::Expression::Literal(mir::LiteralExpr {
-                            value: mir::LiteralValue::Integer(3),
-                            cache: mir::schema::SchemaCache::new(),
-                        }),
+                        "a".to_string() => mir::Expression::Literal(
+                            mir::LiteralValue::Integer(3),
+                        ),
                     },
-                    cache: mir::schema::SchemaCache::new(),
                 }),
             ],
             alias: "arr".to_string(),
@@ -686,15 +670,13 @@ mod join {
             left: util::mir_collection("test_db", "foo"),
             right: util::mir_collection("test_db", "bar"),
             condition: Some(mir::Expression::ScalarFunction(
-                mir::ScalarFunctionApplication {
-                    function: mir::ScalarFunction::Eq,
-                    args: vec![
+                mir::ScalarFunctionApplication::new(
+                    mir::ScalarFunction::Eq,
+                    vec![
                         mir::Expression::Reference(("foo", 0u16).into()),
                         mir::Expression::Reference(("bar", 0u16).into())
                     ],
-                    cache: mir::schema::SchemaCache::new(),
-                    is_nullable: true,
-                }
+                )
             )),
             cache: mir::schema::SchemaCache::new(),
         })
@@ -725,9 +707,7 @@ mod join {
             condition: Some(air::Expression::Literal(air::LiteralValue::Boolean(true))),
         })),
         input = mir::Stage::Join(mir::Join {
-            condition: Some(mir::Expression::Literal(
-                mir::LiteralValue::Boolean(true).into()
-            )),
+            condition: Some(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
             left: mir::Stage::Join(mir::Join {
                 condition: None,
                 left: util::mir_project_collection(None, "Foo", None, None),
@@ -759,8 +739,8 @@ mod join {
             left: util::mir_collection("mydb", "col"),
             right: mir::Stage::Array(mir::ArraySource {
                 array: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
-                    mir::Expression::Literal(mir::LiteralValue::Integer(1).into())
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    mir::Expression::Literal(mir::LiteralValue::Integer(1))
                 ],
                 alias: "arr".to_string(),
                 cache: mir::schema::SchemaCache::new(),
@@ -809,7 +789,6 @@ mod join {
                             *util::mir_field_access("t1", "a", true),
                             *util::mir_field_access("t2", "b", true),
                         ],
-                        cache: mir::schema::SchemaCache::new(),
                         is_nullable: true,
                     }
                 )),
@@ -848,9 +827,7 @@ mod join {
             condition: Some(air::Expression::Literal(air::LiteralValue::Boolean(true))),
         })),
         input = mir::Stage::Join(mir::Join {
-            condition: Some(mir::Expression::Literal(
-                mir::LiteralValue::Boolean(true).into()
-            )),
+            condition: Some(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
             left: mir::Stage::Join(mir::Join {
                 condition: None,
                 left: util::mir_project_collection(None, "foo", Some("Foo"), None),
@@ -1032,7 +1009,7 @@ mod derived {
                 source: util::mir_collection("test_db", "foo"),
                 expression: BindingTuple(map! {
                     Key::bot(0) => mir::Expression::Reference(("foo", 1u16).into()),
-                    Key::named("bar", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                    Key::named("bar", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
                 }),
                 cache: mir::schema::SchemaCache::new(),
             })),
@@ -1062,9 +1039,8 @@ mod derived {
                         expression: BindingTuple(map! {
                             Key::bot(1) => mir::Expression::Reference(mir::ReferenceExpr {
                                 key: Key::named("bar", 2u16),
-                                cache: mir::schema::SchemaCache::new(),
                             }),
-                            Key::named("d2", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
+                            Key::named("d2", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
                         }),
                         cache: mir::schema::SchemaCache::new(),
                     })),
@@ -1074,7 +1050,6 @@ mod derived {
                     Key::bot(0) => mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
                         expr: util::mir_field_access("d2", "a", true),
                         target_type: mir::Type::Int32,
-                        cache: mir::schema::SchemaCache::new(),
                     }),
                 }),
                 cache: mir::schema::SchemaCache::new(),
@@ -1176,9 +1151,8 @@ mod unwind {
                     function: mir::ScalarFunction::Gt,
                     args: vec![
                         *util::mir_field_access("foo", "arr", true),
-                        mir::Expression::Literal(mir::LiteralValue::Integer(0).into()),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(0)),
                     ],
-                    cache: mir::schema::SchemaCache::new(),
                     is_nullable: true,
                 }),
                 cache: mir::schema::SchemaCache::new(),
@@ -1189,7 +1163,6 @@ mod unwind {
                         "arr".into() => *util::mir_field_access("foo", "arr", true),
                         "idx".into() => *util::mir_field_access("foo", "idx", true),
                     },
-                    cache: mir::schema::SchemaCache::new(),
                 }),
             }),
             cache: mir::schema::SchemaCache::new(),
@@ -1255,9 +1228,9 @@ mod translate_plan {
             source: util::mir_collection("test_db", "foo"),
             expression: BindingTuple(map! {
                 Key::bot(0) => mir::Expression::Reference(("foo", 0u16).into()),
-                Key::named("__bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(2).into()),
-                Key::named("_bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1).into()),
-                Key::named("____bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(4).into()),
+                Key::named("__bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                Key::named("_bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                Key::named("____bot", 0u16) => mir::Expression::Literal(mir::LiteralValue::Integer(4)),
             }),
             cache: mir::schema::SchemaCache::new(),
         }),
@@ -1461,7 +1434,6 @@ mod subquery_expr {
                             output_expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
                                 expr: Box::new(mir::Expression::Reference((Bottom, 1u16).into())),
                                 field: "bar".to_string(),
-                                cache: mir::schema::SchemaCache::new(),
                                 is_nullable: true,
                             })),
                             subquery: Box::new(mir::Stage::Limit(mir::Limit {
@@ -1472,7 +1444,6 @@ mod subquery_expr {
                                             document: unchecked_unique_linked_hash_map! {
                                                 "bar".to_string() => *util::mir_field_access("q", "bar", true),
                                             },
-                                            cache: mir::schema::SchemaCache::new(),
                                         })
                                     },
                                     cache: mir::schema::SchemaCache::new(),
@@ -1480,11 +1451,9 @@ mod subquery_expr {
                                 limit: 1,
                                 cache: mir::schema::SchemaCache::new(),
                             })),
-                            cache: mir::schema::SchemaCache::new(),
                             is_nullable: true,
                         }),
                     },
-                    cache: mir::schema::SchemaCache::new(),
                 })
             },
             cache: mir::schema::SchemaCache::new(),

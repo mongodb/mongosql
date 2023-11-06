@@ -8,7 +8,7 @@ mod usererror;
 pub(crate) fn test_document_a() -> Expression {
     Expression::Document(
         unchecked_unique_linked_hash_map! {
-            "a".into() => Expression::Literal(LiteralValue::Integer(1).into())
+            "a".into() => Expression::Literal(LiteralValue::Integer(1))
         }
         .into(),
     )
@@ -17,7 +17,7 @@ pub(crate) fn test_document_a() -> Expression {
 pub(crate) fn test_document_b() -> Expression {
     Expression::Document(
         unchecked_unique_linked_hash_map! {
-            "b".into() => Expression::Literal(LiteralValue::Integer(1).into())
+            "b".into() => Expression::Literal(LiteralValue::Integer(1))
         }
         .into(),
     )
@@ -26,7 +26,7 @@ pub(crate) fn test_document_b() -> Expression {
 pub(crate) fn test_document_c() -> Expression {
     Expression::Document(
         unchecked_unique_linked_hash_map! {
-            "c".into() => Expression::Literal(LiteralValue::Integer(1).into())
+            "c".into() => Expression::Literal(LiteralValue::Integer(1))
         }
         .into(),
     )

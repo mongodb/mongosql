@@ -28,7 +28,7 @@ visitgen = { path = "../visitgen" }
 mongosql-datastructures = { path = "../mongosql-datastructures" }
 edit-distance = "2.1.0"
 usererrordisplay-impl = { path = "../usererrordisplay-impl" }
-# mongodb = { version = "2.6.1", features = ["tokio-sync"] }
+derive-new = "0.5.9"
 
 [dependencies.serde-tuple-vec-map]
 version = "1"

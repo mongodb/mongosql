@@ -1,9 +1,6 @@
 use crate::{
     map,
-    mir::{
-        schema::{Error as mir_error, SchemaCache},
-        *,
-    },
+    mir::{schema::Error as mir_error, *},
     schema::{Atomic, Schema, NUMERIC_OR_NULLISH, STRING_OR_NULLISH},
     set, test_schema,
 };
@@ -18,9 +15,8 @@ test_schema!(
     }),
     input = Expression::Like(LikeExpr {
         expr: Expression::Reference(("bar", 0u16).into()).into(),
-        pattern: Expression::Literal(LiteralValue::String("hello".into()).into()).into(),
+        pattern: Expression::Literal(LiteralValue::String("hello".into())).into(),
         escape: None,
-        cache: SchemaCache::new(),
     }),
     schema_env = map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
 );
@@ -34,10 +30,9 @@ test_schema!(
         found: NUMERIC_OR_NULLISH.clone(),
     }),
     input = Expression::Like(LikeExpr {
-        expr: Expression::Literal(LiteralValue::String("hello".into()).into()).into(),
+        expr: Expression::Literal(LiteralValue::String("hello".into())).into(),
         pattern: Expression::Reference(("bar", 0u16).into()).into(),
         escape: None,
-        cache: SchemaCache::new(),
     }),
     schema_env = map! {("bar", 0u16).into() => NUMERIC_OR_NULLISH.clone()},
 );
@@ -47,9 +42,8 @@ test_schema!(
     expected = Ok(Schema::Atomic(Atomic::Boolean)),
     input = Expression::Like(LikeExpr {
         expr: Expression::Reference(("bar", 0u16).into()).into(),
-        pattern: Expression::Literal(LiteralValue::String("hello".into()).into()).into(),
+        pattern: Expression::Literal(LiteralValue::String("hello".into())).into(),
         escape: None,
-        cache: SchemaCache::new(),
     }),
     schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::String)},
 );
@@ -62,9 +56,8 @@ test_schema!(
     ])),
     input = Expression::Like(LikeExpr {
         expr: Expression::Reference(("bar", 0u16).into()).into(),
-        pattern: Expression::Literal(LiteralValue::String("hello".into()).into()).into(),
+        pattern: Expression::Literal(LiteralValue::String("hello".into())).into(),
         escape: None,
-        cache: SchemaCache::new(),
     }),
     schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Atomic(Atomic::Null)])},
 );
@@ -77,9 +70,8 @@ test_schema!(
     ])),
     input = Expression::Like(LikeExpr {
         expr: Expression::Reference(("bar", 0u16).into()).into(),
-        pattern: Expression::Literal(LiteralValue::String("hello".into()).into()).into(),
+        pattern: Expression::Literal(LiteralValue::String("hello".into())).into(),
         escape: None,
-        cache: SchemaCache::new(),
     }),
     schema_env = map! {("bar", 0u16).into() => Schema::AnyOf(set![Schema::Atomic(Atomic::String), Schema::Missing])},
 );
@@ -89,9 +81,8 @@ test_schema!(
     expected = Ok(Schema::Atomic(Atomic::Null)),
     input = Expression::Like(LikeExpr {
         expr: Expression::Reference(("bar", 0u16).into()).into(),
-        pattern: Expression::Literal(LiteralValue::String("hello".into()).into()).into(),
+        pattern: Expression::Literal(LiteralValue::String("hello".into())).into(),
         escape: None,
-        cache: SchemaCache::new(),
     }),
     schema_env = map! {("bar", 0u16).into() => Schema::Atomic(Atomic::Null)},
 );

@@ -10,7 +10,7 @@ mod type_expr; // mir::Expression::{Cast, TypeAssertion}
 mod mql_intrinsic {
     use crate::{
         map,
-        mir::{schema::SchemaCache, *},
+        mir::*,
         schema::{Atomic, Document, Schema},
         set, test_schema,
     };
@@ -18,15 +18,10 @@ mod mql_intrinsic {
     test_schema!(
         field_existence_is_always_boolean,
         expected = Ok(Schema::Atomic(Atomic::Boolean)),
-        input = Expression::MQLIntrinsic(MQLExpression::FieldExistence(FieldExistence {
-            field_access: FieldAccess {
-                expr: Box::new(Expression::Reference(("foo", 0u16).into())),
-                field: "x".to_string(),
-                cache: SchemaCache::new(),
-                is_nullable: true,
-            },
-            cache: SchemaCache::new()
-        })),
+        input = Expression::MQLIntrinsicFieldExistence(FieldAccess::new(
+            Box::new(Expression::Reference(("foo", 0u16).into())),
+            "x".to_string(),
+        )),
         schema_env = map! {
             ("foo", 0u16).into() => Schema::Document(Document {
                 keys: map! {

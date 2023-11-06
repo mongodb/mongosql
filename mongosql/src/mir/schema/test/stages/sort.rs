@@ -28,14 +28,12 @@ test_schema!(
             SortSpecification::Asc(FieldPath {
                 key: ("foo", 0u16).into(),
                 fields: vec!["a".to_string()],
-                cache: SchemaCache::new(),
-                is_nullable: true,
+                is_nullable: false,
             }),
             SortSpecification::Desc(FieldPath {
                 key: ("foo", 0u16).into(),
                 fields: vec!["b".to_string()],
-                cache: SchemaCache::new(),
-                is_nullable: true,
+                is_nullable: false,
             }),
         ],
         cache: SchemaCache::new(),
@@ -75,14 +73,12 @@ test_schema!(
             SortSpecification::Asc(FieldPath {
                 key: ("foo", 0u16).into(),
                 fields: vec!["a".to_string()],
-                cache: SchemaCache::new(),
-                is_nullable: true,
+                is_nullable: false,
             }),
             SortSpecification::Asc(FieldPath {
                 key: ("foo", 0u16).into(),
                 fields: vec!["b".to_string()],
-                cache: SchemaCache::new(),
-                is_nullable: true,
+                is_nullable: false,
             }),
         ],
         cache: SchemaCache::new(),
@@ -122,8 +118,7 @@ test_schema!(
         specs: vec![SortSpecification::Asc(FieldPath {
             key: ("foo", 0u16).into(),
             fields: vec!["a".to_string()],
-            cache: SchemaCache::new(),
-            is_nullable: true,
+            is_nullable: false,
         },)],
         cache: SchemaCache::new(),
     }),

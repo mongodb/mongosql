@@ -82,7 +82,6 @@ pub(crate) fn mir_project_collection(
         expression: BindingTuple(map! {
             Key::named(expected_name, scope) => mir::Expression::Reference(mir::ReferenceExpr {
                 key: Key::named(collection_name, scope),
-                cache: mir::schema::SchemaCache::new(),
             }),
         }),
         cache: mir::schema::SchemaCache::new(),
@@ -124,22 +123,18 @@ pub(crate) fn mir_field_access(
     Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
         expr: Box::new(mir::Expression::Reference(mir::ReferenceExpr {
             key: make_key(key_name),
-            cache: mir::schema::SchemaCache::new(),
         })),
         field: field_name.to_string(),
-        cache: mir::schema::SchemaCache::new(),
         is_nullable,
     }))
 }
 
 #[cfg(test)]
 pub(crate) fn mir_field_path(datasource_name: &str, field_names: Vec<&str>) -> mir::FieldPath {
-    mir::FieldPath {
-        key: make_key(datasource_name),
-        fields: field_names.into_iter().map(String::from).collect(),
-        cache: mir::schema::SchemaCache::new(),
-        is_nullable: true,
-    }
+    mir::FieldPath::new(
+        make_key(datasource_name),
+        field_names.into_iter().map(String::from).collect(),
+    )
 }
 
 #[cfg(test)]

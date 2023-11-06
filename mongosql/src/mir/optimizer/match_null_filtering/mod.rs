@@ -23,8 +23,8 @@ use crate::{
         optimizer::Optimizer,
         schema::{SchemaCache, SchemaInferenceState},
         visitor::Visitor,
-        Derived, ExistsExpr, Expression, FieldAccess, FieldExistence, Filter, LateralJoin,
-        MQLExpression, ScalarFunction, ScalarFunctionApplication, Stage, SubqueryExpr,
+        Derived, ExistsExpr, Expression, FieldAccess, Filter, LateralJoin, ScalarFunction,
+        ScalarFunctionApplication, Stage, SubqueryExpr,
     },
     SchemaCheckingMode,
 };
@@ -84,12 +84,7 @@ impl MatchNullFilteringVisitor {
         let (fields, condition) = self.gather_fields_for_null_filter(condition);
         let mut optimized_exists_ops = fields
             .into_values()
-            .map(|fa| {
-                Expression::MQLIntrinsic(MQLExpression::FieldExistence(FieldExistence {
-                    field_access: fa,
-                    cache: SchemaCache::new(),
-                }))
-            })
+            .map(Expression::MQLIntrinsicFieldExistence)
             .collect::<Vec<Expression>>();
 
         match optimized_exists_ops.len() {
@@ -100,7 +95,6 @@ impl MatchNullFilteringVisitor {
                     function: ScalarFunction::And,
                     is_nullable: false,
                     args: optimized_exists_ops,
-                    cache: SchemaCache::new(),
                 })),
                 condition,
             ),
@@ -163,7 +157,6 @@ impl Visitor for MatchNullFilteringVisitor {
             is_nullable: node.is_nullable,
             output_expr: node.output_expr,
             subquery: Box::new(node.subquery.walk(self)),
-            cache: node.cache,
         };
         self.scope -= 1;
         node

@@ -8,6 +8,8 @@ use crate::{
     util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
 
+use derive_new::new;
+
 visitgen::generate_visitors! {
 
 #[derive(PartialEq, Debug, Clone)]
@@ -228,7 +230,7 @@ pub enum Expression {
     FieldAccess(FieldAccess),
     Is(IsExpr),
     Like(LikeExpr),
-    Literal(LiteralExpr),
+    Literal(LiteralValue),
     Reference(ReferenceExpr),
     ScalarFunction(ScalarFunctionApplication),
     SearchedCase(SearchedCaseExpr),
@@ -239,7 +241,7 @@ pub enum Expression {
 
     // Special variants that only exists for optimization purposes;
     // these do not represent actual MongoSQL constructs.
-    MQLIntrinsic(MQLExpression),
+    MQLIntrinsicFieldExistence(FieldAccess),
 }
 
 impl Expression {
@@ -253,8 +255,9 @@ impl Expression {
             Expression::FieldAccess(x) => x.is_nullable,
             Expression::Is(_) => false,
             Expression::Like(_) => false,
-            Expression::Literal(LiteralExpr{value: LiteralValue::Null, ..}) => true,
+            Expression::Literal(LiteralValue::Null) => true,
             Expression::Literal(_) => false,
+            Expression::MQLIntrinsicFieldExistence(_) => false,
             Expression::Reference(_) => false,
             Expression::ScalarFunction(x) => x.is_nullable,
             Expression::SearchedCase(x) => x.is_nullable,
@@ -262,30 +265,28 @@ impl Expression {
             Expression::Subquery(x) => x.is_nullable,
             Expression::SubqueryComparison(x) => x.is_nullable,
             Expression::TypeAssertion(x) => x.expr.is_nullable(),
-            Expression::MQLIntrinsic(MQLExpression::FieldExistence(_)) => false,
         }
     }
 
     pub fn set_is_nullable(&mut self, value: bool) {
         match self {
-            Expression::Array(_) => (),
             Expression::Cast(x) => x.is_nullable = value,
             Expression::DateFunction(x) => x.is_nullable = value,
-            Expression::Document(_) => (),
-            Expression::Exists(_) => (),
             Expression::FieldAccess(x) => x.is_nullable = value,
-            Expression::Is(_) => (),
-            Expression::Like(_) => (),
-            Expression::Literal(LiteralExpr{value: LiteralValue::Null, ..}) => (),
-            Expression::Literal(_) => (),
-            Expression::Reference(_) => (),
             Expression::ScalarFunction(x) => x.is_nullable = x.function.is_always_nullable() || value,
             Expression::SearchedCase(x) => x.is_nullable = value,
             Expression::SimpleCase(x) => x.is_nullable = value,
-            Expression::Subquery(_) => (),
             Expression::SubqueryComparison(x) => x.is_nullable = value,
+            Expression::Array(_) => (),
+            Expression::Document(_) => (),
+            Expression::Exists(_) => (),
+            Expression::Is(_) => (),
+            Expression::Like(_) => (),
+            Expression::Literal(_) => (),
+            Expression::MQLIntrinsicFieldExistence(_) => (),
+            Expression::Reference(_) => (),
+            Expression::Subquery(_) => (),
             Expression::TypeAssertion(_) => (),
-            Expression::MQLIntrinsic(MQLExpression::FieldExistence(_)) => (),
         }
     }
 }
@@ -300,32 +301,15 @@ pub enum LiteralValue {
     Double(f64),
 }
 
-#[derive(PartialEq, Debug, Clone)]
-pub struct LiteralExpr {
-    pub value: LiteralValue,
-    pub cache: SchemaCache<Schema>,
-}
-
-impl From<LiteralValue> for LiteralExpr {
-    fn from(value: LiteralValue) -> Self {
-        LiteralExpr {
-            value,
-            cache: SchemaCache::new(),
-        }
-    }
-}
-
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct ReferenceExpr {
     pub key: Key,
-    pub cache: SchemaCache<Schema>,
 }
 
 impl<T: Into<Key>> From<T> for ReferenceExpr {
     fn from(k: T) -> Self {
         ReferenceExpr {
             key: k.into(),
-            cache: SchemaCache::new(),
         }
     }
 }
@@ -333,14 +317,12 @@ impl<T: Into<Key>> From<T> for ReferenceExpr {
 #[derive(PartialEq, Debug, Clone)]
 pub struct ArrayExpr {
     pub array: Vec<Expression>,
-    pub cache: SchemaCache<Schema>,
 }
 
 impl From<Vec<Expression>> for ArrayExpr {
     fn from(array: Vec<Expression>) -> Self {
         ArrayExpr {
             array,
-            cache: SchemaCache::new(),
         }
     }
 }
@@ -348,14 +330,12 @@ impl From<Vec<Expression>> for ArrayExpr {
 #[derive(PartialEq, Debug, Clone)]
 pub struct DocumentExpr {
     pub document: UniqueLinkedHashMap<String, Expression>,
-    pub cache: SchemaCache<Schema>,
 }
 
 impl<T: Into<UniqueLinkedHashMap<String, Expression>>> From<T> for DocumentExpr {
     fn from(document: T) -> Self {
         DocumentExpr {
             document: document.into(),
-            cache: SchemaCache::new(),
         }
     }
 }
@@ -363,14 +343,12 @@ impl<T: Into<UniqueLinkedHashMap<String, Expression>>> From<T> for DocumentExpr 
 #[derive(PartialEq, Debug, Clone)]
 pub struct ExistsExpr {
     pub stage: Box<Stage>,
-    pub cache: SchemaCache<Schema>,
 }
 
 impl From<Box<Stage>> for ExistsExpr {
     fn from(stage: Box<Stage>) -> Self {
         ExistsExpr {
             stage,
-            cache: SchemaCache::new(),
         }
     }
 }
@@ -379,7 +357,6 @@ impl From<Box<Stage>> for ExistsExpr {
 pub struct IsExpr {
     pub expr: Box<Expression>,
     pub target_type: TypeOrMissing,
-    pub cache: SchemaCache<Schema>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
@@ -387,23 +364,23 @@ pub struct LikeExpr {
     pub expr: Box<Expression>,
     pub pattern: Box<Expression>,
     pub escape: Option<char>,
-    pub cache: SchemaCache<Schema>,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, new)]
 pub struct ScalarFunctionApplication {
     pub function: ScalarFunction,
-    pub is_nullable: bool,
     pub args: Vec<Expression>,
-    pub cache: SchemaCache<Schema>,
+    #[new(value = "true")]
+    pub is_nullable: bool,
+
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, new)]
 pub struct FieldAccess {
     pub expr: Box<Expression>,
     pub field: String,
+    #[new(value = "true")]
     pub is_nullable: bool,
-    pub cache: SchemaCache<Schema>,
 }
 
 
@@ -699,13 +676,14 @@ pub enum DateFunction {
     Trunc,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, new)]
 pub struct DateFunctionApplication {
     pub function: DateFunction,
-    pub is_nullable: bool,
     pub date_part: DatePart,
     pub args: Vec<Expression>,
-    pub cache: SchemaCache<Schema>,
+    #[new(value = "true")]
+    pub is_nullable: bool,
+
 }
 
 impl DateFunction {
@@ -719,45 +697,45 @@ impl DateFunction {
     }
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, new)]
 pub struct SearchedCaseExpr {
     pub when_branch: Vec<WhenBranch>,
     pub else_branch: Box<Expression>,
-    pub cache: SchemaCache<Schema>,
+    #[new(value = "true")]
     pub is_nullable: bool,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, new)]
 pub struct SimpleCaseExpr {
     pub expr: Box<Expression>,
     pub when_branch: Vec<WhenBranch>,
     pub else_branch: Box<Expression>,
-    pub cache: SchemaCache<Schema>,
+    #[new(value = "true")]
     pub is_nullable: bool,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, new)]
 pub struct WhenBranch {
     pub when: Box<Expression>,
     pub then: Box<Expression>,
+    #[new(value = "true")]
     pub is_nullable: bool,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, new)]
 pub struct CastExpr {
     pub expr: Box<Expression>,
     pub to: Type,
     pub on_null: Box<Expression>,
     pub on_error: Box<Expression>,
+    #[new(value = "true")]
     pub is_nullable: bool,
-    pub cache: SchemaCache<Schema>,
 }
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct TypeAssertionExpr {
     pub expr: Box<Expression>,
     pub target_type: Type,
-    pub cache: SchemaCache<Schema>,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
@@ -792,22 +770,22 @@ pub enum Type {
     Undefined,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, new)]
 pub struct SubqueryExpr {
     pub output_expr: Box<Expression>,
     pub subquery: Box<Stage>,
-    pub cache: SchemaCache<Schema>,
+    #[new(value = "true")]
     pub is_nullable: bool,
 }
 
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, new)]
 pub struct SubqueryComparison {
     pub operator: SubqueryComparisonOp,
     pub modifier: SubqueryModifier,
-    pub is_nullable: bool,
     pub argument: Box<Expression>,
     pub subquery_expr: SubqueryExpr,
-    pub cache: SchemaCache<Schema>,
+    #[new(value = "true")]
+    pub is_nullable: bool,
 }
 
 #[derive(PartialEq, Eq, Debug, Clone, Copy)]
@@ -826,16 +804,6 @@ pub enum SubqueryModifier {
     All,
 }
 
-#[derive(PartialEq, Debug, Clone)]
-pub enum MQLExpression {
-    FieldExistence(FieldExistence),
-}
-
-#[derive(PartialEq, Debug, Clone)]
-pub struct FieldExistence {
-    pub field_access: FieldAccess,
-    pub cache: SchemaCache<Schema>,
-}
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum MatchQuery {
@@ -846,12 +814,12 @@ pub enum MatchQuery {
     Comparison(MatchLanguageComparison),
 }
 
-#[derive(Eq, Debug, Clone)]
+#[derive(Eq, Debug, Clone, new)]
 pub struct FieldPath {
     pub key: Key,
     pub fields: Vec<String>,
+    #[new(value = "true")]
     pub is_nullable: bool,
-    pub cache: SchemaCache<Schema>,
 }
 
 impl std::hash::Hash for FieldPath {
@@ -903,14 +871,13 @@ impl TryFrom<FieldAccess> for FieldPath {
         let mut fields = vec![value.field];
         loop {
             match cur {
-                Expression::Reference(ReferenceExpr {key, cache: _}) => {
+                Expression::Reference(ReferenceExpr {key}) => {
                     fields.reverse();
                     return Ok(
                         FieldPath {
                             key,
                             fields,
                             is_nullable: value.is_nullable,
-                            cache: value.cache,
                         });
                 }
                 Expression::FieldAccess(FieldAccess {expr, field, ..}) => {
@@ -933,14 +900,13 @@ impl TryFrom<&FieldAccess> for FieldPath {
         let mut fields = vec![value.field.clone()];
         loop {
             match cur {
-                Expression::Reference(ReferenceExpr {key, cache: _}) => {
+                Expression::Reference(ReferenceExpr {key}) => {
                     fields.reverse();
                     return Ok(
                         FieldPath {
                             key: key.clone(),
                             fields,
                             is_nullable: value.is_nullable,
-                            cache: value.cache.clone(),
                         });
                 }
                 Expression::FieldAccess(FieldAccess {expr, field, ..}) => {

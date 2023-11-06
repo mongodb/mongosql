@@ -34,9 +34,9 @@ mod test;
 
 use crate::{
     mir::{
-        binding_tuple::Key, schema::SchemaCache, visitor::Visitor, ExistsExpr, Expression,
-        FieldAccess, FieldPath, Filter, Group, MQLStage, MatchFilter, Project, ReferenceExpr, Sort,
-        Stage, SubqueryComparison, SubqueryExpr, Unwind,
+        binding_tuple::Key, visitor::Visitor, ExistsExpr, Expression, FieldAccess, FieldPath,
+        Filter, Group, MQLStage, MatchFilter, Project, ReferenceExpr, Sort, Stage,
+        SubqueryComparison, SubqueryExpr, Unwind,
     },
     util::unique_linked_hash_map::UniqueLinkedHashMap,
 };
@@ -77,12 +77,10 @@ impl Group {
     pub fn opaque_field_defines(&self) -> HashSet<FieldPath> {
         let mut ret = HashSet::new();
         for agg in self.aggregations.iter() {
-            ret.insert(FieldPath {
-                key: Key::bot(self.scope),
-                fields: vec![agg.alias.clone()],
-                is_nullable: true,
-                cache: SchemaCache::new(),
-            });
+            ret.insert(FieldPath::new(
+                Key::bot(self.scope),
+                vec![agg.alias.clone()],
+            ));
         }
         ret
     }
@@ -93,14 +91,7 @@ impl Unwind {
         let mut ret = HashSet::new();
         ret.insert(self.path.clone());
         if let Some(ref index) = self.index {
-            let _ = ret.insert(FieldPath {
-                key: self.path.key.clone(),
-                fields: vec![index.clone()],
-                // an index field can, rarely, be null. We do not use the nullablity
-                // for anything, anyway.
-                is_nullable: true,
-                cache: SchemaCache::new(),
-            });
+            let _ = ret.insert(FieldPath::new(self.path.key.clone(), vec![index.clone()]));
         }
         ret
     }
