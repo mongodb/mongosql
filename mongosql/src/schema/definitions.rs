@@ -450,6 +450,7 @@ impl TryFrom<json_schema::Schema> for Document {
         Ok(Document {
             keys: v
                 .properties
+                .unwrap_or_default()
                 .into_iter()
                 .map(|(key, schema)| {
                     Ok::<(std::string::String, Schema), Self::Error>((
@@ -476,14 +477,15 @@ impl TryFrom<Document> for json_schema::Schema {
             bson_type: Some(json_schema::BsonType::Single(
                 json_schema::BsonTypeName::Object,
             )),
-            properties: v
-                .keys
-                .into_iter()
-                .map(|(k, v)| match json_schema::Schema::try_from(v) {
-                    Ok(s) => Ok((k, s)),
-                    Err(e) => Err(e),
-                })
-                .collect::<Result<_, _>>()?,
+            properties: Some(
+                v.keys
+                    .into_iter()
+                    .map(|(k, v)| match json_schema::Schema::try_from(v) {
+                        Ok(s) => Ok((k, s)),
+                        Err(e) => Err(e),
+                    })
+                    .collect::<Result<_, _>>()?,
+            ),
             required: Some(v.required.into_iter().collect()),
             additional_properties: Some(v.additional_properties),
             items: None,
@@ -497,7 +499,7 @@ impl From<Atomic> for json_schema::Schema {
     fn from(v: Atomic) -> Self {
         json_schema::Schema {
             bson_type: Some(json_schema::BsonType::Single(v.into())),
-            properties: vec![],
+            properties: None,
             required: None,
             additional_properties: None,
             items: None,
@@ -540,7 +542,7 @@ impl TryFrom<Schema> for json_schema::Schema {
         Ok(match v {
             Schema::Any => json_schema::Schema {
                 bson_type: None,
-                properties: vec![],
+                properties: None,
                 required: None,
                 additional_properties: None,
                 items: None,
@@ -549,7 +551,7 @@ impl TryFrom<Schema> for json_schema::Schema {
             },
             Schema::Unsat => json_schema::Schema {
                 bson_type: None,
-                properties: vec![],
+                properties: None,
                 required: None,
                 additional_properties: None,
                 items: None,
@@ -560,7 +562,7 @@ impl TryFrom<Schema> for json_schema::Schema {
             Schema::Atomic(a) => a.into(),
             Schema::AnyOf(ao) => json_schema::Schema {
                 bson_type: None,
-                properties: vec![],
+                properties: None,
                 required: None,
                 additional_properties: None,
                 items: None,
@@ -575,7 +577,7 @@ impl TryFrom<Schema> for json_schema::Schema {
                 bson_type: Some(json_schema::BsonType::Single(
                     json_schema::BsonTypeName::Array,
                 )),
-                properties: vec![],
+                properties: None,
                 required: None,
                 additional_properties: None,
                 items: Some(json_schema::Items::Single(Box::new(
@@ -1179,23 +1181,32 @@ impl TryFrom<json_schema::Schema> for Schema {
     /// any_of and one_of are the only fields that are mutually exclusive with the rest.
     fn try_from(v: json_schema::Schema) -> Result<Self, Self::Error> {
         // Explicitly match the valid combinations of JSON schema fields
-        match (
-            v.bson_type,
-            v.properties.is_empty(),
-            v.required,
-            v.additional_properties,
-            v.items,
-            v.any_of,
-            v.one_of,
-        ) {
+        match v {
             // The empty JSON schema is equivalent to `Any`. This would
-            // technically be handled correctly by the first match branch, but
+            // technically be handled correctly by the following branch, but
             // this special case makes for a cleaner conversion (`Any` instead
             // of an `AnyOf` representing all possible values of each type).
-            (None, true, None, None, None, None, None) => Ok(Schema::Any),
+            json_schema::Schema {
+                bson_type: None,
+                properties: None,
+                required: None,
+                additional_properties: None,
+                items: None,
+                any_of: None,
+                one_of: None,
+            } => Ok(Schema::Any),
+
             // This branch handles all other JSON schema validators that don't
             // use `one_of` or `any_of`.
-            (bson_type, _, required, additional_properties, items, None, None) => {
+            json_schema::Schema {
+                bson_type,
+                properties,
+                required,
+                additional_properties,
+                items,
+                any_of: None,
+                one_of: None,
+            } => {
                 let bson_type = bson_type.unwrap_or_else(|| {
                     json_schema::BsonType::Multiple(
                         json_schema::BsonTypeName::into_enum_iter().collect(),
@@ -1222,7 +1233,7 @@ impl TryFrom<json_schema::Schema> for Schema {
                     }
                     json_schema::BsonType::Single(json_schema::BsonTypeName::Object) => {
                         Ok(Schema::Document(Document::try_from(json_schema::Schema {
-                            properties: v.properties,
+                            properties,
                             required,
                             additional_properties,
                             ..Default::default()
@@ -1235,7 +1246,7 @@ impl TryFrom<json_schema::Schema> for Schema {
                         // For each value in `bson_type`, construct a json_schema::Schema that only
                         // contains the single type and any relevant fields and recursively call
                         // Schema::try_from on it. Wrap the resulting vector in a Schema::AnyOf
-                        Ok(Schema::simplify(&AnyOf(
+                        Ok(AnyOf(
                             m.into_iter()
                                 .map(|bson_type| match bson_type {
                                     json_schema::BsonTypeName::Array => {
@@ -1252,7 +1263,7 @@ impl TryFrom<json_schema::Schema> for Schema {
                                             bson_type: Some(json_schema::BsonType::Single(
                                                 bson_type,
                                             )),
-                                            properties: v.properties.clone(),
+                                            properties: properties.clone(),
                                             required: required.clone(),
                                             additional_properties,
                                             ..Default::default()
@@ -1264,17 +1275,34 @@ impl TryFrom<json_schema::Schema> for Schema {
                                     }),
                                 })
                                 .collect::<Result<BTreeSet<Schema>, _>>()?,
-                        )))
+                        ))
                     }
                 }
             }
-            (None, true, None, None, None, Some(any_of), None) => Ok(Schema::AnyOf(
+            json_schema::Schema {
+                bson_type: None,
+                properties: None,
+                required: None,
+                additional_properties: None,
+                items: None,
+                any_of: Some(any_of),
+                one_of: None,
+            } => Ok(Schema::AnyOf(
                 any_of
                     .into_iter()
                     .map(Schema::try_from)
                     .collect::<Result<BTreeSet<Schema>, _>>()?,
             )),
-            (None, true, None, None, None, None, Some(one_of)) => Ok(Schema::AnyOf(
+            json_schema::Schema {
+                bson_type: None,
+                properties: None,
+                required: None,
+                additional_properties: None,
+                items: None,
+                any_of: None,
+                one_of: Some(one_of),
+                // convert one_of to any_of
+            } => Ok(Schema::AnyOf(
                 one_of
                     .into_iter()
                     .map(Schema::try_from)

@@ -88,6 +88,7 @@ func TestTranslate(t *testing.T) {
 		{"properties", bson.D{
 			{"foo", bson.D{
 				{"bsonType", "object"},
+				{"properties", bson.D{}},
 				{"required", bson.A{}},
 				{"additionalProperties", true},
 			}},
@@ -240,6 +241,7 @@ func TestCatalogSchemaMultipleCollections(t *testing.T) {
 		{"properties", bson.D{
 			{"foo", bson.D{
 				{"bsonType", "object"},
+				{"properties", bson.D{}},
 				{"required", bson.A{}},
 				{"additionalProperties", true},
 			}},

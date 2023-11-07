@@ -19,6 +19,18 @@ macro_rules! validate_json_schema {
     };
 }
 
+macro_rules! hashmap(
+    { $($key:expr => $value:expr),+ } => {
+      {
+        let mut m = HashMap::new();
+        $(
+          m.insert($key, $value);
+        )+
+        m
+      }
+    };
+  );
+
 validate_json_schema!(
     empty_schema,
     expected_schema = &Schema::default(),
@@ -46,13 +58,12 @@ validate_json_schema!(
 validate_json_schema!(
     schema_with_properties,
     expected_schema = &Schema {
-        properties: vec![(
-            "a".to_string(),
-            Schema {
+        properties: Some(hashmap! {
+            "a".to_string() => Schema {
                 bson_type: Some(BsonType::Single(BsonTypeName::Int)),
                 ..Schema::default()
             }
-        )],
+        }),
         ..Default::default()
     },
     input = r#"{"properties":{"a":{"bsonType":"int"}}}"#,
@@ -134,13 +145,12 @@ validate_json_schema!(
             BsonTypeName::Object,
             BsonTypeName::Array
         ])),
-        properties: vec![(
-            "a".to_string(),
-            Schema {
+        properties: Some(hashmap! {
+            "a".to_string() => Schema {
                 bson_type: Some(BsonType::Single(BsonTypeName::Int)),
                 ..Default::default()
             }
-        )],
+        }),
         required: Some(vec!["a".to_string()]),
         additional_properties: Some(true),
         items: Some(Items::Single(Box::new(Schema {
