@@ -16,12 +16,11 @@
 mod test;
 
 use super::Optimizer;
-use crate::mir::LateralJoin;
 use crate::{
     mir::{
         binding_tuple::Key, schema::SchemaInferenceState, visitor::Visitor, Derived, EquiJoin,
-        Expression, Filter, Group, Join, Limit, MQLStage, MatchFilter, Offset, Project,
-        ScalarFunction, ScalarFunctionApplication, Set, Sort, Stage, Unwind,
+        Expression, Filter, Group, Join, LateralJoin, Limit, MQLStage, MatchFilter, Offset,
+        Project, ScalarFunction, ScalarFunctionApplication, Set, Sort, Stage, Unwind,
     },
     schema::ResultSet,
     SchemaCheckingMode,
@@ -428,6 +427,23 @@ impl<'a> StageMovementVisitor<'a> {
                 self.dual_source(node, datasource_uses, left_schema, right_schema, true)
                     .0
             }
+            // For LateralJoin, we can move stages up either side depending
+            // on which datasources are used. If any datasources from the RHS
+            // (subquery) are used, then the stage is moved up that side.
+            // Recall that the LHS (source) datasources are considered in-scope
+            // inside the RHS (subquery) so this is safe.
+            Stage::MQLIntrinsic(MQLStage::LateralJoin(ref n)) => {
+                let right_schema = n.subquery.schema(&self.schema_state).unwrap();
+                let side = if datasource_uses
+                    .iter()
+                    .any(|u| right_schema.has_datasource(u))
+                {
+                    BubbleUpSide::Right
+                } else {
+                    BubbleUpSide::Left
+                };
+                self.bubble_up(Self::handle_def_user, node, side)
+            }
             source => {
                 let opaque_field_defines = source.opaque_field_defines();
                 let field_uses = if let Some(field_uses) = field_uses {
@@ -477,19 +493,9 @@ impl<'a> StageMovementVisitor<'a> {
                     | Stage::Group(_)
                     | Stage::MQLIntrinsic(MQLStage::LateralJoin(_))
             ),
-            Stage::Filter(ref n) => matches!(
-                &*n.source,
-                Stage::Collection(_)
-                    | Stage::Array(_)
-                    | Stage::MQLIntrinsic(MQLStage::LateralJoin(_))
-            ),
+            Stage::Filter(ref n) => matches!(&*n.source, Stage::Collection(_) | Stage::Array(_)),
             Stage::MQLIntrinsic(MQLStage::MatchFilter(ref n)) => {
-                matches!(
-                    &*n.source,
-                    Stage::Collection(_)
-                        | Stage::Array(_)
-                        | Stage::MQLIntrinsic(MQLStage::LateralJoin(_))
-                )
+                matches!(&*n.source, Stage::Collection(_) | Stage::Array(_))
             }
             _ => unreachable!(),
         }

@@ -1,3 +1,4 @@
+use crate::mir::{MatchLanguageLogical, MatchLanguageLogicalOp};
 use crate::{
     catalog::Catalog,
     map,
@@ -85,7 +86,8 @@ macro_rules! test_move_stage {
                     visitor::Visitor,
                     Collection, Derived, EquiJoin,
                     Expression::{self, *},
-                    FieldAccess, FieldPath, Filter, Group, Join, JoinType, Limit, LiteralValue,
+                    FieldAccess, FieldPath, Filter, Group, Join, JoinType, LateralJoin, Limit,
+                    LiteralValue,
                     LiteralValue::*,
                     MQLStage, MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp,
                     MatchQuery, Offset, Project, ReferenceExpr, ScalarFunction,
@@ -94,7 +96,9 @@ macro_rules! test_move_stage {
                 },
                 schema::SchemaEnvironment,
                 set, unchecked_unique_linked_hash_map,
-                util::{mir_collection, mir_field_access, mir_field_path},
+                util::{
+                    mir_collection, mir_field_access, mir_field_access_multi_part, mir_field_path,
+                },
             };
             #[allow(unused)]
             let input = $input;
@@ -1350,15 +1354,7 @@ test_move_stage_no_op!(
         condition: Expression::ScalarFunction(ScalarFunctionApplication {
             function: ScalarFunction::Gt,
             args: vec![
-                Expression::FieldAccess(FieldAccess {
-                    expr: Box::new(Expression::FieldAccess(FieldAccess {
-                        expr: Box::new(*mir_field_access("bar2", "x", true)),
-                        field: "a".to_string(),
-                        is_nullable: false,
-                    })),
-                    field: "b".to_string(),
-                    is_nullable: false,
-                }),
+                *mir_field_access_multi_part("bar2", vec!["x", "a", "b"], false),
                 Expression::Literal(LiteralValue::Integer(0)),
             ],
             is_nullable: true,
@@ -1471,6 +1467,240 @@ test_move_stage_no_op!(
         ))],
         cache: SchemaCache::new(),
     })
+);
+
+test_move_stage!(
+    move_filter_above_lateral_join_if_only_left_datasource_is_used,
+    expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        join_type: JoinType::Inner,
+        source: Box::new(Stage::Filter(Filter {
+            source: mir_collection("foo", "bar"),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Gt,
+                vec![
+                    *mir_field_access("bar", "y", false),
+                    Expression::Literal(LiteralValue::Integer(0)),
+                ],
+            )),
+            cache: SchemaCache::new(),
+        })),
+        subquery: mir_collection("foo", "bar2"),
+        cache: SchemaCache::new(),
+    })),
+    input = Stage::Filter(Filter {
+        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+            join_type: JoinType::Inner,
+            source: mir_collection("foo", "bar"),
+            subquery: mir_collection("foo", "bar2"),
+            cache: SchemaCache::new(),
+        }))),
+        condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Gt,
+            vec![
+                *mir_field_access("bar", "y", false),
+                Expression::Literal(LiteralValue::Integer(0)),
+            ],
+        )),
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage!(
+    move_filter_into_lateral_join_subquery_if_only_right_datasource_is_used,
+    expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        join_type: JoinType::Inner,
+        source: mir_collection("foo", "bar"),
+        subquery: Box::new(Stage::Filter(Filter {
+            source: mir_collection("foo", "bar2"),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Gt,
+                vec![
+                    *mir_field_access_multi_part("bar2", vec!["x", "a", "b"], false),
+                    Expression::Literal(LiteralValue::Integer(0)),
+                ],
+            )),
+            cache: SchemaCache::new(),
+        })),
+        cache: SchemaCache::new(),
+    })),
+    input = Stage::Filter(Filter {
+        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+            join_type: JoinType::Inner,
+            source: mir_collection("foo", "bar"),
+            subquery: mir_collection("foo", "bar2"),
+            cache: SchemaCache::new(),
+        }))),
+        condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Gt,
+            vec![
+                *mir_field_access_multi_part("bar2", vec!["x", "a", "b"], false),
+                Expression::Literal(LiteralValue::Integer(0)),
+            ],
+        )),
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage!(
+    move_filter_into_lateral_join_subquery_if_both_datasources_are_used,
+    expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        join_type: JoinType::Inner,
+        source: mir_collection("foo", "bar"),
+        subquery: Box::new(Stage::Filter(Filter {
+            source: mir_collection("foo", "bar2"),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Gt,
+                vec![
+                    *mir_field_access_multi_part("bar2", vec!["x", "a", "b"], false),
+                    *mir_field_access("bar", "y", false),
+                ],
+            )),
+            cache: SchemaCache::new(),
+        })),
+        cache: SchemaCache::new(),
+    })),
+    input = Stage::Filter(Filter {
+        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+            join_type: JoinType::Inner,
+            source: mir_collection("foo", "bar"),
+            subquery: mir_collection("foo", "bar2"),
+            cache: SchemaCache::new(),
+        }))),
+        condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
+            ScalarFunction::Gt,
+            vec![
+                *mir_field_access_multi_part("bar2", vec!["x", "a", "b"], false),
+                *mir_field_access("bar", "y", false),
+            ],
+        )),
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage!(
+    move_match_filter_above_lateral_join_if_only_left_datasource_is_used,
+    expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        join_type: JoinType::Inner,
+        source: Box::new(Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+            source: mir_collection("foo", "bar"),
+            condition: MatchQuery::Comparison(MatchLanguageComparison {
+                function: MatchLanguageComparisonOp::Eq,
+                input: Some(mir_field_path("bar", vec!["y"])),
+                arg: LiteralValue::Integer(43),
+                cache: SchemaCache::new(),
+            }),
+            cache: SchemaCache::new(),
+        }))),
+        subquery: mir_collection("foo", "bar2"),
+        cache: SchemaCache::new(),
+    })),
+    input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+            join_type: JoinType::Inner,
+            source: mir_collection("foo", "bar"),
+            subquery: mir_collection("foo", "bar2"),
+            cache: SchemaCache::new(),
+        }))),
+        condition: MatchQuery::Comparison(MatchLanguageComparison {
+            function: MatchLanguageComparisonOp::Eq,
+            input: Some(mir_field_path("bar", vec!["y"])),
+            arg: LiteralValue::Integer(43),
+            cache: SchemaCache::new(),
+        }),
+        cache: SchemaCache::new(),
+    })),
+);
+
+test_move_stage!(
+    move_match_filter_into_lateral_join_if_right_datasource_is_used,
+    expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        join_type: JoinType::Inner,
+        source: mir_collection("foo", "bar"),
+        subquery: Box::new(Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+            source: mir_collection("foo", "bar2"),
+            condition: MatchQuery::Comparison(MatchLanguageComparison {
+                function: MatchLanguageComparisonOp::Eq,
+                input: Some(mir_field_path("bar2", vec!["x", "a", "b"])),
+                arg: LiteralValue::Integer(101),
+                cache: SchemaCache::new(),
+            }),
+            cache: SchemaCache::new(),
+        }))),
+        cache: SchemaCache::new(),
+    })),
+    input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+            join_type: JoinType::Inner,
+            source: mir_collection("foo", "bar"),
+            subquery: mir_collection("foo", "bar2"),
+            cache: SchemaCache::new(),
+        }))),
+        condition: MatchQuery::Comparison(MatchLanguageComparison {
+            function: MatchLanguageComparisonOp::Eq,
+            input: Some(mir_field_path("bar2", vec!["x", "a", "b"])),
+            arg: LiteralValue::Integer(101),
+            cache: SchemaCache::new(),
+        }),
+        cache: SchemaCache::new(),
+    })),
+);
+
+test_move_stage!(
+    move_match_filter_into_lateral_join_subquery_if_both_datasources_are_used,
+    expected = Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+        join_type: JoinType::Inner,
+        source: mir_collection("foo", "bar"),
+        subquery: Box::new(Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+            source: mir_collection("foo", "bar2"),
+            condition: MatchQuery::Logical(MatchLanguageLogical {
+                op: MatchLanguageLogicalOp::And,
+                args: vec![
+                    MatchQuery::Comparison(MatchLanguageComparison {
+                        function: MatchLanguageComparisonOp::Gt,
+                        input: Some(mir_field_path("bar2", vec!["x", "a", "b"])),
+                        arg: LiteralValue::Integer(24),
+                        cache: SchemaCache::new(),
+                    }),
+                    MatchQuery::Comparison(MatchLanguageComparison {
+                        function: MatchLanguageComparisonOp::Gt,
+                        input: Some(mir_field_path("bar", vec!["y"])),
+                        arg: LiteralValue::Integer(25),
+                        cache: SchemaCache::new(),
+                    }),
+                ],
+                cache: SchemaCache::new(),
+            }),
+            cache: SchemaCache::new(),
+        }))),
+        cache: SchemaCache::new(),
+    })),
+    input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+        source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
+            join_type: JoinType::Inner,
+            source: mir_collection("foo", "bar"),
+            subquery: mir_collection("foo", "bar2"),
+            cache: SchemaCache::new(),
+        }))),
+        condition: MatchQuery::Logical(MatchLanguageLogical {
+            op: MatchLanguageLogicalOp::And,
+            args: vec![
+                MatchQuery::Comparison(MatchLanguageComparison {
+                    function: MatchLanguageComparisonOp::Gt,
+                    input: Some(mir_field_path("bar2", vec!["x", "a", "b"])),
+                    arg: LiteralValue::Integer(24),
+                    cache: SchemaCache::new(),
+                }),
+                MatchQuery::Comparison(MatchLanguageComparison {
+                    function: MatchLanguageComparisonOp::Gt,
+                    input: Some(mir_field_path("bar", vec!["y"])),
+                    arg: LiteralValue::Integer(25),
+                    cache: SchemaCache::new(),
+                }),
+            ],
+            cache: SchemaCache::new(),
+        }),
+        cache: SchemaCache::new(),
+    })),
 );
 
 test_move_stage!(

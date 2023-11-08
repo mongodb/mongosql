@@ -130,6 +130,26 @@ pub(crate) fn mir_field_access(
 }
 
 #[cfg(test)]
+pub(crate) fn mir_field_access_multi_part(
+    key_name: &str,
+    field_names: Vec<&str>,
+    is_nullable: bool,
+) -> Box<mir::Expression> {
+    field_names.into_iter().fold(
+        Box::new(mir::Expression::Reference(mir::ReferenceExpr {
+            key: make_key(key_name),
+        })),
+        |acc, field_name| {
+            Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: acc,
+                field: field_name.to_string(),
+                is_nullable,
+            }))
+        },
+    )
+}
+
+#[cfg(test)]
 pub(crate) fn mir_field_path(datasource_name: &str, field_names: Vec<&str>) -> mir::FieldPath {
     mir::FieldPath::new(
         make_key(datasource_name),
