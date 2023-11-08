@@ -17,7 +17,7 @@ chrono = "0.4"
 regex = "1.9.3"
 
 [dependencies.mongodb]
-version = "2.6"
+version = "2.7"
 default-features = false
 features = ["tokio-sync"]
 
