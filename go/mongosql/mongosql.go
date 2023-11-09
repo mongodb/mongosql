@@ -50,6 +50,9 @@ type Translation struct {
 	// ResultSetSchema is a JSON Schema document that describes
 	// the documents returned by this Translation
 	ResultSetSchema bsoncore.Document
+	// SelectOrder is an Array of Arrays, with each sub array
+	// describing a singular field in the result set
+	SelectOrder bsoncore.Array
 }
 
 // TranslationError is an error type that includes additional
@@ -101,6 +104,7 @@ func Translate(args TranslationArgs) (Translation, error) {
 		ErrorIsInternal bool              `bson:"error_is_internal"`
 		ResultSetSchema bsoncore.Document `bson:"result_set_schema"`
 		Namespaces      []Namespace       `bson:"namespaces"`
+		SelectOrder     bsoncore.Array    `bson:"select_order"`
 	}{}
 
 	translationBytes, err := base64.StdEncoding.DecodeString(base64TranslationResult)
@@ -136,6 +140,7 @@ func Translate(args TranslationArgs) (Translation, error) {
 		TargetCollection: translationResult.Collection,
 		Pipeline:         pipelineBytes,
 		ResultSetSchema:  translationResult.ResultSetSchema,
+		SelectOrder:      translationResult.SelectOrder,
 	}, nil
 }
 

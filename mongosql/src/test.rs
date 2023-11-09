@@ -342,7 +342,7 @@ mod test_get_select_order {
     );
 }
 
-mod schema_order {
+mod select_list_order {
     use crate::{
         catalog::{Catalog, Namespace},
         map,
@@ -373,10 +373,8 @@ mod schema_order {
         });
     }
 
-    macro_rules! test_result_set_order_including_namespaces {
-        ($func_name:ident, sql = $sql:expr, expected = $expected:expr) => {
-            // SQL-1773: remove and enable tests for select list order
-            #[ignore]
+    macro_rules! test_parse_select_list_order {
+        ($func_name:ident, sql = $sql:expr, exclude_namespaces = $exclude_namespaces:expr, expected = $expected:expr) => {
             #[test]
             fn $func_name() {
                 #[allow(unused_imports)]
@@ -389,197 +387,180 @@ mod schema_order {
                     &*CATALOG,
                     SqlOptions {
                         schema_checking_mode: SchemaCheckingMode::default(),
-                        exclude_namespaces: ExcludeNamespacesOption::IncludeNamespaces,
+                        exclude_namespaces: $exclude_namespaces,
                     },
                 );
                 assert!(translation.is_ok());
-
-                // SQL-1773: set proper expectations
-                // flatten the schema into a vector of (namespace, field name) tuples for simplicity in checking
-                // the resulting order of the schema.
-                // let actual: Vec<(String, String)> = translation
-                //     .unwrap()
-                //     .result_set_schema
-                //     .properties
-                //     .into_iter()
-                //     .map(|prop| {
-                //         prop.1
-                //             .properties
-                //             .into_iter()
-                //             .map(|field| (prop.0.clone(), field.0))
-                //             .collect::<Vec<(String, String)>>()
-                //     })
-                //     .flatten()
-                //     .collect();
-                // assert_eq!(actual, $expected);
+                assert_eq!(translation.unwrap().select_order, $expected)
             }
         };
     }
 
-    macro_rules! test_result_set_order_excluding_namespaces {
-        ($func_name:ident, sql = $sql:expr, expected = $expected:expr) => {
-            // SQL-1773: remove and enable tests for select list order
-            #[ignore]
-            #[test]
-            fn $func_name() {
-                #[allow(unused_imports)]
-                use crate::{
-                    translate_sql, ExcludeNamespacesOption, SchemaCheckingMode, SqlOptions,
-                };
-                let translation = translate_sql(
-                    "test",
-                    $sql,
-                    &*CATALOG,
-                    SqlOptions {
-                        schema_checking_mode: SchemaCheckingMode::default(),
-                        exclude_namespaces: ExcludeNamespacesOption::ExcludeNamespaces,
-                    },
-                );
-                assert!(translation.is_ok());
-
-                // SQL-1773: set proper expectations
-                // flatten the schema into a vector of fields names for simplicity of checking
-                // let actual: Vec<String> = translation
-                //     .unwrap()
-                //     .result_set_schema
-                //     .properties
-                //     .into_iter()
-                //     .map(|prop| prop.0)
-                //     .collect();
-                // assert_eq!(actual, $expected);
-            }
-        };
-    }
-
-    test_result_set_order_including_namespaces!(
-        star_no_reordering,
+    test_parse_select_list_order!(
+        star_sorted,
         sql = "select * from foo",
+        exclude_namespaces = ExcludeNamespacesOption::IncludeNamespaces,
         expected = vec![
-            ("foo".to_string(), "a".to_string()),
-            ("foo".to_string(), "b".to_string()),
-            ("foo".to_string(), "c".to_string())
+            vec!["foo".to_string(), "a".to_string()],
+            vec!["foo".to_string(), "b".to_string()],
+            vec!["foo".to_string(), "c".to_string()]
         ]
     );
 
-    test_result_set_order_including_namespaces!(
+    test_parse_select_list_order!(
+        star_multiple_collections_sorted,
+        sql = "select * from foo, bar",
+        exclude_namespaces = ExcludeNamespacesOption::IncludeNamespaces,
+        expected = vec![
+            vec!["bar".to_string(), "a".to_string()],
+            vec!["bar".to_string(), "b".to_string()],
+            vec!["bar".to_string(), "c".to_string()],
+            vec!["foo".to_string(), "a".to_string()],
+            vec!["foo".to_string(), "b".to_string()],
+            vec!["foo".to_string(), "c".to_string()],
+        ]
+    );
+
+    test_parse_select_list_order!(
         substar_simple,
         sql = "select foo.* from foo",
+        exclude_namespaces = ExcludeNamespacesOption::IncludeNamespaces,
         expected = vec![
-            ("foo".to_string(), "a".to_string()),
-            ("foo".to_string(), "b".to_string()),
-            ("foo".to_string(), "c".to_string())
+            vec!["foo".to_string(), "a".to_string()],
+            vec!["foo".to_string(), "b".to_string()],
+            vec!["foo".to_string(), "c".to_string()]
         ]
     );
 
-    test_result_set_order_including_namespaces!(
+    test_parse_select_list_order!(
         one_collection_non_alphabetical,
         sql = "select c, a, b from foo",
+        exclude_namespaces = ExcludeNamespacesOption::IncludeNamespaces,
         expected = vec![
-            ("".to_string(), "c".to_string()),
-            ("".to_string(), "a".to_string()),
-            ("".to_string(), "b".to_string())
+            vec!["".to_string(), "c".to_string()],
+            vec!["".to_string(), "a".to_string()],
+            vec!["".to_string(), "b".to_string()]
         ]
     );
 
-    test_result_set_order_including_namespaces!(
+    test_parse_select_list_order!(
         fields_from_two_collections,
         sql = " select foo.a, bar.b from bar, foo",
+        exclude_namespaces = ExcludeNamespacesOption::IncludeNamespaces,
         expected = vec![
-            ("".to_string(), "a".to_string()),
-            ("".to_string(), "b".to_string())
+            vec!["".to_string(), "a".to_string()],
+            vec!["".to_string(), "b".to_string()]
         ]
     );
 
-    test_result_set_order_including_namespaces!(
+    test_parse_select_list_order!(
         substar_between_fields,
         sql = " select foo.a, bar.*, foo.b from bar, foo",
+        exclude_namespaces = ExcludeNamespacesOption::IncludeNamespaces,
         expected = vec![
-            ("".to_string(), "a".to_string()),
-            ("bar".to_string(), "a".to_string()),
-            ("bar".to_string(), "b".to_string()),
-            ("bar".to_string(), "c".to_string()),
-            ("".to_string(), "b".to_string())
+            vec!["".to_string(), "a".to_string()],
+            vec!["bar".to_string(), "a".to_string()],
+            vec!["bar".to_string(), "b".to_string()],
+            vec!["bar".to_string(), "c".to_string()],
+            vec!["".to_string(), "b".to_string()]
         ]
     );
 
-    test_result_set_order_including_namespaces!(
+    test_parse_select_list_order!(
         multiple_substars,
         sql = " select foo.*, bar.* from bar, foo",
+        exclude_namespaces = ExcludeNamespacesOption::IncludeNamespaces,
         expected = vec![
-            ("foo".to_string(), "a".to_string()),
-            ("foo".to_string(), "b".to_string()),
-            ("foo".to_string(), "c".to_string()),
-            ("bar".to_string(), "a".to_string()),
-            ("bar".to_string(), "b".to_string()),
-            ("bar".to_string(), "c".to_string()),
+            vec!["foo".to_string(), "a".to_string()],
+            vec!["foo".to_string(), "b".to_string()],
+            vec!["foo".to_string(), "c".to_string()],
+            vec!["bar".to_string(), "a".to_string()],
+            vec!["bar".to_string(), "b".to_string()],
+            vec!["bar".to_string(), "c".to_string()],
         ]
     );
 
-    test_result_set_order_including_namespaces!(
+    test_parse_select_list_order!(
         fields_aliased_datasources,
         sql = " select f.a, b.b, f.c from bar as b, foo as f",
+        exclude_namespaces = ExcludeNamespacesOption::IncludeNamespaces,
         expected = vec![
-            ("".to_string(), "a".to_string()),
-            ("".to_string(), "b".to_string()),
-            ("".to_string(), "c".to_string()),
+            vec!["".to_string(), "a".to_string()],
+            vec!["".to_string(), "b".to_string()],
+            vec!["".to_string(), "c".to_string()],
         ]
     );
 
-    test_result_set_order_including_namespaces!(
+    test_parse_select_list_order!(
         substar_with_aliased_datasources,
         sql = " select f.a, b.*, f.b from bar as b, foo as f",
+        exclude_namespaces = ExcludeNamespacesOption::IncludeNamespaces,
         expected = vec![
-            ("".to_string(), "a".to_string()),
-            ("b".to_string(), "a".to_string()),
-            ("b".to_string(), "b".to_string()),
-            ("b".to_string(), "c".to_string()),
-            ("".to_string(), "b".to_string()),
+            vec!["".to_string(), "a".to_string()],
+            vec!["b".to_string(), "a".to_string()],
+            vec!["b".to_string(), "b".to_string()],
+            vec!["b".to_string(), "c".to_string()],
+            vec!["".to_string(), "b".to_string()],
         ]
     );
 
-    test_result_set_order_including_namespaces!(
+    test_parse_select_list_order!(
         aliased_fields,
         sql = " select foo.a as f_a, bar.a as b_a from foo, bar",
+        exclude_namespaces = ExcludeNamespacesOption::IncludeNamespaces,
         expected = vec![
-            ("".to_string(), "f_a".to_string()),
-            ("".to_string(), "b_a".to_string()),
+            vec!["".to_string(), "f_a".to_string()],
+            vec!["".to_string(), "b_a".to_string()],
         ]
     );
 
-    test_result_set_order_including_namespaces!(
+    test_parse_select_list_order!(
         aggregations_and_fields,
         sql = "select foo.a, sum(bar.a), foo.b,  count(bar.b) from foo, bar group by foo.a, foo.b",
+        exclude_namespaces = ExcludeNamespacesOption::IncludeNamespaces,
         expected = vec![
-            ("".to_string(), "a".to_string()),
-            ("".to_string(), "_2".to_string()),
-            ("".to_string(), "b".to_string()),
-            ("".to_string(), "_4".to_string()),
+            vec!["".to_string(), "a".to_string()],
+            vec!["".to_string(), "_2".to_string()],
+            vec!["".to_string(), "b".to_string()],
+            vec!["".to_string(), "_4".to_string()],
         ]
     );
 
-    test_result_set_order_including_namespaces!(
+    test_parse_select_list_order!(
         values_simple,
         sql = "select values {'b': foo.b, 'a': 1} from foo",
+        exclude_namespaces = ExcludeNamespacesOption::IncludeNamespaces,
         expected = vec![
-            ("".to_string(), "b".to_string()),
-            ("".to_string(), "a".to_string()),
+            vec!["".to_string(), "b".to_string()],
+            vec!["".to_string(), "a".to_string()],
         ]
     );
-    test_result_set_order_excluding_namespaces!(
+    test_parse_select_list_order!(
         star_no_reordering_exclude_namespaces,
         sql = "select * from foo",
-        expected = vec!["a".to_string(), "b".to_string(), "c".to_string()]
+        exclude_namespaces = ExcludeNamespacesOption::ExcludeNamespaces,
+        expected = vec![
+            vec!["a".to_string()],
+            vec!["b".to_string()],
+            vec!["c".to_string()]
+        ]
     );
 
-    test_result_set_order_excluding_namespaces!(
+    test_parse_select_list_order!(
         one_collection_non_alphabetical_exclude_namespaces,
         sql = "select c, a, b from foo",
-        expected = vec!["c".to_string(), "a".to_string(), "b".to_string()]
+        exclude_namespaces = ExcludeNamespacesOption::ExcludeNamespaces,
+        expected = vec![
+            vec!["c".to_string()],
+            vec!["a".to_string()],
+            vec!["b".to_string()]
+        ]
     );
 
-    test_result_set_order_excluding_namespaces!(
+    test_parse_select_list_order!(
         fields_from_two_collections_exclude_namespaces,
         sql = " select foo.a, bar.b from bar, foo",
-        expected = vec!["a".to_string(), "b".to_string()]
+        exclude_namespaces = ExcludeNamespacesOption::ExcludeNamespaces,
+        expected = vec![vec!["a".to_string()], vec!["b".to_string()]]
     );
 }

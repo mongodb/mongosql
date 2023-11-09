@@ -209,6 +209,11 @@ func TestCatalogSchema(t *testing.T) {
 	}
 
 	util.CheckResultSetSchema(t, expectedResultSetSchema, translation.ResultSetSchema)
+
+	expectedSelectOrder := bson.A{
+		bson.A{"foo", "a"},
+	}
+	util.CheckSelectListOrder(t, expectedSelectOrder, translation.SelectOrder)
 }
 
 func TestCatalogSchemaMultipleCollections(t *testing.T) {
@@ -319,6 +324,44 @@ func TestCatalogSchemaEmpty(t *testing.T) {
 	if !strings.Contains(err.Error(), "algebrize error: Error 1016: unknown collection 'foo' in database 'bar'") {
 		t.Fatalf("error message did not contain expected text: %q", err.Error())
 	}
+}
+
+// TestSelectOrderMultipleElements verifies that multiple, non lexicographic
+// select values are properly parsed in the select order
+func TestSelectOrderMultipleElements(t *testing.T) {
+	schema := bson.M{
+		"bsonType": "object",
+		"properties": bson.M{
+			"a": bson.M{"bsonType": "int"},
+			"b": bson.M{"bsonType": "int"},
+			"c": bson.M{"bsonType": "int"},
+		},
+	}
+	bytes, err := bson.Marshal(&schema)
+	if err != nil {
+		t.Fatalf("failed to marshal: %v", err)
+	}
+
+	catalogSchema := map[string]map[string]bsoncore.Document{
+		"bar": {"foo": bsoncore.Document(bytes)},
+	}
+
+	translation, err := mongosql.Translate(mongosql.TranslationArgs{
+		DB:            "bar",
+		SQL:           "select c, a, b from foo",
+		CatalogSchema: catalogSchema,
+	})
+	if err != nil {
+		t.Fatalf("expected err to be nil, got '%s'", err)
+	}
+
+	expectedSelectOrder := bson.A{
+		bson.A{"", "c"},
+		bson.A{"", "a"},
+		bson.A{"", "b"},
+	}
+
+	util.CheckSelectListOrder(t, expectedSelectOrder, translation.SelectOrder)
 }
 
 // TestArrayStyleItems verifies that translation succeeds with a

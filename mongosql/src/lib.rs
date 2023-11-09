@@ -45,6 +45,7 @@ pub struct Translation {
     pub target_collection: Option<String>,
     pub pipeline: bson::Bson,
     pub result_set_schema: json_schema::Schema,
+    pub select_order: Vec<Vec<String>>,
 }
 
 /// Returns the MQL translation for the provided SQL query in the
@@ -58,7 +59,7 @@ pub fn translate_sql(
     // parse the query and apply syntactic rewrites
     let ast = parser::parse_query(sql)?;
     let ast = ast::rewrites::rewrite_query(ast)?;
-    let _select_order = get_select_order(&ast);
+    let select_order = get_select_order(&ast);
 
     // construct the algebrizer and use it to build an mir plan
     let algebrizer = Algebrizer::new(current_db, catalog, 0u16, sql_options.schema_checking_mode);
@@ -109,12 +110,15 @@ pub fn translate_sql(
 
     let result_set_schema =
         mql_schema_env_to_json_schema(schema_env, &translator.mapping_registry, sql_options)?;
+    let select_order =
+        parse_select_list_order(select_order, result_set_schema.clone(), sql_options);
 
     Ok(Translation {
         target_db,
         target_collection,
         pipeline,
         result_set_schema,
+        select_order,
     })
 }
 
@@ -150,6 +154,80 @@ pub fn get_select_order(ast: &ast::Query) -> Option<ast::SelectBody> {
         }) => Some(b.clone()),
         _ => None,
     }
+}
+
+// given the select order, produce a list representing each field of the result set.
+// if we are including namespaces, we will model the fields as a list of [namespace, field name].
+// if we are excluding namespaces, we will model the fields as a list of [field name].
+pub fn parse_select_list_order(
+    select_body: Option<ast::SelectBody>,
+    result_set_schema: json_schema::Schema,
+    sql_options: SqlOptions,
+) -> Vec<Vec<String>> {
+    let mut select_order: Vec<Vec<String>> = vec![];
+    if let Some(body) = select_body {
+        match body {
+            ast::SelectBody::Values(values) => {
+                let mut properties = result_set_schema.properties.unwrap_or_default();
+                for value in values {
+                    match value {
+                        ast::SelectValuesExpression::Expression(e) => {
+                            if let ast::Expression::Document(d) = e {
+                                for document_pair in d {
+                                    select_order.push(match sql_options.exclude_namespaces {
+                                        ExcludeNamespacesOption::ExcludeNamespaces => {
+                                            vec![document_pair.key]
+                                        }
+                                        ExcludeNamespacesOption::IncludeNamespaces => {
+                                            vec!["".into(), document_pair.key]
+                                        }
+                                    });
+                                }
+                            }
+                        }
+                        ast::SelectValuesExpression::Substar(s) => {
+                            // for substar, get the whole namespace from the result set schema, and parse out all field names
+                            let mut fields = properties
+                                .remove(&s.datasource)
+                                .unwrap_or_default()
+                                .properties
+                                .unwrap_or_default()
+                                .keys()
+                                .map(|field| match sql_options.exclude_namespaces {
+                                    ExcludeNamespacesOption::ExcludeNamespaces => {
+                                        vec![field.clone()]
+                                    }
+                                    ExcludeNamespacesOption::IncludeNamespaces => {
+                                        vec![s.datasource.clone(), field.clone()]
+                                    }
+                                })
+                                .collect::<Vec<_>>();
+                            // we sort substar keys to ensure they have a deterministic order
+                            fields.sort();
+                            select_order.append(&mut fields);
+                        }
+                    }
+                }
+            }
+            // this option should only occur if we have a select *. Return all fields in sorted order
+            ast::SelectBody::Standard(_) => {
+                result_set_schema
+                    .properties
+                    .unwrap_or_default()
+                    .into_iter()
+                    .for_each(|(name, schema)| match sql_options.exclude_namespaces {
+                        ExcludeNamespacesOption::ExcludeNamespaces => select_order.push(vec![name]),
+                        ExcludeNamespacesOption::IncludeNamespaces => schema
+                            .properties
+                            .unwrap_or_default()
+                            .into_iter()
+                            .for_each(|(field, _)| select_order.push(vec![name.clone(), field])),
+                    });
+                select_order.sort();
+            }
+        }
+    }
+    select_order
 }
 
 // mql_schema_env_to_json_schema converts a SchemaEnvironment to a json_schema::Schema with an
