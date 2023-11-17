@@ -220,22 +220,6 @@ mod group_key_comparable {
     }
 }
 
-mod duplicate_key {
-    use crate::mir::binding_tuple::Key;
-
-    test_user_error_messages! {
-        datasource_name_named,
-        input = Error::DuplicateKey(("foo", 0u16).into()),
-        expected = "Cannot create schema environment because multiple datasources are named `foo`."
-    }
-
-    test_user_error_messages! {
-        datasource_name_bottom,
-        input = Error::DuplicateKey(Key::bot(0u16)),
-        expected = "Cannot create schema environment because multiple datasources are named ``."
-    }
-}
-
 mod access_missing_field {
     test_user_error_messages! {
         access_missing_field_no_keys,

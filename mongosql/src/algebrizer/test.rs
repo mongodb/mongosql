@@ -1558,20 +1558,6 @@ mod expression {
         }),
     );
     test_algebrize!(
-        unsupported_extract_date_part,
-        method = algebrize_expression,
-        expected = Err(Error::InvalidExtractDatePart(ast::DatePart::Quarter)),
-        expected_error_code = 3031,
-        input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::DatePart::Quarter,
-            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
-                function: ast::FunctionName::CurrentTimestamp,
-                args: ast::FunctionArguments::Args(vec![]),
-                set_quantifier: Some(ast::SetQuantifier::All)
-            })),
-        }),
-    );
-    test_algebrize!(
         dateadd,
         method = algebrize_expression,
         expected = Ok(mir::Expression::DateFunction(
@@ -1664,24 +1650,6 @@ mod expression {
         input = ast::Expression::DateFunction(ast::DateFunctionExpr {
             function: ast::DateFunctionName::Trunc,
             date_part: ast::DatePart::Year,
-            args: vec![
-                ast::Expression::Function(ast::FunctionExpr {
-                    function: ast::FunctionName::CurrentTimestamp,
-                    args: ast::FunctionArguments::Args(vec![]),
-                    set_quantifier: Some(ast::SetQuantifier::All)
-                }),
-                ast::Expression::Literal(ast::Literal::String("sunday".to_string()))
-            ],
-        }),
-    );
-    test_algebrize!(
-        unsupported_date_function_date_part,
-        method = algebrize_expression,
-        expected = Err(Error::InvalidDateFunctionDatePart(ast::DatePart::IsoWeek)),
-        expected_error_code = 3032,
-        input = ast::Expression::DateFunction(ast::DateFunctionExpr {
-            function: ast::DateFunctionName::Trunc,
-            date_part: ast::DatePart::IsoWeek,
             args: vec![
                 ast::Expression::Function(ast::FunctionExpr {
                     function: ast::FunctionName::CurrentTimestamp,
@@ -2981,24 +2949,6 @@ mod from_clause {
         })
     }
 
-    test_algebrize!(
-        from_clause_must_exist,
-        method = algebrize_from_clause,
-        expected = Err(Error::NoFromClause),
-        expected_error_code = 3001,
-        input = None,
-    );
-    test_algebrize!(
-        collection_must_have_alias,
-        method = algebrize_from_clause,
-        expected = Err(Error::CollectionMustHaveAlias),
-        expected_error_code = 3003,
-        input = Some(ast::Datasource::Collection(ast::CollectionSource {
-            database: None,
-            collection: "foo".into(),
-            alias: None,
-        })),
-    );
     test_algebrize!(
         basic_collection,
         method = algebrize_from_clause,

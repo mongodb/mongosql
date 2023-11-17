@@ -6,6 +6,9 @@ catalog_data:
       - {'_id': 0, 'a': 1, 'b': 2}
     noSchemaInfo:
       - {'_id': 0, 'a': {'b': 1}}
+    docOrInt:
+      - { '_id': 0, 'a': { 'b': 1 } }
+      - { '_id': 1, 'a': 2 }
 
 catalog_schema:
   {
@@ -50,6 +53,28 @@ catalog_schema:
       'noSchemaInfo': {
         'bsonType': "object",
         'additionalProperties': true
+      },
+      'docOrInt': {
+        'bsonType': "object",
+        'required': [ '_id', 'a' ],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': {
+            'anyOf':
+              [
+                { 'bsonType': 'int' },
+                {
+                  'bsonType': "object",
+                  'required': [ 'b' ],
+                  'additionalProperties': false,
+                  'properties': {
+                    'b': { 'bsonType': "int" }
+                  }
+                }
+              ]
+          },
+        }
       },
     }
   }
@@ -102,6 +127,12 @@ tests:
     current_db: db
     should_compile: false
     algebrize_error: 'Error 3010: * argument only valid in COUNT function'
+
+  - description: Error 3011 AggregationInPlaceOfScalar
+    query: "SELECT VALUE {'suma': SUM(a)} FROM db.bar AS bar GROUP BY a AS a"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3011: aggregation function SUM used in scalar position'
 
   - description: Error 3012 ScalarInPlaceOfAggregation
     query: "SELECT * FROM foo GROUP BY a AGGREGATE round(a) AS round"
@@ -171,6 +202,12 @@ tests:
     should_compile: false
     algebrize_error: 'Error 3025: Insufficient schema information.'
 
+  - description: Error 3026 PolymorphicObjectSchema
+    query: "SELECT * FROM FLATTEN(docOrInt)"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3026: cannot flatten field "a" since it has a polymorphic object schema'
+
   - description: Error 3027 DuplicateUnwindOption
     query: "SELECT * FROM UNWIND(foo WITH PATH => arr, PATH => invalid)"
     current_db: db
@@ -183,8 +220,21 @@ tests:
     should_compile: false
     algebrize_error: 'Error 3028: UNWIND must specify a PATH option'
 
+  - description: Error 3029 InvalidUnwindPath
+    query: "SELECT * FROM UNWIND(foo WITH PATH => {'a': []}.a)"
+    current_db: db
+    should_compile: false
+    algebrize_error: 'Error 3029: UNWIND PATH option must be an identifier'
+
   - description: Error 3030 InvalidCast
     query: "SELECT CAST(a AS DATE) FROM foo"
     current_db: db
     should_compile: false
     algebrize_error: "Error 3030: invalid CAST target type 'Date'"
+
+  - description: Error 4000 FieldConflictInNonNamespacedResult
+    query: "SELECT foo.*, bar.a FROM foo, bar"
+    current_db: db
+    exclude_namespaces: true
+    should_compile: false
+    algebrize_error: "Error 4000: Consider aliasing the following conflicting field(s) to unique names: a"

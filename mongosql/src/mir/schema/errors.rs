@@ -6,10 +6,10 @@ use crate::{
         UserError, UserErrorDisplay,
     },
 };
-use mongosql_datastructures::binding_tuple::DatasourceName;
 
 #[derive(Debug, UserErrorDisplay, PartialEq, Eq, Clone)]
 pub enum Error {
+    // DatasourceNotFoundInSchemaEnv is an internal error that the code relies on to function properly. See ticket SQL-1784 for more details.
     DatasourceNotFoundInSchemaEnv(binding_tuple::Key),
     IncorrectArgumentCount {
         name: &'static str,
@@ -27,13 +27,9 @@ pub enum Error {
     CannotMergeObjects(Schema, Schema, Satisfaction),
     AccessMissingField(String, Option<Vec<String>>),
     InvalidSubqueryCardinality,
-    DuplicateKey(binding_tuple::Key),
     SortKeyNotSelfComparable(usize, Schema),
     GroupKeyNotSelfComparable(usize, Schema),
-    UnaliasedFieldAccessWithNoReference(usize),
-    UnaliasedNonFieldAccessExpression(usize),
     UnwindIndexNameConflict(String),
-    InvalidUnwindPath,
     CollectionNotFound(String, String),
     ExtJsonComparison(String),
 }
@@ -50,13 +46,9 @@ impl UserError for Error {
             Error::CannotMergeObjects(_, _, _) => 1006,
             Error::AccessMissingField(_, _) => 1007,
             Error::InvalidSubqueryCardinality => 1008,
-            Error::DuplicateKey(_) => 1009,
             Error::SortKeyNotSelfComparable(_, _) => 1010,
             Error::GroupKeyNotSelfComparable(_, _) => 1011,
-            Error::UnaliasedFieldAccessWithNoReference(_) => 1012,
-            Error::UnaliasedNonFieldAccessExpression(_) => 1013,
             Error::UnwindIndexNameConflict(_) => 1014,
-            Error::InvalidUnwindPath => 1015,
             Error::CollectionNotFound(_, _) => 1016,
             Error::ExtJsonComparison(_) => 1017,
         }
@@ -143,16 +135,6 @@ impl UserError for Error {
                 ))
             }
             Error::InvalidSubqueryCardinality => None,
-            Error::DuplicateKey(datasource) => {
-                let datasource_name =
-                    if let DatasourceName::Named(name) = datasource.datasource.clone() {
-                        name
-                    } else {
-                        "".to_string()
-                    };
-
-                Some(format!("Cannot create schema environment because multiple datasources are named `{datasource_name}`."))
-            }
             Error::SortKeyNotSelfComparable(_, schema) => {
                 let simplified_schema = Schema::simplify(schema);
 
@@ -175,10 +157,7 @@ impl UserError for Error {
                     ))
                 }
             }
-            Error::UnaliasedFieldAccessWithNoReference(_) => None,
-            Error::UnaliasedNonFieldAccessExpression(_) => None,
             Error::UnwindIndexNameConflict(_) => None,
-            Error::InvalidUnwindPath => None,
             Error::CollectionNotFound(_, _) => None,
             Error::ExtJsonComparison(s) => Some(s.clone()),
         }
@@ -195,13 +174,9 @@ impl UserError for Error {
             Error::CannotMergeObjects(s1, s2, sat) => format!("cannot merge objects {0:?} and {1:?} as they {2:?} have overlapping keys", s1, s2, sat),
             Error::AccessMissingField(field, _) => format!("cannot access field {0} because it does not exist", field),
             Error::InvalidSubqueryCardinality => "cardinality of the subquery's result set may be greater than 1".to_string(),
-            Error::DuplicateKey(datasource) => format!("cannot create schema environment with duplicate datasource: {0:?}", datasource),
             Error::SortKeyNotSelfComparable(pos, schema) => format!("sort key at position {0} is not statically comparable to itself because it has the schema {1:?}", pos, schema),
             Error::GroupKeyNotSelfComparable(pos, schema) => format!("group key at position {0} is not statically comparable to itself because it has the schema {1:?}", pos, schema),
-            Error::UnaliasedFieldAccessWithNoReference(pos) => format!("group key at position {0} is an unaliased field access with no datasource reference", pos),
-            Error::UnaliasedNonFieldAccessExpression(pos) => format!("group key at position {0} is an unaliased non-field access expression", pos),
             Error::UnwindIndexNameConflict(name) => format!("UNWIND INDEX name '{0}' conflicts with existing field name", name),
-            Error::InvalidUnwindPath => "UNWIND PATH option must be an identifier".to_string(),
             Error::CollectionNotFound(database, coll) => format!("unknown collection '{1}' in database '{0}'", database, coll),
             Error::ExtJsonComparison(_) => "Extended JSON detected in comparison operation".to_string()
         }

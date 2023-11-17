@@ -208,13 +208,11 @@ impl SchemaEnvironment {
         self.0.merge(other.0)
     }
 
-    pub fn with_merged_mappings(
-        self,
-        mappings: SchemaEnvironment,
-    ) -> Result<Self, DuplicateKeyError> {
+    pub fn with_merged_mappings(self, mappings: SchemaEnvironment) -> Self {
         self.0
             .with_merged_mappings(mappings.0)
             .map(SchemaEnvironment)
+            .expect("cannot create schema environment with duplicate datasource")
     }
 }
 

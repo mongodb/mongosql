@@ -11,10 +11,7 @@ use std::collections::HashSet;
 
 #[derive(Debug, UserErrorDisplay, PartialEq)]
 pub enum Error {
-    AddToSetDoesNotExistInMir,
-    NoFromClause,
     NonStarStandardSelectBody,
-    CollectionMustHaveAlias,
     ArrayDatasourceMustBeLiteral,
     DistinctSelect,
     DistinctUnion,
@@ -33,11 +30,9 @@ pub enum Error {
         String,
         Satisfaction,
     ),
-    CannotBeAlgebrized(&'static str),
     SchemaChecking(mir::schema::Error),
     NoOuterJoinCondition,
     DuplicateKey(Key),
-    PositionalSortKey,
     InvalidSubqueryDegree,
     DuplicateDocumentKey(String),
     DuplicateFlattenOption(ast::FlattenOption),
@@ -47,8 +42,6 @@ pub enum Error {
     NoUnwindPath,
     InvalidUnwindPath,
     InvalidCast(ast::Type),
-    InvalidExtractDatePart(ast::DatePart),
-    InvalidDateFunctionDatePart(ast::DatePart),
     InvalidSortKey(mir::Expression),
 }
 
@@ -69,10 +62,7 @@ impl From<mir::Error> for Error {
 impl UserError for Error {
     fn code(&self) -> u32 {
         match self {
-            Error::AddToSetDoesNotExistInMir => 3000,
-            Error::NoFromClause => 3001,
             Error::NonStarStandardSelectBody => 3002,
-            Error::CollectionMustHaveAlias => 3003,
             Error::ArrayDatasourceMustBeLiteral => 3004,
             Error::DistinctSelect => 3005,
             Error::DistinctUnion => 3006,
@@ -86,11 +76,9 @@ impl UserError for Error {
             Error::AggregationFunctionMustHaveOneArgument => 3014,
             Error::DistinctScalarFunction => 3015,
             Error::DerivedDatasourceOverlappingKeys(_, _, _, _) => 3016,
-            Error::CannotBeAlgebrized(_) => 3017,
             Error::SchemaChecking(e) => e.code(),
             Error::NoOuterJoinCondition => 3019,
             Error::DuplicateKey(_) => 3020,
-            Error::PositionalSortKey => 3021,
             Error::InvalidSubqueryDegree => 3022,
             Error::DuplicateDocumentKey(_) => 3023,
             Error::DuplicateFlattenOption(_) => 3024,
@@ -100,18 +88,13 @@ impl UserError for Error {
             Error::NoUnwindPath => 3028,
             Error::InvalidUnwindPath => 3029,
             Error::InvalidCast(_) => 3030,
-            Error::InvalidExtractDatePart(_) => 3031,
-            Error::InvalidDateFunctionDatePart(_) => 3032,
             Error::InvalidSortKey(_) => 3034,
         }
     }
 
     fn user_message(&self) -> Option<String> {
         match self {
-            Error::AddToSetDoesNotExistInMir => None,
-            Error::NoFromClause => None,
             Error::NonStarStandardSelectBody => None,
-            Error::CollectionMustHaveAlias => None,
             Error::ArrayDatasourceMustBeLiteral => None,
             Error::DistinctSelect => None,
             Error::DistinctUnion => None,
@@ -170,11 +153,9 @@ impl UserError for Error {
                         .join(", ")
                 ))
             }
-            Error::CannotBeAlgebrized(_) => None,
             Error::SchemaChecking(e) => e.user_message(),
             Error::NoOuterJoinCondition => None,
             Error::DuplicateKey(_) => None,
-            Error::PositionalSortKey => None,
             Error::InvalidSubqueryDegree => None,
             Error::DuplicateDocumentKey(_) => None,
             Error::DuplicateFlattenOption(_) => None,
@@ -186,8 +167,6 @@ impl UserError for Error {
             Error::NoUnwindPath => None,
             Error::InvalidUnwindPath => None,
             Error::InvalidCast(_) => None,
-            Error::InvalidExtractDatePart(_) => None,
-            Error::InvalidDateFunctionDatePart(_) => None,
             Error::InvalidSortKey(_) => {
                 Some("expressions are not allowed in sort key field paths".to_string())
             }
@@ -196,10 +175,7 @@ impl UserError for Error {
 
     fn technical_message(&self) -> String {
         match self{
-            Error::AddToSetDoesNotExistInMir => "ADD_TO_SET should be removed before try_from".to_string(),
-            Error::NoFromClause => "all SELECT queries must have a FROM clause".to_string(),
             Error::NonStarStandardSelectBody => "standard SELECT expressions can only contain *".to_string(),
-            Error::CollectionMustHaveAlias => "collection datasources must have aliases".to_string(),
             Error::ArrayDatasourceMustBeLiteral => "array datasource must be constant".to_string(),
             Error::DistinctSelect => "SELECT DISTINCT not allowed".to_string(),
             Error::DistinctUnion => "UNION DISTINCT not allowed".to_string(),
@@ -213,11 +189,9 @@ impl UserError for Error {
             Error::AggregationFunctionMustHaveOneArgument => "aggregation functions must have exactly one argument".to_string(),
             Error::DistinctScalarFunction => "scalar functions don't support DISTINCT".to_string(),
             Error::DerivedDatasourceOverlappingKeys(s1, s2, derived_name, sat) => format!("derived source {derived_name} {sat:?} have overlapping keys between schemata {s1:?} and {s2:?}"),
-            Error::CannotBeAlgebrized(str) => format!("{0} cannot be algebrized", str),
             Error::SchemaChecking(error) => error.technical_message(),
             Error::NoOuterJoinCondition => "OUTER JOINs must specify a JOIN condition".to_string(),
             Error::DuplicateKey(key) => format!("cannot create schema environment with duplicate key: {0:?}", key),
-            Error::PositionalSortKey => "positional sort keys should have been rewritten to references".to_string(),
             Error::InvalidSubqueryDegree => "subquery expressions must have a degree of 1".to_string(),
             Error::DuplicateDocumentKey(key) => format!("found duplicate document key {0:?}", key),
             Error::DuplicateFlattenOption(flatten_opt) => format!("found duplicate FLATTEN option {0:?}", flatten_opt),
@@ -227,8 +201,6 @@ impl UserError for Error {
             Error::NoUnwindPath => "UNWIND must specify a PATH option".to_string(),
             Error::InvalidUnwindPath => "UNWIND PATH option must be an identifier".to_string(),
             Error::InvalidCast(ast_type) => format!("invalid CAST target type '{0:?}'", ast_type),
-            Error::InvalidExtractDatePart(date_part) => format!("'{0:?}' is not a supported date part for EXTRACT", date_part),
-            Error::InvalidDateFunctionDatePart(date_part) => format!("'{0:?}' is not a supported date part for DATEADD, DATEDIFF, and DATETRUNC", date_part),
             Error::InvalidSortKey(e) =>
                 format!("sort key field path must be a pure field path with no expressions in this context. found {0:?}",
                     e

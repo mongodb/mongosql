@@ -44,7 +44,7 @@ impl TryFrom<ast::BinaryOp> for mir::ScalarFunction {
             ast::BinaryOp::Or => mir::ScalarFunction::Or,
             ast::BinaryOp::Sub => mir::ScalarFunction::Sub,
             ast::BinaryOp::In | ast::BinaryOp::NotIn => {
-                return Err(Error::CannotBeAlgebrized(op.as_str()))
+                panic!("{0} cannot be algebrized", op.as_str())
             }
         })
     }
@@ -122,7 +122,7 @@ impl TryFrom<ast::FunctionName> for mir::AggregationFunction {
     fn try_from(f: crate::ast::FunctionName) -> Result<Self> {
         Ok(match f {
             ast::FunctionName::AddToArray => mir::AggregationFunction::AddToArray,
-            ast::FunctionName::AddToSet => return Err(Error::AddToSetDoesNotExistInMir),
+            ast::FunctionName::AddToSet => panic!("ADD_TO_SET should be removed before try_from"),
             ast::FunctionName::Avg => mir::AggregationFunction::Avg,
             ast::FunctionName::Count => mir::AggregationFunction::Count,
             ast::FunctionName::First => mir::AggregationFunction::First,
@@ -429,7 +429,7 @@ impl<'a> Algebrizer<'a> {
     }
 
     pub fn algebrize_from_clause(&self, ast_node: Option<ast::Datasource>) -> Result<mir::Stage> {
-        let ast_node = ast_node.ok_or(Error::NoFromClause)?;
+        let ast_node = ast_node.expect("all SELECT queries must have a FROM clause");
         self.algebrize_datasource(ast_node)
     }
 
@@ -490,7 +490,7 @@ impl<'a> Algebrizer<'a> {
                     cache: SchemaCache::new(),
                 })
             }
-            None => return Err(Error::CollectionMustHaveAlias),
+            None => panic!("collection datasources must have aliases"),
         };
         stage.schema(&self.schema_inference_state())?;
         Ok(stage)
@@ -824,7 +824,9 @@ impl<'a> Algebrizer<'a> {
                             ast::SortKey::Simple(expr) => {
                                 expression_algebrizer.algebrize_expression(expr)
                             }
-                            ast::SortKey::Positional(_) => Err(Error::PositionalSortKey),
+                            ast::SortKey::Positional(_) => panic!(
+                                "positional sort keys should have been rewritten to references"
+                            ),
                         }?;
                         match s.direction {
                             ast::SortDirection::Asc => Ok(mir::SortSpecification::Asc(
@@ -990,7 +992,7 @@ impl<'a> Algebrizer<'a> {
             ast::Expression::Is(i) => self.algebrize_is(i),
             ast::Expression::Like(l) => self.algebrize_like(l),
             // Tuples should all be rewritten away.
-            ast::Expression::Tuple(_) => Err(Error::CannotBeAlgebrized("tuples")),
+            ast::Expression::Tuple(_) => panic!("tuples cannot be algebrized"),
             ast::Expression::Subquery(s) => self.algebrize_subquery(*s),
             ast::Expression::SubqueryComparison(s) => self.algebrize_subquery_comparison(s),
             ast::Expression::Exists(e) => self.algebrize_exists(*e),
@@ -1213,20 +1215,20 @@ impl<'a> Algebrizer<'a> {
     fn algebrize_extract(&self, e: ast::ExtractExpr) -> Result<mir::Expression> {
         use crate::ast::DatePart::*;
         let function = match e.extract_spec {
-            Year => Ok(mir::ScalarFunction::Year),
-            Month => Ok(mir::ScalarFunction::Month),
-            Day => Ok(mir::ScalarFunction::Day),
-            Hour => Ok(mir::ScalarFunction::Hour),
-            Minute => Ok(mir::ScalarFunction::Minute),
-            Second => Ok(mir::ScalarFunction::Second),
-            Millisecond => Ok(mir::ScalarFunction::Millisecond),
-            Week => Ok(mir::ScalarFunction::Week),
-            DayOfYear => Ok(mir::ScalarFunction::DayOfYear),
-            DayOfWeek => Ok(mir::ScalarFunction::DayOfWeek),
-            IsoWeek => Ok(mir::ScalarFunction::IsoWeek),
-            IsoWeekday => Ok(mir::ScalarFunction::IsoWeekday),
-            Quarter => Err(Error::InvalidExtractDatePart(e.extract_spec)),
-        }?;
+            Year => mir::ScalarFunction::Year,
+            Month => mir::ScalarFunction::Month,
+            Day => mir::ScalarFunction::Day,
+            Hour => mir::ScalarFunction::Hour,
+            Minute => mir::ScalarFunction::Minute,
+            Second => mir::ScalarFunction::Second,
+            Millisecond => mir::ScalarFunction::Millisecond,
+            Week => mir::ScalarFunction::Week,
+            DayOfYear => mir::ScalarFunction::DayOfYear,
+            DayOfWeek => mir::ScalarFunction::DayOfWeek,
+            IsoWeek => mir::ScalarFunction::IsoWeek,
+            IsoWeekday => mir::ScalarFunction::IsoWeekday,
+            Quarter => panic!("'Quarter' is not a supported date part for EXTRACT"),
+        };
         let args = vec![self.algebrize_expression(*e.arg)?];
         let is_nullable = Self::args_are_nullable(&args);
         Ok(mir::Expression::ScalarFunction(
@@ -1246,19 +1248,22 @@ impl<'a> Algebrizer<'a> {
             Trunc => mir::DateFunction::Trunc,
         };
         let date_part = match d.date_part {
-            Year => Ok(mir::DatePart::Year),
-            Month => Ok(mir::DatePart::Month),
-            Day => Ok(mir::DatePart::Day),
-            Hour => Ok(mir::DatePart::Hour),
-            Minute => Ok(mir::DatePart::Minute),
-            Second => Ok(mir::DatePart::Second),
-            Millisecond => Ok(mir::DatePart::Millisecond),
-            Week => Ok(mir::DatePart::Week),
-            Quarter => Ok(mir::DatePart::Quarter),
+            Year => mir::DatePart::Year,
+            Month => mir::DatePart::Month,
+            Day => mir::DatePart::Day,
+            Hour => mir::DatePart::Hour,
+            Minute => mir::DatePart::Minute,
+            Second => mir::DatePart::Second,
+            Millisecond => mir::DatePart::Millisecond,
+            Week => mir::DatePart::Week,
+            Quarter => mir::DatePart::Quarter,
             IsoWeek | IsoWeekday | DayOfYear | DayOfWeek => {
-                Err(Error::InvalidDateFunctionDatePart(d.date_part))
+                panic!(
+                    "'{0:?}' is not a supported date part for DATEADD, DATEDIFF, and DATETRUNC",
+                    d.date_part
+                )
             }
-        }?;
+        };
 
         let args = d
             .args

@@ -10,19 +10,19 @@ Each error type (schema, parser, and algebrizer) is detailed in separate section
 The following errors occur when something goes wrong while handling the schema of the data source (collection) that the SQL query is querying data from.
 These errors often occur when you use data types in an incorrect or invalid way.
 
-| Error Code | Error Description |
-| ---------- | ----------------- |
-| [Error 1001](#error-1001)  | A function (Sin, Abs, Round) has the incorrect number of arguments.|
-| [Error 1002](#error-1002)  | The specified operation (Sub, And, Substring) has argument(s) of the incorrect type (string, int). |
-| [Error 1003](#error-1003)  | The argument provided to the aggregation is not of a type that is comparable to itself.|
-| [Error 1004](#error-1004)  | `COUNT(DISTINCT *)` is not supported. |
-| [Error 1005](#error-1005)  | The specified comparison operation (Lte, Between) could not be done due to incomparable types of their operands (comparing an int to a string).|
-| [Error 1007](#error-1007)  | A field cannot be accessed because it cannot be found (and likely doesn't exist). |
-| [Error 1008](#error-1008)  | The cardinality of a subquery's result set may be greater than 1. The result set MUST have a cardinality of 0 or 1. |
-| [Error 1010](#error-1010)  | Cannot sort by the specified key because it is of a type that can't be compared against itself. |
-| [Error 1011](#error-1011)  | Cannot group by the specified key because it is of a type that can't be compared against itself. |
-| [Error 1014](#error-1014)  | UNWIND INDEX name conflicts with existing field name. |
-| [Error 1016](#error-1016)  | The collection in the specified database could not be found. |
+| Error Code | Error Description                                                                                                                                                                 |
+| ---------- |-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [Error 1001](#error-1001)  | A function (Sin, Abs, Round) has the incorrect number of arguments.                                                                                                               |
+| [Error 1002](#error-1002)  | The specified operation (Sub, And, Substring) has argument(s) of the incorrect type (string, int).                                                                                |
+| [Error 1003](#error-1003)  | The argument provided to the aggregation is not of a type that is comparable to itself.                                                                                           |
+| [Error 1004](#error-1004)  | `COUNT(DISTINCT *)` is not supported.                                                                                                                                             |
+| [Error 1005](#error-1005)  | The specified comparison operation (Lte, Between) could not be done due to incomparable types of their operands (comparing an int to a string).                                   |
+| [Error 1007](#error-1007)  | A field cannot be accessed because it cannot be found (and likely doesn't exist).                                                                                                 |
+| [Error 1008](#error-1008)  | The cardinality of a subquery's result set may be greater than 1. The result set MUST have a cardinality of 0 or 1.                                                               |
+| [Error 1010](#error-1010)  | Cannot sort by the specified key because it is of a type that can't be compared against itself.                                                                                   |
+| [Error 1011](#error-1011)  | Cannot group by the specified key because it is of a type that can't be compared against itself.                                                                                  |
+| [Error 1014](#error-1014)  | UNWIND INDEX name conflicts with existing field name.                                                                                                                             |
+| [Error 1016](#error-1016)  | The collection in the specified database could not be found.                                                                                                                      |
 | [Error 1017](#error-1017)  | Extended JSON detected in comparison operation. MongoSQL does not support direct comparisons with extended JSON. Use casting instead (look at "Resolution Steps" for an example). |
 
 ## Error Codes Beginning With "2" Overview
@@ -31,10 +31,10 @@ The following errors occur when something goes wrong while parsing (interpreting
 This type of error means that the query syntax is not valid and therefore the query cannot be parsed and consequently fails.
 The SQL query has to be amended in order to overcome a parsing error.
 
-| Error Code | Error Description |
-| ---------- | ----------------- |
+| Error Code | Error Description                                                           |
+| ---------- |-----------------------------------------------------------------------------|
 | [Error 2000](#error-2000) | This error is a catch-all for every parser error except unrecognized token. |
-| [Error 2001](#error-2001) | An unexpected or unrecognized token was encountered. |
+| [Error 2001](#error-2001) | An unexpected or unrecognized token was encountered.                        |
 
 ## Error Codes Beginning With "3" Overview
 
@@ -50,6 +50,7 @@ The following errors occur when something goes wrong while converting the SQL qu
 | [Error 3008](#error-3008) | A field could not be found in any data source.                                                                                                                              |
 | [Error 3009](#error-3009) | A field exists in multiple data sources and is ambiguous.                                                                                                                   |
 | [Error 3010](#error-3010) | The * argument is only valid in the COUNT aggregate function.                                                                                                               |
+| [Error 3011](#error-3011) | An aggregation function was used in a scalar position.                                                                                                                      |
 | [Error 3012](#error-3012) | A scalar function was used in an aggregation position.                                                                                                                      |
 | [Error 3013](#error-3013) | A non-aggregation expression was found in a GROUP BY aggregation function list.                                                                                             |
 | [Error 3014](#error-3014) | Aggregation functions must have exactly one argument.                                                                                                                       |
@@ -61,10 +62,21 @@ The following errors occur when something goes wrong while converting the SQL qu
 | [Error 3023](#error-3023) | A document has multiple fields with the same name.                                                                                                                          |
 | [Error 3024](#error-3024) | The same FLATTEN option is defined more than once.                                                                                                                          |
 | [Error 3025](#error-3025) | Schema information is insufficient to allow for flattening the data source.                                                                                                 |
+| [Error 3026](#error-3026) | A field within the schema is a polymorphic object type (e.g., consider a field that could either be a `document` or `int`), so it can't be flattened.                       |
 | [Error 3027](#error-3027) | The same UNWIND option is defined more than once.                                                                                                                           |
 | [Error 3028](#error-3028) | UNWIND is missing the path option. UNWIND must specify a PATH option.                                                                                                       |
+| [Error 3029](#error-3029) | The UNWIND PATH option is not an identifier; however, it must be one.                                                                                                       |
 | [Error 3030](#error-3030) | The target type of the CAST is an invalid type (i.e., it's either an unknown type or a type that MongoSQL does not support casting for).                                    |
 | [Error 3034](#error-3034) | A sort key is invalid because it uses complex expressions (i.e., `ORDER BY {'a': b}.a` is invalid).                                                                         |
+
+## Error Codes Beginning With "4" Overview
+
+The following errors occur when something goes wrong while using the excludeNamespaces option when using the $sql aggregation.
+
+| Error Code                | Error Description                                                               |
+|---------------------------|---------------------------------------------------------------------------------|
+| [Error 4000](#error-4000) | The non-namespaced result set cannot be returned due to field name conflict(s). |
+
 
 ### Error 1001
 
@@ -234,6 +246,13 @@ The following errors occur when something goes wrong while converting the SQL qu
   causes this error.
 - **Resolution Steps:** Only use `*` as an argument to `COUNT`.
 
+### Error 3011
+
+- **Description:** An aggregation function was used in a scalar position.
+- **Common Causes:** Using an aggregation function where only a scalar function can be used. For example, the query `SELECT VALUE {'suma': SUM(a)} FROM db.bar AS bar GROUP BY a AS a`
+  causes this error because `SUM(a)` is an aggregation function.
+- **Resolution Steps:** Remove aggregation functions in places where you can only have scalar functions.
+
 ### Error 3012
 
 - **Description:** A scalar function was used in an aggregation position.
@@ -311,6 +330,16 @@ The following errors occur when something goes wrong while converting the SQL qu
 - **Resolution Steps:** Define all fields in the schema to ensure that the schema is sufficiently defined. Additionally, try to avoid setting `additional_properties` to true.
   Instead, choose to fully define the schema.
 
+### Error 3026
+
+- **Description:** A field within the schema is a polymorphic object type (e.g., consider a field that could either be a `document` or `int`), so it can't be flattened.
+  Flattening only works on object (AKA document) types, so if there is a possibility that some field may not be a document, then it can't be flattened. 
+- **Common Causes:** Trying to flatten a collection that has a schema containing a field that is a polymorphic object type. For example, assuming that a collection 
+  named `coll` has a field that is a polymorphic object type, then the query `SELECT * FROM FLATTEN(coll)` will cause this error
+- **Resolution Steps:** You can only flatten object types, so if you want a field to have the possibility of being flattened, the schema for that field MUST be an object type.
+  To fix this error, you must either stop trying to flatten collections that have fields with polymorphic object types, or you must change the schema for those fields to be
+  an object type only. 
+
 ### Error 3027
 
 - **Description:** The same UNWIND option is defined more than once.
@@ -322,6 +351,12 @@ The following errors occur when something goes wrong while converting the SQL qu
 - **Description:** UNWIND is missing the PATH option. UNWIND must specify a PATH option.
 - **Common Causes:** UNWIND is missing the PATH option as shown by the erroneous query `SELECT * FROM UNWIND(foo)`.
 - **Resolution Steps:** Add the PATH option to the UNWIND. Corrected example query: `SELECT * FROM UNWIND(foo WITH PATH => a)`.
+
+### Error 3029
+
+- **Description:** The UNWIND PATH option is not an identifier; however, it must be one. 
+- **Common Causes:** The UNWIND PATH option is not an identifier as shown by the erroneous query `SELECT * FROM UNWIND(foo WITH PATH => {'a': []}.a)`.
+- **Resolution Steps:** Change the UNWIND PATH option into an identifier. Corrected example query: `SELECT * FROM UNWIND(foo WITH PATH => a)`.
 
 ### Error 3030
 
@@ -339,3 +374,10 @@ The following errors occur when something goes wrong while converting the SQL qu
     causes this error because `CAST(d AS DOCUMENT)` is a complex expression.
 - **Resolution Steps:** Make sure you only sort by "pure" field path. A "pure" field path consists only of
     identifiers, such as `foo.d.a` or `a`.
+
+### Error 4000
+- **Description:** The non-namespaced result set cannot be returned due to field name conflict(s).
+- **Common Causes:** Setting the `$sql` aggregation `excludeNamespaces` field to true and querying multiple collections with the same field names. Since this option removes collection namespaces,
+  fields with the same name that belong to different collections are no longer unique. For example, consider collections `foo` and `bar` each with a field `a`, and a query such as `SELECT foo.*, bar.a FROM foo, bar`. 
+  With collection namespaces in the result set, the two `a` fields can be differentiated between `foo` and `bar`; however, without collection namespaces, they cannot be distinguished from one another.
+- **Resolution Steps:** The best way to fix this error is to use aliasing to make conflicting fields unique. Corrected example query: `SELECT foo.*, bar.a AS a_unique_alias from foo, bar`. 

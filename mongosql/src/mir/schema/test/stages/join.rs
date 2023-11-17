@@ -374,27 +374,6 @@ mod standard {
     );
 
     test_schema!(
-        join_duplicate_datasource_names,
-        expected_error_code = 1009,
-        expected = Err(mir_error::DuplicateKey(("foo", 0u16).into())),
-        input = Stage::Join(Join {
-            join_type: JoinType::Inner,
-            left: Box::new(Stage::Array(ArraySource {
-                array: vec![test_document_a()],
-                alias: "foo".into(),
-                cache: SchemaCache::new(),
-            })),
-            right: Box::new(Stage::Array(ArraySource {
-                array: vec![test_document_b()],
-                alias: "foo".into(),
-                cache: SchemaCache::new(),
-            })),
-            condition: None,
-            cache: SchemaCache::new(),
-        }),
-    );
-
-    test_schema!(
         invalid_join_condition,
         expected_error_code = 1002,
         expected = Err(mir_error::SchemaChecking {

@@ -150,18 +150,13 @@ impl<'a> SchemaInferenceState<'a> {
         }
     }
 
-    pub fn with_merged_schema_env(
-        &self,
-        env: SchemaEnvironment,
-    ) -> Result<SchemaInferenceState, Error> {
-        Ok(SchemaInferenceState {
-            env: env
-                .with_merged_mappings(self.env.clone())
-                .map_err(|e| Error::DuplicateKey(e.key))?,
+    pub fn with_merged_schema_env(&self, env: SchemaEnvironment) -> SchemaInferenceState {
+        SchemaInferenceState {
+            env: env.with_merged_mappings(self.env.clone()),
             catalog: self.catalog,
             scope_level: self.scope_level,
             schema_checking_mode: self.schema_checking_mode,
-        })
+        }
     }
 
     pub fn subquery_state(&self) -> SchemaInferenceState {
@@ -252,7 +247,7 @@ impl CachedSchema for Stage {
         match self {
             Stage::Filter(f) => {
                 let source_result_set = f.source.schema(state)?;
-                let state = state.with_merged_schema_env(source_result_set.schema_env.clone())?;
+                let state = state.with_merged_schema_env(source_result_set.schema_env.clone());
                 let cond_schema = f.condition.schema(&state)?;
                 if !state.check_satisfies(&cond_schema, &BOOLEAN_OR_NULLISH) {
                     return Err(Error::SchemaChecking {
@@ -271,7 +266,7 @@ impl CachedSchema for Stage {
             Stage::Project(p) => {
                 let source_result_set = p.source.schema(state)?;
                 let (min_size, max_size) = (source_result_set.min_size, source_result_set.max_size);
-                let state = state.with_merged_schema_env(source_result_set.schema_env)?;
+                let state = state.with_merged_schema_env(source_result_set.schema_env);
                 let schema_env = p
                     .expression
                     .iter()
@@ -299,7 +294,7 @@ impl CachedSchema for Stage {
             #[allow(clippy::manual_try_fold)]
             Stage::Group(g) => {
                 let source_result_set = g.source.schema(state)?;
-                let state = state.with_merged_schema_env(source_result_set.schema_env.clone())?;
+                let state = state.with_merged_schema_env(source_result_set.schema_env.clone());
 
                 // If all group keys are literals, the result set max size is 1.
                 // Otherwise, the max is derived from the source's result set.
@@ -356,13 +351,9 @@ impl CachedSchema for Stage {
                                         r.key.clone(),
                                         schema_binding_doc(f.field.clone(), group_key_schema),
                                     ),
-                                    _ => {
-                                        return Err(Error::UnaliasedFieldAccessWithNoReference(
-                                            index,
-                                        ))
-                                    }
+                                     _ => panic!("group key at position {0} is an unaliased field access with no datasource reference", index),
                                 },
-                                _ => return Err(Error::UnaliasedNonFieldAccessExpression(index)),
+                                _ => panic!("group key at position {0} is an unaliased non-field access expression", index),
                             },
                         };
 
@@ -476,7 +467,7 @@ impl CachedSchema for Stage {
             }
             Stage::Sort(s) => {
                 let source_result_set = s.source.schema(state)?;
-                let state = state.with_merged_schema_env(source_result_set.schema_env.clone())?;
+                let state = state.with_merged_schema_env(source_result_set.schema_env.clone());
 
                 // Ensure that each sort key is statically comparable to itself.
                 s.specs
@@ -537,8 +528,8 @@ impl CachedSchema for Stage {
                 let left_result_set = j.left.schema(state)?;
                 let right_result_set = j.right.schema(state)?;
 
-                let state = state.with_merged_schema_env(left_result_set.schema_env.clone())?;
-                let state = state.with_merged_schema_env(right_result_set.schema_env.clone())?;
+                let state = state.with_merged_schema_env(left_result_set.schema_env.clone());
+                let state = state.with_merged_schema_env(right_result_set.schema_env.clone());
                 if let Some(e) = &j.condition {
                     let cond_schema = e.schema(&state)?;
                     if !state.check_satisfies(&cond_schema, &BOOLEAN_OR_NULLISH) {
@@ -556,18 +547,15 @@ impl CachedSchema for Stage {
                             .max_size
                             .and_then(|l| right_result_set.max_size.map(|r| l * r));
                         Ok(ResultSet {
-                            schema_env: left_result_set
-                                .schema_env
-                                .with_merged_mappings(
-                                    right_result_set
-                                        .schema_env
-                                        .into_iter()
-                                        .map(|(key, schema)| {
-                                            (key, Schema::AnyOf(set![Schema::Missing, schema]))
-                                        })
-                                        .collect::<SchemaEnvironment>(),
-                                )
-                                .map_err(|e| Error::DuplicateKey(e.key))?,
+                            schema_env: left_result_set.schema_env.with_merged_mappings(
+                                right_result_set
+                                    .schema_env
+                                    .into_iter()
+                                    .map(|(key, schema)| {
+                                        (key, Schema::AnyOf(set![Schema::Missing, schema]))
+                                    })
+                                    .collect::<SchemaEnvironment>(),
+                            ),
                             min_size,
                             max_size,
                         })
@@ -586,8 +574,7 @@ impl CachedSchema for Stage {
                         Ok(ResultSet {
                             schema_env: left_result_set
                                 .schema_env
-                                .with_merged_mappings(right_result_set.schema_env)
-                                .map_err(|e| Error::DuplicateKey(e.key))?,
+                                .with_merged_mappings(right_result_set.schema_env),
                             min_size,
                             max_size,
                         })
@@ -776,8 +763,8 @@ impl CachedSchema for Stage {
                 let source_result_set = j.source.schema(state)?;
                 let from_result_set = j.from.schema(state)?;
 
-                let state = state.with_merged_schema_env(source_result_set.schema_env.clone())?;
-                let state = state.with_merged_schema_env(from_result_set.schema_env.clone())?;
+                let state = state.with_merged_schema_env(source_result_set.schema_env.clone());
+                let state = state.with_merged_schema_env(from_result_set.schema_env.clone());
 
                 let local_field_schema = j.local_field.schema(&state)?;
                 let foreign_field_schema = j.foreign_field.schema(&state)?;
@@ -797,18 +784,15 @@ impl CachedSchema for Stage {
                             .max_size
                             .and_then(|l| from_result_set.max_size.map(|r| l * r));
                         Ok(ResultSet {
-                            schema_env: source_result_set
-                                .schema_env
-                                .with_merged_mappings(
-                                    from_result_set
-                                        .schema_env
-                                        .into_iter()
-                                        .map(|(key, schema)| {
-                                            (key, Schema::AnyOf(set![Schema::Missing, schema]))
-                                        })
-                                        .collect::<SchemaEnvironment>(),
-                                )
-                                .map_err(|e| Error::DuplicateKey(e.key))?,
+                            schema_env: source_result_set.schema_env.with_merged_mappings(
+                                from_result_set
+                                    .schema_env
+                                    .into_iter()
+                                    .map(|(key, schema)| {
+                                        (key, Schema::AnyOf(set![Schema::Missing, schema]))
+                                    })
+                                    .collect::<SchemaEnvironment>(),
+                            ),
                             min_size,
                             max_size,
                         })
@@ -822,8 +806,7 @@ impl CachedSchema for Stage {
                         Ok(ResultSet {
                             schema_env: source_result_set
                                 .schema_env
-                                .with_merged_mappings(from_result_set.schema_env)
-                                .map_err(|e| Error::DuplicateKey(e.key))?,
+                                .with_merged_mappings(from_result_set.schema_env),
                             min_size,
                             max_size,
                         })
@@ -832,7 +815,7 @@ impl CachedSchema for Stage {
             }
             Stage::MQLIntrinsic(MQLStage::LateralJoin(j)) => {
                 let source_result_set = j.source.schema(state)?;
-                let state = state.with_merged_schema_env(source_result_set.schema_env.clone())?;
+                let state = state.with_merged_schema_env(source_result_set.schema_env.clone());
                 let subquery_result_set = j.subquery.schema(&state)?;
 
                 match j.join_type {
@@ -842,18 +825,15 @@ impl CachedSchema for Stage {
                             .max_size
                             .and_then(|l| subquery_result_set.max_size.map(|r| l * r));
                         Ok(ResultSet {
-                            schema_env: source_result_set
-                                .schema_env
-                                .with_merged_mappings(
-                                    subquery_result_set
-                                        .schema_env
-                                        .into_iter()
-                                        .map(|(key, schema)| {
-                                            (key, Schema::AnyOf(set![Schema::Missing, schema]))
-                                        })
-                                        .collect::<SchemaEnvironment>(),
-                                )
-                                .map_err(|e| Error::DuplicateKey(e.key))?,
+                            schema_env: source_result_set.schema_env.with_merged_mappings(
+                                subquery_result_set
+                                    .schema_env
+                                    .into_iter()
+                                    .map(|(key, schema)| {
+                                        (key, Schema::AnyOf(set![Schema::Missing, schema]))
+                                    })
+                                    .collect::<SchemaEnvironment>(),
+                            ),
                             min_size,
                             max_size,
                         })
@@ -867,8 +847,7 @@ impl CachedSchema for Stage {
                         Ok(ResultSet {
                             schema_env: source_result_set
                                 .schema_env
-                                .with_merged_mappings(subquery_result_set.schema_env)
-                                .map_err(|e| Error::DuplicateKey(e.key))?,
+                                .with_merged_mappings(subquery_result_set.schema_env),
                             min_size,
                             max_size,
                         })
@@ -877,7 +856,7 @@ impl CachedSchema for Stage {
             }
             Stage::MQLIntrinsic(MQLStage::MatchFilter(f)) => {
                 let source_result_set = f.source.schema(state)?;
-                let state = state.with_merged_schema_env(source_result_set.schema_env.clone())?;
+                let state = state.with_merged_schema_env(source_result_set.schema_env.clone());
                 let cond_schema = f.condition.schema(&state)?;
                 if !state.check_satisfies(&cond_schema, &BOOLEAN_OR_NULLISH) {
                     return Err(Error::SchemaChecking {
