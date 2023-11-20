@@ -34,19 +34,24 @@ pub enum Error {
     InvalidBottomField(String),
     #[error("{0}")]
     InvalidNamespace(String),
+    #[error("{0}")]
+    UnsupportedBsonType(String),
 }
 
-impl From<namespace_error::Error> for Error {
-    fn from(value: namespace_error::Error) -> Self {
+impl From<user_schema_error::Error> for Error {
+    fn from(value: user_schema_error::Error) -> Self {
         match value {
-            namespace_error::Error::FieldConflictInNonNamespacedResult(_, _) => {
+            user_schema_error::Error::FieldConflictInNonNamespacedResult(_, _) => {
                 Error::FieldConflictInNonNamespacedResult(value.to_string())
+            }
+            user_schema_error::Error::UnsupportedBsonType(_) => {
+                Error::UnsupportedBsonType(value.to_string())
             }
         }
     }
 }
 
-mod namespace_error {
+mod user_schema_error {
     // namespace_error implements the UserError trait and is separate from schema::Error
     // as this error could be directly returned to end-users
     use crate::schema::Schema;
@@ -55,12 +60,14 @@ mod namespace_error {
     #[derive(Debug, UserErrorDisplay, PartialEq)]
     pub enum Error {
         FieldConflictInNonNamespacedResult(Vec<String>, Vec<Schema>),
+        UnsupportedBsonType(String),
     }
 
     impl UserError for Error {
         fn code(&self) -> u32 {
             match self {
                 Error::FieldConflictInNonNamespacedResult(_, _) => 4000,
+                Error::UnsupportedBsonType(_) => 1018,
             }
         }
 
@@ -70,6 +77,13 @@ mod namespace_error {
                     "Consider aliasing the following conflicting field(s) to unique names: {}",
                     names.join(", ")
                 )),
+                Error::UnsupportedBsonType(s) => {
+                    let message = match s.as_str() {
+                        "undefined" => "Consider updating the type of undefined fields to a non-deprecated BSON type, such as Null".to_string(),
+                        _ => String::new(),
+                    };
+                    Some(format!("Unsupported BSON type: {s}. {message}"))
+                }
             }
         }
 
@@ -82,6 +96,7 @@ mod namespace_error {
                         schemas
                     )
                 }
+                Error::UnsupportedBsonType(t) => format!("Deprecated BSON type {t}"),
             }
         }
     }
@@ -131,15 +146,17 @@ impl SchemaEnvironment {
             }
         }
         if !name_duplicates.is_empty() {
-            return Err(namespace_error::Error::FieldConflictInNonNamespacedResult(
-                name_duplicates,
-                keys_with_duplicates
-                    .iter()
-                    .filter_map(|key| self.get(key))
-                    .cloned()
-                    .collect(),
-            )
-            .into());
+            return Err(
+                user_schema_error::Error::FieldConflictInNonNamespacedResult(
+                    name_duplicates,
+                    keys_with_duplicates
+                        .iter()
+                        .filter_map(|key| self.get(key))
+                        .cloned()
+                        .collect(),
+                )
+                .into(),
+            );
         }
         Ok(())
     }
@@ -414,6 +431,9 @@ impl TryFrom<json_schema::BsonTypeName> for Atomic {
             BsonTypeName::MaxKey => Ok(Atomic::MaxKey),
             BsonTypeName::Object | BsonTypeName::Array => {
                 Err(Error::CannotConvertBsonTypeToAtomic(t))
+            }
+            BsonTypeName::Undefined => {
+                Err(user_schema_error::Error::UnsupportedBsonType("undefined".to_string()).into())
             }
         }
     }
@@ -1195,7 +1215,8 @@ impl TryFrom<json_schema::Schema> for Schema {
             } => Ok(Schema::Any),
 
             // This branch handles all other JSON schema validators that don't
-            // use `one_of` or `any_of`.
+            // use `one_of` or `any_of`. We must explicitly filter out unsupported
+            // BsonTypeName values we don't support.
             json_schema::Schema {
                 bson_type,
                 properties,
@@ -1207,7 +1228,9 @@ impl TryFrom<json_schema::Schema> for Schema {
             } => {
                 let bson_type = bson_type.unwrap_or_else(|| {
                     json_schema::BsonType::Multiple(
-                        json_schema::BsonTypeName::into_enum_iter().collect(),
+                        json_schema::BsonTypeName::into_enum_iter()
+                            .filter(|&t| t != json_schema::BsonTypeName::Undefined)
+                            .collect(),
                     )
                 });
                 match bson_type {

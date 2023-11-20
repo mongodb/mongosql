@@ -1,0 +1,64 @@
+catalog_data:
+  db:
+    undef:
+      - { '_id': 0, 'undef': 'undefined'}
+
+catalog_schema:
+  {
+    'db': {
+      'foo': {
+        'bsonType': 'object',
+        "required": [ "_id", "a", "b", "c", "d"],
+        "additionalProperties": false,
+        "properties":
+          {
+            "_id": { "bsonType": "int" },
+            "a": { "bsonType": "int" },
+            "b": { "bsonType": "int" },
+            "c": {"bsonType": "string"},
+            "d":
+              {
+                "required": ["a"],
+                "bsonType": "object",
+                "properties": {
+                  "a": { "bsonType": "int" }
+                }
+              },
+          },
+      },
+      'bar': {
+        'bsonType': 'object',
+        "required": [ "_id", "a", "b", "c", "d" ],
+        "additionalProperties": false,
+        "properties":
+          {
+            "_id": { "bsonType": "int" },
+            "a": { "bsonType": "int" },
+            "b": { "bsonType": "int" },
+            "c": { "bsonType": "string" },
+            "d":
+              {
+                "bsonType": "object",
+                "additionalProperties": true,
+              },
+          },
+      },
+      "undef": {
+        "bsonType": "object",
+        "required": [ "_id" ],
+        "additionalProperties": false,
+        "properties": {
+          "_id": { "bsonType": "int" },
+          "nope": { "bsonType": "undefined" }
+        },
+      }
+    }
+  }
+
+tests:
+
+  - description: Error 1018
+    query: "Foo on the batter, this query doesn't matter"
+    current_db: db
+    should_compile: false
+    catalog_error: "Error 1018: Unsupported BSON type: undefined. Consider updating the type of undefined fields to a non-deprecated BSON type, such as Null\n\tCaused by:\n\tDeprecated BSON type undefined"

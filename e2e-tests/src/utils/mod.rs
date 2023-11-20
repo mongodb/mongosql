@@ -33,8 +33,10 @@ pub(crate) enum Error {
     MongoDBInsert(String, String, mongodb::error::Error),
     #[error("failed to create indexes for '{0}.{1}': {2:?}")]
     MongoDBCreateIndexes(String, String, mongodb::error::Error),
-    #[error("failed to schema to MongoSQL model: {0:?}")]
+    #[error("failed to convert schema to MongoSQL model: {0:?}")]
     InvalidSchema(mongosql::schema::Error),
+    #[error("{0}")]
+    UnsupportedBsonType(mongosql::schema::Error),
     #[error("failed to translate query: {0}")]
     Translation(mongosql::result::Error),
     #[error("failed to run aggregation: {0:?}")]
@@ -47,6 +49,15 @@ pub(crate) enum Error {
     MissingQueryPlanner(ExplainResult),
     #[error("general mongodb error: {0:?}")]
     MongoDBError(mongodb::error::Error),
+}
+
+impl From<mongosql::schema::Error> for Error {
+    fn from(e: mongosql::schema::Error) -> Self {
+        match e {
+            mongosql::schema::Error::UnsupportedBsonType(_) => Error::UnsupportedBsonType(e),
+            _ => Error::InvalidSchema(e),
+        }
+    }
 }
 
 lazy_static! {
@@ -103,7 +114,7 @@ pub(crate) fn build_catalog(
         .into_iter()
         .flat_map(|(db, coll_schemas)| {
             coll_schemas.into_iter().map(move |(coll, schema)| {
-                let mongosql_schema = Schema::try_from(schema).map_err(Error::InvalidSchema)?;
+                let mongosql_schema = Schema::try_from(schema).map_err(Error::from)?;
                 Ok((
                     Namespace {
                         db: db.clone(),

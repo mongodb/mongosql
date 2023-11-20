@@ -14,8 +14,19 @@ pub enum Error {
     CannotReadFileToString(io::Error),
     #[error("unable to deserialize JSON file: {0:?}")]
     CannotDeserializeJson((String, serde_json::Error)),
-    #[error("failed to schema to MongoSQL model: {0:?}")]
+    #[error("failed to convert schema to MongoSQL model: {0:?}")]
     InvalidSchema(mongosql::schema::Error),
+    #[error("{0}")]
+    UnsupportedBsonType(mongosql::schema::Error),
+}
+
+impl From<mongosql::schema::Error> for Error {
+    fn from(e: mongosql::schema::Error) -> Self {
+        match e {
+            mongosql::schema::Error::UnsupportedBsonType(_) => Error::UnsupportedBsonType(e),
+            _ => Error::InvalidSchema(e),
+        }
+    }
 }
 
 /// build_catalog converts the json_schema::Schema objects into schema::Schema
@@ -27,7 +38,7 @@ fn build_catalog(
         .into_iter()
         .flat_map(|(db, coll_schemas)| {
             coll_schemas.into_iter().map(move |(coll, schema)| {
-                let mongosql_schema = Schema::try_from(schema).map_err(Error::InvalidSchema)?;
+                let mongosql_schema = Schema::try_from(schema).map_err(Error::from)?;
                 Ok((
                     Namespace {
                         db: db.clone(),

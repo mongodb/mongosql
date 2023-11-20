@@ -44,7 +44,7 @@ catalog_schema:
                 "additionalProperties": true,
               },
           },
-      }
+      },
     }
   }
 
@@ -120,3 +120,4 @@ tests:
     current_db: db
     should_compile: false
     algebrize_error: "Error 1017: MongoSQL does not support direct comparisons with extended JSON. Try `= 5`."
+

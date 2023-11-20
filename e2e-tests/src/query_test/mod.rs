@@ -36,6 +36,7 @@ struct QueryTest {
     result: Option<Vec<Document>>,
     parse_error: Option<String>,
     algebrize_error: Option<String>,
+    catalog_error: Option<String>,
 }
 
 #[test]
@@ -63,8 +64,22 @@ fn run_query_tests() -> Result<(), Error> {
             .map_or(vec![], |cat| cat.keys().map(|k| k.to_string()).collect());
         let catalog = if !no_catalog {
             load_catalog_data(&client, test_file.catalog_data.unwrap())?;
-
-            build_catalog(test_file.catalog_schema.unwrap())?
+            // test for a catalog error. Catalog errors (such as unsupported types) must be tested in their own file since this errors
+            // before the query is parsed.
+            match build_catalog(test_file.catalog_schema.unwrap()) {
+                Ok(c) => c,
+                Err(e) => {
+                    let test = test_file.tests.first().unwrap();
+                    assert!(
+                        e.to_string().contains(test.catalog_error.as_ref().unwrap()),
+                        "{}: unexpected catalog error.\nexpected: {}\nactual: {}",
+                        test.description,
+                        test.catalog_error.as_ref().unwrap(),
+                        e
+                    );
+                    continue;
+                }
+            }
         } else {
             // some query tests don't have a catalog, so we generate a default one
             Catalog::default()

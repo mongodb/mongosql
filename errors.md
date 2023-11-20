@@ -24,6 +24,7 @@ These errors often occur when you use data types in an incorrect or invalid way.
 | [Error 1014](#error-1014)  | UNWIND INDEX name conflicts with existing field name.                                                                                                                             |
 | [Error 1016](#error-1016)  | The collection in the specified database could not be found.                                                                                                                      |
 | [Error 1017](#error-1017)  | Extended JSON detected in comparison operation. MongoSQL does not support direct comparisons with extended JSON. Use casting instead (look at "Resolution Steps" for an example). |
+| [Error 1018](#error-1018)  | A field has an unsupported BSON type. |
 
 ## Error Codes Beginning With "2" Overview
 
@@ -176,6 +177,14 @@ The following errors occur when something goes wrong while using the excludeName
   However, this is not the case.
 - **Resolution Steps:** Don't use Extended JSON format and always explicitly CAST. The error message tries to recommend what you should do (casting).
   Corrected example query: `select _id from customers where _id = CAST('5ca4bbcea2dd94ee58162a6a' as ObjectID)`. This query explicitly casts to an `ObjectID`.
+
+### Error 1018
+
+- **Description:** A field has an unsupported BSON type.
+- **Common Causes:** A field has a BSON type that is not supported by MongoSQL. For example, if collection `foo` has a field `b` of type `undefined`, then the
+  query `SELECT * FROM foo` would cause this error.
+- **Resolution Steps:** Change the BSON type to something that is supported by MongoSQL. The error message suggests what [BSON types are supported](https://dochub.mongodb.org/core/atlas-sql-data-types).
+  Corrected example query: `SELECT * FROM foo` where `foo` exists in the current database and `b` is not of type `undefined`.
 
 ### Error 2000
 

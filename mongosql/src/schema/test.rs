@@ -153,6 +153,14 @@ mod from_json {
         };
     }
     test_from_json_schema!(
+        undefined_is_not_supported,
+        schema_schema = Err(Error::UnsupportedBsonType("Error 1018: Unsupported BSON type: undefined. Consider updating the type of undefined fields to a non-deprecated BSON type, such as Null\n\tCaused by:\n\tDeprecated BSON type undefined".to_string())),
+        json_schema = json_schema::Schema {
+            bson_type: Some(BsonType::Single(BsonTypeName::Undefined)),
+            ..Default::default()
+        }
+    );
+    test_from_json_schema!(
         convert_bson_single_to_atomic,
         schema_schema = Ok(Atomic(Integer)),
         json_schema = json_schema::Schema {

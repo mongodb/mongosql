@@ -54,6 +54,7 @@ pub enum BsonTypeName {
     Timestamp,
     MinKey,
     MaxKey,
+    Undefined,
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Clone, Debug)]

@@ -399,6 +399,14 @@ types:
 - MinKey
 - MaxKey
 
+##### Unsupported BSON Types
+
+MongoSQL reserves the right to not support certain BSON types. As BSON types
+become deprecated, support for them in MongoSQL may be removed. The following
+types are _not_ supported in MongoSQL:
+
+- Undefined
+
 #### Type Names and Aliases
 
 Each type in MongoSQL has a name, which is a keyword that can be used to
@@ -3020,7 +3028,7 @@ are BOTH and the space character, respectively. The latter two arguments
 must statically have type STRING or NULL, and may be missing. If either
 is NULL or MISSING, the result is NULL.
 
-A charset is a string of unordered characters that will all be trimmed from 
+A charset is a string of unordered characters that will all be trimmed from
 the beginning and/or end of `string` as defined by `spec`.
 
 As noted, the first two arguments for TRIM are optional and have the
