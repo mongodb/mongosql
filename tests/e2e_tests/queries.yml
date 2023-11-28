@@ -749,3 +749,12 @@ tests:
       - { "": { "a": 1, "b": 5 } }
       - { "": { "a": 2, "b": 4 } }
       - { "": { "a": 2, "b": 5 } }
+
+  - description: One clauses
+    query: "SELECT * from foo join bar on 1 where 1 having 1"
+    current_db: testquerydb
+    result:
+      - { "foo": { "_id": 0, "a":  1, "b": 2, "coll": "foo"}, "bar": { "_id": 0, "a":  1, "b": 2, "coll": "bar"} }
+      - { "foo": { "_id": 1, "a":  2, "b": 1, "coll": "foo"}, "bar": { "_id": 0, "a":  1, "b": 2, "coll": "bar"} }
+      - { "foo": { "_id": 0, "a":  1, "b": 2, "coll": "foo"}, "bar": { "_id": 1, "a":  2, "b": 1, "coll": "bar"} }
+      - { "foo": { "_id": 1, "a":  2, "b": 1, "coll": "foo"}, "bar": { "_id": 1, "a":  2, "b": 1, "coll": "bar"} }

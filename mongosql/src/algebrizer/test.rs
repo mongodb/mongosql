@@ -3323,6 +3323,24 @@ mod from_clause {
         catalog = catalog(vec![("test", "foo"), ("test", "bar")]),
     );
     test_algebrize!(
+        join_on_one_true,
+        method = algebrize_from_clause,
+        expected = Ok(mir::Stage::Join(mir::Join {
+            join_type: JoinType::Inner,
+            left: Box::new(mir_source_foo()),
+            right: Box::new(mir_source_bar()),
+            condition: Some(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
+            cache: SchemaCache::new(),
+        })),
+        input = Some(ast::Datasource::Join(JoinSource {
+            join_type: ast::JoinType::Cross,
+            left: Box::new(AST_SOURCE_FOO.clone()),
+            right: Box::new(AST_SOURCE_BAR.clone()),
+            condition: Some(ast::Expression::Literal(ast::Literal::Integer(1)))
+        })),
+        catalog = catalog(vec![("test", "foo"), ("test", "bar")]),
+    );
+    test_algebrize!(
         invalid_join_condition,
         method = algebrize_from_clause,
         expected = Err(Error::FieldNotFound(
@@ -4241,6 +4259,18 @@ mod filter_clause {
         method = algebrize_filter_clause,
         expected = Ok(mir_source_foo()),
         input = None,
+        source = mir_source_foo(),
+        catalog = catalog(vec![("test", "foo")]),
+    );
+    test_algebrize!(
+        one_converted_to_bool,
+        method = algebrize_filter_clause,
+        expected = Ok(mir::Stage::Filter(mir::Filter {
+            source: Box::new(mir_source_foo()),
+            condition: true_mir(),
+            cache: SchemaCache::new(),
+        })),
+        input = Some(ast::Expression::Literal(ast::Literal::Integer(1))),
         source = mir_source_foo(),
         catalog = catalog(vec![("test", "foo")]),
     );

@@ -508,7 +508,8 @@ impl<'a> Algebrizer<'a> {
         let condition = j
             .condition
             .map(|e| join_algebrizer.algebrize_expression(e))
-            .transpose()?;
+            .transpose()?
+            .map(Self::convert_literal_to_bool);
         condition
             .clone()
             .map(|e| e.schema(&join_algebrizer.schema_inference_state()));
@@ -767,7 +768,9 @@ impl<'a> Algebrizer<'a> {
                 )?;
                 mir::Stage::Filter(mir::Filter {
                     source: Box::new(source),
-                    condition: expression_algebrizer.algebrize_expression(expr)?,
+                    condition: expression_algebrizer
+                        .algebrize_expression(expr)
+                        .map(Self::convert_literal_to_bool)?,
                     cache: SchemaCache::new(),
                 })
             }
@@ -1594,4 +1597,43 @@ impl<'a> Algebrizer<'a> {
             current_scope -= 1;
         }
     }
+}
+
+mod convert_to_bool {
+    macro_rules! test_convert_literal_to_bool {
+        ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+            #[test]
+            fn $func_name() {
+                use super::*;
+                use crate::algebrizer::Algebrizer;
+
+                let actual = Algebrizer::convert_literal_to_bool($input);
+                assert_eq!($expected, actual);
+            }
+        };
+    }
+
+    test_convert_literal_to_bool!(
+        convert_one_to_true,
+        expected = mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+        input = mir::Expression::Literal(mir::LiteralValue::Integer(1))
+    );
+
+    test_convert_literal_to_bool!(
+        convert_zero_to_false,
+        expected = mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
+        input = mir::Expression::Literal(mir::LiteralValue::Integer(0))
+    );
+
+    test_convert_literal_to_bool!(
+        non_bool_integer_not_converted,
+        expected = mir::Expression::Literal(mir::LiteralValue::Integer(3)),
+        input = mir::Expression::Literal(mir::LiteralValue::Integer(3))
+    );
+
+    test_convert_literal_to_bool!(
+        non_integer_not_converted,
+        expected = mir::Expression::Literal(mir::LiteralValue::String("should not change".into())),
+        input = mir::Expression::Literal(mir::LiteralValue::String("should not change".into()))
+    );
 }
