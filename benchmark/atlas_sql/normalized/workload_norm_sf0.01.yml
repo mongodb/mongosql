@@ -72,7 +72,8 @@ Actors:
   - LoadConfig:
       Path: phase/q17_normalized.yml
       Key: q17_normalized
-  # skip reason: SQL-1635
+  # Skipped because this query alone takes much longer than other queries combined to run. 
+  # Running in a lower scale factor: 0.001
   # - LoadConfig:
   #     Path: phase/q18_normalized.yml
   #     Key: q18_normalized
