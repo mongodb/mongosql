@@ -1266,8 +1266,9 @@ impl TryFrom<json_schema::Schema> for Schema {
                     json_schema::BsonType::Multiple(m) => {
                         // For each value in `bson_type`, construct a json_schema::Schema that only
                         // contains the single type and any relevant fields and recursively call
-                        // Schema::try_from on it. Wrap the resulting vector in a Schema::AnyOf
-                        Ok(AnyOf(
+                        // Schema::try_from on it. Then, wrap the resulting vector in a Schema::AnyOf
+                        // and call `simplify` in order to remove any unnecessary AnyOf wrappings.
+                        Ok(Schema::simplify(&AnyOf(
                             m.into_iter()
                                 .map(|bson_type| match bson_type {
                                     json_schema::BsonTypeName::Array => {
@@ -1296,7 +1297,7 @@ impl TryFrom<json_schema::Schema> for Schema {
                                     }),
                                 })
                                 .collect::<Result<BTreeSet<Schema>, _>>()?,
-                        ))
+                        )))
                     }
                 }
             }
