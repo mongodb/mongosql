@@ -1,11 +1,10 @@
 use mongosql::{
-    catalog::{self, Catalog},
-    json_schema,
+    build_catalog_from_base_64,
     options::{ExcludeNamespacesOption, SqlOptions},
-    schema, SchemaCheckingMode,
+    SchemaCheckingMode,
 };
 use std::{
-    collections::{BTreeMap, BTreeSet},
+    collections::BTreeSet,
     ffi::{CStr, CString, NulError},
     os::raw,
     panic,
@@ -74,7 +73,7 @@ fn translate_helper(
     }?;
     let catalog_str = from_extern_string(catalog)
         .map_err(|_| "catalog schema string not valid UTF-8".to_string())?;
-    let catalog = build_catalog(catalog_str.as_str())?;
+    let catalog = build_catalog_from_base_64(catalog_str.as_str()).map_err(|e| e.to_string())?;
 
     // used for testing purpose
     #[cfg(feature = "test")]
@@ -91,36 +90,6 @@ fn translate_helper(
         SqlOptions::new(exclude_namespaces_mode, schema_checking_mode),
     )
     .map_err(|e| format!("{e}"))
-}
-
-/// Converts the given base64-encoded bson document into a Catalog.
-pub fn build_catalog(base_64_doc: &str) -> Result<Catalog, String> {
-    let bson_doc_bytes =
-        base64::decode(base_64_doc).map_err(|e| format!("failed to decode base64 string: {e}"))?;
-    let json_schemas: BTreeMap<String, BTreeMap<String, json_schema::Schema>> =
-        bson::from_reader(&mut bson_doc_bytes.as_slice()).map_err(|e| {
-            format!("failed to convert BSON catalog to json_schema::Schema format: {e}")
-        })?;
-    let catalog = json_schemas
-        .into_iter()
-        .flat_map(|(db, db_schema)| {
-            db_schema.into_iter().map(move |(collection, json_schema)| {
-                let mongosql_schema = schema::Schema::try_from(json_schema).map_err(|e| {
-                    format!(
-                        "failed to add JSON schema for collection {db}.{collection} to the catalog: {e}"
-                    )
-                })?;
-                Ok((
-                    catalog::Namespace {
-                        db: db.clone(),
-                        collection,
-                    },
-                    mongosql_schema,
-                ))
-            })
-        })
-        .collect::<Result<Catalog, String>>()?;
-    Ok(catalog)
 }
 
 /// Returns a base64-encoded BSON document representing the payload

@@ -1,7 +1,4 @@
-use mongosql::{
-    catalog::{Catalog, Namespace},
-    schema::Schema,
-};
+use mongosql::{build_catalog_from_catalog_schema, catalog::Catalog};
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fs, io, io::Read, path::PathBuf};
 use thiserror::Error;
@@ -15,40 +12,7 @@ pub enum Error {
     #[error("unable to deserialize JSON file: {0:?}")]
     CannotDeserializeJson((String, serde_json::Error)),
     #[error("failed to convert schema to MongoSQL model: {0:?}")]
-    InvalidSchema(mongosql::schema::Error),
-    #[error("{0}")]
-    UnsupportedBsonType(mongosql::schema::Error),
-}
-
-impl From<mongosql::schema::Error> for Error {
-    fn from(e: mongosql::schema::Error) -> Self {
-        match e {
-            mongosql::schema::Error::UnsupportedBsonType(_) => Error::UnsupportedBsonType(e),
-            _ => Error::InvalidSchema(e),
-        }
-    }
-}
-
-/// build_catalog converts the json_schema::Schema objects into schema::Schema
-/// objects and builds a catalog from those.
-fn build_catalog(
-    catalog_schema: BTreeMap<String, BTreeMap<String, mongosql::json_schema::Schema>>,
-) -> Result<Catalog, Error> {
-    catalog_schema
-        .into_iter()
-        .flat_map(|(db, coll_schemas)| {
-            coll_schemas.into_iter().map(move |(coll, schema)| {
-                let mongosql_schema = Schema::try_from(schema).map_err(Error::from)?;
-                Ok((
-                    Namespace {
-                        db: db.clone(),
-                        collection: coll,
-                    },
-                    mongosql_schema,
-                ))
-            })
-        })
-        .collect()
+    InvalidSchema(mongosql::result::Error),
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -58,7 +22,8 @@ struct CatalogJsonFile {
 
 pub fn load_catalog(catalog: &str) -> Result<Catalog, Error> {
     match parse_catalog_json_file(catalog.into()) {
-        Ok(file) => build_catalog(file.catalog_schema.to_owned()),
+        Ok(file) => build_catalog_from_catalog_schema(file.catalog_schema.to_owned())
+            .map_err(Error::InvalidSchema),
         Err(e) => Err(e),
     }
 }

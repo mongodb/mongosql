@@ -1,9 +1,7 @@
 use chrono::{TimeZone, Utc};
 use mongosql::{
-    catalog::{Catalog, Namespace},
-    json_schema,
+    build_catalog_from_catalog_schema, json_schema,
     options::{ExcludeNamespacesOption, SqlOptions},
-    schema::Schema,
     translate_sql, SchemaCheckingMode,
 };
 use regex::Regex;
@@ -22,8 +20,6 @@ const CONFIG_FILE: &str = "./benchmark/pipeline_generator/config/config.yml";
 
 #[derive(Debug, Error)]
 enum Error {
-    #[error("invalid schema for MongoSQL model: {0:?}")]
-    InvalidSchema(mongosql::schema::Error),
     #[error("failed to open ConfigFile: {0:?}")]
     ConfigFile(serde_yaml::Error),
     #[error("failed to FileOpen: {0:?}")]
@@ -43,26 +39,6 @@ struct Workload {
 #[derive(Debug, Serialize, Deserialize)]
 struct Config {
     workloads: Vec<Workload>,
-}
-
-fn build_catalog(
-    catalog_schema: BTreeMap<String, BTreeMap<String, json_schema::Schema>>,
-) -> Result<Catalog, Error> {
-    catalog_schema
-        .into_iter()
-        .flat_map(|(db, coll_schemas)| {
-            coll_schemas.into_iter().map(move |(coll, schema)| {
-                let mongosql_schema = Schema::try_from(schema).map_err(Error::InvalidSchema)?;
-                Ok((
-                    Namespace {
-                        db: db.clone(),
-                        collection: coll,
-                    },
-                    mongosql_schema,
-                ))
-            })
-        })
-        .collect()
 }
 
 fn modify_pipeline_value(value: &mut Value) {
@@ -178,7 +154,7 @@ fn replace_final_replacement(value: &mut Value) {
 /// get_pipeline takes in a config workload and returns the pipeline and collection name by
 /// calling translate_sql() on the query. It uses the catalog_schema to build the catalog.
 fn get_pipeline(config: &Workload) -> (String, String) {
-    let catalog = build_catalog(config.catalog_schema.clone()).unwrap();
+    let catalog = build_catalog_from_catalog_schema(config.catalog_schema.clone()).unwrap();
     let translation = translate_sql(
         &config.db,
         &config.query,

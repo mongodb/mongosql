@@ -4,10 +4,6 @@ use mongodb::{
     bson::{doc, Bson},
     sync::Client,
 };
-use mongosql::{
-    catalog::{Catalog, Namespace},
-    schema::Schema,
-};
 use std::{collections::BTreeMap, env, io, string::ToString};
 use thiserror::Error;
 
@@ -103,26 +99,4 @@ pub(crate) fn drop_catalog_data<T: Into<String>>(
             .map_err(|e| Error::MongoDBDrop(db.clone(), e))?;
     }
     Ok(())
-}
-
-/// build_catalog converts the json_schema::Schema objects into schema::Schema
-/// objects and builds a catalog from those.
-pub(crate) fn build_catalog(
-    catalog_schema: BTreeMap<String, BTreeMap<String, mongosql::json_schema::Schema>>,
-) -> Result<Catalog, Error> {
-    catalog_schema
-        .into_iter()
-        .flat_map(|(db, coll_schemas)| {
-            coll_schemas.into_iter().map(move |(coll, schema)| {
-                let mongosql_schema = Schema::try_from(schema).map_err(Error::from)?;
-                Ok((
-                    Namespace {
-                        db: db.clone(),
-                        collection: coll,
-                    },
-                    mongosql_schema,
-                ))
-            })
-        })
-        .collect()
 }

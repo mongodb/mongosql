@@ -4,13 +4,14 @@ use mongodb::{
     IndexModel,
 };
 use mongosql::{
+    build_catalog_from_catalog_schema,
     options::{ExcludeNamespacesOption, SqlOptions},
     Translation,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, fs, io::Read, path::PathBuf};
 
-use crate::utils::{build_catalog, load_catalog_data, Error, MONGODB_URI};
+use crate::utils::{load_catalog_data, Error, MONGODB_URI};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct IndexUsageYamlTestFile {
@@ -116,7 +117,7 @@ fn run_index_usage_tests() -> Result<(), Error> {
         load_catalog_data(&client, test_file.catalog_data)?;
         create_indexes(&client, test_file.indexes)?;
 
-        let catalog = build_catalog(test_file.catalog_schema)?;
+        let catalog = build_catalog_from_catalog_schema(test_file.catalog_schema).unwrap();
 
         for test in test_file.tests {
             if test.skip_reason.is_some() {

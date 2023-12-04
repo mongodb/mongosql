@@ -26,6 +26,8 @@ mod translator;
 pub mod usererror;
 mod util;
 
+use base64::{engine::general_purpose, Engine as _};
+
 use crate::{
     algebrizer::Algebrizer,
     catalog::Catalog,
@@ -36,7 +38,7 @@ use crate::{
     translator::MqlTranslator,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 /// Contains all the information needed to execute the MQL translation of a SQL query.
 #[derive(Debug)]
@@ -297,4 +299,155 @@ fn exclude_namespace_in_result_set_schema_keys(
             }
         })
         .collect::<Result<std::collections::BTreeMap<String, Schema>>>()
+}
+
+/// Converts the given base64-encoded bson document into a Catalog. This must be a base64 encoded
+/// string of a BSON slice/vec (bson::to_vec(...))
+pub fn build_catalog_from_base_64(base_64_doc: &str) -> Result<Catalog> {
+    let bson_doc_bytes = general_purpose::STANDARD
+        .decode(base_64_doc)
+        .map_err(|e| result::Error::Catalog(format!("failed to decode base64 string: {e}")))?;
+    let json_schemas: BTreeMap<String, BTreeMap<String, json_schema::Schema>> =
+        bson::from_reader(&mut bson_doc_bytes.as_slice()).map_err(|e| {
+            result::Error::Catalog(format!(
+                "failed to convert BSON catalog to json_schema::Schema format: {e}"
+            ))
+        })?;
+    let catalog = json_schemas
+        .into_iter()
+        .flat_map(|(db, db_schema)| {
+            db_schema.into_iter().map(move |(collection, json_schema)| {
+                let mongosql_schema = schema::Schema::try_from(json_schema).map_err(|e| {
+                    result::Error::Catalog(format!(
+                        "failed to add JSON schema for collection {db}.{collection} to the catalog: {e}"
+                    ))
+                })?;
+                Ok((
+                    catalog::Namespace {
+                        db: db.clone(),
+                        collection,
+                    },
+                    mongosql_schema,
+                ))
+            })
+        })
+        .collect::<Result<Catalog>>()?;
+    Ok(catalog)
+}
+
+/// build_catalog_from_catalog_schema converts a BTreeMap of json_schema::Schema objects into a Catalog.
+pub fn build_catalog_from_catalog_schema(
+    catalog_schema: BTreeMap<String, BTreeMap<String, json_schema::Schema>>,
+) -> Result<Catalog> {
+    catalog_schema
+        .into_iter()
+        .flat_map(|(db, coll_schemas)| {
+            coll_schemas.into_iter().map(move |(coll, schema)| {
+                let mongosql_schema = Schema::try_from(schema).map_err(|e| e.to_string()).unwrap();
+                Ok((
+                    catalog::Namespace {
+                        db: db.clone(),
+                        collection: coll,
+                    },
+                    mongosql_schema,
+                ))
+            })
+        })
+        .collect()
+}
+#[cfg(test)]
+mod build_catalog_test {
+    use bson::doc;
+
+    use super::*;
+    use crate::{catalog::Namespace, json_schema::Schema};
+    use std::collections::BTreeMap;
+
+    #[test]
+    fn build_catalog_base_64() {
+        let json = doc! {
+            "db1": {
+                "coll1": {
+                    "bsonType": "object",
+                    "properties": {
+                        "field1": {
+                            "bsonType": "string"
+                        }
+                    }
+                }
+            }
+        };
+
+        let catalog = Catalog::new(map! {
+        Namespace {db: "db1".into(), collection: "coll1".into()} => crate::schema::Schema::Document(crate::schema::Document {
+            keys: map! {
+                "field1".to_string() => crate::schema::Schema::Atomic(crate::schema::Atomic::String),
+            },
+            required: map!{},
+            additional_properties: true,
+        }),});
+
+        let encoded = general_purpose::STANDARD.encode(bson::to_vec(&json).unwrap());
+
+        let actual = build_catalog_from_base_64(&encoded).unwrap();
+        assert_eq!(catalog, actual);
+    }
+
+    #[test]
+    fn build_catalog_json_schema() {
+        let json = doc! {
+            "db1": {
+                "coll1": {
+                    "bsonType": "object",
+                    "properties": {
+                        "field1": {
+                            "bsonType": "string"
+                        }
+                    }
+                }
+            }
+        };
+
+        let catalog = Catalog::new(map! {
+        Namespace {db: "db1".into(), collection: "coll1".into()} => crate::schema::Schema::Document(crate::schema::Document {
+            keys: map! {
+                "field1".to_string() => crate::schema::Schema::Atomic(crate::schema::Atomic::String),
+            },
+            required: map!{},
+            additional_properties: true,
+        }),});
+
+        let actual = build_catalog_from_catalog_schema(
+            serde_json::from_str::<BTreeMap<String, BTreeMap<String, Schema>>>(&json.to_string())
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(catalog, actual);
+    }
+
+    #[test]
+    fn build_catalog_methods_are_equivalent() {
+        let json = doc! {
+            "db1": {
+                "coll1": {
+                    "bsonType": "object",
+                    "properties": {
+                        "field1": {
+                            "bsonType": "string"
+                        }
+                    }
+                }
+            }
+        };
+
+        let encoded = general_purpose::STANDARD.encode(bson::to_vec(&json).unwrap());
+
+        let base = build_catalog_from_base_64(&encoded).unwrap();
+        let schemas = build_catalog_from_catalog_schema(
+            serde_json::from_str::<BTreeMap<String, BTreeMap<String, Schema>>>(&json.to_string())
+                .unwrap(),
+        )
+        .unwrap();
+        assert_eq!(base, schemas);
+    }
 }

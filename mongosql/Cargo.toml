@@ -29,6 +29,7 @@ mongosql-datastructures = { path = "../mongosql-datastructures" }
 edit-distance = "2.1.0"
 usererrordisplay-impl = { path = "../usererrordisplay-impl" }
 derive-new = "0.5.9"
+base64 = "0.21.3"
 
 [target.'cfg(unix)'.dev-dependencies]
 criterion = "0.3"

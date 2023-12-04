@@ -23,4 +23,6 @@ pub enum Error {
     Desugarer(#[from] desugarer::Error),
     #[error("schema error: {0}")]
     Schema(#[from] schema::Error),
+    #[error("catalog error: {0}")]
+    Catalog(String),
 }
