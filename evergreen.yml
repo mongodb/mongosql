@@ -970,27 +970,12 @@ buildvariants:
 
   - name: tpch
     display_name: "TPC-H"
-    activate: false
+    cron: "0 0 * * 1,3,5" # M,W,F at 00:00
     run_on: [ ubuntu2204-large ]
     tasks:
       - name: tpch-0.001-normalized-atlas-sql
-      # - name: tpch-0.001-denormalized-atlas-sql
-      # - name: tpch-0.001-normalized-bic
-      # - name: tpch-0.001-denormalized-bic
       - name: tpch-0.01-normalized-atlas-sql
-      # - name: tpch-0.01-denormalized-atlas-sql
-      # - name: tpch-0.01-normalized-bic
-      # - name: tpch-0.01-denormalized-bic
-      # - name: tpch-0.1-normalized-atlas-sql
-      # - name: tpch-0.1-denormalized-atlas-sql
-      # - name: tpch-0.1-normalized-bic
-      # - name: tpch-0.1-denormalized-bic
-      # - name: tpch-1-normalized-atlas-sql
-      # - name: tpch-1-denormalized-atlas-sql
-      # - name: tpch-1-normalized-bic
-      # - name: tpch-1-denormalized-bic
       - name: tpch-0.001-normalized-validation
-      # - name: tpch-0.001-denormalized-validation
 
   - name: tpch-monthly
     display_name: "TPC-H Monthly"
