@@ -9,7 +9,10 @@ use crate::{
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
         FieldAccess, LiteralValue,
     },
-    schema::{self, Satisfaction, SchemaEnvironment, BOOLEAN_OR_NULLISH, NULLISH},
+    schema::{
+        self, Satisfaction, SchemaEnvironment, BOOLEAN_OR_NULLISH, INTEGER_LONG_OR_NULLISH,
+        INTEGER_OR_NULLISH, NULLISH,
+    },
     util::unique_linked_hash_map::UniqueLinkedHashMap,
     SchemaCheckingMode,
 };
@@ -1120,9 +1123,13 @@ impl<'a> Algebrizer<'a> {
             self.algebrize_expression(*b.right)?,
         );
 
+        let mut cast_div_result: Option<mir::Type> = None;
+
         // Since we want to avoid schema checking when at all possible, we will
         // only check for boolean conversion of literal 1/0 for comparison ops, AND, and
-        // OR since those are the only place it is valid.
+        // OR since those are the only place it is valid. Here, we also check the
+        // schema of the arguments for Div to see if we need to cast the result to a whole
+        // number in order to ensure integer division (rather than normal division) takes place.
         match b.op {
             ast::BinaryOp::Comparison(_) => {
                 let (left_schema, right_schema) = (
@@ -1145,6 +1152,25 @@ impl<'a> Algebrizer<'a> {
                 right = Self::convert_literal_to_bool(right);
                 left = Self::convert_literal_to_bool(left);
             }
+            // Check to see if both Div arguments MUST be whole numbers.
+            ast::BinaryOp::Div => {
+                let (left_schema, right_schema) = (
+                    left.schema(&self.schema_inference_state())?,
+                    right.schema(&self.schema_inference_state())?,
+                );
+
+                if left_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must
+                    && right_schema.satisfies(&INTEGER_LONG_OR_NULLISH) == Satisfaction::Must
+                {
+                    if left_schema.satisfies(&INTEGER_OR_NULLISH) == Satisfaction::Must
+                        && right_schema.satisfies(&INTEGER_OR_NULLISH) == Satisfaction::Must
+                    {
+                        cast_div_result = Some(mir::Type::Int32);
+                    } else {
+                        cast_div_result = Some(mir::Type::Int64);
+                    }
+                }
+            }
             _ => (),
         }
 
@@ -1160,7 +1186,18 @@ impl<'a> Algebrizer<'a> {
                 is_nullable,
                 args,
             });
-        Ok(scalar_function_expr)
+
+        if let Some(div_result_target_type) = cast_div_result {
+            Ok(mir::Expression::Cast(mir::CastExpr {
+                expr: Box::new(scalar_function_expr),
+                to: div_result_target_type,
+                on_null: Box::new(mir::Expression::Literal(LiteralValue::Null)),
+                on_error: Box::new(mir::Expression::Literal(LiteralValue::Null)),
+                is_nullable,
+            }))
+        } else {
+            Ok(scalar_function_expr)
+        }
     }
 
     fn algebrize_is(&self, ast_node: ast::IsExpr) -> Result<mir::Expression> {

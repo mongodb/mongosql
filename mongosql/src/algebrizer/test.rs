@@ -791,18 +791,71 @@ mod expression {
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Div,
                 args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Integer(42)),
+                    mir::Expression::Literal(mir::LiteralValue::Double(42.5)),
                     mir::Expression::Literal(mir::LiteralValue::Integer(42)),
                 ],
                 is_nullable: true,
             }
         )),
         input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Double(42.5))),
+            op: ast::BinaryOp::Div,
+            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+        }),
+    );
+
+    test_algebrize!(
+        cast_div_result_of_two_integers_to_integer,
+        method = algebrize_expression,
+        expected = Ok(mir::Expression::Cast(mir::CastExpr {
+            expr: Box::new(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Div,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(42)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(42))
+                    ],
+                    is_nullable: true
+                }
+            )),
+            to: mir::Type::Int32,
+            on_null: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+            on_error: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+            is_nullable: true
+        })),
+        input = ast::Expression::Binary(ast::BinaryExpr {
             left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
             op: ast::BinaryOp::Div,
             right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         }),
     );
+
+    test_algebrize!(
+        cast_div_result_of_long_and_integer_to_long,
+        method = algebrize_expression,
+        expected = Ok(mir::Expression::Cast(mir::CastExpr {
+            expr: Box::new(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Div,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Long(42)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(42))
+                    ],
+                    is_nullable: true
+                }
+            )),
+            to: mir::Type::Int64,
+            on_null: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+            on_error: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+            is_nullable: true
+        })),
+        input = ast::Expression::Binary(ast::BinaryExpr {
+            left: Box::new(ast::Expression::Literal(ast::Literal::Long(42))),
+            op: ast::BinaryOp::Div,
+            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+        }),
+    );
+
     test_algebrize_expr_and_schema_check!(
         div_wrong_types,
         method = algebrize_expression,

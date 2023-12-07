@@ -74,10 +74,10 @@ catalog_data:
 
 
     integer_division:
-      - { "_id": 1, "a": { "$numberInt": "5" }, "b": { "$numberInt": "2" } }
-      - { "_id": 2, "a": { "$numberInt": "5" }, "b": { "$numberLong": "2" } }
-      - { "_id": 3, "a": { "$numberLong": "5" }, "b": { "$numberInt": "2" } }
-      - { "_id": 4, "a": { "$numberLong": "5" }, "b": { "$numberLong": "2" } }
+      - { "_id": 1, "a": { "$numberInt": "5" }, "b": { "$numberInt": "2" }, "c": { "$numberInt": "5" }, "d": { "$numberInt": "2" }}
+      - { "_id": 2, "a": { "$numberInt": "5" }, "b": { "$numberLong": "2" }, "c": { "$numberInt": "5" }, "d": { "$numberInt": "2" } }
+      - { "_id": 3, "a": { "$numberLong": "5" }, "b": { "$numberInt": "2" }, "c": { "$numberInt": "5" }, "d": { "$numberInt": "2" }}
+      - { "_id": 4, "a": { "$numberLong": "5" }, "b": { "$numberLong": "2" }, "c": { "$numberInt": "5" }, "d": { "$numberInt": "2" } }
 
 catalog_schema:
   {
@@ -131,7 +131,7 @@ catalog_schema:
       },
       "integer_division": {
         "bsonType": "object",
-        "required": ["_id", "a", "b"],
+        "required": ["_id", "a", "b", "c", "d"],
         "additionalProperties": false,
         "properties": {
           "_id": {
@@ -148,7 +148,13 @@ catalog_schema:
               { "bsonType": "int" },
               { "bsonType": "long" },
             ]
-          }
+          },
+          "c": {
+            "bsonType": "int"
+          },
+          "d": {
+            "bsonType": "int"
+          },
         }
       }
     }
@@ -375,16 +381,15 @@ tests:
   - description: Division correctness tests
     current_db: foo
     query: "SELECT VALUE {'a': a, 'b': b, 'a/b': a / b} FROM binary AS binary"
-    skip_reason: "SQL-362: Truncate division between ints/longs"
     result:
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberInt': '3'}}}
-      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberLong': '2'}, 'a/b': {'$numberLong': '3'}}}
+      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberDouble': '3'}}}
+      - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberLong': '2'}, 'a/b': {'$numberDouble': '3'}}}
       - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberDouble': '2'}, 'a/b': {'$numberDouble': '3'}}}
       - {'': {'a': {'$numberInt': '6'}, 'b': {'$numberDecimal': '2'}, 'a/b': {'$numberDecimal': '3'}}}
       - {'': {'a': {'$numberInt': '6'}, 'b': null, 'a/b': null}}
       - {'': {'a': {'$numberInt': '6'}, 'a/b': null}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberLong': '3'}}}
-      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberLong': '2'}, 'a/b': {'$numberLong': '3'}}}
+      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberInt': '2'}, 'a/b': {'$numberDouble': '3'}}}
+      - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberLong': '2'}, 'a/b': {'$numberDouble': '3'}}}
       - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberDouble': '2'}, 'a/b': {'$numberDouble': '3'}}}
       - {'': {'a': {'$numberLong': '6'}, 'b': {'$numberDecimal': '2'}, 'a/b': {'$numberDecimal': '3'}}}
       - {'': {'a': {'$numberLong': '6'}, 'b': null, 'a/b': null}}
@@ -451,12 +456,11 @@ tests:
       - {'': {'a': {'$numberDecimal': 'Infinity'}, 'n': null}}
       - {'': {'a': {'$numberDecimal': '-Infinity'}, 'n': null}}
 
-  - description: Long and integer division with non-integer results are truncated
+  - description: Long and integer division with non-integer results truncated
     current_db: foo
-    query: "SELECT VALUE {'a': a, 'b': b, 'n': a / b} FROM integer_division AS i"
-    skip_reason: "SQL-362: Truncate division between ints/longs"
+    query: "SELECT VALUE {'a': a, 'b': b, 'c': c, 'd': d, 'a/b': a / b, 'c/d': c / d} FROM integer_division AS i"
     result:
-      - {'': {'a': {'$numberInt': '5'}, 'b': {'$numberInt': '2'}, 'n': {'$numberInt': '2'}}}
-      - {'': {'a': {'$numberInt': '5'}, 'b': {'$numberLong': '2'}, 'n': {'$numberLong': '2'}}}
-      - {'': {'a': {'$numberLong': '5'}, 'b': {'$numberInt': '2'}, 'n': {'$numberLong': '2'}}}
-      - {'': {'a': {'$numberLong': '5'}, 'b': {'$numberLong': '2'}, 'n': {'$numberLong': '2'}}}
+      - {'': {'a': {'$numberInt': '5'}, 'b': {'$numberInt': '2'}, 'c': { '$numberInt': '5' }, 'd': { '$numberInt': '2' }, 'a/b': {'$numberLong': '2'}, 'c/d': {'$numberInt': '2'}}}
+      - {'': {'a': {'$numberInt': '5'}, 'b': {'$numberLong': '2'}, 'c': { '$numberInt': '5' }, 'd': { '$numberInt': '2' }, 'a/b': {'$numberLong': '2'}, 'c/d': {'$numberInt': '2'}}}
+      - {'': {'a': {'$numberLong': '5'}, 'b': {'$numberInt': '2'}, 'c': { '$numberInt': '5' }, 'd': { '$numberInt': '2' }, 'a/b': {'$numberLong': '2'}, 'c/d': {'$numberInt': '2'}}}
+      - {'': {'a': {'$numberLong': '5'}, 'b': {'$numberLong': '2'}, 'c': { '$numberInt': '5' }, 'd': { '$numberInt': '2' }, 'a/b': {'$numberLong': '2'}, 'c/d': {'$numberInt': '2'}}}
