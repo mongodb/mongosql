@@ -9,7 +9,11 @@ use crate::{
 
 #[derive(Debug, UserErrorDisplay, PartialEq, Eq, Clone)]
 pub enum Error {
-    // DatasourceNotFoundInSchemaEnv is an internal error that the code relies on to function properly. See ticket SQL-1784 for more details.
+    // DatasourceNotFoundInSchemaEnv is believed to be an internal error that can't be triggered by users.
+    // Error 3007: NoSuchDatasource should cover it. However, since other parts of the code rely
+    // on this error to function properly (see ticket SQL-1784 for more details), we've decided not to remove it.
+    // Note: The errors.md file does not mention this error because there is no known way to trigger it with a SQL query.
+    // Once/if we discover a way to trigger it, we will update the errors.md file accordingly.
     DatasourceNotFoundInSchemaEnv(binding_tuple::Key),
     IncorrectArgumentCount {
         name: &'static str,
