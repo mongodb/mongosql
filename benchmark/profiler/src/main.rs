@@ -1,70 +1,37 @@
-use std::collections::HashMap;
-
-use catalog::load_catalog;
+use config_loader::load_query_and_catalog;
 use mongosql::{
-    map,
     options::{ExcludeNamespacesOption, SqlOptions},
     translate_sql, SchemaCheckingMode,
 };
-
-struct Query {
-    db: &'static str,
-    query: &'static str,
-}
-
-const TPCH: Query = Query {
-    db: "tpch",
-    query: r#"SELECT
-          l_returnflag,
-          l_linestatus,
-          sum(l_quantity) as sum_qty,
-          sum(l_extendedprice) as sum_base_price,
-          sum(l_extendedprice * (1 - l_discount)) as sum_disc_price,
-          sum(l_extendedprice * (1 - l_discount) * (1 + l_tax)) as sum_charge,
-          avg(l_quantity) as avg_qty,
-          avg(l_extendedprice) as avg_price,
-          avg(l_discount) as avg_disc,
-          count(*) as count_order
-      FROM
-          lineitem
-      WHERE
-          l_shipdate <= '1998-12-01T00:00:00.000Z'::TIMESTAMP
-      GROUP BY
-          l_returnflag,
-          l_linestatus
-      ORDER BY
-          l_returnflag,
-          l_linestatus"#,
-};
-
-const SAMPLE_ANALYTICS: Query = Query {
-    db: "sample_analytics",
-    query: "SELECT * FROM FLATTEN(customers_tiers_and_details_view)",
-};
+use std::env;
 
 fn main() {
-    let queries: HashMap<&str, Query> =
-        map!("tpch" => TPCH, "sample_analytics" => SAMPLE_ANALYTICS);
-    if cfg!(feature = "tpch") {
-        profile(queries.get("tpch").unwrap())
-    } else {
-        profile(queries.get("sample_analytics").unwrap())
-    }
+    let args: Vec<String> = env::args().collect();
+    let default_query_name = "sample_analytics".to_string();
+    let query_name = args.get(1).unwrap_or(&default_query_name);
+
+    profile(query_name);
 }
 
-fn profile(query: &Query) {
-    let base_dir = env!("CARGO_MANIFEST_DIR");
-    let catalogs_dir = format!("{}/src/catalog/catalogs/{}.jsonc", base_dir, query.db);
-    let catalog = load_catalog(&catalogs_dir).unwrap();
-    let res = translate_sql(
-        query.db,
-        query.query,
-        &catalog,
-        SqlOptions::new(
-            ExcludeNamespacesOption::IncludeNamespaces,
-            SchemaCheckingMode::Relaxed,
-        ),
-    )
-    .unwrap();
-    let _ = res;
+fn profile(query_name: &str) {
+    let query_and_catalog = load_query_and_catalog(query_name);
+    match query_and_catalog {
+        Ok((query, catalog)) => {
+            let res = translate_sql(
+                &query.db,
+                &query.query,
+                &catalog,
+                SqlOptions::new(
+                    ExcludeNamespacesOption::IncludeNamespaces,
+                    SchemaCheckingMode::Relaxed,
+                ),
+            )
+            .unwrap();
+            let _ = res;
+        }
+        Err(e) => {
+            println!("Encountered Error: {}", e);
+            std::process::exit(1);
+        }
+    }
 }

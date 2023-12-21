@@ -1,0 +1,6 @@
+db: sample_analytics
+query: |
+  SELECT
+    *
+  FROM
+    FLATTEN(customers_tiers_and_details_view)

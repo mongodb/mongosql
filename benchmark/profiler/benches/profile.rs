@@ -1,4 +1,4 @@
-use catalog::load_catalog;
+use config_loader::load_catalog;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 use lazy_static::lazy_static;
 use mongosql::{

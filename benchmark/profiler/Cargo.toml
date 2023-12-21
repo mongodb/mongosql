@@ -3,14 +3,13 @@ name = "profiler"
 version = "0.1.0"
 edition = "2021"
 
-[lib]
-name = "catalog"
-path = "src/catalog/lib.rs"
-
 [[bin]]
 name = "profiler"
 path = "src/main.rs"
 
+[lib]
+name = "config_loader"
+path = "src/config_loader/lib.rs"
 
 [dependencies]
 mongosql = { path = "../../mongosql" }
