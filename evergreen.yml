@@ -498,7 +498,7 @@ functions:
         working_dir: mongosql-rs
         script: |
           ${prepare_shell}
-          benchmark/run_tpch.sh ${pipeline_dir} ${workload_filename} ${dataset_filename}
+          benchmark/scripts/run_tpch.sh ${pipeline_dir} ${workload_filename} ${dataset_filename}
     - command: perf.send
       params:
         file: ./mongosql-rs/processed-tpch-perf-results.json
@@ -542,7 +542,68 @@ functions:
         working_dir: mongosql-rs
         script: |
           ${prepare_shell}
-          benchmark/run_tpch.sh ${pipeline_dir} ${workload_filename} ${dataset_filename}
+          benchmark/scripts/run_tpch.sh ${pipeline_dir} ${workload_filename} ${dataset_filename}
+
+  "install heaptrack":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          curl -LO https://mongosql-noexpire.s3.us-east-2.amazonaws.com/mem_usage/heaptrack_build.tar.gz
+          tar -xzvf heaptrack_build.tar.gz
+          cat <<EOT >> expansions.yml
+            export PATH="$PATH:$PWD/heaptrack/bin"
+            export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$PWD/heaptrack/lib"
+          EOT
+    - command: expansions.update
+      params:
+        file: mongosql-rs/expansions.yml
+
+  "run memory usage profiler":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          cargo build --bin profiler --release
+          
+          benchmark/scripts/run_mem_profiler.sh "target/release/profiler" > memory-usage-results.log
+          cat memory-usage-results.log
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/memory-usage-results.log
+        remote_file: mongosql-rs/${version_id}/${build_variant}/memory-usage-results.log
+        bucket: mciuploads
+        permissions: public-read
+        content_type: text/plain
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          
+          echo "Configured RSS memory limit: ${mem_usage_rss_limit}MB"
+          echo "Configured memory leak limit: ${mem_usage_mem_leak_limit}MB"
+
+          rss_peak_max=$(cat memory-usage-results.log | grep "RSS peak max" | cut -f2 -d: | tr -d MB | tr -d ' ')
+          mem_leak_max=$(cat memory-usage-results.log | grep "Memory leaked max" | cut -f2 -d: | tr -d MB | tr -d ' ')
+          
+          if (( $(bc <<< "$rss_peak_max > ${mem_usage_rss_limit}") )) || \
+             (( $(bc <<< "$mem_leak_max > ${mem_usage_mem_leak_limit}") )); then
+            echo "Memory limit exceeded"
+            echo "Peak RSS memory: $rss_peak_max"
+            echo "Memory leaked:     $mem_leak_max"
+            exit 1
+          fi
 
 pre:
   - func: "fetch source"
@@ -887,6 +948,12 @@ tasks:
           pipeline_dir: validation/denormalized
           workload_filename: "workload_atlas_sql.yml"
 
+  - name: mem-usage-profiler
+    commands:
+      - func: "install rust toolchain"
+      - func: "install heaptrack"
+      - func: "run memory usage profiler"
+
 buildvariants:
   - name: static-analysis
     display_name: "* Static Analysis"
@@ -991,6 +1058,11 @@ buildvariants:
     tasks:
       - name: tpch-0.001-normalized-validation
 
+  - name: mem-usage
+    display_name: "Memory Usage Profiler"
+    run_on: [ amazon2-large ]
+    tasks:
+      - name: mem-usage-profiler
 
   - name: release
     display_name: "Release"
