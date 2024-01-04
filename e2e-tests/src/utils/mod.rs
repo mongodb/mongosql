@@ -44,7 +44,7 @@ pub(crate) enum Error {
     #[error("no queryPlanner found: {0:?}")]
     MissingQueryPlanner(ExplainResult),
     #[error("general mongodb error: {0:?}")]
-    MongoDBError(mongodb::error::Error),
+    MongoDBErr(mongodb::error::Error),
 }
 
 impl From<mongosql::schema::Error> for Error {

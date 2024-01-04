@@ -190,7 +190,7 @@ fn run_query_tests() -> Result<(), Error> {
 /// we MUST check every value in the expected array against every value in the actual array. Using the HashSet
 /// to mark seen indices, we can ensure that we don't check the same value twice.
 /// Since the query tests are small, this shouldn't be much of an impact.
-fn compare_arrays(expected: &Vec<Bson>, actual: &Vec<Bson>) -> bool {
+fn compare_arrays(expected: &[Bson], actual: &[Bson]) -> bool {
     if expected.len() != actual.len() {
         return false;
     }
@@ -337,7 +337,7 @@ fn run_query(client: &Client, translation: Translation) -> Result<Vec<Document>,
             .database(translation.target_db.as_str())
             .aggregate(pipeline, None)
     }
-    .map_err(Error::MongoDBError)?;
+    .map_err(Error::MongoDBErr)?;
 
     Ok(result.into_iter().map(|d| d.unwrap()).collect())
 }

@@ -106,7 +106,7 @@ impl<'a> JoinSemanticsOptimizerVisitor<'a> {
                 is_nullable: _,
                 args,
             }) if args.len() == 2 => {
-                let arg1: FieldPath = match args.get(0).unwrap().try_into() {
+                let arg1: FieldPath = match args.first().unwrap().try_into() {
                     Ok(fp) => fp,
                     Err(_) => return None,
                 };

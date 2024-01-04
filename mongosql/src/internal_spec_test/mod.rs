@@ -304,7 +304,7 @@ pub fn run_type_constraint_tests() -> Result<(), Error> {
                     let rewrite_res = rewrite_query(ast);
                     let ast = rewrite_res.map_err(|e| Error::RewritesFailed(format!("{e:?}")))?;
                     let mut all_valid_permutations: BTreeSet<Vec<String>> = BTreeSet::new();
-                    let num_args = test.valid_types.get(0).unwrap().len();
+                    let num_args = test.valid_types.first().unwrap().len();
                     // Ensure that algebrization succeeds for all valid type
                     // combinations.
                     for valid_types in test.valid_types {

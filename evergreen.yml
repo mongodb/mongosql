@@ -572,7 +572,10 @@ functions:
           ${prepare_shell}
           cargo build --bin profiler --release
           
-          benchmark/scripts/run_mem_profiler.sh "target/release/profiler" > memory-usage-results.log
+          # run_mem_profiler.sh writes two files
+          # - memory-usage-results.log: Memory usage metrics to upload to S3
+          # - memory-usage-cedar-data.json: Metrics to use in perf.send command
+          benchmark/scripts/run_mem_profiler.sh "target/release/profiler"
           cat memory-usage-results.log
     - command: s3.put
       params:
@@ -583,6 +586,9 @@ functions:
         bucket: mciuploads
         permissions: public-read
         content_type: text/plain
+    - command: perf.send
+      params:
+        file: ./mongosql-rs/memory-usage-cedar-data.json
     - command: shell.exec
       type: test
       params:

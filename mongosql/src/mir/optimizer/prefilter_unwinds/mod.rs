@@ -75,7 +75,7 @@ impl Visitor for PrefilterUnwindsVisitor {
                                 ..f
                             });
                         }
-                        if field_use.fields.get(0) == u.index.as_ref() {
+                        if field_use.fields.first() == u.index.as_ref() {
                             return Stage::Filter(Filter {
                                 source: Box::new(Stage::Unwind(u)),
                                 condition,

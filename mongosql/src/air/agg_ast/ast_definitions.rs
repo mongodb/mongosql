@@ -1071,14 +1071,14 @@ impl From<UntaggedOperator> for air::Expression {
         //   - $nullIf and $coalesce are SQL operators but don't start with $sql
         match ast_op.op.as_str() {
             "$literal" => {
-                let arg = args.get(0).unwrap();
+                let arg = args.first().unwrap();
                 match arg {
                     air::Expression::Literal(_) => return arg.clone(),
                     _ => panic!("invalid $literal"),
                 }
             }
             "$is" | "$sqlIs" => {
-                let expr = Box::new(args.get(0).unwrap().clone());
+                let expr = Box::new(args.first().unwrap().clone());
 
                 let arg2 = match args.get(1).unwrap() {
                     air::Expression::Literal(air::LiteralValue::String(s)) => s,

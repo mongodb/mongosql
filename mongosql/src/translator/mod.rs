@@ -197,7 +197,7 @@ impl MqlTranslator {
         Ok(air::Stage::ReplaceWith(air::ReplaceWith {
             source: Box::new(source),
             new_root: Box::new(if namespaces.len() == 1 {
-                namespaces.get(0).unwrap().clone()
+                namespaces.first().unwrap().clone()
             } else {
                 air::Expression::MQLSemanticOperator(air::MQLSemanticOperator {
                     op: air::MQLOperator::MergeObjects,
