@@ -25,6 +25,7 @@ struct CatalogJsonFile {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Query {
     pub db: String,
+    pub skip_reason: Option<String>,
     pub query: String,
 }
 

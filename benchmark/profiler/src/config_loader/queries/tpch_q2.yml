@@ -1,0 +1,46 @@
+db: tpch
+query: |
+  SELECT
+      s_acctbal,
+      s_name,
+      n_name,
+      p_partkey,
+      p_mfgr,
+      s_address,
+      s_phone,
+      s_comment
+  FROM
+      part,
+      supplier,
+      partsupp,
+      nation,
+      region
+  WHERE
+      p_partkey = ps_partkey
+      and supplier.s_suppkey = partsupp.ps_suppkey
+      and p_size = 20
+      and p_type like '%STEEL'
+      and supplier.s_nationkey = nation.n_nationkey
+      and nation.n_regionkey = r_regionkey
+      and region.r_name = 'AMERICA'
+      and partsupp.ps_supplycost = (
+          SELECT
+              min(partsupp.ps_supplycost)
+          FROM
+              partsupp,
+              supplier,
+              nation,
+              region
+          WHERE
+              p_partkey = partsupp.ps_partkey
+              and supplier.s_suppkey = partsupp.ps_suppkey
+              and supplier.s_nationkey = nation.n_nationkey
+              and nation.n_regionkey = region.r_regionkey
+              and region.r_name = 'AMERICA'
+      )
+  ORDER BY
+      s_acctbal desc,
+      n_name,
+      s_name,
+      p_partkey
+  LIMIT 100

@@ -1,0 +1,20 @@
+db: tpch
+query: |
+  SELECT
+      s_suppkey,
+      s_name,
+      s_address,
+      s_phone,
+      total_revenue
+  FROM
+      supplier,
+      revenue
+  WHERE
+      s_suppkey = supplier_no AND total_revenue = (
+          SELECT
+              MAX(revenue.total_revenue)
+          FROM
+              revenue
+      )
+  ORDER BY
+      s_suppkey

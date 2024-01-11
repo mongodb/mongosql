@@ -1,0 +1,36 @@
+db: tpch
+query: |
+  SELECT
+      cntrycode,
+      count(*) as numcust,
+      sum(c_acctbal) as totacctbal
+  FROM
+      (
+      SELECT
+          substring(customer.c_phone, 0, 2) as cntrycode, c_acctbal
+      FROM
+          customer
+      WHERE
+          substring(customer.c_phone, 0, 2) IN ('13','31','23','29','30','18','17')
+          AND customer.c_acctbal > (
+              SELECT
+                  avg(c.c_acctbal)
+              FROM
+                  customer as c
+              WHERE
+                  c.c_acctbal > 0.00
+                  AND substring(c.c_phone, 0, 2) IN ('13','31','23','29','30','18','17')
+          )
+          AND NOT EXISTS (
+              SELECT
+                  *
+              FROM
+                  orders
+              WHERE
+                  o_custkey = c_custkey
+          )
+      ) as custsale
+  GROUP BY
+      cntrycode
+  ORDER BY
+      cntrycode

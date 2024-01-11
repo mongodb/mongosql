@@ -17,6 +17,11 @@ fn profile(query_name: &str) {
     let query_and_catalog = load_query_and_catalog(query_name);
     match query_and_catalog {
         Ok((query, catalog)) => {
+            if let Some(skip_reason) = query.skip_reason {
+                println!("skipping {}: {}", query_name, skip_reason);
+                return;
+            }
+
             let res = translate_sql(
                 &query.db,
                 &query.query,
