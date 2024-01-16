@@ -7,6 +7,7 @@ mem_leak_max=0
 rss_peak_accum=0
 heap_peak_accum=0
 query_count=0
+heaptrack_results_dir=heaptrack_results/
 mem_usage_results_file=memory-usage-results.log
 mem_usage_cedar_file=memory-usage-cedar-data.json
 
@@ -26,7 +27,7 @@ add_metric_to_json() {
 
   json=$(echo $json | jq --arg name "$metric_name (MB)" --argjson value "$metric_value" '.metrics += [{"name": $name, "value": $value}]')
 }
-
+mkdir -p $heaptrack_results_dir
 for file in benchmark/profiler/src/config_loader/queries/*.yml; do
   name=$(basename "$file" .yml)
   output=$(heaptrack $profiler $name)
@@ -36,6 +37,9 @@ for file in benchmark/profiler/src/config_loader/queries/*.yml; do
     echo "Query: $name"
     echo "$heapstack_summary"
   } >> $mem_usage_results_file
+
+  heaptrack_tar=$(echo $analyze_cmd | cut -d\" -f2)
+  mv -f $heaptrack_tar $heaptrack_results_dir
 
   rss_peak=$(echo "$heapstack_summary" | grep "peak RSS" | sed 's/.*: \([0-9.]*\)M.*/\1/')
   heap_peak=$(echo "$heapstack_summary" | grep "peak heap memory consumption" | sed 's/.*: \([0-9.]*\)M.*/\1/')
@@ -74,3 +78,5 @@ add_metric_to_json "RSS peak max" "$rss_peak_max"
 add_metric_to_json "Heap peak max" "$heap_peak_max"
 
 echo "[$(echo "$json" | jq '.')]" > $mem_usage_cedar_file
+
+tar -czf heaptrack_results.tar.gz $heaptrack_results_dir

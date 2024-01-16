@@ -572,9 +572,10 @@ functions:
           ${prepare_shell}
           cargo build --bin profiler --release
           
-          # run_mem_profiler.sh writes two files
+          # run_mem_profiler.sh writes three files
           # - memory-usage-results.log: Memory usage metrics to upload to S3
           # - memory-usage-cedar-data.json: Metrics to use in perf.send command
+          # - heaptrack_results.tar.gz: TAR of all the heaptrack profiling results
           benchmark/scripts/run_mem_profiler.sh "target/release/profiler"
           cat memory-usage-results.log
     - command: s3.put
@@ -586,6 +587,15 @@ functions:
         bucket: mciuploads
         permissions: public-read
         content_type: text/plain
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/heaptrack_results.tar.gz
+        remote_file: mongosql-rs/${version_id}/${build_variant}/heaptrack_results.tar.gz
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
     - command: perf.send
       params:
         file: ./mongosql-rs/memory-usage-cedar-data.json
