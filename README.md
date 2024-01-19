@@ -137,6 +137,19 @@ For example, the following test is in `mongosql-rs/tests/spec_tests/query_tests/
 * To run this test only: `go test -v -tags spectests -run TestSpecResultSets/identifier.yml/Unaliased_use_of_field_reference_expression_with_$_and_.`
 * To run this file only: `go test -v -tags spectests -run TestSpecResultSets/identifier.yml`
 
+## Debugging visitgen
+
+Since our visitors are created by a proc_macro that utilizes many macros, it is difficult to figure out
+what the generated walk and visit rust files look like just by reading the code. To see what the generated
+rust files look like, run:
+
+`cargo build --features debug-visitor-output` 
+
+This command will generate the visit and walk rust files and put them in subdirectories of the `target` 
+directory called `<some_enum_or_struct>_visit` and `<some_enum_or_struct>_walk` respectively. The
+`<some_enum_or_struct>` value will be one of the structs or enums that is input to `visitgen::generate_visitors! {...}`
+and will be the same for corresponding visit and walk files. 
+
 ## Dependencies
 
 All are managed by Go modules for Go, and Cargo for Rust

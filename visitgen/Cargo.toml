@@ -12,3 +12,7 @@ syn = { version = "1", features = ["visit", "full"] }
 lazy_static = "1"
 proc-macro2 = "1"
 quote = "1"
+procout = {version = "0.1.13", features = ["procout", "formatted"]}
+
+[features]
+debug-visitor-output = []

@@ -1,4 +1,4 @@
-use proc_macro2::TokenStream;
+use proc_macro2::{Ident, TokenStream};
 use quote::{format_ident, quote};
 use syn::{
     punctuated::Punctuated, token::Comma, Fields, GenericArgument, ItemEnum, ItemStruct, Type,
@@ -16,8 +16,8 @@ pub fn gen_walk_mod(types: &[EnumOrStruct]) -> TokenStream {
     let walk_impls = types.iter().map(|t| gen_walk_implementation(&type_set, t));
 
     quote! {
-        pub mod walk {
-            use super::{*, visitor::Visitor};
+        pub mod walk_ref {
+            use super::{*, visitor_ref::VisitorRef};
             #(#walk_impls)*
         }
     }
@@ -30,8 +30,8 @@ fn gen_walk_implementation(type_set: &HashSet<String>, t: &EnumOrStruct) -> Toke
         EnumOrStruct::Struct(s) => gen_walk_for_struct(type_set, s),
     };
     quote! {
-        impl #type_name {
-            pub fn walk<V>(self, _visitor: &mut V) -> Self where V: Visitor {
+        impl #type_name /* Expression*/ {
+            pub fn walk_ref<V>(&self, _visitor: &mut V) where V: VisitorRef {
                 #walk_body
             }
         }
@@ -46,15 +46,15 @@ fn gen_walk_for_enum(type_set: &HashSet<String>, e: &ItemEnum) -> TokenStream {
             let ty = &u.unnamed.first().unwrap().ty;
             let x = format_ident!("x");
             let x = quote!(#x);
-            let visit_type = gen_walk_visit_type(type_set, ty, &x);
+            let visit_type = gen_walk_visit_type(type_set, ty, &x, variant_name.clone());
             quote! {
-                #enum_name::#variant_name(#x) => #enum_name::#variant_name(#visit_type),
+                #enum_name::#variant_name(#x) => #visit_type,
             }
         }
         Fields::Unit => {
             let variant_name = format_ident!("{}", v.ident);
             quote! {
-                #enum_name::#variant_name => #enum_name::#variant_name,
+                #enum_name::#variant_name => (),
             }
         }
         Fields::Unnamed(_) => {
@@ -72,26 +72,26 @@ fn gen_walk_for_enum(type_set: &HashSet<String>, e: &ItemEnum) -> TokenStream {
 }
 
 fn gen_walk_for_struct(type_set: &HashSet<String>, s: &ItemStruct) -> TokenStream {
-    let type_name = format_ident!("{}", s.ident);
     match &s.fields {
         Fields::Named(fields) => {
             let field_assignments = fields.named.iter().map(|f| {
                 let name = format_ident!("{}", f.ident.clone().unwrap());
                 let visited_expr = quote!(self.#name);
-                let visit_type = gen_walk_visit_type(type_set, &f.ty, &visited_expr);
-                quote!(#name: #visit_type,)
+                let visit_type = gen_walk_visit_type(type_set, &f.ty, &visited_expr, name.clone());
+                quote!(#visit_type)
             });
-            quote!(#type_name { #(#field_assignments)* })
+            quote!(#(#field_assignments;)*)
         }
         Fields::Unnamed(fields) => {
             let field_assignments = fields.unnamed.iter().enumerate().map(|(i, f)| {
+                let name = format_ident!("{}", i);
                 let visited_expr = quote!(self.#i);
-                let visit_type = gen_walk_visit_type(type_set, &f.ty, &visited_expr);
-                quote!(#visit_type,)
+                let visit_type = gen_walk_visit_type(type_set, &f.ty, &visited_expr, name);
+                quote!(#visit_type)
             });
-            quote!(#type_name ( #(#field_assignments)* ))
+            quote!(#(#field_assignments;)*)
         }
-        Fields::Unit => quote!(),
+        Fields::Unit => quote!(()),
     }
 }
 
@@ -99,44 +99,26 @@ fn gen_walk_visit_type(
     type_set: &HashSet<String>,
     ty: &Type,
     visited_expr: &TokenStream,
+    name: Ident,
 ) -> TokenStream {
     let (type_name, generic_args) = get_relevant_type_info(ty);
 
     if type_set.contains(&type_name) {
         let funcname = format_ident!("visit_{}", convert_to_snake_case(&type_name));
-        quote!(_visitor.#funcname(#visited_expr))
+        quote!(_visitor.#funcname(&#visited_expr))
     } else {
         match type_name.as_str() {
-            "Box" => gen_walk_visit_box(type_set, visited_expr, generic_args),
-            "BTreeMap" => gen_walk_visit_map(
-                type_set,
-                visited_expr,
-                generic_args,
-                &quote!(std::collections::BTreeMap),
-            ),
-            "HashMap" => gen_walk_visit_map(
-                type_set,
-                visited_expr,
-                generic_args,
-                &quote!(std::collections::HashMap),
-            ),
-            "LinkedHashMap" => gen_walk_visit_map(
-                type_set,
-                visited_expr,
-                generic_args,
-                &quote!(linked_hash_map::LinkedHashMap),
-            ),
-            "UniqueLinkedHashMap" => gen_walk_visit_unique_map(
-                type_set,
-                visited_expr,
-                generic_args,
-                &quote!(mongosql_datastructures::unique_linked_hash_map::UniqueLinkedHashMap),
-            ),
-            "Option" => gen_walk_visit_option(type_set, visited_expr, generic_args),
-            "Vec" => gen_walk_visit_vec(type_set, visited_expr, generic_args),
-            "BindingTuple" => gen_walk_visit_binding_tuple(type_set, visited_expr, generic_args),
-            // We just move this type as is, we don't have a way to visit it
-            _ => visited_expr.clone(),
+            "Box" => gen_walk_visit_box(type_set, visited_expr, generic_args, name),
+            "BTreeMap" | "HashMap" | "LinkedHashMap" | "UniqueLinkedHashMap" => {
+                gen_walk_visit_map(type_set, visited_expr, generic_args, name)
+            }
+            "Option" => gen_walk_visit_option(type_set, visited_expr, generic_args, name),
+            "Vec" => gen_walk_visit_vec(type_set, visited_expr, generic_args, name),
+            "BindingTuple" => {
+                gen_walk_visit_binding_tuple(type_set, visited_expr, generic_args, name)
+            }
+            // We just return unit for this type since there's no reason to visit it.
+            _ => quote!(()),
         }
     }
 }
@@ -145,6 +127,7 @@ fn gen_walk_visit_box(
     type_set: &HashSet<String>,
     visited_expr: &TokenStream,
     generic_args: Option<&Punctuated<GenericArgument, Comma>>,
+    name: Ident,
 ) -> TokenStream {
     let generic_args = generic_args.expect("Box found with no generic arguments");
     if generic_args.len() != 1 {
@@ -154,70 +137,10 @@ fn gen_walk_visit_box(
     let box_type_name = get_generic_name(box_generic);
     if type_set.contains(&box_type_name) || COMPOUND_TYPES.contains(&box_type_name as &str) {
         let box_type = get_generic_type(box_generic);
-        let visit_type = gen_walk_visit_type(type_set, box_type, &quote!((*#visited_expr)));
-        quote!(Box::new(#visit_type))
+        let visit_type = gen_walk_visit_type(type_set, box_type, &quote!((#visited_expr)), name);
+        quote!(#visit_type)
     } else {
-        visited_expr.clone()
-    }
-}
-
-fn gen_walk_visit_unique_map(
-    type_set: &HashSet<String>,
-    visited_expr: &TokenStream,
-    generic_args: Option<&Punctuated<GenericArgument, Comma>>,
-    map_type_name: &TokenStream,
-) -> TokenStream {
-    let generic_args = generic_args.expect("HashMap found with no generic arguments");
-    if generic_args.len() != 2 {
-        panic!("nonsensical HashMap definition without two generic arguments")
-    }
-    let key_generic = generic_args.first().expect("impossible failure");
-    let key_type_name = get_generic_name(key_generic);
-    let key_special =
-        type_set.contains(&key_type_name) || COMPOUND_TYPES.contains(&key_type_name as &str);
-
-    let value_generic = generic_args.last().expect("impossible failure");
-    let value_type_name = get_generic_name(value_generic);
-    let value_special =
-        type_set.contains(&value_type_name) || COMPOUND_TYPES.contains(&value_type_name as &str);
-
-    if key_special {
-        let key_type = get_generic_type(key_generic);
-        if value_special {
-            let value_type = get_generic_type(value_generic);
-            let map_k = format_ident!("map_k");
-            let map_k = quote!(#map_k);
-            let visit_type_key = gen_walk_visit_type(type_set, key_type, &map_k);
-            let map_v = format_ident!("map_v");
-            let map_v = quote!(#map_v);
-            let visit_type_value = gen_walk_visit_type(type_set, value_type, &map_v);
-            quote!({
-                let mut out = #map_type_name::new();
-                out.insert_many(#visited_expr.into_iter().map(|(#map_k, #map_v)| (#visit_type_key, #visit_type_value))).unwrap();
-                out
-            })
-        } else {
-            let map_k = format_ident!("map_k");
-            let map_k = quote!(#map_k);
-            let visit_type = gen_walk_visit_type(type_set, key_type, &map_k);
-            quote!({
-                let mut out = #map_type_name::new();
-                out.insert_many(#visited_expr.into_iter().map(|(#map_k, map_v)| (#visit_type, map_v))).unwrap();
-                out
-            })
-        }
-    } else if value_special {
-        let value_type = get_generic_type(value_generic);
-        let map_v = format_ident!("map_v");
-        let map_v = quote!(#map_v);
-        let visit_type = gen_walk_visit_type(type_set, value_type, &map_v);
-        quote!({
-            let mut out = #map_type_name::new();
-            out.insert_many(#visited_expr.into_iter().map(|(map_k, #map_v)| (map_k, #visit_type))).unwrap();
-            out
-        })
-    } else {
-        visited_expr.clone()
+        quote!(())
     }
 }
 
@@ -225,7 +148,7 @@ fn gen_walk_visit_map(
     type_set: &HashSet<String>,
     visited_expr: &TokenStream,
     generic_args: Option<&Punctuated<GenericArgument, Comma>>,
-    map_type_name: &TokenStream,
+    name: Ident,
 ) -> TokenStream {
     let generic_args = generic_args.expect("Map type found with no generic arguments");
     if generic_args.len() != 2 {
@@ -247,37 +170,41 @@ fn gen_walk_visit_map(
             let value_type = get_generic_type(value_generic);
             let map_k = format_ident!("map_k");
             let map_k = quote!(#map_k);
-            let visit_type_key = gen_walk_visit_type(type_set, key_type, &map_k);
+            let visit_type_key = gen_walk_visit_type(type_set, key_type, &map_k, name.clone());
             let map_v = format_ident!("map_v");
             let map_v = quote!(#map_v);
-            let visit_type_value = gen_walk_visit_type(type_set, value_type, &map_v);
+            let visit_type_value = gen_walk_visit_type(type_set, value_type, &map_v, name);
             quote! {
-                #visited_expr.into_iter()
-                    .map(|(#map_k, #map_v)| (#visit_type_key, #visit_type_value))
-                    .collect::<#map_type_name<_,_>>()
+                for (map_k, map_v) in #visited_expr.iter()
+                {
+                    #visit_type_key;
+                    #visit_type_value;
+                }
             }
         } else {
             let map_k = format_ident!("map_k");
             let map_k = quote!(#map_k);
-            let visit_type_key = gen_walk_visit_type(type_set, key_type, &map_k);
+            let visit_type_key = gen_walk_visit_type(type_set, key_type, &map_k, name);
             quote! {
-                #visited_expr.into_iter()
-                    .map(|(#map_k, map_v)| (#visit_type_key, map_v))
-                    .collect::<#map_type_name<_,_>>()
+                for (map_k, _) in #visited_expr.iter()
+                {
+                    #visit_type_key;
+                }
             }
         }
     } else if value_special {
         let value_type = get_generic_type(value_generic);
         let map_v = format_ident!("map_v");
         let map_v = quote!(#map_v);
-        let visit_type_value = gen_walk_visit_type(type_set, value_type, &map_v);
+        let visit_type_value = gen_walk_visit_type(type_set, value_type, &map_v, name);
         quote! {
-            #visited_expr.into_iter()
-                .map(|(map_k, #map_v)| (map_k, #visit_type_value))
-                .collect::<#map_type_name<_,_>>()
+            for (_, map_v) in #visited_expr.iter()
+            {
+                #visit_type_value;
+            }
         }
     } else {
-        visited_expr.clone()
+        quote!(())
     }
 }
 
@@ -285,6 +212,7 @@ fn gen_walk_visit_option(
     type_set: &HashSet<String>,
     visited_expr: &TokenStream,
     generic_args: Option<&Punctuated<GenericArgument, Comma>>,
+    name: Ident,
 ) -> TokenStream {
     let generic_args = generic_args.expect("Option found with no generic arguments");
     if generic_args.len() != 1 {
@@ -296,10 +224,12 @@ fn gen_walk_visit_option(
         let option_type = get_generic_type(option_generic);
         let opt_x = format_ident!("opt_x");
         let opt_x = quote!(#opt_x);
-        let visit_type = gen_walk_visit_type(type_set, option_type, &opt_x);
-        quote!( #visited_expr.map(|#opt_x| #visit_type) )
+        let visit_type = gen_walk_visit_type(type_set, option_type, &opt_x, name);
+        quote!(
+            #visited_expr.iter().for_each(|#opt_x| #visit_type)
+        )
     } else {
-        visited_expr.clone()
+        quote!(())
     }
 }
 
@@ -307,6 +237,7 @@ fn gen_walk_visit_vec(
     type_set: &HashSet<String>,
     visited_expr: &TokenStream,
     generic_args: Option<&Punctuated<GenericArgument, Comma>>,
+    name: Ident,
 ) -> TokenStream {
     let generic_args = generic_args.expect("Vec found with no generic arguments");
     if generic_args.len() != 1 {
@@ -318,14 +249,12 @@ fn gen_walk_visit_vec(
         let vec_type = get_generic_type(vec_generic);
         let vec_x = format_ident!("vec_x");
         let vec_x = quote!(#vec_x);
-        let visit_type = gen_walk_visit_type(type_set, vec_type, &vec_x);
+        let visit_type = gen_walk_visit_type(type_set, vec_type, &vec_x, name);
         quote! {
-            #visited_expr.into_iter()
-                .map(|#vec_x| #visit_type)
-                .collect::<Vec<_>>()
+            #visited_expr.iter().for_each(|#vec_x| #visit_type)
         }
     } else {
-        visited_expr.clone()
+        quote!(())
     }
 }
 
@@ -333,6 +262,7 @@ fn gen_walk_visit_binding_tuple(
     type_set: &HashSet<String>,
     visited_expr: &TokenStream,
     generic_args: Option<&Punctuated<GenericArgument, Comma>>,
+    name: Ident,
 ) -> TokenStream {
     let generic_args = generic_args.expect("BindingTuple found with no generic arguments");
     if generic_args.len() != 1 {
@@ -344,13 +274,11 @@ fn gen_walk_visit_binding_tuple(
         let bt_type = get_generic_type(bt_generic);
         let bt_x = format_ident!("bt_x");
         let bt_x = quote!(#bt_x);
-        let visit_type = gen_walk_visit_type(type_set, bt_type, &bt_x);
+        let visit_type = gen_walk_visit_type(type_set, bt_type, &bt_x, name);
         quote! {
-            #visited_expr.into_iter()
-                .map(|(k, #bt_x)| (k, #visit_type))
-                .collect::<mongosql_datastructures::binding_tuple::BindingTuple<_>>()
+            #visited_expr.iter().for_each(|(_, #bt_x)| #visit_type)
         }
     } else {
-        visited_expr.clone()
+        quote!(())
     }
 }

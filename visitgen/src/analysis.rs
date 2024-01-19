@@ -27,13 +27,13 @@ pub fn collect_types(file: &File) -> Vec<EnumOrStruct> {
     }
 
     impl<'ast> Visit<'ast> for TypeVisitor {
+        fn visit_item_enum(&mut self, node: &'ast ItemEnum) {
+            self.types.push(EnumOrStruct::Enum(Box::new(node.clone())));
+        }
+
         fn visit_item_struct(&mut self, node: &'ast ItemStruct) {
             self.types
                 .push(EnumOrStruct::Struct(Box::new(node.clone())));
-        }
-
-        fn visit_item_enum(&mut self, node: &'ast ItemEnum) {
-            self.types.push(EnumOrStruct::Enum(Box::new(node.clone())));
         }
     }
 

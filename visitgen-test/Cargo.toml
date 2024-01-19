@@ -8,3 +8,4 @@ edition = "2021"
 linked-hash-map = "0.5.4"
 mongosql-datastructures = { path = "../mongosql-datastructures" }
 visitgen = { path = "../visitgen" }
+lazy_static = "1.4.0"

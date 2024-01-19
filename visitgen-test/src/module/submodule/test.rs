@@ -1,11 +1,59 @@
-use crate::module::submodule::{ast, visitor::Visitor};
-
+use crate::module::submodule::{ast, visitor::Visitor, visitor_ref::VisitorRef};
+use lazy_static::lazy_static;
 use linked_hash_map::LinkedHashMap;
 use mongosql_datastructures::{
     binding_tuple::BindingTuple, unique_linked_hash_map::UniqueLinkedHashMap,
 };
 
+lazy_static! {
+    static ref TREE_ATOM_TEST_EXPECTED_RESULT: Vec<String> = vec![
+        "a1".to_string(),
+        "a2".to_string(),
+        "a3".to_string(),
+        "a4".to_string(),
+        "a5".to_string(),
+        "a6".to_string(),
+        "a7".to_string(),
+        "a8".to_string(),
+        "a9".to_string(),
+        "a10".to_string(),
+        "a11".to_string(),
+        "a12".to_string(),
+        "a13".to_string(),
+        "a14".to_string(),
+        "a15".to_string(),
+        "a16".to_string(),
+        "a17".to_string(),
+        "a18".to_string(),
+        "a19".to_string(),
+        "a20".to_string(),
+        "a21".to_string(),
+        "a22".to_string(),
+        "a23".to_string(),
+        "a24".to_string(),
+    ];
+    static ref HASH_TREE_ATOM_TEST_EXPECTED_RESULT: Vec<String> = vec![
+        "hello2".to_string(),
+        "world3".to_string(),
+        "hello4".to_string(),
+        "world4".to_string(),
+        "linked_hello2".to_string(),
+        "linked_world3".to_string(),
+        "linked_hello4".to_string(),
+        "linked_world4".to_string(),
+        "unique_linked_hello2".to_string(),
+        "unique_linked_world3".to_string(),
+        "unique_linked_hello4".to_string(),
+        "unique_linked_world4".to_string(),
+        "bt_hello2".to_string(),
+    ];
+}
+
 struct AtomVisitor {
+    atom_names: Vec<String>,
+}
+
+struct AtomVisitorRef {
     atom_names: Vec<String>,
 }
 
@@ -13,6 +61,12 @@ impl Visitor for AtomVisitor {
     fn visit_atom(&mut self, node: ast::Atom) -> ast::Atom {
         self.atom_names.push(node.name.clone());
         node
+    }
+}
+
+impl VisitorRef for AtomVisitorRef {
+    fn visit_atom(&mut self, node: &ast::Atom) {
+        self.atom_names.push(node.name.clone());
     }
 }
 
@@ -28,11 +82,63 @@ fn simple_atom_visitor_test() {
 }
 
 #[test]
+fn simple_atom_ref_visitor_test() {
+    use ast::*;
+
+    let mut v = AtomVisitorRef { atom_names: vec![] };
+    v.visit_atom(&Atom {
+        name: "hello".to_string(),
+    });
+    assert_eq!(vec!["hello".to_string()], v.atom_names);
+}
+
+#[test]
 fn tree_atom_visitor_test() {
+    let mut v = AtomVisitor { atom_names: vec![] };
+
+    let e = create_test_tree();
+
+    v.visit_expression(e);
+
+    assert_eq!(*TREE_ATOM_TEST_EXPECTED_RESULT, v.atom_names);
+}
+
+#[test]
+fn tree_atom_ref_visitor_test() {
+    let mut v = AtomVisitorRef { atom_names: vec![] };
+
+    let e = create_test_tree();
+
+    v.visit_expression(&e);
+
+    assert_eq!(*TREE_ATOM_TEST_EXPECTED_RESULT, v.atom_names);
+}
+
+#[test]
+fn hash_tree_atom_visitor_test() {
+    let mut v = AtomVisitor { atom_names: vec![] };
+
+    let e = create_test_hash_tree();
+
+    v.visit_hash_tree(e);
+
+    assert_eq!(*HASH_TREE_ATOM_TEST_EXPECTED_RESULT, v.atom_names);
+}
+
+#[test]
+fn hash_tree_atom_ref_visitor_test() {
+    let mut v = AtomVisitorRef { atom_names: vec![] };
+
+    let e = create_test_hash_tree();
+
+    v.visit_hash_tree(&e);
+
+    assert_eq!(*HASH_TREE_ATOM_TEST_EXPECTED_RESULT, v.atom_names);
+}
+
+fn create_test_tree() -> ast::Expression {
     use ast::*;
     use std::collections::BTreeMap;
-
-    let mut v = AtomVisitor { atom_names: vec![] };
 
     let l = Box::new(Expression::Plus(Plus {
         left: Box::new(Expression::Atoms(vec![
@@ -206,49 +312,14 @@ fn tree_atom_visitor_test() {
         },
     }));
 
-    let e = Expression::Plus(Plus { left: l, right: r });
-
-    v.visit_expression(e);
-
-    assert_eq!(
-        vec![
-            "a1".to_string(),
-            "a2".to_string(),
-            "a3".to_string(),
-            "a4".to_string(),
-            "a5".to_string(),
-            "a6".to_string(),
-            "a7".to_string(),
-            "a8".to_string(),
-            "a9".to_string(),
-            "a10".to_string(),
-            "a11".to_string(),
-            "a12".to_string(),
-            "a13".to_string(),
-            "a14".to_string(),
-            "a15".to_string(),
-            "a16".to_string(),
-            "a17".to_string(),
-            "a18".to_string(),
-            "a19".to_string(),
-            "a20".to_string(),
-            "a21".to_string(),
-            "a22".to_string(),
-            "a23".to_string(),
-            "a24".to_string(),
-        ],
-        v.atom_names,
-    );
+    Expression::Plus(Plus { left: l, right: r })
 }
 
-#[test]
-fn hash_tree_atom_visitor_test() {
+fn create_test_hash_tree() -> ast::HashTree {
     use ast::*;
     use std::collections::HashMap;
 
-    let mut v = AtomVisitor { atom_names: vec![] };
-
-    let e = HashTree {
+    HashTree {
         branch_m1: {
             let mut m = HashMap::new();
             m.insert("hello1".to_string(), "world1".to_string());
@@ -384,26 +455,5 @@ fn hash_tree_atom_visitor_test() {
             );
             m
         },
-    };
-
-    v.visit_hash_tree(e);
-
-    assert_eq!(
-        vec![
-            "hello2".to_string(),
-            "world3".to_string(),
-            "hello4".to_string(),
-            "world4".to_string(),
-            "linked_hello2".to_string(),
-            "linked_world3".to_string(),
-            "linked_hello4".to_string(),
-            "linked_world4".to_string(),
-            "unique_linked_hello2".to_string(),
-            "unique_linked_world3".to_string(),
-            "unique_linked_hello4".to_string(),
-            "unique_linked_world4".to_string(),
-            "bt_hello2".to_string(),
-        ],
-        v.atom_names
-    );
+    }
 }
