@@ -945,7 +945,7 @@ dependencies = [
  "mongosql",
  "serde",
  "serde_yaml 0.9.25",
- "thiserror",
+ "test-utils",
 ]
 
 [[package]]
@@ -2968,6 +2968,19 @@ dependencies = [
  "dirs-next",
  "rustversion",
  "winapi",
+]
+
+[[package]]
+name = "test-utils"
+version = "0.1.0"
+dependencies = [
+ "itertools",
+ "lazy_static",
+ "mongodb",
+ "mongosql",
+ "serde",
+ "serde_yaml 0.9.25",
+ "thiserror",
 ]
 
 [[package]]

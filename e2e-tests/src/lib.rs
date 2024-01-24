@@ -1,5 +1,6 @@
-#![cfg(test)]
+#![cfg_attr(rustfmt, rustfmt_skip)]
+#[rustfmt::skip]
+#[cfg(feature = "generated")]
+#[cfg(test)]
+pub(crate) mod generated;
 
-pub(crate) mod index_test;
-pub(crate) mod query_test;
-pub(crate) mod utils;

@@ -4,13 +4,30 @@ use mongodb::{
     bson::{doc, Bson},
     sync::Client,
 };
-use std::{collections::BTreeMap, env, io, string::ToString};
+use std::{
+    collections::BTreeMap,
+    env,
+    io::{self},
+    string::ToString,
+};
 use thiserror::Error;
 
-use crate::index_test::ExplainResult;
+lazy_static! {
+    pub static ref MONGODB_URI: String = format!(
+        "mongodb://localhost:{}",
+        env::var("MDB_TEST_LOCAL_PORT").unwrap_or_else(|_| "27017".to_string())
+    );
+}
+
+pub mod index;
+pub use index::*;
+pub mod query;
+pub use query::*;
+pub mod build_utils;
+pub use build_utils::*;
 
 #[derive(Debug, Error)]
-pub(crate) enum Error {
+pub enum Error {
     #[error("failed to read directory: {0:?}")]
     InvalidDirectory(io::Error),
     #[error("failed to load file paths: {0:?}")]
@@ -56,16 +73,9 @@ impl From<mongosql::schema::Error> for Error {
     }
 }
 
-lazy_static! {
-    pub static ref MONGODB_URI: String = format!(
-        "mongodb://localhost:{}",
-        env::var("MDB_TEST_LOCAL_PORT").unwrap_or_else(|_| "27017".to_string())
-    );
-}
-
 /// load_catalog_data drops any existing catalog data and then inserts the
 /// provided catalog data into the mongodb instance.
-pub(crate) fn load_catalog_data(
+pub fn load_catalog_data(
     client: &Client,
     catalog_data: BTreeMap<String, BTreeMap<String, Vec<Bson>>>,
 ) -> Result<(), Error> {
@@ -87,7 +97,7 @@ pub(crate) fn load_catalog_data(
 }
 
 /// drop_catalog_data drops all dbs in the provided list.
-pub(crate) fn drop_catalog_data<T: Into<String>>(
+pub fn drop_catalog_data<T: Into<String>>(
     client: &Client,
     catalog_dbs: Vec<T>,
 ) -> Result<(), Error> {

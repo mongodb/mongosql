@@ -1,5 +1,5 @@
 [package]
-name = "e2e-tests"
+name = "test-utils"
 version = "0.1.0"
 edition = "2021"
 
@@ -11,20 +11,9 @@ lazy_static = "1"
 mongosql = { path = "../mongosql" }
 serde = { version = "1", features = ["derive"] }
 serde_yaml = "0.9.21"
-test-utils = { path = "../test-utils" }
-
-[build-dependencies]
-test-utils = { path = "../test-utils" }
+thiserror = "1"
 
 [dependencies.mongodb]
 version = "2.7"
 default-features = false
 features = ["tokio-sync"]
-
-[features]
-index = []
-query = []
-e2e = []
-error = []
-all = ["index", "query", "e2e", "error"]
-generated = []

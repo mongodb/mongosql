@@ -61,4 +61,4 @@ tests:
     query: "Foo on the batter, this query doesn't matter"
     current_db: db
     should_compile: false
-    catalog_error: "Error 1018: Unsupported BSON type: undefined. Consider updating the type of undefined fields to a non-deprecated BSON type, such as Null\n\tCaused by:\n\tDeprecated BSON type undefined"
+    catalog_error: "called `Result::unwrap()` on an `Err` value: \"Error 1018: Unsupported BSON type: undefined. Consider updating the type of undefined fields to a non-deprecated BSON type, such as Null\\n\\tCaused by:\\n\\tDeprecated BSON type undefined\""

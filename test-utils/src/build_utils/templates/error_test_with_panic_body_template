@@ -1,0 +1,13 @@
+
+#[cfg(feature = "error")]
+#[test]
+#[should_panic(expected = {expected_panic})]
+// tests with an if statement and a return inside are intended to end early
+// before other cases are tested
+// for example, if a test should not compile, there's no point in checking
+// if the results are correct as there won't be any
+pub fn {name}() {{
+    use test_utils::*;
+    let (_, test_file) = initialize_test();
+    build_catalog_from_catalog_schema(test_file.catalog_schema.as_ref().unwrap().clone()).unwrap();
+}}

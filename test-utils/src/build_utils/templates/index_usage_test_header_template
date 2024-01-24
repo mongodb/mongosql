@@ -1,0 +1,41 @@
+#![cfg_attr(rustfmt, rustfmt_skip)]
+#![allow(clippy::all)]
+#![allow(non_snake_case, dead_code, unused_variables, unused_imports)]
+
+use mongodb::{{
+    bson::{{Bson, Document}},
+    sync::Client,
+}};
+use mongosql::{{
+    build_catalog_from_catalog_schema,
+    catalog::Catalog,
+    options::{{ExcludeNamespacesOption, SqlOptions}},
+    Translation,
+}};
+use std::{{collections::HashSet, fs, io::Read, path::PathBuf, string::ToString}};
+
+use std::sync::Once;
+
+use test_utils::*;
+
+static INIT: Once = Once::new();
+
+pub fn initialize_test() -> (&'static Client, &'static IndexUsageYamlTestFile) {{
+    static mut CLIENT: Option<Client> = None;
+    static mut TEST_FILE: Option<IndexUsageYamlTestFile> = None;
+
+    INIT.call_once(|| {{
+        unsafe {{
+            CLIENT = Some(Client::with_uri_str(MONGODB_URI.clone()).map_err(Error::CannotCreateMongoDBClient).unwrap());
+            let test_file = parse_index_usage_yaml_file(PathBuf::from({path})).unwrap();
+            load_catalog_data(CLIENT.as_ref().unwrap(), test_file.catalog_data.clone()).unwrap();
+            create_indexes(CLIENT.as_ref().unwrap(), test_file.indexes.clone()).unwrap();
+            TEST_FILE = Some(test_file);
+        }}
+    }});
+
+
+    unsafe {{
+        (CLIENT.as_ref().unwrap(), TEST_FILE.as_ref().unwrap())
+    }}
+}}

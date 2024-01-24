@@ -1,0 +1,141 @@
+#[cfg(feature = "{feature}")]
+#[test]
+// tests with an if statement and a return inside are intended to end early
+// before other cases are tested
+// for example, if a test should not compile, there's no point in checking
+// if the results are correct as there won't be any
+pub fn {name}() {{
+    use test_utils::*;
+    let (client, test_file) = initialize_test();
+    let test = test_file.tests.get({index}).unwrap();
+
+    if let Some(catalog_error) = test.catalog_error.clone() {{
+        let res = std::panic::catch_unwind(|| {{
+            build_catalog_from_catalog_schema(test_file.catalog_schema.as_ref().unwrap().clone())
+        }});
+        assert!(res.is_err(), "expected error, got {{:?}}", res);
+        return;
+    }}
+
+    let no_catalog = test_file.catalog_data.is_none() && test_file.catalog_schema.is_none();
+    // we need to drop the catalog data before loading the new one, so we collect the db names
+    // here to use in a drop after the inner loop
+    let catalog_dbs = test_file
+        .catalog_data
+        .clone()
+        .map_or(vec![], |cat| cat.keys().map(|k| k.to_string()).collect());
+    let catalog = if !no_catalog {{
+        load_catalog_data(&client, test_file.catalog_data.as_ref().unwrap().clone()).unwrap();
+
+        build_catalog_from_catalog_schema(test_file.catalog_schema.as_ref().unwrap().clone()).unwrap()
+    }} else {{
+        // some query tests don't have a catalog, so we generate a default one
+        Catalog::default()
+    }};
+
+    let default_db = "test".to_string();
+
+    let db = test
+        .current_db
+        .as_ref()
+        .unwrap_or_else(|| &default_db)
+        .to_owned();
+
+    let exclude_namespaces_option = if let Some(true) = test.exclude_namespaces {{
+        ExcludeNamespacesOption::ExcludeNamespaces
+    }} else {{
+        ExcludeNamespacesOption::IncludeNamespaces
+    }};
+
+    let translation = mongosql::translate_sql(
+        db.as_str(),
+        test.query.as_str(),
+        &catalog,
+        SqlOptions::new(
+            exclude_namespaces_option,
+            mongosql::SchemaCheckingMode::Strict,
+        ),
+    )
+    .map_err(Error::Translation);
+
+    if let Some(should_compile) = test.should_compile {{
+        assert_eq!(
+            should_compile,
+            translation.is_ok(),
+            "{{}}: unexpected compilation result",
+            test.description
+        );
+        return;
+    }}
+
+    if let Some(parse_error) = test.parse_error.clone() {{
+        assert!(
+            translation
+                .as_ref()
+                .err()
+                .unwrap()
+                .to_string()
+                .contains(&parse_error),
+            "{{}}: unexpected parse result.\nexpected: {{}}\nactual: {{}}",
+            test.description,
+            parse_error,
+            translation.unwrap_err().to_string()
+        );
+        return;
+    }}
+    if let Some(algebrize_error) = test.algebrize_error.clone() {{
+        assert!(
+            translation
+                .as_ref()
+                .err()
+                .unwrap()
+                .to_string()
+                .contains(&algebrize_error),
+            "{{}}: unexpected algebrize result.\nexpected: {{}}\nactual: {{}}",
+            test.description,
+            algebrize_error,
+            translation.unwrap_err().to_string()
+        );
+        return;
+    }}
+
+    let result = run_query(&client, translation.unwrap()).unwrap();
+
+    if let Some(expected_results) = test.result.clone() {{
+        // fun times here. If there isn't a catalog where the type is specified, then the
+        // type is elided. Unfortunately, when coming in from serde_yaml, all positive numbers
+        // are just assumed to be u64. When the driver gets this, it just puts it in an i64, not
+        // bothering to see if it will fit in an i32.
+        // https://jira.mongodb.org/browse/RUST-1692
+        let expected_results = if no_catalog {{
+            convert_numerics_in_results(expected_results)
+        }} else {{
+            expected_results
+        }};
+        assert_eq!(
+            expected_results.len(),
+            result.len(),
+            "{{}}: unexpected number of query results\nexpected results: {{:?}}\nactual results: {{:?}}",
+            test.description,
+            expected_results,
+            result
+        );
+
+        for actual in result.iter() {{
+            assert!(
+                expected_results.iter().any(|expected| {{
+                    // because NaN != NaN, we have to use custom comparison functions
+                    compare_documents(expected, actual)
+                }}),
+                "unexpected query result for {{}}, \nexpected results: {{:?}}\nactual results: {{:?}}",
+                test.description,
+                expected_results,
+                actual
+            );
+        }}
+    }}
+    // drop the catalog data for this particular test file
+    if !no_catalog {{
+        drop_catalog_data(&client, catalog_dbs.clone()).unwrap();
+    }}
+}}

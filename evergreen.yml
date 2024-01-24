@@ -176,7 +176,7 @@ functions:
         working_dir: mongosql-rs
         script: |
           ${prepare_shell}
-          rustfmt --check $(find . -name '*.rs')
+          rustfmt --check $(find . -not \( -path \./e2e-tests -prune -o -path \./target -prune \) -name \*.rs)
 
   "compile release":
     - command: shell.exec
@@ -338,33 +338,9 @@ functions:
           go test -v ./... | tee go-test-results.txt
 
   # Just running the spec tests on RHEL 7.6 for now
-  "run spec tests":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs/go
-        script: |
-          ${prepare_shell}
-          export LIBRARY_PATH="$(cd .. && pwd)"
-          export LD_LIBRARY_PATH="$(cd .. && pwd)"
-
-          echo "downloading mongodb"
-          curl -O https://fastdl.mongodb.org/linux/$MONGODB_TEST_RHEL_VERSION.tgz
-          tar zxvf $MONGODB_TEST_RHEL_VERSION.tgz
-          mkdir -p data_db
-
-          echo "starting mongodb"
-          $MONGODB_TEST_RHEL_VERSION/bin/mongod --dbpath data_db &
-
-          echo "run query spec tests"
-          go test -v ./... -tags spectests | tee spec-test-results.txt
-          pkill mongod
-          
-          echo "run rewrite and type constraint spec tests"
-          cargo test -- --ignored --skip run_index_usage_tests --skip run_query_tests
-
-  # Just running the spec tests on RHEL 7.6 for now
+  # This function should be used to run rust tests that need a running mongod
+  # Additional flags can be passed in via the calling task
+  # e.g. cargo_test_flags: "-- --ignored"
   "run rust integration tests":
     - command: shell.exec
       type: test
@@ -381,7 +357,7 @@ functions:
 
           echo "starting mongodb"
           $MONGODB_TEST_RHEL_VERSION/bin/mongod --dbpath data_db &
-          
+
           echo ${description}
           set +e
           cargo test ${cargo_test_flags}
@@ -390,6 +366,9 @@ functions:
           set -e
           exit $EXITCODE
 
+  # This function should be used to run rust tests that do not need a running
+  # mongod instance. Additonal flags can be passed in via the calling task.
+  # e.g. cargo_test_flags: "-- --ignored"
   "run rust tests":
     - command: shell.exec
       type: test
@@ -398,7 +377,7 @@ functions:
         working_dir: mongosql-rs
         script: |
           ${prepare_shell}
-          cargo test -- --skip fuzz_test
+          cargo test ${cargo_test_flags}
 
   "run pipeline generator":
     - command: shell.exec
@@ -409,16 +388,6 @@ functions:
         script: |
           ${prepare_shell}
           cargo run --bin pipeline_generator
-
-  "run rust fuzz tests":
-    - command: shell.exec
-      type: test
-      params:
-        shell: bash
-        working_dir: mongosql-rs
-        script: |
-          ${prepare_shell}
-          cargo test fuzz_test
 
   "upload c library":
     - command: s3.put
@@ -481,13 +450,6 @@ functions:
       params:
         files:
           - mongosql-rs/go/go-test-results.txt
-
-  "upload spec test results":
-    - command: gotest.parse_files
-      type: test
-      params:
-        files:
-          - mongosql-rs/go/spec-test-results.txt
 
   "run TPC-H benchmark":
     - command: shell.exec
@@ -571,7 +533,7 @@ functions:
         script: |
           ${prepare_shell}
           cargo build --bin profiler --release
-          
+
           # run_mem_profiler.sh writes three files
           # - memory-usage-results.log: Memory usage metrics to upload to S3
           # - memory-usage-cedar-data.json: Metrics to use in perf.send command
@@ -606,13 +568,13 @@ functions:
         working_dir: mongosql-rs
         script: |
           ${prepare_shell}
-          
+
           echo "Configured RSS memory limit: ${mem_usage_rss_limit}MB"
           echo "Configured memory leak limit: ${mem_usage_mem_leak_limit}MB"
 
           rss_peak_max=$(cat memory-usage-results.log | grep "RSS peak max" | cut -f2 -d: | tr -d MB | tr -d ' ')
           mem_leak_max=$(cat memory-usage-results.log | grep "Memory leaked max" | cut -f2 -d: | tr -d MB | tr -d ' ')
-          
+
           if (( $(bc <<< "$rss_peak_max > ${mem_usage_rss_limit}") )) || \
              (( $(bc <<< "$mem_leak_max > ${mem_usage_mem_leak_limit}") )); then
             echo "Memory limit exceeded"
@@ -656,6 +618,14 @@ tasks:
       - func: "compile release"
       - func: "upload c library"
 
+  - name: test-go
+    depends_on:
+      - name: compile
+    commands:
+      - func: "download c library"
+      - func: "run go tests"
+      - func: "upload go test results"
+
   - name: test-pipeline-generate
     commands:
       - func: "install rust toolchain"
@@ -670,24 +640,20 @@ tasks:
     tags: ["fuzz"]
     commands:
       - func: "install rust toolchain"
-      - func: "run rust fuzz tests"
+      - func: "run rust tests"
+        vars:
+          description: "run rust fuzz tests"
+          cargo_test_flags: >-
+            fuzz_test
 
-  - name: test-go
-    depends_on:
-      - name: compile
-    commands:
-      - func: "download c library"
-      - func: "run go tests"
-      - func: "upload go test results"
-
-  - name: test-spec
-    depends_on:
-      - name: compile
+  - name: test-spec-rewrite-and-type-constriaints
     commands:
       - func: "install rust toolchain"
-      - func: "download c library"
-      - func: "run spec tests"
-      - func: "upload spec test results"
+      - func: "run rust tests"
+        vars:
+          description: "run rewrite and type constraint spec tests"
+          cargo_test_flags: >-
+            -- --ignored
 
   - name: test-index-usage
     commands:
@@ -696,19 +662,20 @@ tasks:
         vars:
           description: "run index usage tests"
           cargo_test_flags: >-
-            --features=index-test
+            --features=index,generated
             --package=e2e-tests
+            -- --test-threads=1
 
-
-  - name: test-rust-query
+  - name: test-spec-query
     commands:
       - func: "install rust toolchain"
       - func: "run rust integration tests"
         vars:
           description: "run rust query tests"
           cargo_test_flags: >-
-            --features=query-test
+            --features=query,generated
             --package=e2e-tests
+            -- --test-threads=1
 
   - name: test-rust-e2e
     commands:
@@ -717,8 +684,20 @@ tasks:
         vars:
           description: "run rust e2e tests"
           cargo_test_flags: >-
-            --features=query-test,e2e-test
+            --features=e2e,generated
             --package=e2e-tests
+            -- --test-threads=1
+
+  - name: test-rust-errors
+    commands:
+      - func: "install rust toolchain"
+      - func: "run rust integration tests"
+        vars:
+          description: "run rust error tests"
+          cargo_test_flags: >-
+            --features=error,generated
+            --package=e2e-tests
+            -- --test-threads=1
 
   - name: release
     git_tag_only: true
@@ -1000,10 +979,11 @@ buildvariants:
       - name: test-rust
       - name: test-rust-fuzz
       - name: test-go
-      - name: test-spec
+      - name: test-spec-rewrite-and-type-constriaints
       - name: test-index-usage
-      - name: test-rust-query
+      - name: test-spec-query
       - name: test-rust-e2e
+      - name: test-rust-errors
 
   - name: macos
     display_name: "macOS 10.14"

@@ -1,0 +1,52 @@
+#[cfg(feature = "index")]
+#[test]
+pub fn {name}() {{
+    use test_utils::*;
+    let (client, test_file) = initialize_test();
+    let test = test_file.tests.get({index}).unwrap();
+
+    let catalog = build_catalog_from_catalog_schema(test_file.catalog_schema.clone()).unwrap();
+    let translation = mongosql::translate_sql(
+        "{current_db}",
+        "{query}",
+        &catalog,
+        SqlOptions::new(
+            ExcludeNamespacesOption::IncludeNamespaces,
+            mongosql::SchemaCheckingMode::Strict,
+        ),
+    )
+    .unwrap();
+
+    let explain_result = run_explain_aggregate(&client, translation).unwrap();
+
+    let query_planner = explain_result.get_query_planner().unwrap();
+
+    let input_stage = get_input_stage_of_winning_plan(query_planner.winning_plan);
+
+    let root_input_stages = input_stage.get_root_stages();
+
+    let actual_index_utilizations = root_input_stages
+        .clone()
+        .into_iter()
+        .map(|root_stage| as_index_utilization(root_stage.stage.clone()))
+        .collect::<Result<Vec<IndexUtilization>, Error>>().unwrap();
+
+    for actual_index_utilization in actual_index_utilizations {{
+        assert_eq!(
+            test.expected_utilization, actual_index_utilization,
+            "{{}}: unexpected index utilization",
+            "{description}"
+        );
+    }}
+
+    let actual_index_bounds = root_input_stages
+        .into_iter()
+        .map(|root_stage| root_stage.index_bounds.clone())
+        .collect::<Option<Vec<Bson>>>();
+
+    assert_eq!(
+        test.expected_index_bounds, actual_index_bounds,
+        "{{}}: unexpected index bounds",
+        "{description}"
+    );
+}}
