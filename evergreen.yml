@@ -10,7 +10,7 @@ stepback: true
 # Actual testing tasks are marked with `type: test`
 command_type: system
 
-# Protect ourself against rogue test case, or curl gone wild, that runs forever
+# Protect ourselves against rogue test cases, or curl gone wild, that runs forever
 exec_timeout_secs: 86400 # 24hrs for TPC-H benchmark
 
 # What to do when evergreen hits the timeout (`post:` tasks are run automatically)
@@ -524,6 +524,24 @@ functions:
       params:
         file: mongosql-rs/expansions.yml
 
+  "generate memory usage tasks":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+
+          benchmark/scripts/generate_profiler_tasks.sh
+
+          # Print generated json for inspection in case of failure
+          cat generated_profiler_tasks.json
+    - command: generate.tasks
+      params:
+        files:
+          - generated_profiler_tasks.json
+
   "run memory usage profiler":
     - command: shell.exec
       type: test
@@ -537,15 +555,15 @@ functions:
           # run_mem_profiler.sh writes three files
           # - memory-usage-results.log: Memory usage metrics to upload to S3
           # - memory-usage-cedar-data.json: Metrics to use in perf.send command
-          # - heaptrack_results.tar.gz: TAR of all the heaptrack profiling results
-          benchmark/scripts/run_mem_profiler.sh "target/release/profiler"
+          # - heaptrack.profiler.gz: compressed file of full heaptrack profiling results
+          benchmark/scripts/run_mem_profiler.sh "target/release/profiler" ${test_file}
           cat memory-usage-results.log
     - command: s3.put
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/memory-usage-results.log
-        remote_file: mongosql-rs/${version_id}/${build_variant}/memory-usage-results.log
+        remote_file: mongosql-rs/${version_id}/${build_variant}/${test_file_basename}/memory-usage-results.log
         bucket: mciuploads
         permissions: public-read
         content_type: text/plain
@@ -553,8 +571,8 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: mongosql-rs/heaptrack_results.tar.gz
-        remote_file: mongosql-rs/${version_id}/${build_variant}/heaptrack_results.tar.gz
+        local_file: mongosql-rs/heaptrack.profiler.gz
+        remote_file: mongosql-rs/${version_id}/${build_variant}/${test_file_basename}/heaptrack.profiler.gz
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
@@ -572,14 +590,14 @@ functions:
           echo "Configured RSS memory limit: ${mem_usage_rss_limit}MB"
           echo "Configured memory leak limit: ${mem_usage_mem_leak_limit}MB"
 
-          rss_peak_max=$(cat memory-usage-results.log | grep "RSS peak max" | cut -f2 -d: | tr -d MB | tr -d ' ')
-          mem_leak_max=$(cat memory-usage-results.log | grep "Memory leaked max" | cut -f2 -d: | tr -d MB | tr -d ' ')
+          rss_peak=$(cat memory-usage-results.log grep "peak RSS (including heaptrack overhead)" | cut -f2 -d: | tr -d M | tr -d ' ')
+          mem_leak=$(cat memory-usage-results.log | grep "total memory leaked" | cut -f2 -d: | tr -d M | tr -d ' ')
 
-          if (( $(bc <<< "$rss_peak_max > ${mem_usage_rss_limit}") )) || \
-             (( $(bc <<< "$mem_leak_max > ${mem_usage_mem_leak_limit}") )); then
+          if (( $(bc <<< "$rss_peak > ${mem_usage_rss_limit}") )) || \
+             (( $(bc <<< "$mem_leak > ${mem_usage_mem_leak_limit}") )); then
             echo "Memory limit exceeded"
-            echo "Peak RSS memory: $rss_peak_max"
-            echo "Memory leaked:     $mem_leak_max"
+            echo "Peak RSS memory: $rss_peak"
+            echo "Memory leaked:   $mem_leak"
             exit 1
           fi
 
@@ -943,11 +961,9 @@ tasks:
           pipeline_dir: validation/denormalized
           workload_filename: "workload_atlas_sql.yml"
 
-  - name: mem-usage-profiler
+  - name: mem-usage-profiler-generator
     commands:
-      - func: "install rust toolchain"
-      - func: "install heaptrack"
-      - func: "run memory usage profiler"
+      - func: "generate memory usage tasks"
 
 buildvariants:
   - name: static-analysis
@@ -1057,8 +1073,9 @@ buildvariants:
   - name: mem-usage
     display_name: "Memory Usage Profiler"
     run_on: [ amazon2-large ]
+    activate: true
     tasks:
-      - name: mem-usage-profiler
+      - name: mem-usage-profiler-generator
 
   - name: release
     display_name: "Release"
