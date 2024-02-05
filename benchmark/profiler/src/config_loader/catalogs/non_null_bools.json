@@ -1,0 +1,1014 @@
+{
+  "catalog_schema": {
+    "non_null_bools": {
+      "foo": {
+        "bsonType": "object",
+        "properties": {
+          "bv": {
+            "bsonType": "bool"
+          },
+          "fn": {
+            "bsonType": "bool"
+          },
+          "ft": {
+            "bsonType": "bool"
+          },
+          "gc": {
+            "bsonType": "bool"
+          },
+          "bn": {
+            "bsonType": "bool"
+          },
+          "if": {
+            "bsonType": "bool"
+          },
+          "jp": {
+            "bsonType": "bool"
+          },
+          "ba": {
+            "bsonType": "bool"
+          },
+          "cx": {
+            "bsonType": "bool"
+          },
+          "cc": {
+            "bsonType": "bool"
+          },
+          "gy": {
+            "bsonType": "bool"
+          },
+          "eu": {
+            "bsonType": "bool"
+          },
+          "dn": {
+            "bsonType": "bool"
+          },
+          "bd": {
+            "bsonType": "bool"
+          },
+          "ec": {
+            "bsonType": "bool"
+          },
+          "br": {
+            "bsonType": "bool"
+          },
+          "hd": {
+            "bsonType": "bool"
+          },
+          "fa": {
+            "bsonType": "bool"
+          },
+          "gk": {
+            "bsonType": "bool"
+          },
+          "gv": {
+            "bsonType": "bool"
+          },
+          "jd": {
+            "bsonType": "bool"
+          },
+          "gu": {
+            "bsonType": "bool"
+          },
+          "db": {
+            "bsonType": "bool"
+          },
+          "ar": {
+            "bsonType": "bool"
+          },
+          "fx": {
+            "bsonType": "bool"
+          },
+          "ah": {
+            "bsonType": "bool"
+          },
+          "cj": {
+            "bsonType": "bool"
+          },
+          "eb": {
+            "bsonType": "bool"
+          },
+          "fz": {
+            "bsonType": "bool"
+          },
+          "cw": {
+            "bsonType": "bool"
+          },
+          "bc": {
+            "bsonType": "bool"
+          },
+          "iw": {
+            "bsonType": "bool"
+          },
+          "aw": {
+            "bsonType": "bool"
+          },
+          "ei": {
+            "bsonType": "bool"
+          },
+          "an": {
+            "bsonType": "bool"
+          },
+          "it": {
+            "bsonType": "bool"
+          },
+          "hv": {
+            "bsonType": "bool"
+          },
+          "jb": {
+            "bsonType": "bool"
+          },
+          "em": {
+            "bsonType": "bool"
+          },
+          "fv": {
+            "bsonType": "bool"
+          },
+          "cl": {
+            "bsonType": "bool"
+          },
+          "hb": {
+            "bsonType": "bool"
+          },
+          "ih": {
+            "bsonType": "bool"
+          },
+          "bs": {
+            "bsonType": "bool"
+          },
+          "ad": {
+            "bsonType": "bool"
+          },
+          "ag": {
+            "bsonType": "bool"
+          },
+          "bf": {
+            "bsonType": "bool"
+          },
+          "ir": {
+            "bsonType": "bool"
+          },
+          "bg": {
+            "bsonType": "bool"
+          },
+          "aj": {
+            "bsonType": "bool"
+          },
+          "ac": {
+            "bsonType": "bool"
+          },
+          "by": {
+            "bsonType": "bool"
+          },
+          "cn": {
+            "bsonType": "bool"
+          },
+          "az": {
+            "bsonType": "bool"
+          },
+          "dk": {
+            "bsonType": "bool"
+          },
+          "ek": {
+            "bsonType": "bool"
+          },
+          "gg": {
+            "bsonType": "bool"
+          },
+          "hr": {
+            "bsonType": "bool"
+          },
+          "hg": {
+            "bsonType": "bool"
+          },
+          "hl": {
+            "bsonType": "bool"
+          },
+          "gx": {
+            "bsonType": "bool"
+          },
+          "bt": {
+            "bsonType": "bool"
+          },
+          "cp": {
+            "bsonType": "bool"
+          },
+          "jh": {
+            "bsonType": "bool"
+          },
+          "fq": {
+            "bsonType": "bool"
+          },
+          "bl": {
+            "bsonType": "bool"
+          },
+          "jn": {
+            "bsonType": "bool"
+          },
+          "fg": {
+            "bsonType": "bool"
+          },
+          "bq": {
+            "bsonType": "bool"
+          },
+          "cs": {
+            "bsonType": "bool"
+          },
+          "al": {
+            "bsonType": "bool"
+          },
+          "ds": {
+            "bsonType": "bool"
+          },
+          "de": {
+            "bsonType": "bool"
+          },
+          "cu": {
+            "bsonType": "bool"
+          },
+          "jf": {
+            "bsonType": "bool"
+          },
+          "cy": {
+            "bsonType": "bool"
+          },
+          "da": {
+            "bsonType": "bool"
+          },
+          "ic": {
+            "bsonType": "bool"
+          },
+          "ef": {
+            "bsonType": "bool"
+          },
+          "dx": {
+            "bsonType": "bool"
+          },
+          "ga": {
+            "bsonType": "bool"
+          },
+          "bu": {
+            "bsonType": "bool"
+          },
+          "fc": {
+            "bsonType": "bool"
+          },
+          "dq": {
+            "bsonType": "bool"
+          },
+          "eh": {
+            "bsonType": "bool"
+          },
+          "jj": {
+            "bsonType": "bool"
+          },
+          "af": {
+            "bsonType": "bool"
+          },
+          "au": {
+            "bsonType": "bool"
+          },
+          "dj": {
+            "bsonType": "bool"
+          },
+          "at": {
+            "bsonType": "bool"
+          },
+          "gh": {
+            "bsonType": "bool"
+          },
+          "hn": {
+            "bsonType": "bool"
+          },
+          "ep": {
+            "bsonType": "bool"
+          },
+          "es": {
+            "bsonType": "bool"
+          },
+          "ht": {
+            "bsonType": "bool"
+          },
+          "ci": {
+            "bsonType": "bool"
+          },
+          "ib": {
+            "bsonType": "bool"
+          },
+          "hf": {
+            "bsonType": "bool"
+          },
+          "hj": {
+            "bsonType": "bool"
+          },
+          "he": {
+            "bsonType": "bool"
+          },
+          "eo": {
+            "bsonType": "bool"
+          },
+          "ho": {
+            "bsonType": "bool"
+          },
+          "cd": {
+            "bsonType": "bool"
+          },
+          "gr": {
+            "bsonType": "bool"
+          },
+          "gq": {
+            "bsonType": "bool"
+          },
+          "ip": {
+            "bsonType": "bool"
+          },
+          "hp": {
+            "bsonType": "bool"
+          },
+          "cz": {
+            "bsonType": "bool"
+          },
+          "fi": {
+            "bsonType": "bool"
+          },
+          "do": {
+            "bsonType": "bool"
+          },
+          "fy": {
+            "bsonType": "bool"
+          },
+          "ea": {
+            "bsonType": "bool"
+          },
+          "du": {
+            "bsonType": "bool"
+          },
+          "di": {
+            "bsonType": "bool"
+          },
+          "jl": {
+            "bsonType": "bool"
+          },
+          "dz": {
+            "bsonType": "bool"
+          },
+          "in": {
+            "bsonType": "bool"
+          },
+          "ak": {
+            "bsonType": "bool"
+          },
+          "ia": {
+            "bsonType": "bool"
+          },
+          "hu": {
+            "bsonType": "bool"
+          },
+          "dy": {
+            "bsonType": "bool"
+          },
+          "gd": {
+            "bsonType": "bool"
+          },
+          "gf": {
+            "bsonType": "bool"
+          },
+          "hk": {
+            "bsonType": "bool"
+          },
+          "gs": {
+            "bsonType": "bool"
+          },
+          "hs": {
+            "bsonType": "bool"
+          },
+          "jm": {
+            "bsonType": "bool"
+          },
+          "jg": {
+            "bsonType": "bool"
+          },
+          "is": {
+            "bsonType": "bool"
+          },
+          "cg": {
+            "bsonType": "bool"
+          },
+          "iq": {
+            "bsonType": "bool"
+          },
+          "bw": {
+            "bsonType": "bool"
+          },
+          "cb": {
+            "bsonType": "bool"
+          },
+          "hw": {
+            "bsonType": "bool"
+          },
+          "ee": {
+            "bsonType": "bool"
+          },
+          "io": {
+            "bsonType": "bool"
+          },
+          "iu": {
+            "bsonType": "bool"
+          },
+          "fw": {
+            "bsonType": "bool"
+          },
+          "dp": {
+            "bsonType": "bool"
+          },
+          "cq": {
+            "bsonType": "bool"
+          },
+          "iz": {
+            "bsonType": "bool"
+          },
+          "co": {
+            "bsonType": "bool"
+          },
+          "ao": {
+            "bsonType": "bool"
+          },
+          "ha": {
+            "bsonType": "bool"
+          },
+          "ab": {
+            "bsonType": "bool"
+          },
+          "cm": {
+            "bsonType": "bool"
+          },
+          "dd": {
+            "bsonType": "bool"
+          },
+          "dg": {
+            "bsonType": "bool"
+          },
+          "ez": {
+            "bsonType": "bool"
+          },
+          "hx": {
+            "bsonType": "bool"
+          },
+          "be": {
+            "bsonType": "bool"
+          },
+          "dc": {
+            "bsonType": "bool"
+          },
+          "gn": {
+            "bsonType": "bool"
+          },
+          "ew": {
+            "bsonType": "bool"
+          },
+          "jc": {
+            "bsonType": "bool"
+          },
+          "ap": {
+            "bsonType": "bool"
+          },
+          "hi": {
+            "bsonType": "bool"
+          },
+          "ej": {
+            "bsonType": "bool"
+          },
+          "ed": {
+            "bsonType": "bool"
+          },
+          "ct": {
+            "bsonType": "bool"
+          },
+          "ji": {
+            "bsonType": "bool"
+          },
+          "bk": {
+            "bsonType": "bool"
+          },
+          "gm": {
+            "bsonType": "bool"
+          },
+          "hz": {
+            "bsonType": "bool"
+          },
+          "ce": {
+            "bsonType": "bool"
+          },
+          "dr": {
+            "bsonType": "bool"
+          },
+          "el": {
+            "bsonType": "bool"
+          },
+          "fs": {
+            "bsonType": "bool"
+          },
+          "hh": {
+            "bsonType": "bool"
+          },
+          "gl": {
+            "bsonType": "bool"
+          },
+          "hm": {
+            "bsonType": "bool"
+          },
+          "dw": {
+            "bsonType": "bool"
+          },
+          "im": {
+            "bsonType": "bool"
+          },
+          "fb": {
+            "bsonType": "bool"
+          },
+          "ai": {
+            "bsonType": "bool"
+          },
+          "gw": {
+            "bsonType": "bool"
+          },
+          "ie": {
+            "bsonType": "bool"
+          },
+          "gj": {
+            "bsonType": "bool"
+          },
+          "bx": {
+            "bsonType": "bool"
+          },
+          "dh": {
+            "bsonType": "bool"
+          },
+          "hq": {
+            "bsonType": "bool"
+          },
+          "ii": {
+            "bsonType": "bool"
+          },
+          "dm": {
+            "bsonType": "bool"
+          },
+          "iv": {
+            "bsonType": "bool"
+          },
+          "dl": {
+            "bsonType": "bool"
+          },
+          "gi": {
+            "bsonType": "bool"
+          },
+          "ex": {
+            "bsonType": "bool"
+          },
+          "je": {
+            "bsonType": "bool"
+          },
+          "id": {
+            "bsonType": "bool"
+          },
+          "fo": {
+            "bsonType": "bool"
+          },
+          "gp": {
+            "bsonType": "bool"
+          },
+          "ix": {
+            "bsonType": "bool"
+          },
+          "ch": {
+            "bsonType": "bool"
+          },
+          "ca": {
+            "bsonType": "bool"
+          },
+          "fj": {
+            "bsonType": "bool"
+          },
+          "dv": {
+            "bsonType": "bool"
+          },
+          "ey": {
+            "bsonType": "bool"
+          },
+          "bi": {
+            "bsonType": "bool"
+          },
+          "bm": {
+            "bsonType": "bool"
+          },
+          "fh": {
+            "bsonType": "bool"
+          },
+          "er": {
+            "bsonType": "bool"
+          },
+          "aq": {
+            "bsonType": "bool"
+          },
+          "go": {
+            "bsonType": "bool"
+          },
+          "gz": {
+            "bsonType": "bool"
+          },
+          "il": {
+            "bsonType": "bool"
+          },
+          "iy": {
+            "bsonType": "bool"
+          },
+          "jo": {
+            "bsonType": "bool"
+          },
+          "am": {
+            "bsonType": "bool"
+          },
+          "fd": {
+            "bsonType": "bool"
+          },
+          "ff": {
+            "bsonType": "bool"
+          },
+          "et": {
+            "bsonType": "bool"
+          },
+          "bo": {
+            "bsonType": "bool"
+          },
+          "cv": {
+            "bsonType": "bool"
+          },
+          "hc": {
+            "bsonType": "bool"
+          },
+          "fe": {
+            "bsonType": "bool"
+          },
+          "en": {
+            "bsonType": "bool"
+          },
+          "fm": {
+            "bsonType": "bool"
+          },
+          "bp": {
+            "bsonType": "bool"
+          },
+          "gt": {
+            "bsonType": "bool"
+          },
+          "eg": {
+            "bsonType": "bool"
+          },
+          "ik": {
+            "bsonType": "bool"
+          },
+          "df": {
+            "bsonType": "bool"
+          },
+          "aa": {
+            "bsonType": "bool"
+          },
+          "cf": {
+            "bsonType": "bool"
+          },
+          "eq": {
+            "bsonType": "bool"
+          },
+          "fu": {
+            "bsonType": "bool"
+          },
+          "ij": {
+            "bsonType": "bool"
+          },
+          "ge": {
+            "bsonType": "bool"
+          },
+          "ae": {
+            "bsonType": "bool"
+          },
+          "fk": {
+            "bsonType": "bool"
+          },
+          "bj": {
+            "bsonType": "bool"
+          },
+          "jk": {
+            "bsonType": "bool"
+          },
+          "fr": {
+            "bsonType": "bool"
+          },
+          "as": {
+            "bsonType": "bool"
+          },
+          "cr": {
+            "bsonType": "bool"
+          },
+          "fp": {
+            "bsonType": "bool"
+          },
+          "ev": {
+            "bsonType": "bool"
+          },
+          "av": {
+            "bsonType": "bool"
+          },
+          "hy": {
+            "bsonType": "bool"
+          },
+          "ja": {
+            "bsonType": "bool"
+          },
+          "fl": {
+            "bsonType": "bool"
+          },
+          "ay": {
+            "bsonType": "bool"
+          },
+          "dt": {
+            "bsonType": "bool"
+          },
+          "ck": {
+            "bsonType": "bool"
+          },
+          "bb": {
+            "bsonType": "bool"
+          },
+          "gb": {
+            "bsonType": "bool"
+          },
+          "ig": {
+            "bsonType": "bool"
+          },
+          "bz": {
+            "bsonType": "bool"
+          },
+          "ax": {
+            "bsonType": "bool"
+          },
+          "bh": {
+            "bsonType": "bool"
+          }
+        },
+        "required": [
+          "aa",
+          "ab",
+          "ac",
+          "ad",
+          "ae",
+          "af",
+          "ag",
+          "ah",
+          "ai",
+          "aj",
+          "ak",
+          "al",
+          "am",
+          "an",
+          "ao",
+          "ap",
+          "aq",
+          "ar",
+          "as",
+          "at",
+          "au",
+          "av",
+          "aw",
+          "ax",
+          "ay",
+          "az",
+          "ba",
+          "bb",
+          "bc",
+          "bd",
+          "be",
+          "bf",
+          "bg",
+          "bh",
+          "bi",
+          "bj",
+          "bk",
+          "bl",
+          "bm",
+          "bn",
+          "bo",
+          "bp",
+          "bq",
+          "br",
+          "bs",
+          "bt",
+          "bu",
+          "bv",
+          "bw",
+          "bx",
+          "by",
+          "bz",
+          "ca",
+          "cb",
+          "cc",
+          "cd",
+          "ce",
+          "cf",
+          "cg",
+          "ch",
+          "ci",
+          "cj",
+          "ck",
+          "cl",
+          "cm",
+          "cn",
+          "co",
+          "cp",
+          "cq",
+          "cr",
+          "cs",
+          "ct",
+          "cu",
+          "cv",
+          "cw",
+          "cx",
+          "cy",
+          "cz",
+          "da",
+          "db",
+          "dc",
+          "dd",
+          "de",
+          "df",
+          "dg",
+          "dh",
+          "di",
+          "dj",
+          "dk",
+          "dl",
+          "dm",
+          "dn",
+          "do",
+          "dp",
+          "dq",
+          "dr",
+          "ds",
+          "dt",
+          "du",
+          "dv",
+          "dw",
+          "dx",
+          "dy",
+          "dz",
+          "ea",
+          "eb",
+          "ec",
+          "ed",
+          "ee",
+          "ef",
+          "eg",
+          "eh",
+          "ei",
+          "ej",
+          "ek",
+          "el",
+          "em",
+          "en",
+          "eo",
+          "ep",
+          "eq",
+          "er",
+          "es",
+          "et",
+          "eu",
+          "ev",
+          "ew",
+          "ex",
+          "ey",
+          "ez",
+          "fa",
+          "fb",
+          "fc",
+          "fd",
+          "fe",
+          "ff",
+          "fg",
+          "fh",
+          "fi",
+          "fj",
+          "fk",
+          "fl",
+          "fm",
+          "fn",
+          "fo",
+          "fp",
+          "fq",
+          "fr",
+          "fs",
+          "ft",
+          "fu",
+          "fv",
+          "fw",
+          "fx",
+          "fy",
+          "fz",
+          "ga",
+          "gb",
+          "gc",
+          "gd",
+          "ge",
+          "gf",
+          "gg",
+          "gh",
+          "gi",
+          "gj",
+          "gk",
+          "gl",
+          "gm",
+          "gn",
+          "go",
+          "gp",
+          "gq",
+          "gr",
+          "gs",
+          "gt",
+          "gu",
+          "gv",
+          "gw",
+          "gx",
+          "gy",
+          "gz",
+          "ha",
+          "hb",
+          "hc",
+          "hd",
+          "he",
+          "hf",
+          "hg",
+          "hh",
+          "hi",
+          "hj",
+          "hk",
+          "hl",
+          "hm",
+          "hn",
+          "ho",
+          "hp",
+          "hq",
+          "hr",
+          "hs",
+          "ht",
+          "hu",
+          "hv",
+          "hw",
+          "hx",
+          "hy",
+          "hz",
+          "ia",
+          "ib",
+          "ic",
+          "id",
+          "ie",
+          "if",
+          "ig",
+          "ih",
+          "ii",
+          "ij",
+          "ik",
+          "il",
+          "im",
+          "in",
+          "io",
+          "ip",
+          "iq",
+          "ir",
+          "is",
+          "it",
+          "iu",
+          "iv",
+          "iw",
+          "ix",
+          "iy",
+          "iz",
+          "ja",
+          "jb",
+          "jc",
+          "jd",
+          "je",
+          "jf",
+          "jg",
+          "jh",
+          "ji",
+          "jj",
+          "jk",
+          "jl",
+          "jm",
+          "jn",
+          "jo",
+          "jp"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

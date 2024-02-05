@@ -1,0 +1,4006 @@
+{
+  "catalog_schema": {
+    "minimal_join": {
+      "aa": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ab": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ac": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ad": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ae": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "af": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ag": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ah": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ai": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "aj": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ak": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "al": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "am": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "an": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ao": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ap": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "aq": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ar": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "as": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "at": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "au": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "av": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "aw": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ax": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ay": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "az": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ba": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bb": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bc": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bd": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "be": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bf": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bg": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bh": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bi": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bj": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bk": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bl": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bm": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bn": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bo": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bp": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bq": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "br": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bs": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bt": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bu": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bv": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bw": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bx": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "by": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "bz": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ca": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cb": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cc": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cd": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ce": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cf": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cg": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ch": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ci": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cj": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ck": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cl": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cm": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cn": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "co": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cp": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cq": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cr": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cs": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ct": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cu": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cv": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cw": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cx": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cy": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "cz": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "da": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "db": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dc": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dd": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "de": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "df": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dg": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dh": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "di": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dj": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dk": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dl": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dm": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dn": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "do": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dp": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dq": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dr": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ds": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dt": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "du": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dv": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dw": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dx": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dy": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "dz": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ea": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "eb": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ec": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ed": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ee": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ef": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "eg": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "eh": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ei": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ej": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ek": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "el": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "em": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "en": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "eo": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ep": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "eq": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "er": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "es": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "et": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "eu": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ev": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ew": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ex": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ey": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ez": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fa": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fb": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fc": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fd": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fe": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ff": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fg": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fh": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fi": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fj": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fk": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fl": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fm": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fn": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fo": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fp": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fq": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fr": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fs": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ft": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fu": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fv": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fw": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fx": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fy": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "fz": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ga": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gb": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gc": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gd": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ge": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gf": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gg": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gh": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gi": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gj": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gk": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gl": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gm": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gn": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "go": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gp": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gq": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gr": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gs": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gt": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gu": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gv": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gw": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gx": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gy": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "gz": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ha": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hb": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hc": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hd": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "he": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hf": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hg": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hh": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hi": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hj": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hk": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hl": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hm": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hn": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ho": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hp": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hq": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hr": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hs": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ht": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hu": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hv": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hw": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hx": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hy": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "hz": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ia": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ib": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ic": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "id": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ie": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "if": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ig": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ih": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ii": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ij": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ik": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "il": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "im": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "in": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "io": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ip": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "iq": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ir": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "is": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "it": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "iu": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "iv": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "iw": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ix": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "iy": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "iz": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ja": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "jb": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "jc": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "jd": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "je": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "jf": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "jg": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "jh": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "ji": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "jj": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "jk": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "jl": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "jm": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "jn": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "jo": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      },
+      "jp": {
+        "bsonType": "object",
+        "properties": {
+          "a": {
+            "bsonType": "int"
+          },
+          "b": {
+            "bsonType": "int"
+          }
+        },
+        "required": [
+          "a",
+          "b"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

@@ -1,0 +1,1014 @@
+{
+  "catalog_schema": {
+    "non_null_numbers": {
+      "foo": {
+        "bsonType": "object",
+        "properties": {
+          "ac": {
+            "bsonType": "long"
+          },
+          "dk": {
+            "bsonType": "long"
+          },
+          "jb": {
+            "bsonType": "long"
+          },
+          "he": {
+            "bsonType": "long"
+          },
+          "cg": {
+            "bsonType": "long"
+          },
+          "eu": {
+            "bsonType": "long"
+          },
+          "fy": {
+            "bsonType": "long"
+          },
+          "ie": {
+            "bsonType": "long"
+          },
+          "du": {
+            "bsonType": "long"
+          },
+          "ct": {
+            "bsonType": "long"
+          },
+          "go": {
+            "bsonType": "long"
+          },
+          "hj": {
+            "bsonType": "long"
+          },
+          "il": {
+            "bsonType": "long"
+          },
+          "dx": {
+            "bsonType": "long"
+          },
+          "hg": {
+            "bsonType": "long"
+          },
+          "dv": {
+            "bsonType": "long"
+          },
+          "av": {
+            "bsonType": "long"
+          },
+          "fo": {
+            "bsonType": "long"
+          },
+          "ip": {
+            "bsonType": "long"
+          },
+          "ep": {
+            "bsonType": "long"
+          },
+          "ce": {
+            "bsonType": "long"
+          },
+          "dc": {
+            "bsonType": "long"
+          },
+          "gw": {
+            "bsonType": "long"
+          },
+          "ak": {
+            "bsonType": "long"
+          },
+          "ib": {
+            "bsonType": "long"
+          },
+          "df": {
+            "bsonType": "long"
+          },
+          "ec": {
+            "bsonType": "long"
+          },
+          "ha": {
+            "bsonType": "long"
+          },
+          "ea": {
+            "bsonType": "long"
+          },
+          "bu": {
+            "bsonType": "long"
+          },
+          "di": {
+            "bsonType": "long"
+          },
+          "ek": {
+            "bsonType": "long"
+          },
+          "fe": {
+            "bsonType": "long"
+          },
+          "iu": {
+            "bsonType": "long"
+          },
+          "eh": {
+            "bsonType": "long"
+          },
+          "co": {
+            "bsonType": "long"
+          },
+          "em": {
+            "bsonType": "long"
+          },
+          "eo": {
+            "bsonType": "long"
+          },
+          "hs": {
+            "bsonType": "long"
+          },
+          "fr": {
+            "bsonType": "long"
+          },
+          "fm": {
+            "bsonType": "long"
+          },
+          "bm": {
+            "bsonType": "long"
+          },
+          "by": {
+            "bsonType": "long"
+          },
+          "iy": {
+            "bsonType": "long"
+          },
+          "bc": {
+            "bsonType": "long"
+          },
+          "gm": {
+            "bsonType": "long"
+          },
+          "hy": {
+            "bsonType": "long"
+          },
+          "hi": {
+            "bsonType": "long"
+          },
+          "cj": {
+            "bsonType": "long"
+          },
+          "fl": {
+            "bsonType": "long"
+          },
+          "fv": {
+            "bsonType": "long"
+          },
+          "jg": {
+            "bsonType": "long"
+          },
+          "hx": {
+            "bsonType": "long"
+          },
+          "io": {
+            "bsonType": "long"
+          },
+          "jc": {
+            "bsonType": "long"
+          },
+          "bi": {
+            "bsonType": "long"
+          },
+          "er": {
+            "bsonType": "long"
+          },
+          "hh": {
+            "bsonType": "long"
+          },
+          "fx": {
+            "bsonType": "long"
+          },
+          "jo": {
+            "bsonType": "long"
+          },
+          "bl": {
+            "bsonType": "long"
+          },
+          "ix": {
+            "bsonType": "long"
+          },
+          "jl": {
+            "bsonType": "long"
+          },
+          "ja": {
+            "bsonType": "long"
+          },
+          "jp": {
+            "bsonType": "long"
+          },
+          "dg": {
+            "bsonType": "long"
+          },
+          "es": {
+            "bsonType": "long"
+          },
+          "aw": {
+            "bsonType": "long"
+          },
+          "it": {
+            "bsonType": "long"
+          },
+          "bh": {
+            "bsonType": "long"
+          },
+          "gi": {
+            "bsonType": "long"
+          },
+          "im": {
+            "bsonType": "long"
+          },
+          "at": {
+            "bsonType": "long"
+          },
+          "az": {
+            "bsonType": "long"
+          },
+          "dr": {
+            "bsonType": "long"
+          },
+          "ik": {
+            "bsonType": "long"
+          },
+          "cz": {
+            "bsonType": "long"
+          },
+          "dp": {
+            "bsonType": "long"
+          },
+          "ad": {
+            "bsonType": "long"
+          },
+          "ey": {
+            "bsonType": "long"
+          },
+          "cu": {
+            "bsonType": "long"
+          },
+          "bx": {
+            "bsonType": "long"
+          },
+          "al": {
+            "bsonType": "long"
+          },
+          "db": {
+            "bsonType": "long"
+          },
+          "gs": {
+            "bsonType": "long"
+          },
+          "jf": {
+            "bsonType": "long"
+          },
+          "jn": {
+            "bsonType": "long"
+          },
+          "el": {
+            "bsonType": "long"
+          },
+          "hl": {
+            "bsonType": "long"
+          },
+          "hv": {
+            "bsonType": "long"
+          },
+          "bz": {
+            "bsonType": "long"
+          },
+          "ay": {
+            "bsonType": "long"
+          },
+          "ij": {
+            "bsonType": "long"
+          },
+          "cv": {
+            "bsonType": "long"
+          },
+          "iz": {
+            "bsonType": "long"
+          },
+          "bt": {
+            "bsonType": "long"
+          },
+          "is": {
+            "bsonType": "long"
+          },
+          "be": {
+            "bsonType": "long"
+          },
+          "fu": {
+            "bsonType": "long"
+          },
+          "gh": {
+            "bsonType": "long"
+          },
+          "cf": {
+            "bsonType": "long"
+          },
+          "dn": {
+            "bsonType": "long"
+          },
+          "eb": {
+            "bsonType": "long"
+          },
+          "gc": {
+            "bsonType": "long"
+          },
+          "gd": {
+            "bsonType": "long"
+          },
+          "in": {
+            "bsonType": "long"
+          },
+          "ar": {
+            "bsonType": "long"
+          },
+          "do": {
+            "bsonType": "long"
+          },
+          "ge": {
+            "bsonType": "long"
+          },
+          "gl": {
+            "bsonType": "long"
+          },
+          "gp": {
+            "bsonType": "long"
+          },
+          "gn": {
+            "bsonType": "long"
+          },
+          "hu": {
+            "bsonType": "long"
+          },
+          "bv": {
+            "bsonType": "long"
+          },
+          "cb": {
+            "bsonType": "long"
+          },
+          "gx": {
+            "bsonType": "long"
+          },
+          "ir": {
+            "bsonType": "long"
+          },
+          "da": {
+            "bsonType": "long"
+          },
+          "fi": {
+            "bsonType": "long"
+          },
+          "jm": {
+            "bsonType": "long"
+          },
+          "jh": {
+            "bsonType": "long"
+          },
+          "bs": {
+            "bsonType": "long"
+          },
+          "iq": {
+            "bsonType": "long"
+          },
+          "ii": {
+            "bsonType": "long"
+          },
+          "ez": {
+            "bsonType": "long"
+          },
+          "ch": {
+            "bsonType": "long"
+          },
+          "ax": {
+            "bsonType": "long"
+          },
+          "ca": {
+            "bsonType": "long"
+          },
+          "fk": {
+            "bsonType": "long"
+          },
+          "gj": {
+            "bsonType": "long"
+          },
+          "ia": {
+            "bsonType": "long"
+          },
+          "id": {
+            "bsonType": "long"
+          },
+          "cq": {
+            "bsonType": "long"
+          },
+          "bp": {
+            "bsonType": "long"
+          },
+          "cl": {
+            "bsonType": "long"
+          },
+          "cp": {
+            "bsonType": "long"
+          },
+          "ht": {
+            "bsonType": "long"
+          },
+          "ba": {
+            "bsonType": "long"
+          },
+          "hp": {
+            "bsonType": "long"
+          },
+          "bj": {
+            "bsonType": "long"
+          },
+          "ex": {
+            "bsonType": "long"
+          },
+          "aa": {
+            "bsonType": "long"
+          },
+          "cr": {
+            "bsonType": "long"
+          },
+          "fh": {
+            "bsonType": "long"
+          },
+          "ft": {
+            "bsonType": "long"
+          },
+          "bn": {
+            "bsonType": "long"
+          },
+          "cc": {
+            "bsonType": "long"
+          },
+          "ff": {
+            "bsonType": "long"
+          },
+          "hz": {
+            "bsonType": "long"
+          },
+          "ih": {
+            "bsonType": "long"
+          },
+          "dj": {
+            "bsonType": "long"
+          },
+          "ev": {
+            "bsonType": "long"
+          },
+          "bo": {
+            "bsonType": "long"
+          },
+          "hq": {
+            "bsonType": "long"
+          },
+          "fg": {
+            "bsonType": "long"
+          },
+          "ap": {
+            "bsonType": "long"
+          },
+          "bb": {
+            "bsonType": "long"
+          },
+          "br": {
+            "bsonType": "long"
+          },
+          "fp": {
+            "bsonType": "long"
+          },
+          "dy": {
+            "bsonType": "long"
+          },
+          "gu": {
+            "bsonType": "long"
+          },
+          "gk": {
+            "bsonType": "long"
+          },
+          "bd": {
+            "bsonType": "long"
+          },
+          "fb": {
+            "bsonType": "long"
+          },
+          "hr": {
+            "bsonType": "long"
+          },
+          "ic": {
+            "bsonType": "long"
+          },
+          "bq": {
+            "bsonType": "long"
+          },
+          "dh": {
+            "bsonType": "long"
+          },
+          "hc": {
+            "bsonType": "long"
+          },
+          "aj": {
+            "bsonType": "long"
+          },
+          "et": {
+            "bsonType": "long"
+          },
+          "cx": {
+            "bsonType": "long"
+          },
+          "au": {
+            "bsonType": "long"
+          },
+          "bg": {
+            "bsonType": "long"
+          },
+          "gg": {
+            "bsonType": "long"
+          },
+          "dd": {
+            "bsonType": "long"
+          },
+          "en": {
+            "bsonType": "long"
+          },
+          "hf": {
+            "bsonType": "long"
+          },
+          "de": {
+            "bsonType": "long"
+          },
+          "ee": {
+            "bsonType": "long"
+          },
+          "ig": {
+            "bsonType": "long"
+          },
+          "gf": {
+            "bsonType": "long"
+          },
+          "cm": {
+            "bsonType": "long"
+          },
+          "ji": {
+            "bsonType": "long"
+          },
+          "ab": {
+            "bsonType": "long"
+          },
+          "ae": {
+            "bsonType": "long"
+          },
+          "dt": {
+            "bsonType": "long"
+          },
+          "cy": {
+            "bsonType": "long"
+          },
+          "ed": {
+            "bsonType": "long"
+          },
+          "as": {
+            "bsonType": "long"
+          },
+          "ej": {
+            "bsonType": "long"
+          },
+          "gz": {
+            "bsonType": "long"
+          },
+          "gq": {
+            "bsonType": "long"
+          },
+          "ah": {
+            "bsonType": "long"
+          },
+          "ew": {
+            "bsonType": "long"
+          },
+          "fs": {
+            "bsonType": "long"
+          },
+          "hd": {
+            "bsonType": "long"
+          },
+          "ds": {
+            "bsonType": "long"
+          },
+          "eq": {
+            "bsonType": "long"
+          },
+          "iv": {
+            "bsonType": "long"
+          },
+          "ag": {
+            "bsonType": "long"
+          },
+          "bk": {
+            "bsonType": "long"
+          },
+          "hb": {
+            "bsonType": "long"
+          },
+          "cd": {
+            "bsonType": "long"
+          },
+          "fz": {
+            "bsonType": "long"
+          },
+          "dl": {
+            "bsonType": "long"
+          },
+          "dm": {
+            "bsonType": "long"
+          },
+          "cn": {
+            "bsonType": "long"
+          },
+          "jj": {
+            "bsonType": "long"
+          },
+          "hm": {
+            "bsonType": "long"
+          },
+          "bw": {
+            "bsonType": "long"
+          },
+          "jk": {
+            "bsonType": "long"
+          },
+          "fn": {
+            "bsonType": "long"
+          },
+          "gt": {
+            "bsonType": "long"
+          },
+          "fq": {
+            "bsonType": "long"
+          },
+          "fw": {
+            "bsonType": "long"
+          },
+          "hw": {
+            "bsonType": "long"
+          },
+          "iw": {
+            "bsonType": "long"
+          },
+          "af": {
+            "bsonType": "long"
+          },
+          "if": {
+            "bsonType": "long"
+          },
+          "am": {
+            "bsonType": "long"
+          },
+          "bf": {
+            "bsonType": "long"
+          },
+          "hn": {
+            "bsonType": "long"
+          },
+          "ho": {
+            "bsonType": "long"
+          },
+          "jd": {
+            "bsonType": "long"
+          },
+          "ef": {
+            "bsonType": "long"
+          },
+          "fd": {
+            "bsonType": "long"
+          },
+          "ao": {
+            "bsonType": "long"
+          },
+          "ga": {
+            "bsonType": "long"
+          },
+          "gb": {
+            "bsonType": "long"
+          },
+          "aq": {
+            "bsonType": "long"
+          },
+          "fa": {
+            "bsonType": "long"
+          },
+          "cs": {
+            "bsonType": "long"
+          },
+          "gy": {
+            "bsonType": "long"
+          },
+          "hk": {
+            "bsonType": "long"
+          },
+          "eg": {
+            "bsonType": "long"
+          },
+          "dz": {
+            "bsonType": "long"
+          },
+          "gr": {
+            "bsonType": "long"
+          },
+          "ai": {
+            "bsonType": "long"
+          },
+          "ci": {
+            "bsonType": "long"
+          },
+          "fc": {
+            "bsonType": "long"
+          },
+          "ck": {
+            "bsonType": "long"
+          },
+          "gv": {
+            "bsonType": "long"
+          },
+          "je": {
+            "bsonType": "long"
+          },
+          "dw": {
+            "bsonType": "long"
+          },
+          "an": {
+            "bsonType": "long"
+          },
+          "ei": {
+            "bsonType": "long"
+          },
+          "dq": {
+            "bsonType": "long"
+          },
+          "fj": {
+            "bsonType": "long"
+          },
+          "cw": {
+            "bsonType": "long"
+          }
+        },
+        "required": [
+          "aa",
+          "ab",
+          "ac",
+          "ad",
+          "ae",
+          "af",
+          "ag",
+          "ah",
+          "ai",
+          "aj",
+          "ak",
+          "al",
+          "am",
+          "an",
+          "ao",
+          "ap",
+          "aq",
+          "ar",
+          "as",
+          "at",
+          "au",
+          "av",
+          "aw",
+          "ax",
+          "ay",
+          "az",
+          "ba",
+          "bb",
+          "bc",
+          "bd",
+          "be",
+          "bf",
+          "bg",
+          "bh",
+          "bi",
+          "bj",
+          "bk",
+          "bl",
+          "bm",
+          "bn",
+          "bo",
+          "bp",
+          "bq",
+          "br",
+          "bs",
+          "bt",
+          "bu",
+          "bv",
+          "bw",
+          "bx",
+          "by",
+          "bz",
+          "ca",
+          "cb",
+          "cc",
+          "cd",
+          "ce",
+          "cf",
+          "cg",
+          "ch",
+          "ci",
+          "cj",
+          "ck",
+          "cl",
+          "cm",
+          "cn",
+          "co",
+          "cp",
+          "cq",
+          "cr",
+          "cs",
+          "ct",
+          "cu",
+          "cv",
+          "cw",
+          "cx",
+          "cy",
+          "cz",
+          "da",
+          "db",
+          "dc",
+          "dd",
+          "de",
+          "df",
+          "dg",
+          "dh",
+          "di",
+          "dj",
+          "dk",
+          "dl",
+          "dm",
+          "dn",
+          "do",
+          "dp",
+          "dq",
+          "dr",
+          "ds",
+          "dt",
+          "du",
+          "dv",
+          "dw",
+          "dx",
+          "dy",
+          "dz",
+          "ea",
+          "eb",
+          "ec",
+          "ed",
+          "ee",
+          "ef",
+          "eg",
+          "eh",
+          "ei",
+          "ej",
+          "ek",
+          "el",
+          "em",
+          "en",
+          "eo",
+          "ep",
+          "eq",
+          "er",
+          "es",
+          "et",
+          "eu",
+          "ev",
+          "ew",
+          "ex",
+          "ey",
+          "ez",
+          "fa",
+          "fb",
+          "fc",
+          "fd",
+          "fe",
+          "ff",
+          "fg",
+          "fh",
+          "fi",
+          "fj",
+          "fk",
+          "fl",
+          "fm",
+          "fn",
+          "fo",
+          "fp",
+          "fq",
+          "fr",
+          "fs",
+          "ft",
+          "fu",
+          "fv",
+          "fw",
+          "fx",
+          "fy",
+          "fz",
+          "ga",
+          "gb",
+          "gc",
+          "gd",
+          "ge",
+          "gf",
+          "gg",
+          "gh",
+          "gi",
+          "gj",
+          "gk",
+          "gl",
+          "gm",
+          "gn",
+          "go",
+          "gp",
+          "gq",
+          "gr",
+          "gs",
+          "gt",
+          "gu",
+          "gv",
+          "gw",
+          "gx",
+          "gy",
+          "gz",
+          "ha",
+          "hb",
+          "hc",
+          "hd",
+          "he",
+          "hf",
+          "hg",
+          "hh",
+          "hi",
+          "hj",
+          "hk",
+          "hl",
+          "hm",
+          "hn",
+          "ho",
+          "hp",
+          "hq",
+          "hr",
+          "hs",
+          "ht",
+          "hu",
+          "hv",
+          "hw",
+          "hx",
+          "hy",
+          "hz",
+          "ia",
+          "ib",
+          "ic",
+          "id",
+          "ie",
+          "if",
+          "ig",
+          "ih",
+          "ii",
+          "ij",
+          "ik",
+          "il",
+          "im",
+          "in",
+          "io",
+          "ip",
+          "iq",
+          "ir",
+          "is",
+          "it",
+          "iu",
+          "iv",
+          "iw",
+          "ix",
+          "iy",
+          "iz",
+          "ja",
+          "jb",
+          "jc",
+          "jd",
+          "je",
+          "jf",
+          "jg",
+          "jh",
+          "ji",
+          "jj",
+          "jk",
+          "jl",
+          "jm",
+          "jn",
+          "jo",
+          "jp"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

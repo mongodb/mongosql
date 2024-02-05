@@ -590,7 +590,7 @@ functions:
           echo "Configured RSS memory limit: ${mem_usage_rss_limit}MB"
           echo "Configured memory leak limit: ${mem_usage_mem_leak_limit}MB"
 
-          rss_peak=$(cat memory-usage-results.log grep "peak RSS (including heaptrack overhead)" | cut -f2 -d: | tr -d M | tr -d ' ')
+          rss_peak=$(cat memory-usage-results.log | grep "peak RSS (including heaptrack overhead)" | cut -f2 -d: | tr -d M | tr -d ' ')
           mem_leak=$(cat memory-usage-results.log | grep "total memory leaked" | cut -f2 -d: | tr -d M | tr -d ' ')
 
           if (( $(bc <<< "$rss_peak > ${mem_usage_rss_limit}") )) || \

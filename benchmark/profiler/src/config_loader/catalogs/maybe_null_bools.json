@@ -1,0 +1,1889 @@
+{
+  "catalog_schema": {
+    "maybe_null_bools": {
+      "foo": {
+        "bsonType": "object",
+        "properties": {
+          "iy": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gc": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hg": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ea": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gd": {
+            "bsonType": "bool"
+          },
+          "jm": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fy": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ep": {
+            "bsonType": "bool"
+          },
+          "fb": {
+            "bsonType": "bool"
+          },
+          "ca": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cj": {
+            "bsonType": "bool"
+          },
+          "jh": {
+            "bsonType": "bool"
+          },
+          "dj": {
+            "bsonType": "bool"
+          },
+          "bo": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ed": {
+            "bsonType": "bool"
+          },
+          "fw": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cn": {
+            "bsonType": "bool"
+          },
+          "dx": {
+            "bsonType": "bool"
+          },
+          "cv": {
+            "bsonType": "bool"
+          },
+          "gq": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bj": {
+            "bsonType": "bool"
+          },
+          "ir": {
+            "bsonType": "bool"
+          },
+          "as": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ho": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ij": {
+            "bsonType": "bool"
+          },
+          "ax": {
+            "bsonType": "bool"
+          },
+          "fs": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bf": {
+            "bsonType": "bool"
+          },
+          "bb": {
+            "bsonType": "bool"
+          },
+          "jn": {
+            "bsonType": "bool"
+          },
+          "bl": {
+            "bsonType": "bool"
+          },
+          "ft": {
+            "bsonType": "bool"
+          },
+          "ih": {
+            "bsonType": "bool"
+          },
+          "dw": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bq": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dz": {
+            "bsonType": "bool"
+          },
+          "ds": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ce": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bp": {
+            "bsonType": "bool"
+          },
+          "ac": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bi": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "do": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "eq": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "df": {
+            "bsonType": "bool"
+          },
+          "da": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hh": {
+            "bsonType": "bool"
+          },
+          "bs": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ef": {
+            "bsonType": "bool"
+          },
+          "ev": {
+            "bsonType": "bool"
+          },
+          "hz": {
+            "bsonType": "bool"
+          },
+          "ao": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jl": {
+            "bsonType": "bool"
+          },
+          "hy": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dy": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ew": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ba": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cg": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dq": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "am": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hr": {
+            "bsonType": "bool"
+          },
+          "bt": {
+            "bsonType": "bool"
+          },
+          "fj": {
+            "bsonType": "bool"
+          },
+          "fq": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "eu": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gy": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hw": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ei": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bc": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ia": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fi": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "it": {
+            "bsonType": "bool"
+          },
+          "et": {
+            "bsonType": "bool"
+          },
+          "ag": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dv": {
+            "bsonType": "bool"
+          },
+          "ak": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "if": {
+            "bsonType": "bool"
+          },
+          "iw": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cy": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fh": {
+            "bsonType": "bool"
+          },
+          "iq": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gl": {
+            "bsonType": "bool"
+          },
+          "gi": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jg": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cu": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bw": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ge": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fk": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ie": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "go": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "di": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "du": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hc": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "il": {
+            "bsonType": "bool"
+          },
+          "in": {
+            "bsonType": "bool"
+          },
+          "ff": {
+            "bsonType": "bool"
+          },
+          "bz": {
+            "bsonType": "bool"
+          },
+          "gu": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dg": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fn": {
+            "bsonType": "bool"
+          },
+          "az": {
+            "bsonType": "bool"
+          },
+          "cl": {
+            "bsonType": "bool"
+          },
+          "ha": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fd": {
+            "bsonType": "bool"
+          },
+          "hd": {
+            "bsonType": "bool"
+          },
+          "id": {
+            "bsonType": "bool"
+          },
+          "cf": {
+            "bsonType": "bool"
+          },
+          "hj": {
+            "bsonType": "bool"
+          },
+          "jk": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bd": {
+            "bsonType": "bool"
+          },
+          "ai": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ap": {
+            "bsonType": "bool"
+          },
+          "dc": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cp": {
+            "bsonType": "bool"
+          },
+          "hi": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hb": {
+            "bsonType": "bool"
+          },
+          "ig": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dt": {
+            "bsonType": "bool"
+          },
+          "ib": {
+            "bsonType": "bool"
+          },
+          "iv": {
+            "bsonType": "bool"
+          },
+          "ct": {
+            "bsonType": "bool"
+          },
+          "dd": {
+            "bsonType": "bool"
+          },
+          "bg": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "eg": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "es": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "af": {
+            "bsonType": "bool"
+          },
+          "fm": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "by": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cq": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bk": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fu": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bu": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hm": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ga": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fx": {
+            "bsonType": "bool"
+          },
+          "cb": {
+            "bsonType": "bool"
+          },
+          "ek": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ch": {
+            "bsonType": "bool"
+          },
+          "el": {
+            "bsonType": "bool"
+          },
+          "er": {
+            "bsonType": "bool"
+          },
+          "ik": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "je": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fv": {
+            "bsonType": "bool"
+          },
+          "db": {
+            "bsonType": "bool"
+          },
+          "hu": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bv": {
+            "bsonType": "bool"
+          },
+          "dn": {
+            "bsonType": "bool"
+          },
+          "ht": {
+            "bsonType": "bool"
+          },
+          "cs": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fe": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jc": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ix": {
+            "bsonType": "bool"
+          },
+          "gs": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ec": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fc": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ee": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gb": {
+            "bsonType": "bool"
+          },
+          "gm": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ey": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gv": {
+            "bsonType": "bool"
+          },
+          "ic": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ci": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "en": {
+            "bsonType": "bool"
+          },
+          "gg": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fz": {
+            "bsonType": "bool"
+          },
+          "ar": {
+            "bsonType": "bool"
+          },
+          "cw": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "aw": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "be": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ii": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "eo": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "br": {
+            "bsonType": "bool"
+          },
+          "hl": {
+            "bsonType": "bool"
+          },
+          "jb": {
+            "bsonType": "bool"
+          },
+          "hn": {
+            "bsonType": "bool"
+          },
+          "gn": {
+            "bsonType": "bool"
+          },
+          "ah": {
+            "bsonType": "bool"
+          },
+          "gp": {
+            "bsonType": "bool"
+          },
+          "jj": {
+            "bsonType": "bool"
+          },
+          "ip": {
+            "bsonType": "bool"
+          },
+          "ex": {
+            "bsonType": "bool"
+          },
+          "he": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ae": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jd": {
+            "bsonType": "bool"
+          },
+          "ad": {
+            "bsonType": "bool"
+          },
+          "hq": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gk": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ej": {
+            "bsonType": "bool"
+          },
+          "aj": {
+            "bsonType": "bool"
+          },
+          "dl": {
+            "bsonType": "bool"
+          },
+          "dr": {
+            "bsonType": "bool"
+          },
+          "gw": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ab": {
+            "bsonType": "bool"
+          },
+          "de": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gr": {
+            "bsonType": "bool"
+          },
+          "jp": {
+            "bsonType": "bool"
+          },
+          "jf": {
+            "bsonType": "bool"
+          },
+          "gx": {
+            "bsonType": "bool"
+          },
+          "hk": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bx": {
+            "bsonType": "bool"
+          },
+          "gt": {
+            "bsonType": "bool"
+          },
+          "hv": {
+            "bsonType": "bool"
+          },
+          "fg": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "eb": {
+            "bsonType": "bool"
+          },
+          "gj": {
+            "bsonType": "bool"
+          },
+          "bh": {
+            "bsonType": "bool"
+          },
+          "em": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hf": {
+            "bsonType": "bool"
+          },
+          "aa": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hx": {
+            "bsonType": "bool"
+          },
+          "co": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "im": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hp": {
+            "bsonType": "bool"
+          },
+          "dk": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "eh": {
+            "bsonType": "bool"
+          },
+          "dp": {
+            "bsonType": "bool"
+          },
+          "cx": {
+            "bsonType": "bool"
+          },
+          "is": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ez": {
+            "bsonType": "bool"
+          },
+          "hs": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cm": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "al": {
+            "bsonType": "bool"
+          },
+          "ck": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fa": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bm": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "io": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ay": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "an": {
+            "bsonType": "bool"
+          },
+          "aq": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fp": {
+            "bsonType": "bool"
+          },
+          "ji": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fl": {
+            "bsonType": "bool"
+          },
+          "gh": {
+            "bsonType": "bool"
+          },
+          "dh": {
+            "bsonType": "bool"
+          },
+          "at": {
+            "bsonType": "bool"
+          },
+          "dm": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "au": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "av": {
+            "bsonType": "bool"
+          },
+          "fo": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fr": {
+            "bsonType": "bool"
+          },
+          "iu": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ja": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cc": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bn": {
+            "bsonType": "bool"
+          },
+          "gf": {
+            "bsonType": "bool"
+          },
+          "gz": {
+            "bsonType": "bool"
+          },
+          "cz": {
+            "bsonType": "bool"
+          },
+          "iz": {
+            "bsonType": "bool"
+          },
+          "jo": {
+            "anyOf": [
+              {
+                "bsonType": "bool"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cr": {
+            "bsonType": "bool"
+          },
+          "cd": {
+            "bsonType": "bool"
+          }
+        },
+        "required": [
+          "aa",
+          "ab",
+          "ac",
+          "ad",
+          "ae",
+          "af",
+          "ag",
+          "ah",
+          "ai",
+          "aj",
+          "ak",
+          "al",
+          "am",
+          "an",
+          "ao",
+          "ap",
+          "aq",
+          "ar",
+          "as",
+          "at",
+          "au",
+          "av",
+          "aw",
+          "ax",
+          "ay",
+          "az",
+          "ba",
+          "bb",
+          "bc",
+          "bd",
+          "be",
+          "bf",
+          "bg",
+          "bh",
+          "bi",
+          "bj",
+          "bk",
+          "bl",
+          "bm",
+          "bn",
+          "bo",
+          "bp",
+          "bq",
+          "br",
+          "bs",
+          "bt",
+          "bu",
+          "bv",
+          "bw",
+          "bx",
+          "by",
+          "bz",
+          "ca",
+          "cb",
+          "cc",
+          "cd",
+          "ce",
+          "cf",
+          "cg",
+          "ch",
+          "ci",
+          "cj",
+          "ck",
+          "cl",
+          "cm",
+          "cn",
+          "co",
+          "cp",
+          "cq",
+          "cr",
+          "cs",
+          "ct",
+          "cu",
+          "cv",
+          "cw",
+          "cx",
+          "cy",
+          "cz",
+          "da",
+          "db",
+          "dc",
+          "dd",
+          "de",
+          "df",
+          "dg",
+          "dh",
+          "di",
+          "dj",
+          "dk",
+          "dl",
+          "dm",
+          "dn",
+          "do",
+          "dp",
+          "dq",
+          "dr",
+          "ds",
+          "dt",
+          "du",
+          "dv",
+          "dw",
+          "dx",
+          "dy",
+          "dz",
+          "ea",
+          "eb",
+          "ec",
+          "ed",
+          "ee",
+          "ef",
+          "eg",
+          "eh",
+          "ei",
+          "ej",
+          "ek",
+          "el",
+          "em",
+          "en",
+          "eo",
+          "ep",
+          "eq",
+          "er",
+          "es",
+          "et",
+          "eu",
+          "ev",
+          "ew",
+          "ex",
+          "ey",
+          "ez",
+          "fa",
+          "fb",
+          "fc",
+          "fd",
+          "fe",
+          "ff",
+          "fg",
+          "fh",
+          "fi",
+          "fj",
+          "fk",
+          "fl",
+          "fm",
+          "fn",
+          "fo",
+          "fp",
+          "fq",
+          "fr",
+          "fs",
+          "ft",
+          "fu",
+          "fv",
+          "fw",
+          "fx",
+          "fy",
+          "fz",
+          "ga",
+          "gb",
+          "gc",
+          "gd",
+          "ge",
+          "gf",
+          "gg",
+          "gh",
+          "gi",
+          "gj",
+          "gk",
+          "gl",
+          "gm",
+          "gn",
+          "go",
+          "gp",
+          "gq",
+          "gr",
+          "gs",
+          "gt",
+          "gu",
+          "gv",
+          "gw",
+          "gx",
+          "gy",
+          "gz",
+          "ha",
+          "hb",
+          "hc",
+          "hd",
+          "he",
+          "hf",
+          "hg",
+          "hh",
+          "hi",
+          "hj",
+          "hk",
+          "hl",
+          "hm",
+          "hn",
+          "ho",
+          "hp",
+          "hq",
+          "hr",
+          "hs",
+          "ht",
+          "hu",
+          "hv",
+          "hw",
+          "hx",
+          "hy",
+          "hz",
+          "ia",
+          "ib",
+          "ic",
+          "id",
+          "ie",
+          "if",
+          "ig",
+          "ih",
+          "ii",
+          "ij",
+          "ik",
+          "il",
+          "im",
+          "in",
+          "io",
+          "ip",
+          "iq",
+          "ir",
+          "is",
+          "it",
+          "iu",
+          "iv",
+          "iw",
+          "ix",
+          "iy",
+          "iz",
+          "ja",
+          "jb",
+          "jc",
+          "jd",
+          "je",
+          "jf",
+          "jg",
+          "jh",
+          "ji",
+          "jj",
+          "jk",
+          "jl",
+          "jm",
+          "jn",
+          "jo",
+          "jp"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+db: non_null_bools
+query: |
+  SELECT *
+  FROM foo AS foo
+  WHERE `aa` AND `ab` AND `ac` AND `ad` AND `ae` AND `af` AND `ag` AND `ah` AND `ai` AND `aj`
+      AND `ak` AND `al` AND `am` AND `an` AND `ao` AND `ap` AND `aq` AND `ar` AND `as` AND `at`
+      AND `au` AND `av` AND `aw` AND `ax` AND `ay` AND `az` AND `ba` AND `bb` AND `bc` AND `bd`
+      AND `be` AND `bf` AND `bg` AND `bh` AND `bi` AND `bj` AND `bk` AND `bl` AND `bm` AND `bn`
+      AND `bo` AND `bp` AND `bq` AND `br` AND `bs` AND `bt` AND `bu` AND `bv` AND `bw` AND `bx`
+      AND `by` AND `bz` AND `ca` AND `cb` AND `cc` AND `cd` AND `ce` AND `cf` AND `cg` AND `ch`
+      AND `ci` AND `cj` AND `ck` AND `cl` AND `cm` AND `cn` AND `co` AND `cp` AND `cq` AND `cr`
+      AND `cs` AND `ct` AND `cu` AND `cv` AND `cw` AND `cx` AND `cy` AND `cz` AND `da` AND `db`
+      AND `dc` AND `dd` AND `de` AND `df` AND `dg` AND `dh` AND `di` AND `dj` AND `dk` AND `dl`
+      AND `dm` AND `dn` AND `do` AND `dp` AND `dq` AND `dr` AND `ds` AND `dt` AND `du` AND `dv`
+      AND `dw` AND `dx` AND `dy` AND `dz` AND `ea` AND `eb` AND `ec` AND `ed` AND `ee` AND `ef`
+      AND `eg` AND `eh` AND `ei` AND `ej` AND `ek` AND `el` AND `em` AND `en` AND `eo` AND `ep`
+      AND `eq` AND `er` AND `es` AND `et` AND `eu` AND `ev` AND `ew` AND `ex` AND `ey` AND `ez`
+      AND `fa` AND `fb` AND `fc` AND `fd` AND `fe` AND `ff` AND `fg` AND `fh` AND `fi` AND `fj`
+      AND `fk` AND `fl` AND `fm` AND `fn` AND `fo` AND `fp` AND `fq` AND `fr` AND `fs` AND `ft`
+      AND `fu` AND `fv` AND `fw` AND `fx` AND `fy` AND `fz` AND `ga` AND `gb` AND `gc` AND `gd`
+      AND `ge` AND `gf` AND `gg` AND `gh` AND `gi` AND `gj` AND `gk` AND `gl` AND `gm` AND `gn`
+      AND `go` AND `gp` AND `gq` AND `gr` AND `gs` AND `gt` AND `gu` AND `gv` AND `gw` AND `gx`
+      AND `gy` AND `gz` AND `ha` AND `hb` AND `hc` AND `hd` AND `he` AND `hf` AND `hg` AND `hh`
+      AND `hi` AND `hj` AND `hk` AND `hl` AND `hm` AND `hn` AND `ho` AND `hp` AND `hq` AND `hr`
+      AND `hs` AND `ht` AND `hu` AND `hv` AND `hw` AND `hx` AND `hy` AND `hz` AND `ia` AND `ib`
+      AND `ic` AND `id` AND `ie` AND `if` AND `ig` AND `ih` AND `ii` AND `ij` AND `ik` AND `il`
+      AND `im` AND `in` AND `io` AND `ip` AND `iq` AND `ir` AND `is` AND `it` AND `iu` AND `iv`
+      AND `iw` AND `ix` AND `iy` AND `iz` AND `ja` AND `jb` AND `jc` AND `jd` AND `je` AND `jf`
+      AND `jg` AND `jh` AND `ji` AND `jj` AND `jk` AND `jl` AND `jm` AND `jn` AND `jo` AND `jp`

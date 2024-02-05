@@ -1,0 +1,1014 @@
+{
+  "catalog_schema": {
+    "rewrite_to_match_language": {
+      "foo": {
+        "bsonType": "object",
+        "properties": {
+          "jd": {
+            "bsonType": "string"
+          },
+          "cz": {
+            "bsonType": "string"
+          },
+          "ii": {
+            "bsonType": "string"
+          },
+          "hm": {
+            "bsonType": "string"
+          },
+          "aa": {
+            "bsonType": "string"
+          },
+          "he": {
+            "bsonType": "string"
+          },
+          "ao": {
+            "bsonType": "string"
+          },
+          "el": {
+            "bsonType": "string"
+          },
+          "fk": {
+            "bsonType": "string"
+          },
+          "fp": {
+            "bsonType": "string"
+          },
+          "ft": {
+            "bsonType": "string"
+          },
+          "hl": {
+            "bsonType": "string"
+          },
+          "cf": {
+            "bsonType": "string"
+          },
+          "fd": {
+            "bsonType": "string"
+          },
+          "hv": {
+            "bsonType": "string"
+          },
+          "dh": {
+            "bsonType": "string"
+          },
+          "fb": {
+            "bsonType": "string"
+          },
+          "jk": {
+            "bsonType": "string"
+          },
+          "gf": {
+            "bsonType": "string"
+          },
+          "bn": {
+            "bsonType": "string"
+          },
+          "hd": {
+            "bsonType": "string"
+          },
+          "jl": {
+            "bsonType": "string"
+          },
+          "cs": {
+            "bsonType": "string"
+          },
+          "by": {
+            "bsonType": "string"
+          },
+          "hy": {
+            "bsonType": "string"
+          },
+          "cn": {
+            "bsonType": "string"
+          },
+          "ac": {
+            "bsonType": "string"
+          },
+          "fz": {
+            "bsonType": "string"
+          },
+          "ic": {
+            "bsonType": "string"
+          },
+          "eq": {
+            "bsonType": "string"
+          },
+          "eg": {
+            "bsonType": "string"
+          },
+          "fo": {
+            "bsonType": "string"
+          },
+          "cl": {
+            "bsonType": "string"
+          },
+          "gd": {
+            "bsonType": "string"
+          },
+          "bu": {
+            "bsonType": "string"
+          },
+          "bd": {
+            "bsonType": "string"
+          },
+          "dw": {
+            "bsonType": "string"
+          },
+          "gq": {
+            "bsonType": "string"
+          },
+          "bp": {
+            "bsonType": "string"
+          },
+          "bv": {
+            "bsonType": "string"
+          },
+          "fc": {
+            "bsonType": "string"
+          },
+          "ax": {
+            "bsonType": "string"
+          },
+          "br": {
+            "bsonType": "string"
+          },
+          "fx": {
+            "bsonType": "string"
+          },
+          "cj": {
+            "bsonType": "string"
+          },
+          "fy": {
+            "bsonType": "string"
+          },
+          "gl": {
+            "bsonType": "string"
+          },
+          "ak": {
+            "bsonType": "string"
+          },
+          "az": {
+            "bsonType": "string"
+          },
+          "as": {
+            "bsonType": "string"
+          },
+          "ih": {
+            "bsonType": "string"
+          },
+          "bs": {
+            "bsonType": "string"
+          },
+          "jo": {
+            "bsonType": "int"
+          },
+          "gy": {
+            "bsonType": "string"
+          },
+          "ia": {
+            "bsonType": "string"
+          },
+          "do": {
+            "bsonType": "string"
+          },
+          "en": {
+            "bsonType": "string"
+          },
+          "fa": {
+            "bsonType": "string"
+          },
+          "fl": {
+            "bsonType": "string"
+          },
+          "bq": {
+            "bsonType": "string"
+          },
+          "bh": {
+            "bsonType": "string"
+          },
+          "di": {
+            "bsonType": "string"
+          },
+          "cd": {
+            "bsonType": "string"
+          },
+          "fe": {
+            "bsonType": "string"
+          },
+          "ee": {
+            "bsonType": "string"
+          },
+          "hf": {
+            "bsonType": "string"
+          },
+          "fn": {
+            "bsonType": "string"
+          },
+          "is": {
+            "bsonType": "string"
+          },
+          "bx": {
+            "bsonType": "string"
+          },
+          "hs": {
+            "bsonType": "string"
+          },
+          "an": {
+            "bsonType": "string"
+          },
+          "be": {
+            "bsonType": "string"
+          },
+          "bc": {
+            "bsonType": "string"
+          },
+          "dv": {
+            "bsonType": "string"
+          },
+          "gu": {
+            "bsonType": "string"
+          },
+          "ex": {
+            "bsonType": "string"
+          },
+          "hu": {
+            "bsonType": "string"
+          },
+          "bt": {
+            "bsonType": "string"
+          },
+          "iq": {
+            "bsonType": "string"
+          },
+          "db": {
+            "bsonType": "string"
+          },
+          "dp": {
+            "bsonType": "string"
+          },
+          "il": {
+            "bsonType": "string"
+          },
+          "eu": {
+            "bsonType": "string"
+          },
+          "ah": {
+            "bsonType": "string"
+          },
+          "hx": {
+            "bsonType": "string"
+          },
+          "jj": {
+            "bsonType": "string"
+          },
+          "ib": {
+            "bsonType": "string"
+          },
+          "cw": {
+            "bsonType": "string"
+          },
+          "at": {
+            "bsonType": "string"
+          },
+          "fi": {
+            "bsonType": "string"
+          },
+          "ep": {
+            "bsonType": "string"
+          },
+          "dk": {
+            "bsonType": "string"
+          },
+          "bo": {
+            "bsonType": "string"
+          },
+          "ck": {
+            "bsonType": "string"
+          },
+          "hq": {
+            "bsonType": "string"
+          },
+          "co": {
+            "bsonType": "string"
+          },
+          "fg": {
+            "bsonType": "string"
+          },
+          "ef": {
+            "bsonType": "string"
+          },
+          "gh": {
+            "bsonType": "string"
+          },
+          "gx": {
+            "bsonType": "string"
+          },
+          "aw": {
+            "bsonType": "string"
+          },
+          "fw": {
+            "bsonType": "string"
+          },
+          "jm": {
+            "bsonType": "string"
+          },
+          "ae": {
+            "bsonType": "string"
+          },
+          "ek": {
+            "bsonType": "string"
+          },
+          "es": {
+            "bsonType": "string"
+          },
+          "dz": {
+            "bsonType": "string"
+          },
+          "fh": {
+            "bsonType": "string"
+          },
+          "hp": {
+            "bsonType": "string"
+          },
+          "gi": {
+            "bsonType": "string"
+          },
+          "cu": {
+            "bsonType": "string"
+          },
+          "eb": {
+            "bsonType": "string"
+          },
+          "gp": {
+            "bsonType": "string"
+          },
+          "ai": {
+            "bsonType": "string"
+          },
+          "ed": {
+            "bsonType": "string"
+          },
+          "dl": {
+            "bsonType": "string"
+          },
+          "eo": {
+            "bsonType": "string"
+          },
+          "jc": {
+            "bsonType": "string"
+          },
+          "ja": {
+            "bsonType": "string"
+          },
+          "go": {
+            "bsonType": "string"
+          },
+          "ba": {
+            "bsonType": "string"
+          },
+          "fq": {
+            "bsonType": "string"
+          },
+          "ir": {
+            "bsonType": "string"
+          },
+          "bb": {
+            "bsonType": "string"
+          },
+          "if": {
+            "bsonType": "string"
+          },
+          "bl": {
+            "bsonType": "string"
+          },
+          "iu": {
+            "bsonType": "string"
+          },
+          "ik": {
+            "bsonType": "string"
+          },
+          "hb": {
+            "bsonType": "string"
+          },
+          "bg": {
+            "bsonType": "string"
+          },
+          "ay": {
+            "bsonType": "string"
+          },
+          "cv": {
+            "bsonType": "string"
+          },
+          "dm": {
+            "bsonType": "string"
+          },
+          "dn": {
+            "bsonType": "string"
+          },
+          "ea": {
+            "bsonType": "string"
+          },
+          "dq": {
+            "bsonType": "string"
+          },
+          "dx": {
+            "bsonType": "string"
+          },
+          "ie": {
+            "bsonType": "string"
+          },
+          "im": {
+            "bsonType": "string"
+          },
+          "ey": {
+            "bsonType": "string"
+          },
+          "it": {
+            "bsonType": "string"
+          },
+          "gr": {
+            "bsonType": "string"
+          },
+          "ix": {
+            "bsonType": "string"
+          },
+          "jn": {
+            "bsonType": "string"
+          },
+          "hn": {
+            "bsonType": "string"
+          },
+          "gs": {
+            "bsonType": "string"
+          },
+          "ge": {
+            "bsonType": "string"
+          },
+          "gc": {
+            "bsonType": "string"
+          },
+          "je": {
+            "bsonType": "string"
+          },
+          "cy": {
+            "bsonType": "string"
+          },
+          "cr": {
+            "bsonType": "string"
+          },
+          "iy": {
+            "bsonType": "string"
+          },
+          "jp": {
+            "bsonType": "bool"
+          },
+          "av": {
+            "bsonType": "string"
+          },
+          "jf": {
+            "bsonType": "string"
+          },
+          "cp": {
+            "bsonType": "string"
+          },
+          "du": {
+            "bsonType": "string"
+          },
+          "fj": {
+            "bsonType": "string"
+          },
+          "hz": {
+            "bsonType": "string"
+          },
+          "gv": {
+            "bsonType": "string"
+          },
+          "df": {
+            "bsonType": "string"
+          },
+          "ce": {
+            "bsonType": "string"
+          },
+          "bi": {
+            "bsonType": "string"
+          },
+          "iv": {
+            "bsonType": "string"
+          },
+          "af": {
+            "bsonType": "string"
+          },
+          "gt": {
+            "bsonType": "string"
+          },
+          "ho": {
+            "bsonType": "string"
+          },
+          "cx": {
+            "bsonType": "string"
+          },
+          "ip": {
+            "bsonType": "string"
+          },
+          "ar": {
+            "bsonType": "string"
+          },
+          "jh": {
+            "bsonType": "string"
+          },
+          "am": {
+            "bsonType": "string"
+          },
+          "au": {
+            "bsonType": "string"
+          },
+          "dy": {
+            "bsonType": "string"
+          },
+          "bw": {
+            "bsonType": "string"
+          },
+          "gn": {
+            "bsonType": "string"
+          },
+          "eh": {
+            "bsonType": "string"
+          },
+          "hi": {
+            "bsonType": "string"
+          },
+          "ht": {
+            "bsonType": "string"
+          },
+          "ji": {
+            "bsonType": "string"
+          },
+          "cq": {
+            "bsonType": "string"
+          },
+          "fv": {
+            "bsonType": "string"
+          },
+          "da": {
+            "bsonType": "string"
+          },
+          "fr": {
+            "bsonType": "string"
+          },
+          "bm": {
+            "bsonType": "string"
+          },
+          "ch": {
+            "bsonType": "string"
+          },
+          "io": {
+            "bsonType": "string"
+          },
+          "fu": {
+            "bsonType": "string"
+          },
+          "jg": {
+            "bsonType": "string"
+          },
+          "jb": {
+            "bsonType": "string"
+          },
+          "ga": {
+            "bsonType": "string"
+          },
+          "al": {
+            "bsonType": "string"
+          },
+          "ez": {
+            "bsonType": "string"
+          },
+          "aj": {
+            "bsonType": "string"
+          },
+          "aq": {
+            "bsonType": "string"
+          },
+          "hr": {
+            "bsonType": "string"
+          },
+          "ej": {
+            "bsonType": "string"
+          },
+          "gm": {
+            "bsonType": "string"
+          },
+          "fs": {
+            "bsonType": "string"
+          },
+          "ij": {
+            "bsonType": "string"
+          },
+          "fm": {
+            "bsonType": "string"
+          },
+          "dt": {
+            "bsonType": "string"
+          },
+          "ab": {
+            "bsonType": "string"
+          },
+          "ag": {
+            "bsonType": "string"
+          },
+          "hg": {
+            "bsonType": "string"
+          },
+          "in": {
+            "bsonType": "string"
+          },
+          "hk": {
+            "bsonType": "string"
+          },
+          "ew": {
+            "bsonType": "string"
+          },
+          "em": {
+            "bsonType": "string"
+          },
+          "hj": {
+            "bsonType": "string"
+          },
+          "iz": {
+            "bsonType": "string"
+          },
+          "gg": {
+            "bsonType": "string"
+          },
+          "hh": {
+            "bsonType": "string"
+          },
+          "gw": {
+            "bsonType": "string"
+          },
+          "cm": {
+            "bsonType": "string"
+          },
+          "dg": {
+            "bsonType": "string"
+          },
+          "hc": {
+            "bsonType": "string"
+          },
+          "de": {
+            "bsonType": "string"
+          },
+          "ds": {
+            "bsonType": "string"
+          },
+          "dj": {
+            "bsonType": "string"
+          },
+          "ct": {
+            "bsonType": "string"
+          },
+          "ei": {
+            "bsonType": "string"
+          },
+          "ec": {
+            "bsonType": "string"
+          },
+          "er": {
+            "bsonType": "string"
+          },
+          "ha": {
+            "bsonType": "string"
+          },
+          "et": {
+            "bsonType": "string"
+          },
+          "ig": {
+            "bsonType": "string"
+          },
+          "ev": {
+            "bsonType": "string"
+          },
+          "ff": {
+            "bsonType": "string"
+          },
+          "ci": {
+            "bsonType": "string"
+          },
+          "ad": {
+            "bsonType": "string"
+          },
+          "bk": {
+            "bsonType": "string"
+          },
+          "cc": {
+            "bsonType": "string"
+          },
+          "bj": {
+            "bsonType": "string"
+          },
+          "bz": {
+            "bsonType": "string"
+          },
+          "dc": {
+            "bsonType": "string"
+          },
+          "cb": {
+            "bsonType": "string"
+          },
+          "ca": {
+            "bsonType": "string"
+          },
+          "cg": {
+            "bsonType": "string"
+          },
+          "gb": {
+            "bsonType": "string"
+          },
+          "gk": {
+            "bsonType": "string"
+          },
+          "dr": {
+            "bsonType": "string"
+          },
+          "gj": {
+            "bsonType": "string"
+          },
+          "hw": {
+            "bsonType": "string"
+          },
+          "gz": {
+            "bsonType": "string"
+          },
+          "id": {
+            "bsonType": "string"
+          },
+          "iw": {
+            "bsonType": "string"
+          },
+          "bf": {
+            "bsonType": "string"
+          },
+          "ap": {
+            "bsonType": "string"
+          },
+          "dd": {
+            "bsonType": "string"
+          }
+        },
+        "required": [
+          "aa",
+          "ab",
+          "ac",
+          "ad",
+          "ae",
+          "af",
+          "ag",
+          "ah",
+          "ai",
+          "aj",
+          "ak",
+          "al",
+          "am",
+          "an",
+          "ao",
+          "ap",
+          "aq",
+          "ar",
+          "as",
+          "at",
+          "au",
+          "av",
+          "aw",
+          "ax",
+          "ay",
+          "az",
+          "ba",
+          "bb",
+          "bc",
+          "bd",
+          "be",
+          "bf",
+          "bg",
+          "bh",
+          "bi",
+          "bj",
+          "bk",
+          "bl",
+          "bm",
+          "bn",
+          "bo",
+          "bp",
+          "bq",
+          "br",
+          "bs",
+          "bt",
+          "bu",
+          "bv",
+          "bw",
+          "bx",
+          "by",
+          "bz",
+          "ca",
+          "cb",
+          "cc",
+          "cd",
+          "ce",
+          "cf",
+          "cg",
+          "ch",
+          "ci",
+          "cj",
+          "ck",
+          "cl",
+          "cm",
+          "cn",
+          "co",
+          "cp",
+          "cq",
+          "cr",
+          "cs",
+          "ct",
+          "cu",
+          "cv",
+          "cw",
+          "cx",
+          "cy",
+          "cz",
+          "da",
+          "db",
+          "dc",
+          "dd",
+          "de",
+          "df",
+          "dg",
+          "dh",
+          "di",
+          "dj",
+          "dk",
+          "dl",
+          "dm",
+          "dn",
+          "do",
+          "dp",
+          "dq",
+          "dr",
+          "ds",
+          "dt",
+          "du",
+          "dv",
+          "dw",
+          "dx",
+          "dy",
+          "dz",
+          "ea",
+          "eb",
+          "ec",
+          "ed",
+          "ee",
+          "ef",
+          "eg",
+          "eh",
+          "ei",
+          "ej",
+          "ek",
+          "el",
+          "em",
+          "en",
+          "eo",
+          "ep",
+          "eq",
+          "er",
+          "es",
+          "et",
+          "eu",
+          "ev",
+          "ew",
+          "ex",
+          "ey",
+          "ez",
+          "fa",
+          "fb",
+          "fc",
+          "fd",
+          "fe",
+          "ff",
+          "fg",
+          "fh",
+          "fi",
+          "fj",
+          "fk",
+          "fl",
+          "fm",
+          "fn",
+          "fo",
+          "fp",
+          "fq",
+          "fr",
+          "fs",
+          "ft",
+          "fu",
+          "fv",
+          "fw",
+          "fx",
+          "fy",
+          "fz",
+          "ga",
+          "gb",
+          "gc",
+          "gd",
+          "ge",
+          "gf",
+          "gg",
+          "gh",
+          "gi",
+          "gj",
+          "gk",
+          "gl",
+          "gm",
+          "gn",
+          "go",
+          "gp",
+          "gq",
+          "gr",
+          "gs",
+          "gt",
+          "gu",
+          "gv",
+          "gw",
+          "gx",
+          "gy",
+          "gz",
+          "ha",
+          "hb",
+          "hc",
+          "hd",
+          "he",
+          "hf",
+          "hg",
+          "hh",
+          "hi",
+          "hj",
+          "hk",
+          "hl",
+          "hm",
+          "hn",
+          "ho",
+          "hp",
+          "hq",
+          "hr",
+          "hs",
+          "ht",
+          "hu",
+          "hv",
+          "hw",
+          "hx",
+          "hy",
+          "hz",
+          "ia",
+          "ib",
+          "ic",
+          "id",
+          "ie",
+          "if",
+          "ig",
+          "ih",
+          "ii",
+          "ij",
+          "ik",
+          "il",
+          "im",
+          "in",
+          "io",
+          "ip",
+          "iq",
+          "ir",
+          "is",
+          "it",
+          "iu",
+          "iv",
+          "iw",
+          "ix",
+          "iy",
+          "iz",
+          "ja",
+          "jb",
+          "jc",
+          "jd",
+          "je",
+          "jf",
+          "jg",
+          "jh",
+          "ji",
+          "jj",
+          "jk",
+          "jl",
+          "jm",
+          "jn",
+          "jo",
+          "jp"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}

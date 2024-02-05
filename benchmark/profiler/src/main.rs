@@ -1,3 +1,6 @@
+#[allow(dead_code)]
+mod query_gen_utils;
+
 use config_loader::load_query_and_catalog;
 use mongosql::{
     options::{ExcludeNamespacesOption, SqlOptions},

@@ -1,0 +1,2764 @@
+{
+  "catalog_schema": {
+    "nullable_numbers": {
+      "foo": {
+        "bsonType": "object",
+        "properties": {
+          "ir": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ad": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jh": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fx": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "en": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ak": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "es": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "et": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ib": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "eg": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "aj": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jn": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bl": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cf": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fz": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "iw": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cs": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "aw": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cv": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dl": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bi": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ex": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hw": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dy": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bj": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hi": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bh": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ez": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fp": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ac": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ao": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cd": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ew": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gb": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dt": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hb": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bm": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "co": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ep": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hs": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bw": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "em": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hk": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ee": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "go": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "df": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bt": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "au": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "da": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fd": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ah": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dq": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fo": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "iu": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bn": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "av": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gz": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "be": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "iv": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gw": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "eq": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hd": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hn": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fb": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bv": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bd": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ek": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bz": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hv": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jf": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hl": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "iy": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ef": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jl": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ed": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hm": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gu": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jd": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "du": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "br": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jp": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fk": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ae": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fm": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hh": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "id": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gx": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fy": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bp": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jc": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fr": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ha": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "aa": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gl": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fu": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ck": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hq": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fn": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dk": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bb": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fq": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fi": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "by": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bk": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fj": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dx": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ht": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "il": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "im": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bs": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "am": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bq": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gi": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ji": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "iz": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cl": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jk": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gv": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dr": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fs": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dw": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ca": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ch": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ff": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cg": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ho": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cn": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ja": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ev": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gf": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hu": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ge": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cm": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ec": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hx": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gp": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ct": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fv": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ig": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gj": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "he": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hp": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "eb": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "is": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dv": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cq": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fa": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "je": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dg": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bo": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ie": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dz": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "it": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ey": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "at": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ax": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ih": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dp": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ej": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ii": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gm": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ic": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jb": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jg": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "do": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cx": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cu": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ga": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "eh": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cp": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cy": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dc": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ik": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ba": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ar": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "az": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "de": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gh": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fe": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "er": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "al": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ay": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ci": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gq": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gy": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "as": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ab": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gg": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "in": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "eu": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ij": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ip": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "di": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dh": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "iq": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cr": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jj": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ai": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "aq": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dj": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bc": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gn": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bg": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gt": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ds": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cj": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ei": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fw": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gs": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hz": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hj": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ia": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fg": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dd": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "af": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hg": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hy": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "eo": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ft": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bx": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fc": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bu": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "if": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ix": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jo": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "el": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "an": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gd": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gk": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "io": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "jm": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hc": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fl": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cc": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gc": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "gr": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dn": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cw": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hf": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "bf": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "hr": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ag": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cz": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "cb": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "dm": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ap": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ea": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "ce": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "db": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          },
+          "fh": {
+            "anyOf": [
+              {
+                "bsonType": "int"
+              },
+              {
+                "bsonType": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "aa",
+          "ab",
+          "ac",
+          "ad",
+          "ae",
+          "af",
+          "ag",
+          "ah",
+          "ai",
+          "aj",
+          "ak",
+          "al",
+          "am",
+          "an",
+          "ao",
+          "ap",
+          "aq",
+          "ar",
+          "as",
+          "at",
+          "au",
+          "av",
+          "aw",
+          "ax",
+          "ay",
+          "az",
+          "ba",
+          "bb",
+          "bc",
+          "bd",
+          "be",
+          "bf",
+          "bg",
+          "bh",
+          "bi",
+          "bj",
+          "bk",
+          "bl",
+          "bm",
+          "bn",
+          "bo",
+          "bp",
+          "bq",
+          "br",
+          "bs",
+          "bt",
+          "bu",
+          "bv",
+          "bw",
+          "bx",
+          "by",
+          "bz",
+          "ca",
+          "cb",
+          "cc",
+          "cd",
+          "ce",
+          "cf",
+          "cg",
+          "ch",
+          "ci",
+          "cj",
+          "ck",
+          "cl",
+          "cm",
+          "cn",
+          "co",
+          "cp",
+          "cq",
+          "cr",
+          "cs",
+          "ct",
+          "cu",
+          "cv",
+          "cw",
+          "cx",
+          "cy",
+          "cz",
+          "da",
+          "db",
+          "dc",
+          "dd",
+          "de",
+          "df",
+          "dg",
+          "dh",
+          "di",
+          "dj",
+          "dk",
+          "dl",
+          "dm",
+          "dn",
+          "do",
+          "dp",
+          "dq",
+          "dr",
+          "ds",
+          "dt",
+          "du",
+          "dv",
+          "dw",
+          "dx",
+          "dy",
+          "dz",
+          "ea",
+          "eb",
+          "ec",
+          "ed",
+          "ee",
+          "ef",
+          "eg",
+          "eh",
+          "ei",
+          "ej",
+          "ek",
+          "el",
+          "em",
+          "en",
+          "eo",
+          "ep",
+          "eq",
+          "er",
+          "es",
+          "et",
+          "eu",
+          "ev",
+          "ew",
+          "ex",
+          "ey",
+          "ez",
+          "fa",
+          "fb",
+          "fc",
+          "fd",
+          "fe",
+          "ff",
+          "fg",
+          "fh",
+          "fi",
+          "fj",
+          "fk",
+          "fl",
+          "fm",
+          "fn",
+          "fo",
+          "fp",
+          "fq",
+          "fr",
+          "fs",
+          "ft",
+          "fu",
+          "fv",
+          "fw",
+          "fx",
+          "fy",
+          "fz",
+          "ga",
+          "gb",
+          "gc",
+          "gd",
+          "ge",
+          "gf",
+          "gg",
+          "gh",
+          "gi",
+          "gj",
+          "gk",
+          "gl",
+          "gm",
+          "gn",
+          "go",
+          "gp",
+          "gq",
+          "gr",
+          "gs",
+          "gt",
+          "gu",
+          "gv",
+          "gw",
+          "gx",
+          "gy",
+          "gz",
+          "ha",
+          "hb",
+          "hc",
+          "hd",
+          "he",
+          "hf",
+          "hg",
+          "hh",
+          "hi",
+          "hj",
+          "hk",
+          "hl",
+          "hm",
+          "hn",
+          "ho",
+          "hp",
+          "hq",
+          "hr",
+          "hs",
+          "ht",
+          "hu",
+          "hv",
+          "hw",
+          "hx",
+          "hy",
+          "hz",
+          "ia",
+          "ib",
+          "ic",
+          "id",
+          "ie",
+          "if",
+          "ig",
+          "ih",
+          "ii",
+          "ij",
+          "ik",
+          "il",
+          "im",
+          "in",
+          "io",
+          "ip",
+          "iq",
+          "ir",
+          "is",
+          "it",
+          "iu",
+          "iv",
+          "iw",
+          "ix",
+          "iy",
+          "iz",
+          "ja",
+          "jb",
+          "jc",
+          "jd",
+          "je",
+          "jf",
+          "jg",
+          "jh",
+          "ji",
+          "jj",
+          "jk",
+          "jl",
+          "jm",
+          "jn",
+          "jo",
+          "jp"
+        ],
+        "additionalProperties": false
+      }
+    }
+  }
+}
