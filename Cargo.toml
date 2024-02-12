@@ -4,6 +4,7 @@ resolver = "2"
 members = [
     "benchmark/pipeline_generator",
     "benchmark/profiler",
+    "bic-trip",
     "e2e-tests",
     "mongosql-datastructures",
     "mongosql-c",

@@ -6,7 +6,7 @@
 // air module (read as: the word "air", or "A - I - R"; stands for "Aggregation IR")
 mod air;
 mod algebrizer;
-mod ast;
+pub mod ast;
 pub mod catalog;
 mod codegen;
 #[cfg(test)]
@@ -18,6 +18,7 @@ pub mod json_schema;
 mod mapping_registry;
 pub mod options;
 mod parser;
+pub use parser::parse_query;
 pub mod result;
 pub mod schema;
 #[cfg(test)]
