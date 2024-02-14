@@ -83,9 +83,12 @@ Actors:
   - LoadConfig:
       Path: phase/q19_normalized.yml
       Key: q19_normalized
-  - LoadConfig:
-      Path: phase/q20_normalized.yml
-      Key: q20_normalized
+
+  # skip-reason: SQL-1906
+  # - LoadConfig:
+  #     Path: phase/q20_normalized.yml
+  #     Key: q20_normalized
+
   - LoadConfig:
       Path: ../phase_noop.yml
       Key: NoopPhase
