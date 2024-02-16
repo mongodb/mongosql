@@ -813,12 +813,19 @@ impl<'a> ConstantFoldExprVisitor<'a> {
 
     // Folds the field access expression
     fn fold_field_access_expr(&mut self, field_expr: FieldAccess) -> Expression {
-        let expr = field_expr.clone();
-        if let Expression::Document(DocumentExpr { ref document, .. }) = *field_expr.expr {
-            let res = document.get(&field_expr.field);
-            return res.unwrap_or(&Expression::FieldAccess(expr)).clone();
+        match *field_expr.expr {
+            Expression::Document(DocumentExpr { ref document, .. }) => {
+                if !document.contains_key(&field_expr.field) {
+                    return Expression::FieldAccess(field_expr);
+                }
+                if let Expression::Document(DocumentExpr { mut document, .. }) = *field_expr.expr {
+                    document.remove(&field_expr.field).unwrap()
+                } else {
+                    unreachable!()
+                }
+            }
+            _ => Expression::FieldAccess(field_expr),
         }
-        Expression::FieldAccess(field_expr)
     }
 
     // Folds the filter stage

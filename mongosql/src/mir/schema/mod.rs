@@ -91,6 +91,7 @@ pub trait CachedSchema {
     fn get_cache(&self) -> &SchemaCache<Self::ReturnType>;
 
     /// Get the cached result if the cache exists and it contains a value.
+    #[allow(unused)]
     fn get_cached_schema(&self) -> Option<Result<Self::ReturnType, Error>> {
         match self.get_cache().0.borrow().clone() {
             Some(c) => Some(c.result),

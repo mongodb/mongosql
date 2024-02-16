@@ -39,6 +39,9 @@ static OPTIMIZERS: fn() -> Vec<Box<dyn Optimizer>> = || {
         Box::new(prefilter_unwinds::PrefilterUnwindsOptimizer {}),
         Box::new(stage_movement::StageMovementOptimizer {}),
         Box::new(dead_code_elimination::DeadCodeEliminator {}),
+        Box::new(constant_folding::ConstantFoldingOptimizer {}),
+        Box::new(stage_movement::StageMovementOptimizer {}),
+        Box::new(dead_code_elimination::DeadCodeEliminator {}),
     ]
 };
 
