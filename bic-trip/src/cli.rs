@@ -13,10 +13,6 @@ pub struct Cli {
     #[clap(long, short)]
     pub output: Option<String>,
 
-    /// Option to omit queries in report
-    #[clap(long, short)]
-    pub quiet: Option<bool>,
-
     /// The Atlas cluster URI
     #[clap(long, requires_all=["username"])]
     pub uri: Option<String>,

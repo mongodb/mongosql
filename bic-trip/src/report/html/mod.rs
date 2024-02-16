@@ -1,11 +1,23 @@
 // This file contains utilities for writing HTML elements to a file.
 
+use std::{fs::File, io::Write, path::Path};
+
 use build_html::{Container, ContainerType, Html, HtmlContainer, HtmlPage};
 
-use crate::{csv::write_csv, log_parser::LogEntry};
+use crate::log_parser::LogEntry;
 use chrono::prelude::*;
 
-const REPORT_NAME: &str = "BI Connector Transition Readiness Report";
+/// generate_html takes a file path, a date, and a LogParseResult and writes the HTML report to a file.
+pub fn generate_html(
+    file_path: &Path,
+    date: &str,
+    log_parse: &crate::log_parser::LogParseResult,
+    file_stem: &str,
+    report_name: &str,
+) -> std::io::Result<()> {
+    let mut report_file = File::create(file_path.join(format!("{file_stem}_{date}.html")))?;
+    report_file.write_all(generate_html_elements(log_parse, report_name).as_bytes())
+}
 
 // process_query_html takes a label and a list of LogEntry and returns a Container
 // with the entries formatted as an HTML unordered list
@@ -59,11 +71,11 @@ fn process_collections_html(
     }
 }
 
-pub fn generate_report(log_parse: crate::log_parser::LogParseResult) -> String {
-    // TODO SQL-1912: I'm not sure the html portion should also be calling write_csv
-    // Maybe this method should be moved up to report/mod.rs
-    write_csv(&log_parse.invalid_queries, "InvalidQueries.csv").unwrap();
-    write_csv(&log_parse.valid_queries, "ValidQueries.csv").unwrap();
+// generate_html_elements takes a LogParseResult and returns an HTML string
+fn generate_html_elements(
+    log_parse: &crate::log_parser::LogParseResult,
+    report_name: &str,
+) -> String {
     let invalid_queries_html = process_query_html("Invalid", &log_parse.invalid_queries);
     let valid_queries_html = process_query_html("Valid", &log_parse.valid_queries);
     let collections_html = process_collections_html("Found Collections", &log_parse.collections);
@@ -71,8 +83,8 @@ pub fn generate_report(log_parse: crate::log_parser::LogParseResult) -> String {
     let timestamp_html = format!("<p>Report was generated at: {}</p>", datetime_str);
 
     HtmlPage::new()
-        .with_title(REPORT_NAME)
-        .with_header(1, REPORT_NAME)
+        .with_title(report_name)
+        .with_header(1, report_name)
         .with_paragraph(timestamp_html)
         .with_container(
             Container::new(ContainerType::Div)
