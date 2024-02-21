@@ -8,13 +8,24 @@ use std::{
 };
 
 use chrono::prelude::*;
-use serde::Serialize;
+use mongosql::usererror::UserError;
+use serde::{Serialize, Serializer};
 
 // LogParseResult is a struct that holds the results of parsing a log file
 pub struct LogParseResult {
     pub valid_queries: Option<Vec<LogEntry>>,
     pub invalid_queries: Option<Vec<LogEntry>>,
     pub collections: Option<Vec<(String, String, u32, chrono::NaiveDateTime)>>,
+    pub subpath_fields: Option<Vec<(SubpathField, u32, chrono::NaiveDateTime)>>,
+    pub array_datasources: Option<Vec<(String, String, u32, chrono::NaiveDateTime)>>,
+}
+
+// SubpathField is a struct that holds a subpath field and its datasource
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub struct SubpathField {
+    pub db: String,
+    pub collection: String,
+    pub subpath_field: String,
 }
 
 // QueryType is an enum that represents the type of query parsed from the log file
@@ -52,8 +63,6 @@ impl std::fmt::Display for QueryType {
 
 // LogEntry represents a single log entry from the log file
 // and contains the information we know about the query at that time.
-// Currently, serialization is skipped for the query representation, but
-// is a TODO for future work to show the user the reason for a parse failure.
 #[derive(Debug, PartialEq, Clone, Serialize)]
 pub struct LogEntry {
     pub timestamp: chrono::NaiveDateTime,
@@ -61,8 +70,32 @@ pub struct LogEntry {
     #[serde(skip)]
     pub query_type: QueryType,
     pub query_count: u32,
-    #[serde(skip)]
-    pub query_representation: Option<mongosql::ast::Query>,
+    pub query_representation: QueryRepresentation,
+}
+
+// QueryRepresentation holds the query AST if parsing was successful or
+// the parse error if query parsing failed
+#[derive(Debug, PartialEq, Clone)]
+pub enum QueryRepresentation {
+    Query(mongosql::ast::Query),
+    ParseError(String),
+}
+
+impl Serialize for QueryRepresentation {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        match self {
+            QueryRepresentation::Query(_) => serializer.serialize_unit(),
+            QueryRepresentation::ParseError(parse_error) => serializer.serialize_newtype_variant(
+                "QueryRepresentation",
+                1,
+                "ParseError",
+                parse_error,
+            ),
+        }
+    }
 }
 
 // clean_query takes a query string and removes any escape characters and trailing semicolons
@@ -89,16 +122,16 @@ fn parse_line(line: &str) -> Option<LogEntry> {
     let query_type = QueryType::from_query(&query)?;
 
     let query_representation = match mongosql::parse_query(&query) {
-        Ok(query) => Some(query),
-        Err(_) => None,
+        Ok(query_ast) => QueryRepresentation::Query(query_ast),
+        Err(err) => QueryRepresentation::ParseError(err.user_message().unwrap_or_default()),
     };
 
     Some(LogEntry {
         timestamp,
         query,
         query_type,
-        query_representation,
         query_count: 1,
+        query_representation,
     })
 }
 
@@ -126,11 +159,17 @@ pub fn process_logs(paths: &[String]) -> Result<LogParseResult, String> {
         }
     }
     for query in all_queries.values().collect::<Vec<&LogEntry>>() {
-        match (&query.query_type, &query.query_representation) {
-            (QueryType::Select, Some(_)) => {
+        // Marking queries with `INFORMATION_SCHEMA` as invalid since they are specific to BIC
+        let contains_information_schema = query.query.contains("INFORMATION_SCHEMA");
+        match (
+            &query.query_type,
+            &query.query_representation,
+            contains_information_schema,
+        ) {
+            (QueryType::Select, QueryRepresentation::Query(_), false) => {
                 all_valid_queries.push(query.clone());
             }
-            (_, _) => all_invalid_queries.push(query.clone()),
+            (_, _, _) => all_invalid_queries.push(query.clone()),
         }
     }
 
@@ -138,10 +177,63 @@ pub fn process_logs(paths: &[String]) -> Result<LogParseResult, String> {
     all_invalid_queries.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
 
     let mut collections = HashMap::<(String, String), (u32, NaiveDateTime)>::new();
+    let mut subpath_fields_map: HashMap<SubpathField, (u32, NaiveDateTime)> = HashMap::new();
+    let mut array_datasources = vec![];
 
     for query in all_valid_queries.iter() {
-        if let Some(repr) = &query.query_representation {
-            for collection in mongosql::ast::visitors::get_collection_sources(repr.clone()) {
+        if let QueryRepresentation::Query(repr) = &query.query_representation {
+            let subpath_fields = mongosql::ast::visitors::get_subpath_fields(repr.clone());
+            let collection_sources = mongosql::ast::visitors::get_collection_sources(repr.clone());
+
+            for subpath_vec in subpath_fields {
+                if let Some((identifier, _)) = subpath_vec.split_first() {
+                    let field_name = subpath_vec.join(".");
+
+                    // Check if the initial value in the subpath matches the collection name or alias
+                    // If not, see if there is only one collection in the CollectionSource that it
+                    // can be associated with.  If neither of these are true, then we cannot find
+                    // the CollectionSource for the subpath and don't add it.
+                    let matching_collections: Vec<_> = collection_sources
+                        .iter()
+                        .filter(|cs| {
+                            cs.collection == *identifier || cs.alias.as_deref() == Some(identifier)
+                        })
+                        .collect();
+                    let subpath_field_opt = match matching_collections.len() {
+                        1 => {
+                            let collection = matching_collections[0];
+                            Some(SubpathField {
+                                db: collection.database.clone().unwrap_or_default(),
+                                collection: collection.collection.clone(),
+                                subpath_field: field_name,
+                            })
+                        }
+                        _ => {
+                            if collection_sources.len() == 1 {
+                                let collection = &collection_sources[0];
+                                Some(SubpathField {
+                                    db: collection.database.clone().unwrap_or_default(),
+                                    collection: collection.collection.clone(),
+                                    subpath_field: field_name,
+                                })
+                            } else {
+                                None
+                            }
+                        }
+                    };
+                    if let Some(subpath_field) = subpath_field_opt {
+                        subpath_fields_map
+                            .entry(subpath_field)
+                            .and_modify(|(count, last_accessed)| {
+                                *count += 1;
+                                *last_accessed = std::cmp::max(*last_accessed, query.timestamp);
+                            })
+                            .or_insert((1, query.timestamp));
+                    }
+                }
+            }
+
+            for collection in collection_sources {
                 let key = (
                     collection.database.unwrap_or_default(),
                     collection.collection.clone(),
@@ -162,10 +254,24 @@ pub fn process_logs(paths: &[String]) -> Result<LogParseResult, String> {
         .map(|((db, collection), (count, last_accessed))| (db, collection, count, last_accessed))
         .collect::<Vec<(String, String, u32, chrono::NaiveDateTime)>>();
 
+    // Add collections that have an underscore '_' to our array_datasources
+    for (db, collection, count, last_accessed) in collections_vec.iter() {
+        if collection.contains('_') {
+            array_datasources.push((db.clone(), collection.clone(), *count, *last_accessed));
+        }
+    }
+
+    let subpath_fields_vec = subpath_fields_map
+        .into_iter()
+        .map(|(subpath_field, (count, last_accessed))| (subpath_field, count, last_accessed))
+        .collect::<Vec<(SubpathField, u32, NaiveDateTime)>>();
+
     Ok(LogParseResult {
         valid_queries: (!all_valid_queries.is_empty()).then_some(all_valid_queries),
         invalid_queries: (!all_invalid_queries.is_empty()).then_some(all_invalid_queries),
         collections: (Some(collections_vec)),
+        subpath_fields: (Some(subpath_fields_vec)),
+        array_datasources: None,
     })
 }
 

@@ -4,7 +4,7 @@ use std::{fs::File, io::Write, path::Path};
 
 use build_html::{Container, ContainerType, Html, HtmlContainer, HtmlPage};
 
-use crate::log_parser::LogEntry;
+use crate::log_parser::{LogEntry, QueryRepresentation};
 use chrono::prelude::*;
 
 /// generate_html takes a file path, a date, and a LogParseResult and writes the HTML report to a file.
@@ -26,11 +26,15 @@ fn process_query_html(label: &str, queries: &Option<Vec<LogEntry>>) -> Container
         queries.sort_by(|a, b| b.query_count.cmp(&a.query_count));
         let queries_html = queries
             .iter()
-            .map(|q| {
-                format!(
+            .map(|q| match &q.query_representation {
+                QueryRepresentation::Query(_) => format!(
                     "<li>Time: {}</br>Count: {}</br>Query: {}</br></br></li>",
                     q.timestamp, q.query_count, q.query
-                )
+                ),
+                QueryRepresentation::ParseError(error) => format!(
+                    "<li>Time: {}</br>Count: {}</br>Query: {}</br>Parse Error: {}</br></br></li>",
+                    q.timestamp, q.query_count, q.query, error
+                ),
             })
             .collect::<Vec<String>>()
             .concat();
