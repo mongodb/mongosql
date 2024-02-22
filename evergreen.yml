@@ -53,7 +53,7 @@ functions:
           fi
           export PATH="$GOROOT/bin:$PATH"
           if [[ "${triggered_by_git_tag}" != "" ]]; then
-            export release_version=$(echo ${triggered_by_git_tag} | sed s/v//)
+            export release_version=$(echo ${triggered_by_git_tag} | sed -E 's/^(v|trr)//')
           else
             export release_version=test_release
           fi
@@ -451,6 +451,30 @@ functions:
         files:
           - mongosql-rs/go/go-test-results.txt
 
+  "upload transition readiness report executable":
+    - command: s3.put
+      params:
+        build_variants:
+          ["trr-macos", "trr-macos-arm","trr-ubuntu2004"]
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/target/release/bic-trip
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/bic-trip
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+    - command: s3.put
+      params:
+        build_variants:
+          - trr-windows-64
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/target/release/bic-trip.exe
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/bic-trip.exe
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+
   "run TPC-H benchmark":
     - command: shell.exec
       timeout_secs: 86400 # 24 hour timeout for new log entry
@@ -541,6 +565,90 @@ functions:
       params:
         files:
           - generated_profiler_tasks.json
+
+  "run transition readiness report test":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: | 
+          ${prepare_shell}
+          # SQL-1897: Implement automated testing
+          echo "Transition Readiness Report Automated Test"
+          exit 0
+
+  "perform transition readiness report release":
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/trr-macos/bic-trip
+        local_file: mongosql-rs/release/trr-macos/bic-trip
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/trr-macos/bic-trip
+        remote_file: transition-readiness-report/AtlasSQLReadinessReport-v${release_version}-macos
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: AtlasSQLReadinessReport-v${release_version}-macos
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/trr-macos-arm/bic-trip
+        local_file: mongosql-rs/release/trr-macos-arm/bic-trip
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/trr-macos-arm/bic-trip
+        remote_file: transition-readiness-report/AtlasSQLReadinessReport-v${release_version}-macos-arm
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: AtlasSQLReadinessReport-v${release_version}-macos-arm
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/trr-ubuntu2004/bic-trip
+        local_file: mongosql-rs/release/trr-ubuntu2004/bic-trip
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/trr-ubuntu2004/bic-trip
+        remote_file: transition-readiness-report/AtlasSQLReadinessReport-v${release_version}-linux
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: AtlasSQLReadinessReport-v${release_version}-linux
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/trr-windows-64/bic-trip.exe
+        local_file: mongosql-rs/release/trr-windows-64/bic-trip.exe
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        build_variants:
+          - trr-windows-64
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/trr-windows-64/bic-trip.exe
+        remote_file: transition-readiness-report/AtlasSQLReadinessReport-v${release_version}-win.exe
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: AtlasSQLReadinessReport-v${release_version}-win.exe
 
   "run memory usage profiler":
     - command: shell.exec
@@ -636,6 +744,12 @@ tasks:
       - func: "compile release"
       - func: "upload c library"
 
+  - name: compile-trr
+    commands:
+      - func: "install rust toolchain"
+      - func: "compile release"
+      - func: "upload transition readiness report executable"
+
   - name: test-go
     depends_on:
       - name: compile
@@ -716,6 +830,14 @@ tasks:
             --features=error,generated
             --package=e2e-tests
             -- --test-threads=1
+
+  - name: trr-release
+    git_tag_only: true
+    depends_on:
+      - name: compile-trr
+        variant: ".trr-release-variant"
+    commands:
+      - func: "perform transition readiness report release"
 
   - name: release
     git_tag_only: true
@@ -965,6 +1087,12 @@ tasks:
     commands:
       - func: "generate memory usage tasks"
 
+  - name: test-transition-readiness-report
+    depends_on:
+      - name: compile-trr
+    commands:
+      - func: "run transition readiness report test"
+
 buildvariants:
   - name: static-analysis
     display_name: "* Static Analysis"
@@ -1076,6 +1204,45 @@ buildvariants:
     activate: true
     tasks:
       - name: mem-usage-profiler-generator
+
+  - name: trr-macos
+    tags: [ "trr-release-variant" ]
+    display_name: "Transition Readiness Report - macOS"
+    run_on: [ macos-1100 ]
+    tasks:
+      - name: compile-trr
+      - name: test-transition-readiness-report
+
+  - name: trr-macos-arm
+    tags: [ "trr-release-variant" ]
+    display_name: "Transition Readiness Report - macOS arm"
+    run_on: [ macos-1100-arm64 ]
+    tasks:
+      - name: compile-trr
+      - name: test-transition-readiness-report
+
+  - name: trr-windows-64
+    tags: [ "trr-release-variant" ]
+    display_name: "Transition Readiness Report - windows"
+    run_on: [ windows-64-vs2019-large ]
+    tasks:
+      - name: compile-trr
+      - name: test-transition-readiness-report
+
+  - name: trr-ubuntu2004
+    tags: [ "trr-release-variant" ]
+    display_name: "Transition Readiness Report - linux"
+    run_on: [ ubuntu2004-large ]
+    tasks:
+      - name: compile-trr
+      - name: test-transition-readiness-report
+
+
+  - name: trr-release
+    display_name: "Transition Readiness Report Release"
+    run_on: [ ubuntu2004-large ]
+    tasks:
+      - name: trr-release
 
   - name: release
     display_name: "Release"
