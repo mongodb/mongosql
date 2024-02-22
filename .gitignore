@@ -7,4 +7,3 @@ benchmark/atlas_sql/denormalized/phase/
 benchmark/atlas_sql/normalized/phase/
 benchmark/scripts/
 e2e-tests/src/generated/
-

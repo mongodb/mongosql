@@ -2620,17 +2620,14 @@ mod merge_objects {
         merge_two_anyof_objects,
         expected = Ok(Schema::Document(Document {
             keys: map! {
-                "a".into() => Schema::AnyOf(set![
-                    Schema::AnyOf(set![
-                        Schema::Atomic(Atomic::Integer),
-                        Schema::Atomic(Atomic::Integer),
-                    ]),
-                    Schema::Atomic(Atomic::Integer)
-                ]),
-                "b".into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer),  Schema::Atomic(Atomic::Integer)]),
+                "a".into() => Schema::Atomic(Atomic::Integer),
+                "b".into() =>  Schema::AnyOf(set!{
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Double),
+                }),
                 "c".into() => Schema::Atomic(Atomic::Integer),
                 "d".into() => Schema::Atomic(Atomic::Integer),
-                "e".into() => Schema::AnyOf(set![Schema::Atomic(Atomic::Integer),  Schema::Atomic(Atomic::Integer)]),
+                "e".into() => Schema::Atomic(Atomic::Integer),
                 "f".into() => Schema::Atomic(Atomic::Integer),
             },
             required: set! {
@@ -2660,7 +2657,7 @@ mod merge_objects {
                     Document {
                         keys: map! {
                            "a".into() => Schema::Atomic(Atomic::Integer),
-                           "b".into() => Schema::Atomic(Atomic::Integer),
+                           "b".into() => Schema::Atomic(Atomic::Double),
                         },
                     required: set! {"a".into(), "b".into()},
                     additional_properties: false,

@@ -11,6 +11,225 @@ mod satisfaction_ord {
     }
 }
 
+mod schema_ord {
+    #[test]
+    fn atomic_ord() {
+        use crate::schema::Atomic::*;
+        assert!(MinKey < Null);
+        assert!(Null < Integer);
+        assert!(Integer < Long);
+        assert!(Long < Double);
+        assert!(Double < Decimal);
+        assert!(Decimal < Symbol);
+        assert!(Symbol < String);
+        assert!(String < BinData);
+        assert!(BinData < ObjectId);
+        assert!(ObjectId < Boolean);
+        assert!(Boolean < Date);
+        assert!(Date < Timestamp);
+        assert!(Timestamp < Regex);
+        assert!(Regex < DbPointer);
+        assert!(DbPointer < Javascript);
+        assert!(Javascript < JavascriptWithScope);
+        assert!(JavascriptWithScope < MaxKey);
+    }
+
+    #[test]
+    fn schema_ord() {
+        use crate::{
+            schema::{Document, Schema::*},
+            set,
+        };
+        assert!(Unsat < Missing);
+        assert!(Missing < Atomic(crate::schema::Atomic::MinKey));
+        assert!(Atomic(crate::schema::Atomic::MaxKey) < Array(Box::new(Unsat)));
+        assert!(Array(Box::new(Any)) < Document(Document::empty()));
+        assert!(Document(Document::empty()) < AnyOf(set! {}));
+        assert!(AnyOf(set! {}) < Any);
+    }
+}
+
+mod union_schemata {
+    use crate::{
+        map,
+        schema::{Atomic::*, Document, Schema::*},
+        set,
+    };
+    macro_rules! test_union_schema {
+        ($func_name:ident, expected = $expected:expr, left = $left:expr, right = $right:expr,) => {
+            #[test]
+            fn $func_name() {
+                assert_eq!($expected, $left.union(&$right));
+            }
+        };
+    }
+
+    test_union_schema!(
+        union_identical_schemata_is_no_op,
+        expected = AnyOf(set! {Atomic(Integer), Atomic(Double), Atomic(Decimal)}),
+        left = AnyOf(set! {Atomic(Integer), Atomic(Double), Atomic(Decimal)}),
+        right = AnyOf(set! {Atomic(Integer), Atomic(Double), Atomic(Decimal)}),
+    );
+    test_union_schema!(
+        union_two_divergent_schemata,
+        expected = AnyOf(set! {Atomic(Integer), Missing}),
+        left = Atomic(Integer),
+        right = Missing,
+    );
+    test_union_schema!(
+        union_any_x_is_any,
+        expected = Any,
+        left = Any,
+        right = Atomic(Double),
+    );
+    test_union_schema!(
+        union_unsat_x_is_x,
+        expected = Atomic(Double),
+        left = Atomic(Double),
+        right = Unsat,
+    );
+    test_union_schema!(
+        union_any_ofs_must_flatten,
+        expected = AnyOf(set! {Atomic(Integer), Atomic(Double), Atomic(Decimal)}),
+        left = AnyOf(set! {Atomic(Integer), Atomic(Double)}),
+        right = AnyOf(set! {Atomic(Integer), Atomic(Decimal)}),
+    );
+    test_union_schema!(
+        union_arrays_unions_items,
+        expected = Array(Box::new(AnyOf(set! {Atomic(Integer), Atomic(Double)}))),
+        left = Array(Box::new(Atomic(Integer))),
+        right = Array(Box::new(Atomic(Double))),
+    );
+    // This case covers a pretty unusable schema. It's not worth trying
+    // to provide more accurate types as the user won't be able to do anything
+    // with the result anyway.
+    test_union_schema!(
+        union_arrays_of_arrays_of_multiple_types_is_any,
+        expected = AnyOf(set! {Array(Box::new(Any))}),
+        left = Array(Box::new(Atomic(Integer))),
+        right = AnyOf(set! {Array(Box::new(Atomic(String))), Array(Box::new(Atomic(Double)))}),
+    );
+    test_union_schema!(
+        document_union_required_empty_if_key_not_in_both,
+        expected = Document(Document {
+            keys: map! {
+              "a".to_string() => Atomic(Double),
+              "b".to_string() => Atomic(Integer),
+            },
+            required: set! {},
+            additional_properties: false,
+        }),
+        left = Document(Document {
+            keys: map! {
+              "a".to_string() => Atomic(Double),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+        }),
+        right = Document(Document {
+            keys: map! {
+              "b".to_string() => Atomic(Integer),
+            },
+            required: set! {"b".to_string()},
+            additional_properties: false,
+        }),
+    );
+
+    test_union_schema!(
+        document_union_required_contains_key_in_both_documents,
+        expected = Document(Document {
+            keys: map! {
+              "a".to_string() => Atomic(Double),
+              "b".to_string() => Atomic(Integer),
+            },
+            required: set! {"a".to_string(), "b".to_string()},
+            additional_properties: false,
+        }),
+        left = Document(Document {
+            keys: map! {
+              "a".to_string() => Atomic(Double),
+              "b".to_string() => Atomic(Integer),
+            },
+            required: set! {"a".to_string(), "b".to_string()},
+            additional_properties: false,
+        }),
+        right = Document(Document {
+            keys: map! {
+              "a".to_string() => Atomic(Double),
+              "b".to_string() => Atomic(Integer),
+            },
+            required: set! {"a".to_string(), "b".to_string()},
+            additional_properties: false,
+        }),
+    );
+
+    test_union_schema!(
+        document_union_required_only_contains_required_union_from_both_documents,
+        expected = Document(Document {
+            keys: map! {
+              "a".to_string() => Atomic(Double),
+              "b".to_string() => Atomic(Integer),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+        }),
+        left = Document(Document {
+            keys: map! {
+              "a".to_string() => Atomic(Double),
+              "b".to_string() => Atomic(Integer),
+            },
+            required: set! {"a".to_string(), "b".to_string()},
+            additional_properties: false,
+        }),
+        right = Document(Document {
+            keys: map! {
+              "a".to_string() => Atomic(Double),
+              "b".to_string() => Atomic(Integer),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: false,
+        }),
+    );
+
+    test_union_schema!(
+        union_documents_all_together,
+        expected = Document(Document {
+            keys: map! {
+                "a".to_string() => Array(Box::new(
+                    AnyOf(set! {
+                        Atomic(Double),
+                        Atomic(String),
+                    })
+                )),
+                "b".to_string() => AnyOf(set! {
+                    Atomic(Integer),
+                    Atomic(String),
+                }),
+                "c".to_string() => Atomic(MaxKey),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: true,
+        }),
+        left = Document(Document {
+            keys: map! {
+                "a".to_string() => Array(Box::new(Atomic(Double))),
+                "b".to_string() => Atomic(Integer),
+            },
+            required: set! {"a".to_string(), "b".to_string()},
+            additional_properties: false,
+        }),
+        right = Document(Document {
+            keys: map! {
+                "a".to_string() => Array(Box::new(Atomic(String))),
+                "b".to_string() => Atomic(String),
+                "c".to_string() => Atomic(MaxKey),
+            },
+            required: set! {"a".to_string()},
+            additional_properties: true,
+        }),
+    );
+}
+
 mod to_bson {
     use crate::{
         map,
@@ -61,8 +280,8 @@ mod to_bson {
                                  "bsonType": "array",
                                  "items": {
                                      "anyOf": [
-                                         {"bsonType":  "string"},
                                          {"bsonType":  "null"},
+                                         {"bsonType":  "string"},
                                      ]
                                  },
                          },
@@ -72,7 +291,6 @@ mod to_bson {
                                  {
                                      "bsonType": "object",
                                      "properties":  {},
-                                     "required": [],
                                      "additionalProperties": true,
                                  },
                              ]
@@ -82,7 +300,6 @@ mod to_bson {
                      "additionalProperties": false,
                  },
              },
-             "required": [],
              "additionalProperties": false,
         }},
         input = Schema::Document(Document {
@@ -1244,121 +1461,6 @@ mod document_union {
         }),
     );
     test_document_union!(
-        document_union_of_two_documents_will_retain_keys_when_first_is_open,
-        expected = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::AnyOf(set![
-                    Schema::Atomic(Atomic::Integer),
-                    Schema::Atomic(Atomic::Decimal),
-                ]),
-                "b".into() => Schema::Atomic(Atomic::Double),
-            },
-            required: set! {"a".into()},
-            additional_properties: true,
-        }),
-        schema1 = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(Atomic::Decimal),
-                "b".into() => Schema::Atomic(Atomic::Double),
-            },
-            required: set! {"a".into()},
-            additional_properties: true,
-        }),
-        schema2 = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(Atomic::Integer),
-                "c".into() => Schema::Atomic(Atomic::Integer),
-            },
-            required: set! {"a".into(), "c".into()},
-            additional_properties: false,
-        }),
-    );
-    test_document_union!(
-        document_union_of_two_documents_will_retain_keys_when_second_is_open,
-        expected = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::AnyOf(set![
-                    Schema::Atomic(Atomic::Integer),
-                    Schema::Atomic(Atomic::Decimal),
-                ]),
-                "c".into() => Schema::Atomic(Atomic::Double),
-            },
-            required: set! {"a".into()},
-            additional_properties: true,
-        }),
-        schema1 = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(Atomic::Integer),
-                "b".into() => Schema::Atomic(Atomic::Integer),
-            },
-            required: set! {"a".into(), "c".into()},
-            additional_properties: false,
-        }),
-        schema2 = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(Atomic::Decimal),
-                "c".into() => Schema::Atomic(Atomic::Double),
-            },
-            required: set! {"a".into()},
-            additional_properties: true,
-        }),
-    );
-    test_document_union!(
-        document_union_of_two_documents_will_intersect_keys_when_both_are_open,
-        expected = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::AnyOf(set![
-                    Schema::Atomic(Atomic::Integer),
-                    Schema::Atomic(Atomic::Decimal),
-                ]),
-            },
-            required: set! {"a".into()},
-            additional_properties: true,
-        }),
-        schema1 = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(Atomic::Integer),
-                "c".into() => Schema::Atomic(Atomic::Integer),
-            },
-            required: set! {"a".into(), "c".into()},
-            additional_properties: true,
-        }),
-        schema2 = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(Atomic::Decimal),
-                "b".into() => Schema::Atomic(Atomic::Double),
-            },
-            required: set! {"a".into()},
-            additional_properties: true,
-        }),
-    );
-    test_document_union!(
-        document_union_of_any_doc_with_doc_is_any_doc,
-        expected = ANY_DOCUMENT.clone(),
-        schema1 = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(Atomic::Integer),
-                "c".into() => Schema::Atomic(Atomic::Integer),
-            },
-            required: set! {"a".into(), "c".into()},
-            additional_properties: false,
-        }),
-        schema2 = ANY_DOCUMENT.clone(),
-    );
-    test_document_union!(
-        document_union_of_any_doc_with_doc_is_any_doc_symmetric,
-        expected = ANY_DOCUMENT.clone(),
-        schema1 = ANY_DOCUMENT.clone(),
-        schema2 = Schema::Document(Document {
-            keys: map! {
-                "a".into() => Schema::Atomic(Atomic::Integer),
-                "c".into() => Schema::Atomic(Atomic::Integer),
-            },
-            required: set! {"a".into(), "c".into()},
-            additional_properties: false,
-        }),
-    );
-    test_document_union!(
         document_union_of_doc_with_empty_doc_is_doc_with_no_required,
         expected = Schema::Document(Document {
             keys: map! {
@@ -1403,21 +1505,12 @@ mod document_union {
         expected = Schema::Document(Document {
             keys: map! {
                 "a".into() => Schema::AnyOf(set![
-                    Schema::AnyOf(set![
-                        Schema::AnyOf(set![
-                            Schema::Atomic(Atomic::Integer),
-                            Schema::Atomic(Atomic::Decimal),
-                        ]),
-                        Schema::Atomic(Atomic::Decimal),
-                    ]),
                     Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Decimal),
                 ]),
                 "b".into() => Schema::AnyOf(set![
-                    Schema::AnyOf(set![
-                        Schema::Atomic(Atomic::Integer),
-                        Schema::Atomic(Atomic::Double),
-                    ]),
                     Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::Double),
                 ]),
                 "c".into() => Schema::Atomic(Atomic::Integer),
                 "d".into() => Schema::Atomic(Atomic::Double),
@@ -2565,7 +2658,7 @@ mod keys {
 
     test_keys!(
         any_of,
-        expected = vec!["bar", "baz", "foo", "a", "b", "c", "d"],
+        expected = vec!["a", "b", "c", "d", "bar", "baz", "foo"],
         schema = &AnyOf(set![
             Atomic(Atomic::Integer),
             Any,

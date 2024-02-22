@@ -10,6 +10,7 @@ members = [
     "mongosql-c",
     "mongosql",
     "test-utils",
+    "sampler",
     "usererrordisplay-impl",
     "visitgen",
     "visitgen-test",

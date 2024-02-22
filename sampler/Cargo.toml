@@ -1,0 +1,24 @@
+[package]
+name = "sampler"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "sampler"
+path = "src/lib.rs"
+
+
+[dependencies]
+crossbeam = { version = "0.8.2", features = ["crossbeam-channel"] }
+futures = "0.3.28"
+mongodb = { version = "2.7.0", features = ["tokio-runtime"] }
+serde = "1.0.189"
+serde_json = "1.0.107"
+tokio = { version = "1.32.0", features = ["full"] }
+mongosql = { path = "../mongosql" }
+rayon = "1.8.0"
+anyhow = "1.0.75"
+tokio-util = { version = "0.7.8" }
+thiserror = "1.0.50"

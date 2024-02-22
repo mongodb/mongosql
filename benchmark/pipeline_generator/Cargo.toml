@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 mongosql = { path = "../../mongosql" }
-# mongosql-c = { path = "../mongosql-c" }
 bson = "2"
 thiserror = "1"
 serde_yaml = "0.9.21"

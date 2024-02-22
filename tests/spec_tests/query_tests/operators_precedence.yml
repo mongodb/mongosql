@@ -160,7 +160,7 @@ tests:
   - description: IN binds tighter than LIKE
     current_db: db
     query: "SELECT VALUE {'v': a LIKE b IN ('str', 'string')} FROM [{'a': 'str', 'b': 'string'}] AS arr"
-    algebrize_error: "schema checking failed for Like: required AnyOf({Missing, Atomic(String), Atomic(Null)}), found Atomic(Boolean)"
+    algebrize_error: "failed to translate query: algebrize error: Error 1002: Incorrect argument type for `Like`. Required: nullable string. Found: boolean.\n\tCaused by:\n\tschema checking failed for Like: required AnyOf({Missing, Atomic(Null), Atomic(String)}), found Atomic(Boolean)"
 
   # The expression
   #
@@ -233,7 +233,7 @@ tests:
     current_db: db
     query: "SELECT VALUE {'v': a + b || c} FROM [{'a': 1.5, 'b': 1, 'c': 'str'}] AS arr"
     # If || was higher precedence than +, the error would read "... found Atomic(Integer)"
-    algebrize_error: "schema checking failed for Concat: required AnyOf({Missing, Atomic(String), Atomic(Null)}), found Atomic(Double)"
+    algebrize_error: "failed to translate query: algebrize error: Error 1002: Incorrect argument type for `Concat`. Required: nullable string. Found: double.\n\tCaused by:\n\tschema checking failed for Concat: required AnyOf({Missing, Atomic(Null), Atomic(String)}), found Atomic(Double)"
 
   # The expression
   #
@@ -289,7 +289,7 @@ tests:
   - description: type ops bind tighter than unary ops
     current_db: db
     query: "SELECT VALUE {'v': +a::STRING} FROM [{'a': 1}] AS arr"
-    algebrize_error: "schema checking failed for Pos: required AnyOf({Missing, Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal), Atomic(Null)}), found AnyOf({Atomic(String), Atomic(Null)})"
+    algebrize_error: "failed to translate query: algebrize error: Error 1002: Incorrect argument type for `Pos`. Required: nullable numeric type. Found: polymorphic type.\n\tCaused by:\n\tschema checking failed for Pos: required AnyOf({Missing, Atomic(Null), Atomic(Integer), Atomic(Long), Atomic(Double), Atomic(Decimal)}), found AnyOf({Atomic(Null), Atomic(String)})"
 
   # The expression
   #

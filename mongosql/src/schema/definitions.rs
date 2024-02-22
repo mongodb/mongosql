@@ -303,34 +303,34 @@ impl ResultSet {
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
 pub enum Schema {
-    Any,
     Unsat,
     Missing,
     Atomic(Atomic),
-    AnyOf(BTreeSet<Schema>),
     Array(Box<Schema>),
     Document(Document),
+    AnyOf(BTreeSet<Schema>),
+    Any,
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy, IntoEnumIterator)]
 pub enum Atomic {
-    String,
+    MinKey,
+    Null,
     Integer,
     Long,
     Double,
     Decimal,
+    Symbol,
+    String,
     BinData,
     ObjectId,
     Boolean,
     Date,
-    Null,
+    Timestamp,
     Regex,
     DbPointer,
     Javascript,
-    Symbol,
     JavascriptWithScope,
-    Timestamp,
-    MinKey,
     MaxKey,
 }
 
@@ -504,7 +504,11 @@ impl TryFrom<Document> for json_schema::Schema {
                     })
                     .collect::<Result<_, _>>()?,
             ),
-            required: Some(v.required.into_iter().collect()),
+            required: if v.required.is_empty() {
+                None
+            } else {
+                Some(v.required.into_iter().collect())
+            },
             additional_properties: Some(v.additional_properties),
             items: None,
             any_of: None,
@@ -1140,6 +1144,83 @@ impl Schema {
             Schema::Array(_) | Schema::Atomic(_) | Schema::Missing | Schema::Unsat => Ok(set![]),
         }
     }
+
+    /// union unions two schemata. The idea is that the two schema both represent data in a given
+    /// collection, and that by combining them we have a more clear picture of the possibilities
+    /// for a given collection. The uniond schema must match all values matched by the two original
+    /// schemata, conceptually this is a set union, so a safe fall back is AnyOf of the two
+    /// original schemata, but we can do better for specific cases, for example, two documents can
+    /// simply union the keys (and the types of the keys when keys overlap), intersect the
+    /// required, and do a lattice join over additional_properties (if one document is true, and
+    /// the other is false, the solution is true).
+    pub fn union(&self, other: &Schema) -> Schema {
+        use std::cmp::Ordering;
+        use Schema::*;
+        let (left, right) = (Self::simplify(self), Self::simplify(other));
+        let ordering = left.cmp(&right);
+        let (left, right) = match ordering {
+            Ordering::Greater => (right, left),
+            Ordering::Less => (left, right),
+            Ordering::Equal => {
+                return left;
+            }
+        };
+        // Schema types ordered least to greatest. We use the order to reduce the number
+        // of cases needed to match. For instance, Unsat will always be leftmost and Any will
+        // always be rightmost, so we do not need to check symmetric cases (and catchall will
+        // get the reflexive case).
+        //
+        // Unsat
+        // Missing
+        // Atomic(Atomic)
+        // Array(Box<Schema>)
+        // Document(Document)
+        // AnyOf(BTreeSet<Schema>)
+        // Any
+        match (left, right) {
+            (Unsat, s) => s,
+            (_, Any) => Any,
+            (AnyOf(mut b1), AnyOf(b2)) => {
+                // this is equivalent to a destructive union
+                b1.extend(b2);
+                AnyOf(b1)
+            }
+            (Array(s1), Array(s2)) => Array(Box::new(s1.union(s2.as_ref()))),
+            (Array(s1), AnyOf(schemas)) => {
+                let (arrays, mut rest): (BTreeSet<_>, BTreeSet<_>) =
+                    schemas.into_iter().partition(|s| matches!(s, Array(_)));
+                if arrays.is_empty() {
+                    rest.insert(Array(s1));
+                } else if arrays.len() > 1 {
+                    rest.insert(Array(Box::new(Schema::Any)));
+                } else if let Some(Array(old_s)) = arrays.into_iter().next() {
+                    rest.insert(Array(Box::new(old_s.as_ref().union(s1.as_ref()))));
+                } else {
+                    unreachable!();
+                }
+                AnyOf(rest)
+            }
+            (Document(d1), Document(d2)) => Document(d1.union(d2)),
+            (Document(d), AnyOf(schemas)) => {
+                let (documents, mut rest): (BTreeSet<_>, BTreeSet<_>) =
+                    schemas.into_iter().partition(|s| matches!(s, Document(_)));
+                if documents.is_empty() {
+                    rest.insert(Document(d));
+                } else if let Some(Document(old_d)) = documents.into_iter().next() {
+                    rest.insert(Document(old_d.union(d)));
+                } else {
+                    unreachable!();
+                }
+                AnyOf(rest)
+            }
+            // x (strictly) < AnyOf
+            (x, AnyOf(mut b)) => {
+                b.insert(x);
+                AnyOf(b)
+            }
+            (s1, s2) => AnyOf(set! {s1, s2}),
+        }
+    }
 }
 
 impl From<Type> for Schema {
@@ -1450,14 +1531,14 @@ impl Document {
     }
 
     /// union_keys constructs a key map where all the keys from both maps are kept.
-    /// Those keys that overlap have their Schemata joined in an AnyOf.
+    /// Those keys that overlap have their Schemata merged.
     fn union_keys(
         mut m1: BTreeMap<String, Schema>,
         m2: BTreeMap<String, Schema>,
     ) -> BTreeMap<String, Schema> {
         for (key2, schema2) in m2.into_iter() {
             if let Some(old_schema) = m1.remove(&key2) {
-                m1.insert(key2, Schema::AnyOf(set![old_schema.clone(), schema2]));
+                m1.insert(key2, old_schema.union(&schema2));
             } else {
                 m1.insert(key2, schema2);
             }
@@ -1467,6 +1548,7 @@ impl Document {
 
     /// intersect_keys constructs a key map that is the intersection of the
     /// two passed maps.
+    #[allow(dead_code)]
     fn intersect_keys(
         m1: BTreeMap<String, Schema>,
         mut m2: BTreeMap<String, Schema>,
@@ -1474,7 +1556,7 @@ impl Document {
         let mut out = BTreeMap::new();
         for (key, s1) in m1.into_iter() {
             if let Some(s2) = m2.remove(&key) {
-                out.insert(key, Schema::AnyOf(set![s1, s2]));
+                out.insert(key, s1.union(&s2));
             }
         }
         out
@@ -1482,38 +1564,31 @@ impl Document {
 
     /// retain_keys retains keys from the m1 map argument, creating an AnyOf for the Schema of any
     /// that overlap, and ignoring the keys from the m1 map that are not overlapping with m1.
+    #[allow(dead_code)]
     fn retain_keys(
         mut m1: BTreeMap<String, Schema>,
         m2: BTreeMap<String, Schema>,
     ) -> BTreeMap<String, Schema> {
         for (key, s1) in m2.into_iter() {
             if let Some(s2) = m1.remove(&key) {
-                m1.insert(key, Schema::AnyOf(set![s1, s2]));
+                m1.insert(key, s1.union(&s2));
             }
         }
         m1
     }
 
     /// union unions together two schema::Documents returning a single Document schema that matches
-    /// all document values matched by either `self` or `other`.  The Document returned is not
-    /// necessarily as tight a bound as `AnyOf([Schema::Document(self), Schema::Document(other)])`;
-    /// in other words, it may match additional document values not matched by `self` or `other`.
+    /// all document values matched by either `self` or `other`. Additional properties will
+    /// be allowed if either `self` or `other` allows them.
     fn union(self, other: Document) -> Document {
-        let additional_properties = self.additional_properties || other.additional_properties;
-        let keys = match (self.additional_properties, other.additional_properties) {
-            (true, true) => Document::intersect_keys(self.keys, other.keys),
-            (false, false) => Document::union_keys(self.keys, other.keys),
-            (true, false) => Document::retain_keys(self.keys, other.keys),
-            (false, true) => Document::retain_keys(other.keys, self.keys),
-        };
         Document {
-            keys,
+            keys: Document::union_keys(self.keys, other.keys),
             required: self
                 .required
                 .intersection(&other.required)
                 .cloned()
                 .collect(),
-            additional_properties,
+            additional_properties: self.additional_properties || other.additional_properties,
         }
     }
 

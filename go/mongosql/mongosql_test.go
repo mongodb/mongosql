@@ -89,7 +89,6 @@ func TestTranslate(t *testing.T) {
 			{"foo", bson.D{
 				{"bsonType", "object"},
 				{"properties", bson.D{}},
-				{"required", bson.A{}},
 				{"additionalProperties", true},
 			}},
 		}},
@@ -200,7 +199,6 @@ func TestCatalogSchema(t *testing.T) {
 				{"properties", bson.D{
 					{"a", bson.D{{"bsonType", "double"}}},
 				}},
-				{"required", bson.A{}},
 				{"additionalProperties", true},
 			}},
 		}},
@@ -247,7 +245,6 @@ func TestCatalogSchemaMultipleCollections(t *testing.T) {
 			{"foo", bson.D{
 				{"bsonType", "object"},
 				{"properties", bson.D{}},
-				{"required", bson.A{}},
 				{"additionalProperties", true},
 			}},
 		}},
@@ -288,7 +285,6 @@ func TestCatalogSchemaMultipleNamespaces(t *testing.T) {
 				{"properties", bson.D{
 					{"a", bson.D{{"bsonType", "double"}}},
 				}},
-				{"required", bson.A{}},
 				{"additionalProperties", true},
 			}},
 		}},
