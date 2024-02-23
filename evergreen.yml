@@ -1130,8 +1130,8 @@ buildvariants:
       - name: test-rust-errors
 
   - name: macos
-    display_name: "macOS 10.14"
-    run_on: [macos-1014]
+    display_name: "macOS 11"
+    run_on: [macos-1100]
     tasks:
       - name: compile
       - name: test-pipeline-generate
