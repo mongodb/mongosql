@@ -98,6 +98,20 @@ impl Serialize for QueryRepresentation {
     }
 }
 
+// sort_by_access_and_time will sort the data vector by access_count, if those are equal
+// it will then sort with time
+fn sort_by_access_and_time<T, F1, F2>(data: &mut [T], access_count_fn: F1, time_fn: F2)
+where
+    F1: Fn(&T) -> u32,
+    F2: Fn(&T) -> chrono::NaiveDateTime,
+{
+    data.sort_by(|a, b| {
+        let access_count_cmp = access_count_fn(b).cmp(&access_count_fn(a));
+        let time_cmp = time_fn(b).cmp(&time_fn(a));
+        access_count_cmp.then_with(|| time_cmp)
+    });
+}
+
 // clean_query takes a query string and removes any escape characters and trailing semicolons
 fn clean_query(query: &str) -> String {
     let mut cleaned_query = query
@@ -139,7 +153,6 @@ fn parse_line(line: &str) -> Option<LogEntry> {
 pub fn process_logs(paths: &[String]) -> Result<LogParseResult, String> {
     let mut all_valid_queries = vec![];
     let mut all_invalid_queries = vec![];
-
     let mut all_queries: HashMap<String, LogEntry> = HashMap::new();
 
     for path in paths {
@@ -158,7 +171,14 @@ pub fn process_logs(paths: &[String]) -> Result<LogParseResult, String> {
             }
         }
     }
-    for query in all_queries.values().collect::<Vec<&LogEntry>>() {
+
+    let mut all_queries = all_queries.values().collect::<Vec<&LogEntry>>();
+    sort_by_access_and_time(
+        &mut all_queries,
+        |entry| entry.query_count,
+        |entry| entry.timestamp,
+    );
+    for query in all_queries {
         // Marking queries with `INFORMATION_SCHEMA` as invalid since they are specific to BIC
         let contains_information_schema = query.query.contains("INFORMATION_SCHEMA");
         match (
@@ -172,9 +192,6 @@ pub fn process_logs(paths: &[String]) -> Result<LogParseResult, String> {
             (_, _, _) => all_invalid_queries.push(query.clone()),
         }
     }
-
-    all_valid_queries.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
-    all_invalid_queries.sort_by(|a, b| b.timestamp.cmp(&a.timestamp));
 
     let mut collections = HashMap::<(String, String), (u32, NaiveDateTime)>::new();
     let mut subpath_fields_map: HashMap<SubpathField, (u32, NaiveDateTime)> = HashMap::new();
@@ -249,10 +266,12 @@ pub fn process_logs(paths: &[String]) -> Result<LogParseResult, String> {
         }
     }
 
-    let collections_vec = collections
+    let mut collections_vec = collections
         .into_iter()
         .map(|((db, collection), (count, last_accessed))| (db, collection, count, last_accessed))
         .collect::<Vec<(String, String, u32, chrono::NaiveDateTime)>>();
+
+    sort_by_access_and_time(&mut collections_vec, |entry| entry.2, |entry| entry.3);
 
     // Add collections that have an underscore '_' to our array_datasources
     for (db, collection, count, last_accessed) in collections_vec.iter() {
@@ -261,17 +280,18 @@ pub fn process_logs(paths: &[String]) -> Result<LogParseResult, String> {
         }
     }
 
-    let subpath_fields_vec = subpath_fields_map
+    let mut subpath_fields_vec = subpath_fields_map
         .into_iter()
         .map(|(subpath_field, (count, last_accessed))| (subpath_field, count, last_accessed))
         .collect::<Vec<(SubpathField, u32, NaiveDateTime)>>();
+    sort_by_access_and_time(&mut subpath_fields_vec, |entry| entry.1, |entry| entry.2);
 
     Ok(LogParseResult {
         valid_queries: (!all_valid_queries.is_empty()).then_some(all_valid_queries),
         invalid_queries: (!all_invalid_queries.is_empty()).then_some(all_invalid_queries),
         collections: (Some(collections_vec)),
         subpath_fields: (Some(subpath_fields_vec)),
-        array_datasources: None,
+        array_datasources: (Some(array_datasources)),
     })
 }
 
