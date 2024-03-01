@@ -10,7 +10,7 @@ use crate::{
 use enum_iterator::IntoEnumIterator;
 use itertools::Itertools;
 use lazy_static::lazy_static;
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::{
     collections::{BTreeMap, BTreeSet},
     fmt::{Display, Formatter},
@@ -439,11 +439,59 @@ impl TryFrom<json_schema::BsonTypeName> for Atomic {
     }
 }
 
-#[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
+pub struct JaccardIndex {
+    pub avg_ji: f64,
+    pub num_unions: u32,
+    pub stability_limit: f64,
+}
+
+impl Default for JaccardIndex {
+    fn default() -> Self {
+        JaccardIndex {
+            avg_ji: 1.0,
+            num_unions: 0,
+            stability_limit: 0.8,
+        }
+    }
+}
+
+impl JaccardIndex {
+    pub fn new(stability_limit: f64) -> Self {
+        JaccardIndex {
+            stability_limit,
+            ..Default::default()
+        }
+    }
+}
+
+impl PartialEq for JaccardIndex {
+    fn eq(&self, _: &Self) -> bool {
+        true
+    }
+}
+
+impl Eq for JaccardIndex {}
+
+impl PartialOrd for JaccardIndex {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for JaccardIndex {
+    fn cmp(&self, _other: &Self) -> std::cmp::Ordering {
+        std::cmp::Ordering::Equal
+    }
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord, Clone, Default)]
 pub struct Document {
     pub keys: BTreeMap<String, Schema>,
     pub required: BTreeSet<String>,
     pub additional_properties: bool,
+    // JaccardIndex is an optional field that is used to track the stability of the schema
+    pub jaccard_index: Option<JaccardIndex>,
 }
 
 impl Document {
@@ -456,6 +504,16 @@ impl Document {
             false => Some(self.keys.len()),
         };
         (min, max)
+    }
+}
+
+impl std::fmt::Debug for Document {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let mut debug = f.debug_struct("Document");
+        debug.field("keys", &self.keys);
+        debug.field("required", &self.required);
+        debug.field("additional_properties", &self.additional_properties);
+        debug.finish()
     }
 }
 
@@ -483,6 +541,7 @@ impl TryFrom<json_schema::Schema> for Document {
                 .into_iter()
                 .collect::<BTreeSet<String>>(),
             additional_properties: v.additional_properties.unwrap_or(true),
+            ..Default::default()
         })
     }
 }
@@ -886,6 +945,7 @@ impl Schema {
             },
             required: set![field.to_string()],
             additional_properties: true,
+            ..Default::default()
         }))
     }
 
@@ -1418,7 +1478,7 @@ impl TryFrom<json_schema::Schema> for Schema {
 
 impl Atomic {
     /// satisfies returns whether one atomic satisfies another atomic (Must or Not only).
-    fn satisfies(&self, other: &Self) -> Satisfaction {
+    pub fn satisfies(&self, other: &Self) -> Satisfaction {
         if self == other {
             Satisfaction::Must
         } else {
@@ -1429,7 +1489,7 @@ impl Atomic {
     /// is_comparable_with returns whether or not two atomics are comparable (Must or Not only).
     /// Atomics are comparable if they are both numeric, if either is null,
     /// or otherwise both equal.
-    fn is_comparable_with(&self, other: &Self) -> Satisfaction {
+    pub fn is_comparable_with(&self, other: &Self) -> Satisfaction {
         use self::Atomic::*;
         use Satisfaction::*;
 
@@ -1456,19 +1516,14 @@ impl Document {
     /// keys of Any Schema
     pub fn any() -> Document {
         Document {
-            keys: map! {},
-            required: set! {},
             additional_properties: true,
+            ..Default::default()
         }
     }
 
     /// empty returns an Empty Document
     pub fn empty() -> Document {
-        Document {
-            keys: map! {},
-            required: set! {},
-            additional_properties: false,
-        }
+        Document::default()
     }
 
     /// satisfies returns whether one Document Schema satisfies another Document Schema.
@@ -1577,18 +1632,120 @@ impl Document {
         m1
     }
 
-    /// union unions together two schema::Documents returning a single Document schema that matches
+    /// determines whether there is a jaccard index for the document(s),
+    /// and returns the index
+    fn get_jaccard_index(left: &Document, right: &Document) -> Option<JaccardIndex> {
+        // no work needed if neither document has a jaccard index
+        if left.jaccard_index.is_none() && right.jaccard_index.is_none() {
+            return None;
+        }
+        // as best we can, we will average the two rates
+        let rate1 = left.jaccard_index.unwrap_or_default();
+        let rate2 = right.jaccard_index.unwrap_or_default();
+        let num_unions = rate1.num_unions + rate2.num_unions;
+        let avg_ji = (rate1.avg_ji * rate1.num_unions as f64
+            + rate2.avg_ji * rate2.num_unions as f64)
+            / num_unions as f64;
+        // if we have a NaN, we've divided by zero. We will set the initial average
+        // to 1.0
+        let avg_ji = if avg_ji.is_finite() { avg_ji } else { 1.0 };
+
+        JaccardIndex {
+            avg_ji,
+            num_unions,
+            // the stability limit is going to be constant for documents we see based on the initial
+            // stability rate the user chooses, or the default, so we just use rate1
+            stability_limit: rate1.stability_limit,
+        }
+        .into()
+    }
+
+    // https://en.wikipedia.org/wiki/Jaccard_index
+    // This might be further improved by using minhash
+    fn update_jaccard_index(
+        ji: JaccardIndex,
+        union_size: usize,
+        intersection_size: usize,
+    ) -> JaccardIndex {
+        if ji.num_unions == 0 {
+            return JaccardIndex {
+                num_unions: 1,
+                avg_ji: intersection_size as f64 / union_size as f64,
+                stability_limit: ji.stability_limit,
+            };
+        }
+        let new_jaccard_index = intersection_size as f64 / union_size as f64;
+        let new_avg_ji =
+            (ji.avg_ji * ji.num_unions as f64 + new_jaccard_index) / (ji.num_unions + 1) as f64;
+        JaccardIndex {
+            num_unions: ji.num_unions + 1,
+            avg_ji: new_avg_ji,
+            stability_limit: ji.stability_limit,
+        }
+    }
+
+    /// union unions together two Schema::Documents returning a single Document schema that matches
     /// all document values matched by either `self` or `other`. Additional properties will
     /// be allowed if either `self` or `other` allows them.
-    fn union(self, other: Document) -> Document {
-        Document {
-            keys: Document::union_keys(self.keys, other.keys),
-            required: self
-                .required
-                .intersection(&other.required)
-                .cloned()
-                .collect(),
-            additional_properties: self.additional_properties || other.additional_properties,
+    ///
+    /// If either of the two documents has a JaccardIndex, the union calculates the moving
+    /// average. Once the 5th union is reached, each union will inspect the index
+    /// and return a Document that allows any properties if the index is less than the
+    /// stability_limit specified in the JaccardIndex struct. Prior to comparison, the inverse
+    /// of the numer of unions is added to the average Jaccard index to allow for some variance,
+    /// becoming more sensitive as more unions are processed. Documents that are a subset or superset
+    /// of each other will be considered equivalent and will always have a JaccardIndex of 1.
+    pub fn union(self, other: Document) -> Document {
+        if self == Document::any() || other == Document::any() {
+            return Document::any();
+        }
+        if let Some(jaccard_index) = Document::get_jaccard_index(&self, &other) {
+            let union = Document::union_keys(self.keys.clone(), other.keys.clone());
+            let left_keys = self.keys.keys().collect::<HashSet<_>>();
+            let right_keys = other.keys.keys().collect::<HashSet<_>>();
+            let intersection_count = left_keys.intersection(&right_keys).count();
+            // if the left keys are a subset of the right keys, or vice versa, then we will consider
+            // then equivalent documents
+            let intersection_size =
+                if left_keys.is_subset(&right_keys) || left_keys.is_superset(&right_keys) {
+                    union.len()
+                } else {
+                    intersection_count
+                };
+
+            let jaccard_index =
+                Document::update_jaccard_index(jaccard_index, union.len(), intersection_size);
+
+            // as the number of unions grows, this number will become smaller and smaller
+            let stabilization_rate = 1.0 / jaccard_index.num_unions as f64;
+            if jaccard_index.num_unions >= 5
+                && (jaccard_index.avg_ji + stabilization_rate) < jaccard_index.stability_limit
+            {
+                Document::any()
+            } else {
+                Document {
+                    keys: union,
+                    required: self
+                        .required
+                        .intersection(&other.required)
+                        .cloned()
+                        .collect(),
+                    additional_properties: self.additional_properties
+                        || other.additional_properties,
+                    jaccard_index: Some(jaccard_index),
+                }
+            }
+        } else {
+            Document {
+                keys: Document::union_keys(self.keys, other.keys),
+                required: self
+                    .required
+                    .intersection(&other.required)
+                    .cloned()
+                    .collect(),
+                additional_properties: self.additional_properties || other.additional_properties,
+                ..Default::default()
+            }
         }
     }
 
@@ -1624,10 +1781,12 @@ impl Document {
     /// satisfy one of the input schemas will not satisfy the resulting schema unless one is a
     /// subset of the other.
     pub fn merge(self, other: Document) -> Document {
+        let jaccard_index = Document::get_jaccard_index(&self, &other);
         Document {
             keys: Document::union_keys(self.keys, other.keys),
             required: self.required.into_iter().chain(other.required).collect(),
             additional_properties: self.additional_properties || other.additional_properties,
+            jaccard_index,
         }
     }
 

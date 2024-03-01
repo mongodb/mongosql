@@ -39,6 +39,7 @@ lazy_static! {
         },
         required: set! {"a".into()},
         additional_properties: false,
+        ..Default::default()
     });
     pub static ref TEST_DOCUMENT_SCHEMA_B: Schema = Schema::Document(Document {
         keys: map! {
@@ -46,6 +47,7 @@ lazy_static! {
         },
         required: set! {"b".into()},
         additional_properties: false,
+        ..Default::default()
     });
     pub static ref TEST_DOCUMENT_SCHEMA_C: Schema = Schema::Document(Document {
         keys: map! {
@@ -53,6 +55,7 @@ lazy_static! {
         },
         required: set! {"c".into()},
         additional_properties: false,
+        ..Default::default()
     });
     pub static ref TEST_DOCUMENT_SCHEMA_S: Schema = Schema::Document(Document {
         keys: map! {
@@ -60,6 +63,7 @@ lazy_static! {
         },
         required: set! {"s".into()},
         additional_properties: false,
+        ..Default::default()
     });
 }
 

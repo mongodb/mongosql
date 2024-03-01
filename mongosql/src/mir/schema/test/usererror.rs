@@ -86,12 +86,14 @@ mod cannot_merge_objects {
                 keys: crate::map! {"a".into() => Schema::Atomic(Atomic::Integer) },
                 required: set! {"a".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             Schema::Document(crate::schema::Document {
                 keys: crate::map! {"a".into() => Schema::Atomic(Atomic::Double) },
                 required: set! {"a".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             crate::schema::Satisfaction::Must,
         ),
         expected = "Cannot merge objects because they have overlapping key(s): `a`"
@@ -104,12 +106,14 @@ mod cannot_merge_objects {
                 keys: crate::map! {"a".into() => Schema::Atomic(Atomic::Integer), "b".into() => Schema::Atomic(Atomic::String) },
                 required: set! {"a".into(), "b".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             Schema::Document(crate::schema::Document {
                 keys: crate::map! {"a".into() => Schema::Atomic(Atomic::Double), "b".into() => Schema::Any },
                 required: set! {"a".into(), "b".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             crate::schema::Satisfaction::May,
         ),
         expected = "Cannot merge objects because they have overlapping key(s): `a`, `b`"
@@ -121,12 +125,14 @@ mod cannot_merge_objects {
                 keys: crate::map! {"a".into() => Schema::Atomic(Atomic::Integer), "b".into() => Schema::Atomic(Atomic::String) },
                 required: set! {"a".into(), "b".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             Schema::Document(crate::schema::Document {
                 keys: crate::map! {"a".into() => Schema::Atomic(Atomic::Double), "c".into() => Schema::Any },
                 required: set! {"a".into(), "c".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             crate::schema::Satisfaction::Must,
         ),
         expected = "Cannot merge objects because they have overlapping key(s): `a`"

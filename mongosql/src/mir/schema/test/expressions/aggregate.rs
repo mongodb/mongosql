@@ -380,6 +380,7 @@ mod merge_documents {
             keys: map! {"foo".into() => Schema::Atomic(Atomic::Integer)},
             required: set! {},
             additional_properties: true,
+            ..Default::default()
         })),
         input = AggregationExpr::Function(AggregationFunctionApplication {
             function: AggregationFunction::MergeDocuments,
@@ -387,9 +388,10 @@ mod merge_documents {
             distinct: false,
         }),
         schema_env = map! {("bar", 0u16).into() => Schema::Document(Document {
-            keys: map!{"foo".into() => Schema::Atomic(Atomic::Integer)},
-            required: set!{},
-            additional_properties: true,
+        keys: map!{"foo".into() => Schema::Atomic(Atomic::Integer)},
+        required: set!{},
+        additional_properties: true,
+        ..Default::default()
         })},
     );
 }

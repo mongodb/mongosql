@@ -29,7 +29,8 @@ mod mql_intrinsic {
                 },
                 required: set! {},
                 additional_properties: false,
-            })
+                ..Default::default()
+                })
         },
     );
 }

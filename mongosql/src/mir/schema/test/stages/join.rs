@@ -510,7 +510,8 @@ mod standard {
                 },
                 required: set! { "a".into() },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
 }

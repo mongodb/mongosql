@@ -228,12 +228,14 @@ pub fn create_catalog(schemas: Vec<Schema>) -> Result<Catalog, Error> {
         keys,
         required,
         additional_properties: false,
-      }),
+        ..Default::default()
+        }),
       (TEST_DB.to_string(), "bar".to_string()).into() => Schema::Document( Document {
         keys: map!{},
         required: set!{},
-        additional_properties: false
-      }),
+        additional_properties: false,
+        ..Default::default()
+        }),
     })
 }
 

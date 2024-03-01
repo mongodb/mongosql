@@ -317,14 +317,16 @@ mod expression {
                 },
                 required: set!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             ("foo", 0u16).into() => Schema::Document( Document {
                 keys: map! {
                     "a".into() => Schema::Atomic(Atomic::Integer),
                 },
                 required: set!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
     test_algebrize!(
@@ -346,14 +348,16 @@ mod expression {
                 },
                 required: set!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             ("foo", 0u16).into() => Schema::Document( Document {
                 keys: map! {
                     "a".into() => Schema::Atomic(Atomic::Integer),
                 },
                 required: set!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
     test_algebrize!(
@@ -372,7 +376,8 @@ mod expression {
                 },
                 required: set!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
     test_algebrize!(
@@ -391,7 +396,8 @@ mod expression {
                 },
                 required: set!{"a".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
     test_algebrize!(
@@ -411,7 +417,8 @@ mod expression {
                 },
                 required: set!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
     test_algebrize!(
@@ -431,7 +438,8 @@ mod expression {
                 },
                 required: set!{"a".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
     test_algebrize!(
@@ -451,7 +459,8 @@ mod expression {
                 },
                 required: set!{"a".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
     test_algebrize!(
@@ -467,14 +476,16 @@ mod expression {
                 },
                 required: set!{"a".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             Key::bot(1u16) => Schema::Document( Document {
                 keys: map! {
                     "a".into() => Schema::Atomic(Atomic::Integer),
                 },
                 required: set!{"a".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
     test_algebrize!(
@@ -500,22 +511,26 @@ mod expression {
                         keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
                         required: set!{},
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 required: set!{"a".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             ("super_test", 0u16).into() => Schema::Document( Document {
                 keys: map! {
                     "a".into() => Schema::Document( Document {
                         keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
                         required: set!{},
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 required: set!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
     test_algebrize!(
@@ -534,22 +549,26 @@ mod expression {
                         keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
                         required: set!{},
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 required: set!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             ("super_test", 0u16).into() => Schema::Document( Document {
                 keys: map! {
                     "a".into() => Schema::Document( Document {
                         keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
                         required: set!{},
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 required: set!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
     test_algebrize!(
@@ -575,22 +594,26 @@ mod expression {
                         keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
                         required: set!{},
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 required: set!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             ("super_test", 0u16).into() => Schema::Document( Document {
                 keys: map! {
                     "a".into() => Schema::Document( Document {
                         keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
                         required: set!{"c".into()},
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 required: set!{"a".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
     test_algebrize!(
@@ -613,18 +636,21 @@ mod expression {
                         keys: map! {"a".into() => Schema::Atomic(Atomic::Double)},
                         required: set!{},
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 required: set!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             ("foo", 0u16).into() => Schema::Document( Document {
                 keys: map! {
                     "a".into() => Schema::Atomic( Atomic::Integer),
                 },
                 required: set!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
     test_algebrize!(
@@ -654,18 +680,21 @@ mod expression {
                         keys: map! {"a".into() => Schema::Atomic(Atomic::Double)},
                         required: set!{},
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 required: set!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             ("foo", 0u16).into() => Schema::Document( Document {
                 keys: map! {
                     "a".into() => Schema::Atomic( Atomic::Integer),
                 },
                 required: set!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
     test_algebrize!(
@@ -684,22 +713,26 @@ mod expression {
                         keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
                         required: set!{},
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 required: set!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             ("super_test", 0u16).into() => Schema::Document( Document {
                 keys: map! {
                     "a".into() => Schema::Document( Document {
                         keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
                         required: set!{},
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 required: set!{"a".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
     test_algebrize!(
@@ -3728,6 +3761,7 @@ mod from_clause {
                     "foo1".into()
                 },
                 additional_properties: false,
+                ..Default::default()
             }),
             Schema::Document(Document {
                 keys: map! {
@@ -3739,6 +3773,7 @@ mod from_clause {
                     "foo2".into()
                 },
                 additional_properties: false,
+                ..Default::default()
             }),
             "d".into(),
             crate::schema::Satisfaction::Must,
@@ -4029,6 +4064,7 @@ mod from_clause {
                 },
                 required: set! {"arr".into()},
                 additional_properties: false,
+                ..Default::default()
             })),
         );
         test_algebrize!(
@@ -4059,6 +4095,7 @@ mod from_clause {
                 },
                 required: set! {"arr".into()},
                 additional_properties: false,
+                ..Default::default()
             })),
         );
         test_algebrize!(
@@ -4092,10 +4129,12 @@ mod from_clause {
                         },
                         required: set!{"arr".into()},
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 required: set! {"doc".into()},
                 additional_properties: false,
+                ..Default::default()
             })),
         );
         test_algebrize!(
@@ -4169,7 +4208,8 @@ mod from_clause {
                     },
                     required: set!{ "arr".into() },
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
             },
             catalog = make_catalog(Schema::Document(Document {
                 keys: map! {
@@ -4177,6 +4217,7 @@ mod from_clause {
                 },
                 required: set! {"arr".into()},
                 additional_properties: false,
+                ..Default::default()
             })),
         );
     }
@@ -4392,7 +4433,8 @@ mod order_by_clause {
                 },
                 required: set!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
         catalog = catalog(vec![("test", "baz")]),
     );
@@ -4824,7 +4866,8 @@ mod subquery {
                 },
                 required: set!{"b".to_string()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
     test_algebrize!(
@@ -5005,7 +5048,8 @@ mod subquery {
                 },
                 required: set!{"b".to_string()},
                 additional_properties: false,
-            })
+                ..Default::default()
+                })
         },
     );
     test_algebrize!(
@@ -5351,7 +5395,8 @@ mod subquery {
                 },
                 required: set!{"b".to_string()},
                 additional_properties: false,
-            })
+                ..Default::default()
+                })
         },
     );
     test_algebrize!(
@@ -5548,7 +5593,8 @@ mod user_error_messages {
                     "foo1".into()
                 },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             Schema::Document(Document {
                 keys: map! {
                     "bar".into() => Schema::Atomic(Atomic::Integer),
@@ -5561,6 +5607,7 @@ mod user_error_messages {
                     "foo2".into()
                 },
             additional_properties: false,
+            ..Default::default()
             }),
             "foo".into(),
             crate::schema::Satisfaction::Must,

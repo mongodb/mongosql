@@ -52,7 +52,8 @@ mod no_index {
                     },
                     required: set! { "arr".into() },
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
             },
             min_size: 0,
             max_size: None,
@@ -64,6 +65,7 @@ mod no_index {
             },
             required: set! { "arr".into() },
             additional_properties: false,
+            ..Default::default()
         })),
     );
 
@@ -81,7 +83,8 @@ mod no_index {
                     },
                     required: set! { "arr".into() },
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
             },
             min_size: 0,
             max_size: None,
@@ -97,7 +100,8 @@ mod no_index {
             },
             required: set! { "arr".into() },
             additional_properties: false,
-        })),
+            ..Default::default()
+            })),
     );
 
     test_schema!(
@@ -110,7 +114,8 @@ mod no_index {
                     },
                     required: set! { "arr".into() },
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
             },
             min_size: 0,
             max_size: None,
@@ -126,6 +131,7 @@ mod no_index {
             },
             required: set! {},
             additional_properties: false,
+            ..Default::default()
         })),
     );
 
@@ -139,7 +145,8 @@ mod no_index {
                     },
                     required: set! { "arr".into() },
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
             },
             min_size: 0,
             max_size: None,
@@ -151,6 +158,7 @@ mod no_index {
             },
             required: set! { "arr".into() },
             additional_properties: false,
+            ..Default::default()
         })),
     );
 
@@ -164,7 +172,8 @@ mod no_index {
                     },
                     required: set! { "arr".into() },
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
             },
             min_size: 0,
             max_size: None,
@@ -179,6 +188,7 @@ mod no_index {
             },
             required: set! {},
             additional_properties: false,
+            ..Default::default()
         })),
     );
 
@@ -195,7 +205,8 @@ mod no_index {
                     },
                     required: set! { "arr".into() },
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
             },
             min_size: 0,
             max_size: None,
@@ -210,7 +221,8 @@ mod no_index {
             },
             required: set! { "arr".into() },
             additional_properties: false,
-        })),
+            ..Default::default()
+            })),
     );
 
     test_schema!(
@@ -239,7 +251,8 @@ mod no_index {
                 },
                 required: set! { "arr".into() },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
         catalog = make_catalog(Schema::Document(Document {
             keys: map! {
@@ -247,6 +260,7 @@ mod no_index {
             },
             required: set! { "arr".into() },
             additional_properties: false,
+            ..Default::default()
         })),
     );
 
@@ -266,7 +280,8 @@ mod no_index {
                         },
                         required: set! { },
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 min_size: 0,
                 max_size: None,
@@ -278,6 +293,7 @@ mod no_index {
                 },
                 required: set! { "arr".into() },
                 additional_properties: false,
+                ..Default::default()
             })),
         );
 
@@ -296,7 +312,8 @@ mod no_index {
                         },
                         required: set! { },
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 min_size: 0,
                 max_size: None,
@@ -312,7 +329,8 @@ mod no_index {
                 },
                 required: set! { "arr".into() },
                 additional_properties: false,
-            })),
+                ..Default::default()
+                })),
         );
 
         test_schema!(
@@ -329,7 +347,8 @@ mod no_index {
                         },
                         required: set! { },
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 min_size: 0,
                 max_size: None,
@@ -345,7 +364,8 @@ mod no_index {
                 },
                 required: set! { },
                 additional_properties: false,
-            })),
+                ..Default::default()
+                })),
         );
 
         test_schema!(
@@ -361,7 +381,8 @@ mod no_index {
                         },
                         required: set! { },
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 min_size: 0,
                 max_size: None,
@@ -373,6 +394,7 @@ mod no_index {
                 },
                 required: set! {},
                 additional_properties: false,
+                ..Default::default()
             })),
         );
     }
@@ -395,7 +417,8 @@ mod index_does_not_conflict {
                         },
                         required: set! { "arr".into(), "idx".into() },
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 min_size: 0,
                 max_size: None,
@@ -407,6 +430,7 @@ mod index_does_not_conflict {
                 },
                 required: set! { "arr".into() },
                 additional_properties: false,
+                ..Default::default()
             })),
         );
 
@@ -428,7 +452,8 @@ mod index_does_not_conflict {
                         },
                         required: set! { "arr".into(), "idx".into() },
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 min_size: 0,
                 max_size: None,
@@ -444,6 +469,7 @@ mod index_does_not_conflict {
                 },
                 required: set! { "arr".into() },
                 additional_properties: false,
+                ..Default::default()
             })),
         );
 
@@ -458,7 +484,8 @@ mod index_does_not_conflict {
                         },
                         required: set! { "arr".into(), "idx".into() },
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 min_size: 0,
                 max_size: None,
@@ -474,6 +501,7 @@ mod index_does_not_conflict {
                 },
                 required: set! {},
                 additional_properties: false,
+                ..Default::default()
             })),
         );
 
@@ -488,7 +516,8 @@ mod index_does_not_conflict {
                         },
                         required: set! { "arr".into(), "idx".into() },
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 min_size: 0,
                 max_size: None,
@@ -500,6 +529,7 @@ mod index_does_not_conflict {
                 },
                 required: set! { "arr".into() },
                 additional_properties: false,
+                ..Default::default()
             })),
         );
     }
@@ -524,7 +554,8 @@ mod index_does_not_conflict {
                         },
                         required: set! { "idx".into() },
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 min_size: 0,
                 max_size: None,
@@ -536,6 +567,7 @@ mod index_does_not_conflict {
                 },
                 required: set! { "arr".into() },
                 additional_properties: false,
+                ..Default::default()
             })),
         );
 
@@ -558,7 +590,8 @@ mod index_does_not_conflict {
                         },
                         required: set! { "idx".into() },
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 min_size: 0,
                 max_size: None,
@@ -574,6 +607,7 @@ mod index_does_not_conflict {
                 },
                 required: set! { "arr".into() },
                 additional_properties: false,
+                ..Default::default()
             })),
         );
 
@@ -595,7 +629,8 @@ mod index_does_not_conflict {
                         },
                         required: set! { "idx".into() },
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 min_size: 0,
                 max_size: None,
@@ -611,6 +646,7 @@ mod index_does_not_conflict {
                 },
                 required: set! {},
                 additional_properties: false,
+                ..Default::default()
             })),
         );
 
@@ -625,7 +661,8 @@ mod index_does_not_conflict {
                         },
                         required: set! { "arr".into(), "idx".into() },
                         additional_properties: false,
-                    }),
+                        ..Default::default()
+                        }),
                 },
                 min_size: 0,
                 max_size: None,
@@ -637,6 +674,7 @@ mod index_does_not_conflict {
                 },
                 required: set! { "arr".into() },
                 additional_properties: false,
+                ..Default::default()
             })),
         );
     }
@@ -655,16 +693,19 @@ mod index_does_not_conflict {
                                     },
                                     required: set! { "arr".into() },
                                     additional_properties: false,
-                                }),
+                                    ..Default::default()
+                                    }),
                             },
                             required: set! { "b".into() },
                             additional_properties: false,
-                        }),
+                            ..Default::default()
+                            }),
                         "idx".into() => Schema::Atomic(Atomic::Long),
                     },
                     required: set! { "a".into(), "idx".into() },
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
             },
             min_size: 0,
             max_size: None,
@@ -694,14 +735,17 @@ mod index_does_not_conflict {
                             },
                             required: set! { "arr".into() },
                             additional_properties: false,
-                        })
+                            ..Default::default()
+                            })
                     },
                     required: set! { "b".into() },
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
             },
             required: set! { "a".into() },
             additional_properties: false,
+            ..Default::default()
         })),
     );
 
@@ -716,14 +760,16 @@ mod index_does_not_conflict {
                     },
                     required: set! { "arr".into(), "idx".into() },
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
                 ("bar", 0u16).into() => Schema::Document(Document {
                     keys: map! {
                         "idx".into() => Schema::Atomic(Atomic::String),
                     },
                     required: set! { "idx".into() },
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
             },
             min_size: 0,
             max_size: None,
@@ -760,14 +806,16 @@ mod index_does_not_conflict {
                 },
                 required: set! { "arr".into() },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             Namespace {db: "test".into(), collection: "bar".into()} => Schema::Document(Document {
                 keys: map! {
                     "idx".into() => Schema::Atomic(Atomic::String),
                 },
                 required: set! { "idx".into() },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         }),
     );
 }
@@ -787,6 +835,7 @@ mod index_may_conflict {
             },
             required: set! { "arr".into(), "idx".into() },
             additional_properties: false,
+            ..Default::default()
         })),
     );
 
@@ -801,7 +850,8 @@ mod index_may_conflict {
                     },
                     required: set! { "arr".into(), "idx".into() },
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
             },
             min_size: 0,
             max_size: None,
@@ -814,6 +864,7 @@ mod index_may_conflict {
             },
             required: set! { "arr".into() },
             additional_properties: false,
+            ..Default::default()
         })),
         schema_checking_mode = SchemaCheckingMode::Relaxed,
     );
@@ -834,6 +885,7 @@ mod index_must_conflict {
             },
             required: set! { "arr".into(), "idx".into() },
             additional_properties: false,
+            ..Default::default()
         })),
     );
 
@@ -849,6 +901,7 @@ mod index_must_conflict {
             },
             required: set! { "arr".into(), "idx".into() },
             additional_properties: false,
+            ..Default::default()
         })),
         schema_checking_mode = SchemaCheckingMode::Relaxed,
     );

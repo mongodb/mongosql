@@ -46,7 +46,8 @@ test_schema!(
             },
             required: set! { "a".into(), "b".into() },
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
     },
     catalog = Catalog::new(map! {
         Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
@@ -91,7 +92,8 @@ test_schema!(
             },
             required: set! {"a".into(), "b".into()},
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
     },
     catalog = Catalog::new(map! {
         Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
@@ -129,7 +131,8 @@ test_schema!(
             },
             required: set! {"a".into(), "b".into(), "c".into()},
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
     },
     catalog = Catalog::new(map! {
         Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),

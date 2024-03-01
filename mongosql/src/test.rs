@@ -119,14 +119,16 @@ mod test_mql_schema_env_to_json_schema {
                 },
                 required: set! { "a".into() },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             ("bar", 0u16).into() => Schema::Document( Document{
                 keys: map! {
                     "b".into() => Schema::Atomic(Atomic::String)
                 },
                 required: set! { "b".into() },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -154,7 +156,8 @@ mod test_mql_schema_env_to_json_schema {
                 },
                 required: set! { "b".into() },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -183,14 +186,16 @@ mod test_mql_schema_env_to_json_schema {
                 },
                 required: set! { "a".into() },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             ("bar", 0u16).into() => Schema::Document( Document{
                 keys: map! {
                     "b".into() => Schema::Atomic(Atomic::String)
                 },
                 required: set! { "b".into() },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -248,14 +253,16 @@ mod test_mql_schema_env_to_json_schema {
                 },
                 required: set! { "a".into() },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             ("bar", 0u16).into() => Schema::Document( Document{
                 keys: map! {
                     "b".into() => Schema::Atomic(Atomic::String)
                 },
                 required: set! { "b".into() },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
         mapping_registry = {
             let mut mr = MqlMappingRegistry::default();
@@ -360,7 +367,8 @@ mod select_list_order {
                 },
                 required: map!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             Namespace {db: "test".to_string(), collection: "bar".to_string()} => Schema::Document(Document {
                 keys: map! {
                     "a".to_string() => Schema::Array(Box::new(Schema::Atomic(Atomic::Integer))),
@@ -369,7 +377,8 @@ mod select_list_order {
                 },
                 required: map!{},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         });
     }
 

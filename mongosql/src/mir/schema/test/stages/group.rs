@@ -58,7 +58,8 @@ test_schema!(
             },
             required: set! { "a".into(), "b".into() },
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
     },
     catalog = Catalog::new(map! {
         Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
@@ -84,7 +85,8 @@ test_schema!(
             },
             required: set! {"a".into(), "b".into()},
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
     },
     catalog = Catalog::new(map! {
         Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
@@ -101,7 +103,8 @@ test_schema!(
                 },
                 required: set! { "A".into() },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
         min_size: 0,
         max_size: None,
@@ -124,7 +127,8 @@ test_schema!(
             },
             required: set! { "a".into(), },
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
     },
     catalog = Catalog::new(map! {
         Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
@@ -141,7 +145,8 @@ test_schema!(
                 },
                 required: set! { "b".into() },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
         min_size: 0,
         max_size: None,
@@ -164,7 +169,8 @@ test_schema!(
             },
             required: set! { "b".into(), },
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
     },
     catalog = Catalog::new(map! {
         Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
@@ -232,7 +238,8 @@ test_schema!(
             },
             required: set! { "a".into() },
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
     },
     catalog = Catalog::new(map! {
         Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),
@@ -255,7 +262,8 @@ test_schema!(
                     "literal".into(),
                 },
                 additional_properties: false,
-            })
+                ..Default::default()
+                })
         },
         min_size: 0,
         max_size: Some(1),

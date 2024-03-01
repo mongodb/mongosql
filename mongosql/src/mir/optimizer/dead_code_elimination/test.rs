@@ -23,7 +23,8 @@ lazy_static! {
             },
             required: set! {},
             additional_properties: true,
-        }),
+            ..Default::default()
+            }),
     });
 }
 

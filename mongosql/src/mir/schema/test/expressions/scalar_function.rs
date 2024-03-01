@@ -2530,11 +2530,13 @@ mod merge_objects {
                 keys: map! {"a".into() => Schema::Atomic(Atomic::Integer) },
                 required: set! {"a".into()},
                 additional_properties: false,
+                ..Default::default()
             }),
             Schema::Document(Document {
                 keys: map! {"a".into() => Schema::Atomic(Atomic::Double) },
                 required: set! {"a".into()},
                 additional_properties: false,
+                ..Default::default()
             }),
             Satisfaction::Must,
         )),
@@ -2551,13 +2553,15 @@ mod merge_objects {
                 keys: map! {"a".into() => Schema::Atomic(Atomic::Integer)},
                 required: set! {"a".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             ("car", 0u16).into() => Schema::Document(
             Document {
                 keys: map! {"a".into() => Schema::Atomic(Atomic::Double)},
                 required: set! {"a".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
 
@@ -2576,6 +2580,7 @@ mod merge_objects {
                 "a".into(), "d".into(), "e".into(),
             },
             additional_properties: false,
+            ..Default::default()
         })),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::MergeObjects,
@@ -2594,7 +2599,8 @@ mod merge_objects {
                 },
                 required: set! {"a".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             ("baz", 0u16).into() => Schema::Document(
             Document {
                 keys: map! {
@@ -2603,7 +2609,8 @@ mod merge_objects {
                 },
                 required: set! {"d".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             ("foo", 0u16).into() => Schema::Document(
             Document {
                 keys: map! {
@@ -2612,7 +2619,8 @@ mod merge_objects {
                 },
                 required: set! {"e".into()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
 
@@ -2634,6 +2642,7 @@ mod merge_objects {
                 "a".into(), "e".into(),
             },
             additional_properties: false,
+            ..Default::default()
         })),
         input = Expression::ScalarFunction(ScalarFunctionApplication::new(
             ScalarFunction::MergeObjects,
@@ -2652,7 +2661,8 @@ mod merge_objects {
                         },
                     required: set! {"a".into()},
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
                 Schema::Document(
                     Document {
                         keys: map! {
@@ -2661,7 +2671,8 @@ mod merge_objects {
                         },
                     required: set! {"a".into(), "b".into()},
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
                 Schema::Document(
                     Document {
                         keys: map! {
@@ -2669,7 +2680,8 @@ mod merge_objects {
                         },
                     required: set! {"a".into()},
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
             ]),
             ("bar", 0u16).into() => Schema::AnyOf(set![
                 Schema::Document(
@@ -2681,7 +2693,8 @@ mod merge_objects {
                         },
                     required: set! {"e".into(), "d".into()},
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
                 Schema::Document(
                     Document {
                         keys: map! {
@@ -2690,7 +2703,8 @@ mod merge_objects {
                         },
                     required: set! {"e".into()},
                     additional_properties: false,
-                }),
+                    ..Default::default()
+                    }),
             ]),
         },
     );

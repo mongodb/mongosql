@@ -61,7 +61,8 @@ mod exists {
                 },
                 required: set! { "a".into() },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
         catalog = Catalog::new(map! {
             Namespace {db: "test".into(), collection: "foo".into()} => ANY_DOCUMENT.clone(),
@@ -173,7 +174,8 @@ mod subquery_expr {
                 },
                 required: set! { "a".into() },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
     );
 
@@ -214,7 +216,8 @@ mod subquery_expr {
                 },
                 required: set! { "a".into() },
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         },
         catalog = Catalog::new(map! {
             Namespace {db: "test".into(), collection: "bar".into()} => ANY_DOCUMENT.clone(),

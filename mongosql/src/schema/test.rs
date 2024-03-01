@@ -118,6 +118,7 @@ mod union_schemata {
             },
             required: set! {},
             additional_properties: false,
+            ..Default::default()
         }),
         left = Document(Document {
             keys: map! {
@@ -125,6 +126,7 @@ mod union_schemata {
             },
             required: set! {"a".to_string()},
             additional_properties: false,
+            ..Default::default()
         }),
         right = Document(Document {
             keys: map! {
@@ -132,6 +134,7 @@ mod union_schemata {
             },
             required: set! {"b".to_string()},
             additional_properties: false,
+            ..Default::default()
         }),
     );
 
@@ -144,6 +147,7 @@ mod union_schemata {
             },
             required: set! {"a".to_string(), "b".to_string()},
             additional_properties: false,
+            ..Default::default()
         }),
         left = Document(Document {
             keys: map! {
@@ -152,6 +156,7 @@ mod union_schemata {
             },
             required: set! {"a".to_string(), "b".to_string()},
             additional_properties: false,
+            ..Default::default()
         }),
         right = Document(Document {
             keys: map! {
@@ -160,6 +165,7 @@ mod union_schemata {
             },
             required: set! {"a".to_string(), "b".to_string()},
             additional_properties: false,
+            ..Default::default()
         }),
     );
 
@@ -172,6 +178,7 @@ mod union_schemata {
             },
             required: set! {"a".to_string()},
             additional_properties: false,
+            ..Default::default()
         }),
         left = Document(Document {
             keys: map! {
@@ -180,6 +187,7 @@ mod union_schemata {
             },
             required: set! {"a".to_string(), "b".to_string()},
             additional_properties: false,
+            ..Default::default()
         }),
         right = Document(Document {
             keys: map! {
@@ -188,6 +196,7 @@ mod union_schemata {
             },
             required: set! {"a".to_string()},
             additional_properties: false,
+            ..Default::default()
         }),
     );
 
@@ -209,6 +218,7 @@ mod union_schemata {
             },
             required: set! {"a".to_string()},
             additional_properties: true,
+            ..Default::default()
         }),
         left = Document(Document {
             keys: map! {
@@ -217,6 +227,7 @@ mod union_schemata {
             },
             required: set! {"a".to_string(), "b".to_string()},
             additional_properties: false,
+            ..Default::default()
         }),
         right = Document(Document {
             keys: map! {
@@ -226,6 +237,7 @@ mod union_schemata {
             },
             required: set! {"a".to_string()},
             additional_properties: true,
+            ..Default::default()
         }),
     );
 }
@@ -335,16 +347,19 @@ mod to_bson {
                                      keys: map!{},
                                      required: set![],
                                      additional_properties: true,
-                                 }),
+                                     ..Default::default()
+                                     }),
                                  Schema::Atomic(Atomic::Null),
                          ]),
                       },
                       required: set!["a".into(), "b".into(), "c".into()],
                       additional_properties: false,
-                 }),
+                      ..Default::default()
+                      }),
             },
             required: set![],
             additional_properties: false,
+            ..Default::default()
         })
     );
 }
@@ -399,6 +414,7 @@ mod from_json {
                 keys: map! {"a".to_string() => Atomic(String)},
                 required: set![],
                 additional_properties: true,
+                ..Default::default()
             }),
             schema::ANY_ARRAY.clone(),
             Atomic(String),
@@ -535,6 +551,7 @@ mod from_json {
             ],
             required: set!["a".to_string()],
             additional_properties: true,
+            ..Default::default()
         })),
         json_schema = json_schema::Schema {
             bson_type: Some(BsonType::Single(BsonTypeName::Object)),
@@ -574,7 +591,8 @@ mod from_json {
         schema_schema = Ok(Document(Document {
             keys: map![],
             required: set!["a".to_string()],
-            additional_properties: true
+            additional_properties: true,
+            ..Default::default()
         })),
         json_schema = json_schema::Schema {
             bson_type: Some(BsonType::Single(BsonTypeName::Object)),
@@ -593,6 +611,7 @@ mod from_json {
             ],
             required: set!["a".to_string()],
             additional_properties: true,
+            ..Default::default()
         })),
         json_schema = json_schema::Schema {
             bson_type: Some(BsonType::Single(BsonTypeName::Object)),
@@ -667,6 +686,7 @@ mod from_json {
                 ],
                 required: set!["a".to_string()],
                 additional_properties: true,
+                ..Default::default()
             })
         ])),
         json_schema = json_schema::Schema {
@@ -698,7 +718,8 @@ mod from_json {
             Document(Document {
                 keys: map![],
                 required: set![],
-                additional_properties: true
+                additional_properties: true,
+                ..Default::default()
             })
         ])),
         json_schema = json_schema::Schema {
@@ -803,6 +824,7 @@ mod satisfies {
             keys: map![],
             required: set![],
             additional_properties: true,
+            ..Default::default()
         })
     );
     test_satisfies!(
@@ -880,7 +902,8 @@ mod satisfies {
                 "b".to_string() => Atomic(Integer),
             ],
             required: set!["a".to_string()],
-            additional_properties: true
+            additional_properties: true,
+            ..Default::default()
         }),
         other = Document(Document {
             keys: map![
@@ -889,6 +912,7 @@ mod satisfies {
             ],
             required: set!["a".to_string()],
             additional_properties: true,
+            ..Default::default()
         }),
     );
     test_satisfies!(
@@ -901,6 +925,7 @@ mod satisfies {
             ],
             required: set!["a".to_string()],
             additional_properties: false,
+            ..Default::default()
         }),
         other = Document(Document {
             keys: map![
@@ -909,6 +934,7 @@ mod satisfies {
             ],
             required: set!["a".to_string()],
             additional_properties: false,
+            ..Default::default()
         }),
     );
     test_satisfies!(
@@ -921,6 +947,7 @@ mod satisfies {
             ],
             required: set!["a".to_string()],
             additional_properties: false,
+            ..Default::default()
         }),
         other = Document(Document {
             keys: map![
@@ -929,6 +956,7 @@ mod satisfies {
             ],
             required: set!["a".to_string()],
             additional_properties: false,
+            ..Default::default()
         }),
     );
     test_satisfies!(
@@ -941,6 +969,7 @@ mod satisfies {
             ],
             required: set![],
             additional_properties: false,
+            ..Default::default()
         }),
         other = Document(Document {
             keys: map![
@@ -949,6 +978,7 @@ mod satisfies {
             ],
             required: set!["a".to_string()],
             additional_properties: false,
+            ..Default::default()
         }),
     );
     test_satisfies!(
@@ -960,6 +990,7 @@ mod satisfies {
             ],
             required: set![],
             additional_properties: false,
+            ..Default::default()
         }),
         other = Document(Document {
             keys: map![
@@ -968,6 +999,7 @@ mod satisfies {
             ],
             required: set!["a".to_string()],
             additional_properties: false,
+            ..Default::default()
         }),
     );
     test_satisfies!(
@@ -979,6 +1011,7 @@ mod satisfies {
             ],
             required: set![],
             additional_properties: true,
+            ..Default::default()
         }),
         other = Document(Document {
             keys: map![
@@ -987,6 +1020,7 @@ mod satisfies {
             ],
             required: set!["a".to_string()],
             additional_properties: true,
+            ..Default::default()
         }),
     );
     test_satisfies!(
@@ -999,6 +1033,7 @@ mod satisfies {
             ],
             required: set!["a".to_string()],
             additional_properties: false,
+            ..Default::default()
         }),
         other = Document(Document {
             keys: map![
@@ -1007,6 +1042,7 @@ mod satisfies {
             ],
             required: set![],
             additional_properties: false,
+            ..Default::default()
         }),
     );
     test_satisfies!(
@@ -1019,6 +1055,7 @@ mod satisfies {
             ],
             required: set![],
             additional_properties: true,
+            ..Default::default()
         }),
         other = Document(Document {
             keys: map![
@@ -1027,6 +1064,7 @@ mod satisfies {
             ],
             required: set![],
             additional_properties: false,
+            ..Default::default()
         }),
     );
     test_satisfies!(
@@ -1039,6 +1077,7 @@ mod satisfies {
             ],
             required: set!["a".to_string()],
             additional_properties: false,
+            ..Default::default()
         }),
         other = AnyOf(set![
             Document(Document {
@@ -1048,6 +1087,7 @@ mod satisfies {
                 ],
                 required: set!["a".to_string()],
                 additional_properties: false,
+                ..Default::default()
             }),
             Document(Document {
                 keys: map![
@@ -1055,6 +1095,7 @@ mod satisfies {
                 ],
                 required: set![],
                 additional_properties: false,
+                ..Default::default()
             }),
         ]),
     );
@@ -1068,6 +1109,7 @@ mod satisfies {
             ],
             required: set!["a".to_string()],
             additional_properties: false,
+            ..Default::default()
         }),
         other = AnyOf(set![
             Document(Document {
@@ -1077,6 +1119,7 @@ mod satisfies {
                 ],
                 required: set!["a".to_string()],
                 additional_properties: false,
+                ..Default::default()
             }),
             Document(Document {
                 keys: map![
@@ -1084,6 +1127,7 @@ mod satisfies {
                 ],
                 required: set![],
                 additional_properties: false,
+                ..Default::default()
             }),
         ]),
     );
@@ -1097,6 +1141,7 @@ mod satisfies {
             ],
             required: set!["a".to_string()],
             additional_properties: false,
+            ..Default::default()
         }),
         other = Document(Document {
             keys: map![
@@ -1105,6 +1150,7 @@ mod satisfies {
             ],
             required: set!["a".to_string()],
             additional_properties: false,
+            ..Default::default()
         }),
     );
     test_satisfies!(
@@ -1189,6 +1235,7 @@ mod has_overlaping_keys_with {
             keys: map! { "a".into() => Schema::Atomic(Atomic::Integer)},
             required: set! {},
             additional_properties: false,
+            ..Default::default()
         }),
         schema2 = &ANY_DOCUMENT,
     );
@@ -1206,6 +1253,7 @@ mod has_overlaping_keys_with {
             keys: map! { "a".into() => Schema::Atomic(Atomic::Integer)},
             required: set! {},
             additional_properties: false,
+            ..Default::default()
         }),
     );
     test_has_overlapping_keys_with!(
@@ -1221,11 +1269,13 @@ mod has_overlaping_keys_with {
             keys: map! { "a".into() => Schema::Atomic(Atomic::Integer)},
             required: set! {},
             additional_properties: false,
+            ..Default::default()
         }),
         schema2 = &Schema::Document(Document {
             keys: map! { "a".into() => Schema::Atomic(Atomic::Integer)},
             required: set! {},
             additional_properties: false,
+            ..Default::default()
         }),
     );
     test_has_overlapping_keys_with!(
@@ -1236,12 +1286,14 @@ mod has_overlaping_keys_with {
             "b".into() => Schema::Atomic(Atomic::Integer)},
             required: set! {"a".into()},
             additional_properties: false,
+            ..Default::default()
         }),
         schema2 = &Schema::Document(Document {
             keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
             "b".into() => Schema::Atomic(Atomic::Integer)},
             required: set! {"b".into()},
             additional_properties: false,
+            ..Default::default()
         }),
     );
     test_has_overlapping_keys_with!(
@@ -1252,12 +1304,14 @@ mod has_overlaping_keys_with {
             "b".into() => Schema::Atomic(Atomic::Integer)},
             required: set! {"a".into()},
             additional_properties: false,
+            ..Default::default()
         }),
         schema2 = &Schema::Document(Document {
             keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
             "b".into() => Schema::Atomic(Atomic::Integer)},
             required: set! {"a".into()},
             additional_properties: false,
+            ..Default::default()
         }),
     );
     test_has_overlapping_keys_with!(
@@ -1269,12 +1323,14 @@ mod has_overlaping_keys_with {
                 "b".into() => Schema::Atomic(Atomic::Integer)},
                 required: set! {"a".into()},
                 additional_properties: false,
+                ..Default::default()
             }),
             Schema::Document(Document {
                 keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
                 "b".into() => Schema::Atomic(Atomic::Integer)},
                 required: set! {"b".into()},
                 additional_properties: false,
+                ..Default::default()
             }),
         ]),
         schema2 = &Schema::Document(Document {
@@ -1284,6 +1340,7 @@ mod has_overlaping_keys_with {
             },
             required: set! {"c".into()},
             additional_properties: false,
+            ..Default::default()
         }),
     );
     test_has_overlapping_keys_with!(
@@ -1295,12 +1352,14 @@ mod has_overlaping_keys_with {
                 "b".into() => Schema::Atomic(Atomic::Integer)},
                 required: set! {"a".into()},
                 additional_properties: false,
+                ..Default::default()
             }),
             Schema::Document(Document {
                 keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
                 "b".into() => Schema::Atomic(Atomic::Integer)},
                 required: set! {"a".into()},
                 additional_properties: false,
+                ..Default::default()
             }),
         ]),
         schema2 = &Schema::Document(Document {
@@ -1310,6 +1369,7 @@ mod has_overlaping_keys_with {
             },
             required: set! {"a".into()},
             additional_properties: false,
+            ..Default::default()
         }),
     );
     test_has_overlapping_keys_with!(
@@ -1322,6 +1382,7 @@ mod has_overlaping_keys_with {
             },
             required: set! {"c".into()},
             additional_properties: false,
+            ..Default::default()
         }),
         schema2 = &Schema::AnyOf(set![
             Schema::Document(Document {
@@ -1329,12 +1390,14 @@ mod has_overlaping_keys_with {
                 "b".into() => Schema::Atomic(Atomic::Integer)},
                 required: set! {"a".into()},
                 additional_properties: false,
+                ..Default::default()
             }),
             Schema::Document(Document {
                 keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
                 "b".into() => Schema::Atomic(Atomic::Integer)},
                 required: set! {"b".into()},
                 additional_properties: false,
+                ..Default::default()
             }),
         ]),
     );
@@ -1348,6 +1411,7 @@ mod has_overlaping_keys_with {
             },
             required: set! {"a".into()},
             additional_properties: false,
+            ..Default::default()
         }),
         schema2 = &Schema::AnyOf(set![
             Schema::Document(Document {
@@ -1355,12 +1419,14 @@ mod has_overlaping_keys_with {
                 "b".into() => Schema::Atomic(Atomic::Integer)},
                 required: set! {"a".into()},
                 additional_properties: false,
+                ..Default::default()
             }),
             Schema::Document(Document {
                 keys: map! { "a".into() => Schema::Atomic(Atomic::Integer),
                 "b".into() => Schema::Atomic(Atomic::Integer)},
                 required: set! {"a".into()},
                 additional_properties: false,
+                ..Default::default()
             }),
         ]),
     );
@@ -1409,7 +1475,8 @@ mod document_union {
             },
             required: set! {"a".into()},
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
         schema1 = Schema::Document(Document {
             keys: map! {
                 "a".into() => Schema::Atomic(Atomic::Decimal),
@@ -1417,7 +1484,8 @@ mod document_union {
             },
             required: set! {"a".into()},
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
         schema2 = Schema::Document(Document {
             keys: map! {
                 "a".into() => Schema::Atomic(Atomic::Integer),
@@ -1425,7 +1493,8 @@ mod document_union {
             },
             required: set! {"a".into(), "b".into()},
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
     );
     test_document_union!(
         document_union_of_two_documents_will_document_union_keys_and_intersect_required_wo_additional_properties_symmetric,
@@ -1442,7 +1511,8 @@ mod document_union {
             },
             required: set! {"a".into()},
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
         schema1 = Schema::Document(Document {
             keys: map! {
                 "a".into() => Schema::Atomic(Atomic::Integer),
@@ -1450,7 +1520,8 @@ mod document_union {
             },
             required: set! {"a".into(), "b".into()},
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
         schema2 = Schema::Document(Document {
             keys: map! {
                 "a".into() => Schema::Atomic(Atomic::Decimal),
@@ -1458,7 +1529,8 @@ mod document_union {
             },
             required: set! {"a".into()},
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
     );
     test_document_union!(
         document_union_of_doc_with_empty_doc_is_doc_with_no_required,
@@ -1469,6 +1541,7 @@ mod document_union {
             },
             required: set! {},
             additional_properties: false,
+            ..Default::default()
         }),
         schema1 = Schema::Document(Document {
             keys: map! {
@@ -1477,6 +1550,7 @@ mod document_union {
             },
             required: set! {"a".into(), "c".into()},
             additional_properties: false,
+            ..Default::default()
         }),
         schema2 = EMPTY_DOCUMENT.clone(),
     );
@@ -1489,6 +1563,7 @@ mod document_union {
             },
             required: set! {},
             additional_properties: false,
+            ..Default::default()
         }),
         schema1 = EMPTY_DOCUMENT.clone(),
         schema2 = Schema::Document(Document {
@@ -1498,6 +1573,7 @@ mod document_union {
             },
             required: set! {"a".into(), "c".into()},
             additional_properties: false,
+            ..Default::default()
         }),
     );
     test_document_union!(
@@ -1517,6 +1593,7 @@ mod document_union {
             },
             required: set! {"a".into()},
             additional_properties: false,
+            ..Default::default()
         }),
         schema1 = Schema::AnyOf(set![
             Schema::Document(Document {
@@ -1526,6 +1603,7 @@ mod document_union {
                 },
                 required: set! {"a".into(), "b".into()},
                 additional_properties: false,
+                ..Default::default()
             }),
             Schema::Document(Document {
                 keys: map! {
@@ -1535,6 +1613,7 @@ mod document_union {
                 },
                 required: set! {"a".into(), "b".into()},
                 additional_properties: false,
+                ..Default::default()
             })
         ]),
         schema2 = Schema::AnyOf(set![
@@ -1545,6 +1624,7 @@ mod document_union {
                 },
                 required: set! {"a".into()},
                 additional_properties: false,
+                ..Default::default()
             }),
             Schema::Document(Document {
                 keys: map! {
@@ -1553,6 +1633,7 @@ mod document_union {
                 },
                 required: set! {"a".into()},
                 additional_properties: false,
+                ..Default::default()
             }),
         ])
     );
@@ -1894,6 +1975,7 @@ mod contains_field {
             ],
             required: set!["a".to_string()],
             additional_properties: false,
+            ..Default::default()
         }),
         other = "a",
     );
@@ -1907,6 +1989,7 @@ mod contains_field {
             ],
             required: set!["a".to_string()],
             additional_properties: false,
+            ..Default::default()
         }),
         other = "b",
     );
@@ -1920,6 +2003,7 @@ mod contains_field {
             ],
             required: set!["a".to_string()],
             additional_properties: true,
+            ..Default::default()
         }),
         other = "foo",
     );
@@ -1933,6 +2017,7 @@ mod contains_field {
             ],
             required: set!["a".to_string()],
             additional_properties: false,
+            ..Default::default()
         }),
         other = "foo",
     );
@@ -1953,6 +2038,7 @@ mod contains_field {
                 ],
                 required: set!["a".to_string()],
                 additional_properties: false,
+                ..Default::default()
             }),
             Atomic(String),
         ]),
@@ -1969,6 +2055,7 @@ mod contains_field {
                 ],
                 required: set!["a".to_string()],
                 additional_properties: false,
+                ..Default::default()
             }),
             Atomic(String),
         ]),
@@ -1985,6 +2072,7 @@ mod contains_field {
                 ],
                 required: set!["b".to_string()],
                 additional_properties: false,
+                ..Default::default()
             }),
             Document(Document {
                 keys: map![
@@ -1993,6 +2081,7 @@ mod contains_field {
                 ],
                 required: set!["b".to_string()],
                 additional_properties: false,
+                ..Default::default()
             }),
         ]),
         other = "b",
@@ -2096,6 +2185,7 @@ mod simplify {
                 ],
             required: set!["a".to_string()],
             additional_properties: true,
+            ..Default::default()
         }),
         input = Document(Document {
             keys: map![
@@ -2106,6 +2196,7 @@ mod simplify {
                             ],
             required: set!["a".to_string()],
             additional_properties: true,
+            ..Default::default()
         })
     );
     test_simplify!(
@@ -2124,11 +2215,13 @@ mod simplify {
                             ],
                             required: set![],
                             additional_properties: false,
-                        }
+                            ..Default::default()
+                            }
                     ),
                 ],
             required: set!["b".to_string(), "d".to_string()],
             additional_properties: true,
+            ..Default::default()
         }),
         input = Document(Document {
             keys: map![
@@ -2145,7 +2238,8 @@ mod simplify {
                             ],
                             required: set!["ia".to_string()],
                             additional_properties: false,
-                        }
+                            ..Default::default()
+                            }
                     ),
             ],
             required: set![
@@ -2155,6 +2249,7 @@ mod simplify {
                 "d".to_string()
             ],
             additional_properties: true,
+            ..Default::default()
         })
     );
 }
@@ -2192,6 +2287,7 @@ mod get_single_field_name {
             keys: map![],
             required: set![],
             additional_properties: false,
+            ..Default::default()
         })
     );
     test_get_single_field_name!(
@@ -2203,6 +2299,7 @@ mod get_single_field_name {
             ],
             required: set![],
             additional_properties: false,
+            ..Default::default()
         })
     );
     test_get_single_field_name!(
@@ -2211,7 +2308,8 @@ mod get_single_field_name {
         schema = &Document(Document {
             keys: map![],
             required: set![],
-            additional_properties: false
+            additional_properties: false,
+            ..Default::default()
         })
     );
     test_get_single_field_name!(
@@ -2224,6 +2322,7 @@ mod get_single_field_name {
             ],
             required: set!["a".to_string(), "b".to_string()],
             additional_properties: false,
+            ..Default::default()
         })
     );
     test_get_single_field_name!(
@@ -2235,6 +2334,7 @@ mod get_single_field_name {
             ],
             required: set!["a".to_string()],
             additional_properties: false,
+            ..Default::default()
         })
     );
     test_get_single_field_name!(
@@ -2246,6 +2346,7 @@ mod get_single_field_name {
             ],
             required: set!["a".to_string()],
             additional_properties: true,
+            ..Default::default()
         })
     );
     test_get_single_field_name!(
@@ -2258,6 +2359,7 @@ mod get_single_field_name {
             ],
             required: set!["a".to_string()],
             additional_properties: false,
+            ..Default::default()
         })
     );
     test_get_single_field_name!(
@@ -2270,11 +2372,13 @@ mod get_single_field_name {
                 ],
                 required: set!["a".to_string()],
                 additional_properties: false,
+                ..Default::default()
             }),
             Document(Document {
                 keys: map![],
                 required: set![],
                 additional_properties: false,
+                ..Default::default()
             })
         ])
     );
@@ -2288,6 +2392,7 @@ mod get_single_field_name {
                 ],
                 required: set!["a".to_string()],
                 additional_properties: false,
+                ..Default::default()
             }),
             Document(Document {
                 keys: map![
@@ -2295,6 +2400,7 @@ mod get_single_field_name {
                 ],
                 required: set!["b".to_string()],
                 additional_properties: false,
+                ..Default::default()
             })
         ])
     );
@@ -2308,6 +2414,7 @@ mod get_single_field_name {
                 ],
                 required: set!["a".to_string()],
                 additional_properties: false,
+                ..Default::default()
             }),
             Document(Document {
                 keys: map![
@@ -2315,6 +2422,7 @@ mod get_single_field_name {
                 ],
                 required: set!["a".to_string()],
                 additional_properties: false,
+                ..Default::default()
             })
         ])
     );
@@ -2329,6 +2437,7 @@ mod get_single_field_name {
                 ],
                 required: set!["a".to_string()],
                 additional_properties: false,
+                ..Default::default()
             })
         ])
     );
@@ -2405,12 +2514,14 @@ mod enumerate_field_paths {
     lazy_static! {
         static ref A_B_DOCUMENT_SCHEMA: Schema = Schema::Document(Document {
             keys: map! {"a".to_string() => Document(Document {
-                keys: map! {"b".to_string() => Atomic(Integer)},
-                required: BTreeSet::new(),
-                additional_properties: false
+            keys: map! {"b".to_string() => Atomic(Integer)},
+            required: BTreeSet::new(),
+            additional_properties: false,
+            ..Default::default()
             })},
             required: BTreeSet::new(),
             additional_properties: false,
+            ..Default::default()
         });
     }
 
@@ -2455,12 +2566,14 @@ mod enumerate_field_paths {
             A_B_DOCUMENT_SCHEMA.clone(),
             Document(Document {
                 keys: map! {"x".to_string() => Document(Document {
-                    keys: map! {"y".to_string() => Atomic(Integer)},
-                    required: BTreeSet::new(),
-                    additional_properties: false
+                keys: map! {"y".to_string() => Atomic(Integer)},
+                required: BTreeSet::new(),
+                additional_properties: false,
+                ..Default::default()
                 })},
                 required: BTreeSet::new(),
-                additional_properties: false
+                additional_properties: false,
+                ..Default::default()
             })
         ]),
     );
@@ -2495,12 +2608,14 @@ mod enumerate_field_paths {
                             keys: map! {"b".to_string() => Atomic(Integer)},
                             required: set!["b".to_string()],
                             additional_properties: false,
-                        }),
+                            ..Default::default()
+                            }),
                     }),
                 },
                 required: set!["a".to_string()],
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             Atomic(Integer)
         }),
     );
@@ -2519,18 +2634,21 @@ mod enumerate_field_paths {
         expected = Err(Error::CannotEnumerateAllFieldPaths(Document(Document {
             keys: map! {"b".to_string() => Atomic(Integer)},
             required: set!["b".to_string()],
-            additional_properties: true
+            additional_properties: true,
+            ..Default::default()
         }))),
         schema = AnyOf(set![
             Document(Document {
                 keys: map! {"a".to_string() => Atomic(Integer)},
                 required: set!["a".to_string()],
-                additional_properties: false
+                additional_properties: false,
+                ..Default::default()
             }),
             Document(Document {
                 keys: map! {"b".to_string() => Atomic(Integer)},
                 required: set!["b".to_string()],
-                additional_properties: true
+                additional_properties: true,
+                ..Default::default()
             }),
         ]),
     );
@@ -2539,7 +2657,8 @@ mod enumerate_field_paths {
         expected = Err(Error::CannotEnumerateAllFieldPaths(Document(Document {
             keys: map! {},
             required: set![],
-            additional_properties: true
+            additional_properties: true,
+            ..Default::default()
         }))),
         schema = ANY_DOCUMENT,
     );
@@ -2548,12 +2667,14 @@ mod enumerate_field_paths {
         expected = Err(Error::CannotEnumerateAllFieldPaths(Document(Document {
             keys: map! {"a".to_string() => Atomic(Integer)},
             required: set!["a".to_string()],
-            additional_properties: true
+            additional_properties: true,
+            ..Default::default()
         }))),
         schema = Document(Document {
             keys: map! {"a".to_string() => Atomic(Integer)},
             required: set!["a".to_string()],
-            additional_properties: true
+            additional_properties: true,
+            ..Default::default()
         }),
     );
     test_enumerate_field_paths!(
@@ -2561,16 +2682,19 @@ mod enumerate_field_paths {
         expected = Err(Error::CannotEnumerateAllFieldPaths(Document(Document {
             keys: map! {"b".to_string() => Atomic(Integer)},
             required: set!["b".to_string()],
-            additional_properties: true
+            additional_properties: true,
+            ..Default::default()
         }))),
         schema = Document(Document {
             keys: map! {"a".to_string() => Document(Document {
-                keys: map!{"b".to_string() => Atomic(Integer)},
-                required: set!["b".to_string()],
-                additional_properties: true}
-            )},
+            keys: map!{"b".to_string() => Atomic(Integer)},
+            required: set!["b".to_string()],
+            additional_properties: true,
+            ..Default::default()
+            })},
             required: set!["a".to_string()],
-            additional_properties: false
+            additional_properties: false,
+            ..Default::default()
         }),
     );
     test_enumerate_field_paths!(
@@ -2580,12 +2704,14 @@ mod enumerate_field_paths {
         ),
         schema = Document(Document {
             keys: map! {"a".to_string() => Document(Document {
-                keys: map!{"b".to_string() => Atomic(Integer), "c".to_string() => Atomic(Integer)},
-                required: set!["b".to_string(), "c".to_string()],
-                additional_properties: false}
-            )},
+            keys: map!{"b".to_string() => Atomic(Integer), "c".to_string() => Atomic(Integer)},
+            required: set!["b".to_string(), "c".to_string()],
+            additional_properties: false,
+            ..Default::default()
+            })},
             required: set!["a".to_string()],
-            additional_properties: false
+            additional_properties: false,
+            ..Default::default()
         }),
     );
     test_enumerate_field_paths!(
@@ -2599,12 +2725,14 @@ mod enumerate_field_paths {
         expected = Ok(set! {vec!["a".to_string()]}),
         schema = Document(Document {
             keys: map! {"a".to_string() => Document(Document {
-                keys: map!{"b".to_string() => Atomic(Integer)},
-                required: set!["b".to_string()],
-                additional_properties: false}
-            )},
+            keys: map!{"b".to_string() => Atomic(Integer)},
+            required: set!["b".to_string()],
+            additional_properties: false,
+            ..Default::default()
+            })},
             required: set!["a".to_string()],
-            additional_properties: false
+            additional_properties: false,
+            ..Default::default()
         }),
         max_length = Some(1),
     );
@@ -2613,16 +2741,19 @@ mod enumerate_field_paths {
         expected = Ok(set! {vec!["a".to_string()]}),
         schema = Document(Document {
             keys: map! {"a".to_string() => Document(Document {
-                keys: map!{"b".to_string() => Document(Document {
-                    keys: map!{},
-                    required: set![],
-                    additional_properties: true}
-                )},
-                required: set!["b".to_string()],
-                additional_properties: false}
-            )},
+            keys: map!{"b".to_string() => Document(Document {
+                keys: map!{},
+                required: set![],
+                additional_properties: true,
+                ..Default::default()
+                })},
+            required: set!["b".to_string()],
+            additional_properties: false,
+            ..Default::default()
+            })},
             required: set!["a".to_string()],
-            additional_properties: false
+            additional_properties: false,
+            ..Default::default()
         }),
         max_length = Some(1),
     );
@@ -2672,14 +2803,15 @@ mod keys {
                             "a2".into() => Any,
                             "b2".into() => Unsat,
                             "c2".into() => Atomic(Atomic::String),
-
                             },
                         required: set![],
                         additional_properties: false,
+                        ..Default::default()
                         }),
                 },
                 required: set![],
-                additional_properties: true
+                additional_properties: true,
+                ..Default::default()
             }),
             AnyOf(set![
                 Document(Document {
@@ -2689,6 +2821,7 @@ mod keys {
                     "baz".into() => Atomic(Atomic::String)},
                     required: set![],
                     additional_properties: false,
+                    ..Default::default()
                 }),
                 Any,
                 Missing,
@@ -2719,11 +2852,13 @@ mod keys {
                         },
                     required: set![],
                     additional_properties: false,
+                    ..Default::default()
                     }),
                 "e".into() => Atomic(Atomic::Integer),
             },
             required: set![],
             additional_properties: false,
+            ..Default::default()
         })
     );
 }
@@ -2766,6 +2901,7 @@ mod collision_check {
             "c".to_string() => Atomic(Integer)},
             required: BTreeSet::new(),
             additional_properties: false,
+            ..Default::default()
         });
         static ref A_B_C_DOCUMENT_SCHEMA: Schema = Schema::Document(Document {
             keys: map! {"a".to_string() => Atomic(Integer),
@@ -2773,6 +2909,7 @@ mod collision_check {
             "c".to_string() => Atomic(Integer)},
             required: BTreeSet::new(),
             additional_properties: false,
+            ..Default::default()
         });
         static ref A_B_C_D_DOCUMENT_SCHEMA: Schema = Schema::Document(Document {
             keys: map! {"a".to_string() => Atomic(Integer),
@@ -2781,26 +2918,31 @@ mod collision_check {
             "d".to_string() => Atomic(Integer)},
             required: BTreeSet::new(),
             additional_properties: false,
+            ..Default::default()
         });
         static ref A_DOCUMENT_SCHEMA: Schema = Schema::Document(Document {
             keys: map! {"a".to_string() => Atomic(Integer)},
             required: BTreeSet::new(),
             additional_properties: false,
+            ..Default::default()
         });
         static ref B_DOCUMENT_SCHEMA: Schema = Schema::Document(Document {
             keys: map! {"b".to_string() => Atomic(Integer)},
             required: BTreeSet::new(),
             additional_properties: false,
+            ..Default::default()
         });
         static ref D_DOCUMENT_SCHEMA: Schema = Schema::Document(Document {
             keys: map! {"d".to_string() => Atomic(Integer)},
             required: BTreeSet::new(),
             additional_properties: false,
+            ..Default::default()
         });
         static ref A_DOCUMENT_SCHEMA_ADDITIONAL_PROPS_TRUE: Schema = Schema::Document(Document {
             keys: map! {"a".to_string() => Atomic(Integer)},
             required: BTreeSet::new(),
             additional_properties: true,
+            ..Default::default()
         });
     }
 

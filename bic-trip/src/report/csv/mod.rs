@@ -1,8 +1,7 @@
 /// A small utility module to encapsulate the logic of writing a Vec<LogEntry> to a CSV file.
-use std::{
-    io::{self, Error, ErrorKind},
-    path::Path,
-};
+use std::path::Path;
+
+use anyhow::Result;
 
 use crate::log_parser::LogEntry;
 
@@ -13,23 +12,21 @@ pub fn generate_csv(
     date: &str,
     log_parse: &crate::log_parser::LogParseResult,
     file_stem: &str,
-) -> io::Result<()> {
+) -> Result<()> {
     write_csv(
         &log_parse.invalid_queries,
         "InvalidQueries",
         file_path,
         date,
         file_stem,
-    )
-    .map_err(|e| Error::new(ErrorKind::Other, e))?;
+    )?;
     write_csv(
         &log_parse.invalid_queries,
         "ValidQueries",
         file_path,
         date,
         file_stem,
-    )
-    .map_err(|e| Error::new(ErrorKind::Other, e))?;
+    )?;
     Ok(())
 }
 
@@ -39,7 +36,7 @@ fn write_csv(
     file_path: &Path,
     date: &str,
     file_stem: &str,
-) -> io::Result<()> {
+) -> Result<()> {
     if data.is_none() {
         Ok(())
     } else {
@@ -49,6 +46,6 @@ fn write_csv(
         for entry in data {
             writer.serialize(entry)?;
         }
-        writer.flush()
+        Ok(writer.flush()?)
     }
 }

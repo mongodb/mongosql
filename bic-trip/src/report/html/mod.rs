@@ -8,6 +8,7 @@ use std::{collections::HashMap, fs, fs::File, io::Write, path::Path};
 use image::{DynamicImage, ImageOutputFormat};
 
 use crate::log_parser::{LogEntry, QueryRepresentation};
+use anyhow::Result;
 use chrono::prelude::*;
 use sqlformat::{format, FormatOptions, QueryParams};
 
@@ -18,9 +19,9 @@ pub fn generate_html(
     log_parse: &crate::log_parser::LogParseResult,
     file_stem: &str,
     report_name: &str,
-) -> std::io::Result<()> {
+) -> Result<()> {
     let mut report_file = File::create(file_path.join(format!("{file_stem}_{date}.html")))?;
-    report_file.write_all(generate_html_elements(log_parse, report_name).as_bytes())
+    Ok(report_file.write_all(generate_html_elements(log_parse, report_name).as_bytes())?)
 }
 
 /// process_summary_html generates summary page of database and query information

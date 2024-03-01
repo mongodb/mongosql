@@ -3,39 +3,49 @@ use futures::TryStreamExt;
 use mongodb::{
     bson::{self, doc, Bson, Document},
     options::{AggregateOptions, ClientOptions},
-    Client, Database,
+    Database,
 };
 use mongosql::{
     json_schema,
-    schema::{self, Atomic, Schema},
+    schema::{Atomic, JaccardIndex, Schema},
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, convert::From, fmt::Display, time::Instant};
 
 // allowing dead code since this is a library and we want to keep the code for future use
 #[allow(dead_code)]
-async fn get_opts(uri: &str) -> Result<ClientOptions> {
+pub async fn get_opts(
+    uri: &str,
+    username: Option<String>,
+    password: Option<String>,
+) -> Result<ClientOptions> {
     let mut opts = ClientOptions::parse_async(uri).await?;
     opts.max_pool_size = Some(get_optimal_pool_size());
     opts.max_connecting = Some(5);
+    opts.credential = Some(
+        mongodb::options::Credential::builder()
+            .username(username)
+            .password(password)
+            .build(),
+    );
     Ok(opts)
 }
 
 // allowing dead code since this is a library and we want to keep the code for future use
 #[allow(dead_code)]
-fn get_optimal_pool_size() -> u32 {
+pub fn get_optimal_pool_size() -> u32 {
     std::thread::available_parallelism().unwrap().get() as u32 * 2 + 1
 }
 
-// allowing dead code since this is a library and we want to keep the code for future use
-#[allow(dead_code)]
-async fn sampler(db: &str, coll: &str, uri: &str) -> Result<HashMap<String, Schema>> {
-    let client = Client::with_options(get_opts(uri).await?).unwrap();
-    let database = client.database(db);
-    let col_parts = gen_partitions(&database, coll).await;
+// // allowing dead code since this is a library and we want to keep the code for future use
+// #[allow(dead_code)]
+// pub async fn sampler(db: &str, coll: &str, uri: &str) -> Result<HashMap<String, Schema>> {
+//     let client = Client::with_options(get_opts(uri).await?).unwrap();
+//     let database = client.database(db);
+//     let col_parts = gen_partitions(&database, coll).await;
 
-    Ok(derive_schema_for_partitions(col_parts, &database).await)
-}
+//     Ok(derive_schema_for_partitions(col_parts, &database).await)
+// }
 
 const PARTITION_SIZE_IN_BYTES: i64 = 100 * 1024 * 1024; // 100 MB
 const SAMPLE_MIN_DOCS: i64 = 101;
@@ -44,13 +54,14 @@ const MAX_NUM_DOCS_TO_SAMPLE_PER_PARTITION: u64 = 10;
 const ITERATIONS: Option<u32> = None;
 
 pub fn schema_for_document(doc: &bson::Document) -> Schema {
-    Schema::Document(schema::Document {
+    Schema::Document(mongosql::schema::Document {
         keys: doc
             .iter()
             .map(|(k, v)| (k.to_string(), schema_for_bson(v)))
             .collect(),
         required: doc.iter().map(|(k, _)| k.to_string()).collect(),
-        additional_properties: false,
+        jaccard_index: JaccardIndex::default().into(),
+        ..Default::default()
     })
 }
 
@@ -178,7 +189,10 @@ pub fn schema_doc_to_schema(schema_doc: Document) -> Result<Schema, Error> {
     let json_schema: json_schema::Schema =
         bson::from_document(schema_doc.get_document("$jsonSchema").unwrap().clone())
             .map_err(|_| Error::BsonFailure)?;
-    json_schema.try_into().map_err(|_| Error::JsonSchemaFailure)
+    let sampler_schema: Schema = json_schema
+        .try_into()
+        .map_err(|_| Error::JsonSchemaFailure)?;
+    Ok(sampler_schema)
 }
 
 pub struct CollectionSizes {

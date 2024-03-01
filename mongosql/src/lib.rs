@@ -253,6 +253,7 @@ fn mql_schema_env_to_json_schema(
         required: keys.keys().cloned().collect(),
         keys,
         additional_properties: false,
+        ..Default::default()
     })))
     .map_err(result::Error::JsonSchemaConversion)
 }
@@ -386,7 +387,8 @@ mod build_catalog_test {
             },
             required: map!{},
             additional_properties: true,
-        }),});
+            ..Default::default()
+            }),});
 
         let encoded = general_purpose::STANDARD.encode(bson::to_vec(&json).unwrap());
 
@@ -416,7 +418,8 @@ mod build_catalog_test {
             },
             required: map!{},
             additional_properties: true,
-        }),});
+            ..Default::default()
+            }),});
 
         let actual = build_catalog_from_catalog_schema(
             serde_json::from_str::<BTreeMap<String, BTreeMap<String, Schema>>>(&json.to_string())

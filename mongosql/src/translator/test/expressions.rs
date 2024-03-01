@@ -3962,7 +3962,8 @@ mod subquery_comparison {
                 },
                 required: set! {},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         }),
     );
 
@@ -4034,7 +4035,8 @@ mod subquery_comparison {
                 },
                 required: set! {"a".to_string()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
         }),
     );
 
@@ -4112,7 +4114,8 @@ mod subquery_comparison {
                 },
                 required: set! {"a".to_string()},
                 additional_properties: false,
-            }),
+                ..Default::default()
+                }),
             Namespace { db: "test".to_string(), collection: "bar".to_string() } => ANY_DOCUMENT.clone(),
         }),
         schema_env = map! {("foo", 0u16).into() => ANY_DOCUMENT.clone()},

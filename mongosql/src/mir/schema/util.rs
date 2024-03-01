@@ -139,6 +139,7 @@ pub fn set_field_schema(
                 keys,
                 required,
                 additional_properties: d.additional_properties,
+                ..Default::default()
             })
         }
     }

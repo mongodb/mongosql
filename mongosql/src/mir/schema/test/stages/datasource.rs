@@ -85,7 +85,8 @@ mod array {
                             keys: map!{},
                             required: set!{},
                             additional_properties: false,
-                        })
+                            ..Default::default()
+                            })
                     ]
                 ),
             },
@@ -131,7 +132,8 @@ mod array {
                             keys: map!{"bar".into() => Schema::Atomic(Atomic::Integer)},
                             required: set!{"bar".into()},
                             additional_properties: false,
-                        })
+                            ..Default::default()
+                            })
                     ]
                 ),
             },
@@ -159,12 +161,14 @@ mod array {
                             keys: map!{"bar".into() => Schema::Atomic(Atomic::Integer)},
                             required: set!{"bar".into()},
                             additional_properties: false,
-                        }),
+                            ..Default::default()
+                            }),
                         Schema::Document( Document {
                             keys: map!{"car".into() => Schema::Atomic(Atomic::Integer)},
                             required: set!{"car".into()},
                             additional_properties: false,
-                        }),
+                            ..Default::default()
+                            }),
                     ]
                 ),
             },

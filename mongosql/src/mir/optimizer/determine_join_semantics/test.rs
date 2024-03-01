@@ -22,7 +22,8 @@ lazy_static! {
             },
             required: set! {"not_null".to_string()},
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
         Namespace {db: "test_db".to_string(), collection: "foreign".to_string()} => Schema::Document(Document {
             keys: map! {
                 "not_null".to_string() => Schema::Atomic(Atomic::Integer),
@@ -30,14 +31,16 @@ lazy_static! {
             },
             required: set! {"not_null".to_string()},
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
         Namespace {db: "test_db".to_string(), collection: "other".to_string()} => Schema::Document(Document {
             keys: map! {
                 "x".to_string() => Schema::Atomic(Atomic::Integer),
             },
             required: set! {"x".to_string()},
             additional_properties: false,
-        }),
+            ..Default::default()
+            }),
     });
 }
 

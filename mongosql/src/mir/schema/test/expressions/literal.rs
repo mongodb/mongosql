@@ -109,6 +109,7 @@ mod array {
                     },
                 required: set! {"bar".into()},
                 additional_properties: false,
+                ..Default::default()
             })
         ])))),
         input = Expression::Array(
@@ -142,7 +143,8 @@ mod array {
                 },
                 required: set! {},
                 additional_properties: false,
-            })
+                ..Default::default()
+                })
         ])))),
         input = Expression::Array(vec![Expression::Document(
             unchecked_unique_linked_hash_map! {"b".into() => Expression::Reference(("a", 0u16).into())}.into())].into()),
@@ -220,6 +222,7 @@ mod document {
             keys: map! {},
             required: set! {},
             additional_properties: false,
+            ..Default::default()
         })),
         input = Expression::Document(unchecked_unique_linked_hash_map! {}.into()),
     );
@@ -240,6 +243,7 @@ mod document {
                 "d".to_string(),
             },
             additional_properties: false,
+            ..Default::default()
         })),
         input = Expression::Document(
             unchecked_unique_linked_hash_map! {
@@ -265,6 +269,7 @@ mod document {
                 "c".to_string(),
             },
             additional_properties: false,
+            ..Default::default()
         })),
         input = Expression::Document(
             unchecked_unique_linked_hash_map! {

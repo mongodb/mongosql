@@ -7,6 +7,7 @@ use std::{
     io::{BufRead, BufReader},
 };
 
+use anyhow::Result;
 use chrono::prelude::*;
 use mongosql::usererror::UserError;
 use serde::{Serialize, Serializer};
@@ -150,17 +151,17 @@ fn parse_line(line: &str) -> Option<LogEntry> {
 }
 
 // process_logs takes a list of file paths and returns a LogParseResult
-pub fn process_logs(paths: &[String]) -> Result<LogParseResult, String> {
+pub fn process_logs(paths: &[String]) -> Result<LogParseResult> {
     let mut all_valid_queries = vec![];
     let mut all_invalid_queries = vec![];
     let mut all_queries: HashMap<String, LogEntry> = HashMap::new();
 
     for path in paths {
-        let file = File::open(path).map_err(|e| e.to_string())?;
+        let file = File::open(path)?;
         let reader = BufReader::new(file);
 
         for line in reader.lines() {
-            let line = line.map_err(|e| e.to_string())?;
+            let line = line?;
             if line.contains("EVALUATOR") {
                 if let Some(query) = parse_line(&line) {
                     all_queries

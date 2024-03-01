@@ -316,6 +316,7 @@ impl CachedSchema for Stage {
                         keys: map! { field_or_alias.clone() => schema },
                         required: set! { field_or_alias },
                         additional_properties: false,
+                        ..Default::default()
                     })
                 };
 
@@ -1122,6 +1123,7 @@ impl Expression {
             keys,
             required,
             additional_properties: false,
+            ..Default::default()
         }))
     }
 }

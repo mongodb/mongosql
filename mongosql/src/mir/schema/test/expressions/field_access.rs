@@ -35,7 +35,8 @@ test_schema!(
             keys: map!{"foof".to_string() => Schema::Atomic(Atomic::String)},
             required: set!{"foof".to_string()},
             additional_properties: false,
-        }
+            ..Default::default()
+            }
     ),},
 );
 
@@ -51,7 +52,8 @@ test_schema!(
             keys: map!{"foof".to_string() => Schema::Atomic(Atomic::String)},
             required: set!{"foof".to_string()},
             additional_properties: true,
-        }
+            ..Default::default()
+            }
     ),},
 );
 
@@ -67,7 +69,8 @@ test_schema!(
             keys: map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
             required: set!{"foo".to_string()},
             additional_properties: false,
-        }
+            ..Default::default()
+            }
     ),},
 );
 
@@ -87,14 +90,16 @@ test_schema!(
                 keys: map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
                 required: set!{"foo".to_string()},
                 additional_properties: false,
-            }
+                ..Default::default()
+                }
         ),
         Schema::Document(
             Document {
                 keys: map!{"foo".to_string() => Schema::Atomic(Atomic::Integer)},
                 required: set!{"foo".to_string()},
                 additional_properties: false,
-            }
+                ..Default::default()
+                }
         ),
     })},
 );
@@ -115,14 +120,16 @@ test_schema!(
                 keys: map!{"foo".to_string() => Schema::Atomic(Atomic::String)},
                 required: set!{"foo".to_string()},
                 additional_properties: false,
-            }
+                ..Default::default()
+                }
         ),
         Schema::Document(
             Document {
                 keys: map!{"foo".to_string() => Schema::Atomic(Atomic::Integer)},
                 required: set!{"foo".to_string()},
                 additional_properties: false,
-            }
+                ..Default::default()
+                }
         ),
         Schema::Atomic(Atomic::Integer),
     })},

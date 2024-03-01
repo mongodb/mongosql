@@ -25,19 +25,22 @@ lazy_static! {
                                             },
                                             required: set!{"b".to_string(), "c".to_string()},
                                             additional_properties: false,
-                                        }
+                                            ..Default::default()
+                                            }
                                     )
                                 },
                                 required: set!{"a".to_string()},
                                 additional_properties: false,
-                            }
+                                ..Default::default()
+                                }
                         ),
                         "y".to_string() => schema::Schema::Atomic(schema::Atomic::Integer),
                         "z".to_string() => schema::Schema::Atomic(schema::Atomic::Integer),
                     },
                 required: set!{"x".to_string()},
                 additional_properties: false,
-            }
+                ..Default::default()
+                }
         ),
         ("foo", "bar2").into() => Schema::Document(
             schema::Document {
@@ -55,17 +58,20 @@ lazy_static! {
                                             },
                                             required: set!{"b".to_string(), "c".to_string()},
                                             additional_properties: false,
-                                        }
+                                            ..Default::default()
+                                            }
                                     )
                                 },
                                 required: set!{"a".to_string()},
                                 additional_properties: false,
-                            }
+                                ..Default::default()
+                                }
                         ),
                     },
                 required: set!{"x".to_string()},
                 additional_properties: false,
-            }
+                ..Default::default()
+                }
         )
     });
 }
