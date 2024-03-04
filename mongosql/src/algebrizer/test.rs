@@ -2996,6 +2996,7 @@ mod from_clause {
     use super::{catalog, mir_source_bar, mir_source_foo, AST_SOURCE_BAR, AST_SOURCE_FOO};
     use crate::{
         ast::{self, JoinSource},
+        catalog::{Catalog, Namespace},
         map,
         mir::{self, binding_tuple::Key, schema::SchemaCache, JoinType},
         multimap,
@@ -4025,9 +4026,178 @@ mod from_clause {
             options: vec![]
         })),
     );
+    test_algebrize!(
+        flattening_polymorphic_objects_other_than_just_null_or_missing_polymorphism_causes_error,
+        method = algebrize_from_clause,
+        expected = Err(Error::PolymorphicObjectSchema("a".to_string())),
+        expected_error_code = 3026,
+        input = Some(ast::Datasource::Flatten(ast::FlattenSource {
+            datasource: Box::new(AST_SOURCE_FOO.clone()),
+            options: vec![]
+        })),
+        catalog = Catalog::new(map! {
+            Namespace {db: "test".into(), collection: "foo".into()} => Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::AnyOf(set!{
+                        Schema::Document(Document {
+                            keys: map! {"b".into() => Schema::Atomic(Atomic::Integer)},
+                            required: set!{},
+                            additional_properties: false,
+                            ..Default::default()
+                        }),
+                        Schema::Atomic(Atomic::Integer)
+                    }),
+                },
+                required: set!{"a".into()},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        }),
+    );
+
+    test_algebrize!(
+        flattening_polymorphic_objects_with_just_null_polymorphism_works,
+        method = algebrize_from_clause,
+        expected = Ok(mir::Stage::Project(mir::Project {
+            source: Box::new(mir_source_foo()),
+            expression: map! {("foo", 0u16).into() => mir::Expression::Document(
+                mir::DocumentExpr {
+                    document: unchecked_unique_linked_hash_map! {"a_b".to_string() => mir::Expression::FieldAccess(mir::FieldAccess{
+                        expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                            expr: Box::new(mir::Expression::Reference(mir::ReferenceExpr {
+                                key: ("foo", 0u16).into(),
+                            })),
+                            field: "a".to_string(),
+                            is_nullable: true,
+                        })),
+
+                        field: "b".to_string(),
+                        is_nullable: true,
+                    }
+                )}},
+            )},
+            cache: SchemaCache::new(),
+        })),
+        input = Some(ast::Datasource::Flatten(ast::FlattenSource {
+            datasource: Box::new(AST_SOURCE_FOO.clone()),
+            options: vec![]
+        })),
+        catalog = Catalog::new(map! {
+            Namespace {db: "test".into(), collection: "foo".into()} => Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::AnyOf(set!{
+                        Schema::Document(Document {
+                            keys: map! {"b".into() => Schema::Atomic(Atomic::Integer)},
+                            required: set!{},
+                            additional_properties: false,
+                            ..Default::default()
+                        }),
+                        Schema::Atomic(Atomic::Null),
+                    }),
+                },
+                required: set!{"a".into()},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        }),
+    );
+
+    test_algebrize!(
+        flattening_polymorphic_objects_with_just_missing_polymorphism_works,
+        method = algebrize_from_clause,
+        expected = Ok(mir::Stage::Project(mir::Project {
+            source: Box::new(mir_source_foo()),
+            expression: map! {("foo", 0u16).into() => mir::Expression::Document(
+                mir::DocumentExpr {
+                    document: unchecked_unique_linked_hash_map! {"a_b".to_string() => mir::Expression::FieldAccess(mir::FieldAccess{
+                        expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                            expr: Box::new(mir::Expression::Reference(mir::ReferenceExpr {
+                                key: ("foo", 0u16).into(),
+                            })),
+                            field: "a".to_string(),
+                            is_nullable: true,
+                        })),
+
+                        field: "b".to_string(),
+                        is_nullable: true,
+                    }
+                )}},
+            )},
+            cache: SchemaCache::new(),
+        })),
+        input = Some(ast::Datasource::Flatten(ast::FlattenSource {
+            datasource: Box::new(AST_SOURCE_FOO.clone()),
+            options: vec![]
+        })),
+        catalog = Catalog::new(map! {
+            Namespace {db: "test".into(), collection: "foo".into()} => Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::AnyOf(set!{
+                        Schema::Document(Document {
+                            keys: map! {"b".into() => Schema::Atomic(Atomic::Integer)},
+                            required: set!{},
+                            additional_properties: false,
+                            ..Default::default()
+                        }),
+                        Schema::Missing,
+                    }),
+                },
+                required: set!{"a".into()},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        }),
+    );
+
+    test_algebrize!(
+        flattening_polymorphic_objects_with_just_null_and_missing_polymorphism_works,
+        method = algebrize_from_clause,
+        expected = Ok(mir::Stage::Project(mir::Project {
+            source: Box::new(mir_source_foo()),
+            expression: map! {("foo", 0u16).into() => mir::Expression::Document(
+                mir::DocumentExpr {
+                    document: unchecked_unique_linked_hash_map! {"a_b".to_string() => mir::Expression::FieldAccess(mir::FieldAccess{
+                        expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                            expr: Box::new(mir::Expression::Reference(mir::ReferenceExpr {
+                                key: ("foo", 0u16).into(),
+                            })),
+                            field: "a".to_string(),
+                            is_nullable: true,
+                        })),
+
+                        field: "b".to_string(),
+                        is_nullable: true,
+                    }
+                )}},
+            )},
+            cache: SchemaCache::new(),
+        })),
+        input = Some(ast::Datasource::Flatten(ast::FlattenSource {
+            datasource: Box::new(AST_SOURCE_FOO.clone()),
+            options: vec![]
+        })),
+        catalog = Catalog::new(map! {
+            Namespace {db: "test".into(), collection: "foo".into()} => Schema::Document(Document {
+                keys: map! {
+                    "a".into() => Schema::AnyOf(set!{
+                        Schema::Document(Document {
+                            keys: map! {"b".into() => Schema::Atomic(Atomic::Integer)},
+                            required: set!{},
+                            additional_properties: false,
+                            ..Default::default()
+                        }),
+                        Schema::Atomic(Atomic::Null),
+                        Schema::Missing,
+                    }),
+                },
+                required: set!{"a".into()},
+                additional_properties: false,
+                ..Default::default()
+            }),
+        }),
+    );
     mod unwind {
         use super::*;
-        use crate::catalog::{Catalog, Namespace};
 
         /// Most tests use the same collection source and need to specify the
         /// collection schema for the test to work. This helper allows easy

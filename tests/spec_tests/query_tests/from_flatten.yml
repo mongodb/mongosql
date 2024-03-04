@@ -5,6 +5,11 @@ catalog_data:
     docOrInt:
       - {'_id': 0, 'a': {'b': 1}}
       - {'_id': 1, 'a': 2}
+    nullableDoc:
+      - { '_id': 0, 'a': { 'b': 0 } }
+      - { '_id': 1, 'a': { 'b': 1 }}
+      - { '_id': 2 }
+      - { '_id': 3, 'a': null }
     mustCollide:
       - {'_id': 0, 'a': {'b': 1}, 'a_b': 2}
     mayCollide:
@@ -48,6 +53,28 @@ catalog_schema:
             'anyOf':
               [
                 { 'bsonType': 'int' },
+                {
+                  'bsonType': "object",
+                  'required': [ 'b' ],
+                  'additionalProperties': false,
+                  'properties': {
+                    'b': { 'bsonType': "int" }
+                  }
+                }
+              ]
+          },
+        }
+      },
+      'nullableDoc': {
+        'bsonType': "object",
+        'required': [ '_id'],
+        'additionalProperties': false,
+        'properties': {
+          '_id': { 'bsonType': "int" },
+          'a': {
+            'anyOf':
+              [
+                { 'bsonType': 'null' },
                 {
                   'bsonType': "object",
                   'required': [ 'b' ],
@@ -163,10 +190,19 @@ tests:
     query: "SELECT * FROM FLATTEN(foo WITH depth => 1, depth => 2)"
     algebrize_error: "found duplicate FLATTEN option Depth(2)"
 
-  - description: do not flatten schemas that MAY be document
+  - description: do not flatten polymorphic objects with non-nullable other types
     current_db: mydb
     query: "SELECT * FROM FLATTEN(docOrInt)"
     algebrize_error: 'cannot flatten field "a" since it has a polymorphic object schema'
+
+  - description: flatten polymorphic objects with just null or missing polymorphism
+    current_db: mydb
+    query: "SELECT * FROM FLATTEN(nullableDoc)"
+    result:
+      - { 'nullableDoc': { '_id': 0, 'a_b': 0 } }
+      - { 'nullableDoc': { '_id': 1, 'a_b': 1 } }
+      - { 'nullableDoc': { '_id': 2} }
+      - { 'nullableDoc': { '_id': 3} }
 
   - description: error if schema's field paths cannot be exhaustively enumerated
     current_db: mydb

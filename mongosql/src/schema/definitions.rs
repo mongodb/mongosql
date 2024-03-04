@@ -1115,7 +1115,10 @@ impl Schema {
     /// by the schema `self`, which can be any kind of Schema. If it
     /// cannot exhaustively enumerate all field paths (e.g. `self` is the
     /// `Any` Schema, or additional properties are allowed), it returns
-    /// an error.
+    /// an error. Additionally, a boolean value is returned indicating if
+    /// the schema has only nullable polymorphism, if at all polymorphic. A value of `true`
+    /// indicates that the schema represents only an Object or an Object
+    /// that is possibly Null and/or Missing, i.e. "nullable".
     ///
     /// Example:
     ///
@@ -1129,7 +1132,7 @@ impl Schema {
     pub fn enumerate_field_paths(
         &self,
         max_length: Option<u32>,
-    ) -> Result<BTreeSet<Vec<String>>, Error> {
+    ) -> Result<(BTreeSet<Vec<String>>, bool), Error> {
         // Call auxiliary function with parameter `inside_document` set to false because
         // function is not yet in the context of a document.
         self.enumerate_field_paths_aux(max_length, false)
@@ -1138,8 +1141,10 @@ impl Schema {
     /// enumerate_field_paths_aux is the auxiliary function called by
     /// enumerate_field_paths to exhaustively enumerate all field paths
     /// of length <= `max_length` that could exist in a value matched
-    /// by the schema `self`. If `inside_document` is true, `self` is a
-    /// a schema within a Schema::Document.
+    /// by the schema `self`. Additionally, this function determines what
+    /// the boolean value returned by enumerate_field_paths should be.
+    /// If `inside_document` is true, `self` is a schema within a
+    /// Schema::Document.
     ///
     /// Examples:
     ///
@@ -1153,26 +1158,25 @@ impl Schema {
         &self,
         max_length: Option<u32>,
         inside_document: bool,
-    ) -> Result<BTreeSet<Vec<String>>, Error> {
+    ) -> Result<(BTreeSet<Vec<String>>, bool), Error> {
         match self {
             Schema::Document(d) => {
                 // Error if we do not have complete schema information
                 if d.additional_properties {
                     return Err(Error::CannotEnumerateAllFieldPaths(self.clone()));
                 }
-                d.keys
-                    .clone()
-                    .into_iter()
-                    .fold(Ok(BTreeSet::new()), |acc, (key, schema)| match max_length {
+                d.keys.clone().into_iter().fold(
+                    Ok((BTreeSet::new(), true)),
+                    |acc, (key, schema)| match max_length {
                         Some(0) => acc,
                         _ => {
-                            let mut new_paths = schema
+                            let (mut new_paths, has_only_nullable_polymorphism) = schema
                                 .enumerate_field_paths_aux(max_length.map(|l| l - 1), true)?;
                             if new_paths.is_empty() {
                                 new_paths = set![vec![]];
                             }
                             let mut acc = acc?;
-                            acc.extend(
+                            acc.0.extend(
                                 new_paths
                                     .into_iter()
                                     .map(|path| {
@@ -1180,28 +1184,70 @@ impl Schema {
                                     })
                                     .collect::<BTreeSet<Vec<String>>>(),
                             );
-                            Ok(acc)
+                            Ok((acc.0, acc.1 && has_only_nullable_polymorphism))
                         }
-                    })
+                    },
+                )
             }
-            AnyOf(a) => a.iter().fold(
-                Ok(BTreeSet::new()),
-                |acc: Result<BTreeSet<Vec<String>>, Error>, schema| {
-                    let mut new_paths =
-                        schema.enumerate_field_paths_aux(max_length, inside_document)?;
-                    // If we are in the context of a document, propagate an empty vector to
-                    // recursively build document field paths
-                    if new_paths.is_empty() && inside_document {
-                        new_paths = set![vec![]]
+            AnyOf(a) => {
+                let mut mut_copy_of_a = a.clone();
+                let mut object_found = false;
+
+                let combined_doc = a.iter().fold(EMPTY_DOCUMENT.clone(), |acc, schema| {
+                    let acc = acc.document_union(schema.clone());
+                    if let Schema::Document(_) = schema {
+                        object_found = true;
+                        // After combining all the documents into one, it is no longer necessary to deal with each individual document,
+                        // so we can remove them after using them in the document_union above.
+                        mut_copy_of_a.remove(schema);
                     }
-                    Ok(acc?
-                        .union(&new_paths)
-                        .cloned()
-                        .collect::<BTreeSet<Vec<String>>>())
-                },
-            ),
+                    acc
+                });
+
+                // We don't want to add a document unless there already is one in the AnyOf because we could potentially create a polymorphic object.
+                // If there already is a document in the AnyOf, adding another one will not create any new consequences.
+                if object_found {
+                    mut_copy_of_a.insert(combined_doc);
+                }
+
+                let mut non_null_or_missing_found = false;
+                mut_copy_of_a.iter().fold(
+                    Ok((BTreeSet::new(), true)),
+                    |acc: Result<(BTreeSet<Vec<String>>, bool), Error>, schema| {
+                        let acc = acc?;
+
+                        if !matches!(
+                            schema,
+                            Schema::Missing | Schema::Atomic(Atomic::Null) | Schema::Document(_)
+                        ) {
+                            non_null_or_missing_found = true;
+                        }
+
+                        let (mut new_paths, has_only_nullable_polymorphism) =
+                            schema.enumerate_field_paths_aux(max_length, inside_document)?;
+                        // If we are in the context of a document, propagate an empty vector to
+                        // recursively build document field paths
+                        if new_paths.is_empty() && inside_document {
+                            new_paths = set![vec![]]
+                        }
+                        Ok((
+                            acc.0
+                                .union(&new_paths)
+                                .cloned()
+                                .collect::<BTreeSet<Vec<String>>>(),
+                            // If we encountered an object and any non-nullable schema in this AnyOf,
+                            // then we know the schema at this field path is polymorphic with non-null values.
+                            !(object_found && non_null_or_missing_found)
+                                && has_only_nullable_polymorphism
+                                && acc.1,
+                        ))
+                    },
+                )
+            }
             Schema::Any => Err(Error::CannotEnumerateAllFieldPaths(Schema::Any)),
-            Schema::Array(_) | Schema::Atomic(_) | Schema::Missing | Schema::Unsat => Ok(set![]),
+            Schema::Array(_) | Schema::Atomic(_) | Schema::Missing | Schema::Unsat => {
+                Ok((set![], true))
+            }
         }
     }
 
@@ -1618,7 +1664,7 @@ impl Document {
     }
 
     /// retain_keys retains keys from the m1 map argument, creating an AnyOf for the Schema of any
-    /// that overlap, and ignoring the keys from the m1 map that are not overlapping with m1.
+    /// that overlap, and ignoring the keys from the m2 map that are not overlapping with m1.
     #[allow(dead_code)]
     fn retain_keys(
         mut m1: BTreeMap<String, Schema>,

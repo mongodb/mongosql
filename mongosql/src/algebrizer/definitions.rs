@@ -624,32 +624,55 @@ impl<'a> Algebrizer<'a> {
             .schema_env
             .into_iter()
             .map(|(key, schema)| {
-                let field_paths =
-                    schema
-                        .enumerate_field_paths(depth.map(|d| d + 1))
-                        .map_err(|e| match e {
-                            schema::Error::CannotEnumerateAllFieldPaths(s) => {
-                                Error::CannotEnumerateAllFieldPaths(s)
-                            }
-                            _ => unreachable!(),
-                        })?;
-                // Error if any field path is a prefix of another path
-                field_paths
-                    .iter()
-                    .flat_map(|p1| {
-                        field_paths.iter().map(|p2| {
-                            if p1.clone() == p2.clone() || p1.is_empty() || p2.is_empty() {
+                let (field_paths, has_only_nullable_polymorphism) = schema
+                    .enumerate_field_paths(depth.map(|d| d + 1))
+                    .map_err(|e| match e {
+                        schema::Error::CannotEnumerateAllFieldPaths(s) => {
+                            Error::CannotEnumerateAllFieldPaths(s)
+                        }
+                        _ => unreachable!(),
+                    })?;
+
+                // Throw an error if the schema has a polymorphic object other than just null or missing polymorphism. To figure out which field is the problem,
+                // we check to see which field path is a prefix of another field path.
+                if !has_only_nullable_polymorphism {
+                    field_paths
+                        .iter()
+                        .flat_map(|p1| {
+                            field_paths.iter().map(|p2| {
+                                if p1.clone() != p2.clone() && !(p1.is_empty() || p2.is_empty()) {
+                                    // Find which field has a polymorphic object schema.
+                                    if p1.starts_with(p2.as_slice()) {
+                                        return Err(Error::PolymorphicObjectSchema(
+                                            p2.join(separator),
+                                        ));
+                                    } else if p2.starts_with(p1.as_slice()) {
+                                        return Err(Error::PolymorphicObjectSchema(
+                                            p1.join(separator),
+                                        ));
+                                    }
+                                };
                                 Ok(())
-                            } else if p1.starts_with(p2.as_slice()) {
-                                Err(Error::PolymorphicObjectSchema(p2.join(separator)))
-                            } else if p2.starts_with(p1.as_slice()) {
-                                Err(Error::PolymorphicObjectSchema(p1.join(separator)))
-                            } else {
-                                Ok(())
-                            }
+                            })
                         })
-                    })
-                    .collect::<Result<_>>()?;
+                        .collect::<Result<_>>()?;
+                }
+
+                // Check to see if any field path is a prefix of another field path. If there is a prefix, remove it.
+                // Note: Any prefixes found are the result of objects that can be null or missing.
+                let mut field_paths_copy = field_paths.clone();
+                for p1 in field_paths.iter() {
+                    for p2 in field_paths.iter() {
+                        if p1.clone() != p2.clone() && !p1.is_empty() && !p2.is_empty() {
+                            if p1.starts_with(p2.as_slice()) {
+                                field_paths_copy.remove(p2);
+                            } else if p2.starts_with(p1.as_slice()) {
+                                field_paths_copy.remove(p1);
+                            }
+                        }
+                    }
+                }
+
                 let mut project_expression = UniqueLinkedHashMap::new();
                 let mut sub_schema_env = SchemaEnvironment::new();
                 sub_schema_env.insert(key.clone(), schema);
@@ -661,7 +684,7 @@ impl<'a> Algebrizer<'a> {
                     self.schema_checking_mode,
                 );
                 project_expression
-                    .insert_many(field_paths.into_iter().map(|path| {
+                    .insert_many(field_paths_copy.into_iter().map(|path| {
                         (
                             path.join(separator),
                             path_algebrizer.algebrize_flattened_field_path(key.clone(), path),

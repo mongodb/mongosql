@@ -2539,10 +2539,14 @@ mod enumerate_field_paths {
         };
     }
 
-    test_enumerate_field_paths!(atomic, expected = Ok(set! {}), schema = Atomic(Integer),);
+    test_enumerate_field_paths!(
+        atomic,
+        expected = Ok((set! {}, true)),
+        schema = Atomic(Integer),
+    );
     test_enumerate_field_paths!(
         array,
-        expected = Ok(set! {}),
+        expected = Ok((set! {}, true)),
         schema = Array(Box::new(Atomic(Integer))),
     );
     test_enumerate_field_paths!(
@@ -2550,18 +2554,19 @@ mod enumerate_field_paths {
         expected = Err(Error::CannotEnumerateAllFieldPaths(Any)),
         schema = Any,
     );
-    test_enumerate_field_paths!(unsat, expected = Ok(set! {}), schema = Unsat,);
-    test_enumerate_field_paths!(missing, expected = Ok(set! {}), schema = Missing,);
+    test_enumerate_field_paths!(unsat, expected = Ok((set! {}, true)), schema = Unsat,);
+    test_enumerate_field_paths!(missing, expected = Ok((set! {}, true)), schema = Missing,);
     test_enumerate_field_paths!(
         document,
-        expected = Ok(set! {vec!["a".to_string(), "b".to_string()]}),
+        expected = Ok((set! {vec!["a".to_string(), "b".to_string()]}, true)),
         schema = A_B_DOCUMENT_SCHEMA.clone(),
     );
     test_enumerate_field_paths!(
         any_of_documents,
-        expected = Ok(
-            set! {vec!["a".to_string(), "b".to_string()], vec!["x".to_string(), "y".to_string()]}
-        ),
+        expected = Ok((
+            set! {vec!["a".to_string(), "b".to_string()], vec!["x".to_string(), "y".to_string()]},
+            true
+        )),
         schema = Schema::AnyOf(set![
             A_B_DOCUMENT_SCHEMA.clone(),
             Document(Document {
@@ -2579,26 +2584,43 @@ mod enumerate_field_paths {
     );
     test_enumerate_field_paths!(
         any_of_non_docs,
-        expected = Ok(set! {}),
+        expected = Ok((set! {}, true)),
         schema = AnyOf(set![Atomic(Integer), Atomic(String)]),
     );
     test_enumerate_field_paths!(
         nested_any_of_non_docs,
-        expected = Ok(set! {}),
+        expected = Ok((set! {}, true)),
         schema = AnyOf(set![
             AnyOf(set![Atomic(Integer), Atomic(Double)]),
             Atomic(String)
         ]),
     );
     test_enumerate_field_paths!(
-        any_of_doc_and_non_doc,
-        expected = Ok(set! {vec!["a".to_string(), "b".to_string()]}),
+        any_of_doc_and_non_doc_other_than_null_or_missing_returns_false,
+        expected = Ok((set! {vec!["a".to_string(), "b".to_string()]}, false)),
         schema = AnyOf(set![A_B_DOCUMENT_SCHEMA.clone(), Atomic(String)]),
     );
-
+    test_enumerate_field_paths!(
+        any_of_doc_and_null_returns_true,
+        expected = Ok((set! {vec!["a".to_string(), "b".to_string()]}, true)),
+        schema = AnyOf(set![A_B_DOCUMENT_SCHEMA.clone(), Atomic(Null)]),
+    );
+    test_enumerate_field_paths!(
+        any_of_doc_and_missing_returns_true,
+        expected = Ok((set! {vec!["a".to_string(), "b".to_string()]}, true)),
+        schema = AnyOf(set![A_B_DOCUMENT_SCHEMA.clone(), Missing]),
+    );
+    test_enumerate_field_paths!(
+        any_of_doc_and_null_and_missing_returns_true,
+        expected = Ok((set! {vec!["a".to_string(), "b".to_string()]}, true)),
+        schema = AnyOf(set![A_B_DOCUMENT_SCHEMA.clone(), Atomic(Null), Missing]),
+    );
     test_enumerate_field_paths!(
         nested_any_of_doc,
-        expected = Ok(set! {vec!["a".to_string()], vec!["a".to_string(), "b".to_string()]}),
+        expected = Ok((
+            set! {vec!["a".to_string()], vec!["a".to_string(), "b".to_string()]},
+            false
+        )),
         schema = AnyOf(set! {
             Document(Document {
                 keys: map!{
@@ -2622,18 +2644,22 @@ mod enumerate_field_paths {
 
     test_enumerate_field_paths!(
         any_of_identical_documents,
-        expected = Ok(set! {vec!["a".to_string(), "b".to_string()]}),
+        expected = Ok((set! {vec!["a".to_string(), "b".to_string()]}, true)),
         schema = AnyOf(set![
             A_B_DOCUMENT_SCHEMA.clone(),
             A_B_DOCUMENT_SCHEMA.clone()
         ]),
     );
-    test_enumerate_field_paths!(empty_any_of, expected = Ok(set! {}), schema = AnyOf(set![]),);
+    test_enumerate_field_paths!(
+        empty_any_of,
+        expected = Ok((set! {}, true)),
+        schema = AnyOf(set![]),
+    );
     test_enumerate_field_paths!(
         any_of_enumerable_and_non_enumerable_documents,
         expected = Err(Error::CannotEnumerateAllFieldPaths(Document(Document {
-            keys: map! {"b".to_string() => Atomic(Integer)},
-            required: set!["b".to_string()],
+            keys: map! {"a".to_string() => Atomic(Integer), "b".to_string() => Atomic(Integer)},
+            required: set![],
             additional_properties: true,
             ..Default::default()
         }))),
@@ -2699,9 +2725,10 @@ mod enumerate_field_paths {
     );
     test_enumerate_field_paths!(
         two_paths_share_a_prefix,
-        expected = Ok(
-            set! {vec!["a".to_string(), "b".to_string()], vec!["a".to_string(), "c".to_string()]}
-        ),
+        expected = Ok((
+            set! {vec!["a".to_string(), "b".to_string()], vec!["a".to_string(), "c".to_string()]},
+            true
+        )),
         schema = Document(Document {
             keys: map! {"a".to_string() => Document(Document {
             keys: map!{"b".to_string() => Atomic(Integer), "c".to_string() => Atomic(Integer)},
@@ -2716,13 +2743,13 @@ mod enumerate_field_paths {
     );
     test_enumerate_field_paths!(
         document_max_length_zero,
-        expected = Ok(set! {}),
+        expected = Ok((set! {}, true)),
         schema = A_B_DOCUMENT_SCHEMA.clone(),
         max_length = Some(0),
     );
     test_enumerate_field_paths!(
         document_max_length_less_than_max_nesting_depth,
-        expected = Ok(set! {vec!["a".to_string()]}),
+        expected = Ok((set! {vec!["a".to_string()]}, true)),
         schema = Document(Document {
             keys: map! {"a".to_string() => Document(Document {
             keys: map!{"b".to_string() => Atomic(Integer)},
@@ -2738,7 +2765,7 @@ mod enumerate_field_paths {
     );
     test_enumerate_field_paths!(
         incomplete_subdocument_schema,
-        expected = Ok(set! {vec!["a".to_string()]}),
+        expected = Ok((set! {vec!["a".to_string()]}, true)),
         schema = Document(Document {
             keys: map! {"a".to_string() => Document(Document {
             keys: map!{"b".to_string() => Document(Document {

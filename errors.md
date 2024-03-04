@@ -41,34 +41,34 @@ The SQL query syntax has to be corrected in order to resolve a parsing error.
 
 The following errors occur when something goes wrong while converting the SQL query to MQL, such as incorrect argument counts or failing to find a field reference or data source.
 
-| Error Code                | Error Description                                                                                                                                                           |
-|---------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [Error 3002](#error-3002) | A SELECT list with multiple values cannot contain a non-namespaced `*` (i.e., `SELECT a, *, b FROM myTable` is not supported). A non-namespaced `*` must be used by itself. |
-| [Error 3004](#error-3004) | The array data source contains an identifier. Array data sources must be constant.                                                                                          |
-| [Error 3005](#error-3005) | SELECT DISTINCT is not allowed.                                                                                                                                             |
-| [Error 3006](#error-3006) | Distinct UNION is not allowed.                                                                                                                                              |
-| [Error 3007](#error-3007) | A data source referenced in the SELECT list could not be found.                                                                                                             |
-| [Error 3008](#error-3008) | A field could not be found in any data source.                                                                                                                              |
-| [Error 3009](#error-3009) | A field exists in multiple data sources and is ambiguous.                                                                                                                   |
-| [Error 3010](#error-3010) | The * argument is only valid in the COUNT aggregate function.                                                                                                               |
-| [Error 3011](#error-3011) | An aggregation function was used in a scalar position.                                                                                                                      |
-| [Error 3012](#error-3012) | A scalar function was used in an aggregation position.                                                                                                                      |
-| [Error 3013](#error-3013) | A non-aggregation expression was found in a GROUP BY aggregation function list.                                                                                             |
-| [Error 3014](#error-3014) | Aggregation functions must have exactly one argument.                                                                                                                       |
-| [Error 3015](#error-3015) | Scalar functions don't support DISTINCT.                                                                                                                                    |
-| [Error 3016](#error-3016) | A derived data source has overlapping fields.                                                                                                                               |
-| [Error 3019](#error-3019) | An OUTER JOIN is missing a JOIN condition. OUTER JOINs must specify a JOIN condition.                                                                                       |
-| [Error 3020](#error-3020) | A schema environment could not be created due to a duplicate field.                                                                                                         |
-| [Error 3022](#error-3022) | Subquery expressions must have a degree of 1.                                                                                                                               |
-| [Error 3023](#error-3023) | A document has multiple fields with the same name.                                                                                                                          |
-| [Error 3024](#error-3024) | The same FLATTEN option is defined more than once.                                                                                                                          |
-| [Error 3025](#error-3025) | Schema information is insufficient to allow for flattening the data source.                                                                                                 |
-| [Error 3026](#error-3026) | A field within the schema is a polymorphic object type (i.e., consider a field that could either be a `document` or `int`), so it can't be flattened.                       |
-| [Error 3027](#error-3027) | The same UNWIND option is defined more than once.                                                                                                                           |
-| [Error 3028](#error-3028) | UNWIND is missing the path option. UNWIND must specify a PATH option.                                                                                                       |
-| [Error 3029](#error-3029) | The UNWIND PATH option is not an identifier. The UNWIND PATH option must be an identifier.                                                                                                       |
-| [Error 3030](#error-3030) | The target type of the CAST is an invalid type (i.e., it's either an unknown type or a type that MongoSQL does not support casting for).                                    |
-| [Error 3034](#error-3034) | A sort key is invalid, because it uses complex expressions (i.e., `ORDER BY {'a': b}.a` is invalid).                                                                         |
+| Error Code                | Error Description                                                                                                                                                                                            |
+|---------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [Error 3002](#error-3002) | A SELECT list with multiple values cannot contain a non-namespaced `*` (i.e., `SELECT a, *, b FROM myTable` is not supported). A non-namespaced `*` must be used by itself.                                  |
+| [Error 3004](#error-3004) | The array data source contains an identifier. Array data sources must be constant.                                                                                                                           |
+| [Error 3005](#error-3005) | SELECT DISTINCT is not allowed.                                                                                                                                                                              |
+| [Error 3006](#error-3006) | Distinct UNION is not allowed.                                                                                                                                                                               |
+| [Error 3007](#error-3007) | A data source referenced in the SELECT list could not be found.                                                                                                                                              |
+| [Error 3008](#error-3008) | A field could not be found in any data source.                                                                                                                                                               |
+| [Error 3009](#error-3009) | A field exists in multiple data sources and is ambiguous.                                                                                                                                                    |
+| [Error 3010](#error-3010) | The * argument is only valid in the COUNT aggregate function.                                                                                                                                                |
+| [Error 3011](#error-3011) | An aggregation function was used in a scalar position.                                                                                                                                                       |
+| [Error 3012](#error-3012) | A scalar function was used in an aggregation position.                                                                                                                                                       |
+| [Error 3013](#error-3013) | A non-aggregation expression was found in a GROUP BY aggregation function list.                                                                                                                              |
+| [Error 3014](#error-3014) | Aggregation functions must have exactly one argument.                                                                                                                                                        |
+| [Error 3015](#error-3015) | Scalar functions don't support DISTINCT.                                                                                                                                                                     |
+| [Error 3016](#error-3016) | A derived data source has overlapping fields.                                                                                                                                                                |
+| [Error 3019](#error-3019) | An OUTER JOIN is missing a JOIN condition. OUTER JOINs must specify a JOIN condition.                                                                                                                        |
+| [Error 3020](#error-3020) | A schema environment could not be created due to a duplicate field.                                                                                                                                          |
+| [Error 3022](#error-3022) | Subquery expressions must have a degree of 1.                                                                                                                                                                |
+| [Error 3023](#error-3023) | A document has multiple fields with the same name.                                                                                                                                                           |
+| [Error 3024](#error-3024) | The same FLATTEN option is defined more than once.                                                                                                                                                           |
+| [Error 3025](#error-3025) | Schema information is insufficient to allow for flattening the data source.                                                                                                                                  |
+| [Error 3026](#error-3026) | A field within the schema is a polymorphic object type (i.e., consider a field that could either be a `document` or `int`), so it can't be flattened. `null` and `missing` object polymorphism is permitted. |
+| [Error 3027](#error-3027) | The same UNWIND option is defined more than once.                                                                                                                                                            |
+| [Error 3028](#error-3028) | UNWIND is missing the path option. UNWIND must specify a PATH option.                                                                                                                                        |
+| [Error 3029](#error-3029) | The UNWIND PATH option is not an identifier. The UNWIND PATH option must be an identifier.                                                                                                                   |
+| [Error 3030](#error-3030) | The target type of the CAST is an invalid type (i.e., it's either an unknown type or a type that MongoSQL does not support casting for).                                                                     |
+| [Error 3034](#error-3034) | A sort key is invalid, because it uses complex expressions (i.e., `ORDER BY {'a': b}.a` is invalid).                                                                                                         |
 
 ## Error Codes Beginning With "4" Overview
 
@@ -338,10 +338,10 @@ The following errors occur when something goes wrong while using the excludeName
 
 ### Error 3026
 
-- **Description:** A field within the schema is a polymorphic object type (i.e., consider a field that could either be a `document` or `int`), so it can't be flattened.
-  Flattening only works on object (AKA document) types, so if there is a possibility that some field may not be a document, then it can't be flattened. 
+- **Description:** A field within the schema is a polymorphic object type (i.e., consider a field that could either be a `document` or `int`), so it can't be flattened. `null` and `missing` object polymorphism is permitted.
+  Flattening only works on object (AKA document) types, so if there is a possibility that some field may not be a document (unless the only other possibilities are `null` or `missing`), then it can't be flattened. 
 - **Common Causes:** Trying to flatten a collection that has a schema containing a field that is a polymorphic object type. For example, assuming that a collection named `coll` has a field that is a polymorphic object type, then the query `SELECT * FROM FLATTEN(coll)` causes this error.
-- **Resolution Steps:** You can only flatten object types. If you want a field to have the possibility of being flattened, the schema for that field MUST be an object type.
+- **Resolution Steps:** You can only flatten object types. If you want a field to have the possibility of being flattened, the schema for that field MUST be an object type. The only exception to this rule is objects that may be null or missing; you can still flatten these objects despite being polymorphic. 
   To fix this error, you must either stop trying to flatten collections that have fields with polymorphic object types, or you must change the schema for those fields to be
   an object type only. 
 
