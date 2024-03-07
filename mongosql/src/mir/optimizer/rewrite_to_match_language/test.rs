@@ -43,7 +43,7 @@ macro_rules! test_rewrite_to_match_language {
             );
 
             let optimizer = &MatchLanguageRewriter;
-            let actual = optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
+            let (actual, _) = optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
             assert_eq!(expected, actual);
         }
     };

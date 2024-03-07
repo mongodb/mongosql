@@ -2,6 +2,7 @@ use crate::{
     mir::{schema::SchemaInferenceState, Stage},
     SchemaCheckingMode,
 };
+use tailcall::tailcall;
 
 mod constant_folding;
 mod dead_code_elimination;
@@ -21,7 +22,7 @@ pub(crate) trait Optimizer {
         st: Stage,
         sm: SchemaCheckingMode,
         schema_state: &SchemaInferenceState,
-    ) -> Stage;
+    ) -> (Stage, bool);
 }
 
 // Avoiding lifetime hacking by using a fn
@@ -47,12 +48,24 @@ static OPTIMIZERS: fn() -> Vec<Box<dyn Optimizer>> = || {
 
 /// Optimizes the provided MIR stage. Internally, Optimizers determine whether
 /// the SchemaCheckingMode is used or not.
+#[tailcall]
 pub fn optimize_plan(
     st: Stage,
     schema_checking_mode: SchemaCheckingMode,
     schema_state: &SchemaInferenceState,
 ) -> Stage {
-    OPTIMIZERS().into_iter().fold(st, |acc, opt| {
-        opt.optimize(acc, schema_checking_mode, schema_state)
-    })
+    let (new_st, changed) =
+        OPTIMIZERS()
+            .into_iter()
+            .fold((st, false), |(acc_st, acc_changed), opt| {
+                let (new_st, changed) = opt.optimize(acc_st, schema_checking_mode, schema_state);
+                (new_st, acc_changed || changed)
+            });
+
+    // If the pipeline was updated as a result of optimization, optimize again.
+    if changed {
+        optimize_plan(new_st, schema_checking_mode, schema_state)
+    } else {
+        new_st
+    }
 }

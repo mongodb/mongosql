@@ -14,7 +14,7 @@ mod constant_folding {
                 let input = $input;
                 let expected = $expected;
 
-                let actual = ConstantFoldingOptimizer::fold_constants(
+                let (actual, _) = ConstantFoldingOptimizer::fold_constants(
                     input,
                     &SchemaInferenceState::new(
                         0,
@@ -215,7 +215,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         });
-        let actual = ConstantFoldingOptimizer::fold_constants(
+        let (actual, _) = ConstantFoldingOptimizer::fold_constants(
             input,
             &SchemaInferenceState::new(
                 0,

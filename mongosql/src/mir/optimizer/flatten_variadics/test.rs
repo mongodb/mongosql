@@ -7,7 +7,8 @@ mod flatten_node {
                 use crate::mir::optimizer::flatten_variadics::FlattenVariadicFunctionsOptimizer;
                 let input = $input;
                 let expected = $expected;
-                let actual = FlattenVariadicFunctionsOptimizer::flatten_variadic_functions(input);
+                let (actual, _) =
+                    FlattenVariadicFunctionsOptimizer::flatten_variadic_functions(input);
                 assert_eq!(expected, actual);
             }
         };

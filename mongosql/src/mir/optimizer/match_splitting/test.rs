@@ -10,7 +10,7 @@ mod match_splitting_test {
                 use crate::mir::{optimizer::match_splitting::MatchSplittingOptimizer, *};
                 let input = $input;
                 let expected = $expected;
-                let actual = MatchSplittingOptimizer::split_matches(input);
+                let (actual, _) = MatchSplittingOptimizer::split_matches(input);
                 assert_eq!(expected, actual);
             }
         };

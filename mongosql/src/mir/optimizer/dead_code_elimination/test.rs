@@ -43,7 +43,7 @@ macro_rules! test_dead_code_elimination {
             );
 
             let optimizer = &DeadCodeEliminator;
-            let actual = optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
+            let (actual, _) = optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
             assert_eq!(expected, actual);
         }
     };

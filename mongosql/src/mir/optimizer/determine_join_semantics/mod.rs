@@ -43,11 +43,12 @@ impl Optimizer for JoinSemanticsOptimizer {
         st: Stage,
         _sm: SchemaCheckingMode,
         schema_state: &SchemaInferenceState,
-    ) -> Stage {
+    ) -> (Stage, bool) {
         let mut v = JoinSemanticsOptimizerVisitor {
             schema_state: schema_state.clone(),
         };
-        v.visit_stage(st)
+        let new_stage = v.visit_stage(st);
+        (new_stage, false)
     }
 }
 

@@ -30,7 +30,12 @@ use super::Optimizer;
 pub(crate) struct FlattenVariadicFunctionsOptimizer {}
 
 impl Optimizer for FlattenVariadicFunctionsOptimizer {
-    fn optimize(&self, st: Stage, _sm: SchemaCheckingMode, _: &SchemaInferenceState) -> Stage {
+    fn optimize(
+        &self,
+        st: Stage,
+        _sm: SchemaCheckingMode,
+        _schema_state: &SchemaInferenceState,
+    ) -> (Stage, bool) {
         FlattenVariadicFunctionsOptimizer::flatten_variadic_functions(st)
     }
 }
@@ -47,9 +52,10 @@ impl FlattenVariadicFunctionsOptimizer {
     /// Flattening applies to all associative operators in the mir, including
     /// addition, multiplication, logical disjunction, logical conjunction, and
     /// string concatenation.
-    fn flatten_variadic_functions(st: Stage) -> Stage {
+    fn flatten_variadic_functions(st: Stage) -> (Stage, bool) {
         let mut v = ScalarFunctionApplicationVisitor;
-        v.visit_stage(st)
+        let new_stage = v.visit_stage(st);
+        (new_stage, false)
     }
 }
 #[derive(Default)]

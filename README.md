@@ -45,33 +45,33 @@ Fuzz tests for pretty-printing.
 Index-usage assertion tests. These tests specify queries and expected index utilization.
 Requires a running mongod.
 
-`cargo test --features index-test --package e2e-tests` from the main directory
+`cargo test --features=index,generated --package=e2e-tests -- --test-threads=1` from the main directory
 
 ### e2e testing
 
 End-to-end query tests that do not exist in the spec. These tests specify queries and expected
 result sets and execute against an actual database. Requires a running mongod.
 
-`cargo test --features query-test,e2e-test --package e2e-tests` from the main directory
+`cargo test --features=e2e,generated --package=e2e-tests -- --test-threads=1` from the main directory
 
 ### errors testing
 
 error tests are e2e tests for our errors. These tests specify a SQL query and have an expected 
 error that they should cause. Requires a running mongod.
 
-`cargo test --features query-test,errors --package e2e-tests` from the main directory
+`cargo test --features=error,generated --package=e2e-tests -- --test-threads=1` from the main directory
 
 ### Spec query testing
 
 The query spec tests that specify language behavior. Requires a running mongod.
 
-`cargo test --features query-test --package e2e-tests` from the main directory
+`cargo test --features=query,generated --package=e2e-tests -- --test-threads=1` from the main directory
 
 ### Spec testing
 
 The syntactic rewriter and type-constraint spec tests.
 
-`cargo test -- --ignored --skip run_index_usage_tests` from the main directory
+`cargo test -- --ignored` from the main directory
 
 ### All testing
 

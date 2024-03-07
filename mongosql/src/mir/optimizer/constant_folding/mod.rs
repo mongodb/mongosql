@@ -18,16 +18,22 @@ pub(crate) use lib::ConstantFoldExprVisitor;
 pub(crate) struct ConstantFoldingOptimizer {}
 
 impl Optimizer for ConstantFoldingOptimizer {
-    fn optimize(&self, st: Stage, _: SchemaCheckingMode, state: &SchemaInferenceState) -> Stage {
-        ConstantFoldingOptimizer::fold_constants(st, state)
+    fn optimize(
+        &self,
+        st: Stage,
+        _sm: SchemaCheckingMode,
+        schema_state: &SchemaInferenceState,
+    ) -> (Stage, bool) {
+        ConstantFoldingOptimizer::fold_constants(st, schema_state)
     }
 }
 
 impl ConstantFoldingOptimizer {
-    pub(crate) fn fold_constants(st: Stage, state: &SchemaInferenceState) -> Stage {
+    pub(crate) fn fold_constants(st: Stage, state: &SchemaInferenceState) -> (Stage, bool) {
         let mut cf = ConstantFoldExprVisitor {
             state: state.clone(),
         };
-        cf.visit_stage(st)
+        let new_stage = cf.visit_stage(st);
+        (new_stage, false)
     }
 }

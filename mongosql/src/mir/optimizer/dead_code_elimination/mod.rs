@@ -27,9 +27,10 @@ impl Optimizer for DeadCodeEliminator {
         st: Stage,
         _sm: SchemaCheckingMode,
         _schema_state: &SchemaInferenceState,
-    ) -> Stage {
+    ) -> (Stage, bool) {
         let mut v = DeadCodeEliminationVisitor;
-        v.visit_stage(st)
+        let new_stage = v.visit_stage(st);
+        (new_stage, false)
     }
 }
 

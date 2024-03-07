@@ -26,9 +26,10 @@ impl Optimizer for LowerJoinsOptimizer {
         st: Stage,
         _sm: SchemaCheckingMode,
         _schema_state: &SchemaInferenceState,
-    ) -> Stage {
+    ) -> (Stage, bool) {
         let mut v = LowerJoinsVisitor;
-        v.visit_stage(st)
+        let new_stage = v.visit_stage(st);
+        (new_stage, false)
     }
 }
 

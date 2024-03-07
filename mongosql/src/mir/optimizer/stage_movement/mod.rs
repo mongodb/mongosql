@@ -239,17 +239,18 @@ impl Optimizer for StageMovementOptimizer {
         st: Stage,
         _sm: SchemaCheckingMode,
         schema_state: &SchemaInferenceState,
-    ) -> Stage {
+    ) -> (Stage, bool) {
         StageMovementOptimizer::move_stages(st, schema_state)
     }
 }
 
 impl StageMovementOptimizer {
-    fn move_stages(st: Stage, schema_state: &SchemaInferenceState) -> Stage {
+    fn move_stages(st: Stage, schema_state: &SchemaInferenceState) -> (Stage, bool) {
         let mut v = StageMovementVisitor {
             schema_state: schema_state.clone(),
         };
-        v.visit_stage(st)
+        let new_stage = v.visit_stage(st);
+        (new_stage, false)
     }
 }
 

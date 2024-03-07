@@ -69,7 +69,7 @@ macro_rules! test_determine_join_semantics {
             );
 
             let optimizer = &JoinSemanticsOptimizer;
-            let actual = optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
+            let (actual, _) = optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
             assert_eq!(expected, actual);
         }
     };

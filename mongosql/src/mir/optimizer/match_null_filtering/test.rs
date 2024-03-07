@@ -29,7 +29,7 @@ macro_rules! test_match_null_filtering {
 
             // Create actual optimized stage and assert it matches expected
             let optimizer = &MatchNullFilteringOptimizer;
-            let actual = optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
+            let (actual, _) = optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
             assert_eq!(expected, actual);
         }
     };

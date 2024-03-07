@@ -25,15 +25,21 @@ use crate::{
 pub(crate) struct MatchSplittingOptimizer {}
 
 impl Optimizer for MatchSplittingOptimizer {
-    fn optimize(&self, st: Stage, _sm: SchemaCheckingMode, _: &SchemaInferenceState) -> Stage {
+    fn optimize(
+        &self,
+        st: Stage,
+        _sm: SchemaCheckingMode,
+        _schema_state: &SchemaInferenceState,
+    ) -> (Stage, bool) {
         MatchSplittingOptimizer::split_matches(st)
     }
 }
 
 impl MatchSplittingOptimizer {
-    fn split_matches(st: Stage) -> Stage {
+    fn split_matches(st: Stage) -> (Stage, bool) {
         let mut v = MatchSplittingVisitor;
-        v.visit_stage(st)
+        let new_stage = v.visit_stage(st);
+        (new_stage, false)
     }
 }
 

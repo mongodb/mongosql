@@ -41,9 +41,10 @@ impl Optimizer for PrefilterUnwindsOptimizer {
         st: Stage,
         _sm: SchemaCheckingMode,
         _schema_state: &SchemaInferenceState,
-    ) -> Stage {
+    ) -> (Stage, bool) {
         let mut visitor = PrefilterUnwindsVisitor {};
-        visitor.visit_stage(st)
+        let new_stage = visitor.visit_stage(st);
+        (new_stage, false)
     }
 }
 
