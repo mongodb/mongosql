@@ -458,8 +458,8 @@ functions:
           ["trr-macos", "trr-macos-arm","trr-ubuntu2004"]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: mongosql-rs/target/release/bic-trip
-        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/bic-trip
+        local_file: mongosql-rs/target/release/mongosql-transition-tool
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongosql-transition-tool
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
@@ -469,8 +469,129 @@ functions:
           - trr-windows-64
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: mongosql-rs/target/release/bic-trip.exe
-        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/bic-trip.exe
+        local_file: mongosql-rs/target/release/mongosql-transition-tool.exe
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongosql-transition-tool.exe
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+
+  "sign trr windows":
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/trr-windows-64/mongosql-transition-tool.exe
+        local_file: mongosql-rs/mongosql-transition-tool.exe
+        bucket: mciuploads
+    - command: shell.exec
+      type: system
+      params:
+        silent: true
+        script: |
+          docker login --username ${sql_engines_artifactory_username} --password ${sql_engines_artifactory_auth_token} ${release_tools_container_registry}
+    - command: shell.exec
+      type: system
+      params:
+        silent: true
+        env:
+          GRS_CONFIG_USER1_USERNAME: "${garasign_username}"
+          GRS_CONFIG_USER1_PASSWORD: "${garasign_password}"
+        working_dir: mongosql-rs
+        script: |
+          docker run \
+            -e GRS_CONFIG_USER1_USERNAME \
+            -e GRS_CONFIG_USER1_PASSWORD \
+            --rm \
+            -v $(pwd):$(pwd) -w $(pwd) \
+            ${garasign_jsign_image} \
+            /bin/bash -c "jsign -a mongo-authenticode-2021 --replace --tsaurl http://timestamp.digicert.com -d SHA-256 mongosql-transition-tool.exe"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/mongosql-transition-tool.exe
+        remote_file: mongosql-rs/artifacts/${version_id}/trr-windows-64/mongosql-transition-tool-signed.exe
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+
+  "sign trr linux":
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/trr-ubuntu2004/mongosql-transition-tool
+        local_file: mongosql-rs/mongosql-transition-tool-linux
+        bucket: mciuploads
+    - command: shell.exec
+      type: system
+      params:
+        silent: true
+        script: |
+          docker login --username ${sql_engines_artifactory_username} --password ${sql_engines_artifactory_auth_token} ${release_tools_container_registry}
+    - command: shell.exec
+      type: system
+      params:
+        silent: true
+        env:
+          GRS_CONFIG_USER1_USERNAME: "${garasign_username}"
+          GRS_CONFIG_USER1_PASSWORD: "${garasign_password}"
+        working_dir: mongosql-rs
+        script: |
+          docker run \
+            -e GRS_CONFIG_USER1_USERNAME \
+            -e GRS_CONFIG_USER1_PASSWORD \
+            --rm \
+            -v $(pwd):$(pwd) -w $(pwd) \
+            ${garasign_gpg_image} \
+            /bin/bash -c "gpgloader && gpg --yes -v --armor -o mongosql-transition-tool-linux.sig --detach-sign mongosql-transition-tool-linux"
+    - command: shell.exec
+      type: system
+      params:
+        silent: false
+        env:
+          GRS_CONFIG_USER1_USERNAME: "${garasign_username}"
+          GRS_CONFIG_USER1_PASSWORD: "${garasign_password}"
+        working_dir: mongosql-rs
+        script: |
+          docker run \
+            -e GRS_CONFIG_USER1_USERNAME \
+            -e GRS_CONFIG_USER1_PASSWORD \
+            --rm \
+            -v $(pwd):$(pwd) -w $(pwd) \
+            ${garasign_gpg_image} \
+            /bin/bash -c "gpgloader && gpg --verify mongosql-transition-tool-linux.sig mongosql-transition-tool-linux"
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/mongosql-transition-tool-linux.sig
+        remote_file: mongosql-rs/artifacts/${version_id}/trr-ubuntu2004/mongosql-transition-tool-linux.sig
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+
+  "sign trr macos":
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/mongosql-transition-tool
+        local_file: mongosql-rs/AtlasSQLReadinessReport-macos
+        bucket: mciuploads
+    - command: subprocess.exec
+      params:
+        binary: bash
+        working_dir: mongosql-rs
+        args:
+          - "./bic-trip/resources/sign_macos_zip.sh"
+        add_expansions_to_env: true
+    - command: s3.put
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/AtlasSQLReadinessReport-macos
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/AtlasSQLReadinessReport-macos-signed
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
@@ -583,14 +704,14 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        remote_file: mongosql-rs/artifacts/${version_id}/trr-macos/bic-trip
-        local_file: mongosql-rs/release/trr-macos/bic-trip
+        remote_file: mongosql-rs/artifacts/${version_id}/trr-macos/AtlasSQLReadinessReport-macos-signed
+        local_file: mongosql-rs/release/trr-macos/AtlasSQLReadinessReport-macos-signed
         bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
-        local_file: mongosql-rs/release/trr-macos/bic-trip
+        local_file: mongosql-rs/release/trr-macos/AtlasSQLReadinessReport-macos-signed
         remote_file: transition-readiness-report/AtlasSQLReadinessReport-v${release_version}-macos
         bucket: translators-connectors-releases
         permissions: public-read
@@ -600,14 +721,14 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        remote_file: mongosql-rs/artifacts/${version_id}/trr-macos-arm/bic-trip
-        local_file: mongosql-rs/release/trr-macos-arm/bic-trip
+        remote_file: mongosql-rs/artifacts/${version_id}/trr-macos-arm/AtlasSQLReadinessReport-macos-signed
+        local_file: mongosql-rs/release/trr-macos-arm/AtlasSQLReadinessReport-macos-signed
         bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
-        local_file: mongosql-rs/release/trr-macos-arm/bic-trip
+        local_file: mongosql-rs/release/trr-macos-arm/AtlasSQLReadinessReport-macos-signed
         remote_file: transition-readiness-report/AtlasSQLReadinessReport-v${release_version}-macos-arm
         bucket: translators-connectors-releases
         permissions: public-read
@@ -617,14 +738,14 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        remote_file: mongosql-rs/artifacts/${version_id}/trr-ubuntu2004/bic-trip
-        local_file: mongosql-rs/release/trr-ubuntu2004/bic-trip
+        remote_file: mongosql-rs/artifacts/${version_id}/trr-ubuntu2004/mongosql-transition-tool
+        local_file: mongosql-rs/release/trr-ubuntu2004/mongosql-transition-tool
         bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
-        local_file: mongosql-rs/release/trr-ubuntu2004/bic-trip
+        local_file: mongosql-rs/release/trr-ubuntu2004/mongosql-transition-tool
         remote_file: transition-readiness-report/AtlasSQLReadinessReport-v${release_version}-linux
         bucket: translators-connectors-releases
         permissions: public-read
@@ -634,16 +755,31 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        remote_file: mongosql-rs/artifacts/${version_id}/trr-windows-64/bic-trip.exe
-        local_file: mongosql-rs/release/trr-windows-64/bic-trip.exe
+        remote_file: mongosql-rs/artifacts/${version_id}/trr-ubuntu2004/mongosql-transition-tool-linux.sig
+        local_file: mongosql-rs/release/trr-ubuntu2004/mongosql-transition-tool-linux.sig
         bucket: mciuploads
     - command: s3.put
       params:
-        build_variants:
-          - trr-windows-64
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
-        local_file: mongosql-rs/release/trr-windows-64/bic-trip.exe
+        local_file: mongosql-rs/release/trr-ubuntu2004/mongosql-transition-tool-linux.sig
+        remote_file: transition-readiness-report/AtlasSQLReadinessReport-v${release_version}-linux.sig
+        bucket: translators-connectors-releases
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: AtlasSQLReadinessReport-v${release_version}-linux.sig
+    - command: s3.get
+      params:
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        remote_file: mongosql-rs/artifacts/${version_id}/trr-windows-64/mongosql-transition-tool.exe
+        local_file: mongosql-rs/release/trr-windows-64/mongosql-transition-tool-signed.exe
+        bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/trr-windows-64/mongosql-transition-tool-signed.exe
         remote_file: transition-readiness-report/AtlasSQLReadinessReport-v${release_version}-win.exe
         bucket: translators-connectors-releases
         permissions: public-read
@@ -835,6 +971,8 @@ tasks:
     git_tag_only: true
     depends_on:
       - name: compile-trr
+        variant: ".trr-release-variant"
+      - name: sign-transition-readiness-executables
         variant: ".trr-release-variant"
     commands:
       - func: "perform transition readiness report release"
@@ -1093,6 +1231,17 @@ tasks:
     commands:
       - func: "run transition readiness report test"
 
+  - name: sign-transition-readiness-executables
+    depends_on:
+      - name: compile-trr
+    commands:
+      - func: "sign trr windows"
+        variants: [ trr-windows-64 ]
+      - func: "sign trr linux"
+        variants: [ trr-ubuntu2004 ]
+      - func: "sign trr macos"
+        variants: [ trr-macos, trr-macos-arm ]
+
 buildvariants:
   - name: static-analysis
     display_name: "* Static Analysis"
@@ -1212,6 +1361,7 @@ buildvariants:
     tasks:
       - name: compile-trr
       - name: test-transition-readiness-report
+      - name: sign-transition-readiness-executables
 
   - name: trr-macos-arm
     tags: [ "trr-release-variant" ]
@@ -1220,6 +1370,7 @@ buildvariants:
     tasks:
       - name: compile-trr
       - name: test-transition-readiness-report
+      - name: sign-transition-readiness-executables
 
   - name: trr-windows-64
     tags: [ "trr-release-variant" ]
@@ -1228,6 +1379,8 @@ buildvariants:
     tasks:
       - name: compile-trr
       - name: test-transition-readiness-report
+      - name: sign-transition-readiness-executables
+        run_on: ubuntu2204-large
 
   - name: trr-ubuntu2004
     tags: [ "trr-release-variant" ]
@@ -1236,7 +1389,7 @@ buildvariants:
     tasks:
       - name: compile-trr
       - name: test-transition-readiness-report
-
+      - name: sign-transition-readiness-executables
 
   - name: trr-release
     display_name: "Transition Readiness Report Release"

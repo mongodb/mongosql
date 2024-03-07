@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [[bin]]
-name = "bic-trip"
+name = "mongosql-transition-tool"
 path = "src/main.rs"
 
 [lib]
