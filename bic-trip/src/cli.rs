@@ -14,7 +14,7 @@ pub struct Cli {
     pub output: Option<String>,
 
     /// The Atlas cluster URI
-    #[clap(long, requires_all=["username"])]
+    #[clap(long)]
     pub uri: Option<String>,
 
     /// Username for authentication

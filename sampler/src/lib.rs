@@ -2,32 +2,40 @@ use anyhow::Result;
 use futures::TryStreamExt;
 use mongodb::{
     bson::{self, doc, Bson, Document},
-    options::{AggregateOptions, ClientOptions},
-    Database,
+    options::{AggregateOptions, ClientOptions, ListDatabasesOptions},
+    Client, Database,
 };
 use mongosql::{
     json_schema,
     schema::{Atomic, JaccardIndex, Schema},
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, convert::From, fmt::Display, time::Instant};
+use std::{collections::HashMap, convert::From};
+use thiserror::Error;
+
+pub fn needs_auth(options: &ClientOptions) -> bool {
+    options.credential.is_none()
+}
 
 // allowing dead code since this is a library and we want to keep the code for future use
 #[allow(dead_code)]
-pub async fn get_opts(
-    uri: &str,
+pub async fn load_password_auth(
+    options: &mut ClientOptions,
     username: Option<String>,
     password: Option<String>,
-) -> Result<ClientOptions> {
-    let mut opts = ClientOptions::parse_async(uri).await?;
-    opts.max_pool_size = Some(get_optimal_pool_size());
-    opts.max_connecting = Some(5);
-    opts.credential = Some(
+) {
+    options.credential = Some(
         mongodb::options::Credential::builder()
             .username(username)
             .password(password)
             .build(),
     );
+}
+
+pub async fn get_opts(uri: &str) -> Result<ClientOptions> {
+    let mut opts = ClientOptions::parse_async(uri).await?;
+    opts.max_pool_size = Some(get_optimal_pool_size());
+    opts.max_connecting = Some(5);
     Ok(opts)
 }
 
@@ -37,15 +45,59 @@ pub fn get_optimal_pool_size() -> u32 {
     std::thread::available_parallelism().unwrap().get() as u32 * 2 + 1
 }
 
-// // allowing dead code since this is a library and we want to keep the code for future use
-// #[allow(dead_code)]
-// pub async fn sampler(db: &str, coll: &str, uri: &str) -> Result<HashMap<String, Schema>> {
-//     let client = Client::with_options(get_opts(uri).await?).unwrap();
-//     let database = client.database(db);
-//     let col_parts = gen_partitions(&database, coll).await;
-
-//     Ok(derive_schema_for_partitions(col_parts, &database).await)
-// }
+pub async fn sample(
+    options: ClientOptions,
+) -> Result<HashMap<String, Vec<HashMap<String, Schema>>>> {
+    let mut full_schemata: HashMap<String, Vec<HashMap<String, Schema>>> = HashMap::new();
+    let client = Client::with_options(options).unwrap();
+    // we'll filter out the admin, config, local, and system databases as these are used
+    // by MongoDB and not user-created databases
+    for database in client
+        .list_database_names(
+            doc! { "name":  {"$nin": ["admin", "config", "local", "system", ""]}},
+            Some(
+                ListDatabasesOptions::builder()
+                    .authorized_databases(true)
+                    .build(),
+            ),
+        )
+        .await?
+    {
+        let db = client.database(&database);
+        for collection in client
+            .database(&database)
+            .run_command(
+                doc! { "listCollections": 1.0, "authorizedCollections": true, "nameOnly": true},
+                None,
+            )
+            .await?
+            .get_document("cursor")
+            .map(|c| {
+                c.get_array("firstBatch")
+                    .unwrap()
+                    .iter()
+                    .filter_map(|d| {
+                        let d = d.as_document().unwrap();
+                        if d.get_str("type").unwrap() == "view" {
+                            None
+                        } else {
+                            Some(d.get_str("name").unwrap().to_string())
+                        }
+                    })
+                    .collect::<Vec<String>>()
+            })
+            .unwrap_or_default()
+        {
+            let col_parts = gen_partitions(&db, &collection).await;
+            let schemata = derive_schema_for_partitions(col_parts, &db).await;
+            full_schemata
+                .entry(database.clone())
+                .or_default()
+                .push(schemata);
+        }
+    }
+    Ok(full_schemata)
+}
 
 const PARTITION_SIZE_IN_BYTES: i64 = 100 * 1024 * 1024; // 100 MB
 const SAMPLE_MIN_DOCS: i64 = 101;
@@ -107,34 +159,22 @@ pub struct Partition {
     pub max: Bson,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Error)]
 pub enum Error {
+    #[error("JsonSchemaFailure")]
     JsonSchemaFailure,
+    #[error("BsonFailure")]
     BsonFailure,
+    #[error("NoCollectionStats")]
     NoCollectionStats,
+    #[error("NoBounds")]
     NoBounds,
+    #[error("NoIdInSample")]
     NoIdInSample,
+    #[error("Driver Error {0}")]
     DriverError(mongodb::error::Error),
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{:#?}", self)
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        None
-    }
-
-    fn description(&self) -> &str {
-        "description() is deprecated; use Display"
-    }
-
-    fn cause(&self) -> Option<&dyn std::error::Error> {
-        self.source()
-    }
+    #[error("NoCollection {0}")]
+    NoCollection(String),
 }
 
 impl From<mongodb::error::Error> for Error {
@@ -262,7 +302,7 @@ pub async fn get_bound(database: &Database, coll: &str, direction: i32) -> Resul
             panic!("{e}")
         }
     };
-    if let Some(doc) = cursor.try_next().await.unwrap() {
+    if let Some(doc) = cursor.try_next().await? {
         return doc.get("_id").cloned().ok_or(Error::NoBounds);
     }
     Err(Error::NoBounds)
@@ -294,9 +334,6 @@ pub async fn derive_schema_for_partitions(
     col_parts: HashMap<String, Vec<Partition>>,
     database: &Database,
 ) -> HashMap<String, Schema> {
-    println!("starting schema derivation");
-    let start = Instant::now();
-
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     rayon::scope(|s| {
         for (coll, parts) in col_parts {
@@ -333,7 +370,6 @@ pub async fn derive_schema_for_partitions(
             schemata.insert(coll, schema);
         }
     }
-    println!("done: {:#?}", start.elapsed());
     schemata
 }
 
@@ -345,8 +381,15 @@ pub async fn gen_partitions(database: &Database, coll: &str) -> HashMap<String, 
         let database = database.clone();
         s.spawn(move |_| {
             rt.block_on(async move {
-                let partitions = get_partitions(&database, coll).await.unwrap();
-                tx.send((coll, partitions)).unwrap();
+                match get_partitions(&database, coll).await {
+                    Ok(partitions) => {
+                        tx.send((coll, partitions)).unwrap();
+                    }
+                    Err(_) => {
+                        // nothing, we couldn't get bounds for this collection. It is
+                        // highly likely that the collection is empty.
+                    }
+                };
                 drop(tx)
             });
             drop(rt);
@@ -365,7 +408,6 @@ pub async fn gen_partitions_with_initial_schema(
     database: &Database,
 ) -> HashMap<String, (Document, Vec<Partition>)> {
     println!("getting partitions with schemata");
-    let start = Instant::now();
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     rayon::scope(|s| {
         for (coll, sch) in collections_and_schemata {
@@ -388,7 +430,6 @@ pub async fn gen_partitions_with_initial_schema(
     while let Some(((coll, sch), partitions)) = rx.recv().await {
         col_parts.insert(coll, (sch, partitions));
     }
-    println!("done: {:#?}", start.elapsed());
     col_parts
 }
 

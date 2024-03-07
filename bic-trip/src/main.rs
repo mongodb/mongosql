@@ -2,7 +2,9 @@ use clap::Parser;
 use dialoguer::Password;
 
 use chrono::Local;
-use report::{csv::generate_csv, html::generate_html, log_parser::process_logs};
+use report::{
+    csv::generate_csv, html::generate_html, log_parser::process_logs, schema::process_schemata,
+};
 use std::{env, path::PathBuf, process};
 mod cli;
 use anyhow::Result;
@@ -30,30 +32,34 @@ async fn main() -> Result<()> {
         default_base_dir
     };
 
-    let mut _password: Option<String> = None;
     if let Some(ref uri) = uri {
         if !uri.is_empty() {
-            // URI is specified, so we expect username/password
-            if let Some(ref username) = username {
-                if !username.is_empty() {
-                    _password = Some(
-                        Password::new()
-                            .with_prompt("Password")
-                            .interact()
-                            .expect("Failed to read password"),
-                    );
+            let mut options = sampler::get_opts(uri).await?;
+            let password: Option<String>;
+            if sampler::needs_auth(&options) {
+                if let Some(ref username) = username {
+                    if !username.is_empty() {
+                        password = Some(
+                            Password::new()
+                                .with_prompt("Password")
+                                .interact()
+                                .expect("Failed to read password"),
+                        );
+                    } else {
+                        println!("Username is required for authentication with URI");
+                        process::exit(1);
+                    }
                 } else {
-                    println!("Username is required for authentication with URI");
+                    println!("No username provided for authentication with URI");
                     process::exit(1);
                 }
-            } else {
-                println!("No username provided for authentication with URI");
-                process::exit(1);
+                sampler::load_password_auth(&mut options, username, password).await;
             }
-        }
 
-        // TODO: SQL-1964
-        // sample(uri, username, password, "sample_mflix", "movies").await?
+            let schemata = sampler::sample(options).await?;
+            let analysis = process_schemata(schemata);
+            dbg!(analysis);
+        }
     }
 
     let metadata = std::fs::metadata(&input)?;
@@ -78,60 +84,3 @@ async fn main() -> Result<()> {
     )?;
     generate_csv(&file_path, &date, &parse_results, REPORT_FILE_STEM)
 }
-
-// TODO: SQL-1964
-// async fn sample(
-//     uri: &str,
-//     username: Option<String>,
-//     password: Option<String>,
-//     db: &str,
-//     coll: &str,
-// ) -> Result<()> {
-//     let client = Client::with_options(sampler::get_opts(uri, username, password).await?).unwrap();
-//     let database = client.database(db);
-
-//     let col_parts = sampler::gen_partitions(&database, coll).await;
-//     let schemata = sampler::derive_schema_for_partitions(col_parts, &database).await;
-//     traverse_schemata(&schemata);
-//     Ok(())
-// }
-
-// fn traverse_schemata(schemata: &HashMap<String, mongosql::schema::Schema>) {
-//     for (k, v) in schemata {
-//         match v {
-//             mongosql::schema::Schema::Unsat => todo!(),
-//             mongosql::schema::Schema::Missing => todo!(),
-//             mongosql::schema::Schema::Atomic(a) => {}
-//             mongosql::schema::Schema::Array(a) => {}
-//             mongosql::schema::Schema::Document(d) => {}
-//             mongosql::schema::Schema::AnyOf(a) => todo!(),
-//             mongosql::schema::Schema::Any => todo!(),
-//         }
-//     }
-// }
-
-// #[derive(Debug)]
-// struct ArrayCount {
-//     keys: Vec<String>,
-//     count: usize,
-// }
-
-// fn count_arrays(d: &mongosql::schema::Document) -> ArrayCount {
-//     d.keys.iter().fold(
-//         ArrayCount {
-//             keys: vec![],
-//             count: 0,
-//         },
-//         |acc, (k, v)| match v {
-//             mongosql::schema::Schema::Array(_) => {
-//                 let mut keys = acc.keys.clone();
-//                 keys.push(k.clone());
-//                 ArrayCount {
-//                     keys,
-//                     count: acc.count + 1,
-//                 }
-//             }
-//             _ => acc,
-//         },
-//     )
-// }
