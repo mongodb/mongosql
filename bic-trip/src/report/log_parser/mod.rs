@@ -3,6 +3,7 @@
 // and is used in both the html and csv modules.
 use std::{
     collections::HashMap,
+    fmt,
     fs::File,
     io::{BufRead, BufReader},
 };
@@ -10,7 +11,6 @@ use std::{
 use anyhow::Result;
 use chrono::prelude::*;
 use mongosql::usererror::UserError;
-use serde::{Serialize, Serializer};
 
 // LogParseResult is a struct that holds the results of parsing a log file
 pub struct LogParseResult {
@@ -64,11 +64,10 @@ impl std::fmt::Display for QueryType {
 
 // LogEntry represents a single log entry from the log file
 // and contains the information we know about the query at that time.
-#[derive(Debug, PartialEq, Clone, Serialize)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct LogEntry {
     pub timestamp: chrono::NaiveDateTime,
     pub query: String,
-    #[serde(skip)]
     pub query_type: QueryType,
     pub query_count: u32,
     pub query_representation: QueryRepresentation,
@@ -82,19 +81,15 @@ pub enum QueryRepresentation {
     ParseError(String),
 }
 
-impl Serialize for QueryRepresentation {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
+impl fmt::Display for QueryRepresentation {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            QueryRepresentation::Query(_) => serializer.serialize_unit(),
-            QueryRepresentation::ParseError(parse_error) => serializer.serialize_newtype_variant(
-                "QueryRepresentation",
-                1,
-                "ParseError",
-                parse_error,
-            ),
+            QueryRepresentation::Query(_) => {
+                write!(f, "")
+            }
+            QueryRepresentation::ParseError(parse_error) => {
+                write!(f, "ParseError: {}", parse_error)
+            }
         }
     }
 }
