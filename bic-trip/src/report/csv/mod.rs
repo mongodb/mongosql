@@ -64,7 +64,8 @@ fn get_struct_name<T: ?Sized>() -> String {
 pub fn generate_csv(
     file_path: &Path,
     date: &str,
-    log_parse: &LogParseResult,
+    log_parse: &crate::log_parser::LogParseResult,
+    _schema_analysis: &Option<crate::schema::SchemaAnalysis>,
     file_stem: &str,
 ) -> Result<()> {
     let zip_file_path = file_path.join(format!("{file_stem}_{date}.zip"));

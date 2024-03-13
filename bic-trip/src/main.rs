@@ -31,6 +31,7 @@ async fn main() -> Result<()> {
     } else {
         default_base_dir
     };
+    let mut analysis = None;
 
     if let Some(ref uri) = uri {
         if !uri.is_empty() {
@@ -57,8 +58,7 @@ async fn main() -> Result<()> {
             }
 
             let schemata = sampler::sample(options).await?;
-            let analysis = process_schemata(schemata);
-            dbg!(analysis);
+            analysis = Some(process_schemata(schemata));
         }
     }
 
@@ -79,8 +79,15 @@ async fn main() -> Result<()> {
         &file_path,
         &date,
         &parse_results,
+        &analysis,
         REPORT_FILE_STEM,
         REPORT_NAME,
     )?;
-    generate_csv(&file_path, &date, &parse_results, REPORT_FILE_STEM)
+    generate_csv(
+        &file_path,
+        &date,
+        &parse_results,
+        &analysis,
+        REPORT_FILE_STEM,
+    )
 }
