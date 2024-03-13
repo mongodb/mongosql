@@ -20,4 +20,8 @@ pub struct Cli {
     /// Username for authentication
     #[clap(long, short)]
     pub username: Option<String>,
+
+    /// Enables verbose logging
+    #[clap(long)]
+    pub verbose: bool,
 }

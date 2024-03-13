@@ -52,6 +52,38 @@ struct Query {
     error: String,
 }
 
+#[derive(Serialize)]
+struct SchemaAnalysis {
+    #[serde(rename = "Collection Name")]
+    collection: String,
+    #[serde(rename = "Arrays")]
+    arrays: u16,
+    #[serde(rename = "Arrays of Arrays")]
+    arrays_of_arrays: u16,
+    #[serde(rename = "Documents")]
+    documents: u16,
+    #[serde(rename = "Arrays of Documents")]
+    arrays_of_documents: u16,
+    #[serde(rename = "Unstable")]
+    unstable: u16,
+    #[serde(rename = "Multiple Types")]
+    anyof: u16,
+}
+
+impl From<&crate::schema::CollectionAnalysis> for SchemaAnalysis {
+    fn from(val: &crate::schema::CollectionAnalysis) -> Self {
+        SchemaAnalysis {
+            collection: val.collection_name.clone(),
+            arrays: val.arrays.len() as u16,
+            arrays_of_arrays: val.arrays_of_arrays.len() as u16,
+            documents: val.documents.len() as u16,
+            arrays_of_documents: val.arrays_of_documents.len() as u16,
+            unstable: val.unstable.len() as u16,
+            anyof: val.anyof.len() as u16,
+        }
+    }
+}
+
 // get_struct_name is a helper function to obtain the unqualified struct name
 fn get_struct_name<T: ?Sized>() -> String {
     let full_type_name = std::any::type_name::<T>();
@@ -65,7 +97,8 @@ pub fn generate_csv(
     file_path: &Path,
     date: &str,
     log_parse: &crate::log_parser::LogParseResult,
-    _schema_analysis: &Option<crate::schema::SchemaAnalysis>,
+    schema_analysis: &Option<crate::schema::SchemaAnalysis>,
+    verbose: bool,
     file_stem: &str,
 ) -> Result<()> {
     let zip_file_path = file_path.join(format!("{file_stem}_{date}.zip"));
@@ -75,13 +108,23 @@ pub fn generate_csv(
         .compression_method(zip::CompressionMethod::Deflated)
         .unix_permissions(0o644);
 
-    let csv_files = [
-        generate_complex_types_csv(log_parse)?,
-        generate_collections_csv(log_parse)?,
-        generate_queries_csv(log_parse)?,
-        // SQL-1973: Add schema analysis information to CSV output
+    let mut csv_files = vec![
+        generate_complex_types_csv(log_parse, verbose)?,
+        generate_collections_csv(log_parse, verbose)?,
+        generate_queries_csv(log_parse, verbose)?,
     ];
 
+    if let Some(analysis) = schema_analysis {
+        for (db, analysis) in analysis.database_analyses.iter() {
+            let csv_data = schema_csv(analysis, verbose)?;
+            let file_name = format!("{db}_schema_{date}.csv");
+            csv_files.push((file_name, csv_data));
+        }
+    }
+
+    if verbose {
+        println!("Writing CSV report to {}", file_path.display());
+    }
     for (file_name, csv_data) in csv_files {
         write_csv_to_zip(&mut zip, date, &file_name, &csv_data, &options)?;
     }
@@ -103,7 +146,13 @@ fn write_csv_to_zip(
 }
 
 // generate_complex_types_csv generates a CSV of the complex types: Document Field and Array Datasource
-pub fn generate_complex_types_csv(log_parse: &LogParseResult) -> Result<(String, String)> {
+pub fn generate_complex_types_csv(
+    log_parse: &LogParseResult,
+    verbose: bool,
+) -> Result<(String, String)> {
+    if verbose {
+        println!("Writing Complex Types CSV report");
+    }
     let mut writer = csv::Writer::from_writer(Vec::new());
     if let Some(subpath_fields) = &log_parse.subpath_fields {
         for (field, count, last_accessed) in subpath_fields {
@@ -137,7 +186,13 @@ pub fn generate_complex_types_csv(log_parse: &LogParseResult) -> Result<(String,
 }
 
 // This function now uses the Collection struct for serialization
-pub fn generate_collections_csv(log_parse: &LogParseResult) -> Result<(String, String)> {
+pub fn generate_collections_csv(
+    log_parse: &LogParseResult,
+    verbose: bool,
+) -> Result<(String, String)> {
+    if verbose {
+        println!("Writing Collections CSV report");
+    }
     let mut writer = csv::Writer::from_writer(Vec::new());
 
     if let Some(collections) = &log_parse.collections {
@@ -157,7 +212,10 @@ pub fn generate_collections_csv(log_parse: &LogParseResult) -> Result<(String, S
 }
 
 // generate_queries_csv Generates a CSV for queries found in the parsed logs
-pub fn generate_queries_csv(log_parse: &LogParseResult) -> Result<(String, String)> {
+pub fn generate_queries_csv(log_parse: &LogParseResult, verbose: bool) -> Result<(String, String)> {
+    if verbose {
+        println!("Writing Queries CSV report");
+    }
     let mut writer = csv::Writer::from_writer(Vec::new());
 
     let queries = log_parse
@@ -194,4 +252,20 @@ pub fn generate_queries_csv(log_parse: &LogParseResult) -> Result<(String, Strin
     writer.flush()?;
     let csv_data = String::from_utf8(writer.into_inner()?)?;
     Ok((get_struct_name::<Query>(), csv_data))
+}
+
+fn schema_csv(analysis: &crate::schema::DatabaseAnalysis, verbose: bool) -> Result<String> {
+    if verbose {
+        println!(
+            "Writing schema for {} to Schema CSV report",
+            analysis.database_name
+        );
+    }
+    let mut writer = csv::Writer::from_writer(Vec::new());
+    for collection in &analysis.collection_analyses {
+        let schema: SchemaAnalysis = collection.into();
+        writer.serialize(schema)?;
+    }
+    writer.flush()?;
+    Ok(String::from_utf8(writer.into_inner()?)?)
 }

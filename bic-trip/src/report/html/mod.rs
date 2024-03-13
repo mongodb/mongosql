@@ -23,10 +23,14 @@ pub fn generate_html(
     date: &str,
     log_parse: &crate::log_parser::LogParseResult,
     schema_analysis: &Option<crate::schema::SchemaAnalysis>,
+    verbose: bool,
     file_stem: &str,
     report_name: &str,
 ) -> Result<()> {
     let mut report_file = File::create(file_path.join(format!("{file_stem}_{date}.html")))?;
+    if verbose {
+        println!("Writing HTML report to {}", file_path.display());
+    }
     Ok(report_file
         .write_all(generate_html_elements(log_parse, schema_analysis, report_name).as_bytes())?)
 }

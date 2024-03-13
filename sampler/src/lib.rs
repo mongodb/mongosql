@@ -47,6 +47,7 @@ pub fn get_optimal_pool_size() -> u32 {
 
 pub async fn sample(
     options: ClientOptions,
+    verbose: bool,
 ) -> Result<HashMap<String, Vec<HashMap<String, Schema>>>> {
     let mut full_schemata: HashMap<String, Vec<HashMap<String, Schema>>> = HashMap::new();
     let client = Client::with_options(options).unwrap();
@@ -88,6 +89,12 @@ pub async fn sample(
             })
             .unwrap_or_default()
         {
+            if verbose {
+                println!(
+                    "Sampling database: {}, collection: {}",
+                    database, collection
+                );
+            }
             let col_parts = gen_partitions(&db, &collection).await;
             let schemata = derive_schema_for_partitions(col_parts, &db).await;
             full_schemata

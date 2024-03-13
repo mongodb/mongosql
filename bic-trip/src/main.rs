@@ -23,8 +23,15 @@ async fn main() -> Result<()> {
         output,
         uri,
         username,
+        verbose,
     } = Cli::parse();
 
+    let metadata = std::fs::metadata(&input)
+        .map_err(|_| {
+            eprintln!("Input file or directory does not exist, {:?}", &input);
+            process::exit(1);
+        })
+        .unwrap();
     // User-specified output directory, uses current directory if not specified
     let file_path = if let Some(ref output_path) = output {
         PathBuf::from(output_path)
@@ -57,12 +64,11 @@ async fn main() -> Result<()> {
                 sampler::load_password_auth(&mut options, username, password).await;
             }
 
-            let schemata = sampler::sample(options).await?;
+            let schemata = sampler::sample(options, verbose).await?;
             analysis = Some(process_schemata(schemata));
         }
     }
 
-    let metadata = std::fs::metadata(&input)?;
     if metadata.is_file() {
         paths.push(input.clone());
     } else if metadata.is_dir() {
@@ -80,6 +86,7 @@ async fn main() -> Result<()> {
         &date,
         &parse_results,
         &analysis,
+        verbose,
         REPORT_FILE_STEM,
         REPORT_NAME,
     )?;
@@ -88,6 +95,7 @@ async fn main() -> Result<()> {
         &date,
         &parse_results,
         &analysis,
+        verbose,
         REPORT_FILE_STEM,
     )
 }

@@ -26,6 +26,12 @@ pub fn process_schemata(schema: HashMap<String, Vec<HashMap<String, Schema>>>) -
                 };
                 collection_analysis.collection_name = coll.clone();
                 process_schema(coll, schema, &mut collection_analysis, 0);
+                collection_analysis
+                    .arrays
+                    .retain(|k, _| !collection_analysis.arrays_of_arrays.contains_key(k));
+                collection_analysis
+                    .documents
+                    .retain(|k, _| !collection_analysis.arrays_of_documents.contains_key(k));
                 database_analysis
                     .collection_analyses
                     .push(collection_analysis);
