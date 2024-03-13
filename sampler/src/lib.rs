@@ -8,6 +8,7 @@ use mongodb::{
 use mongosql::{
     json_schema,
     schema::{Atomic, JaccardIndex, Schema},
+    set,
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, convert::From};
@@ -154,6 +155,12 @@ fn schema_for_bson(b: &Bson) -> Schema {
 // This may prove costly for very large arrays, and we may want to
 // consider a limit on the number of elements to consider.
 fn schema_for_bson_array(bs: &[Bson]) -> Schema {
+    // if an array is empty, we can't infer anything about it
+    // we're safe to mark it as potentially null, as an empty array
+    // satisfies jsonSchema search predicate
+    if bs.is_empty() {
+        return Schema::AnyOf(set!(Schema::Atomic(Atomic::Null)));
+    }
     bs.iter()
         .map(schema_for_bson)
         .reduce(|acc, s| acc.union(&s))
