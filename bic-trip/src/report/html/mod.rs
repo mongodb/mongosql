@@ -4,7 +4,7 @@ mod schema_html;
 
 use base64::{prelude::BASE64_STANDARD, Engine};
 use build_html::{Html, HtmlContainer, HtmlPage};
-use std::{fs, fs::File, io::Write, path::Path};
+use std::{fs::File, io::Write, path::Path};
 
 use image::{DynamicImage, ImageOutputFormat};
 
@@ -35,28 +35,39 @@ pub fn generate_html(
         .write_all(generate_html_elements(log_parse, schema_analysis, report_name).as_bytes())?)
 }
 
-/// encode_image_path_to_base64 encodes image from path into a base64 string to be
-/// added directly to HTML
-fn encode_image_path_to_base64(path: &str) -> std::io::Result<String> {
-    let img = image::open(path)
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?
+/// encode_image_to_base64 encodes image into a base64 string to be added directly to HTML
+fn encode_image_to_base64(image_data: &[u8]) -> String {
+    let img = image::load_from_memory(image_data)
+        .expect("Failed to load image from bytes")
         .into_rgba8();
 
-    let mut image_data: Vec<u8> = Vec::new();
-
+    let mut encoded_data: Vec<u8> = Vec::new();
     DynamicImage::ImageRgba8(img)
         .write_to(
-            &mut std::io::Cursor::new(&mut image_data),
+            &mut std::io::Cursor::new(&mut encoded_data),
             ImageOutputFormat::Png,
         )
         .unwrap();
 
-    Ok(BASE64_STANDARD.encode(&image_data))
+    BASE64_STANDARD.encode(&encoded_data)
 }
 
-fn get_mongodb_icon_html(base_dir: &str, report_name: &str) -> String {
-    let logo_path = format!("{base_dir}/resources/html/MongoDB_ForestGreen.png");
-    let icon_base64 = encode_image_path_to_base64(&logo_path).expect("Incorrect path");
+fn get_icon_data() -> &'static [u8] {
+    #[cfg(target_os = "windows")]
+    {
+        include_bytes!(r"..\..\..\resources\html\MongoDB_ForestGreen.png")
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        include_bytes!("../../../resources/html/MongoDB_ForestGreen.png")
+    }
+}
+
+fn get_mongodb_icon_html(report_name: &str) -> String {
+    let icon_data = get_icon_data();
+    let icon_base64 = encode_image_to_base64(icon_data);
+
     format!(
         r#"<div class="header-container">
         <img src="data:image/png;base64,{}" alt="MongoDB Icon" class="mongodb-icon">
@@ -79,19 +90,34 @@ fn get_mongodb_icon_html(base_dir: &str, report_name: &str) -> String {
     )
 }
 
+#[test]
+fn test_load_js() {
+    assert!(get_tab_js().contains("function openTab(evt, tabName)"));
+}
+
+fn get_tab_js() -> &'static str {
+    #[cfg(target_os = "windows")]
+    {
+        include_str!(r"..\..\..\resources\html\tab_logic.js")
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        include_str!("../../../resources/html/tab_logic.js")
+    }
+}
+
 fn generate_html_elements(
     log_parse: &crate::log_parser::LogParseResult,
     schema_analysis: &Option<crate::schema::SchemaAnalysis>,
     report_name: &str,
 ) -> String {
-    let base_dir = env!("CARGO_MANIFEST_DIR");
-    let tab_js_path = format!("{base_dir}/resources/html/tab_logic.js");
+    let tab_js = get_tab_js();
     let datetime_str = Local::now().format("%m-%d-%Y %H:%M").to_string();
-
     let mut page = HtmlPage::new().with_title(report_name);
 
     // Add MongoDB logo
-    page.add_raw(get_mongodb_icon_html(base_dir, report_name));
+    page.add_raw(get_mongodb_icon_html(report_name));
 
     // Add timestamp
     page.add_raw(&format!("<p>Report was generated at: {}</p>", datetime_str));
@@ -135,10 +161,6 @@ fn generate_html_elements(
         process_summary_html(log_parse)
     ));
 
-    page.add_raw(&format!(
-        r#"<script>{}</script>"#,
-        fs::read_to_string(&tab_js_path)
-            .unwrap_or_else(|_| panic!("Failed to read file {}", tab_js_path))
-    ));
+    page.add_raw(&format!(r#"<script>{tab_js}</script>"#,));
     page.to_html_string()
 }
