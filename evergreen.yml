@@ -584,7 +584,7 @@ functions:
         binary: bash
         working_dir: mongosql-rs
         args:
-          - "./bic-trip/resources/sign_macos_zip.sh"
+          - "./bic-trip/resources/scripts/sign_macos_zip.sh"
         add_expansions_to_env: true
     - command: s3.put
       params:
