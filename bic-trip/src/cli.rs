@@ -7,7 +7,7 @@ use clap::Parser;
 pub struct Cli {
     /// Sets the input file or directory
     #[clap(long, short)]
-    pub input: String,
+    pub input: Option<String>,
 
     /// Sets the output directory
     #[clap(long, short)]

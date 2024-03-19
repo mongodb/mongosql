@@ -96,7 +96,7 @@ fn get_struct_name<T: ?Sized>() -> String {
 pub fn generate_csv(
     file_path: &Path,
     date: &str,
-    log_parse: &crate::log_parser::LogParseResult,
+    log_parse: &Option<crate::log_parser::LogParseResult>,
     schema_analysis: &Option<crate::schema::SchemaAnalysis>,
     verbose: bool,
     file_stem: &str,
@@ -107,12 +107,13 @@ pub fn generate_csv(
     let options = FileOptions::default()
         .compression_method(zip::CompressionMethod::Deflated)
         .unix_permissions(0o644);
+    let mut csv_files = vec![];
 
-    let mut csv_files = vec![
-        generate_complex_types_csv(log_parse, verbose)?,
-        generate_collections_csv(log_parse, verbose)?,
-        generate_queries_csv(log_parse, verbose)?,
-    ];
+    if let Some(log_parse) = log_parse {
+        csv_files.push(generate_complex_types_csv(log_parse, verbose)?);
+        csv_files.push(generate_collections_csv(log_parse, verbose)?);
+        csv_files.push(generate_queries_csv(log_parse, verbose)?);
+    }
 
     if let Some(analysis) = schema_analysis {
         for (db, analysis) in analysis.database_analyses.iter() {

@@ -21,7 +21,7 @@ use self::schema_html::add_schema_analysis_html;
 pub fn generate_html(
     file_path: &Path,
     date: &str,
-    log_parse: &crate::log_parser::LogParseResult,
+    log_parse: &Option<crate::log_parser::LogParseResult>,
     schema_analysis: &Option<crate::schema::SchemaAnalysis>,
     verbose: bool,
     file_stem: &str,
@@ -90,6 +90,30 @@ fn get_mongodb_icon_html(report_name: &str) -> String {
     )
 }
 
+fn get_tab_string(log_parse: bool, schema_analysis: bool) -> String {
+    format!(
+        r#"<div class="tab">
+    {}
+    {}
+    </div>"#,
+        if log_parse {
+            r#"
+                <button class="tablinks" onclick="openTab(event, 'Summary')">Summary</button>
+                <button class="tablinks" onclick="openTab(event, 'Queries')">Queries</button>
+                <button class="tablinks" onclick="openTab(event, 'Collections')">Collections</button>
+                <button class="tablinks" onclick="openTab(event, 'ComplexTypes')">Complex Types</button>
+        "#
+        } else {
+            ""
+        },
+        if schema_analysis {
+            r#"<button class="tablinks" onclick="openTab(event, 'Schema')">Schema</button>"#
+        } else {
+            ""
+        }
+    )
+}
+
 #[test]
 fn test_load_js() {
     assert!(get_tab_js().contains("function openTab(evt, tabName)"));
@@ -108,11 +132,10 @@ fn get_tab_js() -> &'static str {
 }
 
 fn generate_html_elements(
-    log_parse: &crate::log_parser::LogParseResult,
+    log_parse: &Option<crate::log_parser::LogParseResult>,
     schema_analysis: &Option<crate::schema::SchemaAnalysis>,
     report_name: &str,
 ) -> String {
-    let tab_js = get_tab_js();
     let datetime_str = Local::now().format("%m-%d-%Y %H:%M").to_string();
     let mut page = HtmlPage::new().with_title(report_name);
 
@@ -122,32 +145,33 @@ fn generate_html_elements(
     // Add timestamp
     page.add_raw(&format!("<p>Report was generated at: {}</p>", datetime_str));
 
-    page.add_raw(
-        r#"<div class="tab">
-                <button class="tablinks" onclick="openTab(event, 'Summary')">Summary</button>
-                <button class="tablinks" onclick="openTab(event, 'Queries')">Queries</button>
-                <button class="tablinks" onclick="openTab(event, 'Collections')">Collections</button>
-                <button class="tablinks" onclick="openTab(event, 'ComplexTypes')">Complex Types</button>
-                <button class="tablinks" onclick="openTab(event, 'Schema')">Schema</button>
-            </div>"#
-            );
-
-    // Add generated values to the tabs
-    page.add_raw(&format!(
-        r#"<div id="Queries" class="tabcontent"><h2>Queries</h2>{}{}</div>"#,
-        process_query_html("Valid", &log_parse.valid_queries),
-        process_query_html("Invalid", &log_parse.invalid_queries)
+    page.add_raw(get_tab_string(
+        log_parse.is_some(),
+        schema_analysis.is_some(),
     ));
 
-    page.add_raw(&format!(
-        r#"<div id="Collections" class="tabcontent"><h2>Collections</h2>{}</div>"#,
-        process_collections_html("Found Collections", &log_parse.collections)
-    ));
+    if let Some(log_parse) = log_parse {
+        // Add generated values to the tabs
+        page.add_raw(&format!(
+            r#"<div id="Queries" class="tabcontent"><h2>Queries</h2>{}{}</div>"#,
+            process_query_html("Valid", &log_parse.valid_queries),
+            process_query_html("Invalid", &log_parse.invalid_queries)
+        ));
 
-    page.add_raw(&format!(
-        r#"<div id="ComplexTypes" class="tabcontent"><h2>Complex Types</h2>{}</div>"#,
-        process_complex_types_html(&log_parse.subpath_fields, &log_parse.array_datasources)
-    ));
+        page.add_raw(&format!(
+            r#"<div id="Collections" class="tabcontent"><h2>Collections</h2>{}</div>"#,
+            process_collections_html("Found Collections", &log_parse.collections)
+        ));
+
+        page.add_raw(&format!(
+            r#"<div id="ComplexTypes" class="tabcontent"><h2>Complex Types</h2>{}</div>"#,
+            process_complex_types_html(&log_parse.subpath_fields, &log_parse.array_datasources)
+        ));
+        page.add_raw(&format!(
+            r#"<div id="Summary" class="tabcontent"><h2>Summary</h2>{}</div>"#,
+            process_summary_html(log_parse)
+        ));
+    }
 
     if schema_analysis.is_some() {
         page.add_raw(format!(
@@ -155,12 +179,7 @@ fn generate_html_elements(
             add_schema_analysis_html(schema_analysis).to_html_string()
         ));
     }
+    page.add_raw(&format!(r#"<script>{}</script>"#, get_tab_js()));
 
-    page.add_raw(&format!(
-        r#"<div id="Summary" class="tabcontent"><h2>Summary</h2>{}</div>"#,
-        process_summary_html(log_parse)
-    ));
-
-    page.add_raw(&format!(r#"<script>{tab_js}</script>"#,));
     page.to_html_string()
 }
