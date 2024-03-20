@@ -30,8 +30,8 @@ pub fn process_schemata(schema: HashMap<String, Vec<HashMap<String, Schema>>>) -
                     .arrays
                     .retain(|k, _| !collection_analysis.arrays_of_arrays.contains_key(k));
                 collection_analysis
-                    .documents
-                    .retain(|k, _| !collection_analysis.arrays_of_documents.contains_key(k));
+                    .objects
+                    .retain(|k, _| !collection_analysis.arrays_of_objects.contains_key(k));
                 database_analysis
                     .collection_analyses
                     .push(collection_analysis);
@@ -73,8 +73,8 @@ pub struct CollectionAnalysis {
     pub collection_name: String,
     pub arrays: FieldTracker,
     pub arrays_of_arrays: FieldTracker,
-    pub arrays_of_documents: FieldTracker,
-    pub documents: FieldTracker,
+    pub arrays_of_objects: FieldTracker,
+    pub objects: FieldTracker,
     pub unstable: FieldTracker,
     pub anyof: FieldTracker,
 }
@@ -107,7 +107,7 @@ fn process_schema(key: String, schema: Schema, analysis: &mut CollectionAnalysis
                 }
                 mongosql::schema::Schema::Document(_) => {
                     analysis
-                        .arrays_of_documents
+                        .arrays_of_objects
                         .entry(key.clone())
                         .and_modify(|x| *x = depth)
                         .or_insert(depth);
@@ -134,7 +134,7 @@ fn process_schema(key: String, schema: Schema, analysis: &mut CollectionAnalysis
                 // the root of the schema as a document within the schema
                 if depth != 0 {
                     analysis
-                        .documents
+                        .objects
                         .entry(key.clone())
                         .and_modify(|x| *x = depth)
                         .or_insert(depth);

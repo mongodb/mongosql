@@ -11,7 +11,11 @@ use mongosql::{
     set,
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, convert::From};
+use std::{
+    collections::HashMap,
+    convert::From,
+    fmt::{self, Display, Formatter},
+};
 use thiserror::Error;
 
 pub fn needs_auth(options: &ClientOptions) -> bool {
@@ -46,11 +50,51 @@ pub fn get_optimal_pool_size() -> u32 {
     std::thread::available_parallelism().unwrap().get() as u32 * 2 + 1
 }
 
+#[derive(Debug)]
+pub enum SamplerAction {
+    Querying { partition: u16 },
+    Processing { partition: u16 },
+    Partitioning { partitions: u16 },
+}
+
+impl Display for SamplerAction {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            SamplerAction::Querying { partition } => write!(f, "Querying partition {}", partition),
+            SamplerAction::Processing { partition } => {
+                write!(f, "Processing partition {}", partition)
+            }
+            SamplerAction::Partitioning { partitions } => {
+                write!(f, "Partitioning into {} parts", partitions)
+            }
+        }
+    }
+}
+
+impl Display for SamplerNotification {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{} for collection: {} in database: {}",
+            self.action, self.db, self.collection
+        )
+    }
+}
+
+#[derive(Debug)]
+pub struct SamplerNotification {
+    pub db: String,
+    pub collection: String,
+    pub action: SamplerAction,
+}
+
+pub type SchemaAnalysis = (String, Vec<HashMap<String, Schema>>);
+
 pub async fn sample(
     options: ClientOptions,
-    verbose: bool,
-) -> Result<HashMap<String, Vec<HashMap<String, Schema>>>> {
-    let mut full_schemata: HashMap<String, Vec<HashMap<String, Schema>>> = HashMap::new();
+    tx_notification: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
+    tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<SchemaAnalysis>>,
+) {
     let client = Client::with_options(options).unwrap();
     // we'll filter out the admin, config, local, and system databases as these are used
     // by MongoDB and not user-created databases
@@ -63,8 +107,13 @@ pub async fn sample(
                     .build(),
             ),
         )
-        .await?
+        .await
+        .map_err(|e| async {
+            let _ = tx_schemata.send(Err(e.into()));
+        })
+        .unwrap_or_default()
     {
+        let mut db_schemata: Vec<HashMap<String, Schema>> = Vec::new();
         let db = client.database(&database);
         for collection in client
             .database(&database)
@@ -72,7 +121,11 @@ pub async fn sample(
                 doc! { "listCollections": 1.0, "authorizedCollections": true, "nameOnly": true},
                 None,
             )
-            .await?
+            .await
+            .map_err(|e| async {
+                let _ = tx_schemata.send(Err(e.into()));
+            })
+            .unwrap_or_default()
             .get_document("cursor")
             .map(|c| {
                 c.get_array("firstBatch")
@@ -90,21 +143,18 @@ pub async fn sample(
             })
             .unwrap_or_default()
         {
-            if verbose {
-                println!(
-                    "Sampling database: {}, collection: {}",
-                    database, collection
-                );
-            }
-            let col_parts = gen_partitions(&db, &collection).await;
-            let schemata = derive_schema_for_partitions(col_parts, &db).await;
-            full_schemata
-                .entry(database.clone())
-                .or_default()
-                .push(schemata);
+            let notifier = tx_notification.clone();
+            let col_parts = gen_partitions(&db, &collection, notifier).await;
+            let notifier = tx_notification.clone();
+            let schemata = derive_schema_for_partitions(col_parts, &db, notifier).await;
+            db_schemata.push(schemata);
+        }
+        if tx_schemata.send(Ok((database, db_schemata))).is_err() {
+            break;
         }
     }
-    Ok(full_schemata)
+    drop(tx_notification);
+    drop(tx_schemata);
 }
 
 const PARTITION_SIZE_IN_BYTES: i64 = 100 * 1024 * 1024; // 100 MB
@@ -347,14 +397,16 @@ pub struct SchemataId {
 pub async fn derive_schema_for_partitions(
     col_parts: HashMap<String, Vec<Partition>>,
     database: &Database,
+    tx_notification: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
 ) -> HashMap<String, Schema> {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     rayon::scope(|s| {
         for (coll, parts) in col_parts {
-            for part in parts {
+            for (ix, part) in parts.into_iter().enumerate() {
                 let coll = coll.clone();
                 let database = database.clone();
                 let tx = tx.clone();
+                let notifier = tx_notification.clone();
                 let mut rt = tokio::runtime::Runtime::new();
                 while rt.is_err() {
                     rt = tokio::runtime::Runtime::new();
@@ -363,10 +415,11 @@ pub async fn derive_schema_for_partitions(
                 s.spawn(move |_| {
                     rt.block_on(async move {
                         let part = part.clone();
-                        let schema =
-                            derive_schema_for_partition(&database, &coll, part, ITERATIONS, None)
-                                .await
-                                .unwrap();
+                        let schema = derive_schema_for_partition(
+                            &database, &coll, part, ITERATIONS, None, notifier, ix,
+                        )
+                        .await
+                        .unwrap();
                         tx.send((coll, schema)).unwrap();
                         drop(tx)
                     });
@@ -376,6 +429,7 @@ pub async fn derive_schema_for_partitions(
         }
     });
     drop(tx);
+    drop(tx_notification);
     let mut schemata = HashMap::new();
     while let Some((coll, schema)) = rx.recv().await {
         if let Some(prev_schema) = schemata.get(&coll) {
@@ -387,16 +441,33 @@ pub async fn derive_schema_for_partitions(
     schemata
 }
 
-pub async fn gen_partitions(database: &Database, coll: &str) -> HashMap<String, Vec<Partition>> {
+pub async fn gen_partitions(
+    database: &Database,
+    coll: &str,
+    tx_notification: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
+) -> HashMap<String, Vec<Partition>> {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     rayon::scope(|s| {
         let tx = tx.clone();
+        let notifier = tx_notification.clone();
         let rt = tokio::runtime::Runtime::new().unwrap();
         let database = database.clone();
         s.spawn(move |_| {
             rt.block_on(async move {
                 match get_partitions(&database, coll).await {
                     Ok(partitions) => {
+                        if notifier
+                            .send(SamplerNotification {
+                                db: database.name().to_string(),
+                                collection: coll.to_string(),
+                                action: SamplerAction::Partitioning {
+                                    partitions: partitions.len() as u16,
+                                },
+                            })
+                            .is_err()
+                        {
+                            return;
+                        }
                         tx.send((coll, partitions)).unwrap();
                     }
                     Err(_) => {
@@ -404,7 +475,8 @@ pub async fn gen_partitions(database: &Database, coll: &str) -> HashMap<String, 
                         // highly likely that the collection is empty.
                     }
                 };
-                drop(tx)
+                drop(tx);
+                drop(notifier)
             });
             drop(rt);
         })
@@ -504,6 +576,8 @@ pub async fn derive_schema_for_partition(
     mut partition: Partition,
     iterations: Option<u32>,
     initial_schema_doc: Option<Document>,
+    tx_notification: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
+    partition_ix: usize,
 ) -> Result<Schema, Error> {
     let collection = database.collection::<Document>(coll);
     let mut schema: Option<Schema> = initial_schema_doc
@@ -527,6 +601,18 @@ pub async fn derive_schema_for_partition(
         if first_stage.is_none() {
             first_stage = Some(generate_partition_match(&partition, schema.clone())?);
         };
+        if tx_notification
+            .send(SamplerNotification {
+                db: database.name().to_string(),
+                collection: coll.to_string(),
+                action: SamplerAction::Querying {
+                    partition: partition_ix as u16,
+                },
+            })
+            .is_err()
+        {
+            break;
+        }
         let mut cursor = collection
             .aggregate(
                 vec![
@@ -544,6 +630,18 @@ pub async fn derive_schema_for_partition(
 
         let mut no_result = true;
         while let Some(doc) = cursor.try_next().await.unwrap() {
+            if tx_notification
+                .send(SamplerNotification {
+                    db: database.name().to_string(),
+                    collection: coll.to_string(),
+                    action: SamplerAction::Processing {
+                        partition: partition_ix as u16,
+                    },
+                })
+                .is_err()
+            {
+                break;
+            }
             let id = doc.get("_id").unwrap().clone();
             partition.min = id;
             schema = Some(schema_for_document(&doc).union(&schema.unwrap_or(Schema::Unsat)));
@@ -554,6 +652,6 @@ pub async fn derive_schema_for_partition(
         }
         iteration += 1;
     }
-
+    drop(tx_notification);
     Ok(schema.unwrap_or(Schema::Unsat))
 }

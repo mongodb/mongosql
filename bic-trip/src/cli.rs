@@ -21,7 +21,7 @@ pub struct Cli {
     #[clap(long, short)]
     pub username: Option<String>,
 
-    /// Enables verbose logging
+    /// Enables quiet mode for less output
     #[clap(long)]
-    pub verbose: bool,
+    pub quiet: bool,
 }

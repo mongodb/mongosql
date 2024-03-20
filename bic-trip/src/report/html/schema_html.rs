@@ -45,22 +45,22 @@ fn collection_summarization(collection_analysis: &CollectionAnalysis) -> String 
             collection_analysis.arrays_of_arrays.len()
         ))
     };
-    let arrays_of_documents = if collection_analysis.arrays_of_documents.is_empty() {
+    let arrays_of_objects = if collection_analysis.arrays_of_objects.is_empty() {
         None
     } else {
         Some(format!(
-            r#"<li>Arrays of documents found: {}. <p>Arrays of documents can be expanded with the
+            r#"<li>Arrays of objects found: {}. <p>Arrays of objects can be expanded with the
             <a href="https://www.mongodb.com/docs/atlas/data-federation/query/sql/query-with-asql-statements/#unwind" target="_blank">UNWIND</a> operator,
-            and the documents can be flattened the <a href="https://www.mongodb.com/docs/atlas/data-federation/query/sql/query-with-asql-statements/#flatten" target="_blank">FLATTEN</a> operator (i.e. FLATTEN(UNWIND(...))).</p></li>"#,
-            collection_analysis.arrays_of_documents.len()
+            and the objects can be flattened the <a href="https://www.mongodb.com/docs/atlas/data-federation/query/sql/query-with-asql-statements/#flatten" target="_blank">FLATTEN</a> operator (i.e. FLATTEN(UNWIND(...))).</p></li>"#,
+            collection_analysis.arrays_of_objects.len()
         ))
     };
-    let documents = if collection_analysis.documents.is_empty() {
+    let objects = if collection_analysis.objects.is_empty() {
         None
     } else {
         Some(format!(
-            r#"<li>Documents found: {}. Documents can be flattened with the <a href="https://www.mongodb.com/docs/atlas/data-federation/query/sql/query-with-asql-statements/#flatten" target="_blank">FLATTEN</a> operator.</li>"#,
-            collection_analysis.documents.len()
+            r#"<li>Objects found: {}. Objects can be flattened with the <a href="https://www.mongodb.com/docs/atlas/data-federation/query/sql/query-with-asql-statements/#flatten" target="_blank">FLATTEN</a> operator.</li>"#,
+            collection_analysis.objects.len()
         ))
     };
     let anyof = if collection_analysis.anyof.is_empty() {
@@ -69,7 +69,7 @@ fn collection_summarization(collection_analysis: &CollectionAnalysis) -> String 
         Some(format!(
             r#"<li>Field with multiple types found: {}.<p>These fields have been identified
             as holding multiple types of values, for example integers and Strings (5 or "5"),
-            or some fields may contain a <code>null</code> value or be missing from documents in the collection.
+            or some fields may contain a <code>null</code> value or be missing from objects in the collection.
             For best results, ensure <a href="https://www.mongodb.com/docs/atlas/data-federation/query/sql/language-reference/#type-conversions" target="_blank">CAST</a> is used on these fields to force the same type for analysis in your
             preferred BI tool.</p><ul>{}</ul></li>"#,
             collection_analysis.anyof.len(),
@@ -85,7 +85,7 @@ fn collection_summarization(collection_analysis: &CollectionAnalysis) -> String 
         None
     } else {
         Some(format!(
-            r#"<li>Fields found to be unstable: {}. <p>These fields exhibit significant schema and type variations across documents,
+            r#"<li>Fields found to be unstable: {}. <p>These fields exhibit significant schema and type variations across objects,
             leading to potential performance degredation if processed.</p>
             <p>See <a href="https://www.mongodb.com/scale/designing-a-database-schema" target="_blank">Designing a Database Schema</a>
             for information and ideas how to correct this.<ul>{}</ul></p></li>"#,
@@ -101,8 +101,8 @@ fn collection_summarization(collection_analysis: &CollectionAnalysis) -> String 
     let results = vec![
         arrays,
         arrays_of_arrays,
-        arrays_of_documents,
-        documents,
+        arrays_of_objects,
+        objects,
         anyof,
         unstable,
     ]

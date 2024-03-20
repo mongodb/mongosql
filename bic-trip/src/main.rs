@@ -2,16 +2,18 @@ use clap::Parser;
 use dialoguer::Password;
 
 use chrono::Local;
+use mongosql::schema::Schema;
 use report::{
     csv::generate_csv,
     html::generate_html,
     log_parser::{process_logs, LogParseResult},
     schema::{process_schemata, SchemaAnalysis},
 };
-use std::{env, path::PathBuf, process};
+use std::{collections::HashMap, env, path::PathBuf, process, time::Instant};
 mod cli;
 use anyhow::Result;
 use cli::Cli;
+use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
 
 pub const REPORT_FILE_STEM: &str = "Atlas_SQL_Readiness";
 pub const REPORT_NAME: &str = "Atlas SQL Transition Readiness Report";
@@ -23,12 +25,12 @@ async fn main() -> Result<()> {
         output,
         uri,
         username,
-        verbose,
+        quiet,
     } = Cli::parse();
 
     let output_path = process_output_path(output);
     let parse_results = handle_logs(input)?;
-    let analysis = handle_schema(uri, username, verbose).await?;
+    let analysis = handle_schema(uri, username, quiet).await?;
     let date = Local::now().format("%m-%d-%Y_%H%M").to_string();
 
     if parse_results.is_none() && analysis.is_none() {
@@ -41,7 +43,7 @@ async fn main() -> Result<()> {
         &date,
         &parse_results,
         &analysis,
-        verbose,
+        !quiet,
         REPORT_FILE_STEM,
         REPORT_NAME,
     )?;
@@ -50,7 +52,7 @@ async fn main() -> Result<()> {
         &date,
         &parse_results,
         &analysis,
-        verbose,
+        !quiet,
         REPORT_FILE_STEM,
     )
 }
@@ -93,7 +95,7 @@ fn handle_logs(input: Option<String>) -> Result<Option<LogParseResult>> {
 async fn handle_schema(
     uri: Option<String>,
     username: Option<String>,
-    verbose: bool,
+    quiet: bool,
 ) -> Result<Option<SchemaAnalysis>> {
     if let Some(ref uri) = uri {
         if !uri.is_empty() {
@@ -119,7 +121,57 @@ async fn handle_schema(
                 sampler::load_password_auth(&mut options, username, password).await;
             }
 
-            let schemata = sampler::sample(options, verbose).await?;
+            let (tx_notifications, mut rx_notifications) =
+                tokio::sync::mpsc::unbounded_channel::<sampler::SamplerNotification>();
+            let (tx_schemata, mut rx_schemata) =
+                tokio::sync::mpsc::unbounded_channel::<Result<sampler::SchemaAnalysis>>();
+
+            let mut schemata: HashMap<String, Vec<HashMap<String, Schema>>> = HashMap::new();
+
+            let spinner_style =
+                ProgressStyle::with_template("{prefix:.bold.dim} {spinner} {wide_msg}")
+                    .unwrap()
+                    .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ");
+            let pb = ProgressBar::new(1024);
+            if !quiet {
+                pb.set_style(spinner_style);
+                pb.println("Sampling Atlas SQL databases...");
+            }
+            let start = Instant::now();
+
+            tokio::spawn(async move {
+                sampler::sample(options, tx_notifications, tx_schemata).await;
+            });
+
+            if !quiet {
+                while let Some(notification) = rx_notifications.recv().await {
+                    pb.set_message(notification.to_string());
+                    pb.tick();
+                }
+            } else {
+                while rx_notifications.recv().await.is_some() {}
+            }
+            while let Some(msg) = rx_schemata.recv().await {
+                match msg {
+                    Ok((database, schema)) => {
+                        if !quiet {
+                            pb.set_message(format!("Received schema for database: {}", database));
+                        }
+
+                        schemata.insert(database, schema);
+                    }
+                    Err(e) => {
+                        eprintln!("Error: {:?}", e);
+                    }
+                }
+            }
+            if !quiet {
+                pb.finish_with_message(format!(
+                    "Schema analysis complete in {}",
+                    HumanDuration(start.elapsed())
+                ));
+            }
+
             Ok(Some(process_schemata(schemata)))
         } else {
             Ok(None)

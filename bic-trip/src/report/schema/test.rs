@@ -71,7 +71,7 @@ test_process_schema!(
     }),
     expected = CollectionAnalysis {
         collection_name: "test".to_string(),
-        documents: map! { "test.c".to_string() => 1 },
+        objects: map! { "test.c".to_string() => 1 },
         ..Default::default()
     }
 );
@@ -144,8 +144,8 @@ test_process_schema!(
         collection_name: "test".to_string(),
         arrays: map! { "test.b".to_string() => 1, "test.j".to_string() => 1, "test.c.e".to_string() => 2, },
         arrays_of_arrays: map! { "test.j".to_string() => 1 },
-        arrays_of_documents: map! { "test.c.e".to_string() => 2 },
-        documents: map! { "test.c".to_string() => 1, "test.c.e".to_string() => 2},
+        arrays_of_objects: map! { "test.c.e".to_string() => 2 },
+        objects: map! { "test.c".to_string() => 1, "test.c.e".to_string() => 2},
         unstable: map! { "test.i".to_string() => 1, "test.c.e.g".to_string() => 3 },
         anyof: map! { "test.h".to_string() => 1 },
     }
@@ -234,7 +234,7 @@ test_process_schemata!(
                     },
                     CollectionAnalysis {
                         collection_name: "test_coll_b".to_string(),
-                        documents: map! { "test_coll_b.c".to_string() => 1 },
+                        objects: map! { "test_coll_b.c".to_string() => 1 },
                         ..Default::default()
                     },
                 ],

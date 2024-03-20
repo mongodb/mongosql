@@ -4,15 +4,23 @@ use std::collections::HashMap;
 use crate::log_parser::{LogEntry, QueryRepresentation};
 use sqlformat::{format, FormatOptions, QueryParams};
 
+macro_rules! generate_table_row {
+    ($label:expr, $value:expr) => {
+        format!(
+            r#"
+          <div style="display: table-row;">
+            <div style="display: table-cell; padding-right: 1em;">{label}:</div>
+            <div style="display: table-cell; text-align: right;"><span class="highlight">{value}</span></div>
+          </div>
+      </tr>"#,
+            label = $label,
+            value = $value
+        )
+    };
+}
+
 /// process_summary_html generates summary page of database and query information
 pub fn process_summary_html(log_parse: &crate::log_parser::LogParseResult) -> String {
-    let mut table_html = String::from("<table><tr>")
-        + "<th>Database</th>"
-        + "<th>Access Count</th>"
-        + "<th>Recent access time</th>"
-        + "<th>Document fields in queries</th>"
-        + "<th>Arrays in queries</th></tr>";
-
     // Database name -> (Access Count, Most Recent Access, Complex Fields Used, Arrays in Queries)
     let mut summary: HashMap<String, (u32, NaiveDateTime, u32, u32)> = HashMap::new();
 
@@ -61,32 +69,51 @@ pub fn process_summary_html(log_parse: &crate::log_parser::LogParseResult) -> St
     let mut db_names: Vec<&String> = summary.keys().collect();
     // Sorting by database names alphabetically
     db_names.sort_by_key(|name| name.to_lowercase());
-    for db_name in db_names {
-        let (access_count, most_recent_access, complex_fields_used, arrays_in_queries) =
-            summary.get(db_name).unwrap();
-        table_html.push_str(&format!(
-            "<tr><td>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
-            db_name,
-            access_count,
-            most_recent_access.format("%Y-%m-%d %H:%M"),
-            complex_fields_used,
-            arrays_in_queries
-        ));
-    }
-    table_html.push_str("</table>");
+
+    let summary_string = db_names
+        .iter()
+        .map(|db_name| {
+            let (access_count, most_recent_access, complex_fields_used, arrays_in_queries) =
+                summary.get(*db_name).unwrap();
+            format!(
+                r#"<div>
+        <div style="display: table;">
+        {}
+        {}
+        {}
+        {}
+        {}
+      </div>"#,
+                generate_table_row!("Database/Collection", db_name),
+                generate_table_row!("Access Count", access_count),
+                generate_table_row!("Last Accessed", most_recent_access.format("%Y-%m-%d %H:%M")),
+                generate_table_row!("Complex Field Found", complex_fields_used),
+                generate_table_row!("Arrays Found", arrays_in_queries)
+            )
+        })
+        .collect::<Vec<String>>()
+        .join("</br></br>");
 
     let valid_queries = log_parse.valid_queries.as_ref().map_or(0, |v| v.len());
     let invalid_queries = log_parse.invalid_queries.as_ref().map_or(0, |v| v.len());
     let queries_html = format!(
-        "<div><h2>Queries</h2></div>\
-        <table>\
-            <tr><td>Valid:</td><td style='text-align: right;padding-left: 20px;'>{:>8}</td></tr>\
-            <tr><td>Invalid:</td><td style='text-align: right;padding-left: 20px;'>{:>8}</td></tr>\
-        </table>",
-        valid_queries, invalid_queries
+        r#"<div>
+        <h2>Queries</h2>
+        <div style="display: table;">
+        {}{}
+        </div>
+      </div>"#,
+        generate_table_row!(
+            "Queries Found with Valid Syntax for AtlasSQL",
+            valid_queries
+        ),
+        generate_table_row!(
+            "Queries Found with Invalid Syntax for AtlasSQL",
+            invalid_queries
+        )
     );
 
-    format!("{}{}", table_html, queries_html)
+    format!("{}{}", summary_string, queries_html)
 }
 
 pub fn process_complex_types_html(

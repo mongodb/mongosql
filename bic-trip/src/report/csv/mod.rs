@@ -76,8 +76,8 @@ impl From<&crate::schema::CollectionAnalysis> for SchemaAnalysis {
             collection: val.collection_name.clone(),
             arrays: val.arrays.len() as u16,
             arrays_of_arrays: val.arrays_of_arrays.len() as u16,
-            documents: val.documents.len() as u16,
-            arrays_of_documents: val.arrays_of_documents.len() as u16,
+            documents: val.objects.len() as u16,
+            arrays_of_documents: val.arrays_of_objects.len() as u16,
             unstable: val.unstable.len() as u16,
             anyof: val.anyof.len() as u16,
         }

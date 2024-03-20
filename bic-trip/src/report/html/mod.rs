@@ -3,7 +3,7 @@ mod log_html;
 mod schema_html;
 
 use base64::{prelude::BASE64_STANDARD, Engine};
-use build_html::{Html, HtmlContainer, HtmlPage};
+use build_html::{Container, Html, HtmlContainer, HtmlPage};
 use std::{fs::File, io::Write, path::Path};
 
 use image::{DynamicImage, ImageOutputFormat};
@@ -64,6 +64,18 @@ fn get_icon_data() -> &'static [u8] {
     }
 }
 
+fn get_css() -> &'static str {
+    #[cfg(target_os = "windows")]
+    {
+        include_str!(r"..\..\..\resources\html\mongodb.css")
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        include_str!("../../../resources/html/mongodb.css")
+    }
+}
+
 fn get_mongodb_icon_html(report_name: &str) -> String {
     let icon_data = get_icon_data();
     let icon_base64 = encode_image_to_base64(icon_data);
@@ -98,16 +110,16 @@ fn get_tab_string(log_parse: bool, schema_analysis: bool) -> String {
     </div>"#,
         if log_parse {
             r#"
-                <button class="tablinks" onclick="openTab(event, 'Summary')">Summary</button>
-                <button class="tablinks" onclick="openTab(event, 'Queries')">Queries</button>
-                <button class="tablinks" onclick="openTab(event, 'Collections')">Collections</button>
-                <button class="tablinks" onclick="openTab(event, 'ComplexTypes')">Complex Types</button>
+                <button class="tablinks btn-green" onclick="openTab(event, 'Summary')">Summary</button>
+                <button class="tablinks btn-green" onclick="openTab(event, 'Queries')">Queries</button>
+                <button class="tablinks btn-green" onclick="openTab(event, 'Collections')">Collections</button>
+                <button class="tablinks btn-green" onclick="openTab(event, 'ComplexTypes')">Complex Types</button>
         "#
         } else {
             ""
         },
         if schema_analysis {
-            r#"<button class="tablinks" onclick="openTab(event, 'Schema')">Schema</button>"#
+            r#"<button class="tablinks btn-green" onclick="openTab(event, 'SchemaAnalysis')">Schema Analysis</button>"#
         } else {
             ""
         }
@@ -137,48 +149,52 @@ fn generate_html_elements(
     report_name: &str,
 ) -> String {
     let datetime_str = Local::now().format("%m-%d-%Y %H:%M").to_string();
-    let mut page = HtmlPage::new().with_title(report_name);
+    let mut page = HtmlPage::new()
+        .with_title(report_name)
+        .with_style(get_css());
+    let mut body = Container::default().with_attributes([("class", "container")]);
 
     // Add MongoDB logo
-    page.add_raw(get_mongodb_icon_html(report_name));
+    body.add_raw(get_mongodb_icon_html(report_name));
 
     // Add timestamp
-    page.add_raw(&format!("<p>Report was generated at: {}</p>", datetime_str));
+    body.add_raw(&format!("<p>Report was generated at: {}</p>", datetime_str));
 
-    page.add_raw(get_tab_string(
+    body.add_raw(get_tab_string(
         log_parse.is_some(),
         schema_analysis.is_some(),
     ));
 
     if let Some(log_parse) = log_parse {
         // Add generated values to the tabs
-        page.add_raw(&format!(
+        body.add_raw(&format!(
             r#"<div id="Queries" class="tabcontent"><h2>Queries</h2>{}{}</div>"#,
             process_query_html("Valid", &log_parse.valid_queries),
             process_query_html("Invalid", &log_parse.invalid_queries)
         ));
 
-        page.add_raw(&format!(
+        body.add_raw(&format!(
             r#"<div id="Collections" class="tabcontent"><h2>Collections</h2>{}</div>"#,
             process_collections_html("Found Collections", &log_parse.collections)
         ));
 
-        page.add_raw(&format!(
+        body.add_raw(&format!(
             r#"<div id="ComplexTypes" class="tabcontent"><h2>Complex Types</h2>{}</div>"#,
             process_complex_types_html(&log_parse.subpath_fields, &log_parse.array_datasources)
         ));
-        page.add_raw(&format!(
+        body.add_raw(&format!(
             r#"<div id="Summary" class="tabcontent"><h2>Summary</h2>{}</div>"#,
             process_summary_html(log_parse)
         ));
     }
 
     if schema_analysis.is_some() {
-        page.add_raw(format!(
-            r#"<div id="Schema" class="tabcontent"><h2>Schema</h2>{}</div>"#,
+        body.add_raw(format!(
+            r#"<div id="SchemaAnalysis" class="tabcontent"><h2>Schema Analysis</h2>{}</div>"#,
             add_schema_analysis_html(schema_analysis).to_html_string()
         ));
     }
+    page.add_container(body);
     page.add_raw(&format!(r#"<script>{}</script>"#, get_tab_js()));
 
     page.to_html_string()
