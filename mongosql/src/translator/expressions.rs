@@ -527,10 +527,7 @@ impl MqlTranslator {
             mir::Expression::Reference(mir::ReferenceExpr { key, .. }) => {
                 match self.mapping_registry.get(&key) {
                     Some(registry_value) => Ok(vec![registry_value.name.clone()]),
-                    None => {
-                        println!("545");
-                        Err(Error::ReferenceNotFound(key))
-                    }
+                    None => Err(Error::ReferenceNotFound(key)),
                 }
             }
             mir::Expression::FieldAccess(fa) => {
