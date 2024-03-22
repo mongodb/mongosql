@@ -8,7 +8,7 @@ use std::{
     io::{BufRead, BufReader},
 };
 
-use anyhow::Result;
+use anyhow::{anyhow, Result};
 use chrono::prelude::*;
 use mongosql::usererror::UserError;
 
@@ -16,6 +16,7 @@ use mongosql::usererror::UserError;
 pub struct LogParseResult {
     pub valid_queries: Option<Vec<LogEntry>>,
     pub invalid_queries: Option<Vec<LogEntry>>,
+    pub unsupported_queries: Option<Vec<LogEntry>>,
     pub collections: Option<Vec<(String, String, u32, chrono::NaiveDateTime)>>,
     pub subpath_fields: Option<Vec<(SubpathField, u32, chrono::NaiveDateTime)>>,
     pub array_datasources: Option<Vec<(String, String, u32, chrono::NaiveDateTime)>>,
@@ -71,6 +72,7 @@ pub struct LogEntry {
     pub query_type: QueryType,
     pub query_count: u32,
     pub query_representation: QueryRepresentation,
+    pub users: Vec<String>,
 }
 
 // QueryRepresentation holds the query AST if parsing was successful or
@@ -142,6 +144,7 @@ fn parse_line(line: &str) -> Option<LogEntry> {
         query_type,
         query_count: 1,
         query_representation,
+        users: Vec::new(),
     })
 }
 
@@ -149,7 +152,9 @@ fn parse_line(line: &str) -> Option<LogEntry> {
 pub fn process_logs(paths: &[String]) -> Result<LogParseResult> {
     let mut all_valid_queries = vec![];
     let mut all_invalid_queries = vec![];
+    let mut all_unsupported_queries = vec![];
     let mut all_queries: HashMap<String, LogEntry> = HashMap::new();
+    let mut connections: HashMap<String, String> = HashMap::new();
 
     for path in paths {
         let file = File::open(path)?;
@@ -157,12 +162,43 @@ pub fn process_logs(paths: &[String]) -> Result<LogParseResult> {
 
         for line in reader.lines() {
             let line = line?;
-            if line.contains("EVALUATOR") {
+            if line.contains("configuring client authentication for principal") {
+                let conn_start = line
+                    .find('[')
+                    .ok_or_else(|| anyhow!("Missing '[' in line"))?;
+                let conn_end = line
+                    .find(']')
+                    .ok_or_else(|| anyhow!("Missing ']' in line"))?;
+                let connection_id = &line[conn_start + 1..conn_end];
+                let user_start = line
+                    .find("principal")
+                    .ok_or_else(|| anyhow!("Missing 'principal' in line"))?
+                    + "principal".len()
+                    + 1;
+                let user = &line[user_start..].trim();
+
+                connections.insert(connection_id.to_string(), user.to_string());
+            } else if line.contains("EVALUATOR") {
                 if let Some(query) = parse_line(&line) {
-                    all_queries
-                        .entry(query.query.clone())
-                        .and_modify(|entry: &mut LogEntry| entry.query_count += 1u32)
-                        .or_insert(query);
+                    let conn_start = line
+                        .find('[')
+                        .ok_or_else(|| anyhow!("Missing '[' in line"))?;
+                    let conn_end = line
+                        .find(']')
+                        .ok_or_else(|| anyhow!("Missing ']' in line"))?;
+                    let connection_id = &line[conn_start + 1..conn_end];
+                    let user = connections.get(connection_id).cloned().unwrap_or_default();
+
+                    let entry = all_queries.entry(query.query.clone()).or_insert_with(|| {
+                        let mut new_query = query.clone();
+                        new_query.users.push(user.clone());
+                        new_query
+                    });
+
+                    if !entry.users.contains(&user) {
+                        entry.users.push(user);
+                    }
+                    entry.query_count += 1;
                 }
             }
         }
@@ -175,17 +211,21 @@ pub fn process_logs(paths: &[String]) -> Result<LogParseResult> {
         |entry| entry.timestamp,
     );
     for query in all_queries {
-        // Marking queries with `INFORMATION_SCHEMA` as invalid since they are specific to BIC
-        let contains_information_schema = query.query.contains("INFORMATION_SCHEMA");
-        match (
-            &query.query_type,
-            &query.query_representation,
-            contains_information_schema,
-        ) {
-            (QueryType::Select, QueryRepresentation::Query(_), false) => {
-                all_valid_queries.push(query.clone());
+        let is_unsupported = query.query_type == QueryType::Set
+            || query.query_type == QueryType::Show
+            // Marking queries with `INFORMATION_SCHEMA` as invalid since they are specific to BIC
+            || query.query.to_lowercase().contains("information_schema");
+        if is_unsupported {
+            all_unsupported_queries.push(query.clone());
+        } else {
+            match &query.query_representation {
+                QueryRepresentation::Query(_) => {
+                    all_valid_queries.push(query.clone());
+                }
+                QueryRepresentation::ParseError(_) => {
+                    all_invalid_queries.push(query.clone());
+                }
             }
-            (_, _, _) => all_invalid_queries.push(query.clone()),
         }
     }
 
@@ -285,6 +325,8 @@ pub fn process_logs(paths: &[String]) -> Result<LogParseResult> {
     Ok(LogParseResult {
         valid_queries: (!all_valid_queries.is_empty()).then_some(all_valid_queries),
         invalid_queries: (!all_invalid_queries.is_empty()).then_some(all_invalid_queries),
+        unsupported_queries: (!all_unsupported_queries.is_empty())
+            .then_some(all_unsupported_queries),
         collections: (Some(collections_vec)),
         subpath_fields: (Some(subpath_fields_vec)),
         array_datasources: (Some(array_datasources)),

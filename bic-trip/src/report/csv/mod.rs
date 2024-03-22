@@ -8,7 +8,7 @@ use zip::write::FileOptions;
 
 use crate::log_parser::LogParseResult;
 
-const DATE_TIME_FORMAT: &str = "%Y-%m-%d %H:%M";
+const DATE_TIME_FORMAT: &str = "%m-%d-%Y %H:%M";
 
 #[derive(Serialize)]
 struct ComplexType {

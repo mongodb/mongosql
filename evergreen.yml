@@ -588,6 +588,7 @@ functions:
         add_expansions_to_env: true
     - command: s3.put
       params:
+        build_variants: [ "trr-macos" ]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/AtlasSQLReadinessReport-macos
@@ -595,6 +596,18 @@ functions:
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
+        display_name: AtlasSQLReadinessReport-macos-signed
+    - command: s3.put
+      params:
+        build_variants: ["trr-macos-arm"]
+        aws_key: ${aws_key}
+        aws_secret: ${aws_secret}
+        local_file: mongosql-rs/AtlasSQLReadinessReport-macos
+        remote_file: mongosql-rs/artifacts/${version_id}/${build_variant}/AtlasSQLReadinessReport-macos-arm-signed
+        bucket: mciuploads
+        permissions: public-read
+        content_type: application/octet-stream
+        display_name: AtlasSQLReadinessReport-macos-arm-signed
 
   "run TPC-H benchmark":
     - command: shell.exec
@@ -721,14 +734,14 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        remote_file: mongosql-rs/artifacts/${version_id}/trr-macos-arm/AtlasSQLReadinessReport-macos-signed
-        local_file: mongosql-rs/release/trr-macos-arm/AtlasSQLReadinessReport-macos-signed
+        remote_file: mongosql-rs/artifacts/${version_id}/trr-macos-arm/AtlasSQLReadinessReport-macos-arm-signed
+        local_file: mongosql-rs/release/trr-macos-arm/AtlasSQLReadinessReport-macos-arm-signed
         bucket: mciuploads
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
-        local_file: mongosql-rs/release/trr-macos-arm/AtlasSQLReadinessReport-macos-signed
+        local_file: mongosql-rs/release/trr-macos-arm/AtlasSQLReadinessReport-macos-arm-signed
         remote_file: transition-readiness-report/AtlasSQLReadinessReport-v${release_version}-macos-arm
         bucket: translators-connectors-releases
         permissions: public-read

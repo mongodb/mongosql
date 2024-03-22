@@ -167,10 +167,41 @@ fn generate_html_elements(
 
     if let Some(log_parse) = log_parse {
         // Add generated values to the tabs
+        let unsupported_queries_html =
+            process_query_html("Unsupported", &log_parse.unsupported_queries);
+        let collapsible_unsupported_queries_html = if !unsupported_queries_html.is_empty() {
+            format!(
+                r#"<button class="collapsible btn-green">Show Unsupported Queries</button>
+            <div class="content" style="display:none;">
+                {}
+            </div>
+            <script>
+            var coll = document.getElementsByClassName("collapsible");
+            for (var i = 0; i < coll.length; i++) {{
+                coll[i].addEventListener("click", function() {{
+                    this.classList.toggle("active");
+                    var content = this.nextElementSibling;
+                    if (content.style.display === "block") {{
+                        content.style.display = "none";
+                    }} else {{
+                        content.style.display = "block";
+                    }}
+                }});
+            }}
+            </script>
+            "#,
+                unsupported_queries_html
+            )
+        } else {
+            "".to_string()
+        };
+
         body.add_raw(&format!(
-            r#"<div id="Queries" class="tabcontent"><h2>Queries</h2>{}{}</div>"#,
+            "<div id=\"Queries\" class=\"tabcontent\"><h2>Queries</h2><a href=\"#invalid-queries\"> \
+            Jump to Invalid Queries</a><br><br>{}{}{}</div>",
             process_query_html("Valid", &log_parse.valid_queries),
-            process_query_html("Invalid", &log_parse.invalid_queries)
+            process_query_html("Invalid", &log_parse.invalid_queries),
+            collapsible_unsupported_queries_html
         ));
 
         body.add_raw(&format!(
