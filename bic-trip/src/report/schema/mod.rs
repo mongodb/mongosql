@@ -67,6 +67,7 @@ impl Eq for DatabaseAnalysis {}
 
 // type alias to aid in tracking fields. The key is the field name and the value is the depth
 type FieldTracker = HashMap<String, u16>;
+type FieldTrackerWithTypes = HashMap<String, (u16, Vec<String>)>;
 
 #[derive(Debug, Default, PartialEq, Eq)]
 pub struct CollectionAnalysis {
@@ -76,7 +77,7 @@ pub struct CollectionAnalysis {
     pub arrays_of_objects: FieldTracker,
     pub objects: FieldTracker,
     pub unstable: FieldTracker,
-    pub anyof: FieldTracker,
+    pub anyof: FieldTrackerWithTypes,
 }
 
 fn append_key(key: &str, k: &str) -> String {
@@ -145,11 +146,18 @@ fn process_schema(key: String, schema: Schema, analysis: &mut CollectionAnalysis
             }
         }
         mongosql::schema::Schema::AnyOf(a) => {
+            let mut types = Vec::new();
+            for s in &a {
+                types.extend(process_anyof(s))
+            }
             analysis
                 .anyof
                 .entry(key.clone())
-                .and_modify(|x| *x = depth)
-                .or_insert(depth);
+                .and_modify(|(x, s)| {
+                    *x = depth;
+                    *s = types.clone();
+                })
+                .or_insert((depth, types));
             for s in a {
                 process_schema(key.clone(), s, analysis, depth);
             }
@@ -162,4 +170,35 @@ fn process_schema(key: String, schema: Schema, analysis: &mut CollectionAnalysis
                 .or_insert(depth);
         }
     };
+}
+
+/// This function processes an anyOf schema and returns a vector of the atomic types
+fn process_anyof(schema: &Schema) -> Vec<String> {
+    let mut found_types = vec![];
+    match schema {
+        Schema::AnyOf(a) => {
+            for s in a {
+                found_types.extend(process_anyof(s));
+            }
+        }
+        Schema::Array(_) => {
+            found_types.push("Array".to_string());
+        }
+        Schema::Atomic(a) => {
+            found_types.push(a.to_string());
+        }
+        Schema::Unsat => {
+            found_types.push("Unsat".to_string());
+        }
+        Schema::Missing => {
+            found_types.push("Missing".to_string());
+        }
+        Schema::Document(_) => {
+            found_types.push("Object".to_string());
+        }
+        Schema::Any => {
+            found_types.push("Any".to_string());
+        }
+    }
+    found_types
 }

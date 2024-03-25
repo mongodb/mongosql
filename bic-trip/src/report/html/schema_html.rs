@@ -67,16 +67,18 @@ fn collection_summarization(collection_analysis: &CollectionAnalysis) -> String 
         None
     } else {
         Some(format!(
-            r#"<li>Field with multiple types found: {}.<p>These fields have been identified
-            as holding multiple types of values, for example integers and Strings (5 or "5"),
-            or some fields may contain a <code>null</code> value or be missing from objects in the collection.
+            r#"<li>Field with multiple types found: {}.
             For best results, ensure <a href="https://www.mongodb.com/docs/atlas/data-federation/query/sql/language-reference/#type-conversions" target="_blank">CAST</a> is used on these fields to force the same type for analysis in your
             preferred BI tool.</p><ul>{}</ul></li>"#,
             collection_analysis.anyof.len(),
             collection_analysis
                 .anyof
                 .iter()
-                .map(|(k, v)| format!("<li>Field <code>{}</code> at depth {}</li>", k, v))
+                .map(|(k, (_, types))| format!(
+                    r#"<li class="p-l-10"=><code>{}</code> with types: {}</li>"#,
+                    k,
+                    simplify_polymorphic(types).join(", ")
+                ))
                 .collect::<Vec<String>>()
                 .join("")
         ))
@@ -115,7 +117,62 @@ fn collection_summarization(collection_analysis: &CollectionAnalysis) -> String 
         if results.is_empty() {
             "Schema analysis found no items to highlight.".to_string()
         } else {
-            results
+            format!("{}{}", find_max_depth(collection_analysis), results)
         }
+    )
+}
+
+/// simplify_polymorphic takes in a `Vec<String>` that represents a polymoprhic
+/// fields found types and simplifies it for users so they don't see multiple
+/// instances of Object or Array
+fn simplify_polymorphic(types: &[String]) -> Vec<String> {
+    let array_type = types.iter().filter(|elem| *elem == "Array").count();
+    let object_type = types.iter().filter(|elem| *elem == "Object").count();
+    let mut simplified_types: Vec<String> = types
+        .iter()
+        .map(|elem| {
+            if elem == "Array" && array_type > 1 {
+                "Arrays of multiple types".to_string()
+            } else if elem == "Object" && object_type > 1 {
+                "Objects of multiple types".to_string()
+            } else {
+                elem.to_string()
+            }
+        })
+        .collect();
+    simplified_types.dedup();
+    simplified_types
+}
+
+fn find_max_depth(collection_analysis: &CollectionAnalysis) -> String {
+    let mut max_depth = 0;
+    for v in collection_analysis.arrays.values() {
+        if *v > max_depth {
+            max_depth = *v;
+        }
+    }
+    for v in collection_analysis.arrays_of_arrays.values() {
+        if *v > max_depth {
+            max_depth = *v;
+        }
+    }
+    for v in collection_analysis.arrays_of_objects.values() {
+        if *v > max_depth {
+            max_depth = *v;
+        }
+    }
+    for v in collection_analysis.objects.values() {
+        if *v > max_depth {
+            max_depth = *v;
+        }
+    }
+    for v in collection_analysis.unstable.values() {
+        if *v > max_depth {
+            max_depth = *v;
+        }
+    }
+    format!(
+        r#"<li>The maximum nesting depth found for this collection is: <code>{}</code>.</li>"#,
+        max_depth
     )
 }

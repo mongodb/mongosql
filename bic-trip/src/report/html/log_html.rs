@@ -98,7 +98,7 @@ pub fn process_summary_html(log_parse: &crate::log_parser::LogParseResult) -> St
                         </table>
                     </td>
                 </tr>",
-                    generate_table_row!("Database/Collection", db_name_or_default),
+                    generate_table_row!("Database", db_name_or_default),
                     generate_table_row!("Access Count", access_count),
                     generate_table_row!(
                         "Last Accessed",
