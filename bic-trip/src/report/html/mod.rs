@@ -143,6 +143,13 @@ fn get_tab_js() -> &'static str {
     }
 }
 
+fn get_version(datetime_str: String) -> String {
+    let default = format!("Report was generated at: {datetime_str}");
+    option_env!("release_version").map_or_else(
+        || default.clone(),
+        |version| format!("Version: {version}. {default}"),
+    )
+}
 fn generate_html_elements(
     log_parse: &Option<crate::log_parser::LogParseResult>,
     schema_analysis: &Option<crate::schema::SchemaAnalysis>,
@@ -157,8 +164,8 @@ fn generate_html_elements(
     // Add MongoDB logo
     body.add_raw(get_mongodb_icon_html(report_name));
 
-    // Add timestamp
-    body.add_raw(&format!("<p>Report was generated at: {}</p>", datetime_str));
+    // Add version and timestamp
+    body.add_raw(format!("<p>{}</p>", get_version(datetime_str)));
 
     body.add_raw(get_tab_string(
         log_parse.is_some(),
