@@ -85,22 +85,43 @@ Edit the description to include a link to the correct JIRA release notes, and mo
 Any tickets still marked as Accepted with this release version must be updated to the next release
 version.
 
-#### Ensure Downstream Tickets Created
-Manually create an [MHOUSE](https://jira.mongodb.org/projects/MHOUSE) ticket for integrating the new
-release into ADL, and link it as "Depends On" the release ticket. The easiest way to do this is to
-clone the previous MHOUSE ticket and update the version numbers as necessary.
+### ADF downstream Ticket and Library Update
+#### ADF downstream Ticket
+When closing the release task, a [MHOUSE](https://jira.mongodb.org/projects/MHOUSE) ticket for integrating the new release into ADF should be created automatically. 
+If not, create it manually and link it as "Depends On" the release ticket. The easiest way to do this is to clone the previous downstream MHOUSE ticket and update the version numbers as necessary.
+Once the downstream MHOUSE ticket is created, assign it to yourself.
+Follow the steps below to upgrade the version of mongosql deployed in Atlas and close the ticket once changes have been merged.
 
-The ADL team does bi-weekly releases on Tuesdays. For a release to be integrated into ADL on their next
-Tuesday release, the downstream ticket must be in by the previous Monday. They will then cut the
+#### Library Update
+Follow the instructions in [mongohouse/internal/sql/mongosql/versions.go](https://github.com/10gen/mongohouse/blob/master/internal/sql/mongosql/versions.go) to upgrade the version of mongosql.
+After updating the version of mongosql via the `go get` command, your go.mod and go.sum files should have changed. Also run `go mod tidy` if needed.
+
+This is an example of a PR for upgrading Mongosql version from 1.2.1 to 1.2.2 : https://github.com/10gen/mongohouse/commit/96bd9666fe39c134bad1048054a40ace380a0b23
+Note: MHOUSE requires all commits to be signed.
+
+Once you have made the changes locally, create a PR to merge the changes.
+Follow the [ADFA guidelines](https://wiki.corp.mongodb.com/display/MMS/ADFA+Code+Review+Guidelines#ADFACodeReviewGuidelines-MergingaPullRequest) related to the process for handling PRs.
+Request the ADF Query lead as a reviewer on your PR. 
+
+If you encounter issues with your PR consistently failing required tests, please check [our Wiki](https://wiki.corp.mongodb.com/display/DRIVERS/SQL+Engines+ADF+Mongosql+upgrade) for the procedure to follow.
+
+#### ADF release Timeline
+The ADF team does weekly releases on Tuesdays. For a release to be integrated into ADF on their next
+Tuesday release, the library update must be merged by the previous Friday. They will then cut the
 release branch on Friday and release the following Tuesday.
 
 If there are critical fixes that we need to have integrated in the next Tuesday release, we need to
-let them know either by flagging it on the #enterprise-tool mongosql release announcement by tagging
-@adl-query or the ADL Query lead, or by pinging the ADL Query lead directly, if the lead is not around, then
-pinging the ADL Query team on #adl-sql-collab.
+let them know either by flagging it on the #atlas-sql mongosql release announcement by tagging
+@adf-query or the ADF Query lead, or by pinging the ADF Query lead directly, if the lead is not around, then by
+pinging the ADF Query team on #atlas-data-federation-sql-collab-eng.
+
+If there ever is a need for a hot fix we want to get released ASAP, reach out to any ADFA lead / @mongohouse-eng-oncall.
+
+To monitor the status of ADF releases, check the #mongohouse-releases channel.
 
 #### Announce Release on Slack
 Use the following messsage template to announce the release in the #atlas-sql channel:
 
-> Hello! We've released mongosql-rs version <VERSION>
-> More information, including release notes, can be found on the Release Ticket: <JIRA Link>
+> Hello! We've released mongosql-rs version \<VERSION\>   
+> More information, including release notes, can be found on the Release Ticket: \<JIRA Link\>  
+> Please note that the release roll-out in Atlas is a separate process and it can take up to 2 weeks before the next release is available.
