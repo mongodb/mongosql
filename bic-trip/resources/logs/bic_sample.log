@@ -33,8 +33,8 @@
 2024-02-07T18:39:11.822+0000 I NETWORK    [conn1] writing initial handshake
 2024-02-07T18:39:11.822+0000 I NETWORK    [conn1] reading handshake response
 2024-02-07T18:39:11.828+0000 W NETWORK    [conn1] failed to set collation: ERROR 1273 (HY000): Unknown collation: 'id(255)'
-2024-02-07T18:39:11.828+0000 I NETWORK    [conn1] client provided connection attributes _pid:24271, _platform:x86_64, _os:Linux, _client_name:libmysql, os_user:pydev, _client_version:8.0.35, program_name:mysql
-2024-02-07T18:39:11.828+0000 W NETWORK    [conn1] ignoring provided credentials for 'pydev'; authentication is not enabled
+2024-02-07T18:39:11.828+0000 I NETWORK    [conn1] client provided connection attributes _pid:24271, _platform:x86_64, _os:Linux, _client_name:libmysql, os_user:user_1, _client_version:8.0.35, program_name:mysql
+2024-02-07T18:39:11.828+0000 W NETWORK    [conn1] ignoring provided credentials for 'user_1'; authentication is not enabled
 2024-02-07T18:39:11.828+0000 I NETWORK    [conn1] sending auth switch request for mysql_native_password
 2024-02-07T18:39:11.828+0000 I NETWORK    [conn1] reading auth switch response
 2024-02-07T18:39:11.831+0000 D NETWORK    [conn1] running listCollections on database 'readiness'

@@ -6,6 +6,7 @@ use std::{
     fmt,
     fs::File,
     io::{BufRead, BufReader},
+    process,
 };
 
 use anyhow::{anyhow, Result};
@@ -146,6 +147,32 @@ fn parse_line(line: &str) -> Option<LogEntry> {
         query_representation,
         users: Vec::new(),
     })
+}
+
+pub fn handle_logs(input: Option<String>) -> Result<Option<LogParseResult>> {
+    if let Some(input) = input {
+        let metadata = std::fs::metadata(&input)
+            .map_err(|_| {
+                eprintln!("Input file or directory does not exist, {:?}", &input);
+                process::exit(1);
+            })
+            .unwrap();
+        let mut paths = Vec::new();
+
+        if metadata.is_file() {
+            paths.push(input.clone());
+        } else if metadata.is_dir() {
+            for entry in std::fs::read_dir(input)? {
+                let entry = entry?;
+                if entry.path().is_file() {
+                    paths.push(entry.path().to_string_lossy().into_owned());
+                }
+            }
+        }
+        Ok(Some(process_logs(&paths)?))
+    } else {
+        Ok(None)
+    }
 }
 
 // process_logs takes a list of file paths and returns a LogParseResult

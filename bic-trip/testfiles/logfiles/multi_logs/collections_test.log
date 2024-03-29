@@ -1,0 +1,888 @@
+2024-03-28T00:15:43.694+0000 W CONTROL    log verbosity level 3 does not exist; using verbosity Dev
+2024-03-28T00:15:43.694+0000 I CONTROL    [initandlisten] mongosqld starting: version=v2.14.12 pid=387 host=1083bd4295c4
+2024-03-28T00:15:43.694+0000 I CONTROL    [initandlisten] git version: 11518eb8459058fcd4ff92e0804c8ae7b0795722
+2024-03-28T00:15:43.694+0000 I CONTROL    [initandlisten] OpenSSL version OpenSSL 3.0.2 15 Mar 2022 (built with OpenSSL 3.0.2 15 Mar 2022)
+2024-03-28T00:15:43.694+0000 I CONTROL    [initandlisten] options: {systemLog: {verbosity: 3}, net: {bindIp: [0.0.0.0], port: 27017, ssl: {mode: "requireSSL", PEMKeyFile: "/root/ssl/mongodb.pem", minimumTLSVersion: "TLS1_1"}}, security: {enabled: true}, mongodb: {net: {uri: "mongodb://0.0.0.0:801", auth: {username: "user_1", password: "<protected>"}}}}
+2024-03-28T00:15:43.695+0000 I NETWORK    [initandlisten] waiting for connections at [::]:27017
+2024-03-28T00:15:43.695+0000 I NETWORK    [initandlisten] waiting for connections at /tmp/mysql.sock
+2024-03-28T00:15:43.695+0000 I SCHEMA     [manager] attempting to initialize schema
+2024-03-28T00:15:43.695+0000 I SCHEMA     [manager] sampling schema
+2024-03-28T00:15:43.699+0000 I SCHEMA     [sampler] sampling MongoDB for schema...
+2024-03-28T00:15:43.699+0000 D SCHEMA     [sampler] wildcard database selector used: running listDatabases
+2024-03-28T00:15:43.699+0000 D SCHEMA     [sampler] finding namespaces in databases: [ReadinessReport admin config db1 db2 db3 db4 local]
+2024-03-28T00:15:43.699+0000 D SCHEMA     [sampler] skipping "admin" database
+2024-03-28T00:15:43.699+0000 D SCHEMA     [sampler] skipping "config" database
+2024-03-28T00:15:43.699+0000 D SCHEMA     [sampler] skipping "local" database
+2024-03-28T00:15:43.700+0000 D SCHEMA     [sampler] mapping schema for database "ReadinessReport"
+2024-03-28T00:15:43.700+0000 D SCHEMA     [sampler] mapping schema for namespace "ReadinessReport"."example"
+2024-03-28T00:15:43.700+0000 W SCHEMA     [mapping] table "example": multiple types at field path "b": ["object", "int"] - using object conflict resolution for "int" and object
+2024-03-28T00:15:43.700+0000 W SCHEMA     [mapping] table "example": multiple types at field path "a": ["array", "int"] - using "array"
+2024-03-28T00:15:43.700+0000 D SCHEMA     [mapping] mapped new table "example_b_field2_c" for array at field path "b.field2.c"
+2024-03-28T00:15:43.700+0000 D SCHEMA     [mapping] mapped new table "example_a" for array at field path "a"
+2024-03-28T00:15:43.700+0000 D SCHEMA     [mapping] mapped new table "example"
+2024-03-28T00:15:43.700+0000 D SCHEMA     [sampler] finished mapping schema for namespace "ReadinessReport"."example"
+2024-03-28T00:15:43.700+0000 D SCHEMA     [sampler] mapping schema for database "db1"
+2024-03-28T00:15:43.700+0000 D SCHEMA     [sampler] mapping schema for namespace "db1"."coll1"
+2024-03-28T00:15:43.701+0000 D SCHEMA     [mapping] mapped new table "coll1_arr" for array at field path "arr"
+2024-03-28T00:15:43.701+0000 D SCHEMA     [mapping] mapped new table "coll1"
+2024-03-28T00:15:43.701+0000 D SCHEMA     [sampler] finished mapping schema for namespace "db1"."coll1"
+2024-03-28T00:15:43.701+0000 D SCHEMA     [sampler] mapping schema for database "db2"
+2024-03-28T00:15:43.701+0000 D SCHEMA     [sampler] mapping schema for namespace "db2"."coll2"
+2024-03-28T00:15:43.701+0000 D SCHEMA     [mapping] mapped new table "coll2_arr" for array at field path "arr"
+2024-03-28T00:15:43.701+0000 D SCHEMA     [mapping] mapped new table "coll2"
+2024-03-28T00:15:43.701+0000 D SCHEMA     [sampler] finished mapping schema for namespace "db2"."coll2"
+2024-03-28T00:15:43.701+0000 D SCHEMA     [sampler] mapping schema for database "db3"
+2024-03-28T00:15:43.701+0000 D SCHEMA     [sampler] mapping schema for namespace "db3"."coll3"
+2024-03-28T00:15:43.701+0000 D SCHEMA     [mapping] mapped new table "coll3_arr" for array at field path "arr"
+2024-03-28T00:15:43.701+0000 D SCHEMA     [mapping] mapped new table "coll3"
+2024-03-28T00:15:43.701+0000 D SCHEMA     [sampler] finished mapping schema for namespace "db3"."coll3"
+2024-03-28T00:15:43.701+0000 D SCHEMA     [sampler] mapping schema for database "db4"
+2024-03-28T00:15:43.701+0000 D SCHEMA     [sampler] mapping schema for namespace "db4"."coll4"
+2024-03-28T00:15:43.702+0000 D SCHEMA     [mapping] mapped new table "coll4_arr" for array at field path "arr"
+2024-03-28T00:15:43.702+0000 D SCHEMA     [mapping] mapped new table "coll4"
+2024-03-28T00:15:43.702+0000 D SCHEMA     [sampler] finished mapping schema for namespace "db4"."coll4"
+2024-03-28T00:15:43.702+0000 I SCHEMA     [sampler] mapped schema for 5 namespaces: "ReadinessReport" (1): ["example"]; "db1" (1): ["coll1"]; "db2" (1): ["coll2"]; "db3" (1): ["coll3"]; "db4" (1): ["coll4"]
+2024-03-28T00:15:43.702+0000 I SCHEMA     [manager] obtained initial schema
+2024-03-28T00:15:43.702+0000 D SCHEMA     [manager] refresh interval set to zero; schema will not be refreshed
+2024-03-28T00:15:51.295+0000 W CONTROL    log verbosity level 3 does not exist; using verbosity Dev
+2024-03-28T00:15:51.295+0000 I NETWORK    [conn1] connection accepted from 0.0.0.0:56878 #1 (1 connection now open)
+2024-03-28T00:15:51.295+0000 I NETWORK    [conn1] writing initial handshake
+2024-03-28T00:15:51.295+0000 I NETWORK    [conn1] reading handshake response
+2024-03-28T00:15:51.300+0000 W NETWORK    [conn1] failed to set collation: ERROR 1273 (HY000): Unknown collation: 'id(255)'
+2024-03-28T00:15:51.300+0000 I NETWORK    [conn1] negotiating ssl
+2024-03-28T00:15:51.300+0000 I CONTROL    Enabling OpenSSL's FIPS mode false
+2024-03-28T00:15:51.311+0000 I NETWORK    [conn1] ssl connection established
+2024-03-28T00:15:51.311+0000 W NETWORK    [conn1] failed to set collation: ERROR 1273 (HY000): Unknown collation: 'id(255)'
+2024-03-28T00:15:51.311+0000 I NETWORK    [conn1] client provided connection attributes _os:macos13.5, _platform:arm64, _client_version:8.2.0, _client_name:libmysql, _pid:52614, os_user:user, program_name:mysql
+2024-03-28T00:15:51.311+0000 I NETWORK    [conn1] configuring client authentication for principal user_1
+2024-03-28T00:15:51.311+0000 I NETWORK    [conn1] sending auth switch request for mysql_clear_password
+2024-03-28T00:15:51.311+0000 I NETWORK    [conn1] reading auth switch response
+2024-03-28T00:15:51.313+0000 I NETWORK    [conn1] authenticating client response with mysql_clear_password
+2024-03-28T00:15:51.317+0000 I NETWORK    [conn1] successfully authenticated as principal user_1 on admin
+2024-03-28T00:15:51.317+0000 I NETWORK    [conn1] loading privilege information for current user
+2024-03-28T00:15:51.318+0000 D NETWORK    [conn1] running listCollections on database 'db3'
+2024-03-28T00:15:51.319+0000 D NETWORK    [conn1] running listCollections on database 'db4'
+2024-03-28T00:15:51.319+0000 D NETWORK    [conn1] running listCollections on database 'ReadinessReport'
+2024-03-28T00:15:51.319+0000 D NETWORK    [conn1] running listCollections on database 'db1'
+2024-03-28T00:15:51.319+0000 D NETWORK    [conn1] running listCollections on database 'db2'
+2024-03-28T00:15:51.319+0000 I NETWORK    [conn1] connected to MongoDB 7.0.5, git version: 7809d71e84e314b497f282ea8aa06d7ded3eb205
+2024-03-28T00:15:51.323+0000 I EVALUATOR  [conn1] parsing "show databases"
+2024-03-28T00:15:51.323+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.323+0000 D REWRITER   [conn1] rewritten query: `select `Database` from (select SCHEMA_NAME as Database from information_schema.SCHEMATA) order by `Database` asc`
+2024-03-28T00:15:51.323+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.323+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.323+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.323+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.323+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.323+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.323+0000 D OPTIMIZER  [conn1] attempting to optimize inner join in subquery ''
+2024-03-28T00:15:51.323+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.323+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.323+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.323+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.323+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.323+0000 D EXECUTOR   [conn1] executing query plan: 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.323+0000 I NETWORK    [conn1] returned 7 rows (85B)
+2024-03-28T00:15:51.323+0000 D NETWORK    [conn1] 518B peak allocated
+2024-03-28T00:15:51.323+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:15:51.325+0000 I EVALUATOR  [conn1] parsing "show tables"
+2024-03-28T00:15:51.325+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.325+0000 D REWRITER   [conn1] rewritten query: `select Tables_in_ReadinessReport from (select TABLE_NAME as Tables_in_ReadinessReport, TABLE_TYPE as Table_type, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.TABLES) where TABLE_SCHEMA like 'ReadinessReport' order by Tables_in_ReadinessReport asc`
+2024-03-28T00:15:51.325+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(Tables_in_ReadinessReport):
+	↳ OrderBy(information_schema.Tables_in_ReadinessReport ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like ReadinessReport):
+			↳ Subquery():
+				↳ Project(Tables_in_ReadinessReport, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.325+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.325+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(Tables_in_ReadinessReport):
+	↳ OrderBy(information_schema.Tables_in_ReadinessReport ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like ReadinessReport):
+			↳ Subquery():
+				↳ Project(Tables_in_ReadinessReport, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.325+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.325+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(Tables_in_ReadinessReport):
+	↳ OrderBy(information_schema.Tables_in_ReadinessReport ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like ReadinessReport):
+			↳ Subquery():
+				↳ Project(Tables_in_ReadinessReport, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.325+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.325+0000 D OPTIMIZER  [conn1] attempting to optimize inner join in subquery ''
+2024-03-28T00:15:51.325+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(Tables_in_ReadinessReport):
+	↳ OrderBy(information_schema.Tables_in_ReadinessReport ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like ReadinessReport):
+			↳ Subquery():
+				↳ Project(Tables_in_ReadinessReport, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.325+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.325+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(Tables_in_ReadinessReport):
+	↳ OrderBy(information_schema.Tables_in_ReadinessReport ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like ReadinessReport):
+			↳ Subquery():
+				↳ Project(Tables_in_ReadinessReport, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.325+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ Project(Tables_in_ReadinessReport):
+	↳ OrderBy(information_schema.Tables_in_ReadinessReport ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like ReadinessReport):
+			↳ Subquery():
+				↳ Project(Tables_in_ReadinessReport, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.325+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ Project(Tables_in_ReadinessReport):
+	↳ OrderBy(information_schema.Tables_in_ReadinessReport ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like ReadinessReport):
+			↳ Subquery():
+				↳ Project(Tables_in_ReadinessReport, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.325+0000 D EXECUTOR   [conn1] executing query plan: 
+↳ Project(Tables_in_ReadinessReport):
+	↳ OrderBy(information_schema.Tables_in_ReadinessReport ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like ReadinessReport):
+			↳ Subquery():
+				↳ Project(Tables_in_ReadinessReport, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.326+0000 I NETWORK    [conn1] returned 3 rows (49B)
+2024-03-28T00:15:51.326+0000 D NETWORK    [conn1] 1.4KiB peak allocated
+2024-03-28T00:15:51.326+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:15:51.328+0000 D NETWORK    [conn1] handleFieldList table: example, wildcard: 
+2024-03-28T00:15:51.331+0000 D NETWORK    [conn1] handleFieldList table: example_a, wildcard: 
+2024-03-28T00:15:51.334+0000 D NETWORK    [conn1] handleFieldList table: example_b_field2_c, wildcard: 
+2024-03-28T00:15:51.336+0000 I EVALUATOR  [conn1] parsing "select * from db1.coll1"
+2024-03-28T00:15:51.336+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.337+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll1]' (db: 'db1', collection: '[coll1]') as '[coll1]'
+2024-03-28T00:15:51.337+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.337+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll1]' (db: 'db1', collection: '[coll1]') as '[coll1]'
+2024-03-28T00:15:51.337+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.337+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll1]' (db: 'db1', collection: '[coll1]') as '[coll1]'
+2024-03-28T00:15:51.337+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.337+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll1]' (db: 'db1', collection: '[coll1]') as '[coll1]'
+2024-03-28T00:15:51.337+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.337+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll1]' (db: 'db1', collection: '[coll1]') as '[coll1]'
+2024-03-28T00:15:51.337+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[coll1]' (db: 'db1', collection: '[coll1]') as '[coll1]':
+	{"$project": {"db1_DOT_coll1_DOT__id": "$_id","db1_DOT_coll1_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:51.337+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[coll1]' (db: 'db1', collection: '[coll1]') as '[coll1]':
+	{"$project": {"db1_DOT_coll1_DOT__id": "$_id","db1_DOT_coll1_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:51.337+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[coll1]' (db: 'db1', collection: '[coll1]') as '[coll1]':
+	{"$project": {"db1_DOT_coll1_DOT__id": "$_id","db1_DOT_coll1_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:51.337+0000 I NETWORK    [conn1] returned 1 row (31B)
+2024-03-28T00:15:51.337+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:15:51.337+0000 I NETWORK    [conn1] done executing query in 1ms
+2024-03-28T00:15:51.341+0000 I EVALUATOR  [conn1] parsing "select _id from db1.coll1_arr"
+2024-03-28T00:15:51.341+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.341+0000 D REWRITER   [conn1] rewritten query: `select _id as _id from db1.coll1_arr`
+2024-03-28T00:15:51.341+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(_id):
+	↳ MongoSource: '[coll1_arr]' (db: 'db1', collection: '[coll1]') as '[coll1_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.341+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.341+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(_id):
+	↳ MongoSource: '[coll1_arr]' (db: 'db1', collection: '[coll1]') as '[coll1_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.341+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.341+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(_id):
+	↳ MongoSource: '[coll1_arr]' (db: 'db1', collection: '[coll1]') as '[coll1_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.341+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.341+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(_id):
+	↳ MongoSource: '[coll1_arr]' (db: 'db1', collection: '[coll1]') as '[coll1_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.341+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.341+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(_id):
+	↳ MongoSource: '[coll1_arr]' (db: 'db1', collection: '[coll1]') as '[coll1_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.341+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[coll1_arr]' (db: 'db1', collection: '[coll1]') as '[coll1_arr]':
+	{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}},
+	{"$project": {"db1_DOT_coll1_arr_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:15:51.341+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[coll1_arr]' (db: 'db1', collection: '[coll1]') as '[coll1_arr]':
+	{"$unwind": "$arr"},
+	{"$project": {"db1_DOT_coll1_arr_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:15:51.341+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[coll1_arr]' (db: 'db1', collection: '[coll1]') as '[coll1_arr]':
+	{"$unwind": "$arr"},
+	{"$project": {"db1_DOT_coll1_arr_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:15:51.341+0000 I NETWORK    [conn1] returned 3 rows (87B)
+2024-03-28T00:15:51.341+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:15:51.341+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:15:51.345+0000 I EVALUATOR  [conn1] parsing "select _id from db2.coll2_arr"
+2024-03-28T00:15:51.345+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.345+0000 D REWRITER   [conn1] rewritten query: `select _id as _id from db2.coll2_arr`
+2024-03-28T00:15:51.345+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(_id):
+	↳ MongoSource: '[coll2_arr]' (db: 'db2', collection: '[coll2]') as '[coll2_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.345+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.345+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(_id):
+	↳ MongoSource: '[coll2_arr]' (db: 'db2', collection: '[coll2]') as '[coll2_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.345+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.345+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(_id):
+	↳ MongoSource: '[coll2_arr]' (db: 'db2', collection: '[coll2]') as '[coll2_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.345+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.345+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(_id):
+	↳ MongoSource: '[coll2_arr]' (db: 'db2', collection: '[coll2]') as '[coll2_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.345+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.345+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(_id):
+	↳ MongoSource: '[coll2_arr]' (db: 'db2', collection: '[coll2]') as '[coll2_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.345+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[coll2_arr]' (db: 'db2', collection: '[coll2]') as '[coll2_arr]':
+	{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}},
+	{"$project": {"db2_DOT_coll2_arr_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:15:51.345+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[coll2_arr]' (db: 'db2', collection: '[coll2]') as '[coll2_arr]':
+	{"$unwind": "$arr"},
+	{"$project": {"db2_DOT_coll2_arr_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:15:51.345+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[coll2_arr]' (db: 'db2', collection: '[coll2]') as '[coll2_arr]':
+	{"$unwind": "$arr"},
+	{"$project": {"db2_DOT_coll2_arr_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:15:51.346+0000 I NETWORK    [conn1] returned 3 rows (87B)
+2024-03-28T00:15:51.346+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:15:51.346+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:15:51.353+0000 I EVALUATOR  [conn1] parsing "select _id from db3.coll3_arr"
+2024-03-28T00:15:51.353+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.353+0000 D REWRITER   [conn1] rewritten query: `select _id as _id from db3.coll3_arr`
+2024-03-28T00:15:51.353+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(_id):
+	↳ MongoSource: '[coll3_arr]' (db: 'db3', collection: '[coll3]') as '[coll3_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.353+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.353+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(_id):
+	↳ MongoSource: '[coll3_arr]' (db: 'db3', collection: '[coll3]') as '[coll3_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.353+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.353+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(_id):
+	↳ MongoSource: '[coll3_arr]' (db: 'db3', collection: '[coll3]') as '[coll3_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.353+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.353+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(_id):
+	↳ MongoSource: '[coll3_arr]' (db: 'db3', collection: '[coll3]') as '[coll3_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.353+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.353+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(_id):
+	↳ MongoSource: '[coll3_arr]' (db: 'db3', collection: '[coll3]') as '[coll3_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.353+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[coll3_arr]' (db: 'db3', collection: '[coll3]') as '[coll3_arr]':
+	{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}},
+	{"$project": {"db3_DOT_coll3_arr_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:15:51.353+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[coll3_arr]' (db: 'db3', collection: '[coll3]') as '[coll3_arr]':
+	{"$unwind": "$arr"},
+	{"$project": {"db3_DOT_coll3_arr_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:15:51.353+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[coll3_arr]' (db: 'db3', collection: '[coll3]') as '[coll3_arr]':
+	{"$unwind": "$arr"},
+	{"$project": {"db3_DOT_coll3_arr_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:15:51.353+0000 I NETWORK    [conn1] returned 3 rows (87B)
+2024-03-28T00:15:51.353+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:15:51.353+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:15:51.358+0000 I EVALUATOR  [conn1] parsing "select _id from db4.coll4_arr"
+2024-03-28T00:15:51.358+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.358+0000 D REWRITER   [conn1] rewritten query: `select _id as _id from db4.coll4_arr`
+2024-03-28T00:15:51.358+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(_id):
+	↳ MongoSource: '[coll4_arr]' (db: 'db4', collection: '[coll4]') as '[coll4_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.358+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.358+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(_id):
+	↳ MongoSource: '[coll4_arr]' (db: 'db4', collection: '[coll4]') as '[coll4_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.358+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.358+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(_id):
+	↳ MongoSource: '[coll4_arr]' (db: 'db4', collection: '[coll4]') as '[coll4_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.358+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.358+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(_id):
+	↳ MongoSource: '[coll4_arr]' (db: 'db4', collection: '[coll4]') as '[coll4_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.358+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.358+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(_id):
+	↳ MongoSource: '[coll4_arr]' (db: 'db4', collection: '[coll4]') as '[coll4_arr]':
+		{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}}
+2024-03-28T00:15:51.358+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[coll4_arr]' (db: 'db4', collection: '[coll4]') as '[coll4_arr]':
+	{"$unwind": {"path": "$arr","includeArrayIndex": "arr_idx"}},
+	{"$project": {"db4_DOT_coll4_arr_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:15:51.358+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[coll4_arr]' (db: 'db4', collection: '[coll4]') as '[coll4_arr]':
+	{"$unwind": "$arr"},
+	{"$project": {"db4_DOT_coll4_arr_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:15:51.358+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[coll4_arr]' (db: 'db4', collection: '[coll4]') as '[coll4_arr]':
+	{"$unwind": "$arr"},
+	{"$project": {"db4_DOT_coll4_arr_DOT__id": "$_id","_id": NumberInt("0")}}
+2024-03-28T00:15:51.358+0000 I NETWORK    [conn1] returned 3 rows (87B)
+2024-03-28T00:15:51.358+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:15:51.358+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:15:51.363+0000 I EVALUATOR  [conn1] parsing "select * from db2.coll2"
+2024-03-28T00:15:51.363+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.363+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll2]' (db: 'db2', collection: '[coll2]') as '[coll2]'
+2024-03-28T00:15:51.363+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.363+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll2]' (db: 'db2', collection: '[coll2]') as '[coll2]'
+2024-03-28T00:15:51.363+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.363+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll2]' (db: 'db2', collection: '[coll2]') as '[coll2]'
+2024-03-28T00:15:51.363+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.363+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll2]' (db: 'db2', collection: '[coll2]') as '[coll2]'
+2024-03-28T00:15:51.363+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.363+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll2]' (db: 'db2', collection: '[coll2]') as '[coll2]'
+2024-03-28T00:15:51.363+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[coll2]' (db: 'db2', collection: '[coll2]') as '[coll2]':
+	{"$project": {"db2_DOT_coll2_DOT__id": "$_id","db2_DOT_coll2_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:51.363+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[coll2]' (db: 'db2', collection: '[coll2]') as '[coll2]':
+	{"$project": {"db2_DOT_coll2_DOT__id": "$_id","db2_DOT_coll2_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:51.364+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[coll2]' (db: 'db2', collection: '[coll2]') as '[coll2]':
+	{"$project": {"db2_DOT_coll2_DOT__id": "$_id","db2_DOT_coll2_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:51.364+0000 I NETWORK    [conn1] returned 1 row (31B)
+2024-03-28T00:15:51.364+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:15:51.364+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:15:51.367+0000 I EVALUATOR  [conn1] parsing "select * from db3.coll3"
+2024-03-28T00:15:51.367+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.367+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll3]' (db: 'db3', collection: '[coll3]') as '[coll3]'
+2024-03-28T00:15:51.367+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.367+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll3]' (db: 'db3', collection: '[coll3]') as '[coll3]'
+2024-03-28T00:15:51.367+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.367+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll3]' (db: 'db3', collection: '[coll3]') as '[coll3]'
+2024-03-28T00:15:51.367+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.367+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll3]' (db: 'db3', collection: '[coll3]') as '[coll3]'
+2024-03-28T00:15:51.367+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.367+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll3]' (db: 'db3', collection: '[coll3]') as '[coll3]'
+2024-03-28T00:15:51.367+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[coll3]' (db: 'db3', collection: '[coll3]') as '[coll3]':
+	{"$project": {"db3_DOT_coll3_DOT__id": "$_id","db3_DOT_coll3_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:51.367+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[coll3]' (db: 'db3', collection: '[coll3]') as '[coll3]':
+	{"$project": {"db3_DOT_coll3_DOT__id": "$_id","db3_DOT_coll3_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:51.367+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[coll3]' (db: 'db3', collection: '[coll3]') as '[coll3]':
+	{"$project": {"db3_DOT_coll3_DOT__id": "$_id","db3_DOT_coll3_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:51.368+0000 I NETWORK    [conn1] returned 1 row (31B)
+2024-03-28T00:15:51.368+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:15:51.368+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:15:51.371+0000 I EVALUATOR  [conn1] parsing "select * from db4.coll4"
+2024-03-28T00:15:51.371+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.371+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll4]' (db: 'db4', collection: '[coll4]') as '[coll4]'
+2024-03-28T00:15:51.371+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.371+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll4]' (db: 'db4', collection: '[coll4]') as '[coll4]'
+2024-03-28T00:15:51.371+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.371+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll4]' (db: 'db4', collection: '[coll4]') as '[coll4]'
+2024-03-28T00:15:51.371+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.371+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll4]' (db: 'db4', collection: '[coll4]') as '[coll4]'
+2024-03-28T00:15:51.371+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.371+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll4]' (db: 'db4', collection: '[coll4]') as '[coll4]'
+2024-03-28T00:15:51.371+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[coll4]' (db: 'db4', collection: '[coll4]') as '[coll4]':
+	{"$project": {"db4_DOT_coll4_DOT__id": "$_id","db4_DOT_coll4_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:51.371+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[coll4]' (db: 'db4', collection: '[coll4]') as '[coll4]':
+	{"$project": {"db4_DOT_coll4_DOT__id": "$_id","db4_DOT_coll4_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:51.371+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[coll4]' (db: 'db4', collection: '[coll4]') as '[coll4]':
+	{"$project": {"db4_DOT_coll4_DOT__id": "$_id","db4_DOT_coll4_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:51.372+0000 I NETWORK    [conn1] returned 1 row (31B)
+2024-03-28T00:15:51.372+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:15:51.372+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:15:51.376+0000 I EVALUATOR  [conn1] parsing "SELECT DATABASE()"
+2024-03-28T00:15:51.376+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.376+0000 D REWRITER   [conn1] rewritten query: `select 'ReadinessReport' as database() from DUAL`
+2024-03-28T00:15:51.376+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(database()):
+	↳ Dual
+2024-03-28T00:15:51.376+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.376+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(database()):
+	↳ Dual
+2024-03-28T00:15:51.376+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.376+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(database()):
+	↳ Dual
+2024-03-28T00:15:51.376+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.376+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(database()):
+	↳ Dual
+2024-03-28T00:15:51.376+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.376+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(database()):
+	↳ Dual
+2024-03-28T00:15:51.376+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ Project(database()):
+	↳ Dual
+2024-03-28T00:15:51.376+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ Project(database()):
+	↳ Dual
+2024-03-28T00:15:51.376+0000 D EXECUTOR   [conn1] executing query plan: 
+↳ Project(database()):
+	↳ Dual
+2024-03-28T00:15:51.376+0000 I NETWORK    [conn1] returned 1 row (20B)
+2024-03-28T00:15:51.376+0000 D NETWORK    [conn1] 33B peak allocated
+2024-03-28T00:15:51.376+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:15:51.383+0000 I EVALUATOR  [conn1] parsing "show databases"
+2024-03-28T00:15:51.383+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.383+0000 D REWRITER   [conn1] rewritten query: `select `Database` from (select SCHEMA_NAME as Database from information_schema.SCHEMATA) order by `Database` asc`
+2024-03-28T00:15:51.383+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.383+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.383+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.383+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.383+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.383+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.383+0000 D OPTIMIZER  [conn1] attempting to optimize inner join in subquery ''
+2024-03-28T00:15:51.383+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.383+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.383+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.383+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.383+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.383+0000 D EXECUTOR   [conn1] executing query plan: 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.383+0000 I NETWORK    [conn1] returned 7 rows (85B)
+2024-03-28T00:15:51.383+0000 D NETWORK    [conn1] 518B peak allocated
+2024-03-28T00:15:51.383+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:15:51.386+0000 I EVALUATOR  [conn1] parsing "show tables"
+2024-03-28T00:15:51.386+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.386+0000 D REWRITER   [conn1] rewritten query: `select Tables_in_db1 from (select TABLE_NAME as Tables_in_db1, TABLE_TYPE as Table_type, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.TABLES) where TABLE_SCHEMA like 'db1' order by Tables_in_db1 asc`
+2024-03-28T00:15:51.386+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(Tables_in_db1):
+	↳ OrderBy(information_schema.Tables_in_db1 ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like db1):
+			↳ Subquery():
+				↳ Project(Tables_in_db1, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.386+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.386+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(Tables_in_db1):
+	↳ OrderBy(information_schema.Tables_in_db1 ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like db1):
+			↳ Subquery():
+				↳ Project(Tables_in_db1, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.386+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.386+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(Tables_in_db1):
+	↳ OrderBy(information_schema.Tables_in_db1 ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like db1):
+			↳ Subquery():
+				↳ Project(Tables_in_db1, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.386+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.386+0000 D OPTIMIZER  [conn1] attempting to optimize inner join in subquery ''
+2024-03-28T00:15:51.386+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(Tables_in_db1):
+	↳ OrderBy(information_schema.Tables_in_db1 ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like db1):
+			↳ Subquery():
+				↳ Project(Tables_in_db1, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.386+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.386+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(Tables_in_db1):
+	↳ OrderBy(information_schema.Tables_in_db1 ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like db1):
+			↳ Subquery():
+				↳ Project(Tables_in_db1, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.386+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ Project(Tables_in_db1):
+	↳ OrderBy(information_schema.Tables_in_db1 ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like db1):
+			↳ Subquery():
+				↳ Project(Tables_in_db1, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.386+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ Project(Tables_in_db1):
+	↳ OrderBy(information_schema.Tables_in_db1 ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like db1):
+			↳ Subquery():
+				↳ Project(Tables_in_db1, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.386+0000 D EXECUTOR   [conn1] executing query plan: 
+↳ Project(Tables_in_db1):
+	↳ OrderBy(information_schema.Tables_in_db1 ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like db1):
+			↳ Subquery():
+				↳ Project(Tables_in_db1, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.386+0000 I NETWORK    [conn1] returned 2 rows (24B)
+2024-03-28T00:15:51.386+0000 D NETWORK    [conn1] 1.2KiB peak allocated
+2024-03-28T00:15:51.386+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:15:51.390+0000 D NETWORK    [conn1] handleFieldList table: coll1, wildcard: 
+2024-03-28T00:15:51.394+0000 D NETWORK    [conn1] handleFieldList table: coll1_arr, wildcard: 
+2024-03-28T00:15:51.397+0000 I EVALUATOR  [conn1] parsing "select * from coll1"
+2024-03-28T00:15:51.397+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.397+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll1]' (db: 'db1', collection: '[coll1]') as '[coll1]'
+2024-03-28T00:15:51.397+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.397+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll1]' (db: 'db1', collection: '[coll1]') as '[coll1]'
+2024-03-28T00:15:51.397+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.397+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll1]' (db: 'db1', collection: '[coll1]') as '[coll1]'
+2024-03-28T00:15:51.397+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.397+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll1]' (db: 'db1', collection: '[coll1]') as '[coll1]'
+2024-03-28T00:15:51.397+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.397+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll1]' (db: 'db1', collection: '[coll1]') as '[coll1]'
+2024-03-28T00:15:51.397+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[coll1]' (db: 'db1', collection: '[coll1]') as '[coll1]':
+	{"$project": {"db1_DOT_coll1_DOT__id": "$_id","db1_DOT_coll1_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:51.397+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[coll1]' (db: 'db1', collection: '[coll1]') as '[coll1]':
+	{"$project": {"db1_DOT_coll1_DOT__id": "$_id","db1_DOT_coll1_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:51.397+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[coll1]' (db: 'db1', collection: '[coll1]') as '[coll1]':
+	{"$project": {"db1_DOT_coll1_DOT__id": "$_id","db1_DOT_coll1_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:51.398+0000 I NETWORK    [conn1] returned 1 row (31B)
+2024-03-28T00:15:51.398+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:15:51.398+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:15:51.401+0000 I EVALUATOR  [conn1] parsing "SELECT DATABASE()"
+2024-03-28T00:15:51.401+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.401+0000 D REWRITER   [conn1] rewritten query: `select 'db1' as database() from DUAL`
+2024-03-28T00:15:51.401+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(database()):
+	↳ Dual
+2024-03-28T00:15:51.401+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.401+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(database()):
+	↳ Dual
+2024-03-28T00:15:51.401+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.401+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(database()):
+	↳ Dual
+2024-03-28T00:15:51.401+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.401+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(database()):
+	↳ Dual
+2024-03-28T00:15:51.401+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.401+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(database()):
+	↳ Dual
+2024-03-28T00:15:51.401+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ Project(database()):
+	↳ Dual
+2024-03-28T00:15:51.401+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ Project(database()):
+	↳ Dual
+2024-03-28T00:15:51.401+0000 D EXECUTOR   [conn1] executing query plan: 
+↳ Project(database()):
+	↳ Dual
+2024-03-28T00:15:51.401+0000 I NETWORK    [conn1] returned 1 row (8B)
+2024-03-28T00:15:51.401+0000 D NETWORK    [conn1] 21B peak allocated
+2024-03-28T00:15:51.401+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:15:51.407+0000 I EVALUATOR  [conn1] parsing "show databases"
+2024-03-28T00:15:51.407+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.407+0000 D REWRITER   [conn1] rewritten query: `select `Database` from (select SCHEMA_NAME as Database from information_schema.SCHEMATA) order by `Database` asc`
+2024-03-28T00:15:51.407+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.407+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.407+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.407+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.407+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.407+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.407+0000 D OPTIMIZER  [conn1] attempting to optimize inner join in subquery ''
+2024-03-28T00:15:51.407+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.407+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.407+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.407+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.407+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.407+0000 D EXECUTOR   [conn1] executing query plan: 
+↳ Project(Database):
+	↳ OrderBy(information_schema.Database ASC):
+		↳ Subquery():
+			↳ Project(Database):
+				↳ DynamicSource (SCHEMATA)
+2024-03-28T00:15:51.407+0000 I NETWORK    [conn1] returned 7 rows (85B)
+2024-03-28T00:15:51.407+0000 D NETWORK    [conn1] 518B peak allocated
+2024-03-28T00:15:51.407+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:15:51.410+0000 I EVALUATOR  [conn1] parsing "show tables"
+2024-03-28T00:15:51.410+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:51.411+0000 D REWRITER   [conn1] rewritten query: `select Tables_in_db2 from (select TABLE_NAME as Tables_in_db2, TABLE_TYPE as Table_type, TABLE_SCHEMA as TABLE_SCHEMA from information_schema.TABLES) where TABLE_SCHEMA like 'db2' order by Tables_in_db2 asc`
+2024-03-28T00:15:51.411+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(Tables_in_db2):
+	↳ OrderBy(information_schema.Tables_in_db2 ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like db2):
+			↳ Subquery():
+				↳ Project(Tables_in_db2, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.411+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:51.411+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(Tables_in_db2):
+	↳ OrderBy(information_schema.Tables_in_db2 ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like db2):
+			↳ Subquery():
+				↳ Project(Tables_in_db2, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.411+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:51.411+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(Tables_in_db2):
+	↳ OrderBy(information_schema.Tables_in_db2 ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like db2):
+			↳ Subquery():
+				↳ Project(Tables_in_db2, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.411+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:51.411+0000 D OPTIMIZER  [conn1] attempting to optimize inner join in subquery ''
+2024-03-28T00:15:51.411+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(Tables_in_db2):
+	↳ OrderBy(information_schema.Tables_in_db2 ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like db2):
+			↳ Subquery():
+				↳ Project(Tables_in_db2, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.411+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:51.411+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(Tables_in_db2):
+	↳ OrderBy(information_schema.Tables_in_db2 ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like db2):
+			↳ Subquery():
+				↳ Project(Tables_in_db2, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.411+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ Project(Tables_in_db2):
+	↳ OrderBy(information_schema.Tables_in_db2 ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like db2):
+			↳ Subquery():
+				↳ Project(Tables_in_db2, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.411+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ Project(Tables_in_db2):
+	↳ OrderBy(information_schema.Tables_in_db2 ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like db2):
+			↳ Subquery():
+				↳ Project(Tables_in_db2, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.411+0000 D EXECUTOR   [conn1] executing query plan: 
+↳ Project(Tables_in_db2):
+	↳ OrderBy(information_schema.Tables_in_db2 ASC):
+		↳ Filter (information_schema.TABLE_SCHEMA like db2):
+			↳ Subquery():
+				↳ Project(Tables_in_db2, Table_type, TABLE_SCHEMA):
+					↳ DynamicSource (TABLES)
+2024-03-28T00:15:51.411+0000 I NETWORK    [conn1] returned 2 rows (24B)
+2024-03-28T00:15:51.411+0000 D NETWORK    [conn1] 1.2KiB peak allocated
+2024-03-28T00:15:51.411+0000 I NETWORK    [conn1] done executing query in 0ms
+2024-03-28T00:15:51.415+0000 D NETWORK    [conn1] handleFieldList table: coll2, wildcard: 
+2024-03-28T00:15:51.419+0000 D NETWORK    [conn1] handleFieldList table: coll2_arr, wildcard: 
+2024-03-28T00:15:52.410+0000 I EVALUATOR  [conn1] parsing "select * from coll2"
+2024-03-28T00:15:52.410+0000 I EVALUATOR  [conn1] generating plan for sql...
+2024-03-28T00:15:52.410+0000 D OPTIMIZER  [conn1] optimizing query plan: 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll2]' (db: 'db2', collection: '[coll2]') as '[coll2]'
+2024-03-28T00:15:52.410+0000 I OPTIMIZER  [conn1] running optimization stage 'evaluations'
+2024-03-28T00:15:52.410+0000 D OPTIMIZER  [conn1] optimized plan after 'evaluations': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll2]' (db: 'db2', collection: '[coll2]') as '[coll2]'
+2024-03-28T00:15:52.410+0000 I OPTIMIZER  [conn1] running optimization stage 'cross joins'
+2024-03-28T00:15:52.410+0000 D OPTIMIZER  [conn1] optimized plan after 'cross joins': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll2]' (db: 'db2', collection: '[coll2]') as '[coll2]'
+2024-03-28T00:15:52.410+0000 I OPTIMIZER  [conn1] running optimization stage 'inner join'
+2024-03-28T00:15:52.410+0000 D OPTIMIZER  [conn1] optimized plan after 'inner join': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll2]' (db: 'db2', collection: '[coll2]') as '[coll2]'
+2024-03-28T00:15:52.410+0000 I OPTIMIZER  [conn1] running optimization stage 'filtering'
+2024-03-28T00:15:52.410+0000 D OPTIMIZER  [conn1] optimized plan after 'filtering': 
+↳ Project(_id, doc.a):
+	↳ MongoSource: '[coll2]' (db: 'db2', collection: '[coll2]') as '[coll2]'
+2024-03-28T00:15:52.410+0000 D OPTIMIZER  [conn1] plan before pipeline optimization: 
+↳ MongoSource: '[coll2]' (db: 'db2', collection: '[coll2]') as '[coll2]':
+	{"$project": {"db2_DOT_coll2_DOT__id": "$_id","db2_DOT_coll2_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:52.410+0000 D OPTIMIZER  [conn1] plan after pipeline optimization: 
+↳ MongoSource: '[coll2]' (db: 'db2', collection: '[coll2]') as '[coll2]':
+	{"$project": {"db2_DOT_coll2_DOT__id": "$_id","db2_DOT_coll2_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:52.410+0000 D EXECUTOR   [conn1] executing query plan with fast iterator: 
+↳ MongoSource: '[coll2]' (db: 'db2', collection: '[coll2]') as '[coll2]':
+	{"$project": {"db2_DOT_coll2_DOT__id": "$_id","db2_DOT_coll2_DOT_doc_DOT_a": "$doc.a","_id": NumberInt("0")}}
+2024-03-28T00:15:52.411+0000 I NETWORK    [conn1] returned 1 row (31B)
+2024-03-28T00:15:52.411+0000 D NETWORK    [conn1] 0B peak allocated
+2024-03-28T00:15:52.411+0000 I NETWORK    [conn1] done executing query in 1ms
+2024-03-28T00:16:01.328+0000 I CONTROL    [signalProcessingThread] shutting down

@@ -1,0 +1,8 @@
+description: "Queries used with various Collections test"
+valid_query_count: 10
+invalid_query_count: 1
+unsupported_query_count: 2
+collections_count: 10
+subpath_fields_count: 0
+array_datasources_count: 4
+log_dir: testfiles/logfiles/multi_logs/collections_test.log

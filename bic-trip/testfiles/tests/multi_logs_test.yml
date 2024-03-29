@@ -1,0 +1,8 @@
+description: "Processing 3 logs test"
+valid_query_count: 36
+invalid_query_count: 15
+unsupported_query_count: 14
+collections_count: 13
+subpath_fields_count: 3
+array_datasources_count: 6
+log_dir: testfiles/logfiles/multi_logs/

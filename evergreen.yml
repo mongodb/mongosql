@@ -708,9 +708,7 @@ functions:
         working_dir: mongosql-rs
         script: | 
           ${prepare_shell}
-          # SQL-1897: Implement automated testing
-          echo "Transition Readiness Report Automated Test"
-          exit 0
+          cargo test --package bic-trip --test log_parse_tests
 
   "perform transition readiness report release":
     - command: s3.get
@@ -1242,6 +1240,7 @@ tasks:
     depends_on:
       - name: compile-trr
     commands:
+      - func: "install rust toolchain"
       - func: "run transition readiness report test"
 
   - name: sign-transition-readiness-executables

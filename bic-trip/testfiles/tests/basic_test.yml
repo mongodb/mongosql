@@ -1,0 +1,8 @@
+description: "Basic test using sample bic log"
+valid_query_count: 3
+invalid_query_count: 3
+unsupported_query_count: 3
+collections_count: 2
+subpath_fields_count: 2
+array_datasources_count: 1
+log_dir: resources/logs/bic_sample.log

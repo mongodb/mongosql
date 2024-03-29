@@ -150,7 +150,8 @@ fn get_version(datetime_str: String) -> String {
         |version| format!("Version: {version}. {default}"),
     )
 }
-fn generate_html_elements(
+
+pub fn generate_html_elements(
     log_parse: &Option<crate::log_parser::LogParseResult>,
     schema_analysis: &Option<crate::schema::SchemaAnalysis>,
     report_name: &str,

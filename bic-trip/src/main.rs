@@ -6,7 +6,7 @@ use mongosql::schema::Schema;
 use report::{
     csv::generate_csv,
     html::generate_html,
-    log_parser::{process_logs, LogParseResult},
+    log_parser::handle_logs,
     schema::{process_schemata, SchemaAnalysis},
 };
 use std::{collections::HashMap, env, path::PathBuf, process, time::Instant};
@@ -63,32 +63,6 @@ fn process_output_path(output: Option<String>) -> PathBuf {
         PathBuf::from(output_path)
     } else {
         env::current_dir().unwrap()
-    }
-}
-
-fn handle_logs(input: Option<String>) -> Result<Option<LogParseResult>> {
-    if let Some(input) = input {
-        let metadata = std::fs::metadata(&input)
-            .map_err(|_| {
-                eprintln!("Input file or directory does not exist, {:?}", &input);
-                process::exit(1);
-            })
-            .unwrap();
-        let mut paths = Vec::new();
-
-        if metadata.is_file() {
-            paths.push(input.clone());
-        } else if metadata.is_dir() {
-            for entry in std::fs::read_dir(input)? {
-                let entry = entry?;
-                if entry.path().is_file() {
-                    paths.push(entry.path().to_string_lossy().into_owned());
-                }
-            }
-        }
-        Ok(Some(process_logs(&paths)?))
-    } else {
-        Ok(None)
     }
 }
 

@@ -1,0 +1,14 @@
+description: "Many users running queries test"
+valid_query_count: 5
+invalid_query_count: 3
+unsupported_query_count: 2
+collections_count: 4
+subpath_fields_count: 0
+array_datasources_count: 0
+valid_query_users:
+  - ["user_1", "user_2", "user_3"]
+  - ["user_2", "user_3"]
+  - ["user_2"]
+  - ["user_1"]
+  - ["user_2"]
+log_dir: testfiles/logfiles/users/
