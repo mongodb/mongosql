@@ -193,7 +193,7 @@ functions:
     - command: s3.get
       params:
         build_variants:
-          ["macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64"]
+          [ "macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64" ]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/libmongosql.a
@@ -201,7 +201,7 @@ functions:
         bucket: mciuploads
     - command: s3.get
       params:
-        build_variants: ["windows"]
+        build_variants: [ "windows" ]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         remote_file: mongosql-rs/artifacts/test/${version_id}/${build_variant}/mongosql.dll
@@ -377,6 +377,7 @@ functions:
         working_dir: mongosql-rs
         script: |
           ${prepare_shell}
+          echo ${description}
           cargo test ${cargo_test_flags}
 
   "run pipeline generator":
@@ -393,7 +394,7 @@ functions:
     - command: s3.put
       params:
         build_variants:
-          ["macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64"]
+          [ "macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64" ]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/target/release/libmongosql.a
@@ -403,7 +404,7 @@ functions:
         content_type: application/octet-stream
     - command: s3.put
       params:
-        build_variants: ["windows"]
+        build_variants: [ "windows" ]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/target/release/mongosql.dll
@@ -414,7 +415,7 @@ functions:
     - command: s3.put
       params:
         build_variants:
-          ["macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64"]
+          [ "macos", "macos-arm64", "rhel76", "ubuntu1804", "amazon2-arm64" ]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/test_target/release/libmongosql.a
@@ -424,7 +425,7 @@ functions:
         content_type: application/octet-stream
     - command: s3.put
       params:
-        build_variants: ["windows"]
+        build_variants: [ "windows" ]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/test_target/release/mongosql.dll
@@ -455,7 +456,7 @@ functions:
     - command: s3.put
       params:
         build_variants:
-          ["trr-macos", "trr-macos-arm","trr-ubuntu2004"]
+          [ "trr-macos", "trr-macos-arm","trr-ubuntu2004" ]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/target/release/mongosql-transition-tool
@@ -599,7 +600,7 @@ functions:
         display_name: AtlasSQLReadinessReport-macos-signed
     - command: s3.put
       params:
-        build_variants: ["trr-macos-arm"]
+        build_variants: [ "trr-macos-arm" ]
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
         local_file: mongosql-rs/AtlasSQLReadinessReport-macos
@@ -706,7 +707,7 @@ functions:
       params:
         shell: bash
         working_dir: mongosql-rs
-        script: | 
+        script: |
           ${prepare_shell}
           cargo test --package bic-trip --test log_parse_tests
 
@@ -860,7 +861,7 @@ pre:
   - func: "fetch source"
   - func: "generate expansions"
 
-post: []
+post: [ ]
 
 tasks:
   - name: clippy
@@ -914,9 +915,13 @@ tasks:
     commands:
       - func: "install rust toolchain"
       - func: "run rust tests"
+        vars:
+          description: "run rust unit tests"
+          cargo_test_flags: >-
+            -- --skip fuzz_test
 
   - name: test-rust-fuzz
-    tags: ["fuzz"]
+    tags: [ "fuzz" ]
     commands:
       - func: "install rust toolchain"
       - func: "run rust tests"
@@ -1257,7 +1262,7 @@ tasks:
 buildvariants:
   - name: static-analysis
     display_name: "* Static Analysis"
-    run_on: [ubuntu1804-test]
+    run_on: [ ubuntu1804-test ]
     tasks:
       - name: clippy
       - name: rustfmt
@@ -1267,7 +1272,7 @@ buildvariants:
 
   - name: ubuntu1804
     display_name: "Ubuntu 18.04"
-    run_on: [ubuntu1804-large]
+    run_on: [ ubuntu1804-large ]
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1277,7 +1282,7 @@ buildvariants:
 
   - name: rhel76
     display_name: "RHEL 7.6"
-    run_on: [rhel76-large]
+    run_on: [ rhel76-large ]
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1292,7 +1297,7 @@ buildvariants:
 
   - name: macos
     display_name: "macOS 11"
-    run_on: [macos-1100]
+    run_on: [ macos-1100 ]
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1302,7 +1307,7 @@ buildvariants:
 
   - name: macos-arm64
     display_name: "macOS 11.0 arm64"
-    run_on: [macos-1100-arm64]
+    run_on: [ macos-1100-arm64 ]
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1312,7 +1317,7 @@ buildvariants:
 
   - name: amazon2-arm64
     display_name: "Amazon2 arm64"
-    run_on: [amazon2-arm64-large]
+    run_on: [ amazon2-arm64-large ]
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1322,7 +1327,7 @@ buildvariants:
 
   - name: windows
     display_name: "Windows"
-    run_on: [windows-64-vs2019-large]
+    run_on: [ windows-64-vs2019-large ]
     tasks:
       - name: compile
       - name: test-pipeline-generate
@@ -1332,7 +1337,7 @@ buildvariants:
 
   - name: benchmark
     display_name: "Benchmark"
-    run_on: [ubuntu2004-medium]
+    run_on: [ ubuntu2004-medium ]
     tasks:
       - name: criterion
 
@@ -1411,6 +1416,6 @@ buildvariants:
 
   - name: release
     display_name: "Release"
-    run_on: [ubuntu1804-large]
+    run_on: [ ubuntu1804-large ]
     tasks:
       - name: release
