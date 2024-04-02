@@ -99,6 +99,8 @@ async fn handle_schema(
                 tokio::sync::mpsc::unbounded_channel::<sampler::SamplerNotification>();
             let (tx_schemata, mut rx_schemata) =
                 tokio::sync::mpsc::unbounded_channel::<Result<sampler::SchemaAnalysis>>();
+            let (tx_errors, mut rx_errors) =
+                tokio::sync::mpsc::unbounded_channel::<anyhow::Error>();
 
             let mut schemata: HashMap<String, Vec<HashMap<String, Schema>>> = HashMap::new();
 
@@ -114,39 +116,48 @@ async fn handle_schema(
             let start = Instant::now();
 
             tokio::spawn(async move {
-                sampler::sample(options, tx_notifications, tx_schemata).await;
+                sampler::sample(options, tx_notifications, tx_schemata, tx_errors).await;
             });
+            let mut error = None;
 
-            if !quiet {
-                while let Some(notification) = rx_notifications.recv().await {
-                    pb.set_message(notification.to_string());
-                    pb.tick();
-                }
+            while let Some(e) = rx_errors.recv().await {
+                error = Some(e);
+            }
+            if let Some(e) = error {
+                anyhow::bail!(e);
             } else {
-                while rx_notifications.recv().await.is_some() {}
-            }
-            while let Some(msg) = rx_schemata.recv().await {
-                match msg {
-                    Ok((database, schema)) => {
-                        if !quiet {
-                            pb.set_message(format!("Received schema for database: {}", database));
-                        }
-
-                        schemata.insert(database, schema);
-                    }
-                    Err(e) => {
-                        eprintln!("Error: {:?}", e);
+                while let Some(ref notification) = rx_notifications.recv().await {
+                    if !quiet {
+                        pb.set_message(notification.to_string());
+                        pb.tick();
                     }
                 }
-            }
-            if !quiet {
-                pb.finish_with_message(format!(
-                    "Schema analysis complete in {}",
-                    HumanDuration(start.elapsed())
-                ));
-            }
+                while let Some(ref schema) = rx_schemata.recv().await {
+                    match schema {
+                        Ok((database, schema)) => {
+                            if !quiet {
+                                pb.set_message(format!(
+                                    "Received schema for database: {}",
+                                    database
+                                ));
+                            }
+                            schemata.insert(database.clone(), schema.clone());
+                        }
+                        Err(e) => {
+                            panic!("Error receiving schema from sampler: {:?}", e);
+                        }
+                    }
+                }
 
-            Ok(Some(process_schemata(schemata)))
+                if !quiet {
+                    pb.finish_with_message(format!(
+                        "Schema analysis complete in {}",
+                        HumanDuration(start.elapsed())
+                    ));
+                }
+
+                Ok(Some(process_schemata(schemata)))
+            }
         } else {
             Ok(None)
         }

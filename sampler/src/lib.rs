@@ -50,7 +50,7 @@ pub fn get_optimal_pool_size() -> u32 {
     std::thread::available_parallelism().unwrap().get() as u32 * 2 + 1
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum SamplerAction {
     Querying { partition: u16 },
     Processing { partition: u16 },
@@ -76,12 +76,12 @@ impl Display for SamplerNotification {
         write!(
             f,
             "{} for collection: {} in database: {}",
-            self.action, self.db, self.collection
+            self.action, self.collection, self.db
         )
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct SamplerNotification {
     pub db: String,
     pub collection: String,
@@ -90,67 +90,70 @@ pub struct SamplerNotification {
 
 pub type SchemaAnalysis = (String, Vec<HashMap<String, Schema>>);
 
+static DISALLOWED_DB_NAMES: [&str; 4] = ["admin", "config", "local", "system"];
+
 pub async fn sample(
     options: ClientOptions,
     tx_notification: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
     tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<SchemaAnalysis>>,
+    tx_errors: tokio::sync::mpsc::UnboundedSender<anyhow::Error>,
 ) {
     let client = Client::with_options(options).unwrap();
-    // we'll filter out the admin, config, local, and system databases as these are used
     // by MongoDB and not user-created databases
-    for database in client
-        .list_database_names(
-            doc! { "name":  {"$nin": ["admin", "config", "local", "system", ""]}},
-            Some(
-                ListDatabasesOptions::builder()
-                    .authorized_databases(true)
-                    .build(),
-            ),
-        )
-        .await
-        .map_err(|e| async {
-            let _ = tx_schemata.send(Err(e.into()));
-        })
-        .unwrap_or_default()
-    {
-        let mut db_schemata: Vec<HashMap<String, Schema>> = Vec::new();
-        let db = client.database(&database);
-        for collection in client
-            .database(&database)
-            .run_command(
-                doc! { "listCollections": 1.0, "authorizedCollections": true, "nameOnly": true},
-                None,
-            )
-            .await
-            .map_err(|e| async {
-                let _ = tx_schemata.send(Err(e.into()));
-            })
-            .unwrap_or_default()
-            .get_document("cursor")
-            .map(|c| {
-                c.get_array("firstBatch")
-                    .unwrap()
-                    .iter()
-                    .filter_map(|d| {
-                        let d = d.as_document().unwrap();
-                        if d.get_str("type").unwrap() == "view" {
-                            None
-                        } else {
-                            Some(d.get_str("name").unwrap().to_string())
-                        }
-                    })
-                    .collect::<Vec<String>>()
-            })
-            .unwrap_or_default()
-        {
-            let notifier = tx_notification.clone();
-            let col_parts = gen_partitions(&db, &collection, notifier).await;
-            let notifier = tx_notification.clone();
-            let schemata = derive_schema_for_partitions(col_parts, &db, notifier).await;
-            db_schemata.push(schemata);
-        }
-        if tx_schemata.send(Ok((database, db_schemata))).is_err() {
-            break;
+    let databases = client
+        .list_database_names(None, Some(ListDatabasesOptions::builder().build()))
+        .await;
+    if let Err(e) = databases {
+        tx_errors.send(e.into()).unwrap();
+        drop(tx_errors);
+        drop(tx_notification);
+        drop(tx_schemata);
+        return;
+    } else {
+        drop(tx_errors);
+        for database in databases.unwrap() {
+            if DISALLOWED_DB_NAMES.contains(&database.as_str()) {
+                continue;
+            }
+            let mut db_schemata: Vec<HashMap<String, Schema>> = Vec::new();
+            let db = client.database(&database);
+            for collection in client
+                .database(&database)
+                .run_command(
+                    doc! { "listCollections": 1.0, "authorizedCollections": true, "nameOnly": true},
+                    None,
+                )
+                .await
+                .map_err(|e| async {
+                    tx_schemata.send(Err(e.into())).unwrap();
+                })
+                .unwrap_or_default()
+                .get_document("cursor")
+                .map(|c| {
+                    c.get_array("firstBatch")
+                        .unwrap()
+                        .iter()
+                        .filter_map(|d| {
+                            let d = d.as_document().unwrap();
+                            if d.get_str("type").unwrap() == "view" {
+                                None
+                            } else {
+                                Some(d.get_str("name").unwrap().to_string())
+                            }
+                        })
+                        .collect::<Vec<String>>()
+                })
+                .unwrap_or_default()
+            {
+                let notifier = tx_notification.clone();
+                let col_parts = gen_partitions(&db, &collection, notifier).await;
+                let notifier = tx_notification.clone();
+                let schemata = derive_schema_for_partitions(col_parts, &db, notifier).await;
+                db_schemata.push(schemata);
+            }
+            if tx_schemata.send(Ok((database, db_schemata))).is_err() {
+                break;
+            }
         }
     }
     drop(tx_notification);
