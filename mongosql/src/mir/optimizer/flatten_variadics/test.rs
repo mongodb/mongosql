@@ -1,14 +1,15 @@
 mod flatten_node {
     use crate::mir::{self, schema::SchemaCache, *};
     macro_rules! test_flatten_variadic_functions {
-        ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
+        ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr,) => {
             #[test]
             fn $func_name() {
                 use crate::mir::optimizer::flatten_variadics::FlattenVariadicFunctionsOptimizer;
                 let input = $input;
                 let expected = $expected;
-                let (actual, _) =
+                let (actual, actual_changed) =
                     FlattenVariadicFunctionsOptimizer::flatten_variadic_functions(input);
+                assert_eq!($expected_changed, actual_changed);
                 assert_eq!(expected, actual);
             }
         };
@@ -37,6 +38,7 @@ mod flatten_node {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: Box::new(test_source()),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -76,6 +78,7 @@ mod flatten_node {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = false,
         input = Stage::Filter(Filter {
             source: Box::new(test_source()),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -111,6 +114,7 @@ mod flatten_node {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: Box::new(test_source()),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -160,6 +164,7 @@ mod flatten_node {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: Box::new(test_source()),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -225,6 +230,7 @@ mod flatten_node {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = false,
         input = Stage::Filter(Filter {
             source: Box::new(test_source()),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -259,6 +265,7 @@ mod flatten_node {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: Box::new(test_source()),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -294,6 +301,7 @@ mod flatten_node {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: Box::new(test_source()),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -329,6 +337,7 @@ mod flatten_node {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: Box::new(test_source()),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -364,6 +373,7 @@ mod flatten_node {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: Box::new(test_source()),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -399,6 +409,7 @@ mod flatten_node {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: Box::new(test_source()),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -434,6 +445,7 @@ mod flatten_node {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: Box::new(test_source()),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {

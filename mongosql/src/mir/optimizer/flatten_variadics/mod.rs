@@ -53,13 +53,15 @@ impl FlattenVariadicFunctionsOptimizer {
     /// addition, multiplication, logical disjunction, logical conjunction, and
     /// string concatenation.
     fn flatten_variadic_functions(st: Stage) -> (Stage, bool) {
-        let mut v = ScalarFunctionApplicationVisitor;
+        let mut v = ScalarFunctionApplicationVisitor::default();
         let new_stage = v.visit_stage(st);
-        (new_stage, false)
+        (new_stage, v.changed)
     }
 }
 #[derive(Default)]
-struct ScalarFunctionApplicationVisitor;
+struct ScalarFunctionApplicationVisitor {
+    changed: bool,
+}
 
 impl Visitor for ScalarFunctionApplicationVisitor {
     fn visit_scalar_function_application(
@@ -80,6 +82,7 @@ impl Visitor for ScalarFunctionApplicationVisitor {
                     .iter()
                     .flat_map(|child| match child {
                         Expression::ScalarFunction(c) if node.function == c.function => {
+                            self.changed = true;
                             c.args.clone()
                         }
                         _ => vec![child.clone()],
