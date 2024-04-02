@@ -3453,6 +3453,28 @@ mod from_clause {
         })),
     );
     test_algebrize!(
+        join_condition_must_have_boolean_schema,
+        method = algebrize_from_clause,
+        expected_pat = Err(Error::SchemaChecking(_)),
+        expected_error_code = 1002,
+        input = Some(ast::Datasource::Join(JoinSource {
+            join_type: ast::JoinType::Cross,
+            left: Box::new(ast::Datasource::Array(ast::ArraySource {
+                array: vec![ast::Expression::Document(multimap! {
+                    "foo".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                })],
+                alias: "foo".into()
+            })),
+            right: Box::new(ast::Datasource::Array(ast::ArraySource {
+                array: vec![ast::Expression::Document(multimap! {
+                    "bar".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                })],
+                alias: "bar".into()
+            })),
+            condition: Some(ast::Expression::Literal(ast::Literal::Integer(42))),
+        })),
+    );
+    test_algebrize!(
         derived_single_datasource,
         method = algebrize_from_clause,
         expected = Ok(mir::Stage::Derived(mir::Derived {

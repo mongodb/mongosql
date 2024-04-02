@@ -549,6 +549,7 @@ impl<'a> Algebrizer<'a> {
                 cache: SchemaCache::new(),
             }),
         };
+        stage.schema(&self.schema_inference_state())?;
         Ok(stage)
     }
 
