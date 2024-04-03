@@ -39,14 +39,16 @@ impl Optimizer for MatchNullFilteringOptimizer {
         _sm: SchemaCheckingMode,
         _schema_state: &SchemaInferenceState,
     ) -> (Stage, bool) {
-        let mut v = MatchNullFilteringVisitor { scope: 0 };
+        let mut v = MatchNullFilteringVisitor::default();
         let new_stage = v.visit_stage(st);
-        (new_stage, false)
+        (new_stage, v.changed)
     }
 }
 
+#[derive(Default)]
 struct MatchNullFilteringVisitor {
     scope: u16,
+    changed: bool,
 }
 
 impl MatchNullFilteringVisitor {
@@ -54,7 +56,7 @@ impl MatchNullFilteringVisitor {
     /// possibly null FieldAccesses in the original_filter exist. If the
     /// original_filter does not contain any null-semantic operators or does
     /// not contain any nullable FieldAccesses, this method returns None.
-    fn create_null_filter_stage(&self, original_filter: Filter) -> (Box<Stage>, Expression) {
+    fn create_null_filter_stage(&mut self, original_filter: Filter) -> (Box<Stage>, Expression) {
         let Filter {
             source: original_source,
             condition: original_condition,
@@ -63,11 +65,14 @@ impl MatchNullFilteringVisitor {
         let (opt_cond, original_cond) = self.generate_null_filter_condition(original_condition);
         (
             match opt_cond {
-                Some(opt_cond) => Box::new(Stage::Filter(Filter {
-                    source: original_source,
-                    condition: opt_cond,
-                    cache: SchemaCache::new(),
-                })),
+                Some(opt_cond) => {
+                    self.changed = true;
+                    Box::new(Stage::Filter(Filter {
+                        source: original_source,
+                        condition: opt_cond,
+                        cache: SchemaCache::new(),
+                    }))
+                }
                 None => original_source,
             },
             original_cond,

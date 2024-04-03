@@ -12,7 +12,7 @@ use crate::{
 };
 
 macro_rules! test_match_null_filtering {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr) => {
         #[test]
         fn $func_name() {
             let input = $input;
@@ -29,7 +29,9 @@ macro_rules! test_match_null_filtering {
 
             // Create actual optimized stage and assert it matches expected
             let optimizer = &MatchNullFilteringOptimizer;
-            let (actual, _) = optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
+            let (actual, actual_changed) =
+                optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
+            assert_eq!($expected_changed, actual_changed);
             assert_eq!(expected, actual);
         }
     };
@@ -82,6 +84,7 @@ mod all_fields_always_nullable {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -120,6 +123,7 @@ mod all_fields_always_nullable {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -172,6 +176,7 @@ mod all_fields_always_nullable {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -237,6 +242,7 @@ mod all_fields_always_nullable {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -295,6 +301,7 @@ mod all_fields_always_nullable {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
@@ -346,6 +353,7 @@ mod all_fields_always_nullable {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -389,6 +397,7 @@ mod all_fields_always_nullable {
             },
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Project(Project {
             source: mir_collection("db", "foo"),
             expression: map! {
@@ -446,6 +455,7 @@ mod all_fields_always_nullable {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: Box::new(Stage::Filter(Filter {
                 source: mir_collection("db", "foo"),
@@ -497,6 +507,7 @@ mod all_fields_always_nullable {
             })),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Derived(Derived {
             source: Box::new(Stage::Filter(Filter {
                 source: mir_collection("db", "foo"),
@@ -541,6 +552,7 @@ mod mixed_field_nullability {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -568,6 +580,7 @@ mod mixed_field_nullability {
             }),
             cache: SchemaCache::new(),
         }),
+        expected_changed = false,
         input = Stage::Filter(Filter {
             source: mir_collection("db", "foo"),
             condition: Expression::ScalarFunction(ScalarFunctionApplication {
