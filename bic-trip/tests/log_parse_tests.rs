@@ -12,7 +12,7 @@ fn log_parse_counts_test() {
     let tests = common::load_transition_report_test_files(dir_path).unwrap();
 
     for test in tests {
-        let result = handle_logs(Some(test.log_dir)).unwrap().unwrap();
+        let result = handle_logs(Some(test.log_dir), true).unwrap().unwrap();
         let valid_queries = &result.valid_queries.unwrap_or_default();
         assert_eq!(&test.valid_query_count, &valid_queries.len());
 
@@ -52,7 +52,7 @@ fn log_parse_html_test() {
         std::path::PathBuf::from(format!("{}/testfiles/tests/multi_logs_test.yml", base_dir));
     let test = common::parse_transition_report_yaml_file(multi_logs_test).unwrap();
 
-    let result = handle_logs(Some(test.log_dir)).unwrap().unwrap();
+    let result = handle_logs(Some(test.log_dir), true).unwrap().unwrap();
     let html_content = generate_html_elements(&Some(result), &None, "test report");
 
     let document = Html::parse_document(&html_content);

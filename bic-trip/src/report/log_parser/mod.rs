@@ -6,10 +6,9 @@ use std::{
     fmt,
     fs::File,
     io::{BufRead, BufReader},
-    process,
 };
 
-use anyhow::{anyhow, Result};
+use anyhow::{anyhow, Context, Result};
 use chrono::prelude::*;
 use mongosql::usererror::UserError;
 
@@ -149,14 +148,10 @@ fn parse_line(line: &str) -> Option<LogEntry> {
     })
 }
 
-pub fn handle_logs(input: Option<String>) -> Result<Option<LogParseResult>> {
+pub fn handle_logs(input: Option<String>, quiet: bool) -> Result<Option<LogParseResult>> {
     if let Some(input) = input {
         let metadata = std::fs::metadata(&input)
-            .map_err(|_| {
-                eprintln!("Input file or directory does not exist, {:?}", &input);
-                process::exit(1);
-            })
-            .unwrap();
+            .with_context(|| format!("Failed to read  input file or directory: {:?}", &input))?;
         let mut paths = Vec::new();
 
         if metadata.is_file() {
@@ -169,14 +164,14 @@ pub fn handle_logs(input: Option<String>) -> Result<Option<LogParseResult>> {
                 }
             }
         }
-        Ok(Some(process_logs(&paths)?))
+        Ok(Some(process_logs(&paths, quiet)?))
     } else {
         Ok(None)
     }
 }
 
 // process_logs takes a list of file paths and returns a LogParseResult
-pub fn process_logs(paths: &[String]) -> Result<LogParseResult> {
+pub fn process_logs(paths: &[String], quiet: bool) -> Result<LogParseResult> {
     let mut all_valid_queries = vec![];
     let mut all_invalid_queries = vec![];
     let mut all_unsupported_queries = vec![];
@@ -187,7 +182,24 @@ pub fn process_logs(paths: &[String]) -> Result<LogParseResult> {
         let file = File::open(path)?;
         let reader = BufReader::new(file);
 
-        for line in reader.lines() {
+        let mut lines = reader.lines().peekable();
+
+        let line = lines.peek();
+        if line.is_none() {
+            continue;
+        }
+        if line.unwrap().is_err() {
+            if !quiet {
+                eprintln!(
+                    "Ignoring file: {:?} because:\n  {:?}\ncontinuing...",
+                    path,
+                    line.unwrap().as_ref().err().unwrap()
+                );
+            }
+            continue;
+        }
+
+        for line in lines {
             let line = line?;
             if line.contains("configuring client authentication for principal") {
                 let conn_start = line

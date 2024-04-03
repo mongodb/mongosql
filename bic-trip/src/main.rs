@@ -11,7 +11,7 @@ use report::{
 };
 use std::{collections::HashMap, env, path::PathBuf, process, time::Instant};
 mod cli;
-use anyhow::Result;
+use anyhow::{Context, Result};
 use cli::Cli;
 use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
 
@@ -28,8 +28,8 @@ async fn main() -> Result<()> {
         quiet,
     } = Cli::parse();
 
-    let output_path = process_output_path(output);
-    let parse_results = handle_logs(input)?;
+    let output_path = process_output_path(output)?;
+    let parse_results = handle_logs(input, quiet)?;
     let analysis = handle_schema(uri, username, quiet).await?;
     let date = Local::now().format("%m-%d-%Y_%H%M").to_string();
 
@@ -57,12 +57,12 @@ async fn main() -> Result<()> {
     )
 }
 
-fn process_output_path(output: Option<String>) -> PathBuf {
+fn process_output_path(output: Option<String>) -> Result<PathBuf> {
     // User-specified output directory, uses current directory if not specified
     if let Some(ref output_path) = output {
-        PathBuf::from(output_path)
+        Ok(PathBuf::from(output_path))
     } else {
-        env::current_dir().unwrap()
+        env::current_dir().context("Failed to get current directory. Do you have permissions?")
     }
 }
 
@@ -104,6 +104,7 @@ async fn handle_schema(
 
             let mut schemata: HashMap<String, Vec<HashMap<String, Schema>>> = HashMap::new();
 
+            // spinner style errors are caught at compile time so are safe to unwrap on
             let spinner_style =
                 ProgressStyle::with_template("{prefix:.bold.dim} {spinner} {wide_msg}")
                     .unwrap()
@@ -144,7 +145,9 @@ async fn handle_schema(
                             schemata.insert(database.clone(), schema.clone());
                         }
                         Err(e) => {
-                            panic!("Error receiving schema from sampler: {:?}", e);
+                            if !quiet {
+                                pb.set_message(format!("Error: {}", e));
+                            }
                         }
                     }
                 }
