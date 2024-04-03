@@ -20,6 +20,7 @@ pub struct LogParseResult {
     pub collections: Option<Vec<(String, String, u32, chrono::NaiveDateTime)>>,
     pub subpath_fields: Option<Vec<(SubpathField, u32, chrono::NaiveDateTime)>>,
     pub array_datasources: Option<Vec<(String, String, u32, chrono::NaiveDateTime)>>,
+    pub log_files: Option<Vec<LogFile>>,
 }
 
 // SubpathField is a struct that holds a subpath field and its datasource
@@ -75,6 +76,13 @@ pub struct LogEntry {
     pub users: Vec<String>,
 }
 
+// LogFile holds the name and time range of a parsed log file
+pub struct LogFile {
+    pub filename: String,
+    pub oldest_timestamp: chrono::NaiveDateTime,
+    pub newest_timestamp: chrono::NaiveDateTime,
+}
+
 // QueryRepresentation holds the query AST if parsing was successful or
 // the parse error if query parsing failed
 #[derive(Debug, PartialEq, Clone)]
@@ -122,11 +130,16 @@ fn clean_query(query: &str) -> String {
     cleaned_query
 }
 
-/// parse_line parses a line from the log file and returns an `Option<LogEntry>`
-fn parse_line(line: &str) -> Option<LogEntry> {
+/// parse_timestamp parses a timestamp from a log line and returns an `Option<NaiveDateTime>`
+fn parse_timestamp(line: &str) -> Option<NaiveDateTime> {
     let timestamp_end = line.find('+')?;
     let timestamp = &line[..timestamp_end];
-    let timestamp = NaiveDateTime::parse_from_str(timestamp, "%Y-%m-%dT%H:%M:%S%.f").ok()?;
+    NaiveDateTime::parse_from_str(timestamp, "%Y-%m-%dT%H:%M:%S%.f").ok()
+}
+
+/// parse_line parses a line from the log file and returns an `Option<LogEntry>`
+fn parse_line(line: &str) -> Option<LogEntry> {
+    let timestamp = parse_timestamp(line)?;
 
     let query_start = line.find("parsing \"")?;
     let query = clean_query(&line[query_start + "parsing \"".len()..line.len() - 1]).to_string();
@@ -177,10 +190,13 @@ pub fn process_logs(paths: &[String], quiet: bool) -> Result<LogParseResult> {
     let mut all_unsupported_queries = vec![];
     let mut all_queries: HashMap<String, LogEntry> = HashMap::new();
     let mut connections: HashMap<String, String> = HashMap::new();
+    let mut log_files: Vec<LogFile> = Vec::new();
 
     for path in paths {
         let file = File::open(path)?;
         let reader = BufReader::new(file);
+        let mut oldest_timestamp: Option<chrono::NaiveDateTime> = None;
+        let mut newest_timestamp: Option<chrono::NaiveDateTime> = None;
 
         let mut lines = reader.lines().peekable();
 
@@ -201,6 +217,16 @@ pub fn process_logs(paths: &[String], quiet: bool) -> Result<LogParseResult> {
 
         for line in lines {
             let line = line?;
+            let current_timestamp = parse_timestamp(&line);
+            if let Some(current_timestamp) = current_timestamp {
+                oldest_timestamp = Some(
+                    oldest_timestamp.map_or(current_timestamp, |ot| ot.min(current_timestamp)),
+                );
+                newest_timestamp = Some(
+                    newest_timestamp.map_or(current_timestamp, |nt| nt.max(current_timestamp)),
+                );
+            }
+
             if line.contains("configuring client authentication for principal") {
                 let conn_start = line
                     .find('[')
@@ -240,6 +266,13 @@ pub fn process_logs(paths: &[String], quiet: bool) -> Result<LogParseResult> {
                     entry.query_count += 1;
                 }
             }
+        }
+        if let (Some(oldest), Some(newest)) = (oldest_timestamp, newest_timestamp) {
+            log_files.push(LogFile {
+                filename: path.clone(),
+                oldest_timestamp: oldest,
+                newest_timestamp: newest,
+            });
         }
     }
 
@@ -369,6 +402,7 @@ pub fn process_logs(paths: &[String], quiet: bool) -> Result<LogParseResult> {
         collections: (Some(collections_vec)),
         subpath_fields: (Some(subpath_fields_vec)),
         array_datasources: (Some(array_datasources)),
+        log_files: Some(log_files),
     })
 }
 

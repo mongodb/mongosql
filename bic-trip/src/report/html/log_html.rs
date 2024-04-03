@@ -131,8 +131,39 @@ pub fn process_summary_html(log_parse: &crate::log_parser::LogParseResult) -> St
         )
     );
 
+    let logs_processed_html = if let Some(log_files) = &log_parse.log_files {
+        let header = "<h2>Logs Processed</h2>";
+        let table_header =
+            "<table class='table1'><tr><th>Filename</th><th>Timestamp Range</th></tr>";
+        let log_files_html = log_files
+            .iter()
+            .map(|log_file| {
+                format!(
+                    "<tr>
+                    <td>{}</td>
+                    <td>{} - {}</td>
+                 </tr>",
+                    log_file.filename,
+                    log_file.oldest_timestamp.format(DATE_TIME_FORMAT),
+                    log_file.newest_timestamp.format(DATE_TIME_FORMAT)
+                )
+            })
+            .collect::<Vec<String>>()
+            .join("");
+        let table_footer = "</table>";
+        format!(
+            "{}{}{}{}",
+            header, table_header, log_files_html, table_footer
+        )
+    } else {
+        "<h2>Logs Processed</h2><p>No log files processed.</p>".to_string()
+    };
+
     let info = r#"Provides an overview of the databases and the number of queries that reference fields within documents and arrays.<hr><br>"#;
-    format!("{}{}{}", info, summary_string, queries_html)
+    format!(
+        "{}{}{}{}",
+        info, summary_string, queries_html, logs_processed_html
+    )
 }
 
 pub fn process_complex_types_html(
