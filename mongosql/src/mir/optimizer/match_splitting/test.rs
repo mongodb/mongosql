@@ -1,10 +1,8 @@
 mod match_splitting_test {
-    use crate::mir::{
-        self, schema::SchemaCache, Expression::*, LiteralValue::*, ScalarFunction::*,
-    };
+    use crate::mir::{schema::SchemaCache, Expression::*, LiteralValue::*, ScalarFunction::*};
 
     macro_rules! test_match_splitting {
-        ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
+        ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr,) => {
             #[test]
             fn $func_name() {
                 use crate::mir::{optimizer::match_splitting::MatchSplittingOptimizer, *};
@@ -18,7 +16,7 @@ mod match_splitting_test {
 
     test_match_splitting!(
         simple_filter_no_split,
-        expected = Stage::Filter(mir::Filter {
+        expected = Stage::Filter(Filter {
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![],
                 alias: "foo".into(),
@@ -27,7 +25,8 @@ mod match_splitting_test {
             condition: Literal(Integer(42)),
             cache: SchemaCache::new(),
         }),
-        input = Stage::Filter(mir::Filter {
+        expected_changed = false,
+        input = Stage::Filter(Filter {
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![],
                 alias: "foo".into(),
@@ -40,9 +39,9 @@ mod match_splitting_test {
 
     test_match_splitting!(
         conjunctive_filter,
-        expected = Stage::Filter(mir::Filter {
-            source: Box::new(Stage::Filter(mir::Filter {
-                source: Box::new(Stage::Filter(mir::Filter {
+        expected = Stage::Filter(Filter {
+            source: Box::new(Stage::Filter(Filter {
+                source: Box::new(Stage::Filter(Filter {
                     source: Box::new(Stage::Array(ArraySource {
                         array: vec![],
                         alias: "foo".into(),
@@ -66,7 +65,8 @@ mod match_splitting_test {
             )),
             cache: SchemaCache::new(),
         }),
-        input = Stage::Filter(mir::Filter {
+        expected_changed = true,
+        input = Stage::Filter(Filter {
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![],
                 alias: "foo".into(),

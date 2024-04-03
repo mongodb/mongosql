@@ -37,14 +37,16 @@ impl Optimizer for MatchSplittingOptimizer {
 
 impl MatchSplittingOptimizer {
     fn split_matches(st: Stage) -> (Stage, bool) {
-        let mut v = MatchSplittingVisitor;
+        let mut v = MatchSplittingVisitor::default();
         let new_stage = v.visit_stage(st);
-        (new_stage, false)
+        (new_stage, v.changed)
     }
 }
 
-#[derive(Copy, Clone)]
-struct MatchSplittingVisitor;
+#[derive(Copy, Clone, Default)]
+struct MatchSplittingVisitor {
+    changed: bool,
+}
 
 impl MatchSplittingVisitor {}
 
@@ -55,6 +57,7 @@ impl Visitor for MatchSplittingVisitor {
         match node.condition.clone() {
             ScalarFunction(sfa) => match sfa.function {
                 And => {
+                    self.changed = true;
                     let new_filter = sfa.args.into_iter().fold(node.source, |acc, expr| {
                         Box::new(Filter(Filter {
                             source: acc,
