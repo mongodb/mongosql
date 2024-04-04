@@ -31,9 +31,10 @@ impl Optimizer for ConstantFoldingOptimizer {
 impl ConstantFoldingOptimizer {
     pub(crate) fn fold_constants(st: Stage, state: &SchemaInferenceState) -> (Stage, bool) {
         let mut cf = ConstantFoldExprVisitor {
-            state: state.clone(),
+            state,
+            changed: false,
         };
         let new_stage = cf.visit_stage(st);
-        (new_stage, false)
+        (new_stage, cf.changed)
     }
 }

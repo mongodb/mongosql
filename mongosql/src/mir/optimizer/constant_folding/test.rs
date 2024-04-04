@@ -1,6 +1,6 @@
 mod constant_folding {
     macro_rules! test_constant_fold {
-        ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
+        ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr,) => {
             #[test]
             fn $func_name() {
                 use crate::{
@@ -14,7 +14,7 @@ mod constant_folding {
                 let input = $input;
                 let expected = $expected;
 
-                let (actual, _) = ConstantFoldingOptimizer::fold_constants(
+                let (actual, actual_changed) = ConstantFoldingOptimizer::fold_constants(
                     input,
                     &SchemaInferenceState::new(
                         0,
@@ -23,8 +23,15 @@ mod constant_folding {
                         SchemaCheckingMode::Relaxed,
                     ),
                 );
+                assert_eq!($expected_changed, actual_changed);
                 assert_eq!(expected, actual);
             }
+        };
+    }
+
+    macro_rules! test_constant_fold_no_op {
+        ($func_name:ident, $input:expr) => {
+            test_constant_fold! { $func_name, expected = $input, expected_changed = false, input = $input, }
         };
     }
 
@@ -42,18 +49,13 @@ mod constant_folding {
         })
     }
 
-    test_constant_fold!(
+    test_constant_fold_no_op!(
         literal,
-        expected = Stage::Array(ArraySource {
+        Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::Literal(LiteralValue::Integer(1))],
             cache: SchemaCache::new(),
-        }),
-        input = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::Literal(LiteralValue::Integer(1))],
-            cache: SchemaCache::new(),
-        }),
+        })
     );
     test_constant_fold!(
         or_simple,
@@ -62,6 +64,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(false))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -81,6 +84,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(true))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -100,6 +104,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -121,6 +126,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -146,6 +152,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -174,6 +181,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -215,7 +223,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         });
-        let (actual, _) = ConstantFoldingOptimizer::fold_constants(
+        let (actual, actual_changed) = ConstantFoldingOptimizer::fold_constants(
             input,
             &SchemaInferenceState::new(
                 0,
@@ -224,6 +232,7 @@ mod constant_folding {
                 SchemaCheckingMode::Relaxed,
             ),
         );
+        assert!(actual_changed);
         assert_eq!(expected, actual);
     }
     test_constant_fold!(
@@ -233,6 +242,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -254,6 +264,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(true))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -276,6 +287,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(false))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -292,6 +304,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(false))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -314,6 +327,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(true))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -323,6 +337,34 @@ mod constant_folding {
             cache: SchemaCache::new(),
         }),
     );
+    test_constant_fold_no_op!(
+        null_or_ref_reorder_does_not_count_as_change,
+        Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::Or,
+                vec![
+                    Expression::Reference(("foo", 1u16).into()),
+                    Expression::Literal(LiteralValue::Null),
+                ],
+            ))],
+            cache: SchemaCache::new(),
+        })
+    );
+    test_constant_fold_no_op!(
+        null_and_ref_reorder_does_not_count_as_change,
+        Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
+                ScalarFunction::And,
+                vec![
+                    Expression::Reference(("foo", 1u16).into()),
+                    Expression::Literal(LiteralValue::Null),
+                ],
+            ))],
+            cache: SchemaCache::new(),
+        })
+    );
     test_constant_fold!(
         add_simple,
         expected = Stage::Array(ArraySource {
@@ -330,6 +372,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(3))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -350,6 +393,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(0))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -366,6 +410,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Long(0))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -394,6 +439,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -415,6 +461,7 @@ mod constant_folding {
             array: vec![Expression::Reference(("a", 0u16).into())],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -436,6 +483,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Long(8))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -456,6 +504,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(1))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -472,6 +521,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Double(1.0))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -493,6 +543,7 @@ mod constant_folding {
             array: vec![Expression::Reference(("a", 0u16).into())],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -513,6 +564,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -548,6 +600,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -578,6 +631,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -601,6 +655,7 @@ mod constant_folding {
             array: vec![Expression::Reference(("a", 0u16).into())],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -620,6 +675,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -646,6 +702,7 @@ mod constant_folding {
             )],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::Array(
@@ -684,6 +741,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -703,6 +761,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -722,6 +781,7 @@ mod constant_folding {
             array: vec![Expression::Reference(("a", 0u16).into())],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -748,6 +808,7 @@ mod constant_folding {
             )],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::Array(
@@ -787,6 +848,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(true))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -806,6 +868,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(false))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -825,6 +888,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(true))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -844,6 +908,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(false))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -863,6 +928,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(true))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -882,6 +948,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(false))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -901,6 +968,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(true))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -920,6 +988,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(false))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -939,6 +1008,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(true))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -958,6 +1028,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(false))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -977,6 +1048,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(true))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -996,6 +1068,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(false))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1008,9 +1081,9 @@ mod constant_folding {
             cache: SchemaCache::new(),
         }),
     );
-    test_constant_fold!(
+    test_constant_fold_no_op!(
         compare_different_datatypes,
-        expected = Stage::Array(ArraySource {
+        Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
                 ScalarFunction::Neq,
@@ -1020,18 +1093,7 @@ mod constant_folding {
                 ],
             ))],
             cache: SchemaCache::new(),
-        }),
-        input = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
-                ScalarFunction::Neq,
-                vec![
-                    Expression::Literal(LiteralValue::Integer(1)),
-                    Expression::Literal(LiteralValue::Long(1)),
-                ],
-            ))],
-            cache: SchemaCache::new(),
-        }),
+        })
     );
     test_constant_fold!(
         compare_null_is_null,
@@ -1040,6 +1102,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1059,6 +1122,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(true))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1079,6 +1143,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(false))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1099,6 +1164,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(true))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -1133,6 +1199,7 @@ mod constant_folding {
             })],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -1167,6 +1234,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(2))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1183,6 +1251,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(-2))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1199,6 +1268,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(false))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1217,6 +1287,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1237,6 +1308,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1255,6 +1327,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1273,6 +1346,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1294,6 +1368,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1315,6 +1390,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1334,6 +1410,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1355,6 +1432,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -1384,6 +1462,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -1406,6 +1485,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -1427,6 +1507,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::String("".to_string()))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -1450,6 +1531,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -1471,6 +1553,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::String("".to_string()))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1493,6 +1576,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1513,6 +1597,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1535,6 +1620,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1562,6 +1648,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1585,6 +1672,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::String("".to_string()))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1601,6 +1689,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1621,6 +1710,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(11))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1639,6 +1729,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(14))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -1658,6 +1749,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(11))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1676,6 +1768,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(26))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -1695,6 +1788,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(88))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1713,6 +1807,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(208))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -1732,6 +1827,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(2))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -1755,6 +1851,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(0))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -1772,6 +1869,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1788,6 +1886,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(0))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1809,6 +1908,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1832,6 +1932,7 @@ mod constant_folding {
             .into())],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -1851,9 +1952,9 @@ mod constant_folding {
             cache: SchemaCache::new(),
         }),
     );
-    test_constant_fold!(
+    test_constant_fold_no_op!(
         merge_objects_reference,
-        expected = Stage::Array(ArraySource {
+        Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::MergeObjects,
@@ -1867,22 +1968,7 @@ mod constant_folding {
                 is_nullable: false,
             })],
             cache: SchemaCache::new(),
-        }),
-        input = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
-                function: ScalarFunction::MergeObjects,
-                args: vec![
-                    Expression::Document(
-                        unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(LiteralValue::Integer(0)),
-                        "b".into() => Expression::Literal(LiteralValue::Integer(1))}
-                    .into()),
-                    Expression::Reference(("a", 0u16).into())
-                ],
-                is_nullable: false,
-            })],
-            cache: SchemaCache::new(),
-        }),
+        })
     );
     test_constant_fold!(
         merge_objects_empty,
@@ -1893,6 +1979,7 @@ mod constant_folding {
             )],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1920,6 +2007,7 @@ mod constant_folding {
             })],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -1947,6 +2035,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1966,6 +2055,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(1))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication::new(
@@ -1985,6 +2075,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(2))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -2000,9 +2091,9 @@ mod constant_folding {
             cache: SchemaCache::new(),
         }),
     );
-    test_constant_fold!(
+    test_constant_fold_no_op!(
         computed_field_missing,
-        expected = Stage::Array(ArraySource {
+        Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
                 function: ScalarFunction::ComputedFieldAccess,
@@ -2015,21 +2106,7 @@ mod constant_folding {
                 is_nullable: false,
             })],
             cache: SchemaCache::new(),
-        }),
-        input = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
-                function: ScalarFunction::ComputedFieldAccess,
-                args: vec![
-                    Expression::Document(
-                        unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(LiteralValue::Integer(2))}
-                    .into()),
-                    Expression::Literal(LiteralValue::String("b".into()))
-                ],
-                is_nullable: false,
-            })],
-            cache: SchemaCache::new(),
-        }),
+        })
     );
     test_constant_fold!(
         slice_simple,
@@ -2040,6 +2117,7 @@ mod constant_folding {
             )],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -2068,6 +2146,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -2102,6 +2181,7 @@ mod constant_folding {
             )],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -2135,6 +2215,7 @@ mod constant_folding {
             )],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -2164,6 +2245,7 @@ mod constant_folding {
             )],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -2198,6 +2280,7 @@ mod constant_folding {
             )],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -2233,6 +2316,7 @@ mod constant_folding {
             )],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -2266,6 +2350,7 @@ mod constant_folding {
             )],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -2301,6 +2386,7 @@ mod constant_folding {
             )],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -2328,6 +2414,7 @@ mod constant_folding {
             array: vec![Expression::Array(vec![].into())],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -2356,6 +2443,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Null)],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::ScalarFunction(ScalarFunctionApplication {
@@ -2384,6 +2472,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(true))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::Cast(CastExpr {
@@ -2396,9 +2485,9 @@ mod constant_folding {
             cache: SchemaCache::new(),
         }),
     );
-    test_constant_fold!(
+    test_constant_fold_no_op!(
         cast_mismatched_types,
-        expected = Stage::Array(ArraySource {
+        Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::Cast(CastExpr {
                 expr: Expression::Literal(LiteralValue::Boolean(true)).into(),
@@ -2408,18 +2497,7 @@ mod constant_folding {
                 is_nullable: true,
             })],
             cache: SchemaCache::new(),
-        }),
-        input = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::Cast(CastExpr {
-                expr: Expression::Literal(LiteralValue::Boolean(true)).into(),
-                to: Type::String,
-                on_null: Expression::Literal(LiteralValue::Null).into(),
-                on_error: Expression::Literal(LiteralValue::Null).into(),
-                is_nullable: true,
-            })],
-            cache: SchemaCache::new(),
-        }),
+        })
     );
     test_constant_fold!(
         cast_array_as_array,
@@ -2430,6 +2508,7 @@ mod constant_folding {
             )],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::Cast(CastExpr {
@@ -2452,6 +2531,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::String("error".into()))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::Cast(CastExpr {
@@ -2473,6 +2553,7 @@ mod constant_folding {
             .into())],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::Cast(CastExpr {
@@ -2495,6 +2576,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::String("error".into()))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::Cast(CastExpr {
@@ -2514,6 +2596,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::String("null".into()))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::Cast(CastExpr {
@@ -2533,6 +2616,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(true))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::Is(IsExpr {
@@ -2549,6 +2633,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(false))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::Is(IsExpr {
@@ -2565,6 +2650,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(true))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::Is(IsExpr {
@@ -2574,24 +2660,16 @@ mod constant_folding {
             cache: SchemaCache::new(),
         }),
     );
-    test_constant_fold!(
+    test_constant_fold_no_op!(
         is_expr_null,
-        expected = Stage::Array(ArraySource {
+        Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::Is(IsExpr {
                 expr: Expression::Literal(LiteralValue::Double(1.0)).into(),
                 target_type: TypeOrMissing::Type(Type::Null),
             })],
             cache: SchemaCache::new(),
-        }),
-        input = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::Is(IsExpr {
-                expr: Expression::Literal(LiteralValue::Double(1.0)).into(),
-                target_type: TypeOrMissing::Type(Type::Null),
-            })],
-            cache: SchemaCache::new(),
-        }),
+        })
     );
     test_constant_fold!(
         is_expr_nested,
@@ -2600,6 +2678,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Boolean(true))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::Is(IsExpr {
@@ -2623,6 +2702,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::String("then 2".into()))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::SimpleCase(SimpleCaseExpr {
@@ -2645,9 +2725,9 @@ mod constant_folding {
             cache: SchemaCache::new(),
         }),
     );
-    test_constant_fold!(
+    test_constant_fold_no_op!(
         simple_case_ref_ahead,
-        expected = Stage::Array(ArraySource {
+        Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::SimpleCase(SimpleCaseExpr {
                 expr: Expression::Literal(LiteralValue::Integer(2)).into(),
@@ -2667,28 +2747,7 @@ mod constant_folding {
                 is_nullable: false,
             })],
             cache: SchemaCache::new(),
-        }),
-        input = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::SimpleCase(SimpleCaseExpr {
-                expr: Expression::Literal(LiteralValue::Integer(2)).into(),
-                when_branch: vec![
-                    WhenBranch {
-                        when: Expression::Reference(("a", 0u16).into()).into(),
-                        then: Expression::Literal(LiteralValue::String("then 3".into())).into(),
-                        is_nullable: false,
-                    },
-                    WhenBranch {
-                        when: Expression::Literal(LiteralValue::Integer(2)).into(),
-                        then: Expression::Literal(LiteralValue::String("then 2".into())).into(),
-                        is_nullable: false,
-                    }
-                ],
-                else_branch: Expression::Literal(LiteralValue::String("else".into())).into(),
-                is_nullable: false,
-            })],
-            cache: SchemaCache::new(),
-        }),
+        })
     );
     test_constant_fold!(
         simple_case_prune_false,
@@ -2706,6 +2765,7 @@ mod constant_folding {
             })],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::SimpleCase(SimpleCaseExpr {
@@ -2740,6 +2800,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::String("else".into()))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::SimpleCase(SimpleCaseExpr {
@@ -2762,9 +2823,9 @@ mod constant_folding {
             cache: SchemaCache::new(),
         }),
     );
-    test_constant_fold!(
+    test_constant_fold_no_op!(
         simple_case_keep_branches,
-        expected = Stage::Array(ArraySource {
+        Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::SimpleCase(SimpleCaseExpr {
                 expr: Expression::Reference(("a", 0u16).into()).into(),
@@ -2784,28 +2845,7 @@ mod constant_folding {
                 is_nullable: false,
             })],
             cache: SchemaCache::new(),
-        }),
-        input = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::SimpleCase(SimpleCaseExpr {
-                expr: Expression::Reference(("a", 0u16).into()).into(),
-                when_branch: vec![
-                    WhenBranch {
-                        when: Expression::Literal(LiteralValue::Integer(4)).into(),
-                        then: Expression::Literal(LiteralValue::String("then 4".into())).into(),
-                        is_nullable: false,
-                    },
-                    WhenBranch {
-                        when: Expression::Literal(LiteralValue::Integer(4)).into(),
-                        then: Expression::Literal(LiteralValue::String("then 4".into())).into(),
-                        is_nullable: false,
-                    },
-                ],
-                else_branch: Expression::Literal(LiteralValue::String("else".into())).into(),
-                is_nullable: false,
-            })],
-            cache: SchemaCache::new(),
-        }),
+        })
     );
     test_constant_fold!(
         searched_case_simple,
@@ -2816,6 +2856,7 @@ mod constant_folding {
             ))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::SearchedCase(SearchedCaseExpr {
@@ -2837,9 +2878,9 @@ mod constant_folding {
             cache: SchemaCache::new(),
         }),
     );
-    test_constant_fold!(
+    test_constant_fold_no_op!(
         searched_case_ref_ahead,
-        expected = Stage::Array(ArraySource {
+        Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::SearchedCase(SearchedCaseExpr {
                 when_branch: vec![
@@ -2858,27 +2899,7 @@ mod constant_folding {
                 is_nullable: false,
             })],
             cache: SchemaCache::new(),
-        }),
-        input = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::SearchedCase(SearchedCaseExpr {
-                when_branch: vec![
-                    WhenBranch {
-                        when: Expression::Reference(("a", 0u16).into()).into(),
-                        then: Expression::Literal(LiteralValue::String("then 3".into())).into(),
-                        is_nullable: false,
-                    },
-                    WhenBranch {
-                        when: Expression::Literal(LiteralValue::Boolean(true)).into(),
-                        then: Expression::Literal(LiteralValue::String("then true".into())).into(),
-                        is_nullable: true,
-                    }
-                ],
-                else_branch: Expression::Literal(LiteralValue::String("else".into())).into(),
-                is_nullable: false,
-            })],
-            cache: SchemaCache::new(),
-        }),
+        })
     );
     test_constant_fold!(
         searched_case_prune_false,
@@ -2895,6 +2916,7 @@ mod constant_folding {
             })],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::SearchedCase(SearchedCaseExpr {
@@ -2929,6 +2951,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::String("else".into()))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::SearchedCase(SearchedCaseExpr {
@@ -2957,6 +2980,7 @@ mod constant_folding {
             array: vec![Expression::Literal(LiteralValue::Integer(0))],
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::FieldAccess(FieldAccess {
@@ -2970,9 +2994,9 @@ mod constant_folding {
             cache: SchemaCache::new(),
         }),
     );
-    test_constant_fold!(
+    test_constant_fold_no_op!(
         field_access_missing_field,
-        expected = Stage::Array(ArraySource {
+        Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::FieldAccess(FieldAccess {
                 expr: Expression::Document(
@@ -2983,23 +3007,11 @@ mod constant_folding {
                 is_nullable: false,
             })],
             cache: SchemaCache::new(),
-        }),
-        input = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::FieldAccess(FieldAccess {
-                expr: Expression::Document(
-                    unchecked_unique_linked_hash_map! {"a".into() => Expression::Literal(LiteralValue::Integer(0))}
-                .into())
-                .into(),
-                field: "b".into(),
-                is_nullable: false,
-            })],
-            cache: SchemaCache::new(),
-        }),
+        })
     );
-    test_constant_fold!(
+    test_constant_fold_no_op!(
         field_access_ref,
-        expected = Stage::Array(ArraySource {
+        Stage::Array(ArraySource {
             alias: "".into(),
             array: vec![Expression::FieldAccess(FieldAccess {
                 expr: Expression::Reference(("a", 0u16).into()).into(),
@@ -3007,60 +3019,43 @@ mod constant_folding {
                 is_nullable: false,
             })],
             cache: SchemaCache::new(),
-        }),
-        input = Stage::Array(ArraySource {
-            alias: "".into(),
-            array: vec![Expression::FieldAccess(FieldAccess {
-                expr: Expression::Reference(("a", 0u16).into()).into(),
-                field: "a".into(),
-                is_nullable: false,
-            })],
-            cache: SchemaCache::new(),
-        }),
+        })
     );
     test_constant_fold!(
         offset_simple,
         expected = test_source(),
+        expected_changed = true,
         input = Stage::Offset(Offset {
             source: Box::new(test_source()),
             offset: 0,
             cache: SchemaCache::new(),
         }),
     );
-    test_constant_fold!(
+    test_constant_fold_no_op!(
         offset_nonzero,
-        expected = Stage::Offset(Offset {
+        Stage::Offset(Offset {
             source: Box::new(test_source()),
             offset: 1,
             cache: SchemaCache::new(),
-        }),
-        input = Stage::Offset(Offset {
-            source: Box::new(test_source()),
-            offset: 1,
-            cache: SchemaCache::new(),
-        }),
+        })
     );
     test_constant_fold!(
         filter_simple,
         expected = test_source(),
+        expected_changed = true,
         input = Stage::Filter(Filter {
             source: Box::new(test_source()),
             condition: Expression::Literal(LiteralValue::Boolean(true)),
             cache: SchemaCache::new(),
         }),
     );
-    test_constant_fold!(
+    test_constant_fold_no_op!(
         filter_non_literal,
-        expected = Stage::Filter(Filter {
+        Stage::Filter(Filter {
             source: Box::new(test_source()),
             condition: Expression::Reference(("a", 0u16).into()),
             cache: SchemaCache::new(),
-        }),
-        input = Stage::Filter(Filter {
-            source: Box::new(test_source()),
-            condition: Expression::Reference(("a", 0u16).into()),
-            cache: SchemaCache::new(),
-        }),
+        })
     );
 
     test_constant_fold!(
@@ -3083,6 +3078,7 @@ mod constant_folding {
             },
             cache: SchemaCache::new(),
         }),
+        expected_changed = true,
         input = Stage::Project(Project {
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![Expression::Document(DocumentExpr {
