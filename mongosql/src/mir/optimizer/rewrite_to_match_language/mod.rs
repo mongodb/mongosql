@@ -42,13 +42,16 @@ impl Optimizer for MatchLanguageRewriter {
         _sm: SchemaCheckingMode,
         _schema_state: &SchemaInferenceState,
     ) -> (Stage, bool) {
-        let mut v = MatchLanguageRewriterVisitor;
+        let mut v = MatchLanguageRewriterVisitor::default();
         let new_stage = v.visit_stage(st);
-        (new_stage, false)
+        (new_stage, v.changed)
     }
 }
 
-struct MatchLanguageRewriterVisitor;
+#[derive(Default)]
+struct MatchLanguageRewriterVisitor {
+    changed: bool,
+}
 
 impl MatchLanguageRewriterVisitor {
     fn rewrite_is(is: IsExpr) -> Option<MatchQuery> {
@@ -138,6 +141,7 @@ impl Visitor for MatchLanguageRewriterVisitor {
                 // replace the Filter with an MQLIntrinsic MatchFilter with the
                 // rewritten condition.
                 Self::rewrite_condition(f.condition.clone()).map_or(node, |condition| {
+                    self.changed = true;
                     Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
                         source: f.source,
                         condition,

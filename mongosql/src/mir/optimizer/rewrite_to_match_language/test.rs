@@ -29,7 +29,7 @@ lazy_static! {
 }
 
 macro_rules! test_rewrite_to_match_language {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr) => {
         #[test]
         fn $func_name() {
             let input = $input;
@@ -43,7 +43,9 @@ macro_rules! test_rewrite_to_match_language {
             );
 
             let optimizer = &MatchLanguageRewriter;
-            let (actual, _) = optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
+            let (actual, actual_changed) =
+                optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
+            assert_eq!($expected_changed, actual_changed);
             assert_eq!(expected, actual);
         }
     };
@@ -51,7 +53,7 @@ macro_rules! test_rewrite_to_match_language {
 
 macro_rules! test_rewrite_to_match_language_no_op {
     ($func_name:ident, $input:expr) => {
-        test_rewrite_to_match_language! { $func_name, expected = $input, input = $input }
+        test_rewrite_to_match_language! { $func_name, expected = $input, expected_changed = false, input = $input }
     };
 }
 
@@ -241,18 +243,21 @@ test_rewrite_to_match_language_no_op!(
 test_rewrite_to_match_language!(
     rewrite_valid_is,
     expected = match_filter_stage(valid_match_is()),
+    expected_changed = true,
     input = filter_stage(valid_is())
 );
 
 test_rewrite_to_match_language!(
     rewrite_valid_is_null,
     expected = match_filter_stage(valid_match_is_null()),
+    expected_changed = true,
     input = filter_stage(valid_is_null())
 );
 
 test_rewrite_to_match_language!(
     rewrite_valid_like_with_no_escape,
     expected = match_filter_stage(valid_match_like()),
+    expected_changed = true,
     input = filter_stage(valid_like())
 );
 
@@ -264,6 +269,7 @@ test_rewrite_to_match_language!(
         options: "si".to_string(),
         cache: SchemaCache::new(),
     })),
+    expected_changed = true,
     input = filter_stage(Expression::Like(LikeExpr {
         expr: mir_field_access("foo", "str", true),
         pattern: Box::new(Expression::Literal(LiteralValue::String(
@@ -280,6 +286,7 @@ test_rewrite_to_match_language!(
         args: vec![valid_match_like(), valid_match_is()],
         cache: SchemaCache::new(),
     })),
+    expected_changed = true,
     input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
         ScalarFunction::And,
         vec![valid_like(), valid_is()],
@@ -293,6 +300,7 @@ test_rewrite_to_match_language!(
         args: vec![valid_match_like(), valid_match_is()],
         cache: SchemaCache::new(),
     })),
+    expected_changed = true,
     input = filter_stage(Expression::ScalarFunction(ScalarFunctionApplication::new(
         ScalarFunction::Or,
         vec![valid_like(), valid_is()],
