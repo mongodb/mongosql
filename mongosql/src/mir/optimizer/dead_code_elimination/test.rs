@@ -29,7 +29,7 @@ lazy_static! {
 }
 
 macro_rules! test_dead_code_elimination {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr) => {
         #[test]
         fn $func_name() {
             let input = $input;
@@ -43,26 +43,22 @@ macro_rules! test_dead_code_elimination {
             );
 
             let optimizer = &DeadCodeEliminator;
-            let (actual, _) = optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
+            let (actual, actual_changed) =
+                optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
+            assert_eq!($expected_changed, actual_changed);
             assert_eq!(expected, actual);
         }
     };
 }
+macro_rules! test_dead_code_elimination_no_op {
+    ($func_name:ident, $input:expr) => {
+        test_dead_code_elimination! { $func_name, expected = $input, expected_changed = false, input = $input }
+    };
+}
 
-test_dead_code_elimination!(
+test_dead_code_elimination_no_op!(
     cannot_eliminate_non_project_source_for_group,
-    expected = Stage::Group(Group {
-        source: Box::new(Stage::Filter(Filter {
-            source: mir_collection("db", "bar"),
-            condition: Expression::Literal(LiteralValue::Boolean(true),),
-            cache: SchemaCache::new(),
-        })),
-        keys: vec![],
-        aggregations: vec![],
-        scope: 0u16,
-        cache: SchemaCache::new(),
-    }),
-    input = Stage::Group(Group {
+    Stage::Group(Group {
         source: Box::new(Stage::Filter(Filter {
             source: mir_collection("db", "bar"),
             condition: Expression::Literal(LiteralValue::Boolean(true),),
@@ -119,6 +115,7 @@ test_dead_code_elimination!(
         },
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Project(Project {
         source: Box::new(Stage::Group(Group {
             source: Box::new(Stage::Project(Project {
@@ -216,6 +213,7 @@ test_dead_code_elimination!(
         },
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Project(Project {
         source: Box::new(Stage::Group(Group {
             source: Box::new(Stage::Project(Project {
@@ -269,44 +267,9 @@ test_dead_code_elimination!(
     })
 );
 
-test_dead_code_elimination!(
+test_dead_code_elimination_no_op!(
     cannot_eliminate_project_source_for_group_if_not_all_sources_are_substitutable,
-    expected = Stage::Group(Group {
-        source: Box::new(Stage::Project(Project {
-            source: mir_collection("db", "bar"),
-            expression: map! {
-                ("foo", 0u16).into() => mir::Expression::Reference(("bar", 0u16).into()),
-            },
-            cache: SchemaCache::new(),
-        })),
-        keys: vec![
-            OptionallyAliasedExpr::Aliased(AliasedExpr {
-                alias: "a".to_string(),
-                expr: Expression::FieldAccess(FieldAccess::new(
-                    Box::new(Expression::Reference(("foo", 0u16).into())),
-                    "a".to_string(),
-                ))
-            }),
-            OptionallyAliasedExpr::Unaliased(Expression::FieldAccess(FieldAccess::new(
-                Box::new(Expression::Reference(("bad", 0u16).into())),
-                "b".to_string(),
-            ))),
-        ],
-        aggregations: vec![AliasedAggregation {
-            alias: "agg".to_string(),
-            agg_expr: AggregationExpr::Function(AggregationFunctionApplication {
-                function: AggregationFunction::Avg,
-                distinct: false,
-                arg: Box::new(Expression::FieldAccess(FieldAccess::new(
-                    Box::new(Expression::Reference(("bad", 0u16).into())),
-                    "c".to_string(),
-                ))),
-            }),
-        }],
-        scope: 0u16,
-        cache: SchemaCache::new(),
-    }),
-    input = Stage::Group(Group {
+    Stage::Group(Group {
         source: Box::new(Stage::Project(Project {
             source: mir_collection("db", "bar"),
             expression: map! {

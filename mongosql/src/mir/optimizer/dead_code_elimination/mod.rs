@@ -28,13 +28,16 @@ impl Optimizer for DeadCodeEliminator {
         _sm: SchemaCheckingMode,
         _schema_state: &SchemaInferenceState,
     ) -> (Stage, bool) {
-        let mut v = DeadCodeEliminationVisitor;
+        let mut v = DeadCodeEliminationVisitor::default();
         let new_stage = v.visit_stage(st);
-        (new_stage, false)
+        (new_stage, v.changed)
     }
 }
 
-struct DeadCodeEliminationVisitor;
+#[derive(Default)]
+struct DeadCodeEliminationVisitor {
+    changed: bool,
+}
 
 impl Visitor for DeadCodeEliminationVisitor {
     fn visit_stage(&mut self, node: Stage) -> Stage {
@@ -83,14 +86,17 @@ impl Visitor for DeadCodeEliminationVisitor {
                             match subbed {
                                 // After substituting Reference definitions from the Project
                                 // into the Group, remove the Project from the Stage tree.
-                                Ok(Stage::Group(g)) => Stage::Project(Project {
-                                    source: Box::new(Stage::Group(Group {
-                                        source: p.source,
-                                        ..g
-                                    })),
-                                    expression: new_expr,
-                                    cache: SchemaCache::new(),
-                                }),
+                                Ok(Stage::Group(g)) => {
+                                    self.changed = true;
+                                    Stage::Project(Project {
+                                        source: Box::new(Stage::Group(Group {
+                                            source: p.source,
+                                            ..g
+                                        })),
+                                        expression: new_expr,
+                                        cache: SchemaCache::new(),
+                                    })
+                                }
                                 // It is possible for substitution to fail if the Group clause
                                 // contains Subqueries. This will be very rare.
                                 Err(n) => n,
