@@ -27,13 +27,16 @@ impl Optimizer for LowerJoinsOptimizer {
         _sm: SchemaCheckingMode,
         _schema_state: &SchemaInferenceState,
     ) -> (Stage, bool) {
-        let mut v = LowerJoinsVisitor;
+        let mut v = LowerJoinsVisitor::default();
         let new_stage = v.visit_stage(st);
-        (new_stage, false)
+        (new_stage, v.changed)
     }
 }
 
-struct LowerJoinsVisitor;
+#[derive(Default)]
+struct LowerJoinsVisitor {
+    changed: bool,
+}
 
 impl Visitor for LowerJoinsVisitor {
     fn visit_stage(&mut self, node: Stage) -> Stage {
@@ -58,6 +61,7 @@ impl Visitor for LowerJoinsVisitor {
                         cache,
                     });
                 }
+                self.changed = true;
                 Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
                     join_type,
                     source: left,

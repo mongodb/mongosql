@@ -11,7 +11,7 @@ use crate::{
 };
 
 macro_rules! test_lower_joins {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr) => {
         #[test]
         fn $func_name() {
             let input = $input;
@@ -26,7 +26,9 @@ macro_rules! test_lower_joins {
             );
 
             let optimizer = &LowerJoinsOptimizer;
-            let (actual, _) = optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
+            let (actual, actual_changed) =
+                optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
+            assert_eq!($expected_changed, actual_changed);
             assert_eq!(expected, actual);
         }
     };
@@ -34,7 +36,7 @@ macro_rules! test_lower_joins {
 
 macro_rules! test_lower_joins_no_op {
     ($func_name:ident, $input:expr) => {
-        test_lower_joins! { $func_name, expected = $input, input = $input }
+        test_lower_joins! { $func_name, expected = $input, expected_changed = false, input = $input }
     };
 }
 
@@ -68,6 +70,7 @@ test_lower_joins!(
         })),
         cache: SchemaCache::new(),
     })),
+    expected_changed = true,
     input = Stage::Join(Join {
         join_type: JoinType::Inner,
         left: mir_project_collection(None, "foo", None, None),
