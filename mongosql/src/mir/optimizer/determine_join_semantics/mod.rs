@@ -8,7 +8,7 @@
 /// provides favorable runtime over expressive $lookup.
 ///
 /// The equijoin syntax does not provide the SQL-style null semantics MongoSQL
-/// requires so we must ensure those semantics are preserved as part of this
+/// requires, so we must ensure those semantics are preserved as part of this
 /// optimization. This is why the optimization checks the schema of the local
 /// and foreign fields and adjusts the conditions appropriately. In order:
 ///   - If the schema indicates either the local or the foreign field MUST be
@@ -45,15 +45,17 @@ impl Optimizer for JoinSemanticsOptimizer {
         schema_state: &SchemaInferenceState,
     ) -> (Stage, bool) {
         let mut v = JoinSemanticsOptimizerVisitor {
-            schema_state: schema_state.clone(),
+            schema_state,
+            changed: false,
         };
         let new_stage = v.visit_stage(st);
-        (new_stage, false)
+        (new_stage, v.changed)
     }
 }
 
 struct JoinSemanticsOptimizerVisitor<'a> {
-    schema_state: SchemaInferenceState<'a>,
+    schema_state: &'a SchemaInferenceState<'a>,
+    changed: bool,
 }
 
 impl<'a> JoinSemanticsOptimizerVisitor<'a> {
@@ -72,8 +74,8 @@ impl<'a> JoinSemanticsOptimizerVisitor<'a> {
                     // Note that we operate here on the assumption that the
                     // algebrizer is correct. If we produced a Project with
                     // len 1 expression, and with a Collection source, then
-                    // it must be that that 1 binding is a Reference to the
-                    // Collection.
+                    // it must be that the single binding is a Reference to
+                    // the Collection.
                     p.expression.len() == 1
                 }
                 // If the Project's source is not a Collection, the Join is ineligible for
@@ -160,8 +162,8 @@ impl<'a> Visitor for JoinSemanticsOptimizerVisitor<'a> {
                     Some(condition) => condition,
                 };
                 if self.resembles_collection_source(&j.right) {
-                    let left_schema = j.left.schema(&self.schema_state).unwrap();
-                    let right_schema = j.right.schema(&self.schema_state).unwrap();
+                    let left_schema = j.left.schema(self.schema_state).unwrap();
+                    let right_schema = j.right.schema(self.schema_state).unwrap();
                     match self.get_fields_if_valid_condition(
                         condition,
                         left_schema.clone(),
@@ -171,6 +173,7 @@ impl<'a> Visitor for JoinSemanticsOptimizerVisitor<'a> {
                         // -- one from the left and one from the right -- we cannot rewrite.
                         None => node,
                         Some((local_field, foreign_field)) => {
+                            self.changed = true;
                             if local_field.is_nullable && foreign_field.is_nullable {
                                 Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
                                     join_type: j.join_type,

@@ -45,7 +45,7 @@ lazy_static! {
 }
 
 macro_rules! test_determine_join_semantics {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr) => {
+    ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr) => {
         #[test]
         fn $func_name() {
             let input = $input;
@@ -69,7 +69,9 @@ macro_rules! test_determine_join_semantics {
             );
 
             let optimizer = &JoinSemanticsOptimizer;
-            let (actual, _) = optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
+            let (actual, actual_changed) =
+                optimizer.optimize(input, SchemaCheckingMode::Relaxed, &state);
+            assert_eq!($expected_changed, actual_changed);
             assert_eq!(expected, actual);
         }
     };
@@ -77,7 +79,7 @@ macro_rules! test_determine_join_semantics {
 
 macro_rules! test_determine_join_semantics_no_op {
     ($func_name:ident, $input:expr) => {
-        test_determine_join_semantics! { $func_name, expected = $input, input = $input }
+        test_determine_join_semantics! { $func_name, expected = $input, expected_changed = false, input = $input }
     };
 }
 
@@ -210,6 +212,7 @@ mod change {
             foreign_field: Box::new(mir_field_path("foreign", vec!["may_be_null"])),
             cache: SchemaCache::new(),
         })),
+        expected_changed = true,
         input = make_standard_join(Some(make_equality_condition(
             *mir_field_access("local", "not_null", false),
             *mir_field_access("foreign", "may_be_null", true),
@@ -226,6 +229,7 @@ mod change {
             foreign_field: Box::new(mir_field_path("foreign", vec!["not_null"])),
             cache: SchemaCache::new(),
         })),
+        expected_changed = true,
         input = make_standard_join(Some(make_equality_condition(
             *mir_field_access("local", "may_be_null", true),
             *mir_field_access("foreign", "not_null", false),
@@ -242,6 +246,7 @@ mod change {
             foreign_field: Box::new(mir_field_path("foreign", vec!["not_null"])),
             cache: SchemaCache::new(),
         })),
+        expected_changed = true,
         input = make_standard_join(Some(make_equality_condition(
             *mir_field_access("foreign", "not_null", false),
             *mir_field_access("local", "not_null", false),
@@ -265,6 +270,7 @@ mod change {
             foreign_field: Box::new(mir_field_path("foreign", vec!["may_be_null"])),
             cache: SchemaCache::new(),
         })),
+        expected_changed = true,
         input = make_standard_join(Some(make_equality_condition(
             *mir_field_access("local", "may_be_null", true),
             *mir_field_access("foreign", "may_be_null", true),
