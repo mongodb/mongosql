@@ -289,6 +289,7 @@ test_move_stage!(
                 index: None,
                 outer: false,
                 cache: SchemaCache::new(),
+                is_prefiltered: false,
             })
             .into(),
             condition: Expression::ScalarFunction(
@@ -324,6 +325,7 @@ test_move_stage!(
                 index: None,
                 outer: false,
                 cache: SchemaCache::new(),
+                is_prefiltered: false,
             })
             .into(),
             condition: Expression::ScalarFunction(
@@ -1737,6 +1739,7 @@ test_move_stage!(
             index: None,
             outer: false,
             cache: SchemaCache::new(),
+            is_prefiltered: false,
         })
         .into(),
         condition: Expression::ScalarFunction(
@@ -1769,6 +1772,7 @@ test_move_stage!(
                 index: None,
                 outer: false,
                 cache: SchemaCache::new(),
+                is_prefiltered: false,
             })
             .into(),
             condition: Expression::ScalarFunction(

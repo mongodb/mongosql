@@ -27,6 +27,7 @@ fn make_unwind(index: Option<String>, outer: bool) -> Stage {
         index,
         outer,
         cache: SchemaCache::new(),
+        is_prefiltered: false,
     })
 }
 
@@ -243,6 +244,7 @@ mod no_index {
             index: None,
             outer: false,
             cache: SchemaCache::new(),
+            is_prefiltered: false,
         }),
         schema_env = map! {
             ("bar", 0u16).into() => Schema::Document(Document {
@@ -724,6 +726,7 @@ mod index_does_not_conflict {
             index: Some("idx".into()),
             outer: false,
             cache: SchemaCache::new(),
+            is_prefiltered: false,
         }),
         catalog = make_catalog(Schema::Document(Document {
             keys: map! {
@@ -798,6 +801,7 @@ mod index_does_not_conflict {
             index: Some("idx".into()),
             outer: false,
             cache: SchemaCache::new(),
+            is_prefiltered: false,
         }),
         catalog = Catalog::new(map! {
             Namespace {db: "test".into(), collection: "foo".into()} => Schema::Document(Document {

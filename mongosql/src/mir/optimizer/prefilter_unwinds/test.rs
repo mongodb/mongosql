@@ -18,14 +18,14 @@ fn mir_field_access(ref_name: &str, field_name: &str) -> mir::Expression {
 }
 
 macro_rules! test_prefilter {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
+    ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr,) => {
         #[test]
         fn $func_name() {
             #[allow(unused)]
             use crate::mir::{
                 self,
                 binding_tuple::{BindingTuple, Key},
-                optimizer::prefilter_unwinds::PrefilterUnwindsVisitor,
+                optimizer::prefilter_unwinds::PrefilterUnwindsOptimizer,
                 schema::SchemaCache,
                 visitor::Visitor,
                 ElemMatch,
@@ -39,15 +39,16 @@ macro_rules! test_prefilter {
             #[allow(unused)]
             let input = $input;
             let expected = $expected;
-            let mut visitor = PrefilterUnwindsVisitor {};
-            assert_eq!(expected, visitor.visit_stage(input));
+            let (actual, actual_changed) = PrefilterUnwindsOptimizer::prefilter_unwinds(input);
+            assert_eq!($expected_changed, actual_changed);
+            assert_eq!(expected, actual);
         }
     };
 }
 
 macro_rules! test_prefilter_no_op {
     ($func_name:ident, $input:expr,) => {
-        test_prefilter! { $func_name, expected = $input, input = $input, }
+        test_prefilter! { $func_name, expected = $input, expected_changed = false, input = $input, }
     };
 }
 
@@ -82,7 +83,7 @@ fn match_comparison_op() {
 test_prefilter! {
     eq_path,
     expected = Stage::Filter(Filter {
-                source: Stage::Unwind( Unwind {
+                source: Stage::Unwind(Unwind {
                     source: Stage::MQLIntrinsic(MQLStage::MatchFilter( MatchFilter {
                         source: Stage::Sentinel.into(),
                         condition: MatchQuery::ElemMatch(
@@ -103,6 +104,7 @@ test_prefilter! {
                     index: Some("idx".to_string()),
                     outer: false,
                     cache: SchemaCache::new(),
+                    is_prefiltered: true,
                 }).into(),
                 condition: Expression::ScalarFunction(
                     ScalarFunctionApplication::new(ScalarFunction::Eq,vec![
@@ -113,13 +115,15 @@ test_prefilter! {
                         ],)),
                 cache: SchemaCache::new(),
         }),
+    expected_changed = true,
     input = Stage::Filter(Filter {
-                source: Stage::Unwind( Unwind {
+                source: Stage::Unwind(Unwind {
                     source: Stage::Sentinel.into(),
                     path: mir_field_path("foo", vec!["bar"]),
                     index: Some("idx".to_string()),
                     outer: false,
                     cache: SchemaCache::new(),
+                    is_prefiltered: false,
                 }).into(),
                 condition: Expression::ScalarFunction(
                     ScalarFunctionApplication::new(ScalarFunction::Eq,vec![
@@ -135,12 +139,13 @@ test_prefilter! {
 test_prefilter_no_op! {
     eq_index_cannot_prefilter,
     Stage::Filter(Filter {
-            source: Stage::Unwind( Unwind {
+            source: Stage::Unwind(Unwind {
                 source: Stage::Sentinel.into(),
                 path: mir_field_path("foo", vec!["bar"]),
                 index: Some("idx".to_string()),
                 outer: false,
                 cache: SchemaCache::new(),
+                is_prefiltered: false,
             }).into(),
             condition: Expression::ScalarFunction(
                 ScalarFunctionApplication::new(ScalarFunction::Eq,vec![
@@ -156,7 +161,7 @@ test_prefilter_no_op! {
 test_prefilter! {
     between_path,
     expected = Stage::Filter(Filter {
-                source: Stage::Unwind( Unwind {
+                source: Stage::Unwind(Unwind {
                     source: Stage::MQLIntrinsic(MQLStage::MatchFilter( MatchFilter {
                         source: Stage::Sentinel.into(),
                         condition: MatchQuery::ElemMatch(
@@ -192,6 +197,7 @@ test_prefilter! {
                     index: Some("idx".to_string()),
                     outer: false,
                     cache: SchemaCache::new(),
+                    is_prefiltered: true,
                 }).into(),
                 condition: Expression::ScalarFunction(
                     ScalarFunctionApplication::new(ScalarFunction::Between,vec![
@@ -205,13 +211,15 @@ test_prefilter! {
                         ],)),
                 cache: SchemaCache::new(),
         }),
+    expected_changed = true,
     input = Stage::Filter(Filter {
-                source: Stage::Unwind( Unwind {
+                source: Stage::Unwind(Unwind {
                     source: Stage::Sentinel.into(),
                     path: mir_field_path("foo", vec!["bar"]),
                     index: Some("idx".to_string()),
                     outer: false,
                     cache: SchemaCache::new(),
+                    is_prefiltered: false,
                 }).into(),
                 condition: Expression::ScalarFunction(
                     ScalarFunctionApplication::new(ScalarFunction::Between,vec![
@@ -230,12 +238,13 @@ test_prefilter! {
 test_prefilter_no_op! {
     between_index_cannot_prefilter,
     Stage::Filter(Filter {
-            source: Stage::Unwind( Unwind {
+            source: Stage::Unwind(Unwind {
                 source: Stage::Sentinel.into(),
                 path: mir_field_path("foo", vec!["bar"]),
                 index: Some("idx".to_string()),
                 outer: false,
                 cache: SchemaCache::new(),
+                is_prefiltered: false,
             }).into(),
             condition: Expression::ScalarFunction(
                 ScalarFunctionApplication::new(ScalarFunction::Between,vec![
@@ -257,12 +266,13 @@ test_prefilter_no_op! {
     // isolation
     eq_wrong_generates_no_prefilter,
     Stage::Filter(Filter {
-            source: Stage::Unwind( Unwind {
+            source: Stage::Unwind(Unwind {
                 source: Stage::Sentinel.into(),
                 path: mir_field_path("foo", vec!["bar"]),
                 index: Some("idx".to_string()),
                 outer: false,
                 cache: SchemaCache::new(),
+                is_prefiltered: false,
             }).into(),
             condition: Expression::ScalarFunction(
                 ScalarFunctionApplication::new(ScalarFunction::Eq,vec![
@@ -278,12 +288,13 @@ test_prefilter_no_op! {
 test_prefilter_no_op! {
     single_field_use_in_non_simple_expr,
     Stage::Filter(Filter {
-        source: Stage::Unwind( Unwind {
+        source: Stage::Unwind(Unwind {
             source: Stage::Sentinel.into(),
             path: mir_field_path("foo", vec!["bar"]),
             index: Some("idx".to_string()),
             outer: false,
             cache: SchemaCache::new(),
+            is_prefiltered: false,
         }).into(),
         condition: Expression::ScalarFunction(
             ScalarFunctionApplication {
@@ -301,12 +312,13 @@ test_prefilter_no_op! {
 test_prefilter_no_op! {
     between_single_field_use_in_non_simple_expr,
     Stage::Filter(Filter {
-        source: Stage::Unwind( Unwind {
+        source: Stage::Unwind(Unwind {
             source: Stage::Sentinel.into(),
             path: mir_field_path("foo", vec!["bar"]),
             index: Some("idx".to_string()),
             outer: false,
             cache: SchemaCache::new(),
+            is_prefiltered: false,
         }).into(),
         condition: Expression::ScalarFunction(
             ScalarFunctionApplication {

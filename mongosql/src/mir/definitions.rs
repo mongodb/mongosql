@@ -121,6 +121,11 @@ pub struct Unwind {
     pub index: Option<String>,
     pub outer: bool,
     pub cache: SchemaCache<ResultSet>,
+
+    // This field is relevant for optimization.
+    // It should be set to false in all contexts
+    // except PrefilterUnwindsOptimizer.
+    pub is_prefiltered: bool,
 }
 
 #[derive(PartialEq, Debug, Clone)]

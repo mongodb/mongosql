@@ -15,7 +15,7 @@
 /// any value that is not explicitly 6 will be removed still.
 ///
 /// In general, this can reduce a very large COL_SCANs into a possibly very selective IDX_SCANs
-/// depending on the size of the arrays and volitility of data in the arrays.
+/// depending on the size of the arrays and volatility of data in the arrays.
 ///
 #[cfg(test)]
 mod test;
@@ -42,20 +42,30 @@ impl Optimizer for PrefilterUnwindsOptimizer {
         _sm: SchemaCheckingMode,
         _schema_state: &SchemaInferenceState,
     ) -> (Stage, bool) {
-        let mut visitor = PrefilterUnwindsVisitor {};
-        let new_stage = visitor.visit_stage(st);
-        (new_stage, false)
+        PrefilterUnwindsOptimizer::prefilter_unwinds(st)
     }
 }
 
-struct PrefilterUnwindsVisitor {}
+impl PrefilterUnwindsOptimizer {
+    fn prefilter_unwinds(st: Stage) -> (Stage, bool) {
+        let mut visitor = PrefilterUnwindsVisitor::default();
+        let new_stage = visitor.visit_stage(st);
+        (new_stage, visitor.changed)
+    }
+}
+
+#[derive(Default)]
+struct PrefilterUnwindsVisitor {
+    changed: bool,
+}
 
 impl Visitor for PrefilterUnwindsVisitor {
     fn visit_stage(&mut self, node: Stage) -> Stage {
         let node = node.walk(self);
         match node {
             Stage::Filter(f) => match *f.source {
-                Stage::Unwind(u) => {
+                // If the Unwind has already been pre-filtered, ignore it.
+                Stage::Unwind(u) if !u.is_prefiltered => {
                     let (field_uses, condition) = f.condition.field_uses();
                     let field_uses = if let Some(field_uses) = field_uses {
                         field_uses
@@ -83,9 +93,15 @@ impl Visitor for PrefilterUnwindsVisitor {
                                 ..f
                             });
                         }
+                        let (new_source, changed) =
+                            generate_prefilter(field_use, u.source, &condition);
+                        self.changed |= changed;
                         Stage::Filter(Filter {
                             source: Box::new(Stage::Unwind(Unwind {
-                                source: generate_prefilter(field_use, u.source, &condition),
+                                source: new_source,
+                                // Ensure that future runs of this optimizer
+                                // do not pre-filter this Unwind again.
+                                is_prefiltered: changed,
                                 ..u
                             })),
                             condition,
@@ -107,7 +123,11 @@ impl Visitor for PrefilterUnwindsVisitor {
 }
 
 // generate_prefilter returns the original source Stage, if it fails to generate a useful ElemMatchLanguage
-fn generate_prefilter(field: FieldPath, source: Box<Stage>, condition: &Expression) -> Box<Stage> {
+fn generate_prefilter(
+    field: FieldPath,
+    source: Box<Stage>,
+    condition: &Expression,
+) -> (Box<Stage>, bool) {
     if let Expression::ScalarFunction(ScalarFunctionApplication {
         function: f,
         args: a,
@@ -119,33 +139,39 @@ fn generate_prefilter(field: FieldPath, source: Box<Stage>, condition: &Expressi
                 if let Some((lower_bound, upper_bound)) = get_between_literals(a) {
                     (lower_bound, upper_bound)
                 } else {
-                    return source;
+                    return (source, false);
                 };
-            return Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-                source,
-                condition: generate_between_elem_match_query(field, lower_bound, upper_bound),
-                cache: SchemaCache::new(),
-            }))
-            .into();
+            return (
+                Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+                    source,
+                    condition: generate_between_elem_match_query(field, lower_bound, upper_bound),
+                    cache: SchemaCache::new(),
+                }))
+                .into(),
+                true,
+            );
         }
         let lit = if let Some(lit) = get_comparison_literal(a) {
             lit
         } else {
-            return source;
+            return (source, false);
         };
         let function: MatchLanguageComparisonOp = if let Ok(op) = (*f).try_into() {
             op
         } else {
-            return source;
+            return (source, false);
         };
-        return Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
-            source,
-            condition: generate_comparison_elem_match_query(function, field, lit),
-            cache: SchemaCache::new(),
-        }))
-        .into();
+        return (
+            Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
+                source,
+                condition: generate_comparison_elem_match_query(function, field, lit),
+                cache: SchemaCache::new(),
+            }))
+            .into(),
+            true,
+        );
     }
-    source
+    (source, false)
 }
 
 fn generate_comparison_elem_match_query(

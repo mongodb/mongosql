@@ -224,6 +224,7 @@ test_method!(
         index: Some("idx".to_string()),
         outer: false,
         cache: SchemaCache::new(),
+        is_prefiltered: false,
     },
 );
 
