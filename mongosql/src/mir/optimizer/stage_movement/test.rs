@@ -1,4 +1,3 @@
-use crate::mir::{MatchLanguageLogical, MatchLanguageLogicalOp};
 use crate::{
     catalog::Catalog,
     map,
@@ -77,7 +76,7 @@ lazy_static! {
 }
 
 macro_rules! test_move_stage {
-    ($func_name:ident, expected = $expected:expr, input = $input:expr,) => {
+    ($func_name:ident, expected = $expected:expr, expected_changed = $expected_changed:expr, input = $input:expr,) => {
         #[test]
         fn $func_name() {
             #[allow(unused)]
@@ -87,7 +86,7 @@ macro_rules! test_move_stage {
                 mir::{
                     self,
                     binding_tuple::{BindingTuple, Key},
-                    optimizer::stage_movement::StageMovementVisitor,
+                    optimizer::stage_movement::StageMovementOptimizer,
                     schema::{SchemaCache, SchemaCheckingMode, SchemaInferenceState},
                     visitor::Visitor,
                     Collection, Derived, EquiJoin,
@@ -96,9 +95,9 @@ macro_rules! test_move_stage {
                     LiteralValue,
                     LiteralValue::*,
                     MQLStage, MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp,
-                    MatchQuery, Offset, Project, ReferenceExpr, ScalarFunction,
-                    ScalarFunctionApplication, Set, SetOperation, Sort, SortSpecification, Stage,
-                    Unwind,
+                    MatchLanguageLogical, MatchLanguageLogicalOp, MatchQuery, Offset, Project,
+                    ReferenceExpr, ScalarFunction, ScalarFunctionApplication, Set, SetOperation,
+                    Sort, SortSpecification, Stage, Unwind,
                 },
                 schema::SchemaEnvironment,
                 set, unchecked_unique_linked_hash_map,
@@ -109,22 +108,24 @@ macro_rules! test_move_stage {
             #[allow(unused)]
             let input = $input;
             let expected = $expected;
-            let mut visitor = StageMovementVisitor {
-                schema_state: SchemaInferenceState::new(
+            let (actual, actual_changed) = StageMovementOptimizer::move_stages(
+                input,
+                &SchemaInferenceState::new(
                     0,
                     SchemaEnvironment::new(),
                     &*CATALOG,
                     SchemaCheckingMode::Relaxed,
                 ),
-            };
-            assert_eq!(expected, visitor.visit_stage(input));
+            );
+            assert_eq!($expected_changed, actual_changed);
+            assert_eq!(expected, actual);
         }
     };
 }
 
 macro_rules! test_move_stage_no_op {
     ($func_name:ident, $input:expr) => {
-        test_move_stage! { $func_name, expected = $input, input = $input, }
+        test_move_stage! { $func_name, expected = $input, expected_changed = false, input = $input, }
     };
 }
 
@@ -159,6 +160,7 @@ test_move_stage!(
         }),
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Offset(Offset {
         source: Stage::Offset(Offset {
             source: Stage::Project(Project {
@@ -232,6 +234,7 @@ test_move_stage!(
         limit: 10,
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Limit(Limit {
         source: Stage::Filter(Filter {
             source: Stage::Project(Project {
@@ -269,9 +272,9 @@ test_move_stage!(
     }),
 );
 
-test_move_stage!(
+test_move_stage_no_op!(
     do_not_move_filter_above_opaque_defines,
-    expected = Stage::Limit(Limit {
+    Stage::Limit(Limit {
         source: Stage::Filter(Filter {
             source: Stage::Unwind(Unwind {
                 source: Stage::Project(Project {
@@ -306,48 +309,12 @@ test_move_stage!(
         }).into(),
         limit: 10,
         cache: SchemaCache::new(),
-    }),
-    input = Stage::Limit(Limit {
-        source: Stage::Filter(Filter {
-            source: Stage::Unwind(Unwind {
-                source: Stage::Project(Project {
-                    source: mir_collection("foo", "bar"),
-                    expression: BindingTuple(map! {
-                        Key::named("bar", 0u16) => mir::Expression::Document(
-                            unchecked_unique_linked_hash_map! {
-                                "x".to_string() => mir::Expression::Literal(mir::LiteralValue::Integer(42)),
-                            }.into()
-                        ),
-                    }),
-                    cache: SchemaCache::new(),
-                }).into(),
-                path: mir_field_path("__bot__", vec!["x"]),
-                index: None,
-                outer: false,
-                cache: SchemaCache::new(),
-                is_prefiltered: false,
-            })
-            .into(),
-            condition: Expression::ScalarFunction(
-                mir::ScalarFunctionApplication {
-                    function: mir::ScalarFunction::Lt,
-                    args: vec![
-                        *mir_field_access("__bot__", "x", true),
-                        mir::Expression::Literal(mir::LiteralValue::Integer(42)),
-                    ],
-                    is_nullable: true,
-                }
-            ),
-            cache: SchemaCache::new(),
-        }).into(),
-        limit: 10,
-        cache: SchemaCache::new(),
-    }),
+    })
 );
 
-test_move_stage!(
+test_move_stage_no_op!(
     do_not_move_sort_above_project_when_nonsubstitutable_complex_expression_is_used,
-    expected = Stage::Limit(Limit {
+    Stage::Limit(Limit {
         source: Stage::Sort(Sort {
             source: Stage::Project(Project {
                 source: mir_collection("foo", "bar"),
@@ -371,32 +338,7 @@ test_move_stage!(
         }).into(),
         limit: 10,
         cache: SchemaCache::new(),
-    }),
-    input = Stage::Limit(Limit {
-        source: Stage::Sort(Sort {
-            source: Stage::Project(Project {
-                source: mir_collection("foo", "bar"),
-                expression: BindingTuple(map! {
-                    Key::bot(0u16) => mir::Expression::Document(
-                        unchecked_unique_linked_hash_map! {
-                            "y".to_string() => mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-                                function: mir::ScalarFunction::Add,
-                                args: vec![],
-                                is_nullable: true,
-                            }),
-                       }.into()
-                    ),
-               }),
-               cache: SchemaCache::new(),
-           }).into(),
-           specs: vec![
-               SortSpecification::Asc(mir_field_path("__bot__", vec!["y"])),
-           ],
-           cache: SchemaCache::new(),
-        }).into(),
-        limit: 10,
-        cache: SchemaCache::new(),
-    }),
+    })
 );
 
 test_move_stage!(
@@ -422,6 +364,7 @@ test_move_stage!(
         limit: 10,
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Limit(Limit {
         source: Stage::Sort(Sort {
             source: Stage::Project(Project {
@@ -473,6 +416,7 @@ test_move_stage!(
         limit: 10,
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Limit(Limit {
         source: Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
             source: Stage::Project(Project {
@@ -531,6 +475,7 @@ test_move_stage!(
         limit: 10,
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Limit(Limit {
         source: Stage::Sort(Sort {
             source: Stage::Sort(Sort {
@@ -584,6 +529,7 @@ test_move_stage!(
         limit: 10,
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Limit(Limit {
         source: Stage::Sort(Sort {
             source: Stage::Project(Project {
@@ -661,6 +607,7 @@ test_move_stage!(
         limit: 10,
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Limit(Limit {
         source: Stage::Filter(Filter {
             source: Stage::Filter(Filter {
@@ -701,6 +648,29 @@ test_move_stage!(
             cache: SchemaCache::new(),
         }).into(),
         limit: 10,
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage!(
+    only_moving_filter_above_filter_does_not_register_as_a_change,
+    expected = Stage::Filter(Filter {
+        source: Box::new(Stage::Filter(Filter {
+            source: mir_collection("foo", "bar"),
+            condition: Expression::Literal(LiteralValue::Boolean(false)),
+            cache: SchemaCache::new(),
+        })),
+        condition: Expression::Literal(LiteralValue::Boolean(true)),
+        cache: SchemaCache::new(),
+    }),
+    expected_changed = false,
+    input = Stage::Filter(Filter {
+        source: Box::new(Stage::Filter(Filter {
+            source: mir_collection("foo", "bar"),
+            condition: Expression::Literal(LiteralValue::Boolean(true)),
+            cache: SchemaCache::new(),
+        })),
+        condition: Expression::Literal(LiteralValue::Boolean(false)),
         cache: SchemaCache::new(),
     }),
 );
@@ -760,6 +730,7 @@ test_move_stage!(
         limit: 10,
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Limit(Limit {
         source: Stage::Filter(Filter {
             source: Stage::Join( Join {
@@ -827,6 +798,7 @@ test_move_stage!(
         join_type: JoinType::Inner,
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Filter(Filter {
         source: Stage::Join(Join {
             left: mir_collection("foo", "bar"),
@@ -870,6 +842,7 @@ test_move_stage!(
         join_type: JoinType::Inner,
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Filter(Filter {
         source: Stage::Join(Join {
             left: mir_collection("foo", "bar"),
@@ -947,6 +920,7 @@ test_move_stage!(
         limit: 10,
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Limit(Limit {
         source: Stage::Filter(Filter {
             source: Stage::Join( Join {
@@ -1050,6 +1024,7 @@ test_move_stage!(
         limit: 10,
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Limit(Limit {
         source: Stage::Filter(Filter {
             source: Stage::Set( Set {
@@ -1150,6 +1125,7 @@ test_move_stage!(
         limit: 10,
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Limit(Limit {
         source: Stage::Filter(Filter {
             source: Stage::Set(Set {
@@ -1227,6 +1203,7 @@ test_move_stage!(
         })),
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Filter(Filter {
         source: Box::new(Stage::Derived(Derived {
             source: Box::new(Stage::Project(Project {
@@ -1283,6 +1260,7 @@ test_move_stage!(
         join_type: JoinType::Inner,
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Filter(Filter {
         source: Stage::Filter(Filter {
             source: Stage::Join(Join {
@@ -1328,6 +1306,7 @@ test_move_stage!(
         foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
         cache: SchemaCache::new(),
     })),
+    expected_changed = true,
     input = Stage::Filter(Filter {
         source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
@@ -1390,6 +1369,7 @@ test_move_stage!(
         foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
         cache: SchemaCache::new(),
     })),
+    expected_changed = true,
     input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
         source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
@@ -1444,6 +1424,7 @@ test_move_stage!(
         foreign_field: Box::new(mir_field_path("bar2", vec!["date0"])),
         cache: SchemaCache::new(),
     })),
+    expected_changed = true,
     input = Stage::Sort(Sort {
         source: Box::new(Stage::MQLIntrinsic(MQLStage::EquiJoin(EquiJoin {
             join_type: JoinType::Inner,
@@ -1495,6 +1476,7 @@ test_move_stage!(
         subquery: mir_collection("foo", "bar2"),
         cache: SchemaCache::new(),
     })),
+    expected_changed = true,
     input = Stage::Filter(Filter {
         source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
@@ -1531,6 +1513,7 @@ test_move_stage!(
         })),
         cache: SchemaCache::new(),
     })),
+    expected_changed = true,
     input = Stage::Filter(Filter {
         source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
@@ -1567,6 +1550,7 @@ test_move_stage!(
         })),
         cache: SchemaCache::new(),
     })),
+    expected_changed = true,
     input = Stage::Filter(Filter {
         source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
@@ -1602,6 +1586,7 @@ test_move_stage!(
         subquery: mir_collection("foo", "bar2"),
         cache: SchemaCache::new(),
     })),
+    expected_changed = true,
     input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
         source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
@@ -1636,6 +1621,7 @@ test_move_stage!(
         }))),
         cache: SchemaCache::new(),
     })),
+    expected_changed = true,
     input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
         source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
@@ -1682,6 +1668,7 @@ test_move_stage!(
         }))),
         cache: SchemaCache::new(),
     })),
+    expected_changed = true,
     input = Stage::MQLIntrinsic(MQLStage::MatchFilter(MatchFilter {
         source: Box::new(Stage::MQLIntrinsic(MQLStage::LateralJoin(LateralJoin {
             join_type: JoinType::Inner,
@@ -1754,6 +1741,7 @@ test_move_stage!(
         ),
         cache: SchemaCache::new(),
     }),
+    expected_changed = true,
     input = Stage::Filter(Filter {
         source: Stage::Filter(Filter {
             source: Stage::Unwind(Unwind {

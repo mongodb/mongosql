@@ -247,10 +247,15 @@ impl Optimizer for StageMovementOptimizer {
 impl StageMovementOptimizer {
     fn move_stages(st: Stage, schema_state: &SchemaInferenceState) -> (Stage, bool) {
         let mut v = StageMovementVisitor {
-            schema_state: schema_state.clone(),
+            schema_state,
+            changed: false,
+
+            // We start by assuming the only change is Filter-Filter swap.
+            // This should be invalidated iff we observe a different swap.
+            is_filter_filter_only_change: true,
         };
         let new_stage = v.visit_stage(st);
-        (new_stage, false)
+        (new_stage, v.changed && !v.is_filter_filter_only_change)
     }
 }
 
@@ -263,7 +268,28 @@ enum BubbleUpSide {
 
 #[derive(Clone)]
 struct StageMovementVisitor<'a> {
-    schema_state: SchemaInferenceState<'a>,
+    schema_state: &'a SchemaInferenceState<'a>,
+    changed: bool,
+
+    // This optimization allows Filter stages to move above other Filter
+    // stages. This is useful when later Filter stages can move higher
+    // than earlier ones or when only the later ones can be pushed into
+    // Join conditions, etc.
+    //
+    // Every time a stage actually moves, this optimization should report
+    // that it "changed" the pipeline. However, this Filter-Filter reorder
+    // is not really a change, so we need to ensure the optimization does
+    // not report it as one. In fact, if it were reported as a change,
+    // then the optimizer would run indefinitely by doing the Filter-Filter
+    // swap over and over again. As in, run 1 moves Filter1 above Filter2,
+    // then run 2 moves Filter2 above Filter1, then run 3 moves Filter1
+    // above Filter2, and so on.
+    //
+    // This flag should be set to true when the only change made by the
+    // optimization is moving a Filter stage above another Filter stage.
+    // The optimization will report that it "changed" the pipeline iff
+    // `changed` is true and `is_filter_filter_only_change` is false.
+    is_filter_filter_only_change: bool,
 }
 
 impl<'a> StageMovementVisitor<'a> {
@@ -271,7 +297,7 @@ impl<'a> StageMovementVisitor<'a> {
     // methods should be determining if the swap is necessary.
     fn bubble_up(
         &mut self,
-        f: impl Fn(&mut Self, Stage) -> Stage,
+        f: impl Fn(&mut Self, Stage) -> (Stage, bool),
         stage: Stage,
         side: BubbleUpSide,
     ) -> Stage {
@@ -282,6 +308,20 @@ impl<'a> StageMovementVisitor<'a> {
             unimplemented!();
         }
         let out = sources.swap_remove(0);
+
+        // Check if this is a Filter-Filter swap. If it is any other kind of
+        // stage movement, set is_filter_filter_only_change to false.
+        match (&stage, &out) {
+            (Stage::Filter(_), Stage::Filter(_))
+            | (Stage::Filter(_), Stage::MQLIntrinsic(MQLStage::MatchFilter(_)))
+            | (Stage::MQLIntrinsic(MQLStage::MatchFilter(_)), Stage::Filter(_))
+            | (
+                Stage::MQLIntrinsic(MQLStage::MatchFilter(_)),
+                Stage::MQLIntrinsic(MQLStage::MatchFilter(_)),
+            ) => (),
+            _ => self.is_filter_filter_only_change = false,
+        };
+
         let (mut new_sources, out) = out.take_sources();
         // We should never try to bubble_up with a source that has 0 sources (i.e. past an Array or
         // Collection)
@@ -293,7 +333,7 @@ impl<'a> StageMovementVisitor<'a> {
             // bubbling stage up (by calling the function f, which will differ depending on where
             // bubble_up was called from) given its new source. When that is done, we assign out's
             // source to be the result of this bubbling up.
-            1 => out.change_sources(vec![f(self, stage.change_sources(new_sources))]),
+            1 => out.change_sources(vec![f(self, stage.change_sources(new_sources)).0]),
             2 => {
                 let (left, right) = match side {
                     BubbleUpSide::Both => (
@@ -302,16 +342,17 @@ impl<'a> StageMovementVisitor<'a> {
                             stage
                                 .clone()
                                 .change_sources(vec![new_sources.swap_remove(0)]),
-                        ),
-                        f(self, stage.change_sources(vec![new_sources.swap_remove(0)])),
+                        )
+                        .0,
+                        f(self, stage.change_sources(vec![new_sources.swap_remove(0)])).0,
                     ),
                     BubbleUpSide::Left => (
-                        f(self, stage.change_sources(vec![new_sources.swap_remove(0)])),
+                        f(self, stage.change_sources(vec![new_sources.swap_remove(0)])).0,
                         new_sources.swap_remove(0),
                     ),
                     BubbleUpSide::Right => (
                         new_sources.swap_remove(0),
-                        f(self, stage.change_sources(vec![new_sources.swap_remove(0)])),
+                        f(self, stage.change_sources(vec![new_sources.swap_remove(0)])).0,
                     ),
                 };
                 out.change_sources(vec![left, right])
@@ -349,26 +390,29 @@ impl<'a> StageMovementVisitor<'a> {
         }
     }
 
-    fn handle_offset(&mut self, node: Stage) -> Stage {
+    fn handle_offset(&mut self, node: Stage) -> (Stage, bool) {
         if let Stage::Offset(ref o) = node {
             return if o.source.is_offset_invalidating() {
-                node
+                (node, false)
             } else {
                 // We actually cannot bubble_up Offset past any Stage that has two sources,
-                // but we use BubbleUpSide::Both as a place holder.
-                self.bubble_up(Self::handle_offset, node, BubbleUpSide::Both)
+                // but we use BubbleUpSide::Both as a placeholder.
+                (
+                    self.bubble_up(Self::handle_offset, node, BubbleUpSide::Both),
+                    true,
+                )
             };
         }
         // handle_offset should only be called with Offset Stages
         unreachable!()
     }
 
-    fn handle_def_user(&mut self, node: Stage) -> Stage {
+    fn handle_def_user(&mut self, node: Stage) -> (Stage, bool) {
         use crate::mir::schema::CachedSchema;
         // We cannot move above a terminal node because they do not have a source, we also cannot
         // move a Sort above another Sort because that would actually change the Sort ordering.
         if Self::source_prevents_reorder(&node) {
-            return node;
+            return (node, false);
         }
 
         // unfortunately, due to the borrow checker, we compute uses we may not need.
@@ -389,44 +433,45 @@ impl<'a> StageMovementVisitor<'a> {
                 // We have to compute the schema outside of the dual_source call
                 // because passing references to the left, right sources to dual_sources
                 // upsets the borrow checker since we also pass *node* by value.
-                let left_schema = n.left.schema(&self.schema_state).unwrap();
-                let right_schema = n.right.schema(&self.schema_state).unwrap();
+                let left_schema = n.left.schema(self.schema_state).unwrap();
+                let right_schema = n.right.schema(self.schema_state).unwrap();
                 let (stage, changed) =
                     self.dual_source(node, datasource_uses, left_schema, right_schema, false);
                 if changed {
-                    stage
+                    (stage, true)
                 } else if let Stage::Filter(f) = stage {
                     if let Stage::Join(j) = *f.source {
+                        // Moving a Filter condition into a Join condition is a
+                        // non-Filter-Filter swap, so we must set this to false.
+                        self.is_filter_filter_only_change = false;
                         let condition = Self::create_new_join_condition(j.condition, f.condition);
-                        Stage::Join(Join { condition, ..j })
+                        (Stage::Join(Join { condition, ..j }), true)
                     } else {
                         unreachable!()
                     }
                 } else {
                     // we cannot move a Sort or a MatchFilter into an On clause
-                    stage
+                    (stage, false)
                 }
             }
             Stage::Set(ref n) => {
                 // We have to compute the schema outside of the dual_source call
                 // because passing references to the left, right sources to dual_sources
                 // upsets the borrow checker since we also pass *node* by value.
-                let left_schema = n.left.schema(&self.schema_state).unwrap();
-                let right_schema = n.right.schema(&self.schema_state).unwrap();
+                let left_schema = n.left.schema(self.schema_state).unwrap();
+                let right_schema = n.right.schema(self.schema_state).unwrap();
                 // Set does not have an On field, so we ignore the changed bool second return
                 // value.
                 self.dual_source(node, datasource_uses, left_schema, right_schema, false)
-                    .0
             }
             // For EquiJoin, we can only move stages up the LHS (source) since the
             // RHS (from) must always remain a simple collection source. The dual_source
             // method ensures that the stage, node, is only able to move up the Left
             // source if possible.
             Stage::MQLIntrinsic(MQLStage::EquiJoin(ref n)) => {
-                let left_schema = n.source.schema(&self.schema_state).unwrap();
-                let right_schema = n.from.schema(&self.schema_state).unwrap();
+                let left_schema = n.source.schema(self.schema_state).unwrap();
+                let right_schema = n.from.schema(self.schema_state).unwrap();
                 self.dual_source(node, datasource_uses, left_schema, right_schema, true)
-                    .0
             }
             // For LateralJoin, we can move stages up either side depending
             // on which datasources are used. If any datasources from the RHS
@@ -434,7 +479,7 @@ impl<'a> StageMovementVisitor<'a> {
             // Recall that the LHS (source) datasources are considered in-scope
             // inside the RHS (subquery) so this is safe.
             Stage::MQLIntrinsic(MQLStage::LateralJoin(ref n)) => {
-                let right_schema = n.subquery.schema(&self.schema_state).unwrap();
+                let right_schema = n.subquery.schema(self.schema_state).unwrap();
                 let side = if datasource_uses
                     .iter()
                     .any(|u| right_schema.has_datasource(u))
@@ -443,18 +488,21 @@ impl<'a> StageMovementVisitor<'a> {
                 } else {
                     BubbleUpSide::Left
                 };
-                self.bubble_up(Self::handle_def_user, node, side)
+                (self.bubble_up(Self::handle_def_user, node, side), true)
             }
             source => {
                 let opaque_field_defines = source.opaque_field_defines();
                 let field_uses = if let Some(field_uses) = field_uses {
                     field_uses
                 } else if opaque_field_defines.is_empty() {
-                    return self.bubble_up(Self::handle_def_user, node, BubbleUpSide::Both);
+                    return (
+                        self.bubble_up(Self::handle_def_user, node, BubbleUpSide::Both),
+                        true,
+                    );
                 } else {
                     // if there is a computed FieldAccess and opaque_field_defines is not empty,
                     // we just don't do anything to be safe.
-                    return node;
+                    return (node, false);
                 };
                 // We can check that the intersection is non-empty without collecting by checking
                 // if next() exists.
@@ -463,18 +511,21 @@ impl<'a> StageMovementVisitor<'a> {
                     .next()
                     .is_some()
                 {
-                    node
+                    (node, false)
                 } else {
                     let theta = source.defines();
                     // unfortunately, since substitution can fail, we need to clone the node.
                     match node.substitute(theta) {
                         Ok(subbed) =>
                         // The source here is not a Set or a Join so the BubbleUpSide does not actually
-                        // matter, we use Both as a place holder.
+                        // matter, we use Both as a placeholder.
                         {
-                            self.bubble_up(Self::handle_def_user, subbed, BubbleUpSide::Both)
+                            (
+                                self.bubble_up(Self::handle_def_user, subbed, BubbleUpSide::Both),
+                                true,
+                            )
                         }
-                        Err(original) => original,
+                        Err(original) => (original, false),
                     }
                 }
             }
@@ -516,7 +567,7 @@ impl<'a> StageMovementVisitor<'a> {
         left_only: bool,
     ) -> (Stage, bool) {
         let mut side = BubbleUpSide::Both;
-        // An interesting side affect of how this is architected is that a Filter
+        // An interesting side effect of how this is architected is that a Filter
         // with no Key usages will be bubbled up both sides, which is actually good and correct,
         // though generally trivial.
         for u in datasource_uses.into_iter() {
@@ -573,9 +624,15 @@ impl<'a> Visitor for StageMovementVisitor<'a> {
     fn visit_stage(&mut self, node: Stage) -> Stage {
         let node = node.walk(self);
         match node {
-            Stage::Offset(_) => self.handle_offset(node),
+            Stage::Offset(_) => {
+                let (new_node, changed) = self.handle_offset(node);
+                self.changed |= changed;
+                new_node
+            }
             Stage::Sort(_) | Stage::MQLIntrinsic(MQLStage::MatchFilter(_)) | Stage::Filter(_) => {
-                self.handle_def_user(node)
+                let (new_node, changed) = self.handle_def_user(node);
+                self.changed |= changed;
+                new_node
             }
             _ => node,
         }
