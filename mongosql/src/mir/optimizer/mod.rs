@@ -38,10 +38,6 @@ static OPTIMIZERS: fn() -> Vec<Box<dyn Optimizer>> = || {
         Box::new(determine_join_semantics::JoinSemanticsOptimizer {}),
         Box::new(lower_joins::LowerJoinsOptimizer {}),
         Box::new(prefilter_unwinds::PrefilterUnwindsOptimizer {}),
-        Box::new(stage_movement::StageMovementOptimizer {}),
-        Box::new(dead_code_elimination::DeadCodeEliminator {}),
-        Box::new(constant_folding::ConstantFoldingOptimizer {}),
-        Box::new(stage_movement::StageMovementOptimizer {}),
         Box::new(dead_code_elimination::DeadCodeEliminator {}),
     ]
 };
