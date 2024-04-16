@@ -366,7 +366,7 @@ impl<'a> Algebrizer<'a> {
                     // for now, and depending on the rest of the select query, a DuplicateKey or SchemaChecking
                     // error will occur downstream.
                     _ => {
-                        let e = expression_algebrizer.algebrize_expression(e)?;
+                        let e = expression_algebrizer.algebrize_expression(e, false)?;
                         let bot = Key::bot(expression_algebrizer.scope_level);
                         datasources
                             .insert(bot.clone())
@@ -412,7 +412,7 @@ impl<'a> Algebrizer<'a> {
         // under the Bottom namespace.
         if bottom.is_some() {
             let e = expression_algebrizer
-                .algebrize_expression(ast::Expression::Document(bottom.unwrap()))?;
+                .algebrize_expression(ast::Expression::Document(bottom.unwrap()), false)?;
             let bot = Key::bot(expression_algebrizer.scope_level);
             datasources
                 .insert(bot.clone())
@@ -456,7 +456,7 @@ impl<'a> Algebrizer<'a> {
         let src = mir::Stage::Array(mir::ArraySource {
             array: ve
                 .into_iter()
-                .map(|e| self.algebrize_expression(e))
+                .map(|e| self.algebrize_expression(e, false))
                 .collect::<Result<_>>()?,
             alias,
             cache: SchemaCache::new(),
@@ -510,7 +510,7 @@ impl<'a> Algebrizer<'a> {
             .with_merged_mappings(right_src_result_set.schema_env)?;
         let condition = j
             .condition
-            .map(|e| join_algebrizer.algebrize_expression(e))
+            .map(|e| join_algebrizer.algebrize_expression(e, false))
             .transpose()?
             .map(Self::convert_literal_to_bool);
         condition
@@ -766,7 +766,7 @@ impl<'a> Algebrizer<'a> {
     /// expression which consists of only other FieldAccess expressions up the
     /// chain of exprs until it hits a Reference expression.
     fn algebrize_unwind_path(&self, path: ast::Expression) -> Result<mir::FieldPath> {
-        let path = self.algebrize_expression(path)?;
+        let path = self.algebrize_expression(path, false)?;
         (&path).try_into().map_err(|_| Error::InvalidUnwindPath)
     }
 
@@ -797,7 +797,7 @@ impl<'a> Algebrizer<'a> {
                 mir::Stage::Filter(mir::Filter {
                     source: Box::new(source),
                     condition: expression_algebrizer
-                        .algebrize_expression(expr)
+                        .algebrize_expression(expr, false)
                         .map(Self::convert_literal_to_bool)?,
                     cache: SchemaCache::new(),
                 })
@@ -853,7 +853,7 @@ impl<'a> Algebrizer<'a> {
                     .map(|s| {
                         let sort_key = match s.key {
                             ast::SortKey::Simple(expr) => {
-                                expression_algebrizer.algebrize_expression(expr)
+                                expression_algebrizer.algebrize_expression(expr, false)
                             }
                             ast::SortKey::Positional(_) => panic!(
                                 "positional sort keys should have been rewritten to references"
@@ -909,11 +909,12 @@ impl<'a> Algebrizer<'a> {
                                 .map_err(|e| Error::DuplicateDocumentKey(e.get_key_name()))?;
                             Ok(mir::OptionallyAliasedExpr::Aliased(mir::AliasedExpr {
                                 alias: ast_key.alias,
-                                expr: expression_algebrizer.algebrize_expression(ast_key.expr)?,
+                                expr: expression_algebrizer
+                                    .algebrize_expression(ast_key.expr, false)?,
                             }))
                         }
                         ast::OptionallyAliasedExpr::Unaliased(expr) => expression_algebrizer
-                            .algebrize_expression(expr)
+                            .algebrize_expression(expr, false)
                             .map(mir::OptionallyAliasedExpr::Unaliased),
                     })
                     .collect::<Result<_>>()?;
@@ -975,7 +976,7 @@ impl<'a> Algebrizer<'a> {
                         if ve.len() != 1 {
                             return Err(Error::AggregationFunctionMustHaveOneArgument);
                         }
-                        self.algebrize_expression(ve[0].clone())?
+                        self.algebrize_expression(ve[0].clone(), false)?
                     }),
                     distinct,
                 })
@@ -985,19 +986,23 @@ impl<'a> Algebrizer<'a> {
         Ok(mir_node)
     }
 
-    pub fn algebrize_expression(&self, ast_node: ast::Expression) -> Result<mir::Expression> {
+    pub fn algebrize_expression(
+        &self,
+        ast_node: ast::Expression,
+        _in_implicit_type_conversion_context: bool,
+    ) -> Result<mir::Expression> {
         match ast_node {
             ast::Expression::Literal(l) => Ok(mir::Expression::Literal(self.algebrize_literal(l))),
             ast::Expression::Array(a) => Ok(mir::Expression::Array(
                 a.into_iter()
-                    .map(|e| self.algebrize_expression(e))
+                    .map(|e| self.algebrize_expression(e, false))
                     .collect::<Result<Vec<mir::Expression>>>()?
                     .into(),
             )),
             ast::Expression::Document(d) => Ok(mir::Expression::Document({
                 let algebrized = d
                     .into_iter()
-                    .map(|kv| Ok((kv.key, self.algebrize_expression(kv.value)?)))
+                    .map(|kv| Ok((kv.key, self.algebrize_expression(kv.value, false)?)))
                     .collect::<Result<Vec<_>>>()?;
                 let mut out = UniqueLinkedHashMap::new();
                 out.insert_many(algebrized.into_iter())
@@ -1101,7 +1106,7 @@ impl<'a> Algebrizer<'a> {
             (ast::FunctionName::CurrentTimestamp, 1) => Vec::new(),
             _ => args
                 .into_iter()
-                .map(|e| self.algebrize_expression(e))
+                .map(|e| self.algebrize_expression(e, false))
                 .collect::<Result<Vec<_>>>()?,
         };
 
@@ -1120,7 +1125,7 @@ impl<'a> Algebrizer<'a> {
     }
 
     fn algebrize_unary_expr(&self, u: ast::UnaryExpr) -> Result<mir::Expression> {
-        let arg = self.algebrize_expression(*u.expr)?;
+        let arg = self.algebrize_expression(*u.expr, false)?;
         let args = vec![arg];
         Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
@@ -1144,8 +1149,8 @@ impl<'a> Algebrizer<'a> {
 
     fn algebrize_binary_expr(&self, b: ast::BinaryExpr) -> Result<mir::Expression> {
         let (mut left, mut right) = (
-            self.algebrize_expression(*b.left)?,
-            self.algebrize_expression(*b.right)?,
+            self.algebrize_expression(*b.left, false)?,
+            self.algebrize_expression(*b.right, false)?,
         );
 
         let mut cast_div_result: Option<mir::Type> = None;
@@ -1227,24 +1232,24 @@ impl<'a> Algebrizer<'a> {
 
     fn algebrize_is(&self, ast_node: ast::IsExpr) -> Result<mir::Expression> {
         Ok(mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(self.algebrize_expression(*ast_node.expr)?),
+            expr: Box::new(self.algebrize_expression(*ast_node.expr, false)?),
             target_type: mir::TypeOrMissing::try_from(ast_node.target_type)?,
         }))
     }
 
     fn algebrize_like(&self, ast_node: ast::LikeExpr) -> Result<mir::Expression> {
         Ok(mir::Expression::Like(mir::LikeExpr {
-            expr: Box::new(self.algebrize_expression(*ast_node.expr)?),
-            pattern: Box::new(self.algebrize_expression(*ast_node.pattern)?),
+            expr: Box::new(self.algebrize_expression(*ast_node.expr, false)?),
+            pattern: Box::new(self.algebrize_expression(*ast_node.pattern, false)?),
             escape: ast_node.escape,
         }))
     }
 
     fn algebrize_between(&self, b: ast::BetweenExpr) -> Result<mir::Expression> {
         let (arg, min, max) = (
-            self.algebrize_expression(*b.expr)?,
-            self.algebrize_expression(*b.min)?,
-            self.algebrize_expression(*b.max)?,
+            self.algebrize_expression(*b.expr, false)?,
+            self.algebrize_expression(*b.min, false)?,
+            self.algebrize_expression(*b.max, false)?,
         );
         let args = vec![arg, min, max];
         let function = mir::ScalarFunction::Between;
@@ -1265,8 +1270,8 @@ impl<'a> Algebrizer<'a> {
             ast::TrimSpec::Both => mir::ScalarFunction::BTrim,
         };
         let args = vec![
-            self.algebrize_expression(*t.trim_chars)?,
-            self.algebrize_expression(*t.arg)?,
+            self.algebrize_expression(*t.trim_chars, false)?,
+            self.algebrize_expression(*t.arg, false)?,
         ];
         Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
@@ -1294,7 +1299,7 @@ impl<'a> Algebrizer<'a> {
             IsoWeekday => mir::ScalarFunction::IsoWeekday,
             Quarter => panic!("'Quarter' is not a supported date part for EXTRACT"),
         };
-        let args = vec![self.algebrize_expression(*e.arg)?];
+        let args = vec![self.algebrize_expression(*e.arg, false)?];
         let is_nullable = Self::args_are_nullable(&args);
         Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
@@ -1333,7 +1338,7 @@ impl<'a> Algebrizer<'a> {
         let args = d
             .args
             .into_iter()
-            .map(|e| self.algebrize_expression(e))
+            .map(|e| self.algebrize_expression(e, false))
             .collect::<Result<Vec<_>>>()?;
 
         // All date functions are nullable
@@ -1350,21 +1355,21 @@ impl<'a> Algebrizer<'a> {
     }
 
     fn algebrize_access(&self, a: ast::AccessExpr) -> Result<mir::Expression> {
-        let expr = self.algebrize_expression(*a.expr)?;
+        let expr = self.algebrize_expression(*a.expr, false)?;
         Ok(match *a.subfield {
             ast::Expression::Literal(ast::Literal::String(s)) => {
                 self.construct_field_access_expr(expr, s)?
             }
             sf => mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
                 mir::ScalarFunction::ComputedFieldAccess,
-                vec![expr, self.algebrize_expression(sf)?],
+                vec![expr, self.algebrize_expression(sf, false)?],
             )),
         })
     }
 
     fn algebrize_type_assertion(&self, t: ast::TypeAssertionExpr) -> Result<mir::Expression> {
         Ok(mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
-            expr: Box::new(self.algebrize_expression(*t.expr)?),
+            expr: Box::new(self.algebrize_expression(*t.expr, false)?),
             target_type: mir::Type::try_from(t.target_type)?,
         }))
     }
@@ -1372,21 +1377,24 @@ impl<'a> Algebrizer<'a> {
     fn algebrize_case(&self, c: ast::CaseExpr) -> Result<mir::Expression> {
         let else_branch = c
             .else_branch
-            .map(|e| self.algebrize_expression(*e))
+            .map(|e| self.algebrize_expression(*e, false))
             .transpose()?
             .map(Box::new)
             .unwrap_or_else(|| Box::new(mir::Expression::Literal(mir::LiteralValue::Null)));
-        let expr = c.expr.map(|e| self.algebrize_expression(*e)).transpose()?;
+        let expr = c
+            .expr
+            .map(|e| self.algebrize_expression(*e, false))
+            .transpose()?;
         let when_branch = c
             .when_branch
             .into_iter()
             .map(|wb| {
-                let when = self.algebrize_expression(*wb.when)?;
+                let when = self.algebrize_expression(*wb.when, false)?;
                 Ok(mir::WhenBranch {
                     is_nullable: NULLISH.satisfies(&when.schema(&self.schema_inference_state())?)
                         != Satisfaction::Not,
                     when: Box::new(when),
-                    then: Box::new(self.algebrize_expression(*wb.then)?),
+                    then: Box::new(self.algebrize_expression(*wb.then, false)?),
                 })
             })
             .collect::<Result<_>>()?;
@@ -1423,11 +1431,11 @@ impl<'a> Algebrizer<'a> {
             }
             Array | Boolean | Datetime | Decimal128 | Document | Double | Int32 | Int64 | Null
             | ObjectId | String => {
-                let expr = self.algebrize_expression(*c.expr)?;
+                let expr = self.algebrize_expression(*c.expr, false)?;
                 let on_null =
-                    self.algebrize_expression(*(c.on_null.unwrap_or_else(|| null_expr!())))?;
-                let on_error =
-                    self.algebrize_expression(*(c.on_error.unwrap_or_else(|| null_expr!())))?;
+                    self.algebrize_expression(*(c.on_null.unwrap_or_else(|| null_expr!())), false)?;
+                let on_error = self
+                    .algebrize_expression(*(c.on_error.unwrap_or_else(|| null_expr!())), false)?;
                 let is_nullable =
                     expr.is_nullable() || on_error.is_nullable() || on_null.is_nullable();
                 Ok(mir::Expression::Cast(mir::CastExpr {
@@ -1482,7 +1490,7 @@ impl<'a> Algebrizer<'a> {
             ast::SubqueryQuantifier::All => mir::SubqueryModifier::All,
             ast::SubqueryQuantifier::Any => mir::SubqueryModifier::Any,
         };
-        let argument = self.algebrize_expression(*s.expr)?;
+        let argument = self.algebrize_expression(*s.expr, false)?;
         let arg_schema = argument.schema(&self.schema_inference_state())?;
         let is_nullable = NULLISH.satisfies(&arg_schema) != Satisfaction::Not;
         Ok(mir::Expression::SubqueryComparison(
@@ -1505,7 +1513,7 @@ impl<'a> Algebrizer<'a> {
         if let ast::Expression::Identifier(s) = *p.expr {
             return self.algebrize_possibly_qualified_field_access(s, p.subpath);
         }
-        let expr = self.algebrize_expression(*p.expr)?;
+        let expr = self.algebrize_expression(*p.expr, false)?;
         let expr_schema = expr.schema(&self.schema_inference_state())?;
         let is_nullable = NULLISH.satisfies(&expr_schema) != Satisfaction::Not
             || expr_schema.contains_field(&p.subpath) != Satisfaction::Must;

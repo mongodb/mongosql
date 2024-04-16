@@ -9,7 +9,7 @@ use crate::{
 use lazy_static::lazy_static;
 
 macro_rules! test_algebrize {
-    ($func_name:ident, method = $method:ident, $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? $(expected_error_code = $expected_error_code:literal,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
+    ($func_name:ident, method = $method:ident, $(in_implicit_type_conversion_context = $in_implicit_type_conversion_context:expr,)? $(expected = $expected:expr,)? $(expected_pat = $expected_pat:pat,)? $(expected_error_code = $expected_error_code:literal,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
         #[test]
         fn $func_name() {
             use crate::{
@@ -30,7 +30,7 @@ macro_rules! test_algebrize {
             let mut algebrizer = Algebrizer::new("test".into(), &catalog, 0u16, schema_checking_mode);
             $(algebrizer = Algebrizer::with_schema_env("test".into(), $env, &catalog, 1u16, schema_checking_mode);)?
 
-            let res: Result<_, Error> = algebrizer.$method($ast $(, $source)?);
+            let res: Result<_, Error> = algebrizer.$method($ast $(, $source)? $(, $in_implicit_type_conversion_context)?);
             $(assert!(matches!(res, $expected_pat));)?
             $(assert_eq!($expected, res);)?
 
@@ -43,7 +43,7 @@ macro_rules! test_algebrize {
 }
 
 macro_rules! test_algebrize_expr_and_schema_check {
-    ($func_name:ident, method = $method:ident, $(expected = $expected:expr,)? $(expected_error_code = $expected_error_code:literal,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
+    ($func_name:ident, method = $method:ident, $(in_implicit_type_conversion_context = $in_implicit_type_conversion_context:expr,)? $(expected = $expected:expr,)? $(expected_error_code = $expected_error_code:literal,)? input = $ast:expr, $(source = $source:expr,)? $(env = $env:expr,)? $(catalog = $catalog:expr,)? $(schema_checking_mode = $schema_checking_mode:expr,)?) => {
         #[test]
         fn $func_name() {
             #[allow(unused)]
@@ -66,7 +66,7 @@ macro_rules! test_algebrize_expr_and_schema_check {
             let mut algebrizer = Algebrizer::new("test".into(), &catalog, 0u16, schema_checking_mode);
             $(algebrizer = Algebrizer::with_schema_env("test".into(), $env, &catalog, 1u16, schema_checking_mode);)?
 
-            let res: Result<_, Error> = algebrizer.$method($ast $(, $source)?);
+            let res: Result<_, Error> = algebrizer.$method($ast $(, $source)? $(, $in_implicit_type_conversion_context)?);
             let res = res.unwrap().schema(&algebrizer.schema_inference_state()).map_err(|e|Error::SchemaChecking(e));
             $(assert_eq!($expected, res);)?
 
@@ -190,24 +190,28 @@ mod expression {
     test_algebrize!(
         null,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Literal(mir::LiteralValue::Null)),
         input = ast::Expression::Literal(ast::Literal::Null),
     );
     test_algebrize!(
         expr_true,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
         input = ast::Expression::Literal(ast::Literal::Boolean(true)),
     );
     test_algebrize!(
         expr_false,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Literal(mir::LiteralValue::Boolean(false))),
         input = ast::Expression::Literal(ast::Literal::Boolean(false)),
     );
     test_algebrize!(
         string,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Literal(mir::LiteralValue::String(
             "hello!".into()
         ))),
@@ -216,18 +220,21 @@ mod expression {
     test_algebrize!(
         int,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
         input = ast::Expression::Literal(ast::Literal::Integer(42)),
     );
     test_algebrize!(
         long,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Literal(mir::LiteralValue::Long(42))),
         input = ast::Expression::Literal(ast::Literal::Long(42)),
     );
     test_algebrize!(
         double,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Literal(mir::LiteralValue::Double(42f64))),
         input = ast::Expression::Literal(ast::Literal::Double(42f64)),
     );
@@ -235,12 +242,14 @@ mod expression {
     test_algebrize!(
         empty_array,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Array(vec![].into())),
         input = ast::Expression::Array(vec![]),
     );
     test_algebrize!(
         nested_array,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Array(
             vec![mir::Expression::Array(
                 vec![
@@ -260,6 +269,7 @@ mod expression {
     test_algebrize!(
         empty_document,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Document(
             unchecked_unique_linked_hash_map! {}.into()
         )),
@@ -268,6 +278,7 @@ mod expression {
     test_algebrize!(
         nested_document,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Document(
             unchecked_unique_linked_hash_map! {
                 "foo2".into() => mir::Expression::Document(
@@ -286,6 +297,7 @@ mod expression {
     test_algebrize!(
         document_with_keys_containing_dots_and_dollars,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Document(
             unchecked_unique_linked_hash_map! {
                 "a.b".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
@@ -301,6 +313,7 @@ mod expression {
     test_algebrize!(
         qualified_ref_in_current_scope,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
             expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
             field: "a".into(),
@@ -332,6 +345,7 @@ mod expression {
     test_algebrize!(
         qualified_ref_in_super_scope,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
             expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
             field: "a".into(),
@@ -363,6 +377,7 @@ mod expression {
     test_algebrize!(
         unqualified_ref_may_exist_in_current_scope,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
             expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
             field: "a".into(),
@@ -383,6 +398,7 @@ mod expression {
     test_algebrize!(
         unqualified_ref_must_exist_in_current_scope,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
             expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
             field: "a".into(),
@@ -403,6 +419,7 @@ mod expression {
     test_algebrize!(
         unqualified_ref_may_exist_only_in_super_scope,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
             expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
             field: "a".into(),
@@ -424,6 +441,7 @@ mod expression {
     test_algebrize!(
         unqualified_ref_must_exist_in_super_scope,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
             expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
             field: "a".into(),
@@ -445,6 +463,7 @@ mod expression {
     test_algebrize!(
         unqualified_ref_must_exist_in_super_scope_bot_source,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
             expr: Box::new(mir::Expression::Reference(Key::bot(0u16).into())),
             field: "a".into(),
@@ -466,6 +485,7 @@ mod expression {
     test_algebrize!(
         unqualified_ref_may_and_must_exist_in_two_sources,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::AmbiguousField("a".into())),
         expected_error_code = 3009,
         input = ast::Expression::Identifier("a".into()),
@@ -491,6 +511,7 @@ mod expression {
     test_algebrize!(
         unqualified_subpath_in_current_and_super_must_exist_in_current,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
             expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
                 expr: Box::new(mir::Expression::Reference(("test", 1u16).into())),
@@ -536,6 +557,7 @@ mod expression {
     test_algebrize!(
         unqualified_subpath_in_current_and_super_may_exist_is_ambiguous,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::AmbiguousField("a".into())),
         expected_error_code = 3009,
         input = ast::Expression::Subpath(ast::SubpathExpr {
@@ -574,6 +596,7 @@ mod expression {
     test_algebrize!(
         unqualified_subpath_in_super_scope,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
             expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
                 expr: Box::new(mir::Expression::Reference(("super_test", 0u16).into())),
@@ -619,6 +642,7 @@ mod expression {
     test_algebrize!(
         qualified_ref_prefers_super_datasource_to_local_field,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
             expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
             field: "a".into(),
@@ -656,6 +680,7 @@ mod expression {
     test_algebrize!(
         qualified_ref_to_local_field,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
             expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
                 expr: Box::new(mir::Expression::Reference(("bar", 1u16).into())),
@@ -700,6 +725,7 @@ mod expression {
     test_algebrize!(
         unqualified_reference_and_may_contain_sub_and_must_contain_outer_is_ambiguous,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::AmbiguousField("a".into())),
         expected_error_code = 3009,
         input = ast::Expression::Subpath(ast::SubpathExpr {
@@ -738,6 +764,7 @@ mod expression {
     test_algebrize!(
         ref_does_not_exist,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::FieldNotFound("bar".into(), None)),
         expected_error_code = 3008,
         input = ast::Expression::Identifier("bar".into()),
@@ -746,6 +773,7 @@ mod expression {
     test_algebrize!(
         add_bin_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Add,
@@ -765,6 +793,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         add_wrong_types,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "Add",
             required: NUMERIC_OR_NULLISH.clone(),
@@ -783,6 +812,7 @@ mod expression {
     test_algebrize!(
         sub_bin_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Sub,
@@ -802,6 +832,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         sub_wrong_types,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "Sub",
             required: NUMERIC_OR_NULLISH.clone(),
@@ -820,6 +851,7 @@ mod expression {
     test_algebrize!(
         div_bin_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Div,
@@ -840,6 +872,7 @@ mod expression {
     test_algebrize!(
         cast_div_result_of_two_integers_to_integer,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Cast(mir::CastExpr {
             expr: Box::new(mir::Expression::ScalarFunction(
                 mir::ScalarFunctionApplication {
@@ -866,6 +899,7 @@ mod expression {
     test_algebrize!(
         cast_div_result_of_long_and_integer_to_long,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Cast(mir::CastExpr {
             expr: Box::new(mir::Expression::ScalarFunction(
                 mir::ScalarFunctionApplication {
@@ -892,6 +926,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         div_wrong_types,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "Div",
             required: NUMERIC_OR_NULLISH.clone(),
@@ -910,6 +945,7 @@ mod expression {
     test_algebrize!(
         mul_bin_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Mul,
@@ -929,6 +965,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         mul_wrong_types,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "Mul",
             required: NUMERIC_OR_NULLISH.clone(),
@@ -947,6 +984,7 @@ mod expression {
     test_algebrize!(
         concat_bin_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Concat,
@@ -966,6 +1004,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         concat_wrong_types,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "Concat",
             required: STRING_OR_NULLISH.clone(),
@@ -984,6 +1023,7 @@ mod expression {
     test_algebrize!(
         eq_bool_and_int,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Eq,
@@ -1003,6 +1043,7 @@ mod expression {
     test_algebrize!(
         gt_bool_and_int,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Gt,
@@ -1022,6 +1063,7 @@ mod expression {
     test_algebrize!(
         and_bool_and_int,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::And,
@@ -1041,6 +1083,7 @@ mod expression {
     test_algebrize!(
         or_int_and_int,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Or,
@@ -1061,6 +1104,7 @@ mod expression {
     test_algebrize!(
         neg_unary_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Neg,
@@ -1076,6 +1120,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         neg_wrong_type,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "Neg",
             required: NUMERIC_OR_NULLISH.clone(),
@@ -1091,6 +1136,7 @@ mod expression {
     test_algebrize!(
         pos_unary_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Pos,
@@ -1106,6 +1152,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         pos_wrong_type,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "Pos",
             required: NUMERIC_OR_NULLISH.clone(),
@@ -1121,6 +1168,7 @@ mod expression {
     test_algebrize!(
         standard_scalar_function,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Lower,
@@ -1142,6 +1190,7 @@ mod expression {
     test_algebrize!(
         replace,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Replace,
@@ -1166,6 +1215,7 @@ mod expression {
     test_algebrize!(
         replace_null_one,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Replace,
@@ -1190,6 +1240,7 @@ mod expression {
     test_algebrize!(
         replace_null_two,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Replace,
@@ -1214,6 +1265,7 @@ mod expression {
     test_algebrize!(
         replace_null_three,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Replace,
@@ -1238,6 +1290,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         replace_args_must_be_string_or_null,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "Replace",
             required: STRING_OR_NULLISH.clone(),
@@ -1257,6 +1310,7 @@ mod expression {
     test_algebrize!(
         ltrim,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::LTrim,
@@ -1280,6 +1334,7 @@ mod expression {
     test_algebrize!(
         rtrim,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::RTrim,
@@ -1303,6 +1358,7 @@ mod expression {
     test_algebrize!(
         btrim,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::BTrim,
@@ -1324,6 +1380,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         trim_arg_must_be_string_or_null,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "BTrim",
             required: STRING_OR_NULLISH.clone(),
@@ -1339,6 +1396,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         trim_escape_must_be_string,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "BTrim",
             required: STRING_OR_NULLISH.clone(),
@@ -1355,6 +1413,7 @@ mod expression {
     test_algebrize!(
         extract_year,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Year,
@@ -1380,6 +1439,7 @@ mod expression {
     test_algebrize!(
         extract_month,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Month,
@@ -1405,6 +1465,7 @@ mod expression {
     test_algebrize!(
         extract_day,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Day,
@@ -1430,6 +1491,7 @@ mod expression {
     test_algebrize!(
         extract_hour,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Hour,
@@ -1455,6 +1517,7 @@ mod expression {
     test_algebrize!(
         extract_minute,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Minute,
@@ -1480,6 +1543,7 @@ mod expression {
     test_algebrize!(
         extract_second,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Second,
@@ -1506,6 +1570,7 @@ mod expression {
     test_algebrize!(
         extract_millsecond,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Millisecond,
@@ -1531,6 +1596,7 @@ mod expression {
     test_algebrize!(
         extract_day_of_year,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::DayOfYear,
@@ -1556,6 +1622,7 @@ mod expression {
     test_algebrize!(
         extract_iso_week,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::IsoWeek,
@@ -1582,6 +1649,7 @@ mod expression {
     test_algebrize!(
         extract_day_of_week,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::DayOfWeek,
@@ -1607,6 +1675,7 @@ mod expression {
     test_algebrize!(
         extract_iso_weekday,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::IsoWeekday,
@@ -1632,6 +1701,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         extract_must_be_date,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "Second",
             required: DATE_OR_NULLISH.clone(),
@@ -1646,6 +1716,7 @@ mod expression {
     test_algebrize!(
         dateadd,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::DateFunction(
             mir::DateFunctionApplication {
                 function: mir::DateFunction::Add,
@@ -1677,6 +1748,7 @@ mod expression {
     test_algebrize!(
         datediff,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::DateFunction(
             mir::DateFunctionApplication {
                 function: mir::DateFunction::Diff,
@@ -1718,6 +1790,7 @@ mod expression {
     test_algebrize!(
         datetrunc,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::DateFunction(
             mir::DateFunctionApplication {
                 function: mir::DateFunction::Trunc,
@@ -1750,6 +1823,7 @@ mod expression {
     test_algebrize!(
         searched_case,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::SearchedCase(mir::SearchedCaseExpr {
             when_branch: vec![mir::WhenBranch {
                 when: Box::new(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
@@ -1777,6 +1851,7 @@ mod expression {
     test_algebrize!(
         searched_case_no_else,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::SearchedCase(mir::SearchedCaseExpr {
             when_branch: vec![mir::WhenBranch {
                 when: Box::new(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
@@ -1800,6 +1875,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         searched_case_when_condition_is_not_bool,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "SearchedCase",
             required: BOOLEAN_OR_NULLISH.clone(),
@@ -1821,6 +1897,7 @@ mod expression {
     test_algebrize!(
         simple_case,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::SimpleCase(mir::SimpleCaseExpr {
             expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(1))),
             when_branch: vec![mir::WhenBranch {
@@ -1849,6 +1926,7 @@ mod expression {
     test_algebrize!(
         simple_case_no_else,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::SimpleCase(mir::SimpleCaseExpr {
             expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(1))),
             when_branch: vec![mir::WhenBranch {
@@ -1873,6 +1951,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         simple_case_operand_and_when_operand_not_comparable,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(
             mir::schema::Error::InvalidComparison(
                 "SimpleCase",
@@ -1896,6 +1975,7 @@ mod expression {
     test_algebrize!(
         cast_full,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Cast(mir::CastExpr {
             expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             to: mir::Type::String,
@@ -1921,6 +2001,7 @@ mod expression {
     test_algebrize!(
         cast_simple,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Cast(mir::CastExpr {
             expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             to: mir::Type::String,
@@ -1939,6 +2020,7 @@ mod expression {
     test_algebrize!(
         type_assert_success,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
             expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::Type::Int32,
@@ -1951,6 +2033,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         type_assert_fail,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "::!",
             required: Schema::Atomic(Atomic::String),
@@ -1966,6 +2049,7 @@ mod expression {
     test_algebrize!(
         is_success,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Is(mir::IsExpr {
             expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
             target_type: mir::TypeOrMissing::Type(mir::Type::Int32),
@@ -1978,6 +2062,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         is_recursive_failure,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "Add",
             required: NUMERIC_OR_NULLISH.clone(),
@@ -1997,6 +2082,7 @@ mod expression {
     test_algebrize!(
         like_success_with_pattern,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Like(mir::LikeExpr {
             expr: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
                 "42".into()
@@ -2015,6 +2101,7 @@ mod expression {
     test_algebrize!(
         like_success_no_pattern,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::Like(mir::LikeExpr {
             expr: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
                 "42".into()
@@ -2033,6 +2120,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         like_expr_must_be_string,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "Like",
             required: STRING_OR_NULLISH.clone(),
@@ -2048,6 +2136,7 @@ mod expression {
     test_algebrize_expr_and_schema_check!(
         like_pattern_must_be_string,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
             name: "Like",
             required: STRING_OR_NULLISH.clone(),
@@ -2064,6 +2153,7 @@ mod expression {
     test_algebrize!(
         log_bin_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Log,
@@ -2087,6 +2177,7 @@ mod expression {
     test_algebrize!(
         round_bin_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Round,
@@ -2110,6 +2201,7 @@ mod expression {
     test_algebrize!(
         cos_unary_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Cos,
@@ -2128,6 +2220,7 @@ mod expression {
     test_algebrize!(
         sin_unary_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Sin,
@@ -2146,6 +2239,7 @@ mod expression {
     test_algebrize!(
         tan_unary_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Tan,
@@ -2164,6 +2258,7 @@ mod expression {
     test_algebrize!(
         radians_unary_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Radians,
@@ -2182,6 +2277,7 @@ mod expression {
     test_algebrize!(
         sqrt_unary_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Sqrt,
@@ -2201,6 +2297,7 @@ mod expression {
     test_algebrize!(
         abs_unary_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Abs,
@@ -2220,6 +2317,7 @@ mod expression {
     test_algebrize!(
         ceil_unary_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Ceil,
@@ -2239,6 +2337,7 @@ mod expression {
     test_algebrize!(
         degrees_unary_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Degrees,
@@ -2258,6 +2357,7 @@ mod expression {
     test_algebrize!(
         floor_unary_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Floor,
@@ -2277,6 +2377,7 @@ mod expression {
     test_algebrize!(
         mod_bin_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Mod,
@@ -2300,6 +2401,7 @@ mod expression {
     test_algebrize!(
         pow_bin_op,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
                 function: mir::ScalarFunction::Pow,
@@ -4994,6 +5096,7 @@ mod subquery {
     test_algebrize!(
         uncorrelated_exists,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(Expression::Exists(Box::new(Stage::Project(Project {
             source: Box::new(mir_array(1u16)),
             expression: map! {
@@ -5024,6 +5127,7 @@ mod subquery {
     test_algebrize!(
         correlated_exists,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(Expression::Exists(Box::new(Stage::Project(Project {
             source: Box::new(mir_array(2u16)),
             expression: map! {
@@ -5068,6 +5172,7 @@ mod subquery {
     test_algebrize!(
         exists_cardinality_gt_1,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(Expression::Exists(Box::new(Stage::Project(Project {
             source: Box::new(Stage::Array(ArraySource {
                 array: vec![
@@ -5113,6 +5218,7 @@ mod subquery {
     test_algebrize!(
         exists_degree_gt_1,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(Expression::Exists(
             Box::new(Stage::Project(Project {
                 source: Box::new(Stage::Array(ArraySource {
@@ -5156,6 +5262,7 @@ mod subquery {
     test_algebrize!(
         uncorrelated_subquery_expr,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
@@ -5198,6 +5305,7 @@ mod subquery {
     test_algebrize!(
         correlated_subquery_expr,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference((DatasourceName::Bottom, 2u16).into())),
@@ -5250,6 +5358,7 @@ mod subquery {
     test_algebrize!(
         degree_zero_unsat_output,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::InvalidSubqueryDegree),
         expected_error_code = 3022,
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
@@ -5272,6 +5381,7 @@ mod subquery {
     test_algebrize!(
         substar_degree_eq_1,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference(("arr", 1u16).into())),
@@ -5308,6 +5418,7 @@ mod subquery {
     test_algebrize!(
         select_values_degree_gt_1,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::InvalidSubqueryDegree),
         expected_error_code = 3022,
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
@@ -5342,6 +5453,7 @@ mod subquery {
     test_algebrize!(
         star_degree_eq_1,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference(("arr", 1u16).into())),
@@ -5368,6 +5480,7 @@ mod subquery {
     test_algebrize!(
         select_star_degree_gt_1,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::InvalidSubqueryDegree),
         expected_error_code = 3022,
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
@@ -5393,6 +5506,7 @@ mod subquery {
     test_algebrize!(
         substar_degree_gt_1,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::InvalidSubqueryDegree),
         expected_error_code = 3022,
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
@@ -5422,6 +5536,7 @@ mod subquery {
     test_algebrize!(
         uncorrelated_subquery_comparison_all,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(Expression::SubqueryComparison(SubqueryComparison {
             operator: SubqueryComparisonOp::Eq,
             modifier: SubqueryModifier::All,
@@ -5477,6 +5592,7 @@ mod subquery {
     test_algebrize!(
         uncorrelated_subquery_comparison_any,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(Expression::SubqueryComparison(SubqueryComparison {
             operator: SubqueryComparisonOp::Eq,
             modifier: SubqueryModifier::Any,
@@ -5530,6 +5646,7 @@ mod subquery {
     test_algebrize!(
         argument_from_super_scope,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(Expression::SubqueryComparison(SubqueryComparison {
             operator: SubqueryComparisonOp::Eq,
             modifier: SubqueryModifier::All,
@@ -5597,6 +5714,7 @@ mod subquery {
     test_algebrize!(
         argument_only_evaluated_in_super_scope,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Err(Error::FieldNotFound("a".into(), None)),
         expected_error_code = 3008,
         input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
@@ -5625,6 +5743,7 @@ mod subquery {
     test_algebrize!(
         potentially_missing_column,
         method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
         expected = Ok(Expression::Subquery(SubqueryExpr {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
