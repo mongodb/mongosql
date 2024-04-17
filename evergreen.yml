@@ -724,6 +724,17 @@ functions:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/trr-macos/AtlasSQLReadinessReport-macos-signed
+        remote_file: transition-readiness-report/AtlasSQLReadinessReport-macos
+        bucket: translators-connectors-releases
+        permissions: public-read
+        skip_existing: false
+        content_type: application/octet-stream
+        display_name: AtlasSQLReadinessReport-macos
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/trr-macos/AtlasSQLReadinessReport-macos-signed
         remote_file: transition-readiness-report/AtlasSQLReadinessReport-v${release_version}-macos
         bucket: translators-connectors-releases
         permissions: public-read
@@ -736,6 +747,17 @@ functions:
         remote_file: mongosql-rs/artifacts/${version_id}/trr-macos-arm/AtlasSQLReadinessReport-macos-arm-signed
         local_file: mongosql-rs/release/trr-macos-arm/AtlasSQLReadinessReport-macos-arm-signed
         bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/trr-macos-arm/AtlasSQLReadinessReport-macos-arm-signed
+        remote_file: transition-readiness-report/AtlasSQLReadinessReport-macos-arm
+        bucket: translators-connectors-releases
+        permissions: public-read
+        skip_existing: false
+        content_type: application/octet-stream
+        display_name: AtlasSQLReadinessReport-macos-arm
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
@@ -758,6 +780,17 @@ functions:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/trr-ubuntu2004/mongosql-transition-tool
+        remote_file: transition-readiness-report/AtlasSQLReadinessReport-linux
+        bucket: translators-connectors-releases
+        permissions: public-read
+        skip_existing: false
+        content_type: application/octet-stream
+        display_name: AtlasSQLReadinessReport-linux
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/trr-ubuntu2004/mongosql-transition-tool
         remote_file: transition-readiness-report/AtlasSQLReadinessReport-v${release_version}-linux
         bucket: translators-connectors-releases
         permissions: public-read
@@ -775,6 +808,17 @@ functions:
         aws_key: ${release_aws_key}
         aws_secret: ${release_aws_secret}
         local_file: mongosql-rs/release/trr-ubuntu2004/mongosql-transition-tool-linux.sig
+        remote_file: transition-readiness-report/AtlasSQLReadinessReport-linux.sig
+        bucket: translators-connectors-releases
+        permissions: public-read
+        skip_existing: false
+        content_type: application/octet-stream
+        display_name: AtlasSQLReadinessReport-linux.sig
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/trr-ubuntu2004/mongosql-transition-tool-linux.sig
         remote_file: transition-readiness-report/AtlasSQLReadinessReport-v${release_version}-linux.sig
         bucket: translators-connectors-releases
         permissions: public-read
@@ -787,6 +831,17 @@ functions:
         remote_file: mongosql-rs/artifacts/${version_id}/trr-windows-64/mongosql-transition-tool.exe
         local_file: mongosql-rs/release/trr-windows-64/mongosql-transition-tool-signed.exe
         bucket: mciuploads
+    - command: s3.put
+      params:
+        aws_key: ${release_aws_key}
+        aws_secret: ${release_aws_secret}
+        local_file: mongosql-rs/release/trr-windows-64/mongosql-transition-tool-signed.exe
+        remote_file: transition-readiness-report/AtlasSQLReadinessReport-win.exe
+        bucket: translators-connectors-releases
+        permissions: public-read
+        skip_existing: false
+        content_type: application/octet-stream
+        display_name: AtlasSQLReadinessReport-win.exe
     - command: s3.put
       params:
         aws_key: ${release_aws_key}
