@@ -57,6 +57,15 @@ mod scalar {
         input = Expression::Reference(("a", 0u16).into()),
         schema_env = map! {("a", 0u16).into() => Schema::Atomic(Atomic::Null),},
     );
+
+    test_schema!(
+        invalid_binary_data_type,
+        expected = Err(mir_error::InvalidBinaryDataType),
+        input = Expression::Literal(LiteralValue::Binary(bson::Binary {
+            subtype: bson::spec::BinarySubtype::UuidOld,
+            bytes: vec![]
+        })),
+    );
 }
 
 mod array {

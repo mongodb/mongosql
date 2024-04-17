@@ -92,6 +92,114 @@ mod literal {
         expected = Ok(air::Expression::Literal(air::LiteralValue::Double(3.0))),
         input = mir::Expression::Literal(mir::LiteralValue::Double(3.0)),
     );
+    test_translate_expression!(
+        regex,
+        expected = Ok(air::Expression::Literal(
+            air::LiteralValue::RegularExpression(bson::Regex {
+                pattern: "pattern".to_string(),
+                options: "options".to_string()
+            })
+        )),
+        input = mir::Expression::Literal(mir::LiteralValue::RegularExpression(bson::Regex {
+            pattern: "pattern".to_string(),
+            options: "options".to_string()
+        })),
+    );
+    test_translate_expression!(
+        javascript,
+        expected = Ok(air::Expression::Literal(air::LiteralValue::JavaScriptCode(
+            "js".to_string()
+        ))),
+        input = mir::Expression::Literal(mir::LiteralValue::JavaScriptCode("js".to_string())),
+    );
+    test_translate_expression!(
+        javascript_with_scope,
+        expected = Ok(air::Expression::Literal(
+            air::LiteralValue::JavaScriptCodeWithScope(bson::JavaScriptCodeWithScope {
+                code: "js".to_string(),
+                scope: bson::doc! {}
+            })
+        )),
+        input = mir::Expression::Literal(mir::LiteralValue::JavaScriptCodeWithScope(
+            bson::JavaScriptCodeWithScope {
+                code: "js".to_string(),
+                scope: bson::doc! {}
+            }
+        )),
+    );
+    test_translate_expression!(
+        timestamp,
+        expected = Ok(air::Expression::Literal(air::LiteralValue::Timestamp(
+            bson::Timestamp {
+                time: 1,
+                increment: 2
+            }
+        ))),
+        input = mir::Expression::Literal(mir::LiteralValue::Timestamp(bson::Timestamp {
+            time: 1,
+            increment: 2
+        })),
+    );
+    test_translate_expression!(
+        bin_data,
+        expected = Ok(air::Expression::Literal(air::LiteralValue::Binary(
+            bson::Binary {
+                subtype: bson::spec::BinarySubtype::Uuid,
+                bytes: vec![]
+            }
+        ))),
+        input = mir::Expression::Literal(mir::LiteralValue::Binary(bson::Binary {
+            subtype: bson::spec::BinarySubtype::Uuid,
+            bytes: vec![]
+        })),
+    );
+    test_translate_expression!(
+        oid,
+        expected = Ok(air::Expression::Literal(air::LiteralValue::ObjectId(
+            bson::oid::ObjectId::parse_str("000000000000000000000000").unwrap()
+        ))),
+        input = mir::Expression::Literal(mir::LiteralValue::ObjectId(
+            bson::oid::ObjectId::parse_str("000000000000000000000000").unwrap()
+        )),
+    );
+    test_translate_expression!(
+        minkey,
+        expected = Ok(air::Expression::Literal(air::LiteralValue::MinKey)),
+        input = mir::Expression::Literal(mir::LiteralValue::MinKey),
+    );
+    test_translate_expression!(
+        maxkey,
+        expected = Ok(air::Expression::Literal(air::LiteralValue::MaxKey)),
+        input = mir::Expression::Literal(mir::LiteralValue::MaxKey),
+    );
+    test_translate_expression!(
+        undefined,
+        expected = Ok(air::Expression::Literal(air::LiteralValue::Undefined)),
+        input = mir::Expression::Literal(mir::LiteralValue::Undefined),
+    );
+    test_translate_expression!(
+        symbol,
+        expected = Ok(air::Expression::Literal(air::LiteralValue::Symbol(
+            "test".to_string()
+        ))),
+        input = mir::Expression::Literal(mir::LiteralValue::Symbol("test".to_string())),
+    );
+    test_translate_expression!(
+        datetime,
+        expected = Ok(air::Expression::Literal(air::LiteralValue::DateTime(
+            bson::DateTime::MAX
+        ))),
+        input = mir::Expression::Literal(mir::LiteralValue::DateTime(bson::DateTime::MAX)),
+    );
+    test_translate_expression!(
+        decimal128,
+        expected = Ok(air::Expression::Literal(air::LiteralValue::Decimal128(
+            bson::Decimal128::from_bytes([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        ))),
+        input = mir::Expression::Literal(mir::LiteralValue::Decimal128(
+            bson::Decimal128::from_bytes([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        )),
+    );
 }
 
 mod reference {

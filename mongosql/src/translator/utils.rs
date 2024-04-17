@@ -170,6 +170,21 @@ impl MqlTranslator {
             mir::LiteralValue::Integer(i) => air::LiteralValue::Integer(i),
             mir::LiteralValue::Long(l) => air::LiteralValue::Long(l),
             mir::LiteralValue::Double(d) => air::LiteralValue::Double(d),
+            mir::LiteralValue::DbPointer(d) => air::LiteralValue::DbPointer(d),
+            mir::LiteralValue::Undefined => air::LiteralValue::Undefined,
+            mir::LiteralValue::DateTime(d) => air::LiteralValue::DateTime(d),
+            mir::LiteralValue::Decimal128(d) => air::LiteralValue::Decimal128(d),
+            mir::LiteralValue::MinKey => air::LiteralValue::MinKey,
+            mir::LiteralValue::MaxKey => air::LiteralValue::MaxKey,
+            mir::LiteralValue::Timestamp(t) => air::LiteralValue::Timestamp(t),
+            mir::LiteralValue::RegularExpression(r) => air::LiteralValue::RegularExpression(r),
+            mir::LiteralValue::ObjectId(o) => air::LiteralValue::ObjectId(o),
+            mir::LiteralValue::JavaScriptCode(j) => air::LiteralValue::JavaScriptCode(j),
+            mir::LiteralValue::JavaScriptCodeWithScope(j) => {
+                air::LiteralValue::JavaScriptCodeWithScope(j)
+            }
+            mir::LiteralValue::Symbol(s) => air::LiteralValue::Symbol(s),
+            mir::LiteralValue::Binary(b) => air::LiteralValue::Binary(b),
         }
     }
 }

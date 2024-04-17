@@ -136,6 +136,7 @@ impl PartialEq for LiteralValue {
             }
             // other than Double, we use the default implementation of PartialEq
             (LiteralValue::Null, LiteralValue::Null) => true,
+            (LiteralValue::Undefined, LiteralValue::Undefined) => true,
             (LiteralValue::Boolean(a), LiteralValue::Boolean(b)) => a == b,
             (LiteralValue::String(a), LiteralValue::String(b)) => a == b,
             (LiteralValue::Integer(a), LiteralValue::Integer(b)) => a == b,
@@ -143,6 +144,18 @@ impl PartialEq for LiteralValue {
             (LiteralValue::ObjectId(a), LiteralValue::ObjectId(b)) => a == b,
             (LiteralValue::DateTime(a), LiteralValue::DateTime(b)) => a == b,
             (LiteralValue::Decimal128(a), LiteralValue::Decimal128(b)) => a == b,
+            (LiteralValue::DbPointer(a), LiteralValue::DbPointer(b)) => a == b,
+            (LiteralValue::Timestamp(a), LiteralValue::Timestamp(b)) => a == b,
+            (LiteralValue::RegularExpression(a), LiteralValue::RegularExpression(b)) => a == b,
+            (LiteralValue::Symbol(a), LiteralValue::Symbol(b)) => a == b,
+            (LiteralValue::Binary(a), LiteralValue::Binary(b)) => a == b,
+            (LiteralValue::JavaScriptCode(a), LiteralValue::JavaScriptCode(b)) => a == b,
+            (
+                LiteralValue::JavaScriptCodeWithScope(a),
+                LiteralValue::JavaScriptCodeWithScope(b),
+            ) => a == b,
+            (LiteralValue::MinKey, LiteralValue::MinKey) => true,
+            (LiteralValue::MaxKey, LiteralValue::MaxKey) => true,
             (LiteralValue::Null, _) => false,
             (LiteralValue::Boolean(_), _) => false,
             (LiteralValue::String(_), _) => false,
@@ -152,6 +165,16 @@ impl PartialEq for LiteralValue {
             (LiteralValue::ObjectId(_), _) => false,
             (LiteralValue::DateTime(_), _) => false,
             (LiteralValue::Decimal128(_), _) => false,
+            (LiteralValue::DbPointer(_), _) => false,
+            (LiteralValue::JavaScriptCode(_), _) => false,
+            (LiteralValue::MinKey, _) => false,
+            (LiteralValue::MaxKey, _) => false,
+            (LiteralValue::JavaScriptCodeWithScope(_), _) => false,
+            (LiteralValue::Binary(_), _) => false,
+            (LiteralValue::Symbol(_), _) => false,
+            (LiteralValue::RegularExpression(_), _) => false,
+            (LiteralValue::Timestamp(_), _) => false,
+            (LiteralValue::Undefined, _) => false,
         }
     }
 }

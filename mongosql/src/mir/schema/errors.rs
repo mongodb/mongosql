@@ -25,6 +25,7 @@ pub enum Error {
         required: Schema,
         found: Schema,
     },
+    InvalidBinaryDataType,
     AggregationArgumentMustBeSelfComparable(String, Schema),
     CountDistinctStarNotSupported,
     InvalidComparison(&'static str, Schema, Schema),
@@ -55,6 +56,7 @@ impl UserError for Error {
             Error::UnwindIndexNameConflict(_) => 1014,
             Error::CollectionNotFound(_, _) => 1016,
             Error::ExtJsonComparison(_) => 1017,
+            Error::InvalidBinaryDataType => 1019,
         }
     }
 
@@ -164,6 +166,7 @@ impl UserError for Error {
             Error::UnwindIndexNameConflict(_) => None,
             Error::CollectionNotFound(_, _) => None,
             Error::ExtJsonComparison(s) => Some(s.clone()),
+            Error::InvalidBinaryDataType => None,
         }
     }
 
@@ -182,7 +185,8 @@ impl UserError for Error {
             Error::GroupKeyNotSelfComparable(pos, schema) => format!("group key at position {0} is not statically comparable to itself because it has the schema {1:?}", pos, schema),
             Error::UnwindIndexNameConflict(name) => format!("UNWIND INDEX name '{0}' conflicts with existing field name", name),
             Error::CollectionNotFound(database, coll) => format!("unknown collection '{1}' in database '{0}'", database, coll),
-            Error::ExtJsonComparison(_) => "Extended JSON detected in comparison operation".to_string()
+            Error::ExtJsonComparison(_) => "Extended JSON detected in comparison operation".to_string(),
+            Error::InvalidBinaryDataType => "Binary data with subtype 3 found in schema".to_string(),
         }
     }
 }

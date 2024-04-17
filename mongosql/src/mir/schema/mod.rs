@@ -23,6 +23,7 @@ use std::{
 };
 
 mod errors;
+use bson::spec::BinarySubtype;
 pub use errors::Error;
 mod ext_json_detector;
 use self::ext_json_detector::ext_json_check;
@@ -1207,6 +1208,22 @@ impl LiteralValue {
             Integer(_) => Schema::Atomic(Atomic::Integer),
             Long(_) => Schema::Atomic(Atomic::Long),
             Double(_) => Schema::Atomic(Atomic::Double),
+            RegularExpression(_) => Schema::Atomic(Atomic::Regex),
+            JavaScriptCode(_) => Schema::Atomic(Atomic::Javascript),
+            JavaScriptCodeWithScope(_) => Schema::Atomic(Atomic::JavascriptWithScope),
+            Timestamp(_) => Schema::Atomic(Atomic::Timestamp),
+            Binary(b) => match b.subtype {
+                BinarySubtype::UuidOld => return Err(Error::InvalidBinaryDataType),
+                _ => Schema::Atomic(Atomic::BinData),
+            },
+            ObjectId(_) => Schema::Atomic(Atomic::ObjectId),
+            DateTime(_) => Schema::Atomic(Atomic::Date),
+            Symbol(_) => Schema::Atomic(Atomic::Symbol),
+            MaxKey => Schema::Atomic(Atomic::MaxKey),
+            MinKey => Schema::Atomic(Atomic::MinKey),
+            DbPointer(_) => Schema::Atomic(Atomic::DbPointer),
+            Undefined => Schema::Atomic(Atomic::Null),
+            Decimal128(_) => Schema::Atomic(Atomic::Decimal),
         })
     }
 }

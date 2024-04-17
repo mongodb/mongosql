@@ -473,6 +473,16 @@ pub enum LiteralValue {
     ObjectId(ObjectId),
     Decimal128(Decimal128),
     DateTime(DateTime),
+    RegularExpression(bson::Regex),
+    JavaScriptCode(String),
+    JavaScriptCodeWithScope(bson::JavaScriptCodeWithScope),
+    Timestamp(bson::Timestamp),
+    Binary(bson::Binary),
+    Symbol(String),
+    Undefined,
+    MaxKey,
+    MinKey,
+    DbPointer(bson::DbPointer),
 }
 
 #[derive(PartialEq, Debug, Clone)]

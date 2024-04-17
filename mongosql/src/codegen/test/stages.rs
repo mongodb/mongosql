@@ -132,10 +132,7 @@ mod union_with {
 
 mod sort {
     use crate::{
-        air::Expression::*,
-        air::LiteralValue::*,
-        air::SortSpecification::*,
-        air::*,
+        air::{Expression::*, LiteralValue::*, SortSpecification::*, *},
         unchecked_unique_linked_hash_map,
         util::{air_collection_stage, air_documents_stage},
     };

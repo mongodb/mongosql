@@ -25,6 +25,7 @@ These errors often occur when you use data types in an incorrect or invalid way.
 | [Error 1016](#error-1016)  | The collection in the specified database could not be found.                                                                                                                      |
 | [Error 1017](#error-1017)  | Extended JSON detected in comparison operation. MongoSQL does not support direct comparisons with extended JSON. Use casting instead (look at "Resolution Steps" for an example). |
 | [Error 1018](#error-1018)  | A field has an unsupported BSON type. |
+| [Error 1019](#error-1019)  | A field of type Binary data has the unsupported subtype of uuid old (subtype 3). |
 
 ## Error Codes Beginning With "2" Overview
 
@@ -184,6 +185,12 @@ The following errors occur when something goes wrong while using the excludeName
   query `SELECT * FROM foo` would cause this error.
 - **Resolution Steps:** Change the BSON type to something that is supported by MongoSQL. The error message suggests what [BSON types are supported](https://dochub.mongodb.org/core/atlas-sql-data-types).
   Corrected example query: `SELECT * FROM foo` where `foo` exists in the current database and `b` is not of type `undefined`.
+
+### Error 1019
+
+- **Description:** A field of type Binary data has the unsupported subtype of uuid old.
+- **Common Causes:** Historically, different drivers have written Uuids using different byte orders. This may occur for older data written by a driver using the now-unsupported uuid type.
+- **Resolution Steps:** Querying this data is not supported by Atlas SQL. 
 
 ### Error 2000
 

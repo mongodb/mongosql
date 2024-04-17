@@ -194,6 +194,112 @@ mod literal {
         expected = Ok(bson!({ "$literal": 3.0})),
         input = Literal(Double(3.0))
     );
+
+    test_codegen_expression!(
+        regex,
+        expected = Ok(bson!({ "$literal": Bson::RegularExpression(bson::Regex {
+            pattern: "pattern".to_string(),
+            options: "options".to_string()
+        })})),
+        input = Literal(RegularExpression(bson::Regex {
+            pattern: "pattern".to_string(),
+            options: "options".to_string()
+        }))
+    );
+
+    test_codegen_expression!(
+        javascript,
+        expected = Ok(bson!({ "$literal": Bson::JavaScriptCode("js".to_string())})),
+        input = Literal(JavaScriptCode("js".to_string()))
+    );
+
+    test_codegen_expression!(
+        javascript_with_scope,
+        expected = Ok(
+            bson!({ "$literal": Bson::JavaScriptCodeWithScope(bson::JavaScriptCodeWithScope {
+                code: "js".to_string(),
+                scope: bson::doc! {}
+            })})
+        ),
+        input = Literal(JavaScriptCodeWithScope(bson::JavaScriptCodeWithScope {
+            code: "js".to_string(),
+            scope: bson::doc! {}
+        }))
+    );
+
+    test_codegen_expression!(
+        timestamp,
+        expected = Ok(bson!({ "$literal": Bson::Timestamp(bson::Timestamp {
+            time: 1,
+            increment: 2
+        })})),
+        input = Literal(Timestamp(bson::Timestamp {
+            time: 1,
+            increment: 2
+        }))
+    );
+
+    test_codegen_expression!(
+        bin_data,
+        expected = Ok(bson!({ "$literal": Bson::Binary(bson::Binary {
+            subtype: bson::spec::BinarySubtype::Uuid,
+            bytes: vec![]
+        })})),
+        input = Literal(Binary(bson::Binary {
+            subtype: bson::spec::BinarySubtype::Uuid,
+            bytes: vec![]
+        }))
+    );
+
+    test_codegen_expression!(
+        oid,
+        expected = Ok(bson!({ "$literal": Bson::ObjectId(
+            bson::oid::ObjectId::parse_str("000000000000000000000000").unwrap()
+        )})),
+        input = Literal(ObjectId(
+            bson::oid::ObjectId::parse_str("000000000000000000000000").unwrap()
+        ))
+    );
+
+    test_codegen_expression!(
+        minkey,
+        expected = Ok(bson!({ "$literal": Bson::MinKey})),
+        input = Literal(MinKey)
+    );
+
+    test_codegen_expression!(
+        maxkey,
+        expected = Ok(bson!({ "$literal": Bson::MaxKey})),
+        input = Literal(MaxKey)
+    );
+
+    test_codegen_expression!(
+        undefined,
+        expected = Ok(bson!({ "$literal": Bson::Undefined})),
+        input = Literal(Undefined)
+    );
+
+    test_codegen_expression!(
+        symbol,
+        expected = Ok(bson!({ "$literal": Bson::Symbol("test".to_string())})),
+        input = Literal(Symbol("test".to_string()))
+    );
+
+    test_codegen_expression!(
+        datetime,
+        expected = Ok(bson!({ "$literal": Bson::DateTime(bson::DateTime::MAX)})),
+        input = Literal(DateTime(bson::DateTime::MAX))
+    );
+
+    test_codegen_expression!(
+        decimal128,
+        expected = Ok(bson!({ "$literal": Bson::Decimal128(
+            bson::Decimal128::from_bytes([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
+        )})),
+        input = Literal(Decimal128(bson::Decimal128::from_bytes([
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        ])))
+    );
 }
 
 mod trim {
@@ -236,7 +342,7 @@ mod trim {
 }
 
 mod mql_semantic_operator {
-    use crate::air::{Expression::*, LiteralValue::*, MQLOperator::*, MQLSemanticOperator};
+    use crate::air::{self, Expression::*, LiteralValue::*, MQLOperator::*, MQLSemanticOperator};
     use bson::bson;
 
     test_codegen_expression!(
@@ -390,7 +496,7 @@ mod mql_semantic_operator {
         input = MQLSemanticOperator(MQLSemanticOperator {
             op: Slice,
             args: vec![
-                Array(vec![
+                air::Expression::Array(vec![
                     Literal(Integer(1)),
                     Literal(Integer(2)),
                     Literal(Integer(3))
@@ -406,7 +512,7 @@ mod mql_semantic_operator {
         expected = Ok(bson!({ "$size": [[{"$literal": 1}, {"$literal": 2}, {"$literal": 3}]]})),
         input = MQLSemanticOperator(MQLSemanticOperator {
             op: Size,
-            args: vec![Array(vec![
+            args: vec![air::Expression::Array(vec![
                 Literal(Integer(1)),
                 Literal(Integer(2)),
                 Literal(Integer(3))
@@ -884,7 +990,7 @@ mod mql_semantic_operator {
         input = MQLSemanticOperator(MQLSemanticOperator {
             op: ElemAt,
             args: vec![
-                Array(vec![
+                air::Expression::Array(vec![
                     Literal(String("foo".to_string())),
                     Literal(String("bar".to_string()))
                 ]),
@@ -900,7 +1006,7 @@ mod mql_semantic_operator {
             op: In,
             args: vec![
                 Literal(Integer(1)),
-                Array(vec![Literal(Integer(1)), Literal(Integer(2))]),
+                air::Expression::Array(vec![Literal(Integer(1)), Literal(Integer(2))]),
             ],
         })
     );
@@ -941,7 +1047,7 @@ mod mql_semantic_operator {
 
 mod sql_semantic_operator {
     use crate::{
-        air::{Expression::*, LiteralValue::*, SQLOperator::*, SQLSemanticOperator},
+        air::{self, Expression::*, LiteralValue::*, SQLOperator::*, SQLSemanticOperator},
         codegen::Error,
     };
     use bson::bson;
@@ -1023,7 +1129,7 @@ mod sql_semantic_operator {
             Ok(bson!({ "$sqlBetween": [[{"$literal": 1}, {"$literal": 2}, {"$literal": 3}]]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
             op: Between,
-            args: vec![Array(vec![
+            args: vec![air::Expression::Array(vec![
                 Literal(Integer(1)),
                 Literal(Integer(2)),
                 Literal(Integer(3))
@@ -1086,7 +1192,7 @@ mod sql_semantic_operator {
         input = SQLSemanticOperator(SQLSemanticOperator {
             op: Slice,
             args: vec![
-                Array(vec![
+                air::Expression::Array(vec![
                     Literal(Integer(1)),
                     Literal(Integer(2)),
                     Literal(Integer(3))
@@ -1101,7 +1207,7 @@ mod sql_semantic_operator {
         expected = Ok(bson!({ "$sqlSize": [{"$literal": 1}, {"$literal": 2}, {"$literal": 3}]})),
         input = SQLSemanticOperator(SQLSemanticOperator {
             op: Size,
-            args: vec![Array(vec![
+            args: vec![air::Expression::Array(vec![
                 Literal(Integer(1)),
                 Literal(Integer(2)),
                 Literal(Integer(3))
@@ -1267,7 +1373,7 @@ mod sql_semantic_operator {
 
 mod document {
     use crate::{
-        air::{Expression::*, LiteralValue::*},
+        air::{self, Expression::*, LiteralValue::*},
         unchecked_unique_linked_hash_map,
     };
     use bson::bson;
@@ -1275,20 +1381,21 @@ mod document {
     test_codegen_expression!(
         empty,
         expected = Ok(bson!({"$literal": {}})),
-        input = Document(unchecked_unique_linked_hash_map! {})
+        input = air::Expression::Document(unchecked_unique_linked_hash_map! {})
     );
     test_codegen_expression!(
         non_empty,
         expected = Ok(bson!({"foo": {"$literal": 1}})),
-        input =
-            Document(unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(1))})
+        input = air::Expression::Document(
+            unchecked_unique_linked_hash_map! {"foo".to_string() => Literal(Integer(1))}
+        )
     );
     test_codegen_expression!(
         nested,
         expected = Ok(bson!({"foo": {"$literal": 1}, "bar": {"baz": {"$literal": 2}}})),
-        input = Document(unchecked_unique_linked_hash_map! {
+        input = air::Expression::Document(unchecked_unique_linked_hash_map! {
             "foo".to_string() => Literal(Integer(1)),
-            "bar".to_string() => Document(unchecked_unique_linked_hash_map!{
+            "bar".to_string() => air::Expression::Document(unchecked_unique_linked_hash_map!{
                 "baz".to_string() => Literal(Integer(2))
             }),
         })
@@ -1296,21 +1403,28 @@ mod document {
 }
 
 mod array {
-    use crate::air::{Expression::*, LiteralValue::*};
+    use crate::air::{self, Expression::*, LiteralValue::*};
     use bson::bson;
 
-    test_codegen_expression!(empty, expected = Ok(bson!([])), input = Array(vec![]));
+    test_codegen_expression!(
+        empty,
+        expected = Ok(bson!([])),
+        input = air::Expression::Array(vec![])
+    );
 
     test_codegen_expression!(
         non_empty,
         expected = Ok(bson!([{"$literal": "abc"}])),
-        input = Array(vec![Literal(String("abc".to_string()))])
+        input = air::Expression::Array(vec![Literal(String("abc".to_string()))])
     );
 
     test_codegen_expression!(
         nested,
         expected = Ok(bson!([{ "$literal": null }, [{ "$literal": null }]])),
-        input = Array(vec![Literal(Null), Array(vec![Literal(Null)])])
+        input = air::Expression::Array(vec![
+            Literal(Null),
+            air::Expression::Array(vec![Literal(Null)])
+        ])
     );
 }
 
