@@ -91,7 +91,7 @@ impl Visitor for ScalarFunctionsVisitor {
                     Expression::Trim(TrimExpr {
                         trim_spec: function.try_into().unwrap(),
                         arg,
-                        trim_chars: Box::new(Expression::Literal(Literal::String(" ".to_string()))),
+                        trim_chars: Box::new(Expression::StringConstructor(" ".to_string())),
                     })
                 }
                 FunctionName::Log => match args.len() {
@@ -173,7 +173,7 @@ impl Visitor for ScalarFunctionsVisitor {
                             args: vec![
                                 args.swap_remove(1),
                                 args.swap_remove(0),
-                                Expression::Literal(Literal::String("sunday".to_string())),
+                                Expression::StringConstructor("sunday".to_string()),
                             ],
                         })
                     } else {
@@ -212,7 +212,7 @@ impl Visitor for ScalarFunctionsVisitor {
                             date_part,
                             args: vec![
                                 args.swap_remove(0),
-                                Expression::Literal(Literal::String("sunday".to_string())),
+                                Expression::StringConstructor("sunday".to_string()),
                             ],
                         })
                     } else {

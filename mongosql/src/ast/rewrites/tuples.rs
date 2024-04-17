@@ -71,7 +71,7 @@ impl InTupleRewriteVisitor {
             Expression::Subpath(sp) => Self::is_simple_field_ref_expr(*sp.expr),
             Expression::Access(ae) => {
                 Self::is_simple_field_ref_expr(*ae.expr)
-                    && matches!(*ae.subfield, Expression::Literal(Literal::String(_)))
+                    && matches!(*ae.subfield, Expression::StringConstructor(_))
             }
             _ => false,
         }
@@ -209,7 +209,7 @@ mod is_simple_field_ref_expr_test {
     test_is_simple_field_ref_expr!(
         not_simple_field_ref,
         expected = false,
-        input = Expression::Literal(Literal::String("foo".to_string()))
+        input = Expression::StringConstructor("foo".to_string())
     );
 
     test_is_simple_field_ref_expr!(
@@ -220,7 +220,7 @@ mod is_simple_field_ref_expr_test {
                 expr: Box::new(Expression::Identifier("foo2".to_string())),
                 subpath: "bar".to_string(),
             })),
-            subfield: Box::new(Expression::Literal(Literal::String("foo1".to_string()))),
+            subfield: Box::new(Expression::StringConstructor("foo1".to_string())),
         })
     );
 
@@ -229,10 +229,10 @@ mod is_simple_field_ref_expr_test {
         expected = false,
         input = Expression::Access(AccessExpr {
             expr: Box::new(Expression::Subpath(SubpathExpr {
-                expr: Box::new(Expression::Literal(Literal::String("foo1".to_string()))),
+                expr: Box::new(Expression::StringConstructor("foo1".to_string())),
                 subpath: "bar".to_string(),
             })),
-            subfield: Box::new(Expression::Literal(Literal::String("foo1".to_string()))),
+            subfield: Box::new(Expression::StringConstructor("foo1".to_string())),
         })
     );
 

@@ -7,7 +7,7 @@ use crate::{
         self,
         binding_tuple::{BindingTuple, DatasourceName, Key},
         schema::{CachedSchema, SchemaCache, SchemaInferenceState},
-        FieldAccess, LiteralValue,
+        FieldAccess,
     },
     schema::{
         self, Satisfaction, SchemaEnvironment, BOOLEAN_OR_NULLISH, INTEGER_LONG_OR_NULLISH,
@@ -993,6 +993,7 @@ impl<'a> Algebrizer<'a> {
     ) -> Result<mir::Expression> {
         match ast_node {
             ast::Expression::Literal(l) => Ok(mir::Expression::Literal(self.algebrize_literal(l))),
+            ast::Expression::StringConstructor(s) => Ok(self.algebrize_string_constructor(s)),
             ast::Expression::Array(a) => Ok(mir::Expression::Array(
                 a.into_iter()
                     .map(|e| self.algebrize_expression(e, false))
@@ -1039,11 +1040,14 @@ impl<'a> Algebrizer<'a> {
         match ast_node {
             ast::Literal::Null => mir::LiteralValue::Null,
             ast::Literal::Boolean(b) => mir::LiteralValue::Boolean(b),
-            ast::Literal::String(s) => mir::LiteralValue::String(s),
             ast::Literal::Integer(i) => mir::LiteralValue::Integer(i),
             ast::Literal::Long(l) => mir::LiteralValue::Long(l),
             ast::Literal::Double(d) => mir::LiteralValue::Double(d),
         }
+    }
+
+    pub fn algebrize_string_constructor(&self, s: String) -> mir::Expression {
+        mir::Expression::Literal(mir::LiteralValue::String(s))
     }
 
     pub fn algebrize_limit_clause(
@@ -1139,9 +1143,9 @@ impl<'a> Algebrizer<'a> {
     fn convert_literal_to_bool(expr: mir::Expression) -> mir::Expression {
         match expr {
             mir::Expression::Literal(mir::LiteralValue::Integer(i)) => match i {
-                0 => mir::Expression::Literal(LiteralValue::Boolean(false)),
-                1 => mir::Expression::Literal(LiteralValue::Boolean(true)),
-                _ => mir::Expression::Literal(LiteralValue::Integer(i)),
+                0 => mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
+                1 => mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                _ => mir::Expression::Literal(mir::LiteralValue::Integer(i)),
             },
             _ => expr,
         }
@@ -1221,8 +1225,8 @@ impl<'a> Algebrizer<'a> {
             Ok(mir::Expression::Cast(mir::CastExpr {
                 expr: Box::new(scalar_function_expr),
                 to: div_result_target_type,
-                on_null: Box::new(mir::Expression::Literal(LiteralValue::Null)),
-                on_error: Box::new(mir::Expression::Literal(LiteralValue::Null)),
+                on_null: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+                on_error: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
                 is_nullable,
             }))
         } else {
@@ -1357,9 +1361,7 @@ impl<'a> Algebrizer<'a> {
     fn algebrize_access(&self, a: ast::AccessExpr) -> Result<mir::Expression> {
         let expr = self.algebrize_expression(*a.expr, false)?;
         Ok(match *a.subfield {
-            ast::Expression::Literal(ast::Literal::String(s)) => {
-                self.construct_field_access_expr(expr, s)?
-            }
+            ast::Expression::StringConstructor(s) => self.construct_field_access_expr(expr, s)?,
             sf => mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
                 mir::ScalarFunction::ComputedFieldAccess,
                 vec![expr, self.algebrize_expression(sf, false)?],

@@ -638,8 +638,8 @@ impl Expression {
             // formatting for all the following is handled specially and will never conditionally
             // wrap arguments in parentheses
             Array(_) | Case(_) | Cast(_) | Document(_) | Exists(_) | Function(_) | Trim(_)
-            | DateFunction(_) | Extract(_) | Identifier(_) | Literal(_) | Subquery(_)
-            | Tuple(_) => Bottom,
+            | DateFunction(_) | Extract(_) | Identifier(_) | Literal(_) | StringConstructor(_)
+            | Subquery(_) | Tuple(_) => Bottom,
         }
     }
 }
@@ -666,6 +666,7 @@ impl PrettyPrint for Expression {
             TypeAssertion(t) => t.pretty_print(),
             Cast(c) => c.pretty_print(),
             Literal(l) => l.pretty_print(),
+            StringConstructor(s) => Ok(format!("'{}'", escape_string_literal(s))),
             Unary(u) => u.pretty_print(),
             Binary(b) => b.pretty_print(),
             Extract(e) => e.pretty_print(),
@@ -1037,7 +1038,6 @@ impl PrettyPrint for Literal {
         match self {
             Literal::Null => Ok("NULL".to_string()),
             Literal::Boolean(b) => Ok(b.to_string()),
-            Literal::String(s) => Ok(format!("'{}'", escape_string_literal(s))),
             Literal::Integer(i) => Ok(i.to_string()),
             Literal::Long(l) => Ok(l.to_string()),
             Literal::Double(d) => {
@@ -1114,7 +1114,7 @@ impl PrettyPrint for TrimExpr {
             TrimSpec::Trailing => "TRAILING",
         };
         match *self.trim_chars {
-            Expression::Literal(Literal::String(ref s)) if s.as_str() == " " => Ok(format!(
+            Expression::StringConstructor(ref s) if s.as_str() == " " => Ok(format!(
                 "TRIM({} ' ' FROM {})",
                 trim_spec,
                 self.arg.pretty_print()?

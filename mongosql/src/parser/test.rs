@@ -1505,14 +1505,14 @@ mod literals {
     validate_ast!(
         string_escaped_quote_no_chars,
         method = parse_expression,
-        expected = Expression::Literal(Literal::String(r#"'"#.to_string())),
+        expected = Expression::StringConstructor(r#"'"#.to_string()),
         input = "''''",
     );
 
     validate_ast!(
         string_escaped_quote,
         method = parse_expression,
-        expected = Expression::Literal(Literal::String(r#"foo's"#.to_string())),
+        expected = Expression::StringConstructor(r#"foo's"#.to_string()),
         input = "'foo''s'",
     );
 
@@ -1925,7 +1925,7 @@ mod scalar_function {
         method = parse_expression,
         expected = Expression::Trim(TrimExpr {
             trim_spec: TrimSpec::Leading,
-            trim_chars: Box::new(Expression::Literal(Literal::String(" ".into()))),
+            trim_chars: Box::new(Expression::StringConstructor(" ".into())),
             arg: Box::new(Expression::Identifier("str".to_string())),
         }),
         input = "trim(leading FROM str)",
@@ -1935,7 +1935,7 @@ mod scalar_function {
         method = parse_expression,
         expected = Expression::Trim(TrimExpr {
             trim_spec: TrimSpec::Both,
-            trim_chars: Box::new(Expression::Literal(Literal::String(" ".into()))),
+            trim_chars: Box::new(Expression::StringConstructor(" ".into())),
             arg: Box::new(Expression::Identifier("str".to_string())),
         }),
         input = "trim(str)",
@@ -2883,12 +2883,8 @@ mod type_conversion {
         expected = Expression::Cast(CastExpr {
             expr: Box::new(Expression::Identifier("v".to_string())),
             to: Type::Decimal128,
-            on_null: Some(Box::new(Expression::Literal(Literal::String(
-                "null".to_string()
-            )))),
-            on_error: Some(Box::new(Expression::Literal(Literal::String(
-                "error".to_string()
-            )))),
+            on_null: Some(Box::new(Expression::StringConstructor("null".to_string()))),
+            on_error: Some(Box::new(Expression::StringConstructor("error".to_string()))),
         }),
         input = "CAST(v AS DECIMAL(1), 'null' ON NULL, 'error' ON ERROR)",
     );
@@ -3120,7 +3116,7 @@ mod document {
                     expr: Box::new(Expression::Identifier("a".to_string())),
                     subpath: "b".to_string()
                 })),
-                subfield: Box::new(Expression::Literal(Literal::String("c".to_string()))),
+                subfield: Box::new(Expression::StringConstructor("c".to_string())),
             })),
             subpath: "d".to_string()
         }),

@@ -124,7 +124,7 @@ mod arbitrary {
         }
     }
 
-    /// arbitrary_identifier generates an arbitraty identifier, currently
+    /// arbitrary_identifier generates an arbitrary identifier, currently
     /// it just uses arbitrary_string, but this allows us to fine tune
     /// easily if we decide to use different rules for identifiers from
     /// strings.
@@ -550,8 +550,9 @@ mod arbitrary {
                 17 => Self::Is(IsExpr::arbitrary(nested_g)),
                 18 => Self::Like(LikeExpr::arbitrary(nested_g)),
                 19 => Self::Literal(Literal::arbitrary(nested_g)),
-                20 => Self::Tuple((1..4).map(|_| Self::arbitrary(nested_g)).collect()),
-                21 => Self::TypeAssertion(TypeAssertionExpr::arbitrary(nested_g)),
+                20 => Self::StringConstructor(arbitrary_string(g)),
+                21 => Self::Tuple((1..4).map(|_| Self::arbitrary(nested_g)).collect()),
+                22 => Self::TypeAssertion(TypeAssertionExpr::arbitrary(nested_g)),
                 _ => panic!("missing Expression variant(s)"),
             }
         }
@@ -1061,9 +1062,8 @@ mod arbitrary {
             match g.choose(rng).unwrap() {
                 0 => Self::Null,
                 1 => Self::Boolean(bool::arbitrary(g)),
-                2 => Self::String(arbitrary_string(g)),
-                3 => Self::Integer(i32::arbitrary(g).saturating_abs()),
-                4 => {
+                2 => Self::Integer(i32::arbitrary(g).saturating_abs()),
+                3 => {
                     let long = i64::arbitrary(g).saturating_abs();
                     if let Ok(int) = i32::try_from(long) {
                         Self::Integer(int)
@@ -1071,7 +1071,7 @@ mod arbitrary {
                         Self::Long(long)
                     }
                 }
-                5 => {
+                4 => {
                     let double = f64::arbitrary(g).abs();
                     if double.is_finite() {
                         Self::Double(double)

@@ -215,7 +215,7 @@ mod expression {
         expected = Ok(mir::Expression::Literal(mir::LiteralValue::String(
             "hello!".into()
         ))),
-        input = ast::Expression::Literal(ast::Literal::String("hello!".into())),
+        input = ast::Expression::StringConstructor("hello!".into()),
     );
     test_algebrize!(
         int,
@@ -801,9 +801,7 @@ mod expression {
         })),
         expected_error_code = 1002,
         input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::Literal(ast::Literal::String(
-                "hello".into()
-            ))),
+            left: Box::new(ast::Expression::StringConstructor("hello".into())),
             op: ast::BinaryOp::Add,
             right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         }),
@@ -840,9 +838,7 @@ mod expression {
         })),
         expected_error_code = 1002,
         input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::Literal(ast::Literal::String(
-                "hello".into()
-            ))),
+            left: Box::new(ast::Expression::StringConstructor("hello".into())),
             op: ast::BinaryOp::Sub,
             right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         }),
@@ -934,9 +930,7 @@ mod expression {
         })),
         expected_error_code = 1002,
         input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::Literal(ast::Literal::String(
-                "hello".into()
-            ))),
+            left: Box::new(ast::Expression::StringConstructor("hello".into())),
             op: ast::BinaryOp::Div,
             right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         }),
@@ -973,9 +967,7 @@ mod expression {
         })),
         expected_error_code = 1002,
         input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::Literal(ast::Literal::String(
-                "hello".into()
-            ))),
+            left: Box::new(ast::Expression::StringConstructor("hello".into())),
             op: ast::BinaryOp::Mul,
             right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         }),
@@ -996,9 +988,9 @@ mod expression {
             }
         )),
         input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
+            left: Box::new(ast::Expression::StringConstructor("42".into())),
             op: ast::BinaryOp::Concat,
-            right: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
+            right: Box::new(ast::Expression::StringConstructor("42".into())),
         }),
     );
     test_algebrize_expr_and_schema_check!(
@@ -1012,9 +1004,7 @@ mod expression {
         })),
         expected_error_code = 1002,
         input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::Literal(ast::Literal::String(
-                "hello".into()
-            ))),
+            left: Box::new(ast::Expression::StringConstructor("hello".into())),
             op: ast::BinaryOp::Concat,
             right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         }),
@@ -1180,9 +1170,9 @@ mod expression {
         )),
         input = ast::Expression::Function(ast::FunctionExpr {
             function: ast::FunctionName::Lower,
-            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
-                ast::Literal::String("hello".into(),)
-            ),]),
+            args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
+                "hello".into()
+            )]),
             set_quantifier: Some(ast::SetQuantifier::All),
         }),
     );
@@ -1205,9 +1195,9 @@ mod expression {
         input = ast::Expression::Function(ast::FunctionExpr {
             function: ast::FunctionName::Replace,
             args: ast::FunctionArguments::Args(vec![
-                ast::Expression::Literal(ast::Literal::String(" hello world ".to_string())),
-                ast::Expression::Literal(ast::Literal::String("wo".to_string())),
-                ast::Expression::Literal(ast::Literal::String("wowow".to_string())),
+                ast::Expression::StringConstructor(" hello world ".to_string()),
+                ast::Expression::StringConstructor("wo".to_string()),
+                ast::Expression::StringConstructor("wowow".to_string()),
             ]),
             set_quantifier: None,
         }),
@@ -1231,8 +1221,8 @@ mod expression {
             function: ast::FunctionName::Replace,
             args: ast::FunctionArguments::Args(vec![
                 ast::Expression::Literal(ast::Literal::Null),
-                ast::Expression::Literal(ast::Literal::String("wo".to_string())),
-                ast::Expression::Literal(ast::Literal::String("wowow".to_string())),
+                ast::Expression::StringConstructor("wo".to_string()),
+                ast::Expression::StringConstructor("wowow".to_string()),
             ]),
             set_quantifier: None,
         }),
@@ -1255,9 +1245,9 @@ mod expression {
         input = ast::Expression::Function(ast::FunctionExpr {
             function: ast::FunctionName::Replace,
             args: ast::FunctionArguments::Args(vec![
-                ast::Expression::Literal(ast::Literal::String(" hello world ".to_string())),
+                ast::Expression::StringConstructor(" hello world ".to_string()),
                 ast::Expression::Literal(ast::Literal::Null),
-                ast::Expression::Literal(ast::Literal::String("wowow".to_string())),
+                ast::Expression::StringConstructor("wowow".to_string()),
             ]),
             set_quantifier: None,
         }),
@@ -1280,8 +1270,8 @@ mod expression {
         input = ast::Expression::Function(ast::FunctionExpr {
             function: ast::FunctionName::Replace,
             args: ast::FunctionArguments::Args(vec![
-                ast::Expression::Literal(ast::Literal::String(" hello world ".to_string())),
-                ast::Expression::Literal(ast::Literal::String("wo".to_string())),
+                ast::Expression::StringConstructor(" hello world ".to_string()),
+                ast::Expression::StringConstructor("wo".to_string()),
                 ast::Expression::Literal(ast::Literal::Null),
             ]),
             set_quantifier: None,
@@ -1323,12 +1313,8 @@ mod expression {
         )),
         input = ast::Expression::Trim(ast::TrimExpr {
             trim_spec: ast::TrimSpec::Leading,
-            trim_chars: Box::new(ast::Expression::Literal(ast::Literal::String(
-                "hello".into()
-            ))),
-            arg: Box::new(ast::Expression::Literal(ast::Literal::String(
-                "hello world".into()
-            ))),
+            trim_chars: Box::new(ast::Expression::StringConstructor("hello".into())),
+            arg: Box::new(ast::Expression::StringConstructor("hello world".into())),
         }),
     );
     test_algebrize!(
@@ -1347,12 +1333,8 @@ mod expression {
         )),
         input = ast::Expression::Trim(ast::TrimExpr {
             trim_spec: ast::TrimSpec::Trailing,
-            trim_chars: Box::new(ast::Expression::Literal(ast::Literal::String(
-                "world".into()
-            ))),
-            arg: Box::new(ast::Expression::Literal(ast::Literal::String(
-                "hello world".into()
-            ))),
+            trim_chars: Box::new(ast::Expression::StringConstructor("world".into())),
+            arg: Box::new(ast::Expression::StringConstructor("hello world".into())),
         }),
     );
     test_algebrize!(
@@ -1371,10 +1353,8 @@ mod expression {
         )),
         input = ast::Expression::Trim(ast::TrimExpr {
             trim_spec: ast::TrimSpec::Both,
-            trim_chars: Box::new(ast::Expression::Literal(ast::Literal::String(" ".into()))),
-            arg: Box::new(ast::Expression::Literal(ast::Literal::String(
-                " hello world ".into()
-            ))),
+            trim_chars: Box::new(ast::Expression::StringConstructor(" ".into())),
+            arg: Box::new(ast::Expression::StringConstructor(" hello world ".into())),
         }),
     );
     test_algebrize_expr_and_schema_check!(
@@ -1389,7 +1369,7 @@ mod expression {
         expected_error_code = 1002,
         input = ast::Expression::Trim(ast::TrimExpr {
             trim_spec: ast::TrimSpec::Both,
-            trim_chars: Box::new(ast::Expression::Literal(ast::Literal::String(" ".into()))),
+            trim_chars: Box::new(ast::Expression::StringConstructor(" ".into())),
             arg: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
         }),
     );
@@ -1406,7 +1386,7 @@ mod expression {
         input = ast::Expression::Trim(ast::TrimExpr {
             trim_spec: ast::TrimSpec::Both,
             trim_chars: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-            arg: Box::new(ast::Expression::Literal(ast::Literal::String(" ".into()))),
+            arg: Box::new(ast::Expression::StringConstructor(" ".into())),
         }),
     );
 
@@ -1783,7 +1763,7 @@ mod expression {
                     args: ast::FunctionArguments::Args(vec![]),
                     set_quantifier: Some(ast::SetQuantifier::All)
                 }),
-                ast::Expression::Literal(ast::Literal::String("sunday".to_string()))
+                ast::Expression::StringConstructor("sunday".to_string()),
             ],
         }),
     );
@@ -1815,7 +1795,7 @@ mod expression {
                     args: ast::FunctionArguments::Args(vec![]),
                     set_quantifier: Some(ast::SetQuantifier::All)
                 }),
-                ast::Expression::Literal(ast::Literal::String("sunday".to_string()))
+                ast::Expression::StringConstructor("sunday".to_string()),
             ],
         }),
     );
@@ -1841,11 +1821,9 @@ mod expression {
             expr: None,
             when_branch: vec![ast::WhenBranch {
                 when: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
-                then: Box::new(ast::Expression::Literal(ast::Literal::String("bar".into()))),
+                then: Box::new(ast::Expression::StringConstructor("bar".into())),
             }],
-            else_branch: Some(Box::new(ast::Expression::Literal(ast::Literal::String(
-                "foo".into()
-            )))),
+            else_branch: Some(Box::new(ast::Expression::StringConstructor("foo".into()))),
         }),
     );
     test_algebrize!(
@@ -1867,7 +1845,7 @@ mod expression {
             expr: None,
             when_branch: vec![ast::WhenBranch {
                 when: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
-                then: Box::new(ast::Expression::Literal(ast::Literal::String("bar".into()))),
+                then: Box::new(ast::Expression::StringConstructor("bar".into())),
             }],
             else_branch: None,
         }),
@@ -1885,12 +1863,10 @@ mod expression {
         input = ast::Expression::Case(ast::CaseExpr {
             expr: None,
             when_branch: vec![ast::WhenBranch {
-                when: Box::new(ast::Expression::Literal(ast::Literal::String("foo".into()))),
-                then: Box::new(ast::Expression::Literal(ast::Literal::String("bar".into()))),
+                when: Box::new(ast::Expression::StringConstructor("foo".into())),
+                then: Box::new(ast::Expression::StringConstructor("bar".into())),
             }],
-            else_branch: Some(Box::new(ast::Expression::Literal(ast::Literal::String(
-                "foo".into()
-            )))),
+            else_branch: Some(Box::new(ast::Expression::StringConstructor("foo".into()))),
         }),
     );
 
@@ -1916,11 +1892,9 @@ mod expression {
             expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
             when_branch: vec![ast::WhenBranch {
                 when: Box::new(ast::Expression::Literal(ast::Literal::Integer(2))),
-                then: Box::new(ast::Expression::Literal(ast::Literal::String("bar".into()))),
+                then: Box::new(ast::Expression::StringConstructor("bar".into())),
             }],
-            else_branch: Some(Box::new(ast::Expression::Literal(ast::Literal::String(
-                "foo".into()
-            )))),
+            else_branch: Some(Box::new(ast::Expression::StringConstructor("foo".into()))),
         }),
     );
     test_algebrize!(
@@ -1943,7 +1917,7 @@ mod expression {
             expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
             when_branch: vec![ast::WhenBranch {
                 when: Box::new(ast::Expression::Literal(ast::Literal::Integer(2))),
-                then: Box::new(ast::Expression::Literal(ast::Literal::String("bar".into()))),
+                then: Box::new(ast::Expression::StringConstructor("bar".into())),
             }],
             else_branch: None,
         }),
@@ -1963,12 +1937,10 @@ mod expression {
         input = ast::Expression::Case(ast::CaseExpr {
             expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
             when_branch: vec![ast::WhenBranch {
-                when: Box::new(ast::Expression::Literal(ast::Literal::String("foo".into()))),
-                then: Box::new(ast::Expression::Literal(ast::Literal::String("bar".into()))),
+                when: Box::new(ast::Expression::StringConstructor("foo".into())),
+                then: Box::new(ast::Expression::StringConstructor("bar".into())),
             }],
-            else_branch: Some(Box::new(ast::Expression::Literal(ast::Literal::String(
-                "baz".into()
-            )))),
+            else_branch: Some(Box::new(ast::Expression::StringConstructor("baz".into()))),
         }),
     );
 
@@ -1990,12 +1962,12 @@ mod expression {
         input = ast::Expression::Cast(ast::CastExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
             to: ast::Type::String,
-            on_null: Some(Box::new(ast::Expression::Literal(ast::Literal::String(
+            on_null: Some(Box::new(ast::Expression::StringConstructor(
                 "was_null".into()
-            )))),
-            on_error: Some(Box::new(ast::Expression::Literal(ast::Literal::String(
+            ))),
+            on_error: Some(Box::new(ast::Expression::StringConstructor(
                 "was_error".into()
-            )))),
+            ))),
         }),
     );
     test_algebrize!(
@@ -2073,7 +2045,7 @@ mod expression {
             expr: Box::new(ast::Expression::Binary(ast::BinaryExpr {
                 left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
                 op: ast::BinaryOp::Add,
-                right: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
+                right: Box::new(ast::Expression::StringConstructor("42".into())),
             })),
             target_type: ast::TypeOrMissing::Type(ast::Type::Int32),
         }),
@@ -2093,8 +2065,8 @@ mod expression {
             escape: Some('f'),
         })),
         input = ast::Expression::Like(ast::LikeExpr {
-            expr: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
-            pattern: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
+            expr: Box::new(ast::Expression::StringConstructor("42".into())),
+            pattern: Box::new(ast::Expression::StringConstructor("42".into())),
             escape: Some('f'),
         }),
     );
@@ -2112,8 +2084,8 @@ mod expression {
             escape: None,
         })),
         input = ast::Expression::Like(ast::LikeExpr {
-            expr: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
-            pattern: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
+            expr: Box::new(ast::Expression::StringConstructor("42".into())),
+            pattern: Box::new(ast::Expression::StringConstructor("42".into())),
             escape: None,
         }),
     );
@@ -2129,7 +2101,7 @@ mod expression {
         expected_error_code = 1002,
         input = ast::Expression::Like(ast::LikeExpr {
             expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-            pattern: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
+            pattern: Box::new(ast::Expression::StringConstructor("42".into())),
             escape: None,
         }),
     );
@@ -2144,7 +2116,7 @@ mod expression {
         })),
         expected_error_code = 1002,
         input = ast::Expression::Like(ast::LikeExpr {
-            expr: Box::new(ast::Expression::Literal(ast::Literal::String("42".into()))),
+            expr: Box::new(ast::Expression::StringConstructor("42".into())),
             pattern: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
             escape: Some(' '),
         }),
@@ -2566,8 +2538,8 @@ mod aggregation {
         expected_error_code = 1002,
         input = ast::FunctionExpr {
             function: ast::FunctionName::Sum,
-            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
-                ast::Literal::String("42".into())
+            args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
+                "42".into()
             )]),
             set_quantifier: Some(ast::SetQuantifier::Distinct),
         },
@@ -2621,8 +2593,8 @@ mod aggregation {
         expected_error_code = 1002,
         input = ast::FunctionExpr {
             function: ast::FunctionName::Avg,
-            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
-                ast::Literal::String("42".into())
+            args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
+                "42".into()
             )]),
             set_quantifier: Some(ast::SetQuantifier::Distinct),
         },
@@ -2675,8 +2647,8 @@ mod aggregation {
         expected_error_code = 1002,
         input = ast::FunctionExpr {
             function: ast::FunctionName::StddevPop,
-            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
-                ast::Literal::String("42".into())
+            args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
+                "42".into()
             )]),
             set_quantifier: Some(ast::SetQuantifier::Distinct),
         },
@@ -2729,8 +2701,8 @@ mod aggregation {
         expected_error_code = 1002,
         input = ast::FunctionExpr {
             function: ast::FunctionName::StddevSamp,
-            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
-                ast::Literal::String("42".into())
+            args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
+                "42".into()
             )]),
             set_quantifier: Some(ast::SetQuantifier::Distinct),
         },
@@ -2920,8 +2892,8 @@ mod aggregation {
         expected_error_code = 1002,
         input = ast::FunctionExpr {
             function: ast::FunctionName::MergeDocuments,
-            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
-                ast::Literal::String("42".into())
+            args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
+                "42".into()
             )]),
             set_quantifier: Some(ast::SetQuantifier::All),
         },
@@ -3045,7 +3017,7 @@ mod select_clause {
         input = ast::SelectClause {
             set_quantifier: ast::SetQuantifier::All,
             body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
-                ast::Expression::Literal(ast::Literal::String("foo".into()))
+                ast::Expression::StringConstructor("foo".into())
             ),]),
         },
         source = source(),
@@ -3683,7 +3655,7 @@ mod from_clause {
                         ast::SelectValuesExpression::Substar("bar".into()),
                         ast::SelectValuesExpression::Expression(ast::Expression::Document(
                             multimap! {
-                                "baz".into() => ast::Expression::Literal(ast::Literal::String("hello".into()))
+                                "baz".into() => ast::Expression::StringConstructor("hello".into())
                             }
                         )),
                     ]),
@@ -4120,7 +4092,7 @@ mod from_clause {
                     ast::Expression::Document(multimap! {
                     "a".into() => ast::Expression::Document(
                         multimap!{"b".into() => ast::Expression::Document(
-                        multimap!{"c".into() => ast::Expression::Literal(ast::Literal::String("hello".to_string()))},
+                        multimap!{"c".into() => ast::Expression::StringConstructor("hello".to_string())},
                     )},
                     )}),
                 ],

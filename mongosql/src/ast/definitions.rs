@@ -222,6 +222,7 @@ pub enum Expression {
     Is(IsExpr),
     Like(LikeExpr),
     Literal(Literal),
+    StringConstructor(String),
     Tuple(Vec<Expression>),
     TypeAssertion(TypeAssertionExpr),
 }
@@ -840,7 +841,6 @@ pub enum SortDirection {
 pub enum Literal {
     Null,
     Boolean(bool),
-    String(String),
     Integer(i32),
     Long(i64),
     Double(f64),

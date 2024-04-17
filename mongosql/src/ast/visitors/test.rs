@@ -101,6 +101,12 @@ mod are_literal_tests {
     test_visitors!(empty_vector_is_literal, expected = true, input = vec![],);
 
     test_visitors!(
+        string_constructor_is_literal,
+        expected = true,
+        input = vec![StringConstructor("yes".to_string())],
+    );
+
+    test_visitors!(
         top_level_identifier_is_non_literal,
         expected = false,
         input = vec![Identifier("a".into())],

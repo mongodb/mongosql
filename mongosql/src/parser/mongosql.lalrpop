@@ -83,7 +83,7 @@ FlattenDatasource: Datasource = {
 }
 
 FlattenOption: FlattenOption = {
-  SEPARATOR ARROW <s:String> => FlattenOption::Separator(s),
+  SEPARATOR ARROW <s:StringConstructor> => FlattenOption::Separator(s),
   DEPTH ARROW <d:Unsigned32> => FlattenOption::Depth(d)
 }
 
@@ -303,12 +303,12 @@ FunctionEscape: Expression = {
 }
 
 LiteralEscape: Expression = {
-    LEFT_CURLY_BRACE <i:ID> <s:String> RIGHT_CURLY_BRACE =>? {
+    LEFT_CURLY_BRACE <i:ID> <s:StringConstructor> RIGHT_CURLY_BRACE =>? {
         if i.to_lowercase() != "ts" {
             Err(ParseError::from(format!("timestamp escape sequence must use `ts`, found:`{i}`")))
         } else {
             Ok(Expression::Cast(CastExpr {
-                expr: Box::new(Expression::Literal(Literal::String(s.to_string()))),
+                expr: Box::new(Expression::StringConstructor(s.to_string())),
                 to: Type::Datetime,
                 on_null: None,
                 on_error: None
@@ -369,13 +369,13 @@ Trim: TrimExpr = {
   TRIM LEFT_PAREN <e:Expression> RIGHT_PAREN =>
     TrimExpr {
         trim_spec: TrimSpec::Both,
-        trim_chars: Box::new(Expression::Literal(Literal::String(" ".into()))),
+        trim_chars: Box::new(Expression::StringConstructor(" ".into())),
         arg: Box::new(e),
     },
   TRIM LEFT_PAREN <s:TrimSpec> FROM <e:Expression> RIGHT_PAREN =>
     TrimExpr {
         trim_spec: s,
-        trim_chars: Box::new(Expression::Literal(Literal::String(" ".into()))),
+        trim_chars: Box::new(Expression::StringConstructor(" ".into())),
         arg: Box::new(e),
     },
   TRIM LEFT_PAREN <substr:Expression> FROM <e:Expression> RIGHT_PAREN =>
@@ -393,7 +393,7 @@ Trim: TrimExpr = {
 }
 
 DocumentExpr: Expression = {
-  LEFT_CURLY_BRACE <l:CommaStar<(<String> COLON <Expression>)>> RIGHT_CURLY_BRACE =>
+  LEFT_CURLY_BRACE <l:CommaStar<(<StringConstructor> COLON <Expression>)>> RIGHT_CURLY_BRACE =>
   		Expression::Document(l.into_iter().map(|(k,v)| DocumentPair{key: k, value: v}).collect())
 }
 
@@ -495,8 +495,8 @@ IsTier<Expression,NextTier>: Box<Expression> = {
 }
 
 LikeTier<Expr, NextTier>: Box<Expression> = {
-  <e1:LikeTier<Expr, NextTier>> LIKE <e2:NextTier> <s:(ESCAPE <String>)?> =>? parse_like_expr(e1, e2, s),
-  <e1:LikeTier<Expr, NextTier>> NOT_LIKE <e2:NextTier> <s:(ESCAPE <String>)?> =>? Ok(Box::new(Expression::Unary(UnaryExpr{op:UnaryOp::Not, expr:parse_like_expr(e1, e2, s)?}))),
+  <e1:LikeTier<Expr, NextTier>> LIKE <e2:NextTier> <s:(ESCAPE <StringConstructor>)?> =>? parse_like_expr(e1, e2, s),
+  <e1:LikeTier<Expr, NextTier>> NOT_LIKE <e2:NextTier> <s:(ESCAPE <StringConstructor>)?> =>? Ok(Box::new(Expression::Unary(UnaryExpr{op:UnaryOp::Not, expr:parse_like_expr(e1, e2, s)?}))),
   NextTier,
 }
 
@@ -527,6 +527,7 @@ BottomExpr: Box<Expression> = {
   FunctionExpr => Box::new(Expression::Function(<>)),
   Identifier => Box::new(Expression::Identifier(<>)),
   Literal => Box::new(Expression::Literal(<>)),
+  StringConstructor => Box::new(Expression::StringConstructor(<>)),
   SubqueryExpr => Box::new(Expression::Subquery(<>)),
   Tuple => Box::new(<>),
   FunctionEscape => Box::new(<>),
@@ -587,7 +588,6 @@ UnaryOp: UnaryOp = {
 Literal: Literal = {
   NULL => Literal::Null,
   Boolean => Literal::Boolean(<>),
-  String => Literal::String(<>),
   Integer,
   Double,
 }
@@ -595,10 +595,6 @@ Literal: Literal = {
 Boolean: bool = {
   TRUE => true,
   FALSE => false,
-}
-
-String: String = {
-  <s:STRING> => s[1..s.len() - 1].replace("\'\'", "\'")
 }
 
 Integer: Literal = {
@@ -635,6 +631,10 @@ Unsigned32: u32 = {
       Err(x) => Err(x)
     }
   },
+}
+
+StringConstructor: String = {
+  <s:STRING> => s[1..s.len() - 1].replace("\'\'", "\'")
 }
 
 Type: Type = {
