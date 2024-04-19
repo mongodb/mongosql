@@ -989,11 +989,13 @@ impl<'a> Algebrizer<'a> {
     pub fn algebrize_expression(
         &self,
         ast_node: ast::Expression,
-        _in_implicit_type_conversion_context: bool,
+        in_implicit_type_conversion_context: bool,
     ) -> Result<mir::Expression> {
         match ast_node {
             ast::Expression::Literal(l) => Ok(mir::Expression::Literal(self.algebrize_literal(l))),
-            ast::Expression::StringConstructor(s) => Ok(self.algebrize_string_constructor(s)),
+            ast::Expression::StringConstructor(s) => {
+                Ok(self.algebrize_string_constructor(s, in_implicit_type_conversion_context))
+            }
             ast::Expression::Array(a) => Ok(mir::Expression::Array(
                 a.into_iter()
                     .map(|e| self.algebrize_expression(e, false))
@@ -1046,8 +1048,24 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
-    pub fn algebrize_string_constructor(&self, s: String) -> mir::Expression {
-        mir::Expression::Literal(mir::LiteralValue::String(s))
+    pub fn algebrize_string_constructor(
+        &self,
+        s: String,
+        in_implicit_type_conversion_context: bool,
+    ) -> mir::Expression {
+        // treat the string as a literal if we are not in a context where we want to implicitly cast
+        if !in_implicit_type_conversion_context {
+            return mir::Expression::Literal(mir::LiteralValue::String(s));
+        }
+
+        // if we are in a context where we want to implicit cast, use serde_json to
+        // try to interpret the string as extended json. If the deserialization is successful
+        // (i.e., the string contained extended json), convert the bson to a mir expression; otherwise,
+        // return the original string as a string literal
+        match serde_json::from_str::<bson::Bson>(s.as_str()) {
+            Ok(bson) => bson.into(),
+            Err(_) => mir::Expression::Literal(mir::LiteralValue::String(s)),
+        }
     }
 
     pub fn algebrize_limit_clause(

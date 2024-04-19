@@ -296,6 +296,38 @@ impl Expression {
     }
 }
 
+impl From<bson::Bson> for Expression {
+    fn from(bson: bson::Bson) -> Expression {
+        match bson {
+            bson::Bson::Array(a) => Expression::Array(ArrayExpr {
+                array: a.into_iter().map(|expr| expr.into()).collect()
+            }),
+            bson::Bson::Binary(b) => Expression::Literal(LiteralValue::Binary(b)),
+            bson::Bson::Boolean(b) => Expression::Literal(LiteralValue::Boolean(b)),
+            bson::Bson::DateTime(d) => Expression::Literal(LiteralValue::DateTime(d)),
+            bson::Bson::DbPointer(d) => Expression::Literal(LiteralValue::DbPointer(d)),
+            bson::Bson::Decimal128(d) => Expression::Literal(LiteralValue::Decimal128(d)),
+            bson::Bson::Document(d) => Expression::Document(UniqueLinkedHashMap::from(
+                d.into_iter().map(|(key, expr)| (key, expr.into())).collect::<linked_hash_map::LinkedHashMap<String, Expression>>()
+            ).into()),
+            bson::Bson::Double(d) => Expression::Literal(LiteralValue::Double(d)),
+            bson::Bson::Int32(i) => Expression::Literal(LiteralValue::Integer(i)),
+            bson::Bson::Int64(i) => Expression::Literal(LiteralValue::Long(i)),
+            bson::Bson::JavaScriptCode(j) => Expression::Literal(LiteralValue::JavaScriptCode(j)),
+            bson::Bson::JavaScriptCodeWithScope(j) => Expression::Literal(LiteralValue::JavaScriptCodeWithScope(j)),
+            bson::Bson::MinKey => Expression::Literal(LiteralValue::MinKey),
+            bson::Bson::MaxKey => Expression::Literal(LiteralValue::MaxKey),
+            bson::Bson::Null => Expression::Literal(LiteralValue::Null),
+            bson::Bson::ObjectId(o) => Expression::Literal(LiteralValue::ObjectId(o)),
+            bson::Bson::RegularExpression(r) => Expression::Literal(LiteralValue::RegularExpression(r)),
+            bson::Bson::String(s) => Expression::Literal(LiteralValue::String(s)),
+            bson::Bson::Symbol(s) => Expression::Literal(LiteralValue::Symbol(s)),
+            bson::Bson::Timestamp(t) => Expression::Literal(LiteralValue::Timestamp(t)),
+            bson::Bson::Undefined => Expression::Literal(LiteralValue::Undefined),
+        }
+    }
+}
+
 #[derive(PartialEq, Debug, Clone)]
 pub enum LiteralValue {
     Null,
