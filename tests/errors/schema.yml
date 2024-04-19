@@ -1,26 +1,26 @@
 catalog_data:
   db:
     foo:
-      - {'_id': 0, 'a': 1, 'b': 2, 'c': "foo", 'd': {'a': 1}}
+      - { '_id': 0, 'a': 1, 'b': 2, 'c': "foo", 'd': { 'a': 1 } }
     bar:
-      - { '_id': 0, 'a': 1, 'b': 2, 'c': "bar", 'd': {'a': 2}}
+      - { '_id': 0, 'a': 1, 'b': 2, 'c': "bar", 'd': { 'a': 2 } }
 
 catalog_schema:
   {
     'db': {
       'foo': {
         'bsonType': 'object',
-        "required": [ "_id", "a", "b", "c", "d"],
+        "required": [ "_id", "a", "b", "c", "d" ],
         "additionalProperties": false,
         "properties":
           {
             "_id": { "bsonType": "int" },
             "a": { "bsonType": "int" },
             "b": { "bsonType": "int" },
-            "c": {"bsonType": "string"},
+            "c": { "bsonType": "string" },
             "d":
               {
-                "required": ["a"],
+                "required": [ "a" ],
                 "bsonType": "object",
                 "properties": {
                   "a": { "bsonType": "int" }
@@ -114,10 +114,4 @@ tests:
     current_db: db
     should_compile: false
     algebrize_error: "Error 1016: unknown collection 'baz' in database 'db'"
-
-  - description: Error 1017 ExtJsonComparison
-    query: "SELECT * FROM foo where a = '{\"$numberInt\": \"5\"}'"
-    current_db: db
-    should_compile: false
-    algebrize_error: "Error 1017: MongoSQL does not support direct comparisons with extended JSON. Try `= 5`."
 

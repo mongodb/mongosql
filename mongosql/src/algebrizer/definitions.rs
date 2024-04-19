@@ -11,7 +11,7 @@ use crate::{
     },
     schema::{
         self, Satisfaction, SchemaEnvironment, BOOLEAN_OR_NULLISH, INTEGER_LONG_OR_NULLISH,
-        INTEGER_OR_NULLISH, NULLISH,
+        INTEGER_OR_NULLISH, NULLISH, STRING_OR_NULLISH,
     },
     util::unique_linked_hash_map::UniqueLinkedHashMap,
     SchemaCheckingMode,
@@ -1169,11 +1169,90 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
+    /// This is a helper function for algebrizing binary comparison operands when one is a
+    /// StringConstructor (literal) and one is not (non_literal). The non_literal is algebrized
+    /// first. If its schema MUST satisfy STRING_OR_NULLISH, then the literal is algebrized with
+    /// in_implicit_type_conversion_context set to false because that means a String is expected;
+    /// otherwise, it is algebrized with that value set to true.
+    ///
+    /// - "itc" stands for "implicit type conversion".
+    /// - The tuple returned is always (literal, non_literal).
+    fn algebrize_itc_eligible_binary_comparison_operands(
+        &self,
+        literal: ast::Expression,
+        non_literal: ast::Expression,
+    ) -> Result<(mir::Expression, mir::Expression)> {
+        let non_literal = self.algebrize_expression(non_literal, false)?;
+        let non_literal_schema = non_literal.schema(&self.schema_inference_state())?;
+        let is_nullable_string =
+            non_literal_schema.satisfies(&STRING_OR_NULLISH) == Satisfaction::Must;
+
+        // Again, if is_nullable_string is true, that means we _do_ expect the StringConstructor
+        // to be a String value, so we set in_implicit_type_conversion_context to false.
+        let literal = self.algebrize_expression(literal, !is_nullable_string)?;
+
+        Ok((literal, non_literal))
+    }
+
     fn algebrize_binary_expr(&self, b: ast::BinaryExpr) -> Result<mir::Expression> {
-        let (mut left, mut right) = (
-            self.algebrize_expression(*b.left, false)?,
-            self.algebrize_expression(*b.right, false)?,
-        );
+        use crate::ast::BinaryOp::*;
+
+        // First, we must determine if the left and right operands each need to
+        // be algebrized in an implicit type conversion context (this is done
+        // by toggling the bool argument to aglebrize_expression). The different
+        // cases are detailed below.
+        let (mut left, mut right) = match b.op {
+            // Add, And, Div, Mul, Or, and Sub do not expect String operands,
+            // therefore we algebrize their left and right operands with true.
+            // This means we _should_ attempt to implicitly convert any
+            // StringConstructors into different literal types.
+            Add | And | Div | Mul | Or | Sub => (
+                self.algebrize_expression(*b.left, true)?,
+                self.algebrize_expression(*b.right, true)?,
+            ),
+
+            // Concat expects String operands, therefore we algebrize its left
+            // and right operands with false. This means we should not attempt
+            // to convert any StringConstructors into different literal types.
+            Concat => (
+                self.algebrize_expression(*b.left, false)?,
+                self.algebrize_expression(*b.right, false)?,
+            ),
+
+            // For comparison operators, if exactly one of the operands is a
+            // StringConstructor, then we can algebrize the other with false.
+            // If the schema of that algebrized expression MUST satisfy nullable
+            // String, then we algebrize the StringConstructor with false;
+            // otherwise we algebrize it with true. This is because if both
+            // are StringConstructors, we can leave them both as String values,
+            // and if neither are StringConstructors, there is nothing to convert.
+            Comparison(_) => match (*b.left, *b.right) {
+                (
+                    l @ ast::Expression::StringConstructor(_),
+                    r @ ast::Expression::StringConstructor(_),
+                ) => (
+                    self.algebrize_expression(l, false)?,
+                    self.algebrize_expression(r, false)?,
+                ),
+                (literal @ ast::Expression::StringConstructor(_), non_literal) => {
+                    let (literal, non_literal) = self
+                        .algebrize_itc_eligible_binary_comparison_operands(literal, non_literal)?;
+                    (literal, non_literal)
+                }
+                (non_literal, literal @ ast::Expression::StringConstructor(_)) => {
+                    let (literal, non_literal) = self
+                        .algebrize_itc_eligible_binary_comparison_operands(literal, non_literal)?;
+                    (non_literal, literal)
+                }
+                (l, r) => (
+                    self.algebrize_expression(l, false)?,
+                    self.algebrize_expression(r, false)?,
+                ),
+            },
+
+            // In and NotIn should have been rewritten during ast rewriting.
+            In | NotIn => panic!("'{}' cannot be algebrized", b.op.as_str()),
+        };
 
         let mut cast_div_result: Option<mir::Type> = None;
 
@@ -1183,7 +1262,7 @@ impl<'a> Algebrizer<'a> {
         // schema of the arguments for Div to see if we need to cast the result to a whole
         // number in order to ensure integer division (rather than normal division) takes place.
         match b.op {
-            ast::BinaryOp::Comparison(_) => {
+            Comparison(_) => {
                 let (left_schema, right_schema) = (
                     left.schema(&self.schema_inference_state())?,
                     right.schema(&self.schema_inference_state())?,
@@ -1200,12 +1279,12 @@ impl<'a> Algebrizer<'a> {
             }
             // And and Or only work with boolean types, so converting 1 to true and 0 to false
             // is always correct, unlike in comparisons.
-            ast::BinaryOp::Or | ast::BinaryOp::And => {
+            Or | And => {
                 right = Self::convert_literal_to_bool(right);
                 left = Self::convert_literal_to_bool(left);
             }
             // Check to see if both Div arguments MUST be whole numbers.
-            ast::BinaryOp::Div => {
+            Div => {
                 let (left_schema, right_schema) = (
                     left.schema(&self.schema_inference_state())?,
                     right.schema(&self.schema_inference_state())?,

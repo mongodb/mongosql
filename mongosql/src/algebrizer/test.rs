@@ -187,2443 +187,2924 @@ mod expression {
         usererror::UserError,
     };
 
-    test_algebrize!(
-        null,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::Null)),
-        input = ast::Expression::Literal(ast::Literal::Null),
-    );
-    test_algebrize!(
-        expr_true,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
-        input = ast::Expression::Literal(ast::Literal::Boolean(true)),
-    );
-    test_algebrize!(
-        expr_false,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::Boolean(false))),
-        input = ast::Expression::Literal(ast::Literal::Boolean(false)),
-    );
-    test_algebrize!(
-        string,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::String(
-            "hello!".into()
-        ))),
-        input = ast::Expression::StringConstructor("hello!".into()),
-    );
-    test_algebrize!(
-        int,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
-        input = ast::Expression::Literal(ast::Literal::Integer(42)),
-    );
-    test_algebrize!(
-        long,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::Long(42))),
-        input = ast::Expression::Literal(ast::Literal::Long(42)),
-    );
-    test_algebrize!(
-        double,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::Double(42f64))),
-        input = ast::Expression::Literal(ast::Literal::Double(42f64)),
-    );
+    mod literal {
+        use super::*;
 
-    test_algebrize!(
-        empty_array,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Array(vec![].into())),
-        input = ast::Expression::Array(vec![]),
-    );
-    test_algebrize!(
-        nested_array,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Array(
-            vec![mir::Expression::Array(
-                vec![
-                    mir::Expression::Literal(mir::LiteralValue::Long(42)),
-                    mir::Expression::Literal(mir::LiteralValue::Integer(42)),
-                ]
+        test_algebrize!(
+            null,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Literal(mir::LiteralValue::Null)),
+            input = ast::Expression::Literal(ast::Literal::Null),
+        );
+
+        test_algebrize!(
+            expr_true,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
+            input = ast::Expression::Literal(ast::Literal::Boolean(true)),
+        );
+
+        test_algebrize!(
+            expr_false,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Literal(mir::LiteralValue::Boolean(false))),
+            input = ast::Expression::Literal(ast::Literal::Boolean(false)),
+        );
+
+        test_algebrize!(
+            string,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Literal(mir::LiteralValue::String(
+                "hello!".into()
+            ))),
+            input = ast::Expression::StringConstructor("hello!".into()),
+        );
+
+        test_algebrize!(
+            int,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
+            input = ast::Expression::Literal(ast::Literal::Integer(42)),
+        );
+
+        test_algebrize!(
+            long,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Literal(mir::LiteralValue::Long(42))),
+            input = ast::Expression::Literal(ast::Literal::Long(42)),
+        );
+
+        test_algebrize!(
+            double,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Literal(mir::LiteralValue::Double(42f64))),
+            input = ast::Expression::Literal(ast::Literal::Double(42f64)),
+        );
+
+        test_algebrize!(
+            empty_array,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Array(vec![].into())),
+            input = ast::Expression::Array(vec![]),
+        );
+
+        test_algebrize!(
+            nested_array,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Array(
+                vec![mir::Expression::Array(
+                    vec![
+                        mir::Expression::Literal(mir::LiteralValue::Long(42)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(42)),
+                    ]
+                    .into()
+                )]
                 .into()
-            )]
-            .into()
-        )),
-        input = ast::Expression::Array(vec![ast::Expression::Array(vec![
-            ast::Expression::Literal(ast::Literal::Long(42)),
-            ast::Expression::Literal(ast::Literal::Integer(42)),
-        ])]),
-    );
+            )),
+            input = ast::Expression::Array(vec![ast::Expression::Array(vec![
+                ast::Expression::Literal(ast::Literal::Long(42)),
+                ast::Expression::Literal(ast::Literal::Integer(42)),
+            ])]),
+        );
 
-    test_algebrize!(
-        empty_document,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Document(
-            unchecked_unique_linked_hash_map! {}.into()
-        )),
-        input = ast::Expression::Document(multimap! {}),
-    );
-    test_algebrize!(
-        nested_document,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Document(
-            unchecked_unique_linked_hash_map! {
-                "foo2".into() => mir::Expression::Document(
-                    unchecked_unique_linked_hash_map!{"nested".into() => mir::Expression::Literal(mir::LiteralValue::Integer(52))}
-                .into()),
-                "bar2".into() => mir::Expression::Literal(mir::LiteralValue::Integer(42))
-            }
-        .into())),
-        input = ast::Expression::Document(multimap! {
-                    "foo2".into() => ast::Expression::Document(
-                        multimap!{"nested".into() => ast::Expression::Literal(ast::Literal::Integer(52))},
+        test_algebrize!(
+            empty_document,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Document(
+                unchecked_unique_linked_hash_map! {}.into()
+            )),
+            input = ast::Expression::Document(multimap! {}),
+        );
+
+        test_algebrize!(
+            nested_document,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Document(
+                unchecked_unique_linked_hash_map! {
+                    "foo2".into() => mir::Expression::Document(
+                        unchecked_unique_linked_hash_map!{"nested".into() => mir::Expression::Literal(mir::LiteralValue::Integer(52))} .into()
                     ),
-                    "bar2".into() => ast::Expression::Literal(ast::Literal::Integer(42)),
-        }),
-    );
-    test_algebrize!(
-        document_with_keys_containing_dots_and_dollars,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Document(
-            unchecked_unique_linked_hash_map! {
-                "a.b".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                "$c".into() => mir::Expression::Literal(mir::LiteralValue::Integer(42)),
-            }
-            .into()
-        )),
-        input = ast::Expression::Document(multimap! {
-                    "a.b".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
-                    "$c".into() => ast::Expression::Literal(ast::Literal::Integer(42)),
-        }),
-    );
-    test_algebrize!(
-        qualified_ref_in_current_scope,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
-            field: "a".into(),
-            is_nullable: true
-        })),
-        input = ast::Expression::Subpath(ast::SubpathExpr {
-            expr: Box::new(ast::Expression::Identifier("foo".into())),
-            subpath: "a".into(),
-        }),
-        env = map! {
-            ("foo", 1u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set!{},
-                additional_properties: false,
-                ..Default::default()
-                }),
-            ("foo", 0u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set!{},
-                additional_properties: false,
-                ..Default::default()
-                }),
-        },
-    );
-    test_algebrize!(
-        qualified_ref_in_super_scope,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-            field: "a".into(),
-            is_nullable: true
-        })),
-        input = ast::Expression::Subpath(ast::SubpathExpr {
-            expr: Box::new(ast::Expression::Identifier("foo".into())),
-            subpath: "a".into(),
-        }),
-        env = map! {
-            ("bar", 1u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "b".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set!{},
-                additional_properties: false,
-                ..Default::default()
-                }),
-            ("foo", 0u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set!{},
-                additional_properties: false,
-                ..Default::default()
-                }),
-        },
-    );
-    test_algebrize!(
-        unqualified_ref_may_exist_in_current_scope,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
-            field: "a".into(),
-            is_nullable: true
-        })),
-        input = ast::Expression::Identifier("a".into()),
-        env = map! {
-            ("foo", 1u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set!{},
-                additional_properties: false,
-                ..Default::default()
-                }),
-        },
-    );
-    test_algebrize!(
-        unqualified_ref_must_exist_in_current_scope,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
-            field: "a".into(),
-            is_nullable: false
-        })),
-        input = ast::Expression::Identifier("a".into()),
-        env = map! {
-            ("foo", 1u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set!{"a".into()},
-                additional_properties: false,
-                ..Default::default()
-                }),
-        },
-    );
-    test_algebrize!(
-        unqualified_ref_may_exist_only_in_super_scope,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-            field: "a".into(),
-            is_nullable: true
-        })),
-        input = ast::Expression::Identifier("a".into()),
-        env = map! {
-            ("foo", 1u16).into() => Schema::Atomic(Atomic::Integer),
-            ("foo", 0u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set!{},
-                additional_properties: false,
-                ..Default::default()
-                }),
-        },
-    );
-    test_algebrize!(
-        unqualified_ref_must_exist_in_super_scope,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-            field: "a".into(),
-            is_nullable: false
-        })),
-        input = ast::Expression::Identifier("a".into()),
-        env = map! {
-            ("foo", 1u16).into() => Schema::Atomic(Atomic::Integer),
-            ("foo", 0u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set!{"a".into()},
-                additional_properties: false,
-                ..Default::default()
-                }),
-        },
-    );
-    test_algebrize!(
-        unqualified_ref_must_exist_in_super_scope_bot_source,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: Box::new(mir::Expression::Reference(Key::bot(0u16).into())),
-            field: "a".into(),
-            is_nullable: false
-        })),
-        input = ast::Expression::Identifier("a".into()),
-        env = map! {
-            ("foo", 1u16).into() => Schema::Atomic(Atomic::Integer),
-            Key::bot(0u16) => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set!{"a".into()},
-                additional_properties: false,
-                ..Default::default()
-                }),
-        },
-    );
-    test_algebrize!(
-        unqualified_ref_may_and_must_exist_in_two_sources,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::AmbiguousField("a".into())),
-        expected_error_code = 3009,
-        input = ast::Expression::Identifier("a".into()),
-        env = map! {
-            ("foo", 1u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set!{"a".into()},
-                additional_properties: false,
-                ..Default::default()
-                }),
-            Key::bot(1u16) => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Atomic(Atomic::Integer),
-                },
-                required: set!{"a".into()},
-                additional_properties: false,
-                ..Default::default()
-                }),
-        },
-    );
-    test_algebrize!(
-        unqualified_subpath_in_current_and_super_must_exist_in_current,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
-                expr: Box::new(mir::Expression::Reference(("test", 1u16).into())),
+                    "bar2".into() => mir::Expression::Literal(mir::LiteralValue::Integer(42))
+                }.into()
+            )),
+            input = ast::Expression::Document(multimap! {
+                "foo2".into() => ast::Expression::Document(
+                    multimap!{"nested".into() => ast::Expression::Literal(ast::Literal::Integer(52))},
+                ),
+                "bar2".into() => ast::Expression::Literal(ast::Literal::Integer(42)),
+            }),
+        );
+
+        test_algebrize!(
+            document_with_keys_containing_dots_and_dollars,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Document(
+                unchecked_unique_linked_hash_map! {
+                    "a.b".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    "$c".into() => mir::Expression::Literal(mir::LiteralValue::Integer(42)),
+                }
+                .into()
+            )),
+            input = ast::Expression::Document(multimap! {
+                "a.b".into() => ast::Expression::Literal(ast::Literal::Integer(1)),
+                "$c".into() => ast::Expression::Literal(ast::Literal::Integer(42)),
+            }),
+        );
+
+        mod ext_json {
+            use super::*;
+
+            test_algebrize!(
+                array_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Array(
+                    vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                        mir::Expression::Literal(mir::LiteralValue::String("hello".to_string()))
+                    ]
+                    .into()
+                )),
+                input = ast::Expression::StringConstructor("[1, \"hello\"]".to_string()),
+            );
+
+            test_algebrize!(
+                bindata_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::Binary(
+                    bson::Binary {
+                        subtype: bson::spec::BinarySubtype::Uuid,
+                        bytes: vec![]
+                    }
+                ))),
+                input = ast::Expression::StringConstructor(
+                    "{ \"$binary\" : {\"base64\" : \"\", \"subType\" : \"04\"}}".to_string()
+                ),
+            );
+
+            test_algebrize!(
+                boolean_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
+                input = ast::Expression::StringConstructor("true".to_string()),
+            );
+
+            test_algebrize!(
+                datetime_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::DateTime(
+                    "2019-08-11T17:54:14.692Z"
+                        .parse::<chrono::DateTime<chrono::prelude::Utc>>()
+                        .unwrap()
+                        .into()
+                ))),
+                input = ast::Expression::StringConstructor(
+                    "{\"$date\":\"2019-08-11T17:54:14.692Z\"}".to_string()
+                ),
+            );
+
+            test_algebrize!(
+                decimal128_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::Decimal128(
+                    "10.99".parse().unwrap()
+                ))),
+                input = ast::Expression::StringConstructor(
+                    "{\"$numberDecimal\": \"10.99\"}".to_string()
+                ),
+            );
+
+            test_algebrize!(
+                document_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Document(
+                    unchecked_unique_linked_hash_map! {
+                        "x".into() => mir::Expression::Literal(mir::LiteralValue::Integer(3)),
+                        "y".into() => mir::Expression::Literal(mir::LiteralValue::String("hello".to_string())),
+                    }
+                .into())),
+                input = ast::Expression::StringConstructor("{\"x\": 3, \"y\": \"hello\"}".to_string()),
+            );
+
+            test_algebrize!(
+                double_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::Double(10.5))),
+                input = ast::Expression::StringConstructor("10.5".to_string()),
+            );
+
+            test_algebrize!(
+                int_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::Long(3))),
+                input = ast::Expression::StringConstructor("{\"$numberLong\": \"3\"}".to_string()),
+            );
+
+            test_algebrize!(
+                javascript_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::JavaScriptCode(
+                    "code here".to_string()
+                ))),
+                input =
+                    ast::Expression::StringConstructor("{\"$code\": \"code here\"}".to_string()),
+            );
+
+            test_algebrize!(
+                javascript_with_scope_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(
+                    mir::LiteralValue::JavaScriptCodeWithScope(bson::JavaScriptCodeWithScope {
+                        code: "code here".to_string(),
+                        scope: bson::doc! {}
+                    })
+                )),
+                input = ast::Expression::StringConstructor(
+                    "{\"$code\": \"code here\", \"$scope\": {}}".to_string()
+                ),
+            );
+
+            test_algebrize!(
+                maxkey_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::MaxKey)),
+                input = ast::Expression::StringConstructor("{\"$maxKey\": 1}".to_string()),
+            );
+
+            test_algebrize!(
+                minkey_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::MinKey)),
+                input = ast::Expression::StringConstructor("{\"$minKey\": 1}".to_string()),
+            );
+
+            test_algebrize!(
+                null_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::Null)),
+                input = ast::Expression::StringConstructor("null".to_string()),
+            );
+
+            test_algebrize!(
+                objectid_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::ObjectId(
+                    bson::oid::ObjectId::parse_str("5ab9c3da31c2ab715d421285").unwrap()
+                ))),
+                input = ast::Expression::StringConstructor(
+                    "{\"$oid\": \"5ab9c3da31c2ab715d421285\"}".to_string()
+                ),
+            );
+
+            test_algebrize!(
+                regular_expression_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(
+                    mir::LiteralValue::RegularExpression(bson::Regex {
+                        pattern: "pattern".to_string(),
+                        options: "".to_string()
+                    })
+                )),
+                input = ast::Expression::StringConstructor(
+                    "{\"$regularExpression\":{\"pattern\": \"pattern\",\"options\": \"\"}}"
+                        .to_string()
+                ),
+            );
+
+            test_algebrize!(
+                regular_string_stays_string_with_implicit_casting_true,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::String(
+                    "abc".to_string()
+                ))),
+                input = ast::Expression::StringConstructor("abc".to_string()),
+            );
+
+            test_algebrize!(
+                json_string_stays_string_with_implicit_casting_true,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::String(
+                    "'{this_doc_is_actually_a_string: 1}'".to_string()
+                ))),
+                input = ast::Expression::StringConstructor(
+                    "'{this_doc_is_actually_a_string: 1}'".to_string()
+                ),
+            );
+
+            test_algebrize!(
+                symbol_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::Symbol(
+                    "symbol".to_string()
+                ))),
+                input = ast::Expression::StringConstructor("{\"$symbol\": \"symbol\"}".to_string()),
+            );
+
+            test_algebrize!(
+                timestamp_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::Timestamp(
+                    bson::Timestamp {
+                        time: 1,
+                        increment: 2
+                    }
+                ))),
+                input = ast::Expression::StringConstructor(
+                    "{\"$timestamp\": {\"t\": 1, \"i\": 2}}".to_string()
+                ),
+            );
+
+            test_algebrize!(
+                undefined_string_to_ext_json,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = true,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::Undefined)),
+                input = ast::Expression::StringConstructor("{\"$undefined\": true}".to_string()),
+            );
+
+            test_algebrize!(
+                ext_json_not_converted_when_conversion_false,
+                method = algebrize_expression,
+                in_implicit_type_conversion_context = false,
+                expected = Ok(mir::Expression::Literal(mir::LiteralValue::String(
+                    "{\"$numberLong\": \"3\"}".to_string()
+                ))),
+                input = ast::Expression::StringConstructor("{\"$numberLong\": \"3\"}".to_string()),
+            );
+        }
+    }
+
+    mod identifier_and_subpath {
+        use super::*;
+
+        test_algebrize!(
+            qualified_ref_in_current_scope,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
                 field: "a".into(),
-                is_nullable: false
-            })),
-            field: "c".into(),
-            is_nullable: true
-        })),
-        input = ast::Expression::Subpath(ast::SubpathExpr {
-            expr: Box::new(ast::Expression::Identifier("a".into())),
-            subpath: "c".into(),
-        }),
-        env = map! {
-            ("test", 1u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Document( Document {
-                        keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
-                        required: set!{},
-                        additional_properties: false,
-                        ..Default::default()
-                        }),
-                },
-                required: set!{"a".into()},
-                additional_properties: false,
-                ..Default::default()
-                }),
-            ("super_test", 0u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Document( Document {
-                        keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
-                        required: set!{},
-                        additional_properties: false,
-                        ..Default::default()
-                        }),
-                },
-                required: set!{},
-                additional_properties: false,
-                ..Default::default()
-                }),
-        },
-    );
-    test_algebrize!(
-        unqualified_subpath_in_current_and_super_may_exist_is_ambiguous,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::AmbiguousField("a".into())),
-        expected_error_code = 3009,
-        input = ast::Expression::Subpath(ast::SubpathExpr {
-            expr: Box::new(ast::Expression::Identifier("a".into())),
-            subpath: "c".into(),
-        }),
-        env = map! {
-            ("test", 1u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Document( Document {
-                        keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
-                        required: set!{},
-                        additional_properties: false,
-                        ..Default::default()
-                        }),
-                },
-                required: set!{},
-                additional_properties: false,
-                ..Default::default()
-                }),
-            ("super_test", 0u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Document( Document {
-                        keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
-                        required: set!{},
-                        additional_properties: false,
-                        ..Default::default()
-                        }),
-                },
-                required: set!{},
-                additional_properties: false,
-                ..Default::default()
-                }),
-        },
-    );
-    test_algebrize!(
-        unqualified_subpath_in_super_scope,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
-                expr: Box::new(mir::Expression::Reference(("super_test", 0u16).into())),
-                field: "a".into(),
-                is_nullable: false
-            })),
-            field: "c".into(),
-            is_nullable: false
-        })),
-        input = ast::Expression::Subpath(ast::SubpathExpr {
-            expr: Box::new(ast::Expression::Identifier("a".into())),
-            subpath: "c".into(),
-        }),
-        env = map! {
-            ("test", 1u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "b".into() => Schema::Document( Document {
-                        keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
-                        required: set!{},
-                        additional_properties: false,
-                        ..Default::default()
-                        }),
-                },
-                required: set!{},
-                additional_properties: false,
-                ..Default::default()
-                }),
-            ("super_test", 0u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Document( Document {
-                        keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
-                        required: set!{"c".into()},
-                        additional_properties: false,
-                        ..Default::default()
-                        }),
-                },
-                required: set!{"a".into()},
-                additional_properties: false,
-                ..Default::default()
-                }),
-        },
-    );
-    test_algebrize!(
-        qualified_ref_prefers_super_datasource_to_local_field,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
-            field: "a".into(),
-            is_nullable: true
-        })),
-        // test MongoSQL: SELECT (SELECT foo.a FROM bar) FROM foo => (foo.a)
-        input = ast::Expression::Subpath(ast::SubpathExpr {
-            expr: Box::new(ast::Expression::Identifier("foo".into())),
-            subpath: "a".into(),
-        }),
-        env = map! {
-            ("bar", 1u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "foo".into() => Schema::Document( Document {
-                        keys: map! {"a".into() => Schema::Atomic(Atomic::Double)},
-                        required: set!{},
-                        additional_properties: false,
-                        ..Default::default()
-                        }),
-                },
-                required: set!{},
-                additional_properties: false,
-                ..Default::default()
-                }),
-            ("foo", 0u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Atomic( Atomic::Integer),
-                },
-                required: set!{},
-                additional_properties: false,
-                ..Default::default()
-                }),
-        },
-    );
-    test_algebrize!(
-        qualified_ref_to_local_field,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
-            expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
-                expr: Box::new(mir::Expression::Reference(("bar", 1u16).into())),
-                field: "foo".into(),
                 is_nullable: true
             })),
-            field: "a".into(),
-            is_nullable: true
-        })),
-        //test MongoSQL: SELECT (SELECT bar.foo.a FROM bar) FROM foo => (bar.foo.a)
-        input = ast::Expression::Subpath(ast::SubpathExpr {
-            expr: Box::new(ast::Expression::Subpath(ast::SubpathExpr {
-                expr: Box::new(ast::Expression::Identifier("bar".into())),
-                subpath: "foo".into(),
+            input = ast::Expression::Subpath(ast::SubpathExpr {
+                expr: Box::new(ast::Expression::Identifier("foo".into())),
+                subpath: "a".into(),
+            }),
+            env = map! {
+                ("foo", 1u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+                ("foo", 0u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
+
+        test_algebrize!(
+            qualified_ref_in_super_scope,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
+                field: "a".into(),
+                is_nullable: true
             })),
-            subpath: "a".into(),
-        }),
-        env = map! {
-            ("bar", 1u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "foo".into() => Schema::Document( Document {
-                        keys: map! {"a".into() => Schema::Atomic(Atomic::Double)},
-                        required: set!{},
-                        additional_properties: false,
-                        ..Default::default()
+            input = ast::Expression::Subpath(ast::SubpathExpr {
+                expr: Box::new(ast::Expression::Identifier("foo".into())),
+                subpath: "a".into(),
+            }),
+            env = map! {
+                ("bar", 1u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "b".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+                ("foo", 0u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
+
+        test_algebrize!(
+            unqualified_ref_may_exist_in_current_scope,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                field: "a".into(),
+                is_nullable: true
+            })),
+            input = ast::Expression::Identifier("a".into()),
+            env = map! {
+                ("foo", 1u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
+
+        test_algebrize!(
+            unqualified_ref_must_exist_in_current_scope,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                field: "a".into(),
+                is_nullable: false
+            })),
+            input = ast::Expression::Identifier("a".into()),
+            env = map! {
+                ("foo", 1u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!{"a".into()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
+
+        test_algebrize!(
+            unqualified_ref_may_exist_only_in_super_scope,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
+                field: "a".into(),
+                is_nullable: true
+            })),
+            input = ast::Expression::Identifier("a".into()),
+            env = map! {
+                ("foo", 1u16).into() => Schema::Atomic(Atomic::Integer),
+                ("foo", 0u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
+
+        test_algebrize!(
+            unqualified_ref_must_exist_in_super_scope,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
+                field: "a".into(),
+                is_nullable: false
+            })),
+            input = ast::Expression::Identifier("a".into()),
+            env = map! {
+                ("foo", 1u16).into() => Schema::Atomic(Atomic::Integer),
+                ("foo", 0u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!{"a".into()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
+
+        test_algebrize!(
+            unqualified_ref_must_exist_in_super_scope_bot_source,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::Reference(Key::bot(0u16).into())),
+                field: "a".into(),
+                is_nullable: false
+            })),
+            input = ast::Expression::Identifier("a".into()),
+            env = map! {
+                ("foo", 1u16).into() => Schema::Atomic(Atomic::Integer),
+                Key::bot(0u16) => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!{"a".into()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
+
+        test_algebrize!(
+            unqualified_ref_may_and_must_exist_in_two_sources,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::AmbiguousField("a".into())),
+            expected_error_code = 3009,
+            input = ast::Expression::Identifier("a".into()),
+            env = map! {
+                ("foo", 1u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!{"a".into()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+                Key::bot(1u16) => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!{"a".into()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
+
+        test_algebrize!(
+            unqualified_subpath_in_current_and_super_must_exist_in_current,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                    expr: Box::new(mir::Expression::Reference(("test", 1u16).into())),
+                    field: "a".into(),
+                    is_nullable: false
+                })),
+                field: "c".into(),
+                is_nullable: true
+            })),
+            input = ast::Expression::Subpath(ast::SubpathExpr {
+                expr: Box::new(ast::Expression::Identifier("a".into())),
+                subpath: "c".into(),
+            }),
+            env = map! {
+                ("test", 1u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Document( Document {
+                            keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
+                            required: set!{},
+                            additional_properties: false,
+                            ..Default::default()
                         }),
-                },
-                required: set!{},
-                additional_properties: false,
-                ..Default::default()
+                    },
+                    required: set!{"a".into()},
+                    additional_properties: false,
+                    ..Default::default()
                 }),
-            ("foo", 0u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Atomic( Atomic::Integer),
-                },
-                required: set!{},
-                additional_properties: false,
-                ..Default::default()
-                }),
-        },
-    );
-    test_algebrize!(
-        unqualified_reference_and_may_contain_sub_and_must_contain_outer_is_ambiguous,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::AmbiguousField("a".into())),
-        expected_error_code = 3009,
-        input = ast::Expression::Subpath(ast::SubpathExpr {
-            expr: Box::new(ast::Expression::Identifier("a".into())),
-            subpath: "c".into(),
-        }),
-        env = map! {
-            ("test", 1u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Document( Document {
-                        keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
-                        required: set!{},
-                        additional_properties: false,
-                        ..Default::default()
+                ("super_test", 0u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Document( Document {
+                            keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
+                            required: set!{},
+                            additional_properties: false,
+                            ..Default::default()
                         }),
-                },
-                required: set!{},
-                additional_properties: false,
-                ..Default::default()
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
                 }),
-            ("super_test", 0u16).into() => Schema::Document( Document {
-                keys: map! {
-                    "a".into() => Schema::Document( Document {
-                        keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
-                        required: set!{},
-                        additional_properties: false,
-                        ..Default::default()
+            },
+        );
+
+        test_algebrize!(
+            unqualified_subpath_in_current_and_super_may_exist_is_ambiguous,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::AmbiguousField("a".into())),
+            expected_error_code = 3009,
+            input = ast::Expression::Subpath(ast::SubpathExpr {
+                expr: Box::new(ast::Expression::Identifier("a".into())),
+                subpath: "c".into(),
+            }),
+            env = map! {
+                ("test", 1u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Document( Document {
+                            keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
+                            required: set!{},
+                            additional_properties: false,
+                            ..Default::default()
                         }),
-                },
-                required: set!{"a".into()},
-                additional_properties: false,
-                ..Default::default()
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
                 }),
-        },
-    );
-    test_algebrize!(
-        ref_does_not_exist,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::FieldNotFound("bar".into(), None)),
-        expected_error_code = 3008,
-        input = ast::Expression::Identifier("bar".into()),
-    );
+                ("super_test", 0u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Document( Document {
+                            keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
+                            required: set!{},
+                            additional_properties: false,
+                            ..Default::default()
+                        }),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
 
-    test_algebrize!(
-        add_bin_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Add,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Integer(42)),
-                    mir::Expression::Literal(mir::LiteralValue::Integer(42)),
-                ],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-            op: ast::BinaryOp::Add,
-            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-        }),
-    );
-    test_algebrize_expr_and_schema_check!(
-        add_wrong_types,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
-            name: "Add",
-            required: NUMERIC_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::String),
-        })),
-        expected_error_code = 1002,
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::StringConstructor("hello".into())),
-            op: ast::BinaryOp::Add,
-            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-        }),
-    );
+        test_algebrize!(
+            unqualified_subpath_in_super_scope,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                    expr: Box::new(mir::Expression::Reference(("super_test", 0u16).into())),
+                    field: "a".into(),
+                    is_nullable: false
+                })),
+                field: "c".into(),
+                is_nullable: false
+            })),
+            input = ast::Expression::Subpath(ast::SubpathExpr {
+                expr: Box::new(ast::Expression::Identifier("a".into())),
+                subpath: "c".into(),
+            }),
+            env = map! {
+                ("test", 1u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "b".into() => Schema::Document( Document {
+                            keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
+                            required: set!{},
+                            additional_properties: false,
+                            ..Default::default()
+                        }),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+                ("super_test", 0u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Document( Document {
+                            keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
+                            required: set!{"c".into()},
+                            additional_properties: false,
+                            ..Default::default()
+                        }),
+                    },
+                    required: set!{"a".into()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
 
-    test_algebrize!(
-        sub_bin_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Sub,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Integer(42)),
-                    mir::Expression::Literal(mir::LiteralValue::Integer(42)),
-                ],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-            op: ast::BinaryOp::Sub,
-            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-        }),
-    );
-    test_algebrize_expr_and_schema_check!(
-        sub_wrong_types,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
-            name: "Sub",
-            required: NUMERIC_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::String),
-        })),
-        expected_error_code = 1002,
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::StringConstructor("hello".into())),
-            op: ast::BinaryOp::Sub,
-            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-        }),
-    );
+        test_algebrize!(
+            qualified_ref_prefers_super_datasource_to_local_field,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::Reference(("foo", 0u16).into())),
+                field: "a".into(),
+                is_nullable: true
+            })),
+            // test MongoSQL: SELECT (SELECT foo.a FROM bar) FROM foo => (foo.a)
+            input = ast::Expression::Subpath(ast::SubpathExpr {
+                expr: Box::new(ast::Expression::Identifier("foo".into())),
+                subpath: "a".into(),
+            }),
+            env = map! {
+                ("bar", 1u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "foo".into() => Schema::Document( Document {
+                            keys: map! {"a".into() => Schema::Atomic(Atomic::Double)},
+                            required: set!{},
+                            additional_properties: false,
+                            ..Default::default()
+                        }),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+                ("foo", 0u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic( Atomic::Integer),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
 
-    test_algebrize!(
-        div_bin_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Div,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Double(42.5)),
-                    mir::Expression::Literal(mir::LiteralValue::Integer(42)),
-                ],
-                is_nullable: true,
-            }
-        )),
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::Literal(ast::Literal::Double(42.5))),
-            op: ast::BinaryOp::Div,
-            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-        }),
-    );
+        test_algebrize!(
+            qualified_ref_to_local_field,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                    expr: Box::new(mir::Expression::Reference(("bar", 1u16).into())),
+                    field: "foo".into(),
+                    is_nullable: true
+                })),
+                field: "a".into(),
+                is_nullable: true
+            })),
+            //test MongoSQL: SELECT (SELECT bar.foo.a FROM bar) FROM foo => (bar.foo.a)
+            input = ast::Expression::Subpath(ast::SubpathExpr {
+                expr: Box::new(ast::Expression::Subpath(ast::SubpathExpr {
+                    expr: Box::new(ast::Expression::Identifier("bar".into())),
+                    subpath: "foo".into(),
+                })),
+                subpath: "a".into(),
+            }),
+            env = map! {
+                ("bar", 1u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "foo".into() => Schema::Document( Document {
+                            keys: map! {"a".into() => Schema::Atomic(Atomic::Double)},
+                            required: set!{},
+                            additional_properties: false,
+                            ..Default::default()
+                        }),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+                ("foo", 0u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic( Atomic::Integer),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
 
-    test_algebrize!(
-        cast_div_result_of_two_integers_to_integer,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Cast(mir::CastExpr {
-            expr: Box::new(mir::Expression::ScalarFunction(
+        test_algebrize!(
+            unqualified_reference_and_may_contain_sub_and_must_contain_outer_is_ambiguous,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::AmbiguousField("a".into())),
+            expected_error_code = 3009,
+            input = ast::Expression::Subpath(ast::SubpathExpr {
+                expr: Box::new(ast::Expression::Identifier("a".into())),
+                subpath: "c".into(),
+            }),
+            env = map! {
+                ("test", 1u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Document( Document {
+                            keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
+                            required: set!{},
+                            additional_properties: false,
+                            ..Default::default()
+                        }),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+                ("super_test", 0u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Document( Document {
+                            keys: map! {"c".into() => Schema::Atomic(Atomic::Integer)},
+                            required: set!{},
+                            additional_properties: false,
+                            ..Default::default()
+                        }),
+                    },
+                    required: set!{"a".into()},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
+
+        test_algebrize!(
+            ref_does_not_exist,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::FieldNotFound("bar".into(), None)),
+            expected_error_code = 3008,
+            input = ast::Expression::Identifier("bar".into()),
+        );
+    }
+
+    mod binary {
+        use super::*;
+
+        test_algebrize!(
+            add_bin_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
                 mir::ScalarFunctionApplication {
-                    function: mir::ScalarFunction::Div,
+                    function: mir::ScalarFunction::Add,
                     args: vec![
                         mir::Expression::Literal(mir::LiteralValue::Integer(42)),
-                        mir::Expression::Literal(mir::LiteralValue::Integer(42))
+                        mir::Expression::Literal(mir::LiteralValue::Integer(42)),
                     ],
-                    is_nullable: true
+                    is_nullable: false,
                 }
             )),
-            to: mir::Type::Int32,
-            on_null: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
-            on_error: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
-            is_nullable: true
-        })),
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-            op: ast::BinaryOp::Div,
-            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-        }),
-    );
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+                op: ast::BinaryOp::Add,
+                right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+            }),
+        );
 
-    test_algebrize!(
-        cast_div_result_of_long_and_integer_to_long,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Cast(mir::CastExpr {
-            expr: Box::new(mir::Expression::ScalarFunction(
+        test_algebrize_expr_and_schema_check!(
+            add_wrong_types,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+                name: "Add",
+                required: NUMERIC_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::String),
+            })),
+            expected_error_code = 1002,
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::StringConstructor("hello".into())),
+                op: ast::BinaryOp::Add,
+                right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+            }),
+        );
+
+        test_algebrize!(
+            sub_bin_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Sub,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(42)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(42)),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+                op: ast::BinaryOp::Sub,
+                right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+            }),
+        );
+
+        test_algebrize_expr_and_schema_check!(
+            sub_wrong_types,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+                name: "Sub",
+                required: NUMERIC_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::String),
+            })),
+            expected_error_code = 1002,
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::StringConstructor("hello".into())),
+                op: ast::BinaryOp::Sub,
+                right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+            }),
+        );
+
+        test_algebrize!(
+            div_bin_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
                 mir::ScalarFunctionApplication {
                     function: mir::ScalarFunction::Div,
                     args: vec![
-                        mir::Expression::Literal(mir::LiteralValue::Long(42)),
-                        mir::Expression::Literal(mir::LiteralValue::Integer(42))
+                        mir::Expression::Literal(mir::LiteralValue::Double(42.5)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(42)),
                     ],
-                    is_nullable: true
+                    is_nullable: true,
                 }
             )),
-            to: mir::Type::Int64,
-            on_null: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
-            on_error: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
-            is_nullable: true
-        })),
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::Literal(ast::Literal::Long(42))),
-            op: ast::BinaryOp::Div,
-            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-        }),
-    );
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::Literal(ast::Literal::Double(42.5))),
+                op: ast::BinaryOp::Div,
+                right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+            }),
+        );
 
-    test_algebrize_expr_and_schema_check!(
-        div_wrong_types,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
-            name: "Div",
-            required: NUMERIC_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::String),
-        })),
-        expected_error_code = 1002,
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::StringConstructor("hello".into())),
-            op: ast::BinaryOp::Div,
-            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-        }),
-    );
-
-    test_algebrize!(
-        mul_bin_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Mul,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Integer(42)),
-                    mir::Expression::Literal(mir::LiteralValue::Integer(42)),
-                ],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-            op: ast::BinaryOp::Mul,
-            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-        }),
-    );
-    test_algebrize_expr_and_schema_check!(
-        mul_wrong_types,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
-            name: "Mul",
-            required: NUMERIC_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::String),
-        })),
-        expected_error_code = 1002,
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::StringConstructor("hello".into())),
-            op: ast::BinaryOp::Mul,
-            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-        }),
-    );
-
-    test_algebrize!(
-        concat_bin_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Concat,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::String("42".into())),
-                    mir::Expression::Literal(mir::LiteralValue::String("42".into())),
-                ],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::StringConstructor("42".into())),
-            op: ast::BinaryOp::Concat,
-            right: Box::new(ast::Expression::StringConstructor("42".into())),
-        }),
-    );
-    test_algebrize_expr_and_schema_check!(
-        concat_wrong_types,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
-            name: "Concat",
-            required: STRING_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::Integer),
-        })),
-        expected_error_code = 1002,
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::StringConstructor("hello".into())),
-            op: ast::BinaryOp::Concat,
-            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-        }),
-    );
-
-    test_algebrize!(
-        eq_bool_and_int,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Eq,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
-                    mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
-                ],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
-            op: ast::BinaryOp::Comparison(ast::ComparisonOp::Eq),
-            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
-        }),
-    );
-    test_algebrize!(
-        gt_bool_and_int,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Gt,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
-                    mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
-                ],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(0))),
-            op: ast::BinaryOp::Comparison(ast::ComparisonOp::Gt),
-            right: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
-        }),
-    );
-    test_algebrize!(
-        and_bool_and_int,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::And,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
-                    mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
-                ],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(0))),
-            op: ast::BinaryOp::And,
-            right: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
-        }),
-    );
-    test_algebrize!(
-        or_int_and_int,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Or,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
-                    mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
-                ],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Binary(ast::BinaryExpr {
-            left: Box::new(ast::Expression::Literal(ast::Literal::Integer(0))),
-            op: ast::BinaryOp::Or,
-            right: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
-        }),
-    );
-
-    test_algebrize!(
-        neg_unary_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Neg,
-                args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(42)),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Unary(ast::UnaryExpr {
-            op: ast::UnaryOp::Neg,
-            expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-        }),
-    );
-    test_algebrize_expr_and_schema_check!(
-        neg_wrong_type,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
-            name: "Neg",
-            required: NUMERIC_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::Boolean),
-        })),
-        expected_error_code = 1002,
-        input = ast::Expression::Unary(ast::UnaryExpr {
-            op: ast::UnaryOp::Neg,
-            expr: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
-        }),
-    );
-
-    test_algebrize!(
-        pos_unary_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Pos,
-                args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(42)),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Unary(ast::UnaryExpr {
-            op: ast::UnaryOp::Pos,
-            expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-        }),
-    );
-    test_algebrize_expr_and_schema_check!(
-        pos_wrong_type,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
-            name: "Pos",
-            required: NUMERIC_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::Boolean),
-        })),
-        expected_error_code = 1002,
-        input = ast::Expression::Unary(ast::UnaryExpr {
-            op: ast::UnaryOp::Pos,
-            expr: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
-        }),
-    );
-
-    test_algebrize!(
-        standard_scalar_function,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Lower,
-                args: vec![mir::Expression::Literal(mir::LiteralValue::String(
-                    "hello".into()
-                )),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Lower,
-            args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
-                "hello".into()
-            )]),
-            set_quantifier: Some(ast::SetQuantifier::All),
-        }),
-    );
-
-    test_algebrize!(
-        replace,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Replace,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::String(" hello world ".into())),
-                    mir::Expression::Literal(mir::LiteralValue::String("wo".into())),
-                    mir::Expression::Literal(mir::LiteralValue::String("wowow".into())),
-                ],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Replace,
-            args: ast::FunctionArguments::Args(vec![
-                ast::Expression::StringConstructor(" hello world ".to_string()),
-                ast::Expression::StringConstructor("wo".to_string()),
-                ast::Expression::StringConstructor("wowow".to_string()),
-            ]),
-            set_quantifier: None,
-        }),
-    );
-    test_algebrize!(
-        replace_null_one,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Replace,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Null),
-                    mir::Expression::Literal(mir::LiteralValue::String("wo".into())),
-                    mir::Expression::Literal(mir::LiteralValue::String("wowow".into())),
-                ],
-                is_nullable: true,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Replace,
-            args: ast::FunctionArguments::Args(vec![
-                ast::Expression::Literal(ast::Literal::Null),
-                ast::Expression::StringConstructor("wo".to_string()),
-                ast::Expression::StringConstructor("wowow".to_string()),
-            ]),
-            set_quantifier: None,
-        }),
-    );
-    test_algebrize!(
-        replace_null_two,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Replace,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::String(" hello world ".into())),
-                    mir::Expression::Literal(mir::LiteralValue::Null),
-                    mir::Expression::Literal(mir::LiteralValue::String("wowow".into())),
-                ],
-                is_nullable: true,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Replace,
-            args: ast::FunctionArguments::Args(vec![
-                ast::Expression::StringConstructor(" hello world ".to_string()),
-                ast::Expression::Literal(ast::Literal::Null),
-                ast::Expression::StringConstructor("wowow".to_string()),
-            ]),
-            set_quantifier: None,
-        }),
-    );
-    test_algebrize!(
-        replace_null_three,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Replace,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::String(" hello world ".into())),
-                    mir::Expression::Literal(mir::LiteralValue::String("wo".into())),
-                    mir::Expression::Literal(mir::LiteralValue::Null),
-                ],
-                is_nullable: true,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Replace,
-            args: ast::FunctionArguments::Args(vec![
-                ast::Expression::StringConstructor(" hello world ".to_string()),
-                ast::Expression::StringConstructor("wo".to_string()),
-                ast::Expression::Literal(ast::Literal::Null),
-            ]),
-            set_quantifier: None,
-        }),
-    );
-    test_algebrize_expr_and_schema_check!(
-        replace_args_must_be_string_or_null,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
-            name: "Replace",
-            required: STRING_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::Integer),
-        })),
-        expected_error_code = 1002,
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Replace,
-            args: ast::FunctionArguments::Args(vec![
-                ast::Expression::Literal(ast::Literal::Integer(42)),
-                ast::Expression::Literal(ast::Literal::Integer(42)),
-                ast::Expression::Literal(ast::Literal::Integer(42)),
-            ]),
-            set_quantifier: None,
-        }),
-    );
-    test_algebrize!(
-        ltrim,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::LTrim,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
-                    mir::Expression::Literal(mir::LiteralValue::String("hello world".into()))
-                ],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Trim(ast::TrimExpr {
-            trim_spec: ast::TrimSpec::Leading,
-            trim_chars: Box::new(ast::Expression::StringConstructor("hello".into())),
-            arg: Box::new(ast::Expression::StringConstructor("hello world".into())),
-        }),
-    );
-    test_algebrize!(
-        rtrim,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::RTrim,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::String("world".into())),
-                    mir::Expression::Literal(mir::LiteralValue::String("hello world".into()))
-                ],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Trim(ast::TrimExpr {
-            trim_spec: ast::TrimSpec::Trailing,
-            trim_chars: Box::new(ast::Expression::StringConstructor("world".into())),
-            arg: Box::new(ast::Expression::StringConstructor("hello world".into())),
-        }),
-    );
-    test_algebrize!(
-        btrim,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::BTrim,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::String(" ".into())),
-                    mir::Expression::Literal(mir::LiteralValue::String(" hello world ".into()))
-                ],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Trim(ast::TrimExpr {
-            trim_spec: ast::TrimSpec::Both,
-            trim_chars: Box::new(ast::Expression::StringConstructor(" ".into())),
-            arg: Box::new(ast::Expression::StringConstructor(" hello world ".into())),
-        }),
-    );
-    test_algebrize_expr_and_schema_check!(
-        trim_arg_must_be_string_or_null,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
-            name: "BTrim",
-            required: STRING_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::Integer),
-        })),
-        expected_error_code = 1002,
-        input = ast::Expression::Trim(ast::TrimExpr {
-            trim_spec: ast::TrimSpec::Both,
-            trim_chars: Box::new(ast::Expression::StringConstructor(" ".into())),
-            arg: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-        }),
-    );
-    test_algebrize_expr_and_schema_check!(
-        trim_escape_must_be_string,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
-            name: "BTrim",
-            required: STRING_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::Integer),
-        })),
-        expected_error_code = 1002,
-        input = ast::Expression::Trim(ast::TrimExpr {
-            trim_spec: ast::TrimSpec::Both,
-            trim_chars: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-            arg: Box::new(ast::Expression::StringConstructor(" ".into())),
-        }),
-    );
-
-    test_algebrize!(
-        extract_year,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Year,
-                args: vec![mir::Expression::ScalarFunction(
+        test_algebrize!(
+            cast_div_result_of_two_integers_to_integer,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Cast(mir::CastExpr {
+                expr: Box::new(mir::Expression::ScalarFunction(
                     mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::CurrentTimestamp,
-                        args: vec![],
-                        is_nullable: false,
+                        function: mir::ScalarFunction::Div,
+                        args: vec![
+                            mir::Expression::Literal(mir::LiteralValue::Integer(42)),
+                            mir::Expression::Literal(mir::LiteralValue::Integer(42))
+                        ],
+                        is_nullable: true
                     }
-                ),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::DatePart::Year,
-            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
-                function: ast::FunctionName::CurrentTimestamp,
-                args: ast::FunctionArguments::Args(vec![]),
-                set_quantifier: Some(ast::SetQuantifier::All)
+                )),
+                to: mir::Type::Int32,
+                on_null: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+                on_error: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+                is_nullable: true
             })),
-        }),
-    );
-    test_algebrize!(
-        extract_month,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Month,
-                args: vec![mir::Expression::ScalarFunction(
-                    mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::CurrentTimestamp,
-                        args: vec![],
-                        is_nullable: false,
-                    }
-                ),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::DatePart::Month,
-            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
-                function: ast::FunctionName::CurrentTimestamp,
-                args: ast::FunctionArguments::Args(vec![]),
-                set_quantifier: Some(ast::SetQuantifier::All)
-            })),
-        }),
-    );
-    test_algebrize!(
-        extract_day,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Day,
-                args: vec![mir::Expression::ScalarFunction(
-                    mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::CurrentTimestamp,
-                        args: vec![],
-                        is_nullable: false,
-                    }
-                ),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::DatePart::Day,
-            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
-                function: ast::FunctionName::CurrentTimestamp,
-                args: ast::FunctionArguments::Args(vec![]),
-                set_quantifier: Some(ast::SetQuantifier::All)
-            })),
-        }),
-    );
-    test_algebrize!(
-        extract_hour,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Hour,
-                args: vec![mir::Expression::ScalarFunction(
-                    mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::CurrentTimestamp,
-                        args: vec![],
-                        is_nullable: false,
-                    }
-                ),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::DatePart::Hour,
-            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
-                function: ast::FunctionName::CurrentTimestamp,
-                args: ast::FunctionArguments::Args(vec![]),
-                set_quantifier: Some(ast::SetQuantifier::All)
-            })),
-        }),
-    );
-    test_algebrize!(
-        extract_minute,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Minute,
-                args: vec![mir::Expression::ScalarFunction(
-                    mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::CurrentTimestamp,
-                        args: vec![],
-                        is_nullable: false,
-                    }
-                ),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::DatePart::Minute,
-            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
-                function: ast::FunctionName::CurrentTimestamp,
-                args: ast::FunctionArguments::Args(vec![]),
-                set_quantifier: Some(ast::SetQuantifier::All)
-            })),
-        }),
-    );
-    test_algebrize!(
-        extract_second,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Second,
-                args: vec![mir::Expression::ScalarFunction(
-                    mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::CurrentTimestamp,
-                        args: vec![],
-                        is_nullable: false,
-                    }
-                ),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::DatePart::Second,
-            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
-                function: ast::FunctionName::CurrentTimestamp,
-                args: ast::FunctionArguments::Args(vec![]),
-                set_quantifier: Some(ast::SetQuantifier::All)
-            })),
-        }),
-    );
-
-    test_algebrize!(
-        extract_millsecond,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Millisecond,
-                args: vec![mir::Expression::ScalarFunction(
-                    mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::CurrentTimestamp,
-                        args: vec![],
-                        is_nullable: false,
-                    }
-                ),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::DatePart::Millisecond,
-            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
-                function: ast::FunctionName::CurrentTimestamp,
-                args: ast::FunctionArguments::Args(vec![]),
-                set_quantifier: Some(ast::SetQuantifier::All)
-            })),
-        }),
-    );
-    test_algebrize!(
-        extract_day_of_year,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::DayOfYear,
-                args: vec![mir::Expression::ScalarFunction(
-                    mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::CurrentTimestamp,
-                        args: vec![],
-                        is_nullable: false,
-                    }
-                ),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::DatePart::DayOfYear,
-            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
-                function: ast::FunctionName::CurrentTimestamp,
-                args: ast::FunctionArguments::Args(vec![]),
-                set_quantifier: Some(ast::SetQuantifier::All)
-            })),
-        }),
-    );
-    test_algebrize!(
-        extract_iso_week,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::IsoWeek,
-                args: vec![mir::Expression::ScalarFunction(
-                    mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::CurrentTimestamp,
-                        args: vec![],
-                        is_nullable: false,
-                    }
-                ),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::DatePart::IsoWeek,
-            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
-                function: ast::FunctionName::CurrentTimestamp,
-                args: ast::FunctionArguments::Args(vec![]),
-                set_quantifier: Some(ast::SetQuantifier::All)
-            })),
-        }),
-    );
-
-    test_algebrize!(
-        extract_day_of_week,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::DayOfWeek,
-                args: vec![mir::Expression::ScalarFunction(
-                    mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::CurrentTimestamp,
-                        args: vec![],
-                        is_nullable: false,
-                    }
-                ),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::DatePart::DayOfWeek,
-            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
-                function: ast::FunctionName::CurrentTimestamp,
-                args: ast::FunctionArguments::Args(vec![]),
-                set_quantifier: Some(ast::SetQuantifier::All)
-            })),
-        }),
-    );
-    test_algebrize!(
-        extract_iso_weekday,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::IsoWeekday,
-                args: vec![mir::Expression::ScalarFunction(
-                    mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::CurrentTimestamp,
-                        args: vec![],
-                        is_nullable: false,
-                    }
-                ),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::DatePart::IsoWeekday,
-            arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
-                function: ast::FunctionName::CurrentTimestamp,
-                args: ast::FunctionArguments::Args(vec![]),
-                set_quantifier: Some(ast::SetQuantifier::All)
-            })),
-        }),
-    );
-    test_algebrize_expr_and_schema_check!(
-        extract_must_be_date,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
-            name: "Second",
-            required: DATE_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::Integer),
-        })),
-        expected_error_code = 1002,
-        input = ast::Expression::Extract(ast::ExtractExpr {
-            extract_spec: ast::DatePart::Second,
-            arg: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-        }),
-    );
-    test_algebrize!(
-        dateadd,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::DateFunction(
-            mir::DateFunctionApplication {
-                function: mir::DateFunction::Add,
-                is_nullable: false,
-                date_part: mir::DatePart::Quarter,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Integer(5),),
-                    mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::CurrentTimestamp,
-                        args: vec![],
-                        is_nullable: false,
-                    }),
-                ],
-            }
-        )),
-        input = ast::Expression::DateFunction(ast::DateFunctionExpr {
-            function: ast::DateFunctionName::Add,
-            date_part: ast::DatePart::Quarter,
-            args: vec![
-                ast::Expression::Literal(ast::Literal::Integer(5)),
-                ast::Expression::Function(ast::FunctionExpr {
-                    function: ast::FunctionName::CurrentTimestamp,
-                    args: ast::FunctionArguments::Args(vec![]),
-                    set_quantifier: Some(ast::SetQuantifier::All)
-                })
-            ],
-        }),
-    );
-    test_algebrize!(
-        datediff,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::DateFunction(
-            mir::DateFunctionApplication {
-                function: mir::DateFunction::Diff,
-                is_nullable: false,
-                date_part: mir::DatePart::Week,
-                args: vec![
-                    mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::CurrentTimestamp,
-                        args: vec![],
-                        is_nullable: false,
-                    }),
-                    mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::CurrentTimestamp,
-                        args: vec![],
-                        is_nullable: false,
-                    }),
-                    mir::Expression::Literal(mir::LiteralValue::String("sunday".to_string()),)
-                ],
-            }
-        )),
-        input = ast::Expression::DateFunction(ast::DateFunctionExpr {
-            function: ast::DateFunctionName::Diff,
-            date_part: ast::DatePart::Week,
-            args: vec![
-                ast::Expression::Function(ast::FunctionExpr {
-                    function: ast::FunctionName::CurrentTimestamp,
-                    args: ast::FunctionArguments::Args(vec![]),
-                    set_quantifier: Some(ast::SetQuantifier::All)
-                }),
-                ast::Expression::Function(ast::FunctionExpr {
-                    function: ast::FunctionName::CurrentTimestamp,
-                    args: ast::FunctionArguments::Args(vec![]),
-                    set_quantifier: Some(ast::SetQuantifier::All)
-                }),
-                ast::Expression::StringConstructor("sunday".to_string()),
-            ],
-        }),
-    );
-    test_algebrize!(
-        datetrunc,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::DateFunction(
-            mir::DateFunctionApplication {
-                function: mir::DateFunction::Trunc,
-                is_nullable: false,
-                date_part: mir::DatePart::Year,
-                args: vec![
-                    mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
-                        function: mir::ScalarFunction::CurrentTimestamp,
-                        args: vec![],
-                        is_nullable: false,
-                    }),
-                    mir::Expression::Literal(mir::LiteralValue::String("sunday".to_string()),)
-                ],
-            }
-        )),
-        input = ast::Expression::DateFunction(ast::DateFunctionExpr {
-            function: ast::DateFunctionName::Trunc,
-            date_part: ast::DatePart::Year,
-            args: vec![
-                ast::Expression::Function(ast::FunctionExpr {
-                    function: ast::FunctionName::CurrentTimestamp,
-                    args: ast::FunctionArguments::Args(vec![]),
-                    set_quantifier: Some(ast::SetQuantifier::All)
-                }),
-                ast::Expression::StringConstructor("sunday".to_string()),
-            ],
-        }),
-    );
-
-    test_algebrize!(
-        searched_case,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::SearchedCase(mir::SearchedCaseExpr {
-            when_branch: vec![mir::WhenBranch {
-                when: Box::new(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
-                then: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                    "bar".into()
-                ))),
-                is_nullable: false,
-            }],
-            else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                "foo".into()
-            ))),
-            is_nullable: true,
-        })),
-        input = ast::Expression::Case(ast::CaseExpr {
-            expr: None,
-            when_branch: vec![ast::WhenBranch {
-                when: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
-                then: Box::new(ast::Expression::StringConstructor("bar".into())),
-            }],
-            else_branch: Some(Box::new(ast::Expression::StringConstructor("foo".into()))),
-        }),
-    );
-    test_algebrize!(
-        searched_case_no_else,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::SearchedCase(mir::SearchedCaseExpr {
-            when_branch: vec![mir::WhenBranch {
-                when: Box::new(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
-                then: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                    "bar".into()
-                ))),
-                is_nullable: false,
-            }],
-            else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
-            is_nullable: true,
-        })),
-        input = ast::Expression::Case(ast::CaseExpr {
-            expr: None,
-            when_branch: vec![ast::WhenBranch {
-                when: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
-                then: Box::new(ast::Expression::StringConstructor("bar".into())),
-            }],
-            else_branch: None,
-        }),
-    );
-    test_algebrize_expr_and_schema_check!(
-        searched_case_when_condition_is_not_bool,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
-            name: "SearchedCase",
-            required: BOOLEAN_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::String),
-        })),
-        expected_error_code = 1002,
-        input = ast::Expression::Case(ast::CaseExpr {
-            expr: None,
-            when_branch: vec![ast::WhenBranch {
-                when: Box::new(ast::Expression::StringConstructor("foo".into())),
-                then: Box::new(ast::Expression::StringConstructor("bar".into())),
-            }],
-            else_branch: Some(Box::new(ast::Expression::StringConstructor("foo".into()))),
-        }),
-    );
-
-    test_algebrize!(
-        simple_case,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::SimpleCase(mir::SimpleCaseExpr {
-            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(1))),
-            when_branch: vec![mir::WhenBranch {
-                when: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(2))),
-                then: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                    "bar".into()
-                ))),
-                is_nullable: false,
-            }],
-            else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                "foo".into()
-            ))),
-            is_nullable: false,
-        })),
-        input = ast::Expression::Case(ast::CaseExpr {
-            expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
-            when_branch: vec![ast::WhenBranch {
-                when: Box::new(ast::Expression::Literal(ast::Literal::Integer(2))),
-                then: Box::new(ast::Expression::StringConstructor("bar".into())),
-            }],
-            else_branch: Some(Box::new(ast::Expression::StringConstructor("foo".into()))),
-        }),
-    );
-    test_algebrize!(
-        simple_case_no_else,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::SimpleCase(mir::SimpleCaseExpr {
-            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(1))),
-            when_branch: vec![mir::WhenBranch {
-                when: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(2))),
-                then: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                    "bar".into()
-                ))),
-                is_nullable: false,
-            }],
-            else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
-            is_nullable: false,
-        })),
-        input = ast::Expression::Case(ast::CaseExpr {
-            expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
-            when_branch: vec![ast::WhenBranch {
-                when: Box::new(ast::Expression::Literal(ast::Literal::Integer(2))),
-                then: Box::new(ast::Expression::StringConstructor("bar".into())),
-            }],
-            else_branch: None,
-        }),
-    );
-    test_algebrize_expr_and_schema_check!(
-        simple_case_operand_and_when_operand_not_comparable,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(
-            mir::schema::Error::InvalidComparison(
-                "SimpleCase",
-                Schema::Atomic(Atomic::Integer),
-                Schema::Atomic(Atomic::String),
-            )
-        )),
-        expected_error_code = 1005,
-        input = ast::Expression::Case(ast::CaseExpr {
-            expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
-            when_branch: vec![ast::WhenBranch {
-                when: Box::new(ast::Expression::StringConstructor("foo".into())),
-                then: Box::new(ast::Expression::StringConstructor("bar".into())),
-            }],
-            else_branch: Some(Box::new(ast::Expression::StringConstructor("baz".into()))),
-        }),
-    );
-
-    test_algebrize!(
-        cast_full,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Cast(mir::CastExpr {
-            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
-            to: mir::Type::String,
-            on_null: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                "was_null".into()
-            ))),
-            on_error: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                "was_error".into()
-            ))),
-            is_nullable: false,
-        })),
-        input = ast::Expression::Cast(ast::CastExpr {
-            expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-            to: ast::Type::String,
-            on_null: Some(Box::new(ast::Expression::StringConstructor(
-                "was_null".into()
-            ))),
-            on_error: Some(Box::new(ast::Expression::StringConstructor(
-                "was_error".into()
-            ))),
-        }),
-    );
-    test_algebrize!(
-        cast_simple,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Cast(mir::CastExpr {
-            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
-            to: mir::Type::String,
-            on_null: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
-            on_error: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
-            is_nullable: true,
-        })),
-        input = ast::Expression::Cast(ast::CastExpr {
-            expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-            to: ast::Type::String,
-            on_null: None,
-            on_error: None,
-        }),
-    );
-
-    test_algebrize!(
-        type_assert_success,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
-            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
-            target_type: mir::Type::Int32,
-        })),
-        input = ast::Expression::TypeAssertion(ast::TypeAssertionExpr {
-            expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-            target_type: ast::Type::Int32,
-        }),
-    );
-    test_algebrize_expr_and_schema_check!(
-        type_assert_fail,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
-            name: "::!",
-            required: Schema::Atomic(Atomic::String),
-            found: Schema::Atomic(Atomic::Integer)
-        })),
-        expected_error_code = 1002,
-        input = ast::Expression::TypeAssertion(ast::TypeAssertionExpr {
-            expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-            target_type: ast::Type::String,
-        }),
-    );
-
-    test_algebrize!(
-        is_success,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
-            target_type: mir::TypeOrMissing::Type(mir::Type::Int32),
-        })),
-        input = ast::Expression::Is(ast::IsExpr {
-            expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-            target_type: ast::TypeOrMissing::Type(ast::Type::Int32),
-        }),
-    );
-    test_algebrize_expr_and_schema_check!(
-        is_recursive_failure,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
-            name: "Add",
-            required: NUMERIC_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::String)
-        })),
-        expected_error_code = 1002,
-        input = ast::Expression::Is(ast::IsExpr {
-            expr: Box::new(ast::Expression::Binary(ast::BinaryExpr {
+            input = ast::Expression::Binary(ast::BinaryExpr {
                 left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-                op: ast::BinaryOp::Add,
-                right: Box::new(ast::Expression::StringConstructor("42".into())),
+                op: ast::BinaryOp::Div,
+                right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+            }),
+        );
+
+        test_algebrize!(
+            cast_div_result_of_long_and_integer_to_long,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Cast(mir::CastExpr {
+                expr: Box::new(mir::Expression::ScalarFunction(
+                    mir::ScalarFunctionApplication {
+                        function: mir::ScalarFunction::Div,
+                        args: vec![
+                            mir::Expression::Literal(mir::LiteralValue::Long(42)),
+                            mir::Expression::Literal(mir::LiteralValue::Integer(42))
+                        ],
+                        is_nullable: true
+                    }
+                )),
+                to: mir::Type::Int64,
+                on_null: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+                on_error: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+                is_nullable: true
             })),
-            target_type: ast::TypeOrMissing::Type(ast::Type::Int32),
-        }),
-    );
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::Literal(ast::Literal::Long(42))),
+                op: ast::BinaryOp::Div,
+                right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+            }),
+        );
 
-    test_algebrize!(
-        like_success_with_pattern,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Like(mir::LikeExpr {
-            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                "42".into()
-            ))),
-            pattern: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                "42".into()
-            ))),
-            escape: Some('f'),
-        })),
-        input = ast::Expression::Like(ast::LikeExpr {
-            expr: Box::new(ast::Expression::StringConstructor("42".into())),
-            pattern: Box::new(ast::Expression::StringConstructor("42".into())),
-            escape: Some('f'),
-        }),
-    );
-    test_algebrize!(
-        like_success_no_pattern,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Like(mir::LikeExpr {
-            expr: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                "42".into()
-            ))),
-            pattern: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
-                "42".into()
-            ))),
-            escape: None,
-        })),
-        input = ast::Expression::Like(ast::LikeExpr {
-            expr: Box::new(ast::Expression::StringConstructor("42".into())),
-            pattern: Box::new(ast::Expression::StringConstructor("42".into())),
-            escape: None,
-        }),
-    );
-    test_algebrize_expr_and_schema_check!(
-        like_expr_must_be_string,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
-            name: "Like",
-            required: STRING_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::Integer)
-        })),
-        expected_error_code = 1002,
-        input = ast::Expression::Like(ast::LikeExpr {
-            expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-            pattern: Box::new(ast::Expression::StringConstructor("42".into())),
-            escape: None,
-        }),
-    );
-    test_algebrize_expr_and_schema_check!(
-        like_pattern_must_be_string,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
-            name: "Like",
-            required: STRING_OR_NULLISH.clone(),
-            found: Schema::Atomic(Atomic::Integer)
-        })),
-        expected_error_code = 1002,
-        input = ast::Expression::Like(ast::LikeExpr {
-            expr: Box::new(ast::Expression::StringConstructor("42".into())),
-            pattern: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
-            escape: Some(' '),
-        }),
-    );
+        test_algebrize_expr_and_schema_check!(
+            div_wrong_types,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+                name: "Div",
+                required: NUMERIC_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::String),
+            })),
+            expected_error_code = 1002,
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::StringConstructor("hello".into())),
+                op: ast::BinaryOp::Div,
+                right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+            }),
+        );
 
-    test_algebrize!(
-        log_bin_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Log,
+        test_algebrize!(
+            mul_bin_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Mul,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(42)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(42)),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+                op: ast::BinaryOp::Mul,
+                right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+            }),
+        );
+
+        test_algebrize_expr_and_schema_check!(
+            mul_wrong_types,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+                name: "Mul",
+                required: NUMERIC_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::String),
+            })),
+            expected_error_code = 1002,
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::StringConstructor("hello".into())),
+                op: ast::BinaryOp::Mul,
+                right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+            }),
+        );
+
+        test_algebrize!(
+            concat_bin_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Concat,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::String("42".into())),
+                        mir::Expression::Literal(mir::LiteralValue::String("42".into())),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::StringConstructor("42".into())),
+                op: ast::BinaryOp::Concat,
+                right: Box::new(ast::Expression::StringConstructor("42".into())),
+            }),
+        );
+
+        test_algebrize_expr_and_schema_check!(
+            concat_wrong_types,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+                name: "Concat",
+                required: STRING_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::Integer),
+            })),
+            expected_error_code = 1002,
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::StringConstructor("hello".into())),
+                op: ast::BinaryOp::Concat,
+                right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+            }),
+        );
+
+        test_algebrize!(
+            eq_bool_and_int,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Eq,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                        mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+                op: ast::BinaryOp::Comparison(ast::ComparisonOp::Eq),
+                right: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+            }),
+        );
+
+        test_algebrize!(
+            gt_bool_and_int,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Gt,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
+                        mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::Literal(ast::Literal::Integer(0))),
+                op: ast::BinaryOp::Comparison(ast::ComparisonOp::Gt),
+                right: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+            }),
+        );
+
+        test_algebrize!(
+            and_bool_and_int,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::And,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
+                        mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::Literal(ast::Literal::Integer(0))),
+                op: ast::BinaryOp::And,
+                right: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+            }),
+        );
+
+        test_algebrize!(
+            or_int_and_int,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Or,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
+                        mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::Literal(ast::Literal::Integer(0))),
+                op: ast::BinaryOp::Or,
+                right: Box::new(ast::Expression::Literal(ast::Literal::Integer(1))),
+            }),
+        );
+
+        test_algebrize!(
+            add_converts_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Add,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"1\"}".to_string()
+                )),
+                op: ast::BinaryOp::Add,
+                right: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"1\"}".to_string()
+                )),
+            }),
+        );
+
+        test_algebrize!(
+            and_converts_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::And,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                        mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"1\"}".to_string()
+                )),
+                op: ast::BinaryOp::And,
+                right: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"1\"}".to_string()
+                )),
+            }),
+        );
+
+        test_algebrize!(
+            div_converts_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Div,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Double(4.0)),
+                        mir::Expression::Literal(mir::LiteralValue::Double(2.0)),
+                    ],
+                    is_nullable: true,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberDouble\": \"4.0\"}".to_string()
+                )),
+                op: ast::BinaryOp::Div,
+                right: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberDouble\": \"2.0\"}".to_string()
+                )),
+            }),
+        );
+
+        test_algebrize!(
+            mul_converts_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Mul,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(2)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(3)),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"2\"}".to_string()
+                )),
+                op: ast::BinaryOp::Mul,
+                right: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"3\"}".to_string()
+                )),
+            }),
+        );
+
+        test_algebrize!(
+            or_converts_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Or,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Boolean(false)),
+                        mir::Expression::Literal(mir::LiteralValue::Boolean(true)),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"0\"}".to_string()
+                )),
+                op: ast::BinaryOp::Or,
+                right: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"1\"}".to_string()
+                )),
+            }),
+        );
+
+        test_algebrize!(
+            sub_converts_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Sub,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(7)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(6)),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"7\"}".to_string()
+                )),
+                op: ast::BinaryOp::Sub,
+                right: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"6\"}".to_string()
+                )),
+            }),
+        );
+
+        test_algebrize!(
+            concat_does_not_convert_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Concat,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::String(
+                            "{\"$numberInt\": \"1\"}".to_string()
+                        )),
+                        mir::Expression::Literal(mir::LiteralValue::String(
+                            "{\"$numberInt\": \"1\"}".to_string()
+                        )),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"1\"}".to_string()
+                )),
+                op: ast::BinaryOp::Concat,
+                right: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"1\"}".to_string()
+                )),
+            }),
+        );
+
+        test_algebrize!(
+            comp_with_two_strings_does_not_convert_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Eq,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::String(
+                            "{\"$numberInt\": \"1\"}".to_string()
+                        )),
+                        mir::Expression::Literal(mir::LiteralValue::String(
+                            "{\"$numberInt\": \"1\"}".to_string()
+                        )),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"1\"}".to_string()
+                )),
+                op: ast::BinaryOp::Comparison(ast::ComparisonOp::Eq),
+                right: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"1\"}".to_string()
+                )),
+            }),
+        );
+
+        test_algebrize!(
+            comp_with_left_that_converts_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Gt,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                        mir::Expression::FieldAccess(mir::FieldAccess {
+                            expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                            field: "a".into(),
+                            is_nullable: true,
+                        }),
+                    ],
+                    is_nullable: true,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"1\"}".to_string()
+                )),
+                op: ast::BinaryOp::Comparison(ast::ComparisonOp::Gt),
+                right: Box::new(ast::Expression::Identifier("a".to_string())),
+            }),
+            env = map! {
+                ("foo", 1u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
+
+        test_algebrize!(
+            comp_with_left_that_does_not_convert_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Lt,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::String(
+                            "{\"$numberInt\": \"1\"}".to_string()
+                        )),
+                        mir::Expression::FieldAccess(mir::FieldAccess {
+                            expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                            field: "a".into(),
+                            is_nullable: true,
+                        }),
+                    ],
+                    is_nullable: true,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"1\"}".to_string()
+                )),
+                op: ast::BinaryOp::Comparison(ast::ComparisonOp::Lt),
+                right: Box::new(ast::Expression::Identifier("a".to_string())),
+            }),
+            env = map! {
+                ("foo", 1u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
+
+        test_algebrize!(
+            comp_with_right_that_converts_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Gte,
+                    args: vec![
+                        mir::Expression::FieldAccess(mir::FieldAccess {
+                            expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                            field: "a".into(),
+                            is_nullable: true,
+                        }),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    ],
+                    is_nullable: true,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::Identifier("a".to_string())),
+                op: ast::BinaryOp::Comparison(ast::ComparisonOp::Gte),
+                right: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"1\"}".to_string()
+                )),
+            }),
+            env = map! {
+                ("foo", 1u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
+
+        test_algebrize!(
+            comp_with_right_that_does_not_convert_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Lte,
+                    args: vec![
+                        mir::Expression::FieldAccess(mir::FieldAccess {
+                            expr: Box::new(mir::Expression::Reference(("foo", 1u16).into())),
+                            field: "a".into(),
+                            is_nullable: true,
+                        }),
+                        mir::Expression::Literal(mir::LiteralValue::String(
+                            "{\"$numberInt\": \"1\"}".to_string()
+                        )),
+                    ],
+                    is_nullable: true,
+                }
+            )),
+            input = ast::Expression::Binary(ast::BinaryExpr {
+                left: Box::new(ast::Expression::Identifier("a".to_string())),
+                op: ast::BinaryOp::Comparison(ast::ComparisonOp::Lte),
+                right: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"1\"}".to_string()
+                )),
+            }),
+            env = map! {
+                ("foo", 1u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::String),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                }),
+            },
+        );
+    }
+
+    mod unary {
+        use super::*;
+
+        test_algebrize!(
+            neg_unary_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Neg,
+                    args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(42)),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Unary(ast::UnaryExpr {
+                op: ast::UnaryOp::Neg,
+                expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+            }),
+        );
+
+        test_algebrize_expr_and_schema_check!(
+            neg_wrong_type,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+                name: "Neg",
+                required: NUMERIC_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::Boolean),
+            })),
+            expected_error_code = 1002,
+            input = ast::Expression::Unary(ast::UnaryExpr {
+                op: ast::UnaryOp::Neg,
+                expr: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+            }),
+        );
+
+        test_algebrize!(
+            pos_unary_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Pos,
+                    args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(42)),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Unary(ast::UnaryExpr {
+                op: ast::UnaryOp::Pos,
+                expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+            }),
+        );
+
+        test_algebrize_expr_and_schema_check!(
+            pos_wrong_type,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+                name: "Pos",
+                required: NUMERIC_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::Boolean),
+            })),
+            expected_error_code = 1002,
+            input = ast::Expression::Unary(ast::UnaryExpr {
+                op: ast::UnaryOp::Pos,
+                expr: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+            }),
+        );
+    }
+
+    mod scalar_function {
+        use super::*;
+
+        test_algebrize!(
+            standard_scalar_function,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Lower,
+                    args: vec![mir::Expression::Literal(mir::LiteralValue::String(
+                        "hello".into()
+                    )),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Lower,
+                args: ast::FunctionArguments::Args(vec![ast::Expression::StringConstructor(
+                    "hello".into()
+                )]),
+                set_quantifier: Some(ast::SetQuantifier::All),
+            }),
+        );
+
+        test_algebrize!(
+            replace,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Replace,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::String(" hello world ".into())),
+                        mir::Expression::Literal(mir::LiteralValue::String("wo".into())),
+                        mir::Expression::Literal(mir::LiteralValue::String("wowow".into())),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Replace,
+                args: ast::FunctionArguments::Args(vec![
+                    ast::Expression::StringConstructor(" hello world ".to_string()),
+                    ast::Expression::StringConstructor("wo".to_string()),
+                    ast::Expression::StringConstructor("wowow".to_string()),
+                ]),
+                set_quantifier: None,
+            }),
+        );
+
+        test_algebrize!(
+            replace_null_one,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Replace,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Null),
+                        mir::Expression::Literal(mir::LiteralValue::String("wo".into())),
+                        mir::Expression::Literal(mir::LiteralValue::String("wowow".into())),
+                    ],
+                    is_nullable: true,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Replace,
+                args: ast::FunctionArguments::Args(vec![
+                    ast::Expression::Literal(ast::Literal::Null),
+                    ast::Expression::StringConstructor("wo".to_string()),
+                    ast::Expression::StringConstructor("wowow".to_string()),
+                ]),
+                set_quantifier: None,
+            }),
+        );
+
+        test_algebrize!(
+            replace_null_two,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Replace,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::String(" hello world ".into())),
+                        mir::Expression::Literal(mir::LiteralValue::Null),
+                        mir::Expression::Literal(mir::LiteralValue::String("wowow".into())),
+                    ],
+                    is_nullable: true,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Replace,
+                args: ast::FunctionArguments::Args(vec![
+                    ast::Expression::StringConstructor(" hello world ".to_string()),
+                    ast::Expression::Literal(ast::Literal::Null),
+                    ast::Expression::StringConstructor("wowow".to_string()),
+                ]),
+                set_quantifier: None,
+            }),
+        );
+
+        test_algebrize!(
+            replace_null_three,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Replace,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::String(" hello world ".into())),
+                        mir::Expression::Literal(mir::LiteralValue::String("wo".into())),
+                        mir::Expression::Literal(mir::LiteralValue::Null),
+                    ],
+                    is_nullable: true,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Replace,
+                args: ast::FunctionArguments::Args(vec![
+                    ast::Expression::StringConstructor(" hello world ".to_string()),
+                    ast::Expression::StringConstructor("wo".to_string()),
+                    ast::Expression::Literal(ast::Literal::Null),
+                ]),
+                set_quantifier: None,
+            }),
+        );
+
+        test_algebrize_expr_and_schema_check!(
+            replace_args_must_be_string_or_null,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+                name: "Replace",
+                required: STRING_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::Integer),
+            })),
+            expected_error_code = 1002,
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Replace,
+                args: ast::FunctionArguments::Args(vec![
+                    ast::Expression::Literal(ast::Literal::Integer(42)),
+                    ast::Expression::Literal(ast::Literal::Integer(42)),
+                    ast::Expression::Literal(ast::Literal::Integer(42)),
+                ]),
+                set_quantifier: None,
+            }),
+        );
+
+        test_algebrize!(
+            log_bin_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Log,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(100)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(10)),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Log,
+                args: ast::FunctionArguments::Args(vec![
+                    ast::Expression::Literal(ast::Literal::Integer(100)),
+                    ast::Expression::Literal(ast::Literal::Integer(10)),
+                ]),
+                set_quantifier: Some(ast::SetQuantifier::All),
+            }),
+        );
+
+        test_algebrize!(
+            round_bin_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Round,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(10)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(10)),
+                    ],
+                    is_nullable: true,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Round,
+                args: ast::FunctionArguments::Args(vec![
+                    ast::Expression::Literal(ast::Literal::Integer(10)),
+                    ast::Expression::Literal(ast::Literal::Integer(10)),
+                ]),
+                set_quantifier: Some(ast::SetQuantifier::All),
+            }),
+        );
+
+        test_algebrize!(
+            cos_unary_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Cos,
+                    args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10)),],
+                    is_nullable: true,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Cos,
+                args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                    ast::Literal::Integer(10)
+                ),]),
+                set_quantifier: Some(ast::SetQuantifier::All),
+            }),
+        );
+
+        test_algebrize!(
+            sin_unary_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Sin,
+                    args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10)),],
+                    is_nullable: true,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Sin,
+                args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                    ast::Literal::Integer(10)
+                ),]),
+                set_quantifier: Some(ast::SetQuantifier::All),
+            }),
+        );
+
+        test_algebrize!(
+            tan_unary_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Tan,
+                    args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10)),],
+                    is_nullable: true,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Tan,
+                args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                    ast::Literal::Integer(10)
+                ),]),
+                set_quantifier: Some(ast::SetQuantifier::All),
+            }),
+        );
+
+        test_algebrize!(
+            radians_unary_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Radians,
+                    args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1)),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Radians,
+                args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                    ast::Literal::Integer(1)
+                ),]),
+                set_quantifier: Some(ast::SetQuantifier::All),
+            }),
+        );
+
+        test_algebrize!(
+            sqrt_unary_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Sqrt,
+                    args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(4)),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Sqrt,
+                args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                    ast::Literal::Integer(4)
+                ),]),
+                set_quantifier: Some(ast::SetQuantifier::All),
+            }),
+        );
+
+        test_algebrize!(
+            abs_unary_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Abs,
+                    args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10)),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Abs,
+                args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                    ast::Literal::Integer(10)
+                ),]),
+                set_quantifier: Some(ast::SetQuantifier::All),
+            }),
+        );
+
+        test_algebrize!(
+            ceil_unary_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Ceil,
+                    args: vec![mir::Expression::Literal(mir::LiteralValue::Double(1.5)),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Ceil,
+                args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                    ast::Literal::Double(1.5)
+                ),]),
+                set_quantifier: Some(ast::SetQuantifier::All),
+            }),
+        );
+
+        test_algebrize!(
+            degrees_unary_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Degrees,
+                    args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1)),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Degrees,
+                args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                    ast::Literal::Integer(1)
+                ),]),
+                set_quantifier: Some(ast::SetQuantifier::All),
+            }),
+        );
+
+        test_algebrize!(
+            floor_unary_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Floor,
+                    args: vec![mir::Expression::Literal(mir::LiteralValue::Double(1.5)),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Floor,
+                args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
+                    ast::Literal::Double(1.5)
+                ),]),
+                set_quantifier: Some(ast::SetQuantifier::All),
+            }),
+        );
+
+        test_algebrize!(
+            mod_bin_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Mod,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(10)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(10)),
+                    ],
+                    is_nullable: true,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Mod,
+                args: ast::FunctionArguments::Args(vec![
+                    ast::Expression::Literal(ast::Literal::Integer(10)),
+                    ast::Expression::Literal(ast::Literal::Integer(10)),
+                ]),
+                set_quantifier: Some(ast::SetQuantifier::All),
+            }),
+        );
+
+        test_algebrize!(
+            pow_bin_op,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Pow,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(10)),
+                        mir::Expression::Literal(mir::LiteralValue::Integer(10)),
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Function(ast::FunctionExpr {
+                function: ast::FunctionName::Pow,
+                args: ast::FunctionArguments::Args(vec![
+                    ast::Expression::Literal(ast::Literal::Integer(10)),
+                    ast::Expression::Literal(ast::Literal::Integer(10)),
+                ]),
+                set_quantifier: Some(ast::SetQuantifier::All),
+            }),
+        );
+    }
+
+    mod trim {
+        use super::*;
+
+        test_algebrize!(
+            ltrim,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::LTrim,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::String("hello".into())),
+                        mir::Expression::Literal(mir::LiteralValue::String("hello world".into()))
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Trim(ast::TrimExpr {
+                trim_spec: ast::TrimSpec::Leading,
+                trim_chars: Box::new(ast::Expression::StringConstructor("hello".into())),
+                arg: Box::new(ast::Expression::StringConstructor("hello world".into())),
+            }),
+        );
+
+        test_algebrize!(
+            rtrim,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::RTrim,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::String("world".into())),
+                        mir::Expression::Literal(mir::LiteralValue::String("hello world".into()))
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Trim(ast::TrimExpr {
+                trim_spec: ast::TrimSpec::Trailing,
+                trim_chars: Box::new(ast::Expression::StringConstructor("world".into())),
+                arg: Box::new(ast::Expression::StringConstructor("hello world".into())),
+            }),
+        );
+
+        test_algebrize!(
+            btrim,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::BTrim,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::String(" ".into())),
+                        mir::Expression::Literal(mir::LiteralValue::String(" hello world ".into()))
+                    ],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Trim(ast::TrimExpr {
+                trim_spec: ast::TrimSpec::Both,
+                trim_chars: Box::new(ast::Expression::StringConstructor(" ".into())),
+                arg: Box::new(ast::Expression::StringConstructor(" hello world ".into())),
+            }),
+        );
+
+        test_algebrize_expr_and_schema_check!(
+            trim_arg_must_be_string_or_null,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+                name: "BTrim",
+                required: STRING_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::Integer),
+            })),
+            expected_error_code = 1002,
+            input = ast::Expression::Trim(ast::TrimExpr {
+                trim_spec: ast::TrimSpec::Both,
+                trim_chars: Box::new(ast::Expression::StringConstructor(" ".into())),
+                arg: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+            }),
+        );
+
+        test_algebrize_expr_and_schema_check!(
+            trim_escape_must_be_string,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+                name: "BTrim",
+                required: STRING_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::Integer),
+            })),
+            expected_error_code = 1002,
+            input = ast::Expression::Trim(ast::TrimExpr {
+                trim_spec: ast::TrimSpec::Both,
+                trim_chars: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+                arg: Box::new(ast::Expression::StringConstructor(" ".into())),
+            }),
+        );
+    }
+
+    mod extract {
+        use super::*;
+
+        test_algebrize!(
+            extract_year,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Year,
+                    args: vec![mir::Expression::ScalarFunction(
+                        mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::CurrentTimestamp,
+                            args: vec![],
+                            is_nullable: false,
+                        }
+                    ),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Extract(ast::ExtractExpr {
+                extract_spec: ast::DatePart::Year,
+                arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::CurrentTimestamp,
+                    args: ast::FunctionArguments::Args(vec![]),
+                    set_quantifier: Some(ast::SetQuantifier::All)
+                })),
+            }),
+        );
+
+        test_algebrize!(
+            extract_month,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Month,
+                    args: vec![mir::Expression::ScalarFunction(
+                        mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::CurrentTimestamp,
+                            args: vec![],
+                            is_nullable: false,
+                        }
+                    ),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Extract(ast::ExtractExpr {
+                extract_spec: ast::DatePart::Month,
+                arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::CurrentTimestamp,
+                    args: ast::FunctionArguments::Args(vec![]),
+                    set_quantifier: Some(ast::SetQuantifier::All)
+                })),
+            }),
+        );
+
+        test_algebrize!(
+            extract_day,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Day,
+                    args: vec![mir::Expression::ScalarFunction(
+                        mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::CurrentTimestamp,
+                            args: vec![],
+                            is_nullable: false,
+                        }
+                    ),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Extract(ast::ExtractExpr {
+                extract_spec: ast::DatePart::Day,
+                arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::CurrentTimestamp,
+                    args: ast::FunctionArguments::Args(vec![]),
+                    set_quantifier: Some(ast::SetQuantifier::All)
+                })),
+            }),
+        );
+
+        test_algebrize!(
+            extract_hour,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Hour,
+                    args: vec![mir::Expression::ScalarFunction(
+                        mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::CurrentTimestamp,
+                            args: vec![],
+                            is_nullable: false,
+                        }
+                    ),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Extract(ast::ExtractExpr {
+                extract_spec: ast::DatePart::Hour,
+                arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::CurrentTimestamp,
+                    args: ast::FunctionArguments::Args(vec![]),
+                    set_quantifier: Some(ast::SetQuantifier::All)
+                })),
+            }),
+        );
+
+        test_algebrize!(
+            extract_minute,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Minute,
+                    args: vec![mir::Expression::ScalarFunction(
+                        mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::CurrentTimestamp,
+                            args: vec![],
+                            is_nullable: false,
+                        }
+                    ),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Extract(ast::ExtractExpr {
+                extract_spec: ast::DatePart::Minute,
+                arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::CurrentTimestamp,
+                    args: ast::FunctionArguments::Args(vec![]),
+                    set_quantifier: Some(ast::SetQuantifier::All)
+                })),
+            }),
+        );
+
+        test_algebrize!(
+            extract_second,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Second,
+                    args: vec![mir::Expression::ScalarFunction(
+                        mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::CurrentTimestamp,
+                            args: vec![],
+                            is_nullable: false,
+                        }
+                    ),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Extract(ast::ExtractExpr {
+                extract_spec: ast::DatePart::Second,
+                arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::CurrentTimestamp,
+                    args: ast::FunctionArguments::Args(vec![]),
+                    set_quantifier: Some(ast::SetQuantifier::All)
+                })),
+            }),
+        );
+
+        test_algebrize!(
+            extract_millsecond,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Millisecond,
+                    args: vec![mir::Expression::ScalarFunction(
+                        mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::CurrentTimestamp,
+                            args: vec![],
+                            is_nullable: false,
+                        }
+                    ),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Extract(ast::ExtractExpr {
+                extract_spec: ast::DatePart::Millisecond,
+                arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::CurrentTimestamp,
+                    args: ast::FunctionArguments::Args(vec![]),
+                    set_quantifier: Some(ast::SetQuantifier::All)
+                })),
+            }),
+        );
+
+        test_algebrize!(
+            extract_day_of_year,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::DayOfYear,
+                    args: vec![mir::Expression::ScalarFunction(
+                        mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::CurrentTimestamp,
+                            args: vec![],
+                            is_nullable: false,
+                        }
+                    ),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Extract(ast::ExtractExpr {
+                extract_spec: ast::DatePart::DayOfYear,
+                arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::CurrentTimestamp,
+                    args: ast::FunctionArguments::Args(vec![]),
+                    set_quantifier: Some(ast::SetQuantifier::All)
+                })),
+            }),
+        );
+
+        test_algebrize!(
+            extract_iso_week,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::IsoWeek,
+                    args: vec![mir::Expression::ScalarFunction(
+                        mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::CurrentTimestamp,
+                            args: vec![],
+                            is_nullable: false,
+                        }
+                    ),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Extract(ast::ExtractExpr {
+                extract_spec: ast::DatePart::IsoWeek,
+                arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::CurrentTimestamp,
+                    args: ast::FunctionArguments::Args(vec![]),
+                    set_quantifier: Some(ast::SetQuantifier::All)
+                })),
+            }),
+        );
+
+        test_algebrize!(
+            extract_day_of_week,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::DayOfWeek,
+                    args: vec![mir::Expression::ScalarFunction(
+                        mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::CurrentTimestamp,
+                            args: vec![],
+                            is_nullable: false,
+                        }
+                    ),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Extract(ast::ExtractExpr {
+                extract_spec: ast::DatePart::DayOfWeek,
+                arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::CurrentTimestamp,
+                    args: ast::FunctionArguments::Args(vec![]),
+                    set_quantifier: Some(ast::SetQuantifier::All)
+                })),
+            }),
+        );
+
+        test_algebrize!(
+            extract_iso_weekday,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::IsoWeekday,
+                    args: vec![mir::Expression::ScalarFunction(
+                        mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::CurrentTimestamp,
+                            args: vec![],
+                            is_nullable: false,
+                        }
+                    ),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Extract(ast::ExtractExpr {
+                extract_spec: ast::DatePart::IsoWeekday,
+                arg: Box::new(ast::Expression::Function(ast::FunctionExpr {
+                    function: ast::FunctionName::CurrentTimestamp,
+                    args: ast::FunctionArguments::Args(vec![]),
+                    set_quantifier: Some(ast::SetQuantifier::All)
+                })),
+            }),
+        );
+
+        test_algebrize_expr_and_schema_check!(
+            extract_must_be_date,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+                name: "Second",
+                required: DATE_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::Integer),
+            })),
+            expected_error_code = 1002,
+            input = ast::Expression::Extract(ast::ExtractExpr {
+                extract_spec: ast::DatePart::Second,
+                arg: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+            }),
+        );
+    }
+
+    mod date_function {
+        use super::*;
+
+        test_algebrize!(
+            dateadd,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::DateFunction(
+                mir::DateFunctionApplication {
+                    function: mir::DateFunction::Add,
+                    is_nullable: false,
+                    date_part: mir::DatePart::Quarter,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(5),),
+                        mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::CurrentTimestamp,
+                            args: vec![],
+                            is_nullable: false,
+                        }),
+                    ],
+                }
+            )),
+            input = ast::Expression::DateFunction(ast::DateFunctionExpr {
+                function: ast::DateFunctionName::Add,
+                date_part: ast::DatePart::Quarter,
                 args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Integer(100)),
-                    mir::Expression::Literal(mir::LiteralValue::Integer(10)),
+                    ast::Expression::Literal(ast::Literal::Integer(5)),
+                    ast::Expression::Function(ast::FunctionExpr {
+                        function: ast::FunctionName::CurrentTimestamp,
+                        args: ast::FunctionArguments::Args(vec![]),
+                        set_quantifier: Some(ast::SetQuantifier::All)
+                    })
                 ],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Log,
-            args: ast::FunctionArguments::Args(vec![
-                ast::Expression::Literal(ast::Literal::Integer(100)),
-                ast::Expression::Literal(ast::Literal::Integer(10)),
-            ]),
-            set_quantifier: Some(ast::SetQuantifier::All),
-        }),
-    );
+            }),
+        );
 
-    test_algebrize!(
-        round_bin_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Round,
+        test_algebrize!(
+            datediff,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::DateFunction(
+                mir::DateFunctionApplication {
+                    function: mir::DateFunction::Diff,
+                    is_nullable: false,
+                    date_part: mir::DatePart::Week,
+                    args: vec![
+                        mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::CurrentTimestamp,
+                            args: vec![],
+                            is_nullable: false,
+                        }),
+                        mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::CurrentTimestamp,
+                            args: vec![],
+                            is_nullable: false,
+                        }),
+                        mir::Expression::Literal(mir::LiteralValue::String("sunday".to_string()),)
+                    ],
+                }
+            )),
+            input = ast::Expression::DateFunction(ast::DateFunctionExpr {
+                function: ast::DateFunctionName::Diff,
+                date_part: ast::DatePart::Week,
                 args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Integer(10)),
-                    mir::Expression::Literal(mir::LiteralValue::Integer(10)),
+                    ast::Expression::Function(ast::FunctionExpr {
+                        function: ast::FunctionName::CurrentTimestamp,
+                        args: ast::FunctionArguments::Args(vec![]),
+                        set_quantifier: Some(ast::SetQuantifier::All)
+                    }),
+                    ast::Expression::Function(ast::FunctionExpr {
+                        function: ast::FunctionName::CurrentTimestamp,
+                        args: ast::FunctionArguments::Args(vec![]),
+                        set_quantifier: Some(ast::SetQuantifier::All)
+                    }),
+                    ast::Expression::StringConstructor("sunday".to_string()),
                 ],
-                is_nullable: true,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Round,
-            args: ast::FunctionArguments::Args(vec![
-                ast::Expression::Literal(ast::Literal::Integer(10)),
-                ast::Expression::Literal(ast::Literal::Integer(10)),
-            ]),
-            set_quantifier: Some(ast::SetQuantifier::All),
-        }),
-    );
+            }),
+        );
 
-    test_algebrize!(
-        cos_unary_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Cos,
-                args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10)),],
-                is_nullable: true,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Cos,
-            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
-                ast::Literal::Integer(10)
-            ),]),
-            set_quantifier: Some(ast::SetQuantifier::All),
-        }),
-    );
-    test_algebrize!(
-        sin_unary_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Sin,
-                args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10)),],
-                is_nullable: true,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Sin,
-            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
-                ast::Literal::Integer(10)
-            ),]),
-            set_quantifier: Some(ast::SetQuantifier::All),
-        }),
-    );
-    test_algebrize!(
-        tan_unary_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Tan,
-                args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10)),],
-                is_nullable: true,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Tan,
-            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
-                ast::Literal::Integer(10)
-            ),]),
-            set_quantifier: Some(ast::SetQuantifier::All),
-        }),
-    );
-    test_algebrize!(
-        radians_unary_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Radians,
-                args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1)),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Radians,
-            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
-                ast::Literal::Integer(1)
-            ),]),
-            set_quantifier: Some(ast::SetQuantifier::All),
-        }),
-    );
-    test_algebrize!(
-        sqrt_unary_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Sqrt,
-                args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(4)),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Sqrt,
-            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
-                ast::Literal::Integer(4)
-            ),]),
-            set_quantifier: Some(ast::SetQuantifier::All),
-        }),
-    );
-
-    test_algebrize!(
-        abs_unary_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Abs,
-                args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(10)),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Abs,
-            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
-                ast::Literal::Integer(10)
-            ),]),
-            set_quantifier: Some(ast::SetQuantifier::All),
-        }),
-    );
-
-    test_algebrize!(
-        ceil_unary_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Ceil,
-                args: vec![mir::Expression::Literal(mir::LiteralValue::Double(1.5)),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Ceil,
-            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
-                ast::Literal::Double(1.5)
-            ),]),
-            set_quantifier: Some(ast::SetQuantifier::All),
-        }),
-    );
-
-    test_algebrize!(
-        degrees_unary_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Degrees,
-                args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(1)),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Degrees,
-            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
-                ast::Literal::Integer(1)
-            ),]),
-            set_quantifier: Some(ast::SetQuantifier::All),
-        }),
-    );
-
-    test_algebrize!(
-        floor_unary_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Floor,
-                args: vec![mir::Expression::Literal(mir::LiteralValue::Double(1.5)),],
-                is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Floor,
-            args: ast::FunctionArguments::Args(vec![ast::Expression::Literal(
-                ast::Literal::Double(1.5)
-            ),]),
-            set_quantifier: Some(ast::SetQuantifier::All),
-        }),
-    );
-
-    test_algebrize!(
-        mod_bin_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Mod,
+        test_algebrize!(
+            datetrunc,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::DateFunction(
+                mir::DateFunctionApplication {
+                    function: mir::DateFunction::Trunc,
+                    is_nullable: false,
+                    date_part: mir::DatePart::Year,
+                    args: vec![
+                        mir::Expression::ScalarFunction(mir::ScalarFunctionApplication {
+                            function: mir::ScalarFunction::CurrentTimestamp,
+                            args: vec![],
+                            is_nullable: false,
+                        }),
+                        mir::Expression::Literal(mir::LiteralValue::String("sunday".to_string()),)
+                    ],
+                }
+            )),
+            input = ast::Expression::DateFunction(ast::DateFunctionExpr {
+                function: ast::DateFunctionName::Trunc,
+                date_part: ast::DatePart::Year,
                 args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Integer(10)),
-                    mir::Expression::Literal(mir::LiteralValue::Integer(10)),
+                    ast::Expression::Function(ast::FunctionExpr {
+                        function: ast::FunctionName::CurrentTimestamp,
+                        args: ast::FunctionArguments::Args(vec![]),
+                        set_quantifier: Some(ast::SetQuantifier::All)
+                    }),
+                    ast::Expression::StringConstructor("sunday".to_string()),
                 ],
+            }),
+        );
+    }
+
+    mod case {
+        use super::*;
+
+        test_algebrize!(
+            searched_case,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::SearchedCase(mir::SearchedCaseExpr {
+                when_branch: vec![mir::WhenBranch {
+                    when: Box::new(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
+                    then: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                        "bar".into()
+                    ))),
+                    is_nullable: false,
+                }],
+                else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                    "foo".into()
+                ))),
                 is_nullable: true,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Mod,
-            args: ast::FunctionArguments::Args(vec![
-                ast::Expression::Literal(ast::Literal::Integer(10)),
-                ast::Expression::Literal(ast::Literal::Integer(10)),
-            ]),
-            set_quantifier: Some(ast::SetQuantifier::All),
-        }),
-    );
+            })),
+            input = ast::Expression::Case(ast::CaseExpr {
+                expr: None,
+                when_branch: vec![ast::WhenBranch {
+                    when: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+                    then: Box::new(ast::Expression::StringConstructor("bar".into())),
+                }],
+                else_branch: Some(Box::new(ast::Expression::StringConstructor("foo".into()))),
+            }),
+        );
 
-    test_algebrize!(
-        pow_bin_op,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::ScalarFunction(
-            mir::ScalarFunctionApplication {
-                function: mir::ScalarFunction::Pow,
-                args: vec![
-                    mir::Expression::Literal(mir::LiteralValue::Integer(10)),
-                    mir::Expression::Literal(mir::LiteralValue::Integer(10)),
-                ],
+        test_algebrize!(
+            searched_case_no_else,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::SearchedCase(mir::SearchedCaseExpr {
+                when_branch: vec![mir::WhenBranch {
+                    when: Box::new(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
+                    then: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                        "bar".into()
+                    ))),
+                    is_nullable: false,
+                }],
+                else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+                is_nullable: true,
+            })),
+            input = ast::Expression::Case(ast::CaseExpr {
+                expr: None,
+                when_branch: vec![ast::WhenBranch {
+                    when: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+                    then: Box::new(ast::Expression::StringConstructor("bar".into())),
+                }],
+                else_branch: None,
+            }),
+        );
+
+        test_algebrize_expr_and_schema_check!(
+            searched_case_when_condition_is_not_bool,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+                name: "SearchedCase",
+                required: BOOLEAN_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::String),
+            })),
+            expected_error_code = 1002,
+            input = ast::Expression::Case(ast::CaseExpr {
+                expr: None,
+                when_branch: vec![ast::WhenBranch {
+                    when: Box::new(ast::Expression::StringConstructor("foo".into())),
+                    then: Box::new(ast::Expression::StringConstructor("bar".into())),
+                }],
+                else_branch: Some(Box::new(ast::Expression::StringConstructor("foo".into()))),
+            }),
+        );
+
+        test_algebrize!(
+            simple_case,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::SimpleCase(mir::SimpleCaseExpr {
+                expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(1))),
+                when_branch: vec![mir::WhenBranch {
+                    when: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(2))),
+                    then: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                        "bar".into()
+                    ))),
+                    is_nullable: false,
+                }],
+                else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                    "foo".into()
+                ))),
                 is_nullable: false,
-            }
-        )),
-        input = ast::Expression::Function(ast::FunctionExpr {
-            function: ast::FunctionName::Pow,
-            args: ast::FunctionArguments::Args(vec![
-                ast::Expression::Literal(ast::Literal::Integer(10)),
-                ast::Expression::Literal(ast::Literal::Integer(10)),
-            ]),
-            set_quantifier: Some(ast::SetQuantifier::All),
-        }),
-    );
+            })),
+            input = ast::Expression::Case(ast::CaseExpr {
+                expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
+                when_branch: vec![ast::WhenBranch {
+                    when: Box::new(ast::Expression::Literal(ast::Literal::Integer(2))),
+                    then: Box::new(ast::Expression::StringConstructor("bar".into())),
+                }],
+                else_branch: Some(Box::new(ast::Expression::StringConstructor("foo".into()))),
+            }),
+        );
 
-    test_algebrize!(
-        array_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Array(
-            vec![
-                mir::Expression::Literal(mir::LiteralValue::Integer(1)),
-                mir::Expression::Literal(mir::LiteralValue::String("hello".to_string()))
-            ]
-            .into()
-        )),
-        input = ast::Expression::StringConstructor("[1, \"hello\"]".to_string()),
-    );
+        test_algebrize!(
+            simple_case_no_else,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::SimpleCase(mir::SimpleCaseExpr {
+                expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(1))),
+                when_branch: vec![mir::WhenBranch {
+                    when: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(2))),
+                    then: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                        "bar".into()
+                    ))),
+                    is_nullable: false,
+                }],
+                else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+                is_nullable: false,
+            })),
+            input = ast::Expression::Case(ast::CaseExpr {
+                expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
+                when_branch: vec![ast::WhenBranch {
+                    when: Box::new(ast::Expression::Literal(ast::Literal::Integer(2))),
+                    then: Box::new(ast::Expression::StringConstructor("bar".into())),
+                }],
+                else_branch: None,
+            }),
+        );
 
-    test_algebrize!(
-        bindata_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::Binary(
-            bson::Binary {
-                subtype: bson::spec::BinarySubtype::Uuid,
-                bytes: vec![]
-            }
-        ))),
-        input = ast::Expression::StringConstructor(
-            "{ \"$binary\" : {\"base64\" : \"\", \"subType\" : \"04\"}}".to_string()
-        ),
-    );
+        test_algebrize_expr_and_schema_check!(
+            simple_case_operand_and_when_operand_not_comparable,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(
+                mir::schema::Error::InvalidComparison(
+                    "SimpleCase",
+                    Schema::Atomic(Atomic::Integer),
+                    Schema::Atomic(Atomic::String),
+                )
+            )),
+            expected_error_code = 1005,
+            input = ast::Expression::Case(ast::CaseExpr {
+                expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
+                when_branch: vec![ast::WhenBranch {
+                    when: Box::new(ast::Expression::StringConstructor("foo".into())),
+                    then: Box::new(ast::Expression::StringConstructor("bar".into())),
+                }],
+                else_branch: Some(Box::new(ast::Expression::StringConstructor("baz".into()))),
+            }),
+        );
+    }
 
-    test_algebrize!(
-        boolean_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
-        input = ast::Expression::StringConstructor("true".to_string()),
-    );
+    mod type_operators {
+        use super::*;
 
-    test_algebrize!(
-        datetime_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::DateTime(
-            "2019-08-11T17:54:14.692Z"
-                .parse::<chrono::DateTime<chrono::prelude::Utc>>()
-                .unwrap()
-                .into()
-        ))),
-        input = ast::Expression::StringConstructor(
-            "{\"$date\":\"2019-08-11T17:54:14.692Z\"}".to_string()
-        ),
-    );
+        test_algebrize!(
+            cast_full,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Cast(mir::CastExpr {
+                expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
+                to: mir::Type::String,
+                on_null: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                    "was_null".into()
+                ))),
+                on_error: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                    "was_error".into()
+                ))),
+                is_nullable: false,
+            })),
+            input = ast::Expression::Cast(ast::CastExpr {
+                expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+                to: ast::Type::String,
+                on_null: Some(Box::new(ast::Expression::StringConstructor(
+                    "was_null".into()
+                ))),
+                on_error: Some(Box::new(ast::Expression::StringConstructor(
+                    "was_error".into()
+                ))),
+            }),
+        );
 
-    test_algebrize!(
-        decimal128_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::Decimal128(
-            "10.99".parse().unwrap()
-        ))),
-        input = ast::Expression::StringConstructor("{\"$numberDecimal\": \"10.99\"}".to_string()),
-    );
+        test_algebrize!(
+            cast_simple,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Cast(mir::CastExpr {
+                expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
+                to: mir::Type::String,
+                on_null: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+                on_error: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+                is_nullable: true,
+            })),
+            input = ast::Expression::Cast(ast::CastExpr {
+                expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+                to: ast::Type::String,
+                on_null: None,
+                on_error: None,
+            }),
+        );
 
-    test_algebrize!(
-        document_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Document(
-            unchecked_unique_linked_hash_map! {
-                "x".into() => mir::Expression::Literal(mir::LiteralValue::Integer(3)),
-                "y".into() => mir::Expression::Literal(mir::LiteralValue::String("hello".to_string())),
-            }
-        .into())),
-        input = ast::Expression::StringConstructor("{\"x\": 3, \"y\": \"hello\"}".to_string()),
-    );
+        test_algebrize!(
+            type_assert_success,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
+                expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
+                target_type: mir::Type::Int32,
+            })),
+            input = ast::Expression::TypeAssertion(ast::TypeAssertionExpr {
+                expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+                target_type: ast::Type::Int32,
+            }),
+        );
 
-    test_algebrize!(
-        double_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::Double(10.5))),
-        input = ast::Expression::StringConstructor("10.5".to_string()),
-    );
+        test_algebrize_expr_and_schema_check!(
+            type_assert_fail,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+                name: "::!",
+                required: Schema::Atomic(Atomic::String),
+                found: Schema::Atomic(Atomic::Integer)
+            })),
+            expected_error_code = 1002,
+            input = ast::Expression::TypeAssertion(ast::TypeAssertionExpr {
+                expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+                target_type: ast::Type::String,
+            }),
+        );
 
-    test_algebrize!(
-        int_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::Long(3))),
-        input = ast::Expression::StringConstructor("{\"$numberLong\": \"3\"}".to_string()),
-    );
+        test_algebrize!(
+            is_success,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Is(mir::IsExpr {
+                expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
+                target_type: mir::TypeOrMissing::Type(mir::Type::Int32),
+            })),
+            input = ast::Expression::Is(ast::IsExpr {
+                expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+                target_type: ast::TypeOrMissing::Type(ast::Type::Int32),
+            }),
+        );
 
-    test_algebrize!(
-        javascript_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::JavaScriptCode(
-            "code here".to_string()
-        ))),
-        input = ast::Expression::StringConstructor("{\"$code\": \"code here\"}".to_string()),
-    );
+        test_algebrize_expr_and_schema_check!(
+            is_recursive_failure,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+                name: "Add",
+                required: NUMERIC_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::String)
+            })),
+            expected_error_code = 1002,
+            input = ast::Expression::Is(ast::IsExpr {
+                expr: Box::new(ast::Expression::Binary(ast::BinaryExpr {
+                    left: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+                    op: ast::BinaryOp::Add,
+                    right: Box::new(ast::Expression::StringConstructor("a".into())),
+                })),
+                target_type: ast::TypeOrMissing::Type(ast::Type::Int32),
+            }),
+        );
+    }
 
-    test_algebrize!(
-        javascript_with_scope_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(
-            mir::LiteralValue::JavaScriptCodeWithScope(bson::JavaScriptCodeWithScope {
-                code: "code here".to_string(),
-                scope: bson::doc! {}
-            })
-        )),
-        input = ast::Expression::StringConstructor(
-            "{\"$code\": \"code here\", \"$scope\": {}}".to_string()
-        ),
-    );
+    mod like {
+        use super::*;
 
-    test_algebrize!(
-        maxkey_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::MaxKey)),
-        input = ast::Expression::StringConstructor("{\"$maxKey\": 1}".to_string()),
-    );
+        test_algebrize!(
+            like_success_with_pattern,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Like(mir::LikeExpr {
+                expr: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                    "42".into()
+                ))),
+                pattern: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                    "42".into()
+                ))),
+                escape: Some('f'),
+            })),
+            input = ast::Expression::Like(ast::LikeExpr {
+                expr: Box::new(ast::Expression::StringConstructor("42".into())),
+                pattern: Box::new(ast::Expression::StringConstructor("42".into())),
+                escape: Some('f'),
+            }),
+        );
 
-    test_algebrize!(
-        minkey_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::MinKey)),
-        input = ast::Expression::StringConstructor("{\"$minKey\": 1}".to_string()),
-    );
+        test_algebrize!(
+            like_success_no_pattern,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Like(mir::LikeExpr {
+                expr: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                    "42".into()
+                ))),
+                pattern: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                    "42".into()
+                ))),
+                escape: None,
+            })),
+            input = ast::Expression::Like(ast::LikeExpr {
+                expr: Box::new(ast::Expression::StringConstructor("42".into())),
+                pattern: Box::new(ast::Expression::StringConstructor("42".into())),
+                escape: None,
+            }),
+        );
 
-    test_algebrize!(
-        null_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::Null)),
-        input = ast::Expression::StringConstructor("null".to_string()),
-    );
+        test_algebrize_expr_and_schema_check!(
+            like_expr_must_be_string,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+                name: "Like",
+                required: STRING_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::Integer)
+            })),
+            expected_error_code = 1002,
+            input = ast::Expression::Like(ast::LikeExpr {
+                expr: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+                pattern: Box::new(ast::Expression::StringConstructor("42".into())),
+                escape: None,
+            }),
+        );
 
-    test_algebrize!(
-        objectid_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::ObjectId(
-            bson::oid::ObjectId::parse_str("5ab9c3da31c2ab715d421285").unwrap()
-        ))),
-        input = ast::Expression::StringConstructor(
-            "{\"$oid\": \"5ab9c3da31c2ab715d421285\"}".to_string()
-        ),
-    );
-
-    test_algebrize!(
-        regular_expression_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(
-            mir::LiteralValue::RegularExpression(bson::Regex {
-                pattern: "pattern".to_string(),
-                options: "".to_string()
-            })
-        )),
-        input = ast::Expression::StringConstructor(
-            "{\"$regularExpression\":{\"pattern\": \"pattern\",\"options\": \"\"}}".to_string()
-        ),
-    );
-
-    test_algebrize!(
-        regular_string_stays_string_with_implicit_casting_true,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::String(
-            "abc".to_string()
-        ))),
-        input = ast::Expression::StringConstructor("abc".to_string()),
-    );
-
-    test_algebrize!(
-        json_string_stays_string_with_implicit_casting_true,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::String(
-            "'{this_doc_is_actually_a_string: 1}'".to_string()
-        ))),
-        input =
-            ast::Expression::StringConstructor("'{this_doc_is_actually_a_string: 1}'".to_string()),
-    );
-
-    test_algebrize!(
-        symbol_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::Symbol(
-            "symbol".to_string()
-        ))),
-        input = ast::Expression::StringConstructor("{\"$symbol\": \"symbol\"}".to_string()),
-    );
-
-    test_algebrize!(
-        timestamp_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::Timestamp(
-            bson::Timestamp {
-                time: 1,
-                increment: 2
-            }
-        ))),
-        input = ast::Expression::StringConstructor(
-            "{\"$timestamp\": {\"t\": 1, \"i\": 2}}".to_string()
-        ),
-    );
-
-    test_algebrize!(
-        undefined_string_to_ext_json,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = true,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::Undefined)),
-        input = ast::Expression::StringConstructor("{\"$undefined\": true}".to_string()),
-    );
-
-    test_algebrize!(
-        ext_json_not_converted_when_conversion_false,
-        method = algebrize_expression,
-        in_implicit_type_conversion_context = false,
-        expected = Ok(mir::Expression::Literal(mir::LiteralValue::String(
-            "{\"$numberLong\": \"3\"}".to_string()
-        ))),
-        input = ast::Expression::StringConstructor("{\"$numberLong\": \"3\"}".to_string()),
-    );
+        test_algebrize_expr_and_schema_check!(
+            like_pattern_must_be_string,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Err(Error::SchemaChecking(mir::schema::Error::SchemaChecking {
+                name: "Like",
+                required: STRING_OR_NULLISH.clone(),
+                found: Schema::Atomic(Atomic::Integer)
+            })),
+            expected_error_code = 1002,
+            input = ast::Expression::Like(ast::LikeExpr {
+                expr: Box::new(ast::Expression::StringConstructor("42".into())),
+                pattern: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+                escape: Some(' '),
+            }),
+        );
+    }
 }
 
 mod aggregation {
