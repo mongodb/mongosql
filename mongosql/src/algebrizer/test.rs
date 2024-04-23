@@ -859,6 +859,35 @@ mod expression {
                 }),
             },
         );
+        test_algebrize!(
+            subpath_implicit_converts_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::FieldAccess(mir::FieldAccess {
+                expr: Box::new(mir::Expression::Document(
+                    unchecked_unique_linked_hash_map! {
+                        "a".into() => mir::Expression::Literal(mir::LiteralValue::Integer(1)),
+                    }
+                    .into()
+                )),
+                field: "a".into(),
+                is_nullable: false
+            })),
+            input = ast::Expression::Subpath(ast::SubpathExpr {
+                expr: Box::new(ast::Expression::StringConstructor("{\"a\": 1}".into())),
+                subpath: "a".into(),
+            }),
+            env = map! {
+                ("foo", 0u16).into() => Schema::Document( Document {
+                    keys: map! {
+                        "a".into() => Schema::Atomic(Atomic::Integer),
+                    },
+                    required: set!{},
+                    additional_properties: false,
+                    ..Default::default()
+                    }),
+            },
+        );
 
         test_algebrize!(
             unqualified_subpath_in_super_scope,
@@ -1193,6 +1222,34 @@ mod expression {
                 left: Box::new(ast::Expression::Literal(ast::Literal::Long(42))),
                 op: ast::BinaryOp::Div,
                 right: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
+            }),
+        );
+        test_algebrize!(
+            cast_implicit_converts_expr_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Cast(mir::CastExpr {
+                expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
+                to: mir::Type::String,
+                on_null: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                    "{\"$numberInt\": \"1\"}".to_string()
+                ))),
+                on_error: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                    "{\"$numberInt\": \"2\"}".to_string()
+                ))),
+                is_nullable: false,
+            })),
+            input = ast::Expression::Cast(ast::CastExpr {
+                expr: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"42\"}".to_string()
+                )),
+                to: ast::Type::String,
+                on_null: Some(Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"1\"}".to_string()
+                ))),
+                on_error: Some(Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"2\"}".to_string()
+                ))),
             }),
         );
 
@@ -1800,6 +1857,25 @@ mod expression {
             input = ast::Expression::Unary(ast::UnaryExpr {
                 op: ast::UnaryOp::Pos,
                 expr: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+            }),
+        );
+
+        test_algebrize!(
+            unary_op_implicit_converts_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Neg,
+                    args: vec![mir::Expression::Literal(mir::LiteralValue::Integer(42)),],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Unary(ast::UnaryExpr {
+                op: ast::UnaryOp::Neg,
+                expr: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"42\"}".to_string()
+                )),
             }),
         );
     }
@@ -2647,6 +2723,30 @@ mod expression {
                 arg: Box::new(ast::Expression::Literal(ast::Literal::Integer(42))),
             }),
         );
+
+        test_algebrize!(
+            extract_implicit_converts_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::ScalarFunction(
+                mir::ScalarFunctionApplication {
+                    function: mir::ScalarFunction::Year,
+                    args: vec![mir::Expression::Literal(mir::LiteralValue::DateTime(
+                        "2019-08-11T17:54:14.692Z"
+                            .parse::<chrono::DateTime<chrono::prelude::Utc>>()
+                            .unwrap()
+                            .into()
+                    ))],
+                    is_nullable: false,
+                }
+            )),
+            input = ast::Expression::Extract(ast::ExtractExpr {
+                extract_spec: ast::DatePart::Year,
+                arg: Box::new(ast::Expression::StringConstructor(
+                    "{\"$date\":\"2019-08-11T17:54:14.692Z\"}".to_string()
+                )),
+            }),
+        );
     }
 
     mod date_function {
@@ -2757,6 +2857,38 @@ mod expression {
                         set_quantifier: Some(ast::SetQuantifier::All)
                     }),
                     ast::Expression::StringConstructor("sunday".to_string()),
+                ],
+            }),
+        );
+
+        test_algebrize!(
+            date_function_implicit_converts_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::DateFunction(
+                mir::DateFunctionApplication {
+                    function: mir::DateFunction::Add,
+                    is_nullable: false,
+                    date_part: mir::DatePart::Quarter,
+                    args: vec![
+                        mir::Expression::Literal(mir::LiteralValue::Integer(5),),
+                        mir::Expression::Literal(mir::LiteralValue::DateTime(
+                            "2019-08-11T17:54:14.692Z"
+                                .parse::<chrono::DateTime<chrono::prelude::Utc>>()
+                                .unwrap()
+                                .into()
+                        ))
+                    ],
+                }
+            )),
+            input = ast::Expression::DateFunction(ast::DateFunctionExpr {
+                function: ast::DateFunctionName::Add,
+                date_part: ast::DatePart::Quarter,
+                args: vec![
+                    ast::Expression::StringConstructor("{\"$numberInt\": \"5\"}".to_string()),
+                    ast::Expression::StringConstructor(
+                        "{\"$date\":\"2019-08-11T17:54:14.692Z\"}".to_string()
+                    )
                 ],
             }),
         );
@@ -3057,6 +3189,22 @@ mod expression {
                     op: ast::BinaryOp::Add,
                     right: Box::new(ast::Expression::StringConstructor("a".into())),
                 })),
+                target_type: ast::TypeOrMissing::Type(ast::Type::Int32),
+            }),
+        );
+
+        test_algebrize!(
+            is_implicit_converts_ext_json,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::Is(mir::IsExpr {
+                expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
+                target_type: mir::TypeOrMissing::Type(mir::Type::Int32),
+            })),
+            input = ast::Expression::Is(ast::IsExpr {
+                expr: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"42\"}".to_string()
+                )),
                 target_type: ast::TypeOrMissing::Type(ast::Type::Int32),
             }),
         );

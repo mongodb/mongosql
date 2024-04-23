@@ -1147,7 +1147,7 @@ impl<'a> Algebrizer<'a> {
     }
 
     fn algebrize_unary_expr(&self, u: ast::UnaryExpr) -> Result<mir::Expression> {
-        let arg = self.algebrize_expression(*u.expr, false)?;
+        let arg = self.algebrize_expression(*u.expr, true)?;
         let args = vec![arg];
         Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
@@ -1333,7 +1333,7 @@ impl<'a> Algebrizer<'a> {
 
     fn algebrize_is(&self, ast_node: ast::IsExpr) -> Result<mir::Expression> {
         Ok(mir::Expression::Is(mir::IsExpr {
-            expr: Box::new(self.algebrize_expression(*ast_node.expr, false)?),
+            expr: Box::new(self.algebrize_expression(*ast_node.expr, true)?),
             target_type: mir::TypeOrMissing::try_from(ast_node.target_type)?,
         }))
     }
@@ -1400,7 +1400,7 @@ impl<'a> Algebrizer<'a> {
             IsoWeekday => mir::ScalarFunction::IsoWeekday,
             Quarter => panic!("'Quarter' is not a supported date part for EXTRACT"),
         };
-        let args = vec![self.algebrize_expression(*e.arg, false)?];
+        let args = vec![self.algebrize_expression(*e.arg, true)?];
         let is_nullable = Self::args_are_nullable(&args);
         Ok(mir::Expression::ScalarFunction(
             mir::ScalarFunctionApplication {
@@ -1439,7 +1439,7 @@ impl<'a> Algebrizer<'a> {
         let args = d
             .args
             .into_iter()
-            .map(|e| self.algebrize_expression(e, false))
+            .map(|e| self.algebrize_expression(e, true))
             .collect::<Result<Vec<_>>>()?;
 
         // All date functions are nullable
@@ -1456,7 +1456,7 @@ impl<'a> Algebrizer<'a> {
     }
 
     fn algebrize_access(&self, a: ast::AccessExpr) -> Result<mir::Expression> {
-        let expr = self.algebrize_expression(*a.expr, false)?;
+        let expr = self.algebrize_expression(*a.expr, true)?;
         Ok(match *a.subfield {
             ast::Expression::StringConstructor(s) => self.construct_field_access_expr(expr, s)?,
             sf => mir::Expression::ScalarFunction(mir::ScalarFunctionApplication::new(
@@ -1533,7 +1533,7 @@ impl<'a> Algebrizer<'a> {
             }
             Array | Boolean | Datetime | Decimal128 | Document | Double | Int32 | Int64 | Null
             | ObjectId | String => {
-                let expr = self.algebrize_expression(*c.expr, false)?;
+                let expr = self.algebrize_expression(*c.expr, true)?;
                 let on_null =
                     self.algebrize_expression(*(c.on_null.unwrap_or_else(|| null_expr!())), false)?;
                 let on_error = self
@@ -1636,7 +1636,7 @@ impl<'a> Algebrizer<'a> {
         if let ast::Expression::Identifier(s) = *p.expr {
             return self.algebrize_possibly_qualified_field_access(s, p.subpath);
         }
-        let expr = self.algebrize_expression(*p.expr, false)?;
+        let expr = self.algebrize_expression(*p.expr, true)?;
         let expr_schema = expr.schema(&self.schema_inference_state())?;
         let is_nullable = NULLISH.satisfies(&expr_schema) != Satisfaction::Not
             || expr_schema.contains_field(&p.subpath) != Satisfaction::Must;
