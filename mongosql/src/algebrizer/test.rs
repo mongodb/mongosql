@@ -2994,6 +2994,40 @@ mod expression {
         );
 
         test_algebrize!(
+            type_assert_ext_json_string_does_not_convert_if_target_type_is_string,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
+                expr: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                    "{\"$numberInt\": \"42\"}".to_string()
+                ))),
+                target_type: mir::Type::String,
+            })),
+            input = ast::Expression::TypeAssertion(ast::TypeAssertionExpr {
+                expr: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"42\"}".to_string()
+                )),
+                target_type: ast::Type::String,
+            }),
+        );
+
+        test_algebrize!(
+            type_assert_ext_json_string_converts_if_target_type_is_not_string,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
+                expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(42))),
+                target_type: mir::Type::Int32,
+            })),
+            input = ast::Expression::TypeAssertion(ast::TypeAssertionExpr {
+                expr: Box::new(ast::Expression::StringConstructor(
+                    "{\"$numberInt\": \"42\"}".to_string()
+                )),
+                target_type: ast::Type::Int32,
+            }),
+        );
+
+        test_algebrize!(
             is_success,
             method = algebrize_expression,
             in_implicit_type_conversion_context = false,

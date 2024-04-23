@@ -1467,8 +1467,11 @@ impl<'a> Algebrizer<'a> {
     }
 
     fn algebrize_type_assertion(&self, t: ast::TypeAssertionExpr) -> Result<mir::Expression> {
+        // If the target_type is String, we do not implicitly convert the
+        // expr since it is being asserted as a String. Otherwise, we do
+        // attempt to convert.
         Ok(mir::Expression::TypeAssertion(mir::TypeAssertionExpr {
-            expr: Box::new(self.algebrize_expression(*t.expr, false)?),
+            expr: Box::new(self.algebrize_expression(*t.expr, t.target_type != ast::Type::String)?),
             target_type: mir::Type::try_from(t.target_type)?,
         }))
     }
