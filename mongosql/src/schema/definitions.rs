@@ -1060,25 +1060,42 @@ impl Schema {
         }
     }
 
-    /// get_single_field_name returns `Some(fieldName)` if every value matched
-    /// by `self` which is not the empty document is a document containing a single field called `fieldName`.
+    /// get_single_field_name_and_schema returns `Some((fieldName, fieldSchema))` if every value
+    /// matched by `self` which is not the empty document is a document containing a single field
+    /// called `fieldName`.
     /// If this is not the case, or `self` doesn't match any values, it returns `None`.
-    pub fn get_single_field_name(&self) -> Option<&str> {
+    pub fn get_single_field_name_and_schema(&self) -> Option<(&str, Schema)> {
         match self {
             AnyOf(any_of) => {
-                let field_names = any_of
+                let mut fields = BTreeMap::<&str, Schema>::new();
+                let found_schema_without_single_field = any_of
                     .iter()
                     .filter(|schema| !matches!(schema, Unsat))
-                    .map(|schema| schema.get_single_field_name())
-                    .collect::<BTreeSet<Option<&str>>>();
-                match field_names.len() {
-                    1 => field_names.into_iter().next().unwrap_or(None),
+                    .map(|schema| schema.get_single_field_name_and_schema())
+                    .fold(false, |acc, field_info| match field_info {
+                        Some((field_name, field_schema)) => {
+                            let sch = fields
+                                .get(field_name)
+                                .map(|s| s.union(&field_schema))
+                                .unwrap_or(field_schema);
+                            fields.insert(field_name, sch);
+                            acc
+                        }
+                        None => true,
+                    });
+                if found_schema_without_single_field {
+                    return None;
+                }
+                match fields.len() {
+                    1 => fields.into_iter().next(),
                     _ => None,
                 }
             }
             Schema::Document(d) => match d.num_keys() {
                 (num_required, Some(1)) if num_required <= 1 => {
-                    Some(d.keys.iter().next().unwrap().0.as_str())
+                    d.keys.iter().next().map(|(field_name, field_schema)| {
+                        (field_name.as_str(), field_schema.clone())
+                    })
                 }
                 _ => None,
             },

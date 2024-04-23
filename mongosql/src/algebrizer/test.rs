@@ -6362,6 +6362,136 @@ mod subquery {
         }),
     );
     test_algebrize!(
+        subquery_comparison_ext_json_arg_converted_if_subquery_is_not_string,
+        method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
+        expected = Ok(Expression::SubqueryComparison(SubqueryComparison {
+            operator: SubqueryComparisonOp::Eq,
+            modifier: SubqueryModifier::Any,
+            argument: Box::new(Expression::Literal(LiteralValue::Integer(5))),
+            subquery_expr: SubqueryExpr {
+                output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
+                    field: "a_0".to_string(),
+                    is_nullable: false,
+                })),
+                subquery: Box::new(Stage::Project(Project {
+                    source: Box::new(mir_array(1u16)),
+                    expression: map! {
+                        (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
+                            "a_0".into() => Expression::FieldAccess(FieldAccess {
+                                expr: Box::new(Expression::Reference(("arr", 1u16).into())),
+                                field: "a".into(),
+                                is_nullable: false,
+                            })
+                        }.into())
+                    },
+                    cache: SchemaCache::new(),
+                })),
+                is_nullable: false,
+            },
+            is_nullable: false,
+        })),
+        input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
+            expr: Box::new(ast::Expression::StringConstructor(
+                "{\"$numberInt\": \"5\"}".to_string()
+            )),
+            op: ast::ComparisonOp::Eq,
+            quantifier: ast::SubqueryQuantifier::Any,
+            subquery: Box::new(ast::Query::Select(ast::SelectQuery {
+                select_clause: ast::SelectClause {
+                    set_quantifier: ast::SetQuantifier::All,
+                    body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                        ast::Expression::Document(multimap! {
+                            "a_0".into() => ast::Expression::Identifier("a".into())
+                        })
+                    )])
+                },
+                from_clause: Some(AST_ARRAY.clone()),
+                where_clause: None,
+                group_by_clause: None,
+                having_clause: None,
+                order_by_clause: None,
+                limit: None,
+                offset: None,
+            },))
+        }),
+    );
+    test_algebrize!(
+        subquery_comparison_ext_json_arg_not_converted_if_subquery_is_string,
+        method = algebrize_expression,
+        in_implicit_type_conversion_context = false,
+        expected = Ok(Expression::SubqueryComparison(SubqueryComparison {
+            operator: SubqueryComparisonOp::Eq,
+            modifier: SubqueryModifier::Any,
+            argument: Box::new(Expression::Literal(LiteralValue::String("{\"$numberInt\": \"5\"}".to_string()))),
+            subquery_expr: SubqueryExpr {
+                output_expr: Box::new(Expression::FieldAccess(FieldAccess {
+                    expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
+                    field: "a_0".to_string(),
+                    is_nullable: false,
+                })),
+                subquery: Box::new(Stage::Project(Project {
+                    source: Box::new(Stage::Project(Project {
+                        source: Box::new(Stage::Array(ArraySource {
+                            array: vec![Expression::Document(
+                                unchecked_unique_linked_hash_map! {
+                                    "a".into() => Expression::Literal(LiteralValue::String("abc".to_string()))
+                                }
+                                .into(),
+                            )],
+                            alias: "arr".into(),
+                            cache: SchemaCache::new(),
+                        })),
+                        expression: map! {
+                            ("arr", 1u16).into() => Expression::Reference(("arr", 1u16).into()),
+                        },
+                        cache: SchemaCache::new(),
+                    })),
+                    expression: map! {
+                        (DatasourceName::Bottom, 1u16).into() => Expression::Document(unchecked_unique_linked_hash_map!{
+                            "a_0".into() => Expression::FieldAccess(FieldAccess {
+                                expr: Box::new(Expression::Reference(("arr", 1u16).into())),
+                                field: "a".into(),
+                                is_nullable: false,
+                            })
+                        }.into())
+                    },
+                    cache: SchemaCache::new(),
+                })),
+                is_nullable: false,
+            },
+            is_nullable: false,
+        })),
+        input = ast::Expression::SubqueryComparison(ast::SubqueryComparisonExpr {
+            expr: Box::new(ast::Expression::StringConstructor("{\"$numberInt\": \"5\"}".to_string())),
+            op: ast::ComparisonOp::Eq,
+            quantifier: ast::SubqueryQuantifier::Any,
+            subquery: Box::new(ast::Query::Select(ast::SelectQuery {
+                select_clause: ast::SelectClause {
+                    set_quantifier: ast::SetQuantifier::All,
+                    body: ast::SelectBody::Values(vec![ast::SelectValuesExpression::Expression(
+                        ast::Expression::Document(multimap! {
+                            "a_0".into() => ast::Expression::Identifier("a".into())
+                        })
+                    )])
+                },
+                from_clause: Some(ast::Datasource::Array(ast::ArraySource {
+                    array: vec![ast::Expression::Document(multimap! {
+                        "a".into() => ast::Expression::StringConstructor("abc".to_string()),
+                    })],
+                    alias: "arr".into()
+                })),
+                where_clause: None,
+                group_by_clause: None,
+                having_clause: None,
+                order_by_clause: None,
+                limit: None,
+                offset: None,
+            },))
+        }),
+    );
+    test_algebrize!(
         argument_from_super_scope,
         method = algebrize_expression,
         in_implicit_type_conversion_context = false,
@@ -6466,7 +6596,7 @@ mod subquery {
             output_expr: Box::new(Expression::FieldAccess(FieldAccess {
                 expr: Box::new(Expression::Reference((DatasourceName::Bottom, 1u16).into())),
                 field: "x".to_string(),
-                is_nullable: false,
+                is_nullable: true,
             })),
             subquery: Box::new(Stage::Limit(Limit {
                 source: Box::new(Stage::Project(Project {
@@ -6495,7 +6625,7 @@ mod subquery {
                 limit: 1,
                 cache: SchemaCache::new(),
             })),
-            is_nullable: false,
+            is_nullable: true,
         })),
         input = ast::Expression::Subquery(Box::new(ast::Query::Select(ast::SelectQuery {
             select_clause: ast::SelectClause {

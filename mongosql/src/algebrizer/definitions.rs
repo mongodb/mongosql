@@ -1551,7 +1551,10 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
-    pub fn algebrize_subquery_expr(&self, ast_node: ast::Query) -> Result<mir::SubqueryExpr> {
+    pub fn algebrize_subquery_expr(
+        &self,
+        ast_node: ast::Query,
+    ) -> Result<(mir::SubqueryExpr, schema::Schema)> {
         let subquery_algebrizer = self.subquery_algebrizer();
         let subquery = Box::new(subquery_algebrizer.algebrize_query(ast_node)?);
         let result_set = subquery.schema(&subquery_algebrizer.schema_inference_state())?;
@@ -1559,29 +1562,35 @@ impl<'a> Algebrizer<'a> {
         match result_set.schema_env.len() {
             1 => {
                 let (key, schema) = result_set.schema_env.into_iter().next().unwrap();
-                let output_expr = match &schema.get_single_field_name() {
-                    Some(field) => Ok(Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
-                        expr: Box::new(mir::Expression::Reference(key.into())),
-                        field: field.to_string(),
-                        is_nullable: NULLISH.satisfies(&schema) != Satisfaction::Not,
-                    }))),
-                    None => Err(Error::InvalidSubqueryDegree),
-                }?;
+                let (output_expr, output_expr_schema) =
+                    match &schema.get_single_field_name_and_schema() {
+                        Some((field_name, field_schema)) => Ok((
+                            Box::new(mir::Expression::FieldAccess(mir::FieldAccess {
+                                expr: Box::new(mir::Expression::Reference(key.into())),
+                                field: field_name.to_string(),
+                                is_nullable: NULLISH.satisfies(field_schema) != Satisfaction::Not,
+                            })),
+                            field_schema.clone(),
+                        )),
+                        None => Err(Error::InvalidSubqueryDegree),
+                    }?;
                 let is_nullable = output_expr.is_nullable();
-                Ok(mir::SubqueryExpr {
-                    output_expr,
-                    subquery,
-                    is_nullable,
-                })
+                Ok((
+                    mir::SubqueryExpr {
+                        output_expr,
+                        subquery,
+                        is_nullable,
+                    },
+                    output_expr_schema,
+                ))
             }
             _ => Err(Error::InvalidSubqueryDegree),
         }
     }
 
     pub fn algebrize_subquery(&self, ast_node: ast::Query) -> Result<mir::Expression> {
-        Ok(mir::Expression::Subquery(
-            self.algebrize_subquery_expr(ast_node)?,
-        ))
+        let (subquery_expr, _) = self.algebrize_subquery_expr(ast_node)?;
+        Ok(mir::Expression::Subquery(subquery_expr))
     }
 
     pub fn algebrize_subquery_comparison(
@@ -1592,16 +1601,28 @@ impl<'a> Algebrizer<'a> {
             ast::SubqueryQuantifier::All => mir::SubqueryModifier::All,
             ast::SubqueryQuantifier::Any => mir::SubqueryModifier::Any,
         };
-        let argument = self.algebrize_expression(*s.expr, false)?;
+        // Algebrize the subquery expr and get the schema of the output field.
+        let (subquery_expr, subquery_schema) = self.algebrize_subquery_expr(*s.subquery)?;
+
+        // If the schema of the subquery output field MUST satisfy STRING_OR_NULLISH,
+        // then we algebrize s.expr with in_implicit_type_conversion_context set to
+        // false because that means a String is expected. Otherwise, it is algebrized
+        // with that value set to true.
+        let is_nullable_string =
+            subquery_schema.satisfies(&STRING_OR_NULLISH) == Satisfaction::Must;
+        let argument = self.algebrize_expression(*s.expr, !is_nullable_string)?;
+
+        // Determine the overall nullability of the subquery comparison expr.
         let arg_schema = argument.schema(&self.schema_inference_state())?;
-        let is_nullable = NULLISH.satisfies(&arg_schema) != Satisfaction::Not;
+        let is_nullable =
+            subquery_expr.is_nullable || NULLISH.satisfies(&arg_schema) != Satisfaction::Not;
         Ok(mir::Expression::SubqueryComparison(
             mir::SubqueryComparison {
                 operator: mir::SubqueryComparisonOp::from(s.op),
                 modifier,
                 is_nullable,
                 argument: Box::new(argument),
-                subquery_expr: self.algebrize_subquery_expr(*s.subquery)?,
+                subquery_expr,
             },
         ))
     }

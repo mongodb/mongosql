@@ -2254,33 +2254,33 @@ mod simplify {
     );
 }
 
-mod get_single_field_name {
+mod get_single_field_name_and_schema {
     use crate::{
         map,
-        schema::{Atomic::String, Document, Schema::*},
+        schema::{Atomic::Integer, Atomic::String, Document, Schema::*},
         set,
     };
-    macro_rules! test_get_single_field_name {
+    macro_rules! test_get_single_field_name_and_schema {
         ($func_name:ident, expected = $expected:expr, schema = $schema:expr $(,)?) => {
             #[test]
             fn $func_name() {
-                assert_eq!($expected, $schema.get_single_field_name());
+                assert_eq!($expected, $schema.get_single_field_name_and_schema());
             }
         };
     }
 
-    test_get_single_field_name!(any, expected = None, schema = &Any);
-    test_get_single_field_name!(unsat, expected = None, schema = &Unsat);
-    test_get_single_field_name!(missing, expected = None, schema = &Missing);
-    test_get_single_field_name!(atomic, expected = None, schema = &Atomic(String));
-    test_get_single_field_name!(
+    test_get_single_field_name_and_schema!(any, expected = None, schema = &Any);
+    test_get_single_field_name_and_schema!(unsat, expected = None, schema = &Unsat);
+    test_get_single_field_name_and_schema!(missing, expected = None, schema = &Missing);
+    test_get_single_field_name_and_schema!(atomic, expected = None, schema = &Atomic(String));
+    test_get_single_field_name_and_schema!(
         any_of_non_document,
         expected = None,
         schema = &AnyOf(set![Atomic(String)])
     );
-    test_get_single_field_name!(array, expected = None, schema = &Array(Box::new(Any)));
-    test_get_single_field_name!(empty_any_of, expected = None, schema = &AnyOf(set![]));
-    test_get_single_field_name!(
+    test_get_single_field_name_and_schema!(array, expected = None, schema = &Array(Box::new(Any)));
+    test_get_single_field_name_and_schema!(empty_any_of, expected = None, schema = &AnyOf(set![]));
+    test_get_single_field_name_and_schema!(
         empty_doc,
         expected = None,
         schema = &Document(Document {
@@ -2290,9 +2290,9 @@ mod get_single_field_name {
             ..Default::default()
         })
     );
-    test_get_single_field_name!(
+    test_get_single_field_name_and_schema!(
         single_doc_no_required_keys,
-        expected = Some("a"),
+        expected = Some(("a", Atomic(String))),
         schema = &Document(Document {
             keys: map![
                 "a".to_string() => Atomic(String),
@@ -2302,7 +2302,7 @@ mod get_single_field_name {
             ..Default::default()
         })
     );
-    test_get_single_field_name!(
+    test_get_single_field_name_and_schema!(
         single_doc_empty,
         expected = None,
         schema = &Document(Document {
@@ -2312,7 +2312,7 @@ mod get_single_field_name {
             ..Default::default()
         })
     );
-    test_get_single_field_name!(
+    test_get_single_field_name_and_schema!(
         single_doc_multiple_required_keys,
         expected = None,
         schema = &Document(Document {
@@ -2325,9 +2325,9 @@ mod get_single_field_name {
             ..Default::default()
         })
     );
-    test_get_single_field_name!(
+    test_get_single_field_name_and_schema!(
         single_doc_no_additional_properties,
-        expected = Some("a"),
+        expected = Some(("a", Atomic(String))),
         schema = &Document(Document {
             keys: map![
                 "a".to_string() => Atomic(String),
@@ -2337,7 +2337,7 @@ mod get_single_field_name {
             ..Default::default()
         })
     );
-    test_get_single_field_name!(
+    test_get_single_field_name_and_schema!(
         single_doc_with_additional_properties,
         expected = None,
         schema = &Document(Document {
@@ -2349,7 +2349,7 @@ mod get_single_field_name {
             ..Default::default()
         })
     );
-    test_get_single_field_name!(
+    test_get_single_field_name_and_schema!(
         possible_extra_keys,
         expected = None,
         schema = &Document(Document {
@@ -2362,7 +2362,7 @@ mod get_single_field_name {
             ..Default::default()
         })
     );
-    test_get_single_field_name!(
+    test_get_single_field_name_and_schema!(
         two_docs_one_empty,
         expected = None,
         schema = &AnyOf(set![
@@ -2382,7 +2382,7 @@ mod get_single_field_name {
             })
         ])
     );
-    test_get_single_field_name!(
+    test_get_single_field_name_and_schema!(
         two_docs_one_required_field_per_doc,
         expected = None,
         schema = &AnyOf(set![
@@ -2404,9 +2404,9 @@ mod get_single_field_name {
             })
         ])
     );
-    test_get_single_field_name!(
+    test_get_single_field_name_and_schema!(
         duplicate_single_field_docs,
-        expected = Some("a"),
+        expected = Some(("a", Atomic(String))),
         schema = &AnyOf(set![
             Document(Document {
                 keys: map![
@@ -2426,9 +2426,31 @@ mod get_single_field_name {
             })
         ])
     );
-    test_get_single_field_name!(
+    test_get_single_field_name_and_schema!(
+        duplicate_single_field_docs_with_diff_schema,
+        expected = Some(("a", AnyOf(set![Atomic(String), Atomic(Integer)]))),
+        schema = &AnyOf(set![
+            Document(Document {
+                keys: map![
+                    "a".to_string() => Atomic(String),
+                ],
+                required: set!["a".to_string()],
+                additional_properties: false,
+                ..Default::default()
+            }),
+            Document(Document {
+                keys: map![
+                    "a".to_string() => Atomic(Integer),
+                ],
+                required: set!["a".to_string()],
+                additional_properties: false,
+                ..Default::default()
+            })
+        ])
+    );
+    test_get_single_field_name_and_schema!(
         any_of_single_field_doc_and_unsat,
-        expected = Some("a"),
+        expected = Some(("a", Atomic(String))),
         schema = &AnyOf(set![
             Unsat,
             Document(Document {
