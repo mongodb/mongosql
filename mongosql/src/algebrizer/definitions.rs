@@ -1106,6 +1106,70 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
+    /// This is a helper function for algebrizing binary comparison operands when one is a
+    /// StringConstructor (literal) and one is not (non_literal). The non_literal is algebrized
+    /// first. If its schema MUST satisfy STRING_OR_NULLISH, then the literal is algebrized with
+    /// in_implicit_type_conversion_context set to false because that means a String is expected;
+    /// otherwise, it is algebrized with that value set to true.
+    ///
+    /// - "itc" stands for "implicit type conversion".
+    /// - The tuple returned is always (literal, non_literal).
+    fn algebrize_itc_eligible_binary_comparison_operands(
+        &self,
+        literal: ast::Expression,
+        non_literal: ast::Expression,
+    ) -> Result<(mir::Expression, mir::Expression)> {
+        let non_literal = self.algebrize_expression(non_literal, false)?;
+        let non_literal_schema = non_literal.schema(&self.schema_inference_state())?;
+        let is_nullable_string =
+            non_literal_schema.satisfies(&STRING_OR_NULLISH) == Satisfaction::Must;
+
+        // Again, if is_nullable_string is true, that means we _do_ expect the StringConstructor
+        // to be a String value, so we set in_implicit_type_conversion_context to false.
+        let literal = self.algebrize_expression(literal, !is_nullable_string)?;
+
+        Ok((literal, non_literal))
+    }
+
+    /// This is a helper function for algebrizing binary comparison operands.
+    /// This applies to not only BinaryExprs but also the NullIf Function and
+    /// other expressions that perform a binary comparison. This function
+    /// determines if exactly one of the operands is a StringConstructor and
+    /// dispatches to algebrize_itc_eligible_binary_comparison_operands if
+    /// that is the case. Otherwise, this function algebrizes both operands
+    /// with in_implicit_type_conversion_context set to false. This is because
+    /// if both are StringConstructors, we can leave them both as String values,
+    /// and if neither are StringConstructors, there is nothing to convert.
+    fn algebrize_binary_comparison_operands(
+        &self,
+        left: ast::Expression,
+        right: ast::Expression,
+    ) -> Result<(mir::Expression, mir::Expression)> {
+        match (left, right) {
+            (
+                l @ ast::Expression::StringConstructor(_),
+                r @ ast::Expression::StringConstructor(_),
+            ) => Ok((
+                self.algebrize_expression(l, false)?,
+                self.algebrize_expression(r, false)?,
+            )),
+            (literal @ ast::Expression::StringConstructor(_), non_literal) => {
+                let (literal, non_literal) =
+                    self.algebrize_itc_eligible_binary_comparison_operands(literal, non_literal)?;
+                Ok((literal, non_literal))
+            }
+            (non_literal, literal @ ast::Expression::StringConstructor(_)) => {
+                let (literal, non_literal) =
+                    self.algebrize_itc_eligible_binary_comparison_operands(literal, non_literal)?;
+                Ok((non_literal, literal))
+            }
+            (l, r) => Ok((
+                self.algebrize_expression(l, false)?,
+                self.algebrize_expression(r, false)?,
+            )),
+        }
+    }
+
     fn algebrize_function(&self, f: ast::FunctionExpr) -> Result<mir::Expression> {
         if f.set_quantifier == Some(ast::SetQuantifier::Distinct) {
             return Err(Error::DistinctScalarFunction);
@@ -1113,23 +1177,115 @@ impl<'a> Algebrizer<'a> {
 
         // get the arguments as a vec of ast::Expressions. If the arguments are
         // Star this must be a COUNT function, otherwise it is an error.
-        let args = match f.args {
+        let args = match f.clone().args {
             ast::FunctionArguments::Star => return Err(Error::StarInNonCount),
             ast::FunctionArguments::Args(ve) => ve,
         };
 
-        // if the function is CURRENT_TIMESTAMP with exactly one arg,
-        // throw away the argument. we break the spec intentionally
-        // here by ignoring the date-precision argument. this is
-        // implemented during algebrization instead of rewriting
-        // because all other rewrites are compliant with the spec, and
-        // this would be the only non-spec-compliant rewrite.
+        // When algebrizing function arguments below, we set in_implicit_type_conversion_context to true whenever a String argument is unexpected,
+        // and false wherever a String argument is expected.
         let args = match (f.function, args.len()) {
+            // if the function is CURRENT_TIMESTAMP with exactly one arg,
+            // throw away the argument. we break the spec intentionally
+            // here by ignoring the date-precision argument. this is
+            // implemented during algebrization instead of rewriting
+            // because all other rewrites are compliant with the spec, and
+            // this would be the only non-spec-compliant rewrite.
             (ast::FunctionName::CurrentTimestamp, 1) => Vec::new(),
-            _ => args
+            (ast::FunctionName::Abs, _)
+            | (ast::FunctionName::Ceil, _)
+            | (ast::FunctionName::Coalesce, _)
+            | (ast::FunctionName::Cos, _)
+            | (ast::FunctionName::CurrentTimestamp, _)
+            | (ast::FunctionName::Degrees, _)
+            | (ast::FunctionName::Floor, _)
+            | (ast::FunctionName::Log, _)
+            | (ast::FunctionName::Mod, _)
+            | (ast::FunctionName::Pow, _)
+            | (ast::FunctionName::Radians, _)
+            | (ast::FunctionName::Sin, _)
+            | (ast::FunctionName::Size, _)
+            | (ast::FunctionName::Slice, _)
+            | (ast::FunctionName::Sqrt, _)
+            | (ast::FunctionName::Tan, _)
+            | (ast::FunctionName::Round, _)
+            | (ast::FunctionName::DayOfWeek, _) => args
+                .into_iter()
+                .map(|e| self.algebrize_expression(e, true))
+                .collect::<Result<Vec<_>>>()?,
+            (ast::FunctionName::Split, 3) => {
+                let [string, delimiter, token_number]: [ast::Expression; 3] = args
+                    .try_into()
+                    .expect("Could not unpack args for ast Split function");
+                vec![
+                    self.algebrize_expression(string, false)?,
+                    self.algebrize_expression(delimiter, false)?,
+                    self.algebrize_expression(token_number, true)?,
+                ]
+            }
+            (ast::FunctionName::Substring, 3) => {
+                let [string, start, length]: [ast::Expression; 3] = args
+                    .try_into()
+                    .expect("Could not unpack args for ast Substring function");
+                vec![
+                    self.algebrize_expression(string, false)?,
+                    self.algebrize_expression(start, true)?,
+                    self.algebrize_expression(length, true)?,
+                ]
+            }
+            (ast::FunctionName::NullIf, 2) => {
+                let [v1, v2]: [ast::Expression; 2] = args
+                    .try_into()
+                    .expect("Could not unpack args for ast NullIf function");
+                let (expr1, expr2) = self.algebrize_binary_comparison_operands(v1, v2)?;
+                vec![expr1, expr2]
+            }
+            (ast::FunctionName::Split, _)
+            | (ast::FunctionName::Substring, _)
+            | (ast::FunctionName::NullIf, _)
+            | (ast::FunctionName::BitLength, _)
+            | (ast::FunctionName::CharLength, _)
+            | (ast::FunctionName::Lower, _)
+            | (ast::FunctionName::OctetLength, _)
+            | (ast::FunctionName::Position, _)
+            | (ast::FunctionName::Replace, _)
+            | (ast::FunctionName::Upper, _) => args
                 .into_iter()
                 .map(|e| self.algebrize_expression(e, false))
                 .collect::<Result<Vec<_>>>()?,
+            // the following patterns should not be hit due to rewrites; throw an error for aggregation functions
+            // to indicate programmer error, otherwise panic
+            (ast::FunctionName::AddToArray, _)
+            | (ast::FunctionName::AddToSet, _)
+            | (ast::FunctionName::Avg, _)
+            | (ast::FunctionName::Count, _)
+            | (ast::FunctionName::First, _)
+            | (ast::FunctionName::Last, _)
+            | (ast::FunctionName::Max, _)
+            | (ast::FunctionName::MergeDocuments, _)
+            | (ast::FunctionName::Min, _)
+            | (ast::FunctionName::StddevPop, _)
+            | (ast::FunctionName::StddevSamp, _)
+            | (ast::FunctionName::Sum, _) => {
+                return Err(Error::AggregationInPlaceOfScalar(f.pretty_print().unwrap()))
+            }
+            (ast::FunctionName::LTrim, _)
+            | (ast::FunctionName::RTrim, _)
+            | (ast::FunctionName::Log10, _)
+            | (ast::FunctionName::DateAdd, _)
+            | (ast::FunctionName::DateDiff, _)
+            | (ast::FunctionName::DateTrunc, _)
+            | (ast::FunctionName::Year, _)
+            | (ast::FunctionName::Month, _)
+            | (ast::FunctionName::Week, _)
+            | (ast::FunctionName::DayOfMonth, _)
+            | (ast::FunctionName::DayOfYear, _)
+            | (ast::FunctionName::Hour, _)
+            | (ast::FunctionName::Minute, _)
+            | (ast::FunctionName::Second, _)
+            | (ast::FunctionName::Millisecond, _) => {
+                unreachable!("{:?} should have been rewritten", f.function)
+            }
         };
 
         let function = mir::ScalarFunction::try_from(f.function)?;
@@ -1169,31 +1325,6 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
-    /// This is a helper function for algebrizing binary comparison operands when one is a
-    /// StringConstructor (literal) and one is not (non_literal). The non_literal is algebrized
-    /// first. If its schema MUST satisfy STRING_OR_NULLISH, then the literal is algebrized with
-    /// in_implicit_type_conversion_context set to false because that means a String is expected;
-    /// otherwise, it is algebrized with that value set to true.
-    ///
-    /// - "itc" stands for "implicit type conversion".
-    /// - The tuple returned is always (literal, non_literal).
-    fn algebrize_itc_eligible_binary_comparison_operands(
-        &self,
-        literal: ast::Expression,
-        non_literal: ast::Expression,
-    ) -> Result<(mir::Expression, mir::Expression)> {
-        let non_literal = self.algebrize_expression(non_literal, false)?;
-        let non_literal_schema = non_literal.schema(&self.schema_inference_state())?;
-        let is_nullable_string =
-            non_literal_schema.satisfies(&STRING_OR_NULLISH) == Satisfaction::Must;
-
-        // Again, if is_nullable_string is true, that means we _do_ expect the StringConstructor
-        // to be a String value, so we set in_implicit_type_conversion_context to false.
-        let literal = self.algebrize_expression(literal, !is_nullable_string)?;
-
-        Ok((literal, non_literal))
-    }
-
     fn algebrize_binary_expr(&self, b: ast::BinaryExpr) -> Result<mir::Expression> {
         use crate::ast::BinaryOp::*;
 
@@ -1219,36 +1350,7 @@ impl<'a> Algebrizer<'a> {
                 self.algebrize_expression(*b.right, false)?,
             ),
 
-            // For comparison operators, if exactly one of the operands is a
-            // StringConstructor, then we can algebrize the other with false.
-            // If the schema of that algebrized expression MUST satisfy nullable
-            // String, then we algebrize the StringConstructor with false;
-            // otherwise we algebrize it with true. This is because if both
-            // are StringConstructors, we can leave them both as String values,
-            // and if neither are StringConstructors, there is nothing to convert.
-            Comparison(_) => match (*b.left, *b.right) {
-                (
-                    l @ ast::Expression::StringConstructor(_),
-                    r @ ast::Expression::StringConstructor(_),
-                ) => (
-                    self.algebrize_expression(l, false)?,
-                    self.algebrize_expression(r, false)?,
-                ),
-                (literal @ ast::Expression::StringConstructor(_), non_literal) => {
-                    let (literal, non_literal) = self
-                        .algebrize_itc_eligible_binary_comparison_operands(literal, non_literal)?;
-                    (literal, non_literal)
-                }
-                (non_literal, literal @ ast::Expression::StringConstructor(_)) => {
-                    let (literal, non_literal) = self
-                        .algebrize_itc_eligible_binary_comparison_operands(literal, non_literal)?;
-                    (non_literal, literal)
-                }
-                (l, r) => (
-                    self.algebrize_expression(l, false)?,
-                    self.algebrize_expression(r, false)?,
-                ),
-            },
+            Comparison(_) => self.algebrize_binary_comparison_operands(*b.left, *b.right)?,
 
             // In and NotIn should have been rewritten during ast rewriting.
             In | NotIn => panic!("'{}' cannot be algebrized", b.op.as_str()),
