@@ -968,7 +968,7 @@ impl PrettyPrint for BetweenExpr {
     fn pretty_print(&self) -> Result<String> {
         let between_tier = self.get_tier();
         let (formatted_expr, formatted_min, formatted_max) = (
-            between_tier.format_sub_expr(&self.expr)?,
+            between_tier.format_sub_expr(&self.arg)?,
             between_tier.format_sub_expr(&self.min)?,
             between_tier.format_sub_expr(&self.max)?,
         );

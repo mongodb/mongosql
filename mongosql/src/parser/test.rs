@@ -635,7 +635,7 @@ mod operator {
         between_ast,
         method = parse_expression,
         expected = Expression::Between(BetweenExpr {
-            expr: Box::new(Expression::Identifier("a".to_string())),
+            arg: Box::new(Expression::Identifier("a".to_string())),
             min: Box::new(Expression::Identifier("b".to_string())),
             max: Box::new(Expression::Identifier("c".to_string())),
         }),
@@ -648,7 +648,7 @@ mod operator {
         expected = Expression::Unary(UnaryExpr {
             op: UnaryOp::Not,
             expr: Box::new(Expression::Between(BetweenExpr {
-                expr: Box::new(Expression::Identifier("a".to_string())),
+                arg: Box::new(Expression::Identifier("a".to_string())),
                 min: Box::new(Expression::Identifier("b".to_string())),
                 max: Box::new(Expression::Identifier("c".to_string())),
             }))
@@ -710,7 +710,7 @@ mod operator_precedence {
         comparison_binds_more_tightly_than_between,
         method = parse_expression,
         expected = Expression::Between(BetweenExpr {
-            expr: Box::new(Expression::Binary(BinaryExpr {
+            arg: Box::new(Expression::Binary(BinaryExpr {
                 left: Box::new(Expression::Identifier("a".to_string())),
                 op: BinaryOp::Comparison(ComparisonOp::Eq),
                 right: Box::new(Expression::Identifier("b".to_string()))
@@ -726,7 +726,7 @@ mod operator_precedence {
         method = parse_expression,
         expected = Expression::Binary(BinaryExpr {
             left: Box::new(Expression::Between(BetweenExpr {
-                expr: Box::new(Expression::Identifier("a".to_string())),
+                arg: Box::new(Expression::Identifier("a".to_string())),
                 min: Box::new(Expression::Identifier("b".to_string())),
                 max: Box::new(Expression::Identifier("c".to_string()))
             })),

@@ -462,7 +462,7 @@ TypeTier<Expr, NextTier>: Box<Expression> = {
 BetweenTier<Expr, NextTier>: Box<Expression> = {
   <e1:BetweenTier<Expr, NextTier>> BETWEEN <e2:NextTier> AND <e3:NextTier> =>
       Box::new(Expression::Between(BetweenExpr {
-          expr: e1,
+          arg: e1,
           min: e2,
           max: e3,
       })),
@@ -470,7 +470,7 @@ BetweenTier<Expr, NextTier>: Box<Expression> = {
       Box::new(Expression::Unary(UnaryExpr {
           op: UnaryOp::Not,
           expr: Box::new(Expression::Between(BetweenExpr {
-              expr: e1,
+              arg: e1,
               min: e2,
               max: e3,
           })),

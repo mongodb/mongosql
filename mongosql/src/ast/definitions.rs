@@ -265,7 +265,7 @@ pub struct UnaryExpr {
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct BetweenExpr {
-    pub expr: Box<Expression>,
+    pub arg: Box<Expression>,
     pub min: Box<Expression>,
     pub max: Box<Expression>,
 }

@@ -1106,6 +1106,22 @@ impl<'a> Algebrizer<'a> {
         }
     }
 
+    /// This is a helper function for algebrizing non-literal comparison operands so that
+    /// we can determine if literal operands in those comparisons need to be algebrized in
+    /// implicit type conversion contexts. This function returns the algebrized expression
+    /// as well as a boolean flag indicating if the expression MUST satisfy STRING_OR_NULLISH.
+    fn algebrize_non_literal_itc_operand(
+        &self,
+        non_literal: ast::Expression,
+    ) -> Result<(mir::Expression, bool)> {
+        let non_literal = self.algebrize_expression(non_literal, false)?;
+        let non_literal_schema = non_literal.schema(&self.schema_inference_state())?;
+        let is_nullable_string =
+            non_literal_schema.satisfies(&STRING_OR_NULLISH) == Satisfaction::Must;
+
+        Ok((non_literal, is_nullable_string))
+    }
+
     /// This is a helper function for algebrizing binary comparison operands when one is a
     /// StringConstructor (literal) and one is not (non_literal). The non_literal is algebrized
     /// first. If its schema MUST satisfy STRING_OR_NULLISH, then the literal is algebrized with
@@ -1119,10 +1135,8 @@ impl<'a> Algebrizer<'a> {
         literal: ast::Expression,
         non_literal: ast::Expression,
     ) -> Result<(mir::Expression, mir::Expression)> {
-        let non_literal = self.algebrize_expression(non_literal, false)?;
-        let non_literal_schema = non_literal.schema(&self.schema_inference_state())?;
-        let is_nullable_string =
-            non_literal_schema.satisfies(&STRING_OR_NULLISH) == Satisfaction::Must;
+        let (non_literal, is_nullable_string) =
+            self.algebrize_non_literal_itc_operand(non_literal)?;
 
         // Again, if is_nullable_string is true, that means we _do_ expect the StringConstructor
         // to be a String value, so we set in_implicit_type_conversion_context to false.
@@ -1449,12 +1463,75 @@ impl<'a> Algebrizer<'a> {
     }
 
     fn algebrize_between(&self, b: ast::BetweenExpr) -> Result<mir::Expression> {
-        let (arg, min, max) = (
-            self.algebrize_expression(*b.expr, false)?,
-            self.algebrize_expression(*b.min, false)?,
-            self.algebrize_expression(*b.max, false)?,
-        );
-        let args = vec![arg, min, max];
+        // First, we must determine if the arguments need to be algebrized in an
+        // implicit type conversion context (this is done by toggling the bool
+        // argument to algebrize_expression). We do this in two steps. First, we
+        // algebrize the non-StringConstructor arguments and determine if all of
+        // their schema MUST satisfy STRING_OR_NULLISH. Then, we algebrize any
+        // StringConstructor operands using that information. If all non-literal
+        // operand schema MUST be nullable Strings, we are not in an implicit
+        // type conversion context (because Strings are expected); otherwise, we
+        // are.
+        let mut non_literals_are_nullable_strings = true;
+        let mut arg_lit = "".to_string();
+        let arg = match *b.arg {
+            ast::Expression::StringConstructor(s) => {
+                arg_lit = s;
+                None
+            }
+            non_literal_arg => {
+                let (non_literal_arg, arg_is_nullable_string) =
+                    self.algebrize_non_literal_itc_operand(non_literal_arg)?;
+                non_literals_are_nullable_strings =
+                    non_literals_are_nullable_strings && arg_is_nullable_string;
+                Some(non_literal_arg)
+            }
+        };
+        let mut min_lit = "".to_string();
+        let min = match *b.min {
+            ast::Expression::StringConstructor(s) => {
+                min_lit = s;
+                None
+            }
+            non_literal_min => {
+                let (non_literal_min, min_is_nullable_string) =
+                    self.algebrize_non_literal_itc_operand(non_literal_min)?;
+                non_literals_are_nullable_strings =
+                    non_literals_are_nullable_strings && min_is_nullable_string;
+                Some(non_literal_min)
+            }
+        };
+        let mut max_lit = "".to_string();
+        let max = match *b.max {
+            ast::Expression::StringConstructor(s) => {
+                max_lit = s;
+                None
+            }
+            non_literal_max => {
+                let (non_literal_max, max_is_nullable_string) =
+                    self.algebrize_non_literal_itc_operand(non_literal_max)?;
+                non_literals_are_nullable_strings =
+                    non_literals_are_nullable_strings && max_is_nullable_string;
+                Some(non_literal_max)
+            }
+        };
+
+        // Again, if non_literals_are_nullable_strings is true, that means we
+        // _do_ expect any StringConstructors to be String values, so we set
+        // in_implicit_type_conversion_context to false.
+        let in_implicit_type_conversion_context = !non_literals_are_nullable_strings;
+        let args = vec![
+            arg.unwrap_or(
+                self.algebrize_string_constructor(arg_lit, in_implicit_type_conversion_context),
+            ),
+            min.unwrap_or(
+                self.algebrize_string_constructor(min_lit, in_implicit_type_conversion_context),
+            ),
+            max.unwrap_or(
+                self.algebrize_string_constructor(max_lit, in_implicit_type_conversion_context),
+            ),
+        ];
+
         let function = mir::ScalarFunction::Between;
         let is_nullable = Self::args_are_nullable(&args);
         Ok(mir::Expression::ScalarFunction(

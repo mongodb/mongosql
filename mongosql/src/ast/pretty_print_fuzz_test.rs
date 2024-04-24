@@ -600,7 +600,7 @@ mod arbitrary {
     impl Arbitrary for BetweenExpr {
         fn arbitrary(g: &mut Gen) -> Self {
             Self {
-                expr: Box::new(Expression::arbitrary(g)),
+                arg: Box::new(Expression::arbitrary(g)),
                 min: Box::new(Expression::arbitrary(g)),
                 max: Box::new(Expression::arbitrary(g)),
             }
