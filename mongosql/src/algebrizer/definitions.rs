@@ -1662,15 +1662,21 @@ impl<'a> Algebrizer<'a> {
             .transpose()?
             .map(Box::new)
             .unwrap_or_else(|| Box::new(mir::Expression::Literal(mir::LiteralValue::Null)));
-        let expr = c
-            .expr
-            .map(|e| self.algebrize_expression(*e, false))
-            .transpose()?;
-        let when_branch = c
+
+        // algebrize the when branches without implicit casting, keeping track of the schema of all of the when expressions
+        // to inform how we algebrize the expr
+        let mut when_branches_all_strings = true;
+        let mut when_branch: Vec<mir::WhenBranch> = c
             .when_branch
+            .clone()
             .into_iter()
             .map(|wb| {
                 let when = self.algebrize_expression(*wb.when, false)?;
+                when_branches_all_strings = when_branches_all_strings
+                    && (when
+                        .schema(&self.schema_inference_state())?
+                        .satisfies(&STRING_OR_NULLISH)
+                        == Satisfaction::Must);
                 Ok(mir::WhenBranch {
                     is_nullable: NULLISH.satisfies(&when.schema(&self.schema_inference_state())?)
                         != Satisfaction::Not,
@@ -1679,15 +1685,48 @@ impl<'a> Algebrizer<'a> {
                 })
             })
             .collect::<Result<_>>()?;
+
+        // if all of the when branches have string schemas, we should not implicitly convert our expr if we have one, so that they may
+        // be compared directly. Otherwise, we algebrize the expr with implicit type conversion
+        let expr = c
+            .expr
+            .map(|e| self.algebrize_expression(*e, !when_branches_all_strings))
+            .transpose()?;
+
+        // if the expr exists and MUST satisfy string, we can use the previously algebrized when_branch without implicit type conversion;
+        // otherwise, we should re-algebrize with implicit type conversion for comparison with non-string expressions (SimpleCase), or for SearchedCase
+        let expr_schema = expr.as_ref().map(|e| {
+            e.schema(&self.schema_inference_state())
+                .unwrap_or(schema::Schema::Unsat)
+        });
+        if !expr_schema
+            .as_ref()
+            .is_some_and(|schema| schema.satisfies(&STRING_OR_NULLISH) == Satisfaction::Must)
+        {
+            when_branch = c
+                .when_branch
+                .into_iter()
+                .map(|wb| {
+                    let when = self.algebrize_expression(*wb.when, true)?;
+                    Ok(mir::WhenBranch {
+                        is_nullable: NULLISH
+                            .satisfies(&when.schema(&self.schema_inference_state())?)
+                            != Satisfaction::Not,
+                        when: Box::new(when),
+                        then: Box::new(self.algebrize_expression(*wb.then, false)?),
+                    })
+                })
+                .collect::<Result<_>>()?;
+        }
+
         match expr {
             Some(expr) => {
                 let expr = Box::new(expr);
-                let expr_schema = expr.schema(&self.schema_inference_state())?;
                 Ok(mir::Expression::SimpleCase(mir::SimpleCaseExpr {
                     expr,
                     when_branch,
                     else_branch,
-                    is_nullable: NULLISH.satisfies(&expr_schema) != Satisfaction::Not,
+                    is_nullable: NULLISH.satisfies(&expr_schema.unwrap()) != Satisfaction::Not,
                 }))
             }
             None => Ok(mir::Expression::SearchedCase(mir::SearchedCaseExpr::new(
