@@ -1517,6 +1517,13 @@ mod literals {
     );
 
     validate_ast!(
+        string_ext_json,
+        method = parse_expression,
+        expected = Expression::StringConstructor(r#"{"$numberLong": "1"}"#.to_string()),
+        input = r#"'{"$numberLong": "1"}'"#,
+    );
+
+    validate_ast!(
         double_neg_no_decimal,
         method = parse_expression,
         expected = Expression::Unary(UnaryExpr {

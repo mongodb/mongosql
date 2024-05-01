@@ -1,0 +1,215 @@
+catalog_data:
+  test_db:
+    foo:
+      - {
+        '_id': 0,
+        'str': '"world"',
+        'num': 1,
+        'ts': { '$timestamp': { 't': 42, 'i': 1 } },
+        'uuid': { '$uuid': 'c8edabc3-f738-4ca3-b68d-ab92a91478a3' },
+        'oid': { '$oid': '63448dfed38427a35d534e40' },
+        'datetime': { '$date': { '$numberLong': '253402300799999' } },
+        'symbol': { '$symbol': 'sym' },
+      }
+      - {
+        '_id': 1,
+        'str': '{"$oid": "invalid"}',
+        'num': 2,
+        'ts': { '$timestamp': { 't': 43, 'i': 1 } },
+        'uuid': { '$uuid': 'b7dcbab2-e627-3b92-a57c-9a8198036792' },
+        'oid': { '$oid': '52337cedc27316924c423d3b' },
+        'datetime': { '$date': { '$numberLong': '253402300776543' } },
+        'symbol': { '$symbol': 'sym2' },
+      }
+
+catalog_schema:
+  test_db:
+    foo:
+      bsonType: 'object'
+      required: [ '_id', 'str', 'num', 'ts', 'uuid', 'oid', 'datetime', 'symbol' ]
+      additionalProperties: false
+      properties:
+        _id:
+          bsonType: 'int'
+        str:
+          bsonType: 'string'
+        num:
+          bsonType: 'int'
+        ts:
+          bsonType: 'timestamp'
+        uuid:
+          bsonType: 'binData'
+        oid:
+          bsonType: 'objectId'
+        datetime:
+          bsonType: 'date'
+        symbol:
+          bsonType: 'symbol'
+
+# Implicit type conversion of extended JSON strings is not part of the MongoSQL
+# spec, so these tests are in the e2e test suite instead of the spec test suite.
+# This feature is exhaustively unit tested, so this set of tests does not cover
+# all contexts where conversion happens. Instead, it covers end-to-end usage of
+# each supported BSON type encoded as extended JSON strings.
+tests:
+  - description: Strict extended JSON string not converted where string is expected
+    current_db: test_db
+    query: "SELECT '{\"$numberInt\": \"1\"}' AS s FROM [{}] AS t"
+    result:
+      - { 't': { 's': '{"$numberInt": "1"}' } }
+
+  - description: Relaxed extended JSON string not converted where string is expected
+    current_db: test_db
+    query: "SELECT '1' AS s FROM [{}] AS t"
+    result:
+      - { 't': { 's': '1' } }
+
+  - description: Invalid extended JSON defaults to string when it fails to convert
+    current_db: test_db
+    query: "SELECT '{\"$oid\": \"invalid\"}' = oid FROM foo AS foo"
+    should_compile: false
+    algebrize_error: 'Error 1005: Invalid use of `Eq` due to incomparable types: `string` cannot be compared to `objectId`.'
+
+  - description: Invalid extended JSON does not matter when string is expected
+    current_db: test_db
+    query: "SELECT str AS str, '{\"$oid\": \"invalid\"}' = str AS res FROM foo AS foo"
+    result:
+      - { 'foo': { 'str': '"world"', 'res': false } }
+      - { 'foo': { 'str': '{"$oid": "invalid"}', 'res': true } }
+
+  - description: Null extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT num AS num, 'null' = num AS res FROM foo AS foo"
+    result:
+      - { 'foo': { 'num': 1, 'res': null } }
+      - { 'foo': { 'num': 2, 'res': null } }
+
+  - description: Boolean extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT num AS num, 'true' = num AS res FROM foo AS foo"
+    should_compile: false
+    algebrize_error: 'Error 1005: Invalid use of `Eq` due to incomparable types: `boolean` cannot be compared to `int`.'
+
+  # Note that a JSON string is encoded with double quotes inside the SQL String's single quotes.
+  # The SQL String is considered "unexpected" since we are comparing to an int field.
+  - description: String extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT num AS num, '\"25\"' = num AS res FROM foo AS foo"
+    should_compile: false
+    algebrize_error: 'Error 1005: Invalid use of `Eq` due to incomparable types: `string` cannot be compared to `int`.'
+
+  # Again, note that a JSON string is encoded with double quotes inside the SQL String's single quotes.
+  # The SQL String is considered "expected" since we are comparing to a string field. That results in
+  # the literal string value containing double quotes, rather than being parsed.
+  - description: String extended JSON string not converted where string is expected
+    current_db: test_db
+    query: "SELECT str AS str, '\"world\"' = str AS res FROM foo AS foo"
+    result:
+      - { 'foo': { 'str': '"world"', 'res': true } }
+      - { 'foo': { 'str': '{"$oid": "invalid"}', 'res': false } }
+
+  - description: Int extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT num AS num, '{\"$numberInt\": \"2\"}' = num AS res FROM foo AS foo"
+    result:
+      - { 'foo': { 'num': 1, 'res': false } }
+      - { 'foo': { 'num': 2, 'res': true } }
+
+  - description: Long extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT num AS num, '{\"$numberLong\": \"3\"}' = num AS res FROM foo AS foo"
+    result:
+      - { 'foo': { 'num': 1, 'res': false } }
+      - { 'foo': { 'num': 2, 'res': false } }
+
+  - description: Double extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT num AS num, '{\"$numberDouble\": \"1.0\"}' = num AS res FROM foo AS foo"
+    result:
+      - { 'foo': { 'num': 1, 'res': true } }
+      - { 'foo': { 'num': 2, 'res': false } }
+
+  - description: Decimal128 extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT num AS num, '{\"$numberDecimal\": \"24.25\"}' = num AS res FROM foo AS foo"
+    result:
+      - { 'foo': { 'num': 1, 'res': false } }
+      - { 'foo': { 'num': 2, 'res': false } }
+
+  - description: RegularExpression extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT '{\"$regularExpression\": {\"pattern\": \"abc*\", \"options\": \"ix\"}}'::!REGEX AS `regex` FROM [{}] as t"
+    result:
+      - { 't': { 'regex': { '$regularExpression': { 'pattern': 'abc*', 'options': 'ix' } } } }
+
+  - description: Javascript extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT '{\"$code\": \"function() {}\"}'::!JAVASCRIPT AS js FROM [{}] as t"
+    result:
+      - { 't': { 'js': { '$code': 'function() {}' } } }
+
+  - description: JavascriptWithScope extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT '{\"$code\": \"function() {}\", \"$scope\": {}}'::!JAVASCRIPTWITHSCOPE AS js FROM [{}] as t"
+    result:
+      - { 't': { 'js': { '$code': 'function() {}', '$scope': { } } } }
+
+  - description: Timestamp extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT ts AS ts, '{\"$timestamp\": {\"t\": 43, \"i\": 1}}' = ts AS res FROM foo AS foo"
+    result:
+      - { 'foo': { 'ts': { '$timestamp': { 't': 42, 'i': 1 } }, 'res': false } }
+      - { 'foo': { 'ts': { '$timestamp': { 't': 43, 'i': 1 } }, 'res': true } }
+
+  - description: BinData extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT '{\"$binary\": {\"base64\": \"yO2rw/c4TKO2jauSqRR4ow==\", \"subType\": \"04\"}}'::!BINDATA AS bin FROM [{}] as t"
+    result:
+      - { 't': { 'bin': { '$binary': { 'base64': 'yO2rw/c4TKO2jauSqRR4ow==', 'subType': '04' } } } }
+
+  - description: UUID extended JSON string converted where string is unexpected
+    skip_reason: "SQL-2071"
+    current_db: test_db
+    query: "SELECT uuid AS uuid, '{\"$uuid\": \"c8edabc3-f738-4ca3-b68d-ab92a91478a3\"}' = uuid AS res FROM foo AS foo"
+    result:
+      - { 'foo': { 'uuid': { '$uuid': 'c8edabc3-f738-4ca3-b68d-ab92a91478a3' }, 'res': true } }
+      - { 'foo': { 'uuid': { '$uuid': 'b7dcbab2-e627-3b92-a57c-9a8198036792' }, 'res': false } }
+
+  - description: ObjectId extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT oid AS oid, '{\"$oid\": \"52337cedc27316924c423d3b\"}' = oid AS res FROM foo AS foo"
+    result:
+      - { 'foo': { 'oid': { '$oid': '63448dfed38427a35d534e40' }, 'res': false } }
+      - { 'foo': { 'oid': { '$oid': '52337cedc27316924c423d3b' }, 'res': true } }
+
+  - description: Datetime extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT `datetime` AS `datetime`, '{\"$date\": {\"$numberLong\": \"253402300799999\"}}' = `datetime` AS res FROM foo AS foo"
+    result:
+      - { 'foo': { 'datetime': { '$date': { '$numberLong': '253402300799999' } }, 'res': true } }
+      - { 'foo': { 'datetime': { '$date': { '$numberLong': '253402300776543' } }, 'res': false } }
+
+  - description: Symbol extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT `symbol` AS `symbol`, '{\"$symbol\": \"sym\"}' = `symbol` AS res FROM foo AS foo"
+    result:
+      - { 'foo': { 'symbol': { '$symbol': 'sym' }, 'res': true } }
+      - { 'foo': { 'symbol': { '$symbol': 'sym2' }, 'res': false } }
+
+  - description: MaxKey extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT '{\"$maxKey\": 1}'::!MAXKEY AS mk FROM [{}] as t"
+    result:
+      - { 't': { 'mk': { '$maxKey': 1 } } }
+
+  - description: MinKey extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT '{\"$minKey\": 1}'::!MINKEY AS mk FROM [{}] as t"
+    result:
+      - { 't': { 'mk': { '$minKey': 1 } } }
+
+  - description: DBPointer extended JSON string converted where string is unexpected
+    current_db: test_db
+    query: "SELECT '{\"$dbPointer\": {\"$ref\": \"foo\", \"$id\": {\"$oid\": \"57e193d7a9cc81b4027498b5\"}}}'::!DBPOINTER AS dbp FROM [{}] as t"
+    result:
+      - { 't': { 'dbp': { '$dbPointer': { '$ref': 'foo', '$id': { '$oid': '57e193d7a9cc81b4027498b5' } } } } }
