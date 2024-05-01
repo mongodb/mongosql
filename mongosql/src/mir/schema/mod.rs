@@ -25,8 +25,6 @@ use std::{
 mod errors;
 use bson::spec::BinarySubtype;
 pub use errors::Error;
-mod ext_json_detector;
-use self::ext_json_detector::ext_json_check;
 mod util;
 
 #[cfg(test)]
@@ -1302,7 +1300,7 @@ impl ScalarFunctionApplication {
         let args = self
             .args
             .iter()
-            .map(|x| ext_json_check(x).and_then(|x| x.schema(state)))
+            .map(|x| x.schema(state))
             .collect::<Result<Vec<_>, _>>()?;
         self.function.schema(state, &args)
     }
