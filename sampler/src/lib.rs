@@ -90,7 +90,15 @@ pub struct SamplerNotification {
 
 pub type SchemaAnalysis = (String, Vec<HashMap<String, Schema>>);
 
-static DISALLOWED_DB_NAMES: [&str; 4] = ["admin", "config", "local", "system"];
+const DISALLOWED_DB_NAMES: [&str; 4] = ["admin", "config", "local", "system"];
+const DISALLOWED_COLLECTION_NAMES: [&str; 6] = [
+    "system.buckets",
+    "system.namespaces",
+    "system.indexes",
+    "system.profile",
+    "system.js",
+    "system.views",
+];
 
 pub async fn sample(
     options: ClientOptions,
@@ -145,6 +153,9 @@ pub async fn sample(
                 })
                 .unwrap_or_default()
             {
+                if DISALLOWED_COLLECTION_NAMES.contains(&collection.as_str()) {
+                    continue;
+                }
                 let notifier = tx_notification.clone();
                 let col_parts = gen_partitions(&db, &collection, notifier).await;
                 let notifier = tx_notification.clone();
