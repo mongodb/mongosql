@@ -21,8 +21,8 @@ use self::schema_html::add_schema_analysis_html;
 pub fn generate_html(
     file_path: &Path,
     date: &str,
-    log_parse: &Option<crate::log_parser::LogParseResult>,
-    schema_analysis: &Option<crate::schema::SchemaAnalysis>,
+    log_parse: Option<&crate::log_parser::LogParseResult>,
+    schema_analysis: Option<&crate::schema::SchemaAnalysis>,
     verbose: bool,
     file_stem: &str,
     report_name: &str,
@@ -152,8 +152,8 @@ fn get_version(datetime_str: String) -> String {
 }
 
 pub fn generate_html_elements(
-    log_parse: &Option<crate::log_parser::LogParseResult>,
-    schema_analysis: &Option<crate::schema::SchemaAnalysis>,
+    log_parse: Option<&crate::log_parser::LogParseResult>,
+    schema_analysis: Option<&crate::schema::SchemaAnalysis>,
     report_name: &str,
 ) -> String {
     let datetime_str = Local::now().format("%m-%d-%Y %H:%M").to_string();

@@ -2,7 +2,7 @@ use build_html::{Container, HtmlContainer};
 
 use crate::schema::CollectionAnalysis;
 
-pub fn add_schema_analysis_html(analysis: &Option<crate::schema::SchemaAnalysis>) -> Container {
+pub fn add_schema_analysis_html(analysis: Option<&crate::schema::SchemaAnalysis>) -> Container {
     if analysis.is_none() {
         return Container::default();
     }

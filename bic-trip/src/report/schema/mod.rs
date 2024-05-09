@@ -24,7 +24,7 @@ pub fn process_schemata(schema: HashMap<String, Vec<HashMap<String, Schema>>>) -
                 let mut collection_analysis = CollectionAnalysis {
                     ..Default::default()
                 };
-                collection_analysis.collection_name = coll.clone();
+                collection_analysis.collection_name.clone_from(&coll);
                 process_schema(coll, schema, &mut collection_analysis, 0);
                 collection_analysis
                     .arrays
@@ -155,7 +155,7 @@ fn process_schema(key: String, schema: Schema, analysis: &mut CollectionAnalysis
                 .entry(key.clone())
                 .and_modify(|(x, s)| {
                     *x = depth;
-                    *s = types.clone();
+                    s.clone_from(&types);
                 })
                 .or_insert((depth, types));
             for s in a {

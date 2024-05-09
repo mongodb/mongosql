@@ -12,7 +12,7 @@ edition = "2021"
 bson = { version = "2.6", features = ["chrono-0_4"] }
 chrono = "0.4.24"
 itertools = "0.10.1"
-lalrpop-util = { version = "0.19.9", features = ["lexer"] }
+lalrpop-util = { version = "0.20.2", features = ["lexer"] }
 lazy_static = "1"
 linked-hash-map = "0.5.4"
 quickcheck = "1"
@@ -41,5 +41,5 @@ name = "translate"
 harness = false
 
 [build-dependencies]
-lalrpop = "0.19.9"
+lalrpop = "0.20.2"
 regex = "1.4.6"

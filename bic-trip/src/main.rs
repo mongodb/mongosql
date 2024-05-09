@@ -41,8 +41,8 @@ async fn main() -> Result<()> {
     generate_html(
         &output_path,
         &date,
-        &parse_results,
-        &analysis,
+        parse_results.as_ref(),
+        analysis.as_ref(),
         !quiet,
         REPORT_FILE_STEM,
         REPORT_NAME,
@@ -50,8 +50,8 @@ async fn main() -> Result<()> {
     generate_csv(
         &output_path,
         &date,
-        &parse_results,
-        &analysis,
+        parse_results.as_ref(),
+        analysis.as_ref(),
         !quiet,
         REPORT_FILE_STEM,
     )
@@ -98,9 +98,8 @@ async fn handle_schema(
             let (tx_notifications, mut rx_notifications) =
                 tokio::sync::mpsc::unbounded_channel::<sampler::SamplerNotification>();
             let (tx_schemata, mut rx_schemata) =
-                tokio::sync::mpsc::unbounded_channel::<Result<sampler::SchemaAnalysis>>();
-            let (tx_errors, mut rx_errors) =
-                tokio::sync::mpsc::unbounded_channel::<anyhow::Error>();
+                tokio::sync::mpsc::unbounded_channel::<sampler::Result<sampler::SchemaAnalysis>>();
+            let (tx_errors, rx_errors) = tokio::sync::oneshot::channel::<sampler::Result<()>>();
 
             let mut schemata: HashMap<String, Vec<HashMap<String, Schema>>> = HashMap::new();
 
@@ -117,50 +116,54 @@ async fn handle_schema(
             let start = Instant::now();
 
             tokio::spawn(async move {
-                sampler::sample(options, tx_notifications, tx_schemata, tx_errors).await;
+                sampler::sample(options, Some(tx_notifications), tx_schemata, tx_errors).await;
             });
-            let mut error = None;
 
-            while let Some(e) = rx_errors.recv().await {
-                error = Some(e);
-            }
-            if let Some(e) = error {
+            if let Ok(Err(e)) = rx_errors.await {
                 anyhow::bail!(e);
-            } else {
-                while let Some(ref notification) = rx_notifications.recv().await {
-                    if !quiet {
-                        pb.set_message(notification.to_string());
-                        pb.tick();
-                    }
-                }
-                while let Some(ref schema) = rx_schemata.recv().await {
-                    match schema {
-                        Ok((database, schema)) => {
-                            if !quiet {
-                                pb.set_message(format!(
-                                    "Received schema for database: {}",
-                                    database
-                                ));
-                            }
-                            schemata.insert(database.clone(), schema.clone());
-                        }
-                        Err(e) => {
-                            if !quiet {
-                                pb.set_message(format!("Error: {}", e));
-                            }
-                        }
-                    }
-                }
-
-                if !quiet {
-                    pb.finish_with_message(format!(
-                        "Schema analysis complete in {}",
-                        HumanDuration(start.elapsed())
-                    ));
-                }
-
-                Ok(Some(process_schemata(schemata)))
             }
+
+            loop {
+                tokio::select! {
+                    notification = rx_notifications.recv() => {
+                        // The notification channel is not critical to the operation of the program,
+                        // so we'll never break out of our loop if the channel is closed.
+                        if let Some(ref notification) = notification {
+                            if !quiet {
+                                pb.set_message(notification.to_string());
+                            }
+                        }
+                    }
+                    schema = rx_schemata.recv() => {
+                        match schema {
+                            Some(Ok((database, schema))) => {
+                                if !quiet {
+                                    pb.set_message(format!("Schema calculated for database: {database}"));
+                                }
+                                schemata.insert(database, schema);
+                            }
+                            Some(Err(e)) => {
+                                if !quiet {
+                                    println!("Error: {e}");
+                                    pb.set_message(format!("Error: {}", e));
+                                }
+                            }
+                            None => {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+
+            if !quiet {
+                pb.finish_with_message(format!(
+                    "Schema analysis complete in {}",
+                    HumanDuration(start.elapsed())
+                ));
+            }
+
+            Ok(Some(process_schemata(schemata)))
         } else {
             Ok(None)
         }

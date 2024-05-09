@@ -96,8 +96,8 @@ fn get_struct_name<T: ?Sized>() -> String {
 pub fn generate_csv(
     file_path: &Path,
     date: &str,
-    log_parse: &Option<crate::log_parser::LogParseResult>,
-    schema_analysis: &Option<crate::schema::SchemaAnalysis>,
+    log_parse: Option<&crate::log_parser::LogParseResult>,
+    schema_analysis: Option<&crate::schema::SchemaAnalysis>,
     verbose: bool,
     file_stem: &str,
 ) -> Result<()> {

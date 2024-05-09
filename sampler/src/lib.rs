@@ -1,4 +1,3 @@
-use anyhow::Result;
 use futures::TryStreamExt;
 use mongodb::{
     bson::{self, doc, Bson, Document},
@@ -13,86 +12,15 @@ use mongosql::{
 use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
-    convert::From,
     fmt::{self, Display, Formatter},
 };
-use thiserror::Error;
+mod errors;
+pub use errors::Error;
 
-pub fn needs_auth(options: &ClientOptions) -> bool {
-    options.credential.is_none()
-}
-
-// allowing dead code since this is a library and we want to keep the code for future use
-#[allow(dead_code)]
-pub async fn load_password_auth(
-    options: &mut ClientOptions,
-    username: Option<String>,
-    password: Option<String>,
-) {
-    options.credential = Some(
-        mongodb::options::Credential::builder()
-            .username(username)
-            .password(password)
-            .build(),
-    );
-}
-
-pub async fn get_opts(uri: &str) -> Result<ClientOptions> {
-    let mut opts = ClientOptions::parse_async(uri).await?;
-    opts.max_pool_size = Some(get_optimal_pool_size());
-    opts.max_connecting = Some(5);
-    Ok(opts)
-}
-
-// allowing dead code since this is a library and we want to keep the code for future use
-#[allow(dead_code)]
-pub fn get_optimal_pool_size() -> u32 {
-    std::thread::available_parallelism().unwrap().get() as u32 * 2 + 1
-}
-
-#[derive(Debug, Clone)]
-pub enum SamplerAction {
-    Querying { partition: u16 },
-    Processing { partition: u16 },
-    Partitioning { partitions: u16 },
-}
-
-impl Display for SamplerAction {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        match self {
-            SamplerAction::Querying { partition } => write!(f, "Querying partition {}", partition),
-            SamplerAction::Processing { partition } => {
-                write!(f, "Processing partition {}", partition)
-            }
-            SamplerAction::Partitioning { partitions } => {
-                write!(f, "Partitioning into {} parts", partitions)
-            }
-        }
-    }
-}
-
-impl Display for SamplerNotification {
-    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(
-            f,
-            "{} for collection: {} in database: {}",
-            self.action, self.collection, self.db
-        )
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct SamplerNotification {
-    pub db: String,
-    pub collection: String,
-    pub action: SamplerAction,
-}
-
-pub type SchemaAnalysis = (String, Vec<HashMap<String, Schema>>);
+pub type Result<T> = std::result::Result<T, Error>;
 
 const DISALLOWED_DB_NAMES: [&str; 4] = ["admin", "config", "local", "system"];
-const DISALLOWED_COLLECTION_NAMES: [&str; 6] = [
-    "system.buckets",
+const DISALLOWED_COLLECTION_NAMES: [&str; 5] = [
     "system.namespaces",
     "system.indexes",
     "system.profile",
@@ -100,11 +28,25 @@ const DISALLOWED_COLLECTION_NAMES: [&str; 6] = [
     "system.views",
 ];
 
+const PARTITION_SIZE_IN_BYTES: i64 = 100 * 1024 * 1024; // 100 MB
+const SAMPLE_MIN_DOCS: i64 = 101;
+const SAMPLE_RATE: f64 = 0.04;
+const MAX_NUM_DOCS_TO_SAMPLE_PER_PARTITION: u64 = 10;
+const ITERATIONS: Option<u32> = None;
+
+#[derive(Debug, Clone)]
+pub enum SamplerAction {
+    Querying { partition: u16 },
+    Processing { partition: u16 },
+    Partitioning { partitions: u16 },
+    Error { message: String },
+}
+
 pub async fn sample(
     options: ClientOptions,
-    tx_notification: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
+    tx_notification: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
     tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<SchemaAnalysis>>,
-    tx_errors: tokio::sync::mpsc::UnboundedSender<anyhow::Error>,
+    tx_errors: tokio::sync::oneshot::Sender<Result<()>>,
 ) {
     let client = Client::with_options(options).unwrap();
     // by MongoDB and not user-created databases
@@ -112,47 +54,19 @@ pub async fn sample(
         .list_database_names(None, Some(ListDatabasesOptions::builder().build()))
         .await;
     if let Err(e) = databases {
-        tx_errors.send(e.into()).unwrap();
-        drop(tx_errors);
+        tx_errors.send(Err(e.into())).unwrap();
         drop(tx_notification);
         drop(tx_schemata);
         return;
     } else {
-        drop(tx_errors);
+        tx_errors.send(Ok(())).unwrap();
         for database in databases.unwrap() {
             if DISALLOWED_DB_NAMES.contains(&database.as_str()) {
                 continue;
             }
             let mut db_schemata: Vec<HashMap<String, Schema>> = Vec::new();
             let db = client.database(&database);
-            for collection in client
-                .database(&database)
-                .run_command(
-                    doc! { "listCollections": 1.0, "authorizedCollections": true, "nameOnly": true},
-                    None,
-                )
-                .await
-                .map_err(|e| async {
-                    tx_schemata.send(Err(e.into())).unwrap();
-                })
-                .unwrap_or_default()
-                .get_document("cursor")
-                .map(|c| {
-                    c.get_array("firstBatch")
-                        .unwrap()
-                        .iter()
-                        .filter_map(|d| {
-                            let d = d.as_document().unwrap();
-                            if d.get_str("type").unwrap() == "view" {
-                                None
-                            } else {
-                                Some(d.get_str("name").unwrap().to_string())
-                            }
-                        })
-                        .collect::<Vec<String>>()
-                })
-                .unwrap_or_default()
-            {
+            for collection in list_collections(&client, &database, tx_schemata.clone()).await {
                 if DISALLOWED_COLLECTION_NAMES.contains(&collection.as_str()) {
                     continue;
                 }
@@ -171,12 +85,108 @@ pub async fn sample(
     drop(tx_schemata);
 }
 
-const PARTITION_SIZE_IN_BYTES: i64 = 100 * 1024 * 1024; // 100 MB
-const SAMPLE_MIN_DOCS: i64 = 101;
-const SAMPLE_RATE: f64 = 0.04;
-const MAX_NUM_DOCS_TO_SAMPLE_PER_PARTITION: u64 = 10;
-const ITERATIONS: Option<u32> = None;
+async fn list_collections(
+    client: &Client,
+    database: &str,
+    tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<SchemaAnalysis>>,
+) -> Vec<String> {
+    let collections = client
+        .database(database)
+        .run_command(
+            doc! { "listCollections": 1.0, "authorizedCollections": true, "nameOnly": true},
+            None,
+        )
+        .await
+        .map_err(|e| async {
+            tx_schemata.send(Err(e.into())).unwrap();
+        })
+        .unwrap_or_default()
+        .get_document("cursor")
+        .map(|c| {
+            c.get_array("firstBatch")
+                .unwrap()
+                .iter()
+                .filter_map(|d| {
+                    let d = d.as_document().unwrap();
+                    if d.get_str("type").unwrap() == "view" {
+                        None
+                    } else {
+                        Some(d.get_str("name").unwrap().to_string())
+                    }
+                })
+                .collect::<Vec<String>>()
+        })
+        .unwrap_or_default();
+    drop(tx_schemata);
+    collections
+}
 
+#[derive(Debug, Clone)]
+pub struct SamplerNotification {
+    pub db: String,
+    pub collection: String,
+    pub action: SamplerAction,
+}
+
+pub type SchemaAnalysis = (String, Vec<HashMap<String, Schema>>);
+
+impl Display for SamplerAction {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            SamplerAction::Querying { partition } => write!(f, "Querying partition {}", partition),
+            SamplerAction::Processing { partition } => {
+                write!(f, "Processing partition {}", partition)
+            }
+            SamplerAction::Partitioning { partitions } => {
+                write!(f, "Partitioning into {} parts", partitions)
+            }
+            SamplerAction::Error { message } => write!(f, "Error: {}", message),
+        }
+    }
+}
+
+impl Display for SamplerNotification {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(
+            f,
+            "{} for collection: {} in database: {}",
+            self.action, self.collection, self.db
+        )
+    }
+}
+
+/// Returns true if the client options does not have any authentication credentials.
+pub fn needs_auth(options: &ClientOptions) -> bool {
+    options.credential.is_none()
+}
+
+/// Loads the username and password into the client options.
+pub async fn load_password_auth(
+    options: &mut ClientOptions,
+    username: Option<String>,
+    password: Option<String>,
+) {
+    options.credential = Some(
+        mongodb::options::Credential::builder()
+            .username(username)
+            .password(password)
+            .build(),
+    );
+}
+
+/// Returns a client options with the optimal pool size set.
+pub async fn get_opts(uri: &str) -> Result<ClientOptions> {
+    let mut opts = ClientOptions::parse_async(uri).await?;
+    opts.max_pool_size = Some(get_optimal_pool_size());
+    opts.max_connecting = Some(2);
+    Ok(opts)
+}
+
+fn get_optimal_pool_size() -> u32 {
+    std::thread::available_parallelism().unwrap().get() as u32 * 2 + 1
+}
+
+/// Returns a [Schema] for a given BSON document.
 pub fn schema_for_document(doc: &bson::Document) -> Schema {
     Schema::Document(mongosql::schema::Document {
         keys: doc
@@ -237,37 +247,10 @@ pub struct Partition {
     pub max: Bson,
 }
 
-#[derive(Debug, Error)]
-pub enum Error {
-    #[error("JsonSchemaFailure")]
-    JsonSchemaFailure,
-    #[error("BsonFailure")]
-    BsonFailure,
-    #[error("NoCollectionStats")]
-    NoCollectionStats,
-    #[error("NoBounds")]
-    NoBounds,
-    #[error("NoIdInSample")]
-    NoIdInSample,
-    #[error("Driver Error {0}")]
-    DriverError(mongodb::error::Error),
-    #[error("NoCollection {0}")]
-    NoCollection(String),
-}
-
-impl From<mongodb::error::Error> for Error {
-    fn from(value: mongodb::error::Error) -> Self {
-        Self::DriverError(value)
-    }
-}
-
 // generate_partition_match generates the $match stage for sampling based on the partition
 // additional_properties and an optional Schema. If the Schema is None, the $match will only
 // be based on the Partition bounds.
-pub fn generate_partition_match(
-    partition: &Partition,
-    schema: Option<Schema>,
-) -> Result<Document, Error> {
+pub fn generate_partition_match(partition: &Partition, schema: Option<Schema>) -> Result<Document> {
     generate_partition_match_with_doc(partition, schema.map(schema_to_schema_doc).transpose()?)
 }
 
@@ -276,7 +259,7 @@ pub fn generate_partition_match(
 pub fn generate_partition_match_with_doc(
     partition: &Partition,
     schema: Option<Document>,
-) -> Result<Document, Error> {
+) -> Result<Document> {
     let mut match_body = doc! {
         "_id": {
             "$gte": partition.min.clone(),
@@ -291,7 +274,7 @@ pub fn generate_partition_match_with_doc(
     })
 }
 
-pub fn schema_to_schema_doc(schema: Schema) -> Result<Document, Error> {
+pub fn schema_to_schema_doc(schema: Schema) -> Result<Document> {
     let json_schema: json_schema::Schema = schema
         .clone()
         .try_into()
@@ -303,7 +286,7 @@ pub fn schema_to_schema_doc(schema: Schema) -> Result<Document, Error> {
     Ok(ret)
 }
 
-pub fn schema_doc_to_schema(schema_doc: Document) -> Result<Schema, Error> {
+pub fn schema_doc_to_schema(schema_doc: Document) -> Result<Schema> {
     let json_schema: json_schema::Schema =
         bson::from_document(schema_doc.get_document("$jsonSchema").unwrap().clone())
             .map_err(|_| Error::BsonFailure)?;
@@ -323,18 +306,13 @@ pub fn get_num_partitions(coll_size: i64, partition_size: i64) -> i64 {
     num_parts as i64 + 1
 }
 
-pub async fn get_size_counts(database: &Database, coll: &str) -> Result<CollectionSizes, Error> {
+pub async fn get_size_counts(database: &Database, coll: &str) -> Result<CollectionSizes> {
     let collection = database.collection::<Document>(coll);
 
-    let mut cursor = match collection
+    let mut cursor = collection
         .aggregate(vec![doc! {"$collStats": {"storageStats": {}}}], None)
         .await
-    {
-        Ok(c) => c,
-        Err(e) => {
-            panic!("{e}")
-        }
-    };
+        .map_err(|_| Error::NoCollectionStats(coll.to_string()))?;
     if let Some(stats) = cursor.try_next().await.unwrap() {
         let stats = stats
             .get_document("storageStats")
@@ -358,13 +336,13 @@ pub async fn get_size_counts(database: &Database, coll: &str) -> Result<Collecti
         };
         return Ok(CollectionSizes { size, count });
     }
-    Err(Error::NoCollectionStats)
+    Err(Error::NoCollectionStats(coll.to_string()))
 }
 
-pub async fn get_bound(database: &Database, coll: &str, direction: i32) -> Result<Bson, Error> {
+pub async fn get_bound(database: &Database, coll: &str, direction: i32) -> Result<Bson> {
     let collection = database.collection::<Document>(coll);
 
-    let mut cursor = match collection
+    let mut cursor = collection
         .aggregate(
             vec![
                 doc! {"$sort": {"_id": direction}},
@@ -374,19 +352,17 @@ pub async fn get_bound(database: &Database, coll: &str, direction: i32) -> Resul
             None,
         )
         .await
-    {
-        Ok(c) => c,
-        Err(e) => {
-            panic!("{e}")
-        }
-    };
+        .map_err(|e| Error::NoBounds(format!("{coll}: {e}",)))?;
     if let Some(doc) = cursor.try_next().await? {
-        return doc.get("_id").cloned().ok_or(Error::NoBounds);
+        return doc
+            .get("_id")
+            .cloned()
+            .ok_or(Error::NoBounds(coll.to_string()));
     }
-    Err(Error::NoBounds)
+    Err(Error::NoBounds(coll.to_string()))
 }
 
-pub async fn get_bounds(database: &Database, coll: &str) -> Result<(Bson, Bson), Error> {
+pub async fn get_bounds(database: &Database, coll: &str) -> Result<(Bson, Bson)> {
     Ok((
         get_bound(database, coll, 1).await?,
         // we actually will just always use MaxKey as our upper bound since we
@@ -411,7 +387,7 @@ pub struct SchemataId {
 pub async fn derive_schema_for_partitions(
     col_parts: HashMap<String, Vec<Partition>>,
     database: &Database,
-    tx_notification: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
+    tx_notification: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
 ) -> HashMap<String, Schema> {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     rayon::scope(|s| {
@@ -458,7 +434,7 @@ pub async fn derive_schema_for_partitions(
 pub async fn gen_partitions(
     database: &Database,
     coll: &str,
-    tx_notification: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
+    tx_notification: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
 ) -> HashMap<String, Vec<Partition>> {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     rayon::scope(|s| {
@@ -470,23 +446,27 @@ pub async fn gen_partitions(
             rt.block_on(async move {
                 match get_partitions(&database, coll).await {
                     Ok(partitions) => {
-                        if notifier
-                            .send(SamplerNotification {
+                        if let Some(ref notifier) = notifier {
+                            let _ = notifier.send(SamplerNotification {
                                 db: database.name().to_string(),
                                 collection: coll.to_string(),
                                 action: SamplerAction::Partitioning {
                                     partitions: partitions.len() as u16,
                                 },
-                            })
-                            .is_err()
-                        {
-                            return;
+                            });
+                            tx.send((coll, partitions)).unwrap();
                         }
-                        tx.send((coll, partitions)).unwrap();
                     }
-                    Err(_) => {
-                        // nothing, we couldn't get bounds for this collection. It is
-                        // highly likely that the collection is empty.
+                    Err(e) => {
+                        if let Some(ref notifier) = notifier {
+                            let _ = notifier.send(SamplerNotification {
+                                db: database.name().to_string(),
+                                collection: coll.to_string(),
+                                action: SamplerAction::Error {
+                                    message: e.to_string(),
+                                },
+                            });
+                        }
                     }
                 };
                 drop(tx);
@@ -533,7 +513,7 @@ pub async fn gen_partitions_with_initial_schema(
     col_parts
 }
 
-pub async fn get_partitions(database: &Database, coll: &str) -> Result<Vec<Partition>, Error> {
+pub async fn get_partitions(database: &Database, coll: &str) -> Result<Vec<Partition>> {
     let size_info = get_size_counts(database, coll).await?;
     let num_partitions = get_num_partitions(size_info.size, PARTITION_SIZE_IN_BYTES) as usize;
     let (mut min_bound, max_bound) = get_bounds(database, coll).await?;
@@ -590,9 +570,9 @@ pub async fn derive_schema_for_partition(
     mut partition: Partition,
     iterations: Option<u32>,
     initial_schema_doc: Option<Document>,
-    tx_notification: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
+    tx_notification: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
     partition_ix: usize,
-) -> Result<Schema, Error> {
+) -> Result<Schema> {
     let collection = database.collection::<Document>(coll);
     let mut schema: Option<Schema> = initial_schema_doc
         .clone()
@@ -615,17 +595,17 @@ pub async fn derive_schema_for_partition(
         if first_stage.is_none() {
             first_stage = Some(generate_partition_match(&partition, schema.clone())?);
         };
-        if tx_notification
-            .send(SamplerNotification {
-                db: database.name().to_string(),
-                collection: coll.to_string(),
-                action: SamplerAction::Querying {
-                    partition: partition_ix as u16,
-                },
-            })
-            .is_err()
-        {
-            break;
+        if let Some(ref notifier) = tx_notification {
+            // notification errors are not critical, so we just ignore them
+            notifier
+                .send(SamplerNotification {
+                    db: database.name().to_string(),
+                    collection: coll.to_string(),
+                    action: SamplerAction::Querying {
+                        partition: partition_ix as u16,
+                    },
+                })
+                .unwrap_or_default();
         }
         let mut cursor = collection
             .aggregate(
@@ -644,17 +624,17 @@ pub async fn derive_schema_for_partition(
 
         let mut no_result = true;
         while let Some(doc) = cursor.try_next().await.unwrap() {
-            if tx_notification
-                .send(SamplerNotification {
-                    db: database.name().to_string(),
-                    collection: coll.to_string(),
-                    action: SamplerAction::Processing {
-                        partition: partition_ix as u16,
-                    },
-                })
-                .is_err()
-            {
-                break;
+            if let Some(ref notifier) = tx_notification {
+                // notification errors are not critical, so we just ignore them
+                notifier
+                    .send(SamplerNotification {
+                        db: database.name().to_string(),
+                        collection: coll.to_string(),
+                        action: SamplerAction::Processing {
+                            partition: partition_ix as u16,
+                        },
+                    })
+                    .unwrap_or_default();
             }
             let id = doc.get("_id").unwrap().clone();
             partition.min = id;

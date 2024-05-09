@@ -3604,7 +3604,7 @@ mod unrecognized_token_suggestion {
     parsable!(
         nothing_close_to_recommend,
         expected = false,
-        expected_error_user_msg = "Unrecognized token `=>`, expected: `+`, `AGGREGATE`, `AND`, `AS`, `ASC`, `BETWEEN`, `,`, `||`, `CROSS`, ```, `\"`, `DESC`, `/`, `.`, `.*`, `::`, `ELSE`, `END`, `=`, `ESCAPE`, `FETCH FIRST`, `FOR`, `FROM`, `GROUP`, `>`, `>=`, `HAVING`, `ID`, `IN`, `INNER`, `IS`, `JOIN`, `LEFT`, `[`, `(`, `LIKE`, `LIMIT`, `<`, `<=`, `<>`, `NOT`, `NOT IN`, `NOT LIKE`, `OFFSET`, `ON`, `OR`, `ORDER`, `RIGHT`, `]`, `}`, `)`, `*`, `-`, `THEN`, `::!`, `UNION`, `WHEN`, `WHERE`, `WITH`",
+        expected_error_user_msg = "Unrecognized token `=>`, expected: `+`, `AND`, `AS`, `BETWEEN`, `,`, `||`, `CROSS`, ```, `\"`, `/`, `.`, `::`, `=`, `>`, `>=`, `ID`, `IN`, `INNER`, `IS`, `JOIN`, `LEFT`, `[`, `(`, `LIKE`, `<`, `<=`, `<>`, `NOT`, `NOT IN`, `NOT LIKE`, `OR`, `RIGHT`, `)`, `*`, `-`, `::!`, `WITH`",
         input = "select * from UNWIND(foo => foo)"
     );
 

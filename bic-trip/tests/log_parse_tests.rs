@@ -53,7 +53,7 @@ fn log_parse_html_test() {
     let test = common::parse_transition_report_yaml_file(multi_logs_test).unwrap();
 
     let result = handle_logs(Some(test.log_dir), true).unwrap().unwrap();
-    let html_content = generate_html_elements(&Some(result), &None, "test report");
+    let html_content = generate_html_elements(Some(&result), None, "test report");
 
     let document = Html::parse_document(&html_content);
 
