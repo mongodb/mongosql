@@ -248,6 +248,7 @@ pub fn create_catalog(schemas: Vec<Schema>) -> Result<Catalog, Error> {
 /// argument in the query.
 fn validate_algebrization(types: Vec<String>, ast: Query, is_valid: bool) -> Result<(), Error> {
     let schemas = types
+        .clone()
         .into_iter()
         .map(|arg_type| match TYPE_TO_SCHEMA.get(arg_type.as_str()) {
             None => Err(Error::InvalidSchemaVariant(arg_type)),
@@ -257,11 +258,15 @@ fn validate_algebrization(types: Vec<String>, ast: Query, is_valid: bool) -> Res
     let catalog = create_catalog(schemas)?;
     let algebrizer = Algebrizer::new(TEST_DB, &catalog, 0u16, SchemaCheckingMode::Strict);
     let plan = algebrizer
-        .algebrize_query(ast)
+        .algebrize_query(ast.clone())
         .map_err(|e| Error::AlgebrizationFailed(format!("{e:?}")));
     match plan {
         Ok(_) => {
             if !is_valid {
+                // these make it easier to figure out what is failing when we have a failing test
+                // here
+                dbg!(&types);
+                dbg!(&ast);
                 Err(Error::AlgebrizationDidNotFail)
             } else {
                 Ok(())

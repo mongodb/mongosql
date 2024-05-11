@@ -10,10 +10,13 @@ variables:
     - { "arg1": *bool, "arg2": *bool }
     - { "arg1": ["BSON_DATE", "NULL", "MISSING"], "arg2": ["BSON_DATE", "NULL", "MISSING"] }
     - { "arg1": ["REGEX", "NULL", "MISSING"], "arg2": ["REGEX", "NULL", "MISSING"] }
-    - { "arg1": ["DBPOINTER", "NULL", "MISSING"], "arg2": ["DBPOINTER", "NULL", "MISSING"] }
-    - { "arg1": ["JAVASCRIPT", "NULL", "MISSING"], "arg2": ["JAVASCRIPT", "NULL", "MISSING"] }
+    - { "arg1": ["DBPOINTER", "NULL", "MISSING"], "arg2": ["NULL", "MISSING"] }
+    - { "arg1": ["NULL", "MISSING"], "arg2": ["DBPOINTER", "NULL", "MISSING"] }
+    - { "arg1": ["JAVASCRIPT", "NULL", "MISSING"], "arg2": ["NULL", "MISSING"] }
+    - { "arg1": ["NULL", "MISSING"], "arg2": ["JAVASCRIPT", "NULL", "MISSING"] }
     - { "arg1": ["SYMBOL", "NULL", "MISSING"], "arg2": ["SYMBOL", "NULL", "MISSING"] }
-    - { "arg1": ["JAVASCRIPTWITHSCOPE", "NULL", "MISSING"], "arg2": ["JAVASCRIPTWITHSCOPE", "NULL", "MISSING"] }
+    - { "arg1": ["JAVASCRIPTWITHSCOPE", "NULL", "MISSING"], "arg2": ["NULL", "MISSING"] }
+    - { "arg1": ["NULL", "MISSING"], "arg2": ["JAVASCRIPTWITHSCOPE", "NULL", "MISSING"] }
     - { "arg1": ["BSON_TIMESTAMP", "NULL", "MISSING"], "arg2": ["BSON_TIMESTAMP", "NULL", "MISSING"] }
     - { "arg1": ["MINKEY", "NULL", "MISSING"], "arg2": ["MINKEY", "NULL", "MISSING"] }
     - { "arg1": ["MAXKEY", "NULL", "MISSING"], "arg2": ["MAXKEY", "NULL", "MISSING"] }

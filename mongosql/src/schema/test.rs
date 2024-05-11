@@ -1849,6 +1849,42 @@ mod is_comparable_with {
         _self = Atomic(String),
         other = Atomic(Integer),
     );
+    test_is_comparable_with!(
+        js_not_comparable_with_self,
+        expected = Not,
+        _self = Atomic(Javascript),
+        other = Atomic(Javascript),
+    );
+    test_is_comparable_with!(
+        js_w_scope_not_comparable_with_self,
+        expected = Not,
+        _self = Atomic(JavascriptWithScope),
+        other = Atomic(JavascriptWithScope),
+    );
+    test_is_comparable_with!(
+        db_pointer_not_comparable_with_self,
+        expected = Not,
+        _self = Atomic(DbPointer),
+        other = Atomic(DbPointer),
+    );
+    test_is_comparable_with!(
+        js_not_comparable_with_null,
+        expected = Must,
+        _self = Atomic(Javascript),
+        other = Atomic(Null),
+    );
+    test_is_comparable_with!(
+        js_w_scope_not_comparable_with_null,
+        expected = Must,
+        _self = Atomic(JavascriptWithScope),
+        other = Atomic(Null),
+    );
+    test_is_comparable_with!(
+        db_pointer_not_comparable_with_null,
+        expected = Must,
+        _self = Atomic(DbPointer),
+        other = Atomic(Null),
+    );
 
     // AnyOf comparability tests (numeric).
     test_is_comparable_with!(

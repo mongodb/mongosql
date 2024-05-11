@@ -1558,6 +1558,10 @@ impl Atomic {
 
         match (self, other) {
             (Null, _) | (_, Null) => Must,
+            // DbPointer, Javascript, and JavascriptWithScope are not comparable with any other type except NULL
+            (DbPointer, _) | (_, DbPointer) => Not,
+            (Javascript, _) | (_, Javascript) => Not,
+            (JavascriptWithScope, _) | (_, JavascriptWithScope) => Not,
             (l, r) if l == r || l.is_numeric() && r.is_numeric() => Must,
             _ => Not,
         }
