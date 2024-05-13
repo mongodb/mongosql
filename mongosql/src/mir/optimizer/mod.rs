@@ -11,6 +11,7 @@ mod flatten_variadics;
 mod lower_joins;
 mod match_null_filtering;
 mod match_splitting;
+mod merge_neighboring_matches;
 mod prefilter_unwinds;
 mod rewrite_to_match_language;
 mod stage_movement;
@@ -59,9 +60,18 @@ pub fn optimize_plan(
             });
 
     // If the pipeline was updated as a result of optimization, optimize again.
-    if changed {
+    let plan = if changed {
         optimize_plan(new_st, schema_checking_mode, schema_state)
     } else {
         new_st
-    }
+    };
+    // We perform merge_neighboring_matches last because we do not want to undo this optimization during the fixed
+    // point and re-merge the matches every loop of the fixed point. Most of the fixed point optimizations benefit from
+    // having matches split, and it is only at the end where we can then merge them back together efficiently.
+    let (new_plan, _) = merge_neighboring_matches::MergeNeighboringMatchesOptimizer {}.optimize(
+        plan,
+        schema_checking_mode,
+        schema_state,
+    );
+    new_plan
 }

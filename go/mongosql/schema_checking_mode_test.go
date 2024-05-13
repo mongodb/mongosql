@@ -51,7 +51,7 @@ func TestRelaxedSchemaChecking(t *testing.T) {
 		t.Fatalf("expected pipeline to unmarshal into []bson.D, but failed: %s", err)
 	}
 
-	if len(pipeline) != 5 {
-		t.Fatalf("expected pipeline to have five stages, but found %d", len(pipeline))
+	if len(pipeline) != 4 {
+		t.Fatalf("expected pipeline to have four stages, but found %d", len(pipeline))
 	}
 }
