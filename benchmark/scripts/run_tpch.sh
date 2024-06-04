@@ -26,9 +26,6 @@ $MONGODB_TEST_UBUNTU_VERSION/bin/mongod --dbpath data_db &
 echo "setting up Genny"
 git clone git@github.com:mongodb/genny ../genny
 cd ../genny
-# Workaround until issue in `lamplib` requirements.txt is fixed
-# EVG-20471
-git checkout e50f6d5
 ./run-genny install -d ubuntu2204
 cd -
 
