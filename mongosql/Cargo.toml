@@ -9,7 +9,7 @@ authors = [
 edition = "2021"
 
 [dependencies]
-bson = { version = "2.6", features = ["chrono-0_4"] }
+bson = { version = "2.11", features = ["chrono-0_4"] }
 chrono = "0.4.24"
 itertools = "0.10.1"
 lalrpop-util = { version = "0.20.2", features = ["lexer"] }

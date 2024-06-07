@@ -168,7 +168,6 @@ tests:
       - { 't': { 'bin': { '$binary': { 'base64': 'yO2rw/c4TKO2jauSqRR4ow==', 'subType': '04' } } } }
 
   - description: UUID extended JSON string converted where string is unexpected
-    skip_reason: "SQL-2071"
     current_db: test_db
     query: "SELECT uuid AS uuid, '{\"$uuid\": \"c8edabc3-f738-4ca3-b68d-ab92a91478a3\"}' = uuid AS res FROM foo AS foo"
     result:
