@@ -619,7 +619,7 @@ functions:
         working_dir: mongosql-rs
         script: |
           ${prepare_shell}
-          benchmark/scripts/run_tpch.sh ${pipeline_dir} ${workload_filename} ${dataset_filename}
+          benchmark/scripts/run_tpch.sh ${pipeline_dir} ${workload_filename} ${dataset_filename} ${EVERGREEN_SF0_01_LIMIT} ${EVERGREEN_SF0_1_LIMIT}
     - command: perf.send
       params:
         file: ./mongosql-rs/processed-tpch-perf-results.json
@@ -627,29 +627,9 @@ functions:
       params:
         aws_key: ${aws_key}
         aws_secret: ${aws_secret}
-        local_file: mongosql-rs/sar.log.tgz
-        remote_file: mongosql-rs/artifacts/${version_id}/${pipeline_dir}/${s3_prefix}.Sar.log.tgz
-        display_name: ${s3_prefix}.Sar.log.tgz
-        bucket: mciuploads
-        permissions: public-read
-        content_type: application/octet-stream
-    - command: s3.put
-      params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        local_file: mongosql-rs/profile.log
-        remote_file: mongosql-rs/artifacts/${version_id}/${pipeline_dir}/${s3_prefix}.Profile.log
-        display_name: ${s3_prefix}.Profile.log
-        bucket: mciuploads
-        permissions: public-read
-        content_type: application/octet-stream
-    - command: s3.put
-      params:
-        aws_key: ${aws_key}
-        aws_secret: ${aws_secret}
-        local_file: mongosql-rs/translations.log
-        remote_file: mongosql-rs/artifacts/${version_id}/${pipeline_dir}/${s3_prefix}.Translations.log
-        display_name: ${s3_prefix}.Translations.log
+        local_file: mongosql-rs/tpch.metrics.tgz
+        remote_file: mongosql-rs/artifacts/${version_id}/${pipeline_dir}/${s3_prefix}.tpch.metrics.tgz
+        display_name: ${s3_prefix}.tpch.metrics.tgz
         bucket: mciuploads
         permissions: public-read
         content_type: application/octet-stream
