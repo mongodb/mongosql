@@ -99,7 +99,6 @@ async fn handle_schema(
                 tokio::sync::mpsc::unbounded_channel::<sampler::SamplerNotification>();
             let (tx_schemata, mut rx_schemata) =
                 tokio::sync::mpsc::unbounded_channel::<sampler::Result<sampler::SchemaAnalysis>>();
-            let (tx_errors, rx_errors) = tokio::sync::oneshot::channel::<sampler::Result<()>>();
 
             let mut schemata: HashMap<String, Vec<HashMap<String, Schema>>> = HashMap::new();
 
@@ -116,12 +115,8 @@ async fn handle_schema(
             let start = Instant::now();
 
             tokio::spawn(async move {
-                sampler::sample(options, Some(tx_notifications), tx_schemata, tx_errors).await;
+                sampler::sample(options, Some(tx_notifications), tx_schemata).await;
             });
-
-            if let Ok(Err(e)) = rx_errors.await {
-                anyhow::bail!(e);
-            }
 
             loop {
                 tokio::select! {
@@ -143,9 +138,14 @@ async fn handle_schema(
                                 schemata.insert(database, schema);
                             }
                             Some(Err(e)) => {
-                                if !quiet {
-                                    println!("Error: {e}");
-                                    pb.set_message(format!("Error: {}", e));
+                                match e {
+                                    sampler::Error::DriverError(e) => anyhow::bail!(e),
+                                    e => {
+                                        if !quiet {
+                                            println!("Error: {e}");
+                                            pb.set_message(format!("Error: {}", e));
+                                        }
+                                    }
                                 }
                             }
                             None => {

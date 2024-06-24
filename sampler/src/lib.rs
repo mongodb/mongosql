@@ -46,7 +46,6 @@ pub async fn sample(
     options: ClientOptions,
     tx_notification: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
     tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<SchemaAnalysis>>,
-    tx_errors: tokio::sync::oneshot::Sender<Result<()>>,
 ) {
     let client = Client::with_options(options).unwrap();
     // by MongoDB and not user-created databases
@@ -54,12 +53,11 @@ pub async fn sample(
         .list_database_names(None, Some(ListDatabasesOptions::builder().build()))
         .await;
     if let Err(e) = databases {
-        tx_errors.send(Err(e.into())).unwrap();
+        tx_schemata.send(Err(e.into())).unwrap();
         drop(tx_notification);
         drop(tx_schemata);
         return;
     } else {
-        tx_errors.send(Ok(())).unwrap();
         for database in databases.unwrap() {
             if DISALLOWED_DB_NAMES.contains(&database.as_str()) {
                 continue;

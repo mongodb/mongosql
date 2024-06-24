@@ -860,10 +860,7 @@ impl From<Subquery> for air::Subquery {
                 None => vec![],
                 Some(let_bindings) => translate_let_bindings(let_bindings),
             },
-            output_path: match s.output_path {
-                None => vec![],
-                Some(v) => v,
-            },
+            output_path: s.output_path.unwrap_or_default(),
             pipeline: translate_pipeline(
                 make_optional_collection_stage(s.db, s.collection),
                 s.pipeline,
