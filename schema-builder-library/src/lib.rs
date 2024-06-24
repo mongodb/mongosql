@@ -42,7 +42,7 @@ pub enum SamplerAction {
     Error { message: String },
 }
 
-pub async fn sample(
+pub async fn build_schema(
     options: ClientOptions,
     tx_notification: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
     tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<SchemaAnalysis>>,

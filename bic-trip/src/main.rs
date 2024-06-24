@@ -14,6 +14,7 @@ mod cli;
 use anyhow::{Context, Result};
 use cli::Cli;
 use indicatif::{HumanDuration, ProgressBar, ProgressStyle};
+use schema_builder_library as dcsb; // dcsb == Direct Cluster Schema Builder
 
 pub const REPORT_FILE_STEM: &str = "Atlas_SQL_Readiness";
 pub const REPORT_NAME: &str = "Atlas SQL Transition Readiness Report";
@@ -73,9 +74,9 @@ async fn handle_schema(
 ) -> Result<Option<SchemaAnalysis>> {
     if let Some(ref uri) = uri {
         if !uri.is_empty() {
-            let mut options = sampler::get_opts(uri).await?;
+            let mut options = dcsb::get_opts(uri).await?;
             let password: Option<String>;
-            if sampler::needs_auth(&options) {
+            if dcsb::needs_auth(&options) {
                 if let Some(ref username) = username {
                     if !username.is_empty() {
                         password = Some(
@@ -92,13 +93,13 @@ async fn handle_schema(
                     println!("No username provided for authentication with URI");
                     process::exit(1);
                 }
-                sampler::load_password_auth(&mut options, username, password).await;
+                dcsb::load_password_auth(&mut options, username, password).await;
             }
 
             let (tx_notifications, mut rx_notifications) =
-                tokio::sync::mpsc::unbounded_channel::<sampler::SamplerNotification>();
+                tokio::sync::mpsc::unbounded_channel::<dcsb::SamplerNotification>();
             let (tx_schemata, mut rx_schemata) =
-                tokio::sync::mpsc::unbounded_channel::<sampler::Result<sampler::SchemaAnalysis>>();
+                tokio::sync::mpsc::unbounded_channel::<dcsb::Result<dcsb::SchemaAnalysis>>();
 
             let mut schemata: HashMap<String, Vec<HashMap<String, Schema>>> = HashMap::new();
 
@@ -115,7 +116,7 @@ async fn handle_schema(
             let start = Instant::now();
 
             tokio::spawn(async move {
-                sampler::sample(options, Some(tx_notifications), tx_schemata).await;
+                dcsb::build_schema(options, Some(tx_notifications), tx_schemata).await;
             });
 
             loop {
@@ -139,7 +140,7 @@ async fn handle_schema(
                             }
                             Some(Err(e)) => {
                                 match e {
-                                    sampler::Error::DriverError(e) => anyhow::bail!(e),
+                                    dcsb::Error::DriverError(e) => anyhow::bail!(e),
                                     e => {
                                         if !quiet {
                                             println!("Error: {e}");

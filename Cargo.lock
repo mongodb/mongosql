@@ -284,7 +284,7 @@ dependencies = [
  "mongodb",
  "mongosql",
  "rpassword",
- "sampler",
+ "schema-builder-library",
  "scraper",
  "serde",
  "serde_json",
@@ -3124,7 +3124,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "sampler"
+name = "schema-builder-library"
 version = "0.1.0"
 dependencies = [
  "anyhow",
