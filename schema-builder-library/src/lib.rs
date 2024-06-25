@@ -33,6 +33,7 @@ const SAMPLE_MIN_DOCS: i64 = 101;
 const SAMPLE_RATE: f64 = 0.04;
 const MAX_NUM_DOCS_TO_SAMPLE_PER_PARTITION: u64 = 10;
 const ITERATIONS: Option<u32> = None;
+const NUM_RESULTS_PER_QUERY: i64 = 20;
 
 #[derive(Debug, Clone)]
 pub enum SamplerAction {
@@ -611,7 +612,7 @@ pub async fn derive_schema_for_partition(
                     // first_stage must be Some here.
                     first_stage.unwrap(),
                     doc! { "$sort": {"_id": 1}},
-                    doc! { "$limit": 1 },
+                    doc! { "$limit": NUM_RESULTS_PER_QUERY },
                 ],
                 AggregateOptions::builder()
                     .hint(Some(mongodb::options::Hint::Keys(doc! {"_id": 1})))
