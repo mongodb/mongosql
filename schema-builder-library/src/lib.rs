@@ -35,6 +35,27 @@ const MAX_NUM_DOCS_TO_SAMPLE_PER_PARTITION: u64 = 10;
 const ITERATIONS: Option<u32> = None;
 const NUM_RESULTS_PER_QUERY: i64 = 20;
 
+// A struct representing schema information for a specific namespace (a view
+// or collection).
+pub struct SchemaResult {
+    // The name of the database.
+    pub db_name: String,
+
+    // The name of the collection or view which this schema represents.
+    pub coll_or_view_name: String,
+
+    // The type of namespace (collection or view)
+    pub namespace_type: NamespaceType,
+
+    // The schema for the namespace.
+    pub namespace_schema: Schema,
+}
+
+pub enum NamespaceType {
+    Collection,
+    View,
+}
+
 #[derive(Debug, Clone)]
 pub enum SamplerAction {
     Querying { partition: u16 },
@@ -46,7 +67,7 @@ pub enum SamplerAction {
 pub async fn build_schema(
     options: ClientOptions,
     tx_notification: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
-    tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<SchemaAnalysis>>,
+    tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<SchemaResult>>,
 ) {
     let client = Client::with_options(options).unwrap();
     // by MongoDB and not user-created databases
@@ -63,7 +84,6 @@ pub async fn build_schema(
             if DISALLOWED_DB_NAMES.contains(&database.as_str()) {
                 continue;
             }
-            let mut db_schemata: Vec<HashMap<String, Schema>> = Vec::new();
             let db = client.database(&database);
             for collection in list_collections(&client, &database, tx_schemata.clone()).await {
                 if DISALLOWED_COLLECTION_NAMES.contains(&collection.as_str()) {
@@ -72,11 +92,19 @@ pub async fn build_schema(
                 let notifier = tx_notification.clone();
                 let col_parts = gen_partitions(&db, &collection, notifier).await;
                 let notifier = tx_notification.clone();
-                let schemata = derive_schema_for_partitions(col_parts, &db, notifier).await;
-                db_schemata.push(schemata);
-            }
-            if tx_schemata.send(Ok((database, db_schemata))).is_err() {
-                break;
+                let schemata =
+                    derive_schema_for_partitions(&collection, col_parts, &db, notifier).await;
+                if tx_schemata
+                    .send(Ok(SchemaResult {
+                        db_name: database.clone(),
+                        coll_or_view_name: collection.clone(),
+                        namespace_type: NamespaceType::Collection,
+                        namespace_schema: schemata,
+                    }))
+                    .is_err()
+                {
+                    break;
+                }
             }
         }
     }
@@ -87,7 +115,7 @@ pub async fn build_schema(
 async fn list_collections(
     client: &Client,
     database: &str,
-    tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<SchemaAnalysis>>,
+    tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<SchemaResult>>,
 ) -> Vec<String> {
     let collections = client
         .database(database)
@@ -126,8 +154,6 @@ pub struct SamplerNotification {
     pub collection: String,
     pub action: SamplerAction,
 }
-
-pub type SchemaAnalysis = (String, Vec<HashMap<String, Schema>>);
 
 impl Display for SamplerAction {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
@@ -384,57 +410,55 @@ pub struct SchemataId {
 }
 
 pub async fn derive_schema_for_partitions(
-    col_parts: HashMap<String, Vec<Partition>>,
+    collection: &str,
+    col_parts: Vec<Partition>,
     database: &Database,
     tx_notification: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
-) -> HashMap<String, Schema> {
+) -> Schema {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     rayon::scope(|s| {
-        for (coll, parts) in col_parts {
-            for (ix, part) in parts.into_iter().enumerate() {
-                let coll = coll.clone();
-                let database = database.clone();
-                let tx = tx.clone();
-                let notifier = tx_notification.clone();
-                let mut rt = tokio::runtime::Runtime::new();
-                while rt.is_err() {
-                    rt = tokio::runtime::Runtime::new();
-                }
-                let rt = rt.unwrap();
-                s.spawn(move |_| {
-                    rt.block_on(async move {
-                        let part = part.clone();
-                        let schema = derive_schema_for_partition(
-                            &database, &coll, part, ITERATIONS, None, notifier, ix,
-                        )
-                        .await
-                        .unwrap();
-                        tx.send((coll, schema)).unwrap();
-                        drop(tx)
-                    });
-                    drop(rt);
-                })
+        for (ix, part) in col_parts.into_iter().enumerate() {
+            let database = database.clone();
+            let tx = tx.clone();
+            let notifier = tx_notification.clone();
+            let mut rt = tokio::runtime::Runtime::new();
+            while rt.is_err() {
+                rt = tokio::runtime::Runtime::new();
             }
+            let rt = rt.unwrap();
+            s.spawn(move |_| {
+                rt.block_on(async move {
+                    let part = part.clone();
+                    let schema = derive_schema_for_partition(
+                        &database, collection, part, ITERATIONS, None, notifier, ix,
+                    )
+                    .await
+                    .unwrap();
+                    tx.send(schema).unwrap();
+                    drop(tx)
+                });
+                drop(rt);
+            })
         }
     });
     drop(tx);
     drop(tx_notification);
-    let mut schemata = HashMap::new();
-    while let Some((coll, schema)) = rx.recv().await {
-        if let Some(prev_schema) = schemata.get(&coll) {
-            schemata.insert(coll, schema.union(prev_schema));
+    let mut schemata = None;
+    while let Some(schema) = rx.recv().await {
+        if let Some(prev_schema) = schemata {
+            schemata = Some(schema.union(&prev_schema))
         } else {
-            schemata.insert(coll, schema);
+            schemata = Some(schema)
         }
     }
-    schemata
+    schemata.unwrap()
 }
 
 pub async fn gen_partitions(
     database: &Database,
     coll: &str,
     tx_notification: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
-) -> HashMap<String, Vec<Partition>> {
+) -> Vec<Partition> {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     rayon::scope(|s| {
         let tx = tx.clone();
@@ -453,7 +477,7 @@ pub async fn gen_partitions(
                                     partitions: partitions.len() as u16,
                                 },
                             });
-                            tx.send((coll, partitions)).unwrap();
+                            tx.send(partitions).unwrap();
                         }
                     }
                     Err(e) => {
@@ -475,11 +499,7 @@ pub async fn gen_partitions(
         })
     });
     drop(tx);
-    let mut col_parts = HashMap::new();
-    while let Some((coll, partitions)) = rx.recv().await {
-        col_parts.insert(coll.to_string(), partitions);
-    }
-    col_parts
+    rx.recv().await.unwrap_or_default()
 }
 
 pub async fn gen_partitions_with_initial_schema(

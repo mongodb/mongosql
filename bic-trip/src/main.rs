@@ -99,7 +99,7 @@ async fn handle_schema(
             let (tx_notifications, mut rx_notifications) =
                 tokio::sync::mpsc::unbounded_channel::<dcsb::SamplerNotification>();
             let (tx_schemata, mut rx_schemata) =
-                tokio::sync::mpsc::unbounded_channel::<dcsb::Result<dcsb::SchemaAnalysis>>();
+                tokio::sync::mpsc::unbounded_channel::<dcsb::Result<dcsb::SchemaResult>>();
 
             let mut schemata: HashMap<String, Vec<HashMap<String, Schema>>> = HashMap::new();
 
@@ -132,11 +132,13 @@ async fn handle_schema(
                     }
                     schema = rx_schemata.recv() => {
                         match schema {
-                            Some(Ok((database, schema))) => {
+                            Some(Ok(schema_res)) => {
                                 if !quiet {
-                                    pb.set_message(format!("Schema calculated for database: {database}"));
+                                    pb.set_message(format!("Schema calculated for database: {}", schema_res.db_name));
                                 }
-                                schemata.insert(database, schema);
+                                let mut coll_map = HashMap::<String, Schema>::new();
+                                coll_map.insert(schema_res.coll_or_view_name, schema_res.namespace_schema);
+                                schemata.insert(schema_res.db_name, vec![coll_map]);
                             }
                             Some(Err(e)) => {
                                 match e {
