@@ -371,8 +371,8 @@ pub async fn get_bound(database: &Database, coll: &str, direction: i32) -> Resul
         .aggregate(
             vec![
                 doc! {"$sort": {"_id": direction}},
-                doc! {"$project": {"_id": 1}},
                 doc! {"$limit": 1},
+                doc! {"$project": {"_id": 1}},
             ],
             None,
         )
