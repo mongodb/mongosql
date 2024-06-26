@@ -10,6 +10,7 @@ members = [
     "mongosql-c",
     "mongosql",
     "test-utils",
+    "schema-builder-tool",
     "schema-builder-library",
     "usererrordisplay-impl",
     "visitgen",
