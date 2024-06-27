@@ -74,9 +74,9 @@ async fn handle_schema(
 ) -> Result<Option<SchemaAnalysis>> {
     if let Some(ref uri) = uri {
         if !uri.is_empty() {
-            let mut options = dcsb::get_opts(uri).await?;
+            let mut options = dcsb::client_util::get_opts(uri).await?;
             let password: Option<String>;
-            if dcsb::needs_auth(&options) {
+            if dcsb::client_util::needs_auth(&options) {
                 if let Some(ref username) = username {
                     if !username.is_empty() {
                         password = Some(
@@ -93,7 +93,7 @@ async fn handle_schema(
                     println!("No username provided for authentication with URI");
                     process::exit(1);
                 }
-                dcsb::load_password_auth(&mut options, username, password).await;
+                dcsb::client_util::load_password_auth(&mut options, username, password).await;
             }
 
             let (tx_notifications, mut rx_notifications) =
@@ -114,9 +114,21 @@ async fn handle_schema(
                 pb.println("Sampling Atlas SQL databases...");
             }
             let start = Instant::now();
+            let client = mongodb::Client::with_options(options.clone())
+                .with_context(|| "Failed to create MongoDB client.")?;
 
             tokio::spawn(async move {
-                dcsb::build_schema(options, Some(tx_notifications), tx_schemata).await;
+                let builder_options = dcsb::options::BuilderOptions {
+                    include: &vec![],
+                    exclude: &vec![],
+                    schema_collection: &None,
+                    dry_run: false,
+                    handle: &tokio::runtime::Handle::current(),
+                    client: &client,
+                    tx_notifications: Some(tx_notifications),
+                    tx_schemata,
+                };
+                dcsb::build_schema(builder_options).await;
             });
 
             loop {
@@ -137,7 +149,7 @@ async fn handle_schema(
                                     pb.set_message(format!("Schema calculated for database: {}", schema_res.db_name));
                                 }
                                 let mut coll_map = HashMap::<String, Schema>::new();
-                                coll_map.insert(schema_res.coll_or_view_name, schema_res.namespace_schema);
+                                schema_res.namespace_schema.map(|s| coll_map.insert(schema_res.coll_or_view_name, s));
                                 schemata.insert(schema_res.db_name, vec![coll_map]);
                             }
                             Some(Err(e)) => {
