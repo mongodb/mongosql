@@ -1,7 +1,7 @@
 use futures::TryStreamExt;
 use mongodb::{
     bson::{self, doc, Bson, Document},
-    options::{AggregateOptions, ClientOptions, ListDatabasesOptions},
+    options::{AggregateOptions, ListDatabasesOptions},
     Client, Database,
 };
 use mongosql::{
@@ -16,24 +16,15 @@ use std::{
 };
 mod errors;
 pub use errors::Error;
+pub mod client_util;
+mod consts;
+use consts::{
+    DISALLOWED_COLLECTION_NAMES, DISALLOWED_DB_NAMES, MAX_NUM_DOCS_TO_SAMPLE_PER_PARTITION,
+    PARTITION_SIZE_IN_BYTES, SAMPLE_MIN_DOCS, SAMPLE_RATE,
+};
+pub mod options;
 
 pub type Result<T> = std::result::Result<T, Error>;
-
-const DISALLOWED_DB_NAMES: [&str; 4] = ["admin", "config", "local", "system"];
-const DISALLOWED_COLLECTION_NAMES: [&str; 5] = [
-    "system.namespaces",
-    "system.indexes",
-    "system.profile",
-    "system.js",
-    "system.views",
-];
-
-const PARTITION_SIZE_IN_BYTES: i64 = 100 * 1024 * 1024; // 100 MB
-const SAMPLE_MIN_DOCS: i64 = 101;
-const SAMPLE_RATE: f64 = 0.04;
-const MAX_NUM_DOCS_TO_SAMPLE_PER_PARTITION: u64 = 10;
-const ITERATIONS: Option<u32> = None;
-const NUM_RESULTS_PER_QUERY: i64 = 20;
 
 // A struct representing schema information for a specific namespace (a view
 // or collection).
@@ -48,7 +39,7 @@ pub struct SchemaResult {
     pub namespace_type: NamespaceType,
 
     // The schema for the namespace.
-    pub namespace_schema: Schema,
+    pub namespace_schema: Option<Schema>,
 }
 
 pub enum NamespaceType {
@@ -64,37 +55,57 @@ pub enum SamplerAction {
     Error { message: String },
 }
 
-pub async fn build_schema(
-    options: ClientOptions,
-    tx_notification: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
-    tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<SchemaResult>>,
-) {
-    let client = Client::with_options(options).unwrap();
-    // by MongoDB and not user-created databases
-    let databases = client
+macro_rules! notify {
+    ($channel:expr, $notification:expr) => {
+        if let Some(ref notifier) = $channel {
+            // notification errors are not critical, so we just ignore them
+            let _ = notifier.send($notification);
+        }
+    };
+}
+
+pub async fn build_schema<'a>(options: options::BuilderOptions<'_>) {
+    let databases = options
+        .client
         .list_database_names(None, Some(ListDatabasesOptions::builder().build()))
         .await;
     if let Err(e) = databases {
-        tx_schemata.send(Err(e.into())).unwrap();
-        drop(tx_notification);
-        drop(tx_schemata);
+        notify!(
+            options.tx_notifications,
+            SamplerNotification {
+                db: "".to_string(),
+                collection: "".to_string(),
+                action: SamplerAction::Error {
+                    message: e.to_string(),
+                },
+            }
+        );
+        drop(options.tx_notifications);
+        drop(options.tx_schemata);
         return;
     } else {
         for database in databases.unwrap() {
             if DISALLOWED_DB_NAMES.contains(&database.as_str()) {
                 continue;
             }
-            let db = client.database(&database);
-            for collection in list_collections(&client, &database, tx_schemata.clone()).await {
+            let db = options.client.database(&database);
+            for collection in
+                list_collections(options.client, &database, options.tx_schemata.clone()).await
+            {
                 if DISALLOWED_COLLECTION_NAMES.contains(&collection.as_str()) {
                     continue;
                 }
-                let notifier = tx_notification.clone();
-                let col_parts = gen_partitions(&db, &collection, notifier).await;
-                let notifier = tx_notification.clone();
-                let schemata =
-                    derive_schema_for_partitions(&collection, col_parts, &db, notifier).await;
-                if tx_schemata
+                let col_parts =
+                    gen_partitions(&db, &collection, options.tx_notifications.clone()).await;
+                let schemata = derive_schema_for_partitions(
+                    &collection,
+                    col_parts,
+                    &db,
+                    options.tx_notifications.clone(),
+                )
+                .await;
+                if options
+                    .tx_schemata
                     .send(Ok(SchemaResult {
                         db_name: database.clone(),
                         coll_or_view_name: collection.clone(),
@@ -108,8 +119,8 @@ pub async fn build_schema(
             }
         }
     }
-    drop(tx_notification);
-    drop(tx_schemata);
+    drop(options.tx_notifications);
+    drop(options.tx_schemata);
 }
 
 async fn list_collections(
@@ -178,37 +189,6 @@ impl Display for SamplerNotification {
             self.action, self.collection, self.db
         )
     }
-}
-
-/// Returns true if the client options does not have any authentication credentials.
-pub fn needs_auth(options: &ClientOptions) -> bool {
-    options.credential.is_none()
-}
-
-/// Loads the username and password into the client options.
-pub async fn load_password_auth(
-    options: &mut ClientOptions,
-    username: Option<String>,
-    password: Option<String>,
-) {
-    options.credential = Some(
-        mongodb::options::Credential::builder()
-            .username(username)
-            .password(password)
-            .build(),
-    );
-}
-
-/// Returns a client options with the optimal pool size set.
-pub async fn get_opts(uri: &str) -> Result<ClientOptions> {
-    let mut opts = ClientOptions::parse_async(uri).await?;
-    opts.max_pool_size = Some(get_optimal_pool_size());
-    opts.max_connecting = Some(2);
-    Ok(opts)
-}
-
-fn get_optimal_pool_size() -> u32 {
-    std::thread::available_parallelism().unwrap().get() as u32 * 2 + 1
 }
 
 /// Returns a [Schema] for a given BSON document.
@@ -414,7 +394,7 @@ pub async fn derive_schema_for_partitions(
     col_parts: Vec<Partition>,
     database: &Database,
     tx_notification: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
-) -> Schema {
+) -> Option<Schema> {
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     rayon::scope(|s| {
         for (ix, part) in col_parts.into_iter().enumerate() {
@@ -430,7 +410,7 @@ pub async fn derive_schema_for_partitions(
                 rt.block_on(async move {
                     let part = part.clone();
                     let schema = derive_schema_for_partition(
-                        &database, collection, part, ITERATIONS, None, notifier, ix,
+                        &database, collection, part, None, notifier, ix,
                     )
                     .await
                     .unwrap();
@@ -451,7 +431,7 @@ pub async fn derive_schema_for_partitions(
             schemata = Some(schema)
         }
     }
-    schemata.unwrap()
+    schemata
 }
 
 pub async fn gen_partitions(
@@ -469,27 +449,29 @@ pub async fn gen_partitions(
             rt.block_on(async move {
                 match get_partitions(&database, coll).await {
                     Ok(partitions) => {
-                        if let Some(ref notifier) = notifier {
-                            let _ = notifier.send(SamplerNotification {
+                        notify!(
+                            notifier,
+                            SamplerNotification {
                                 db: database.name().to_string(),
                                 collection: coll.to_string(),
                                 action: SamplerAction::Partitioning {
                                     partitions: partitions.len() as u16,
                                 },
-                            });
-                            tx.send(partitions).unwrap();
-                        }
+                            }
+                        );
+                        tx.send(partitions).unwrap();
                     }
                     Err(e) => {
-                        if let Some(ref notifier) = notifier {
-                            let _ = notifier.send(SamplerNotification {
+                        notify!(
+                            notifier,
+                            SamplerNotification {
                                 db: database.name().to_string(),
                                 collection: coll.to_string(),
                                 action: SamplerAction::Error {
                                     message: e.to_string(),
                                 },
-                            });
-                        }
+                            }
+                        )
                     }
                 };
                 drop(tx);
@@ -543,7 +525,7 @@ pub async fn get_partitions(database: &Database, coll: &str) -> Result<Vec<Parti
     let first_stage = if size_info.count >= SAMPLE_MIN_DOCS && num_partitions > 1 {
         let num_docs_to_sample = std::cmp::min(
             (SAMPLE_RATE * size_info.count as f64) as u64,
-            MAX_NUM_DOCS_TO_SAMPLE_PER_PARTITION * num_partitions as u64,
+            MAX_NUM_DOCS_TO_SAMPLE_PER_PARTITION as u64 * num_partitions as u64,
         );
         doc! { "$sample": {"size": num_docs_to_sample as i64 } }
     } else {
@@ -587,7 +569,6 @@ pub async fn derive_schema_for_partition(
     database: &Database,
     coll: &str,
     mut partition: Partition,
-    iterations: Option<u32>,
     initial_schema_doc: Option<Document>,
     tx_notification: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
     partition_ix: usize,
@@ -597,16 +578,12 @@ pub async fn derive_schema_for_partition(
         .clone()
         .map(schema_doc_to_schema)
         .transpose()?;
-    let mut iteration = 0;
     let mut first_stage = Some(generate_partition_match_with_doc(
         &partition,
         initial_schema_doc,
     )?);
 
     loop {
-        if iterations.is_some() && iteration >= iterations.unwrap() {
-            break;
-        }
         if partition.min == partition.max {
             break;
         }
@@ -614,25 +591,24 @@ pub async fn derive_schema_for_partition(
         if first_stage.is_none() {
             first_stage = Some(generate_partition_match(&partition, schema.clone())?);
         };
-        if let Some(ref notifier) = tx_notification {
-            // notification errors are not critical, so we just ignore them
-            notifier
-                .send(SamplerNotification {
-                    db: database.name().to_string(),
-                    collection: coll.to_string(),
-                    action: SamplerAction::Querying {
-                        partition: partition_ix as u16,
-                    },
-                })
-                .unwrap_or_default();
-        }
+        notify!(
+            tx_notification,
+            SamplerNotification {
+                db: database.name().to_string(),
+                collection: coll.to_string(),
+                action: SamplerAction::Querying {
+                    partition: partition_ix as u16,
+                },
+            }
+        );
+
         let mut cursor = collection
             .aggregate(
                 vec![
                     // first_stage must be Some here.
                     first_stage.unwrap(),
                     doc! { "$sort": {"_id": 1}},
-                    doc! { "$limit": NUM_RESULTS_PER_QUERY },
+                    doc! { "$limit": MAX_NUM_DOCS_TO_SAMPLE_PER_PARTITION },
                 ],
                 AggregateOptions::builder()
                     .hint(Some(mongodb::options::Hint::Keys(doc! {"_id": 1})))
@@ -643,18 +619,17 @@ pub async fn derive_schema_for_partition(
 
         let mut no_result = true;
         while let Some(doc) = cursor.try_next().await.unwrap() {
-            if let Some(ref notifier) = tx_notification {
-                // notification errors are not critical, so we just ignore them
-                notifier
-                    .send(SamplerNotification {
-                        db: database.name().to_string(),
-                        collection: coll.to_string(),
-                        action: SamplerAction::Processing {
-                            partition: partition_ix as u16,
-                        },
-                    })
-                    .unwrap_or_default();
-            }
+            notify!(
+                tx_notification,
+                SamplerNotification {
+                    db: database.name().to_string(),
+                    collection: coll.to_string(),
+                    action: SamplerAction::Processing {
+                        partition: partition_ix as u16,
+                    },
+                }
+            );
+
             let id = doc.get("_id").unwrap().clone();
             partition.min = id;
             schema = Some(schema_for_document(&doc).union(&schema.unwrap_or(Schema::Unsat)));
@@ -663,7 +638,6 @@ pub async fn derive_schema_for_partition(
         if no_result {
             break;
         }
-        iteration += 1;
     }
     drop(tx_notification);
     Ok(schema.unwrap_or(Schema::Unsat))
