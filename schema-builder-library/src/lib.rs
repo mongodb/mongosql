@@ -2,7 +2,7 @@ use futures::TryStreamExt;
 use mongodb::{
     bson::{self, doc, Bson, Document},
     options::{AggregateOptions, ListDatabasesOptions},
-    Client, Database,
+    Client, Cursor, Database,
 };
 use mongosql::{
     json_schema,
@@ -20,8 +20,10 @@ pub mod client_util;
 mod consts;
 use consts::{
     DISALLOWED_COLLECTION_NAMES, DISALLOWED_DB_NAMES, MAX_NUM_DOCS_TO_SAMPLE_PER_PARTITION,
-    PARTITION_SIZE_IN_BYTES, SAMPLE_MIN_DOCS, SAMPLE_RATE,
+    PARTITION_SIZE_IN_BYTES, SAMPLE_MIN_DOCS, SAMPLE_RATE, SAMPLE_SIZE,
 };
+
+use self::options::BuilderOptions;
 pub mod options;
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -53,6 +55,7 @@ pub enum SamplerAction {
     Processing { partition: u16 },
     Partitioning { partitions: u16 },
     Error { message: String },
+    SamplingView,
 }
 
 macro_rules! notify {
@@ -74,7 +77,7 @@ pub async fn build_schema<'a>(options: options::BuilderOptions<'_>) {
             options.tx_notifications,
             SamplerNotification {
                 db: "".to_string(),
-                collection: "".to_string(),
+                collection_or_view: "".to_string(),
                 action: SamplerAction::Error {
                     message: e.to_string(),
                 },
@@ -89,80 +92,208 @@ pub async fn build_schema<'a>(options: options::BuilderOptions<'_>) {
                 continue;
             }
             let db = options.client.database(&database);
-            for collection in
-                list_collections(options.client, &database, options.tx_schemata.clone()).await
-            {
-                if DISALLOWED_COLLECTION_NAMES.contains(&collection.as_str()) {
-                    continue;
-                }
-                let col_parts =
-                    gen_partitions(&db, &collection, options.tx_notifications.clone()).await;
-                let schemata = derive_schema_for_partitions(
-                    &collection,
-                    col_parts,
-                    &db,
-                    options.tx_notifications.clone(),
-                )
-                .await;
-                if options
-                    .tx_schemata
-                    .send(Ok(SchemaResult {
-                        db_name: database.clone(),
-                        coll_or_view_name: collection.clone(),
-                        namespace_type: NamespaceType::Collection,
-                        namespace_schema: schemata,
-                    }))
-                    .is_err()
-                {
-                    break;
-                }
-            }
+            let collection_info =
+                list_collections_and_views(options.client, &database, options.tx_schemata.clone())
+                    .await;
+            collection_info.process_collections(&db, &options).await;
+            collection_info.process_views(&db, &options).await;
         }
     }
     drop(options.tx_notifications);
     drop(options.tx_schemata);
 }
 
-async fn list_collections(
+#[derive(Debug, Default)]
+struct CollectionInfo {
+    views: Vec<CollectionDoc>,
+    collections: Vec<CollectionDoc>,
+}
+
+impl CollectionInfo {
+    async fn process_collections(&self, db: &Database, options: &BuilderOptions<'_>) {
+        for collection in self.collections.as_slice() {
+            if DISALLOWED_COLLECTION_NAMES.contains(&collection.name.as_str()) {
+                continue;
+            }
+            let col_parts =
+                gen_partitions(db, &collection.name, options.tx_notifications.clone()).await;
+            let schemata = derive_schema_for_partitions(
+                &collection.name,
+                col_parts,
+                db,
+                options.tx_notifications.clone(),
+            )
+            .await;
+            let tx_schemata = options.tx_schemata.clone();
+            if tx_schemata
+                .send(Ok(SchemaResult {
+                    db_name: db.name().to_string(),
+                    coll_or_view_name: collection.name.clone(),
+                    namespace_type: NamespaceType::Collection,
+                    namespace_schema: schemata,
+                }))
+                .is_err()
+            {
+                drop(tx_schemata);
+                return;
+            }
+            drop(tx_schemata);
+        }
+    }
+    async fn process_views(&self, db: &Database, options: &BuilderOptions<'_>) {
+        for view in self.views.as_slice() {
+            let schema = derive_schema_for_view(view, db, options.tx_notifications.clone()).await;
+            let tx_schemata = options.tx_schemata.clone();
+            if tx_schemata
+                .send(Ok(SchemaResult {
+                    db_name: db.name().to_string(),
+                    coll_or_view_name: view.name.clone(),
+                    namespace_type: NamespaceType::View,
+                    namespace_schema: schema,
+                }))
+                .is_err()
+            {
+                drop(tx_schemata);
+                return;
+            }
+            drop(tx_schemata);
+        }
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct CollectionDoc {
+    #[serde(rename = "type")]
+    type_: String,
+    name: String,
+    options: ViewOptions,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct ViewOptions {
+    #[serde(rename = "viewOn", default)]
+    view_on: String,
+    #[serde(default)]
+    pipeline: Vec<Document>,
+}
+
+impl Default for ViewOptions {
+    fn default() -> Self {
+        Self {
+            view_on: "".to_string(),
+            pipeline: vec![],
+        }
+    }
+}
+
+async fn list_collections_and_views(
     client: &Client,
     database: &str,
     tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<SchemaResult>>,
-) -> Vec<String> {
-    let collections = client
+) -> CollectionInfo {
+    let collection_info_cursor = client
         .database(database)
-        .run_command(
-            doc! { "listCollections": 1.0, "authorizedCollections": true, "nameOnly": true},
+        .run_cursor_command(
+            doc! { "listCollections": 1.0, "authorizedCollections": true},
             None,
         )
         .await
         .map_err(|e| async {
             tx_schemata.send(Err(e.into())).unwrap();
-        })
-        .unwrap_or_default()
-        .get_document("cursor")
-        .map(|c| {
-            c.get_array("firstBatch")
-                .unwrap()
-                .iter()
-                .filter_map(|d| {
-                    let d = d.as_document().unwrap();
-                    if d.get_str("type").unwrap() == "view" {
-                        None
-                    } else {
-                        Some(d.get_str("name").unwrap().to_string())
-                    }
-                })
-                .collect::<Vec<String>>()
-        })
-        .unwrap_or_default();
+        });
+
+    let collection_info = match collection_info_cursor {
+        Ok(collection_info) => separate_views_from_collections(collection_info)
+            .await
+            .unwrap(),
+        Err(_) => CollectionInfo::default(),
+    };
+
     drop(tx_schemata);
-    collections
+    collection_info
+}
+
+async fn separate_views_from_collections(
+    mut collection_doc: Cursor<Document>,
+) -> Result<CollectionInfo> {
+    let mut collection_info = CollectionInfo::default();
+    while let Some(collection_doc) = collection_doc.try_next().await.unwrap() {
+        let collection_doc: CollectionDoc =
+            bson::from_bson(bson::Bson::Document(collection_doc)).unwrap();
+        if collection_doc.type_ == "view" {
+            collection_info.views.push(collection_doc);
+        } else {
+            collection_info.collections.push(collection_doc);
+        }
+    }
+
+    Ok(collection_info)
+}
+
+/// derive_schema_for_view takes a CollectionDoc and executes the pipeline
+/// against the viewOn collection to generate a schema for the view.
+/// It does this by first prepending $sample to the pipeline
+async fn derive_schema_for_view(
+    view: &CollectionDoc,
+    database: &Database,
+    tx_notification: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
+) -> Option<Schema> {
+    let pipeline = vec![doc! { "$sample": { "size": SAMPLE_SIZE } }]
+        .into_iter()
+        .chain(view.options.pipeline.clone().into_iter())
+        .collect::<Vec<Document>>();
+
+    let mut schema = None;
+
+    match database
+        .collection::<Document>(&view.options.view_on)
+        .aggregate(pipeline, None)
+        .await
+    {
+        Ok(mut cursor) => {
+            let mut iterations = 0;
+            while let Some(doc) = cursor.try_next().await.unwrap() {
+                // we want to notify every 100 iterations so it isn't too spammy
+                if iterations % 100 == 0 {
+                    notify!(
+                        tx_notification,
+                        SamplerNotification {
+                            db: database.name().to_string(),
+                            collection_or_view: view.name.clone(),
+                            action: SamplerAction::SamplingView,
+                        }
+                    );
+                }
+                if schema.is_none() {
+                    schema = Some(schema_for_document(&doc));
+                } else {
+                    schema = Some(schema.unwrap().union(&schema_for_document(&doc)));
+                }
+                iterations += 1;
+            }
+        }
+        Err(e) => {
+            notify!(
+                tx_notification,
+                SamplerNotification {
+                    db: database.name().to_string(),
+                    collection_or_view: view.name.clone(),
+                    action: SamplerAction::Error {
+                        message: e.to_string(),
+                    },
+                }
+            );
+        }
+    }
+
+    drop(tx_notification);
+    schema
 }
 
 #[derive(Debug, Clone)]
 pub struct SamplerNotification {
     pub db: String,
-    pub collection: String,
+    pub collection_or_view: String,
     pub action: SamplerAction,
 }
 
@@ -177,6 +308,7 @@ impl Display for SamplerAction {
                 write!(f, "Partitioning into {} parts", partitions)
             }
             SamplerAction::Error { message } => write!(f, "Error: {}", message),
+            SamplerAction::SamplingView => write!(f, "Sampling"),
         }
     }
 }
@@ -185,8 +317,8 @@ impl Display for SamplerNotification {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
-            "{} for collection: {} in database: {}",
-            self.action, self.collection, self.db
+            "{} for collection/view: {} in database: {}",
+            self.action, self.collection_or_view, self.db
         )
     }
 }
@@ -453,7 +585,7 @@ pub async fn gen_partitions(
                             notifier,
                             SamplerNotification {
                                 db: database.name().to_string(),
-                                collection: coll.to_string(),
+                                collection_or_view: coll.to_string(),
                                 action: SamplerAction::Partitioning {
                                     partitions: partitions.len() as u16,
                                 },
@@ -466,7 +598,7 @@ pub async fn gen_partitions(
                             notifier,
                             SamplerNotification {
                                 db: database.name().to_string(),
-                                collection: coll.to_string(),
+                                collection_or_view: coll.to_string(),
                                 action: SamplerAction::Error {
                                     message: e.to_string(),
                                 },
@@ -488,7 +620,6 @@ pub async fn gen_partitions_with_initial_schema(
     collections_and_schemata: Vec<(String, Document)>,
     database: &Database,
 ) -> HashMap<String, (Document, Vec<Partition>)> {
-    println!("getting partitions with schemata");
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
     rayon::scope(|s| {
         for (coll, sch) in collections_and_schemata {
@@ -595,7 +726,7 @@ pub async fn derive_schema_for_partition(
             tx_notification,
             SamplerNotification {
                 db: database.name().to_string(),
-                collection: coll.to_string(),
+                collection_or_view: coll.to_string(),
                 action: SamplerAction::Querying {
                     partition: partition_ix as u16,
                 },
@@ -623,7 +754,7 @@ pub async fn derive_schema_for_partition(
                 tx_notification,
                 SamplerNotification {
                     db: database.name().to_string(),
-                    collection: coll.to_string(),
+                    collection_or_view: coll.to_string(),
                     action: SamplerAction::Processing {
                         partition: partition_ix as u16,
                     },
