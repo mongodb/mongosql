@@ -154,7 +154,7 @@ test_process_schema!(
 test_process_schemata!(
     handles_many_schemas,
     schemata = map! {
-        "test_db_a".to_string() => vec![
+        "test_db_a".to_string() =>
             map! {
                 "test_coll_a".to_string() => Schema::Document(Document {
                     keys: map!(
@@ -164,8 +164,6 @@ test_process_schemata!(
                     ),
                     ..Default::default()
                 }),
-            },
-            map! {
                 "test_coll_b".to_string() => Schema::Document(Document {
                     keys: map!(
                         "a".into() => Schema::Atomic(Atomic::String),
@@ -175,8 +173,7 @@ test_process_schemata!(
                     ..Default::default()
                 }),
             },
-        ],
-        "test_db_b".to_string() => vec![
+        "test_db_b".to_string() =>
             map! {
                 "test_coll_a".to_string() => Schema::Document(Document {
                     keys: map!(
@@ -186,8 +183,6 @@ test_process_schemata!(
                     ),
                     ..Default::default()
                 }),
-            },
-            map! {
                 "test_coll_b".to_string() => Schema::Document(Document {
                     keys: map!(
                         "a".into() => Schema::Atomic(Atomic::String),
@@ -204,7 +199,6 @@ test_process_schemata!(
                     ..Default::default()
                 }),
             },
-        ],
     },
     expected = SchemaAnalysis {
         database_analyses: map! {

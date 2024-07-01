@@ -101,7 +101,7 @@ async fn handle_schema(
             let (tx_schemata, mut rx_schemata) =
                 tokio::sync::mpsc::unbounded_channel::<dcsb::Result<dcsb::SchemaResult>>();
 
-            let mut schemata: HashMap<String, Vec<HashMap<String, Schema>>> = HashMap::new();
+            let mut schemata: HashMap<String, HashMap<String, Schema>> = HashMap::new();
 
             // spinner style errors are caught at compile time so are safe to unwrap on
             let spinner_style =
@@ -123,7 +123,6 @@ async fn handle_schema(
                     exclude: &vec![],
                     schema_collection: &None,
                     dry_run: false,
-                    handle: &tokio::runtime::Handle::current(),
                     client: &client,
                     tx_notifications: Some(tx_notifications),
                     tx_schemata,
@@ -136,9 +135,14 @@ async fn handle_schema(
                     notification = rx_notifications.recv() => {
                         // The notification channel is not critical to the operation of the program,
                         // so we'll never break out of our loop if the channel is closed.
-                        if let Some(ref notification) = notification {
-                            if !quiet {
-                                pb.set_message(notification.to_string());
+                        if let Some(notification) = notification {
+                            match notification.action {
+                                dcsb::SamplerAction::CriticalError { message } => anyhow::bail!(message),
+                                _ => {
+                                    if !quiet {
+                                        pb.set_message(notification.to_string());
+                                    }
+                                }
                             }
                         }
                     }
@@ -149,8 +153,12 @@ async fn handle_schema(
                                     pb.set_message(format!("Schema calculated for database: {}", schema_res.db_name));
                                 }
                                 let mut coll_map = HashMap::<String, Schema>::new();
-                                schema_res.namespace_schema.map(|s| coll_map.insert(schema_res.coll_or_view_name, s));
-                                schemata.insert(schema_res.db_name, vec![coll_map]);
+                                schema_res.namespace_schema.as_ref().map(|s| {
+                                    coll_map.insert(schema_res.coll_or_view_name.clone(), s.clone())
+                                });
+                                schemata.entry(schema_res.db_name).and_modify(|v| {
+                                    v.insert(schema_res.coll_or_view_name.clone(), schema_res.namespace_schema.clone().unwrap());
+                                }).or_insert(HashMap::from([(schema_res.coll_or_view_name, schema_res.namespace_schema.unwrap())]));
                             }
                             Some(Err(e)) => {
                                 match e {

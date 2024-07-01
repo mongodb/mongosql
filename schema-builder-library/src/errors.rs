@@ -16,6 +16,8 @@ pub enum Error {
     DriverError(mongodb::error::Error),
     #[error("NoCollection {0}")]
     NoCollection(String),
+    #[error("Execution Error {0}")]
+    TokioError(tokio::task::JoinError),
 }
 
 impl From<mongodb::error::Error> for Error {

@@ -7,35 +7,33 @@ use mongosql::{
 };
 use std::collections::HashMap;
 
-pub fn process_schemata(schema: HashMap<String, Vec<HashMap<String, Schema>>>) -> SchemaAnalysis {
+pub fn process_schemata(schema: HashMap<String, HashMap<String, Schema>>) -> SchemaAnalysis {
     let mut analysis = SchemaAnalysis::default();
     for (db, v) in schema {
         let mut database_analysis = DatabaseAnalysis {
             database_name: db.clone(),
             ..Default::default()
         };
-        for entry in v {
-            for (coll, schema) in entry {
-                let json_schema: json_schema::Schema = schema.clone().try_into().unwrap();
-                database_analysis
-                    .schema
-                    .entry(coll.clone())
-                    .or_insert(serde_json::to_string(&json_schema).unwrap());
-                let mut collection_analysis = CollectionAnalysis {
-                    ..Default::default()
-                };
-                collection_analysis.collection_name.clone_from(&coll);
-                process_schema(coll, schema, &mut collection_analysis, 0);
-                collection_analysis
-                    .arrays
-                    .retain(|k, _| !collection_analysis.arrays_of_arrays.contains_key(k));
-                collection_analysis
-                    .objects
-                    .retain(|k, _| !collection_analysis.arrays_of_objects.contains_key(k));
-                database_analysis
-                    .collection_analyses
-                    .push(collection_analysis);
-            }
+        for (coll, schema) in v {
+            let json_schema: json_schema::Schema = schema.clone().try_into().unwrap();
+            database_analysis
+                .schema
+                .entry(coll.clone())
+                .or_insert(serde_json::to_string(&json_schema).unwrap());
+            let mut collection_analysis = CollectionAnalysis {
+                ..Default::default()
+            };
+            collection_analysis.collection_name.clone_from(&coll);
+            process_schema(coll, schema, &mut collection_analysis, 0);
+            collection_analysis
+                .arrays
+                .retain(|k, _| !collection_analysis.arrays_of_arrays.contains_key(k));
+            collection_analysis
+                .objects
+                .retain(|k, _| !collection_analysis.arrays_of_objects.contains_key(k));
+            database_analysis
+                .collection_analyses
+                .push(collection_analysis);
         }
         analysis
             .database_analyses
@@ -58,8 +56,13 @@ pub struct DatabaseAnalysis {
 
 impl PartialEq for DatabaseAnalysis {
     fn eq(&self, other: &Self) -> bool {
+        let mut self_collection_analyses = self.collection_analyses.clone();
+        let mut other_collection_analyses = self.collection_analyses.clone();
+
+        self_collection_analyses.sort_by(|a, b| a.collection_name.cmp(&b.collection_name));
+        other_collection_analyses.sort_by(|a, b| a.collection_name.cmp(&b.collection_name));
         self.database_name == other.database_name
-            && self.collection_analyses == other.collection_analyses
+            && self_collection_analyses == other_collection_analyses
     }
 }
 
@@ -69,7 +72,7 @@ impl Eq for DatabaseAnalysis {}
 type FieldTracker = HashMap<String, u16>;
 type FieldTrackerWithTypes = HashMap<String, (u16, Vec<String>)>;
 
-#[derive(Debug, Default, PartialEq, Eq)]
+#[derive(Debug, Default, PartialEq, Eq, Clone)]
 pub struct CollectionAnalysis {
     pub collection_name: String,
     pub arrays: FieldTracker,
