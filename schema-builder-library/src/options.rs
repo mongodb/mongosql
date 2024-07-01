@@ -8,8 +8,6 @@ pub struct BuilderOptions<'a> {
     pub schema_collection: &'a Option<String>,
     /// Whether to perform a dry run, i.e. no analysis and no writing to the database
     pub dry_run: bool,
-    /// The tokio runtime handle
-    pub handle: &'a tokio::runtime::Handle,
     /// The MongoDB client
     pub client: &'a mongodb::Client,
     /// The notification channel
