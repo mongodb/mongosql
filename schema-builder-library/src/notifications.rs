@@ -1,6 +1,16 @@
 use std::fmt;
 use std::fmt::{Display, Formatter};
 
+#[macro_export]
+macro_rules! notify {
+    ($channel:expr, $notification:expr) => {
+        if let Some(ref notifier) = $channel {
+            // notification errors are not critical, so we just ignore them
+            let _ = notifier.send($notification);
+        }
+    };
+}
+
 #[derive(Debug, Clone)]
 pub enum SamplerAction {
     Querying { partition: u16 },
