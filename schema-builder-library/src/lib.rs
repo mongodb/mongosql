@@ -2,7 +2,7 @@ use futures::{future, TryStreamExt};
 use mongodb::{
     bson::{self, doc, Bson, Document},
     options::{AggregateOptions, ListDatabasesOptions},
-    Collection, Cursor, Database,
+    Collection, Database,
 };
 use mongosql::{
     json_schema,
@@ -10,14 +10,15 @@ use mongosql::{
     set,
 };
 use serde::{Deserialize, Serialize};
-use tokio::task::JoinHandle;
 
 pub mod client_util;
 mod consts;
 use consts::{
-    DISALLOWED_COLLECTION_NAMES, DISALLOWED_DB_NAMES, MAX_NUM_DOCS_TO_SAMPLE_PER_PARTITION,
-    PARTITION_SIZE_IN_BYTES, SAMPLE_MIN_DOCS, SAMPLE_RATE, SAMPLE_SIZE,
+    DISALLOWED_DB_NAMES, MAX_NUM_DOCS_TO_SAMPLE_PER_PARTITION, PARTITION_SIZE_IN_BYTES,
+    SAMPLE_MIN_DOCS, SAMPLE_RATE, SAMPLE_SIZE,
 };
+mod collection;
+use collection::{CollectionDoc, CollectionInfo};
 mod errors;
 pub use errors::Error;
 mod notifications;
@@ -51,15 +52,6 @@ pub enum NamespaceType {
     View,
 }
 
-macro_rules! notify {
-    ($channel:expr, $notification:expr) => {
-        if let Some(ref notifier) = $channel {
-            // notification errors are not critical, so we just ignore them
-            let _ = notifier.send($notification);
-        }
-    };
-}
-
 /// build_schema is the entry point for the schema-builder-library. Given a mongodb::Client,
 /// channels for communicating results and status notifications, and various options specifying
 /// specific behaviors, this function builds schema for the appropriate namespaces of the provided
@@ -80,12 +72,15 @@ macro_rules! notify {
 ///
 /// This function parallelizes handling each database, collection, collection partition, and
 /// view by using asynchronous tokio tasks which are spawned using the provided runtime::Handle.
-pub async fn build_schema<'a>(options: BuilderOptions<'_>) {
+pub async fn build_schema(options: BuilderOptions) {
     // To start computing the schema for all databases, we need to wait for the
     // list_database_names method to finish.
     let databases = options
         .client
-        .list_database_names(None, Some(ListDatabasesOptions::builder().build()))
+        .list_database_names(
+            doc! {"name": { "$nin": DISALLOWED_DB_NAMES.to_vec()} },
+            Some(ListDatabasesOptions::builder().build()),
+        )
         .await;
 
     // If listing the databases fails, there is nothing to do so we report an
@@ -105,31 +100,79 @@ pub async fn build_schema<'a>(options: BuilderOptions<'_>) {
         drop(options.tx_schemata);
         return;
     }
-
     // Here, we iterate through each database and spawn a new async task to
     // compute each db schema. Importantly, we are not awaiting the spawned
     // tasks. Each async task will start running in the background immediately,
     // but the program will continue executing the iteration since tokio::spawn
     // immediately returns a JoinHandle.
-    let db_tasks = databases
-        .unwrap()
-        .into_iter()
-        .filter(|db_name| !DISALLOWED_DB_NAMES.contains(&db_name.as_str()))
-        .map(|db_name| {
-            // To avoid passing a reference to the mongodb::Client around, we
-            // create a mongodb::Database before spawning the db-schema task.
-            let db = options.client.database(db_name.as_str());
-            let tx_notifications = options.tx_notifications.clone();
-            let tx_schemata = options.tx_schemata.clone();
+    let db_tasks = databases.unwrap().into_iter().map(|db_name| {
+        // To avoid passing a reference to the mongodb::Client around, we
+        // create a mongodb::Database before spawning the db-schema task.
+        let db = options.client.database(&db_name);
+        let tx_notifications = options.tx_notifications.clone();
+        let tx_schemata = options.tx_schemata.clone();
 
-            // Spawn the db task.
-            tokio::runtime::Handle::current().spawn(async move {
-                // To start computing the schema for all collections and views
-                // in a database, we need to wait for list_collections to finish.
-                let collection_info = list_collections_and_views(&db).await;
+        let include_list = options.include_list.clone();
+        let exclude_list = options.exclude_list.clone();
+        // Spawn the db task.
+        tokio::runtime::Handle::current().spawn(async move {
+            // To start computing the schema for all collections and views
+            // in a database, we need to wait for list_collections to finish.
+            let collection_info =
+                CollectionInfo::new(&db, &db_name, include_list, exclude_list).await;
 
-                let (coll_tasks, view_tasks) = match collection_info {
-                    Err(e) => {
+            let (coll_tasks, view_tasks) = match collection_info {
+                Err(e) => {
+                    notify!(
+                        tx_notifications,
+                        SamplerNotification {
+                            db: db.name().to_string(),
+                            collection_or_view: "".to_string(),
+                            action: SamplerAction::Error {
+                                message: format!("failed to listing collections with error {e}"),
+                            },
+                        }
+                    );
+                    return;
+                }
+                // With all collections and views listed, we derive schema for
+                // each of them in parallel. For now, collections and views are
+                // processed differently -- views require sampling to derive
+                // schema. Given that, we do _not_ await the result of
+                // process_collections before moving on to processing views.
+                // In the future, if/when view schemas are calculated based on
+                // their underlying collection and their pipeline, we _should_
+                // await collection derivation before processing views.
+                // Here, we kick off collection processing and view processing
+                // in parallel and await all the collection and view tasks
+                // before concluding this database task.
+                Ok(collection_info) => (
+                    collection_info.process_collections(
+                        &db,
+                        tx_notifications.clone(),
+                        tx_schemata.clone(),
+                    ),
+                    collection_info.process_views(
+                        &db,
+                        tx_notifications.clone(),
+                        tx_schemata.clone(),
+                    ),
+                ),
+            };
+
+            let mut all_tasks = vec![];
+            all_tasks.extend(coll_tasks);
+            all_tasks.extend(view_tasks);
+
+            // After spawning async tasks for each collection and view,
+            // the final step is to wait for all of those tasks to finish
+            // by awaiting the result of join_all for all collection task
+            // and view task JoinHandles.
+            future::join_all(all_tasks)
+                .await
+                .into_iter()
+                .for_each(|coll_schema_res| {
+                    if let Err(e) = coll_schema_res {
                         notify!(
                             tx_notifications,
                             SamplerNotification {
@@ -137,70 +180,18 @@ pub async fn build_schema<'a>(options: BuilderOptions<'_>) {
                                 collection_or_view: "".to_string(),
                                 action: SamplerAction::Error {
                                     message: format!(
-                                        "failed to listing collections with error {e}"
+                                        "failed to complete schema building with error {e}"
                                     ),
                                 },
                             }
                         );
-                        return;
                     }
-                    // With all collections and views listed, we derive schema for
-                    // each of them in parallel. For now, collections and views are
-                    // processed differently -- views require sampling to derive
-                    // schema. Given that, we do _not_ await the result of
-                    // process_collections before moving on to processing views.
-                    // In the future, if/when view schemas are calculated based on
-                    // their underlying collection and their pipeline, we _should_
-                    // await collection derivation before processing views.
-                    // Here, we kick off collection processing and view processing
-                    // in parallel and await all the collection and view tasks
-                    // before concluding this database task.
-                    Ok(collection_info) => (
-                        collection_info.process_collections(
-                            &db,
-                            tx_notifications.clone(),
-                            tx_schemata.clone(),
-                        ),
-                        collection_info.process_views(
-                            &db,
-                            tx_notifications.clone(),
-                            tx_schemata.clone(),
-                        ),
-                    ),
-                };
+                });
 
-                let mut all_tasks = vec![];
-                all_tasks.extend(coll_tasks);
-                all_tasks.extend(view_tasks);
-
-                // After spawning async tasks for each collection and view,
-                // the final step is to wait for all of those tasks to finish
-                // by awaiting the result of join_all for all collection task
-                // and view task JoinHandles.
-                future::join_all(all_tasks)
-                    .await
-                    .into_iter()
-                    .for_each(|coll_schema_res| {
-                        if let Err(e) = coll_schema_res {
-                            notify!(
-                                tx_notifications,
-                                SamplerNotification {
-                                    db: db.name().to_string(),
-                                    collection_or_view: "".to_string(),
-                                    action: SamplerAction::Error {
-                                        message: format!(
-                                            "failed to complete schema building with error {e}"
-                                        ),
-                                    },
-                                }
-                            );
-                        }
-                    });
-
-                drop(tx_notifications);
-                drop(tx_schemata);
-            })
-        });
+            drop(tx_notifications);
+            drop(tx_schemata);
+        })
+    });
 
     // After spawning async tasks for each database, the final step is to wait
     // for all of those task to finish by awaiting the result of join_all for
@@ -227,229 +218,6 @@ pub async fn build_schema<'a>(options: BuilderOptions<'_>) {
     // both channels.
     drop(options.tx_notifications);
     drop(options.tx_schemata);
-}
-
-/*************************************************************************************************/
-/******** Database Utility Functions *************************************************************/
-/*************************************************************************************************/
-
-/// A utility struct representing the result of listCollections. It includes the list of collections
-/// and the list of views.
-#[derive(Debug, Default)]
-struct CollectionInfo {
-    views: Vec<CollectionDoc>,
-    collections: Vec<CollectionDoc>,
-}
-
-/// A utility function for listing collections and views.
-async fn list_collections_and_views(database: &Database) -> Result<CollectionInfo> {
-    let collection_info_cursor = database
-        .run_cursor_command(
-            doc! { "listCollections": 1.0, "authorizedCollections": true},
-            None,
-        )
-        .await
-        .map_err(errors::Error::from)?;
-
-    separate_views_from_collections(collection_info_cursor).await
-}
-
-async fn separate_views_from_collections(
-    mut collection_doc: Cursor<Document>,
-) -> Result<CollectionInfo> {
-    let mut collection_info = CollectionInfo::default();
-    while let Some(collection_doc) = collection_doc.try_next().await.unwrap() {
-        let collection_doc: CollectionDoc =
-            bson::from_bson(bson::Bson::Document(collection_doc)).unwrap();
-        if collection_doc.type_ == "view" {
-            collection_info.views.push(collection_doc);
-        } else {
-            collection_info.collections.push(collection_doc);
-        }
-    }
-
-    Ok(collection_info)
-}
-
-impl CollectionInfo {
-    /// process_collections creates parallel, async tasks for deriving the
-    /// schema for each collection in the CollectionInfo. It iterates through
-    /// each collection and spawns a new async task to compute its schema.
-    /// Importantly, like database tasks, we do not await the spawned tasks.
-    /// Each async task will start running in the background immediately,
-    /// but the program will continue executing the iteration through all
-    /// collections since tokio::spawn immediately returns a JoinHandle.
-    /// This method returns the list of JoinHandles for the caller to await
-    /// as needed.
-    fn process_collections(
-        &self,
-        db: &Database,
-        tx_notifications: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
-        tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<SchemaResult>>,
-    ) -> Vec<JoinHandle<()>> {
-        self.collections
-            .as_slice()
-            .iter()
-            .filter(|coll_doc| !DISALLOWED_COLLECTION_NAMES.contains(&coll_doc.name.as_str()))
-            .map(|coll_doc| {
-                let db = db.clone();
-                let coll = db.collection::<Document>(coll_doc.name.as_str());
-                let tx_notifications = tx_notifications.clone();
-                let tx_schemata = tx_schemata.clone();
-
-                tokio::runtime::Handle::current().spawn(async move {
-                    // To start computing the schema for a collection, we need
-                    // to determine the partitions of this collection.
-                    let partitions = get_partitions(&coll).await;
-
-                    match partitions {
-                        Err(e) => {
-                            // If partitioning the collection fails, there is nothing to
-                            // do so we report and error and return.
-                            notify!(
-                                tx_notifications,
-                                SamplerNotification {
-                                    db: db.name().to_string(),
-                                    collection_or_view: coll.name().to_string(),
-                                    action: SamplerAction::Error {
-                                        message: format!("failed to partition with error {e}"),
-                                    },
-                                }
-                            )
-                        }
-                        Ok(partitions) => {
-                            // If partitioning succeeds, we send a notification
-                            // to indicate partitioning is happening, then we
-                            // derive schema for the partitions.
-                            notify!(
-                                tx_notifications,
-                                SamplerNotification {
-                                    db: db.name().to_string(),
-                                    collection_or_view: coll.name().to_string(),
-                                    action: SamplerAction::Partitioning {
-                                        partitions: partitions.len() as u16,
-                                    },
-                                }
-                            );
-
-                            // The derive_schema_for_partitions function
-                            // parallelizes schema derivation per partition.
-                            // So here, we await its result and then send it
-                            // over the schemata channel as the final step in
-                            // the collection task.
-                            let coll_schema = derive_schema_for_partitions(
-                                db.name().to_string(),
-                                &coll,
-                                partitions,
-                                &tokio::runtime::Handle::current(),
-                                tx_notifications.clone(),
-                            )
-                            .await;
-                            match coll_schema {
-                                Err(e) => {
-                                    // If deriving schema for the collection
-                                    // fails, there is nothing to do so we
-                                    // report and error and return.
-                                    notify!(
-                                        tx_notifications,
-                                        SamplerNotification {
-                                            db: db.name().to_string(),
-                                            collection_or_view: coll.name().to_string(),
-                                            action: SamplerAction::Error {
-                                                message: format!(
-                                                    "failed to derive schema with error {e}"
-                                                ),
-                                            },
-                                        }
-                                    )
-                                }
-                                Ok(coll_schema) => {
-                                    // If deriving schema succeeds, we send
-                                    // the schema over the schemata channel.
-                                    let _ = tx_schemata.send(Ok(SchemaResult {
-                                        db_name: db.name().to_string(),
-                                        coll_or_view_name: coll.name().to_string(),
-                                        namespace_type: NamespaceType::Collection,
-                                        namespace_schema: coll_schema,
-                                    }));
-                                }
-                            }
-                            drop(tx_notifications);
-                            drop(tx_schemata);
-                        }
-                    }
-                })
-            })
-            .collect()
-    }
-
-    /// process_views creates parallel, async tasks for deriving the schema
-    /// for each view in the CollectionInfo. It iterates through each view
-    /// and spawns a new async task to compute its schema. Importantly, again,
-    /// we do not await the spawned tasks. Each async task will start running
-    /// in the background immediately, but the program will continue executing
-    /// the iteration through all views since tokio::spawn immediately returns
-    /// a JoinHandle. This method return the list of JoinHandles for the caller
-    /// to await as needed.
-    fn process_views(
-        &self,
-        db: &Database,
-        tx_notifications: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
-        tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<SchemaResult>>,
-    ) -> Vec<JoinHandle<()>> {
-        self.views
-            .as_slice()
-            .iter()
-            .map(|view_doc| {
-                let db = db.clone();
-                let view_doc = view_doc.clone();
-                let tx_notifications = tx_notifications.clone();
-                let tx_schemata = tx_schemata.clone();
-
-                tokio::runtime::Handle::current().spawn(async move {
-                    let view_doc = view_doc.clone();
-                    // Since view schemas depend on sampling, this is a
-                    // straightforward task: simply await the result of schema
-                    // derivation and send it when it's done.
-                    let schema =
-                        derive_schema_for_view(&view_doc, &db, tx_notifications.clone()).await;
-                    let _ = tx_schemata.send(Ok(SchemaResult {
-                        db_name: db.name().to_string(),
-                        coll_or_view_name: view_doc.name.clone(),
-                        namespace_type: NamespaceType::View,
-                        namespace_schema: schema,
-                    }));
-                    drop(tx_notifications);
-                    drop(tx_schemata);
-                })
-            })
-            .collect()
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct CollectionDoc {
-    #[serde(rename = "type")]
-    type_: String,
-    name: String,
-    options: ViewOptions,
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone)]
-struct ViewOptions {
-    #[serde(rename = "viewOn", default)]
-    view_on: String,
-    #[serde(default)]
-    pipeline: Vec<Document>,
-}
-
-impl Default for ViewOptions {
-    fn default() -> Self {
-        Self {
-            view_on: "".to_string(),
-            pipeline: vec![],
-        }
-    }
 }
 
 /*************************************************************************************************/

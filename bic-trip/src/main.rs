@@ -119,11 +119,11 @@ async fn handle_schema(
 
             tokio::spawn(async move {
                 let builder_options = dcsb::options::BuilderOptions {
-                    include: &vec![],
-                    exclude: &vec![],
-                    schema_collection: &None,
+                    include_list: vec![],
+                    exclude_list: vec![],
+                    schema_collection: None,
                     dry_run: false,
-                    client: &client,
+                    client: client.clone(),
                     tx_notifications: Some(tx_notifications),
                     tx_schemata,
                 };
