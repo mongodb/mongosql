@@ -16,6 +16,7 @@ pub enum SamplerAction {
     Querying { partition: u16 },
     Processing { partition: u16 },
     Partitioning { partitions: u16 },
+    Warning { message: String },
     Error { message: String },
     CriticalError { message: String },
     SamplingView,
@@ -38,6 +39,7 @@ impl Display for SamplerAction {
             SamplerAction::Partitioning { partitions } => {
                 write!(f, "Partitioning into {} parts", partitions)
             }
+            SamplerAction::Warning { message } => write!(f, "Warning: {}", message),
             SamplerAction::Error { message } => write!(f, "Error: {}", message),
             SamplerAction::CriticalError { message } => write!(f, "Critical Error: {}", message),
             SamplerAction::SamplingView => write!(f, "Sampling"),

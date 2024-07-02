@@ -42,7 +42,7 @@ pub struct SchemaResult {
     pub namespace_type: NamespaceType,
 
     /// The schema for the namespace.
-    pub namespace_schema: Option<Schema>,
+    pub namespace_schema: Schema,
 }
 
 /// An enum representing the two namespace types for which this library
@@ -544,7 +544,7 @@ async fn derive_schema_for_view(
         Ok(mut cursor) => {
             let mut iterations = 0;
             while let Some(doc) = cursor.try_next().await.unwrap() {
-                // we want to notify every 100 iterations so it isn't too spammy
+                // Notify every 100 iterations, so it isn't too spammy
                 if iterations % 100 == 0 {
                     notify!(
                         tx_notification,

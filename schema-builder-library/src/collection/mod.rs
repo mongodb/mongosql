@@ -82,7 +82,7 @@ impl CollectionInfo {
         &self,
         db: &Database,
         tx_notifications: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
-        tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<SchemaResult>>,
+        tx_schemata: tokio::sync::mpsc::UnboundedSender<SchemaResult>,
     ) -> Vec<JoinHandle<()>> {
         self.collections
             .as_slice()
@@ -146,7 +146,7 @@ impl CollectionInfo {
                                 Err(e) => {
                                     // If deriving schema for the collection
                                     // fails, there is nothing to do so we
-                                    // report and error and return.
+                                    // report an error.
                                     notify!(
                                         tx_notifications,
                                         SamplerNotification {
@@ -160,15 +160,31 @@ impl CollectionInfo {
                                         }
                                     )
                                 }
-                                Ok(coll_schema) => {
+                                Ok(None) => {
+                                    // If no schema is derived, then there is
+                                    // nothing to do so we report a warning.
+                                    notify!(
+                                        tx_notifications,
+                                        SamplerNotification {
+                                            db: db.name().to_string(),
+                                            collection_or_view: coll.name().to_string(),
+                                            action: SamplerAction::Warning {
+                                                message:
+                                                    "no schema derived, collection may be empty"
+                                                        .to_string()
+                                            },
+                                        }
+                                    )
+                                }
+                                Ok(Some(coll_schema)) => {
                                     // If deriving schema succeeds, we send
                                     // the schema over the schemata channel.
-                                    let _ = tx_schemata.send(Ok(SchemaResult {
+                                    let _ = tx_schemata.send(SchemaResult {
                                         db_name: db.name().to_string(),
                                         coll_or_view_name: coll.name().to_string(),
                                         namespace_type: NamespaceType::Collection,
                                         namespace_schema: coll_schema,
-                                    }));
+                                    });
                                 }
                             }
                             drop(tx_notifications);
@@ -192,7 +208,7 @@ impl CollectionInfo {
         &self,
         db: &Database,
         tx_notifications: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
-        tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<SchemaResult>>,
+        tx_schemata: tokio::sync::mpsc::UnboundedSender<SchemaResult>,
     ) -> Vec<JoinHandle<()>> {
         self.views
             .as_slice()
@@ -208,14 +224,26 @@ impl CollectionInfo {
                     // Since view schemas depend on sampling, this is a
                     // straightforward task: simply await the result of schema
                     // derivation and send it when it's done.
-                    let schema =
-                        derive_schema_for_view(&view_doc, &db, tx_notifications.clone()).await;
-                    let _ = tx_schemata.send(Ok(SchemaResult {
-                        db_name: db.name().to_string(),
-                        coll_or_view_name: view_doc.name.clone(),
-                        namespace_type: NamespaceType::View,
-                        namespace_schema: schema,
-                    }));
+                    match derive_schema_for_view(&view_doc, &db, tx_notifications.clone()).await {
+                        None => notify!(
+                            tx_notifications,
+                            SamplerNotification {
+                                db: db.name().to_string(),
+                                collection_or_view: view_doc.name.clone(),
+                                action: SamplerAction::Warning {
+                                    message: "no schema derived, view may be empty".to_string()
+                                }
+                            }
+                        ),
+                        Some(schema) => {
+                            let _ = tx_schemata.send(SchemaResult {
+                                db_name: db.name().to_string(),
+                                coll_or_view_name: view_doc.name.clone(),
+                                namespace_type: NamespaceType::View,
+                                namespace_schema: schema,
+                            });
+                        }
+                    }
                     drop(tx_notifications);
                     drop(tx_schemata);
                 })
