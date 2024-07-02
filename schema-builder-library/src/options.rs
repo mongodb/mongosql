@@ -1,4 +1,4 @@
-use crate::{Result, SamplerNotification};
+use crate::{SamplerNotification, SchemaResult};
 #[derive(Debug, Clone)]
 pub struct BuilderOptions {
     /// The namespaces to include
@@ -14,5 +14,5 @@ pub struct BuilderOptions {
     /// The notification channel
     pub tx_notifications: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
     /// The schema channel
-    pub tx_schemata: tokio::sync::mpsc::UnboundedSender<Result<crate::SchemaResult>>,
+    pub tx_schemata: tokio::sync::mpsc::UnboundedSender<SchemaResult>,
 }

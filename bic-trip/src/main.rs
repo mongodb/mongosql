@@ -99,7 +99,7 @@ async fn handle_schema(
             let (tx_notifications, mut rx_notifications) =
                 tokio::sync::mpsc::unbounded_channel::<dcsb::SamplerNotification>();
             let (tx_schemata, mut rx_schemata) =
-                tokio::sync::mpsc::unbounded_channel::<dcsb::Result<dcsb::SchemaResult>>();
+                tokio::sync::mpsc::unbounded_channel::<dcsb::SchemaResult>();
 
             let mut schemata: HashMap<String, HashMap<String, Schema>> = HashMap::new();
 
@@ -137,7 +137,10 @@ async fn handle_schema(
                         // so we'll never break out of our loop if the channel is closed.
                         if let Some(notification) = notification {
                             match notification.action {
+                                // If we receive a CriticalError notification, we abort the program.
                                 dcsb::SamplerAction::CriticalError { message } => anyhow::bail!(message),
+                                // All other notification types are simply logged, depending on the
+                                // value of quiet.
                                 _ => {
                                     if !quiet {
                                         pb.set_message(notification.to_string());
@@ -148,30 +151,16 @@ async fn handle_schema(
                     }
                     schema = rx_schemata.recv() => {
                         match schema {
-                            Some(Ok(schema_res)) => {
+                            Some(schema_res) => {
                                 if !quiet {
                                     pb.set_message(format!("Schema calculated for database: {}", schema_res.db_name));
                                 }
-                                let mut coll_map = HashMap::<String, Schema>::new();
-                                schema_res.namespace_schema.as_ref().map(|s| {
-                                    coll_map.insert(schema_res.coll_or_view_name.clone(), s.clone())
-                                });
                                 schemata.entry(schema_res.db_name).and_modify(|v| {
-                                    v.insert(schema_res.coll_or_view_name.clone(), schema_res.namespace_schema.clone().unwrap());
-                                }).or_insert(HashMap::from([(schema_res.coll_or_view_name, schema_res.namespace_schema.unwrap())]));
-                            }
-                            Some(Err(e)) => {
-                                match e {
-                                    dcsb::Error::DriverError(e) => anyhow::bail!(e),
-                                    e => {
-                                        if !quiet {
-                                            println!("Error: {e}");
-                                            pb.set_message(format!("Error: {}", e));
-                                        }
-                                    }
-                                }
+                                    v.insert(schema_res.coll_or_view_name.clone(), schema_res.namespace_schema.clone());
+                                }).or_insert(HashMap::from([(schema_res.coll_or_view_name, schema_res.namespace_schema)]));
                             }
                             None => {
+                                // When the channel is closed, terminate the loop.
                                 break;
                             }
                         }
