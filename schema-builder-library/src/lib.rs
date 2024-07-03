@@ -10,6 +10,7 @@ use mongosql::{
     set,
 };
 use serde::{Deserialize, Serialize};
+use tracing::{instrument, span, trace, Level};
 
 pub mod client_util;
 mod consts;
@@ -72,6 +73,7 @@ pub enum NamespaceType {
 ///
 /// This function parallelizes handling each database, collection, collection partition, and
 /// view by using asynchronous tokio tasks which are spawned using the provided runtime::Handle.
+#[instrument(name = "schema builder", level = "info")]
 pub async fn build_schema(options: BuilderOptions) {
     // To start computing the schema for all databases, we need to wait for the
     // list_database_names method to finish.
@@ -87,14 +89,14 @@ pub async fn build_schema(options: BuilderOptions) {
     // error, drop all channels, and return.
     if let Err(e) = databases {
         notify!(
-            options.tx_notifications,
+            options.tx_notifications.as_ref(),
             SamplerNotification {
                 db: "".to_string(),
                 collection_or_view: "".to_string(),
-                action: SamplerAction::CriticalError {
-                    message: e.to_string(),
+                action: SamplerAction::Error {
+                    message: format!("Unable to list databases: {e}"),
                 },
-            }
+            },
         );
         drop(options.tx_notifications);
         drop(options.tx_schemata);
@@ -105,6 +107,8 @@ pub async fn build_schema(options: BuilderOptions) {
     // tasks. Each async task will start running in the background immediately,
     // but the program will continue executing the iteration since tokio::spawn
     // immediately returns a JoinHandle.
+    let span = span!(Level::DEBUG, "database_tasks", databases = ?databases);
+    let _enter = span.enter();
     let db_tasks = databases.unwrap().into_iter().map(|db_name| {
         // To avoid passing a reference to the mongodb::Client around, we
         // create a mongodb::Database before spawning the db-schema task.
@@ -124,14 +128,16 @@ pub async fn build_schema(options: BuilderOptions) {
             let (coll_tasks, view_tasks) = match collection_info {
                 Err(e) => {
                     notify!(
-                        tx_notifications,
+                        tx_notifications.as_ref(),
                         SamplerNotification {
                             db: db.name().to_string(),
                             collection_or_view: "".to_string(),
-                            action: SamplerAction::Error {
-                                message: format!("failed to listing collections with error {e}"),
+                            action: SamplerAction::Warning {
+                                message: format!(
+                                    "failed to listing collections in database with error {e}"
+                                ),
                             },
-                        }
+                        },
                     );
                     return;
                 }
@@ -174,16 +180,16 @@ pub async fn build_schema(options: BuilderOptions) {
                 .for_each(|coll_schema_res| {
                     if let Err(e) = coll_schema_res {
                         notify!(
-                            tx_notifications,
+                            tx_notifications.as_ref(),
                             SamplerNotification {
                                 db: db.name().to_string(),
                                 collection_or_view: "".to_string(),
-                                action: SamplerAction::Error {
+                                action: SamplerAction::Warning {
                                     message: format!(
                                         "failed to complete schema building with error {e}"
                                     ),
                                 },
-                            }
+                            },
                         );
                     }
                 });
@@ -202,15 +208,15 @@ pub async fn build_schema(options: BuilderOptions) {
         .for_each(|db_schema_res| {
             if let Err(e) = db_schema_res {
                 notify!(
-                    options.tx_notifications,
+                    &options.tx_notifications,
                     SamplerNotification {
                         db: "".to_string(),
                         collection_or_view: "".to_string(),
-                        action: SamplerAction::Error {
+                        action: SamplerAction::Warning {
                             message: format!("failed to complete schema building with error {e}"),
                         },
-                    }
-                )
+                    },
+                );
             }
         });
 
@@ -230,6 +236,7 @@ pub async fn build_schema(options: BuilderOptions) {
 /// by using a $bucketAuto stage that groups on the _id field. If collections are <= 100MB this
 /// operation is skipped and instead the entire collection is considered one partition. Note that
 /// the 100MB limit comes from the server, as noted in $bucketAuto docs [here|https://www.mongodb.com/docs/manual/reference/operator/aggregation/bucketAuto/#-bucketauto-and-memory-restrictions].
+#[instrument(level = "trace", skip(collection))]
 async fn get_partitions(collection: &Collection<Document>) -> Result<Vec<Partition>> {
     let size_info = get_size_counts(collection).await?;
     let num_partitions = get_num_partitions(size_info.size, PARTITION_SIZE_IN_BYTES) as usize;
@@ -276,6 +283,8 @@ async fn get_partitions(collection: &Collection<Document>) -> Result<Vec<Partiti
         max: max_bound,
     });
 
+    trace!("partitions: {:?}", partitions);
+
     Ok(partitions)
 }
 
@@ -287,6 +296,7 @@ struct CollectionSizes {
 
 /// get_size_counts uses the $collStats aggregation stage to get size and count information for the
 /// argued collection.
+#[instrument(level = "trace", skip(collection))]
 async fn get_size_counts(collection: &Collection<Document>) -> Result<CollectionSizes> {
     let mut cursor = collection
         .aggregate(vec![doc! {"$collStats": {"storageStats": {}}}], None)
@@ -320,12 +330,14 @@ async fn get_size_counts(collection: &Collection<Document>) -> Result<Collection
 
 /// get_num_partitions determines the number of partitions by dividing the collection size by the
 /// partition size (and adding 1).
+#[instrument(level = "trace", skip_all)]
 fn get_num_partitions(coll_size: i64, partition_size: i64) -> i64 {
     let num_parts = (coll_size as f64) / (partition_size as f64);
     num_parts as i64 + 1
 }
 
 /// get_bounds determines the minimum and maximum values for the _id field in the argued collection.
+#[instrument(level = "trace", skip_all)]
 async fn get_bounds(collection: &Collection<Document>) -> Result<(Bson, Bson)> {
     Ok((
         get_bound(collection, 1).await?,
@@ -337,6 +349,7 @@ async fn get_bounds(collection: &Collection<Document>) -> Result<(Bson, Bson)> {
 
 /// get_bound determines the minimum or maximum bound (depending on the direction) for the _id field
 /// in the provided collection.
+#[instrument(level = "trace", skip_all)]
 async fn get_bound(collection: &Collection<Document>, direction: i32) -> Result<Bson> {
     let mut cursor = collection
         .aggregate(
@@ -380,6 +393,7 @@ async fn get_bound(collection: &Collection<Document>, direction: i32) -> Result<
 ///
 /// The results of each partition are unioned together to produce the schema of the entire
 /// collection.
+#[instrument(level = "trace", skip_all)]
 async fn derive_schema_for_partitions(
     db_name: String,
     collection: &Collection<Document>,
@@ -405,16 +419,16 @@ async fn derive_schema_for_partitions(
             let schema = match schema_res {
                 Err(e) => {
                     notify!(
-                        tx_notifications,
+                        tx_notifications.as_ref(),
                         SamplerNotification {
-                            db: db_name,
+                            db: db_name.clone(),
                             collection_or_view: collection.name().to_string(),
-                            action: SamplerAction::Error {
+                            action: SamplerAction::Warning {
                                 message: format!(
                                     "failed derive schema for partition {ix} with error {e}",
                                 ),
                             },
-                        }
+                        },
                     );
                     // If we encounter an error when processing a partition,
                     // we effectively ignore it by saying the schema is Unsat.
@@ -446,6 +460,7 @@ async fn derive_schema_for_partitions(
 }
 
 /// A utility function for deriving the schema for a single partition of a collection.
+#[instrument(level = "trace", skip_all)]
 async fn derive_schema_for_partition(
     db_name: String,
     collection: &Collection<Document>,
@@ -472,14 +487,14 @@ async fn derive_schema_for_partition(
             first_stage = Some(generate_partition_match(&partition, schema.clone())?);
         };
         notify!(
-            tx_notifications,
+            tx_notifications.as_ref(),
             SamplerNotification {
                 db: db_name.clone(),
                 collection_or_view: collection.name().to_string(),
                 action: SamplerAction::Querying {
                     partition: partition_ix as u16,
                 },
-            }
+            },
         );
         let mut cursor = collection
             .aggregate(
@@ -499,14 +514,14 @@ async fn derive_schema_for_partition(
         let mut no_result = true;
         while let Some(doc) = cursor.try_next().await.unwrap() {
             notify!(
-                tx_notifications,
+                tx_notifications.as_ref(),
                 SamplerNotification {
                     db: db_name.clone(),
                     collection_or_view: collection.name().to_string(),
                     action: SamplerAction::Processing {
                         partition: partition_ix as u16,
                     },
-                }
+                },
             );
             let id = doc.get("_id").unwrap().clone();
             partition.min = id;
@@ -524,6 +539,7 @@ async fn derive_schema_for_partition(
 /// derive_schema_for_view takes a CollectionDoc and executes the pipeline
 /// against the viewOn collection to generate a schema for the view.
 /// It does this by first prepending $sample to the pipeline
+#[instrument(level = "trace", skip_all)]
 async fn derive_schema_for_view(
     view: &CollectionDoc,
     database: &Database,
@@ -547,12 +563,12 @@ async fn derive_schema_for_view(
                 // Notify every 100 iterations, so it isn't too spammy
                 if iterations % 100 == 0 {
                     notify!(
-                        tx_notification,
+                        tx_notification.as_ref(),
                         SamplerNotification {
                             db: database.name().to_string(),
                             collection_or_view: view.name.clone(),
                             action: SamplerAction::SamplingView,
-                        }
+                        },
                     );
                 }
                 if schema.is_none() {
@@ -565,14 +581,14 @@ async fn derive_schema_for_view(
         }
         Err(e) => {
             notify!(
-                tx_notification,
+                tx_notification.as_ref(),
                 SamplerNotification {
                     db: database.name().to_string(),
                     collection_or_view: view.name.clone(),
-                    action: SamplerAction::Error {
-                        message: e.to_string(),
+                    action: SamplerAction::Warning {
+                        message: format!("View sampling encountered an error: {e}"),
                     },
-                }
+                },
             );
         }
     }
@@ -582,6 +598,7 @@ async fn derive_schema_for_view(
 }
 
 /// Returns a [Schema] for a given BSON document.
+#[instrument(level = "trace", skip_all)]
 pub fn schema_for_document(doc: &Document) -> Schema {
     Schema::Document(mongosql::schema::Document {
         keys: doc
@@ -594,6 +611,7 @@ pub fn schema_for_document(doc: &Document) -> Schema {
     })
 }
 
+#[instrument(level = "trace", skip_all)]
 fn schema_for_bson(b: &Bson) -> Schema {
     use Atomic::*;
     match b {
@@ -623,6 +641,7 @@ fn schema_for_bson(b: &Bson) -> Schema {
 
 // This may prove costly for very large arrays, and we may want to
 // consider a limit on the number of elements to consider.
+#[instrument(level = "trace", skip_all)]
 fn schema_for_bson_array(bs: &[Bson]) -> Schema {
     // if an array is empty, we can't infer anything about it
     // we're safe to mark it as potentially null, as an empty array
@@ -645,12 +664,14 @@ pub struct Partition {
 // generate_partition_match generates the $match stage for sampling based on the partition
 // additional_properties and an optional Schema. If the Schema is None, the $match will only
 // be based on the Partition bounds.
+#[instrument(level = "trace", skip_all)]
 pub fn generate_partition_match(partition: &Partition, schema: Option<Schema>) -> Result<Document> {
     generate_partition_match_with_doc(partition, schema.map(schema_to_schema_doc).transpose()?)
 }
 
 // generate_partition_match generates the $match stage for sampling based on the partition
 // additional_properties and an input jsonSchema.
+#[instrument(level = "trace", skip_all)]
 pub fn generate_partition_match_with_doc(
     partition: &Partition,
     schema: Option<Document>,
@@ -669,6 +690,7 @@ pub fn generate_partition_match_with_doc(
     })
 }
 
+#[instrument(level = "trace", skip_all)]
 pub fn schema_to_schema_doc(schema: Schema) -> Result<Document> {
     let json_schema: json_schema::Schema = schema
         .clone()
@@ -681,6 +703,7 @@ pub fn schema_to_schema_doc(schema: Schema) -> Result<Document> {
     Ok(ret)
 }
 
+#[instrument(level = "trace", skip_all)]
 pub fn schema_doc_to_schema(schema_doc: Document) -> Result<Schema> {
     let json_schema: json_schema::Schema =
         bson::from_document(schema_doc.get_document("$jsonSchema").unwrap().clone())
@@ -705,6 +728,7 @@ pub struct SchemataId {
 }
 
 // TODO: SQL-2156: Query for initial schema
+// #[instrument(level = "trace", skip_all)]
 // pub async fn gen_partitions_with_initial_schema(
 //     collections_and_schemata: Vec<(String, Document)>,
 //     database: &Database,

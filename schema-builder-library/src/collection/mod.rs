@@ -14,6 +14,7 @@ use mongodb::{
 };
 use serde::{Deserialize, Serialize};
 use tokio::task::JoinHandle;
+use tracing::{info, instrument};
 #[cfg(test)]
 mod test;
 
@@ -46,6 +47,11 @@ impl CollectionInfo {
     /// will be enumerated, checked for inclusion/exclusion, and prepared for
     /// processing. The caller must actually process the collections/views by calling
     /// their JoinHandle.
+    #[instrument(
+        name = "processing collections for database",
+        level = "info",
+        skip(db, include_list, exclude_list)
+    )]
     pub(crate) async fn new(
         db: &Database,
         db_name: &str,
@@ -78,6 +84,7 @@ impl CollectionInfo {
     /// collections since tokio::spawn immediately returns a JoinHandle.
     /// This method returns the list of JoinHandles for the caller to await
     /// as needed.
+    #[instrument(skip_all)]
     pub(crate) fn process_collections(
         &self,
         db: &Database,
@@ -94,6 +101,8 @@ impl CollectionInfo {
                 let tx_notifications = tx_notifications.clone();
                 let tx_schemata = tx_schemata.clone();
 
+                info!(name: "processing collection", collection = ?coll_doc);
+
                 tokio::runtime::Handle::current().spawn(async move {
                     // To start computing the schema for a collection, we need
                     // to determine the partitions of this collection.
@@ -104,29 +113,29 @@ impl CollectionInfo {
                             // If partitioning the collection fails, there is nothing to
                             // do so we report and error and return.
                             notify!(
-                                tx_notifications,
+                                tx_notifications.as_ref(),
                                 SamplerNotification {
                                     db: db.name().to_string(),
                                     collection_or_view: coll.name().to_string(),
-                                    action: SamplerAction::Error {
+                                    action: SamplerAction::Warning {
                                         message: format!("failed to partition with error {e}"),
                                     },
-                                }
-                            )
+                                },
+                            );
                         }
                         Ok(partitions) => {
                             // If partitioning succeeds, we send a notification
                             // to indicate partitioning is happening, then we
                             // derive schema for the partitions.
                             notify!(
-                                tx_notifications,
+                                tx_notifications.as_ref(),
                                 SamplerNotification {
                                     db: db.name().to_string(),
                                     collection_or_view: coll.name().to_string(),
                                     action: SamplerAction::Partitioning {
                                         partitions: partitions.len() as u16,
                                     },
-                                }
+                                },
                             );
 
                             // The derive_schema_for_partitions function
@@ -148,17 +157,17 @@ impl CollectionInfo {
                                     // fails, there is nothing to do so we
                                     // report an error.
                                     notify!(
-                                        tx_notifications,
+                                        tx_notifications.as_ref(),
                                         SamplerNotification {
                                             db: db.name().to_string(),
                                             collection_or_view: coll.name().to_string(),
-                                            action: SamplerAction::Error {
+                                            action: SamplerAction::Warning {
                                                 message: format!(
                                                     "failed to derive schema with error {e}"
                                                 ),
                                             },
-                                        }
-                                    )
+                                        },
+                                    );
                                 }
                                 Ok(None) => {
                                     // If no schema is derived, then there is
@@ -174,7 +183,7 @@ impl CollectionInfo {
                                                         .to_string()
                                             },
                                         }
-                                    )
+                                    );
                                 }
                                 Ok(Some(coll_schema)) => {
                                     // If deriving schema succeeds, we send
@@ -204,6 +213,7 @@ impl CollectionInfo {
     /// the iteration through all views since tokio::spawn immediately returns
     /// a JoinHandle. This method return the list of JoinHandles for the caller
     /// to await as needed.
+    #[instrument(skip_all)]
     pub(crate) fn process_views(
         &self,
         db: &Database,
@@ -218,6 +228,8 @@ impl CollectionInfo {
                 let view_doc = view_doc.clone();
                 let tx_notifications = tx_notifications.clone();
                 let tx_schemata = tx_schemata.clone();
+
+                info!(name: "processing view", view = ?view_doc);
 
                 tokio::runtime::Handle::current().spawn(async move {
                     let view_doc = view_doc.clone();
@@ -260,6 +272,7 @@ impl CollectionInfo {
     /// Lastly, it filters out any collections that are in the disallowed list.
     ///
     /// Glob syntax is supported, i.e. mydb.* will match all collections in mydb.
+    #[instrument(level = "trace")]
     fn should_consider(
         database: &str,
         collection_or_view: &CollectionDoc,
@@ -280,6 +293,7 @@ impl CollectionInfo {
             && !DISALLOWED_COLLECTION_NAMES.contains(&collection_or_view.name.as_str())
     }
 
+    #[instrument(level = "trace")]
     async fn separate_views_from_collections(
         database: &str,
         include_list: &[String],
