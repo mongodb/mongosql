@@ -3,12 +3,23 @@ use std::fmt::{Display, Formatter};
 
 #[macro_export]
 macro_rules! notify {
-    ($channel:expr, $notification:expr) => {
-        if let Some(ref notifier) = $channel {
-            // notification errors are not critical, so we just ignore them
-            let _ = notifier.send($notification);
+    ($channel:expr, $notification:expr $(,)?) => {{
+        match $notification.action {
+            SamplerAction::Warning { .. } => {
+                tracing::warn!("{}", $notification);
+            }
+            SamplerAction::Error { .. } => {
+                tracing::error!("{}", $notification);
+            }
+            SamplerAction::Querying { .. } => tracing::trace!("{}", $notification),
+            SamplerAction::Processing { .. } => tracing::trace!("{}", $notification),
+            SamplerAction::Partitioning { .. } => tracing::trace!("{}", $notification),
+            SamplerAction::SamplingView => tracing::trace!("{}", $notification),
         }
-    };
+        if let Some(ref channel) = $channel {
+            channel.send($notification).unwrap_or_default();
+        }
+    }};
 }
 
 #[derive(Debug, Clone)]
@@ -18,7 +29,6 @@ pub enum SamplerAction {
     Partitioning { partitions: u16 },
     Warning { message: String },
     Error { message: String },
-    CriticalError { message: String },
     SamplingView,
 }
 
@@ -32,17 +42,18 @@ pub struct SamplerNotification {
 impl Display for SamplerAction {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         match self {
-            SamplerAction::Querying { partition } => write!(f, "Querying partition {}", partition),
+            SamplerAction::Querying { partition } => {
+                write!(f, "Querying partition {} in collection", partition)
+            }
             SamplerAction::Processing { partition } => {
-                write!(f, "Processing partition {}", partition)
+                write!(f, "Processing partition {} in collection", partition)
             }
             SamplerAction::Partitioning { partitions } => {
-                write!(f, "Partitioning into {} parts", partitions)
+                write!(f, "Partitioning into {} parts for collection", partitions)
             }
             SamplerAction::Warning { message } => write!(f, "Warning: {}", message),
             SamplerAction::Error { message } => write!(f, "Error: {}", message),
-            SamplerAction::CriticalError { message } => write!(f, "Critical Error: {}", message),
-            SamplerAction::SamplingView => write!(f, "Sampling"),
+            SamplerAction::SamplingView => write!(f, "Sampling view "),
         }
     }
 }
@@ -51,7 +62,7 @@ impl Display for SamplerNotification {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
         write!(
             f,
-            "{} for collection/view: {} in database: {}",
+            "{} {} in database: {}",
             self.action, self.collection_or_view, self.db
         )
     }

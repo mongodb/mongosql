@@ -1,5 +1,5 @@
 use crate::Result;
-use mongodb::options::ClientOptions;
+use mongodb::options::{ClientOptions, ConnectionString, ResolverConfig};
 
 /**
  * This modules contains utility functions for a MongoDB client to make
@@ -27,7 +27,15 @@ pub async fn load_password_auth(
 
 /// Returns a client options with the optimal pool size set.
 pub async fn get_opts(uri: &str) -> Result<ClientOptions> {
-    let mut opts = ClientOptions::parse_async(uri).await?;
+    let mut opts = if cfg!(target_os = "windows") {
+        ClientOptions::parse_connection_string_with_resolver_config(
+            ConnectionString::parse(uri)?,
+            ResolverConfig::cloudflare(),
+        )
+        .await?
+    } else {
+        ClientOptions::parse_async(uri).await?
+    };
     opts.max_pool_size = Some(get_optimal_pool_size());
     opts.max_connecting = Some(2);
     Ok(opts)

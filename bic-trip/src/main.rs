@@ -137,8 +137,8 @@ async fn handle_schema(
                         // so we'll never break out of our loop if the channel is closed.
                         if let Some(notification) = notification {
                             match notification.action {
-                                // If we receive a CriticalError notification, we abort the program.
-                                dcsb::SamplerAction::CriticalError { message } => anyhow::bail!(message),
+                                // If we receive an Error notification, we abort the program.
+                                dcsb::SamplerAction::Error { message } => anyhow::bail!(message),
                                 // All other notification types are simply logged, depending on the
                                 // value of quiet.
                                 _ => {
