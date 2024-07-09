@@ -323,7 +323,11 @@ async fn get_size_counts(collection: &Collection<Document>) -> Result<Collection
                 return Err(Error::BsonFailure);
             }
         };
-        return Ok(CollectionSizes { size, count });
+        if size == 0 || count == 0 {
+            return Err(Error::EmptyCollection(collection.name().to_string()));
+        } else {
+            return Ok(CollectionSizes { size, count });
+        }
     }
     Err(Error::NoCollectionStats(collection.name().to_string()))
 }

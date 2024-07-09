@@ -4,7 +4,7 @@
  */
 use crate::{
     consts::DISALLOWED_COLLECTION_NAMES, derive_schema_for_partitions, derive_schema_for_view,
-    get_partitions, notify, NamespaceType, Result, SamplerAction, SamplerNotification,
+    get_partitions, notify, Error, NamespaceType, Result, SamplerAction, SamplerNotification,
     SchemaResult,
 };
 use futures::TryStreamExt;
@@ -94,7 +94,6 @@ impl CollectionInfo {
         self.collections
             .as_slice()
             .iter()
-            .filter(|coll_doc| !DISALLOWED_COLLECTION_NAMES.contains(&coll_doc.name.as_str()))
             .map(|coll_doc| {
                 let db = db.clone();
                 let coll = db.collection::<Document>(coll_doc.name.as_str());
@@ -109,6 +108,21 @@ impl CollectionInfo {
                     let partitions = get_partitions(&coll).await;
 
                     match partitions {
+                        Err(Error::EmptyCollection(name)) => {
+                            // If the collection is empty, there is nothing to do so we report a warning.
+                            notify!(
+                                tx_notifications.as_ref(),
+                                SamplerNotification {
+                                    db: db.name().to_string(),
+                                    collection_or_view: name.clone(),
+                                    action: SamplerAction::Warning {
+                                        message: format!(
+                                            "Collection {name} appears to be empty, skipping..."
+                                        )
+                                    },
+                                },
+                            );
+                        }
                         Err(e) => {
                             // If partitioning the collection fails, there is nothing to
                             // do so we report and error and return.

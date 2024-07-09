@@ -10,6 +10,8 @@ pub enum Error {
     NoCollectionStats(String),
     #[error("Unable to get bounds for collection: {0}")]
     NoBounds(String),
+    #[error("Collection {0} appears to be empty")]
+    EmptyCollection(String),
     #[error("NoIdInSample")]
     NoIdInSample,
     #[error("Driver Error {0}")]
