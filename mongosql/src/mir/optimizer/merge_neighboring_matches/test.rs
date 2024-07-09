@@ -5,7 +5,7 @@ mod merge_neighboring_matches_tests {
             binding_tuple::DatasourceName::Bottom, schema::SchemaCache, Expression::*,
             LiteralValue::*,
         },
-        unchecked_unique_linked_hash_map,
+        set, unchecked_unique_linked_hash_map, util,
     };
 
     macro_rules! test_merge_neighboring_matches {
@@ -199,6 +199,187 @@ mod merge_neighboring_matches_tests {
                 cache: SchemaCache::new(),
             })),
             condition: Literal(Integer(3)),
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    test_merge_neighboring_matches!(
+        subquery_filter_at_start_not_merged,
+        expected = Stage::Filter(Filter {
+            source: Box::new(Stage::Filter(Filter {
+                source: Box::new(Stage::Array(ArraySource {
+                    array: vec![],
+                    alias: "foo".into(),
+                    cache: SchemaCache::new()
+                })),
+                condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                    function: ScalarFunction::Gt,
+                    args: vec![
+                        *util::mir_field_access("__bot__", "x", false),
+                        Literal(Integer(10)),
+                    ],
+                    is_nullable: false,
+                }),
+                cache: SchemaCache::new(),
+            })),
+            condition: Subquery(SubqueryExpr {
+                output_expr: util::mir_field_access("__bot__", "y", true),
+                subquery: Box::new(Stage::Filter(Filter {
+                    source: Box::new(Stage::Array(ArraySource {
+                        array: vec![],
+                        alias: "bar".into(),
+                        cache: SchemaCache::new()
+                    })),
+                    condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Eq,
+                        args: vec![
+                            *util::mir_field_access("__bot__", "z", false),
+                            Literal(Integer(5)),
+                        ],
+                        is_nullable: false,
+                    }),
+                    cache: SchemaCache::new(),
+                })),
+                is_nullable: true,
+            }),
+            cache: SchemaCache::new(),
+        }),
+        input = Stage::Filter(Filter {
+            source: Box::new(Stage::Filter(Filter {
+                source: Box::new(Stage::Array(ArraySource {
+                    array: vec![],
+                    alias: "foo".into(),
+                    cache: SchemaCache::new()
+                })),
+                condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                    function: ScalarFunction::Gt,
+                    args: vec![
+                        *util::mir_field_access("__bot__", "x", false),
+                        Literal(Integer(10)),
+                    ],
+                    is_nullable: false,
+                }),
+                cache: SchemaCache::new(),
+            })),
+            condition: Subquery(SubqueryExpr {
+                output_expr: util::mir_field_access("__bot__", "y", true),
+                subquery: Box::new(Stage::Filter(Filter {
+                    source: Box::new(Stage::Array(ArraySource {
+                        array: vec![],
+                        alias: "bar".into(),
+                        cache: SchemaCache::new()
+                    })),
+                    condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Eq,
+                        args: vec![
+                            *util::mir_field_access("__bot__", "z", false),
+                            Literal(Integer(5)),
+                        ],
+                        is_nullable: false,
+                    }),
+                    cache: SchemaCache::new(),
+                })),
+                is_nullable: true,
+            }),
+            cache: SchemaCache::new(),
+        }),
+    );
+
+    test_merge_neighboring_matches!(
+        subquery_filter_not_at_start_gets_merged,
+        expected = Stage::Filter(Filter {
+            source: Box::new(Stage::Sort(Sort {
+                source: Box::new(Stage::Array(ArraySource {
+                    array: vec![],
+                    alias: "foo".into(),
+                    cache: SchemaCache::new()
+                })),
+                specs: set![SortSpecification::Asc(util::mir_field_path(
+                    "foo",
+                    vec!["a"]
+                ))],
+                cache: SchemaCache::new(),
+            })),
+            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                function: ScalarFunction::And,
+                args: vec![
+                    Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Gt,
+                        args: vec![
+                            *util::mir_field_access("__bot__", "x", false),
+                            Literal(Integer(10)),
+                        ],
+                        is_nullable: false,
+                    }),
+                    Subquery(SubqueryExpr {
+                        output_expr: util::mir_field_access("__bot__", "y", true),
+                        subquery: Box::new(Stage::Filter(Filter {
+                            source: Box::new(Stage::Array(ArraySource {
+                                array: vec![],
+                                alias: "bar".into(),
+                                cache: SchemaCache::new()
+                            })),
+                            condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                                function: ScalarFunction::Eq,
+                                args: vec![
+                                    *util::mir_field_access("__bot__", "z", false),
+                                    Literal(Integer(5)),
+                                ],
+                                is_nullable: false,
+                            }),
+                            cache: SchemaCache::new(),
+                        })),
+                        is_nullable: true,
+                    }),
+                ],
+                is_nullable: true,
+            }),
+            cache: SchemaCache::new(),
+        }),
+        input = Stage::Filter(Filter {
+            source: Box::new(Stage::Filter(Filter {
+                source: Box::new(Stage::Sort(Sort {
+                    source: Box::new(Stage::Array(ArraySource {
+                        array: vec![],
+                        alias: "foo".into(),
+                        cache: SchemaCache::new()
+                    })),
+                    specs: set![SortSpecification::Asc(util::mir_field_path(
+                        "foo",
+                        vec!["a"]
+                    ))],
+                    cache: SchemaCache::new(),
+                })),
+                condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                    function: ScalarFunction::Gt,
+                    args: vec![
+                        *util::mir_field_access("__bot__", "x", false),
+                        Literal(Integer(10)),
+                    ],
+                    is_nullable: false,
+                }),
+                cache: SchemaCache::new(),
+            })),
+            condition: Subquery(SubqueryExpr {
+                output_expr: util::mir_field_access("__bot__", "y", true),
+                subquery: Box::new(Stage::Filter(Filter {
+                    source: Box::new(Stage::Array(ArraySource {
+                        array: vec![],
+                        alias: "bar".into(),
+                        cache: SchemaCache::new()
+                    })),
+                    condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Eq,
+                        args: vec![
+                            *util::mir_field_access("__bot__", "z", false),
+                            Literal(Integer(5)),
+                        ],
+                        is_nullable: false,
+                    }),
+                    cache: SchemaCache::new(),
+                })),
+                is_nullable: true,
+            }),
             cache: SchemaCache::new(),
         }),
     );

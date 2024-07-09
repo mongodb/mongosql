@@ -342,3 +342,10 @@ tests:
     expected_utilization: IX_SCAN
     expected_index_bounds:
       - { "_id": ["[1, 1]"] }
+
+  - description: subquery filter should not prevent index usage
+    current_db: test_db
+    query: "SELECT * FROM nullable_fields WHERE a > 100 AND b IN (SELECT b FROM non_nullable_fields WHERE a < 300)"
+    expected_utilization: IX_SCAN
+    expected_index_bounds:
+      - { "a": [ "(100, MaxKey]" ] }

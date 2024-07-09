@@ -16,6 +16,7 @@ mod prefilter_unwinds;
 mod rewrite_to_match_language;
 mod stage_movement;
 mod use_def_analysis;
+mod util;
 
 pub(crate) trait Optimizer {
     fn optimize(

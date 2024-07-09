@@ -16,6 +16,7 @@
 mod test;
 
 use super::Optimizer;
+use crate::mir::optimizer::util::ContainsSubqueryVisitor;
 use crate::{
     mir::{
         binding_tuple::Key, schema::SchemaInferenceState, visitor::Visitor, Derived, EquiJoin,
@@ -407,12 +408,70 @@ impl<'a> StageMovementVisitor<'a> {
         unreachable!()
     }
 
+    fn has_collection_or_array_source(&self, stage: &Stage) -> Option<bool> {
+        match Self::get_source(stage) {
+            (Some(source), None) => {
+                let result = matches!(source, Stage::Collection(_) | Stage::Array(_));
+                Some(result)
+            }
+            _ => None,
+        }
+    }
+
+    fn contains_subquery(expr: &Expression) -> bool {
+        let mut visitor = ContainsSubqueryVisitor::default();
+        visitor.visit_expression(expr.clone());
+        visitor.contains_subquery
+    }
+
+    // Returns the source stage for stages that have a single source, None otherwise
+    fn get_source(stage: &Stage) -> (Option<&Stage>, Option<&Stage>) {
+        match stage {
+            Stage::Sort(s) => (Some(s.source.as_ref()), None),
+            Stage::Filter(f) => (Some(f.source.as_ref()), None),
+            Stage::Project(p) => (Some(p.source.as_ref()), None),
+            Stage::Group(g) => (Some(g.source.as_ref()), None),
+            Stage::Limit(l) => (Some(l.source.as_ref()), None),
+            Stage::Offset(o) => (Some(o.source.as_ref()), None),
+            Stage::Unwind(u) => (Some(u.source.as_ref()), None),
+            Stage::Derived(d) => (Some(d.source.as_ref()), None),
+            Stage::MQLIntrinsic(MQLStage::MatchFilter(m)) => (Some(m.source.as_ref()), None),
+            Stage::MQLIntrinsic(MQLStage::EquiJoin(e)) => {
+                (Some(e.source.as_ref()), Some(e.from.as_ref()))
+            }
+            Stage::MQLIntrinsic(MQLStage::LateralJoin(l)) => {
+                (Some(l.source.as_ref()), Some(l.subquery.as_ref()))
+            }
+            Stage::Join(j) => (Some(j.left.as_ref()), Some(j.right.as_ref())),
+            Stage::Set(s) => (Some(s.left.as_ref()), Some(s.right.as_ref())),
+            Stage::Collection(_) => (None, None),
+            Stage::Array(_) => (None, None),
+            Stage::Sentinel => (None, None),
+        }
+    }
+
     fn handle_def_user(&mut self, node: Stage) -> (Stage, bool) {
         use crate::mir::schema::CachedSchema;
         // We cannot move above a terminal node because they do not have a source, we also cannot
         // move a Sort above another Sort because that would actually change the Sort ordering.
         if Self::source_prevents_reorder(&node) {
             return (node, false);
+        }
+
+        // Check if the current node is a Filter stage with a subquery in its condition
+        if let Stage::Filter(f) = &node {
+            if Self::contains_subquery(&f.condition) {
+                match self.has_collection_or_array_source(&f.source) {
+                    Some(true) | None => {
+                        // Source is at start of pipeline or None, don't move it. This
+                        // is because a subquery expression appearing at the start of
+                        // a pipeline results in a $lookup as the first stage, preventing any
+                        // chance for index utilization.
+                        return (node, false);
+                    }
+                    _ => (),
+                }
+            }
         }
 
         // unfortunately, due to the borrow checker, we compute uses we may not need.

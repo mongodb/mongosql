@@ -1,8 +1,10 @@
 use crate::{
     catalog::Catalog,
     map,
+    mir::{DocumentExpr, SubqueryComparisonOp, SubqueryModifier},
     schema::{self, Schema},
     set,
+    util::mir_project_collection,
 };
 use lazy_static::lazy_static;
 
@@ -89,7 +91,7 @@ macro_rules! test_move_stage {
                     optimizer::stage_movement::StageMovementOptimizer,
                     schema::{SchemaCache, SchemaCheckingMode, SchemaInferenceState},
                     visitor::Visitor,
-                    Collection, Derived, EquiJoin,
+                    ArraySource, Collection, Derived, EquiJoin,
                     Expression::{self, *},
                     FieldAccess, FieldPath, Filter, Group, Join, JoinType, LateralJoin, Limit,
                     LiteralValue,
@@ -97,7 +99,8 @@ macro_rules! test_move_stage {
                     MQLStage, MatchFilter, MatchLanguageComparison, MatchLanguageComparisonOp,
                     MatchLanguageLogical, MatchLanguageLogicalOp, MatchQuery, Offset, Project,
                     ReferenceExpr, ScalarFunction, ScalarFunctionApplication, Set, SetOperation,
-                    Sort, SortSpecification, Stage, Unwind,
+                    Sort, SortSpecification, Stage, SubqueryComparison, SubqueryExpr,
+                    TypeAssertionExpr, Unwind,
                 },
                 schema::SchemaEnvironment,
                 set, unchecked_unique_linked_hash_map,
@@ -1781,6 +1784,230 @@ test_move_stage!(
                     mir::Expression::Literal(mir::LiteralValue::Integer(42)),
                 ],)
         ),
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage!(
+    filter_with_subquery_does_not_move_to_start_of_pipeline,
+    expected = Stage::Project(Project {
+        source: Stage::Filter(Filter {
+            source: Stage::Project(Project {
+                source: mir_collection("db", "foo"),
+                expression: BindingTuple(map! {
+                    Key::bot(0) => Document(
+                        unchecked_unique_linked_hash_map! {
+                            "a".to_string() => *mir_field_access("__bot__", "x", false),
+                        }.into()
+                    )
+                }),
+                cache: SchemaCache::new(),
+            })
+            .into(),
+            condition: Subquery(SubqueryExpr {
+                output_expr: Box::from(FieldAccess(FieldAccess {
+                    expr: Box::from(Document(DocumentExpr {
+                        document: unchecked_unique_linked_hash_map! {
+                            "b".to_string() => *mir_field_access("__bot__", "a", false),
+                        }
+                    })),
+                    field: "y".to_string(),
+                    is_nullable: true,
+                })),
+                subquery: Box::new(Stage::Filter(Filter {
+                    source: mir_collection("db", "bar"),
+                    condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                        function: ScalarFunction::Eq,
+                        args: vec![
+                            FieldAccess(FieldAccess {
+                                expr: Box::from(Document(DocumentExpr {
+                                    document: unchecked_unique_linked_hash_map! {
+                                        "b".to_string() => *mir_field_access("__bot__", "a", false),
+                                    }
+                                })),
+                                field: "z".to_string(),
+                                is_nullable: false,
+                            }),
+                            Literal(Integer(5)),
+                        ],
+                        is_nullable: false,
+                    }),
+                    cache: SchemaCache::new(),
+                })),
+                is_nullable: true,
+            }),
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        expression: BindingTuple(map! {
+            Key::bot(0) => Document(
+                unchecked_unique_linked_hash_map! {
+                    "b".to_string() => *mir_field_access("__bot__", "a", false),
+                }.into()
+            )
+        }),
+        cache: SchemaCache::new(),
+    }),
+    expected_changed = true,
+    input = Stage::Filter(Filter {
+        source: Stage::Project(Project {
+            source: Stage::Project(Project {
+                source: mir_collection("db", "foo"),
+                expression: BindingTuple(map! {
+                    Key::bot(0) => Document(
+                        unchecked_unique_linked_hash_map! {
+                            "a".to_string() => *mir_field_access("__bot__", "x", false),
+                        }.into()
+                    )
+                }),
+                cache: SchemaCache::new(),
+            })
+            .into(),
+            expression: BindingTuple(map! {
+                Key::bot(0) => Document(
+                    unchecked_unique_linked_hash_map! {
+                        "b".to_string() => *mir_field_access("__bot__", "a", false),
+                    }.into()
+                )
+            }),
+            cache: SchemaCache::new(),
+        })
+        .into(),
+        condition: Subquery(SubqueryExpr {
+            output_expr: mir_field_access("__bot__", "y", true),
+            subquery: Box::new(Stage::Filter(Filter {
+                source: mir_collection("db", "bar"),
+                condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                    function: ScalarFunction::Eq,
+                    args: vec![
+                        *mir_field_access("__bot__", "z", false),
+                        Literal(Integer(5)),
+                    ],
+                    is_nullable: false,
+                }),
+                cache: SchemaCache::new(),
+            })),
+            is_nullable: true,
+        }),
+        cache: SchemaCache::new(),
+    }),
+);
+
+test_move_stage!(
+    subquery_filter_with_field_existence_and_comparison_does_not_move_to_start,
+    expected = Stage::Filter(Filter {
+        source: mir_project_collection(None, "nullable_fields", None, None),
+        condition: Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::And,
+            args: vec![
+                Expression::SubqueryComparison(SubqueryComparison {
+                    operator: SubqueryComparisonOp::Eq,
+                    modifier: SubqueryModifier::Any,
+                    argument: mir_field_access("nullable_fields", "b", true),
+                    subquery_expr: SubqueryExpr {
+                        output_expr: mir_field_access("__bot__", "b", false),
+                        subquery: Box::new(Stage::Project(Project {
+                            source: Box::new(Stage::Filter(Filter {
+                                source: mir_collection("test_db", "non_nullable_fields"),
+                                condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                                    function: ScalarFunction::Lt,
+                                    args: vec![
+                                        *mir_field_access("non_nullable_fields", "a", false),
+                                        Expression::Literal(LiteralValue::Integer(300)),
+                                    ],
+                                    is_nullable: false,
+                                }),
+                                cache: SchemaCache::new(),
+                            })),
+                            expression: BindingTuple(map! {
+                                Key::bot(1) => Expression::Document(DocumentExpr {
+                                    document: unchecked_unique_linked_hash_map! {
+                                        "b".to_string() => *mir_field_access("non_nullable_fields", "b", false),
+                                    }
+                                }),
+                            }),
+                            cache: SchemaCache::new(),
+                        })),
+                        is_nullable: true,
+                    },
+                    is_nullable: true,
+                }),
+                Expression::MQLIntrinsicFieldExistence(FieldAccess {
+                    expr: Box::new(Expression::Reference(ReferenceExpr {
+                        key: Key::named("nullable_fields", 0),
+                    })),
+                    field: "a".to_string(),
+                    is_nullable: true,
+                }),
+                Expression::ScalarFunction(ScalarFunctionApplication {
+                    function: ScalarFunction::Gt,
+                    args: vec![
+                        *mir_field_access("nullable_fields", "a", false),
+                        Expression::Literal(LiteralValue::Integer(100)),
+                    ],
+                    is_nullable: false,
+                }),
+            ],
+            is_nullable: true,
+        }),
+        cache: SchemaCache::new(),
+    }),
+    expected_changed = false,
+    input = Stage::Filter(Filter {
+        source: mir_project_collection(None, "nullable_fields", None, None),
+        condition: Expression::ScalarFunction(ScalarFunctionApplication {
+            function: ScalarFunction::And,
+            args: vec![
+                Expression::SubqueryComparison(SubqueryComparison {
+                    operator: SubqueryComparisonOp::Eq,
+                    modifier: SubqueryModifier::Any,
+                    argument: mir_field_access("nullable_fields", "b", true),
+                    subquery_expr: SubqueryExpr {
+                        output_expr: mir_field_access("__bot__", "b", false),
+                        subquery: Box::new(Stage::Project(Project {
+                            source: Box::new(Stage::Filter(Filter {
+                                source: mir_collection("test_db", "non_nullable_fields"),
+                                condition: Expression::ScalarFunction(ScalarFunctionApplication {
+                                    function: ScalarFunction::Lt,
+                                    args: vec![
+                                        *mir_field_access("non_nullable_fields", "a", false),
+                                        Expression::Literal(LiteralValue::Integer(300)),
+                                    ],
+                                    is_nullable: false,
+                                }),
+                                cache: SchemaCache::new(),
+                            })),
+                            expression: BindingTuple(map! {
+                                Key::bot(1) => Expression::Document(DocumentExpr {
+                                    document: unchecked_unique_linked_hash_map! {
+                                        "b".to_string() => *mir_field_access("non_nullable_fields", "b", false),
+                                    }
+                                }),
+                            }),
+                            cache: SchemaCache::new(),
+                        })),
+                        is_nullable: true,
+                    },
+                    is_nullable: true,
+                }),
+                Expression::MQLIntrinsicFieldExistence(FieldAccess {
+                    expr: Box::new(Expression::Reference(ReferenceExpr {
+                        key: Key::named("nullable_fields", 0),
+                    })),
+                    field: "a".to_string(),
+                    is_nullable: true,
+                }),
+                Expression::ScalarFunction(ScalarFunctionApplication {
+                    function: ScalarFunction::Gt,
+                    args: vec![
+                        *mir_field_access("nullable_fields", "a", false),
+                        Expression::Literal(LiteralValue::Integer(100)),
+                    ],
+                    is_nullable: false,
+                }),
+            ],
+            is_nullable: true,
+        }),
         cache: SchemaCache::new(),
     }),
 );
