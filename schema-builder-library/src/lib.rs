@@ -15,8 +15,8 @@ use tracing::{instrument, span, trace, Level};
 pub mod client_util;
 mod consts;
 use consts::{
-    DISALLOWED_DB_NAMES, MAX_NUM_DOCS_TO_SAMPLE_PER_PARTITION, PARTITION_SIZE_IN_BYTES,
-    SAMPLE_MIN_DOCS, SAMPLE_RATE, SAMPLE_SIZE,
+    DISALLOWED_DB_NAMES, PARTITION_DOCS_PER_ITERATION, PARTITION_MIN_DOC_COUNT,
+    PARTITION_SIZE_IN_BYTES, VIEW_SAMPLE_SIZE,
 };
 mod collection;
 use collection::{CollectionDoc, CollectionInfo};
@@ -232,10 +232,14 @@ pub async fn build_schema(options: BuilderOptions) {
 
 /// A utility function for determining the partitions of a collection.
 ///
-/// Collections are partitioned into 100MB chunks. The minimum bound within each chunk is found
-/// by using a $bucketAuto stage that groups on the _id field. If collections are <= 100MB this
-/// operation is skipped and instead the entire collection is considered one partition. Note that
-/// the 100MB limit comes from the server, as noted in $bucketAuto docs [here|https://www.mongodb.com/docs/manual/reference/operator/aggregation/bucketAuto/#-bucketauto-and-memory-restrictions].
+/// If a collection is greater than 100MB and has 101 or more documents, it is partitioned into 100MB chunks.
+/// Collections that do not meet this criteria are treated as a single partition.
+///
+/// The minimum bound within each chunk is found
+/// by using a $bucketAuto stage that groups on the _id field.
+///
+/// Note that the 100MB limit comes from the server, as noted in
+/// [$bucketAuto docs](https://www.mongodb.com/docs/manual/reference/operator/aggregation/bucketAuto/#-bucketauto-and-memory-restrictions).
 #[instrument(level = "trace", skip(collection))]
 async fn get_partitions(collection: &Collection<Document>) -> Result<Vec<Partition>> {
     let size_info = get_size_counts(collection).await?;
@@ -243,24 +247,19 @@ async fn get_partitions(collection: &Collection<Document>) -> Result<Vec<Partiti
     let (mut min_bound, max_bound) = get_bounds(collection).await?;
     let mut partitions = Vec::with_capacity(num_partitions);
 
-    let first_stage = if size_info.count >= SAMPLE_MIN_DOCS && num_partitions > 1 {
-        let num_docs_to_sample = std::cmp::min(
-            (SAMPLE_RATE * size_info.count as f64) as u64,
-            MAX_NUM_DOCS_TO_SAMPLE_PER_PARTITION as u64 * num_partitions as u64,
-        );
-        doc! { "$sample": {"size": num_docs_to_sample as i64 } }
+    let buckets = if size_info.count >= PARTITION_MIN_DOC_COUNT && num_partitions > 1 {
+        num_partitions
     } else {
-        doc! { "$match": {} }
+        1
     };
 
     let mut cursor = collection
         .aggregate(
             vec![
-                first_stage,
                 doc! { "$project": {"_id": 1} },
                 doc! { "$bucketAuto": {
                     "groupBy": "$_id",
-                    "buckets": num_partitions as i32
+                    "buckets": buckets as i32
                 }},
             ],
             None,
@@ -506,7 +505,7 @@ async fn derive_schema_for_partition(
                     // first_stage must be Some here.
                     first_stage.unwrap(),
                     doc! { "$sort": {"_id": 1}},
-                    doc! { "$limit": MAX_NUM_DOCS_TO_SAMPLE_PER_PARTITION },
+                    doc! { "$limit": PARTITION_DOCS_PER_ITERATION },
                 ],
                 AggregateOptions::builder()
                     .hint(Some(mongodb::options::Hint::Keys(doc! {"_id": 1})))
@@ -549,7 +548,7 @@ async fn derive_schema_for_view(
     database: &Database,
     tx_notification: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
 ) -> Option<Schema> {
-    let pipeline = vec![doc! { "$sample": { "size": SAMPLE_SIZE } }]
+    let pipeline = vec![doc! { "$sample": { "size": VIEW_SAMPLE_SIZE } }]
         .into_iter()
         .chain(view.options.pipeline.clone().into_iter())
         .collect::<Vec<Document>>();
