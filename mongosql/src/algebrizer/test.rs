@@ -4487,7 +4487,7 @@ mod expression {
                 else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
                     "foo".into()
                 ))),
-                is_nullable: true,
+                is_nullable: false,
             })),
             input = ast::Expression::Case(ast::CaseExpr {
                 expr: None,
@@ -4545,6 +4545,54 @@ mod expression {
         );
 
         test_algebrize!(
+            searched_case_nullable_then_expression_is_nullable,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::SearchedCase(mir::SearchedCaseExpr {
+                when_branch: vec![mir::WhenBranch {
+                    when: Box::new(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
+                    then: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+                    is_nullable: true,
+                }],
+                else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                    "foo".into()
+                ))),
+                is_nullable: true,
+            })),
+            input = ast::Expression::Case(ast::CaseExpr {
+                expr: None,
+                when_branch: vec![ast::WhenBranch {
+                    when: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+                    then: Box::new(ast::Expression::Literal(ast::Literal::Null)),
+                }],
+                else_branch: Some(Box::new(ast::Expression::StringConstructor("foo".into()))),
+            }),
+        );
+
+        test_algebrize!(
+            searched_case_nullable_else_expression_is_nullable,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::SearchedCase(mir::SearchedCaseExpr {
+                when_branch: vec![mir::WhenBranch {
+                    when: Box::new(mir::Expression::Literal(mir::LiteralValue::Boolean(true))),
+                    then: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+                    is_nullable: true,
+                }],
+                else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+                is_nullable: true,
+            })),
+            input = ast::Expression::Case(ast::CaseExpr {
+                expr: None,
+                when_branch: vec![ast::WhenBranch {
+                    when: Box::new(ast::Expression::Literal(ast::Literal::Boolean(true))),
+                    then: Box::new(ast::Expression::Literal(ast::Literal::Null)),
+                }],
+                else_branch: Some(Box::new(ast::Expression::Literal(ast::Literal::Null))),
+            }),
+        );
+
+        test_algebrize!(
             simple_case,
             method = algebrize_expression,
             in_implicit_type_conversion_context = false,
@@ -4586,7 +4634,7 @@ mod expression {
                     is_nullable: false,
                 }],
                 else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
-                is_nullable: false,
+                is_nullable: true,
             })),
             input = ast::Expression::Case(ast::CaseExpr {
                 expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
@@ -4617,6 +4665,58 @@ mod expression {
                     then: Box::new(ast::Expression::StringConstructor("bar".into())),
                 }],
                 else_branch: Some(Box::new(ast::Expression::StringConstructor("baz".into()))),
+            }),
+        );
+
+        test_algebrize!(
+            simple_case_nullable_then_expression_is_nullable,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::SimpleCase(mir::SimpleCaseExpr {
+                expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(1))),
+                when_branch: vec![mir::WhenBranch {
+                    when: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(2))),
+                    then: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+                    is_nullable: true,
+                }],
+                else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                    "foo".into()
+                ))),
+                is_nullable: true,
+            })),
+            input = ast::Expression::Case(ast::CaseExpr {
+                expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
+                when_branch: vec![ast::WhenBranch {
+                    when: Box::new(ast::Expression::Literal(ast::Literal::Integer(2))),
+                    then: Box::new(ast::Expression::Literal(ast::Literal::Null)),
+                }],
+                else_branch: Some(Box::new(ast::Expression::StringConstructor("foo".into()))),
+            }),
+        );
+
+        test_algebrize!(
+            simple_case_nullable_else_expression_is_nullable,
+            method = algebrize_expression,
+            in_implicit_type_conversion_context = false,
+            expected = Ok(mir::Expression::SimpleCase(mir::SimpleCaseExpr {
+                expr: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(1))),
+                when_branch: vec![mir::WhenBranch {
+                    when: Box::new(mir::Expression::Literal(mir::LiteralValue::Integer(2))),
+                    then: Box::new(mir::Expression::Literal(mir::LiteralValue::String(
+                        "bar".into()
+                    ))),
+                    is_nullable: false,
+                }],
+                else_branch: Box::new(mir::Expression::Literal(mir::LiteralValue::Null)),
+                is_nullable: true,
+            })),
+            input = ast::Expression::Case(ast::CaseExpr {
+                expr: Some(Box::new(ast::Expression::Literal(ast::Literal::Integer(1)))),
+                when_branch: vec![ast::WhenBranch {
+                    when: Box::new(ast::Expression::Literal(ast::Literal::Integer(2))),
+                    then: Box::new(ast::Expression::StringConstructor("bar".into())),
+                }],
+                else_branch: Some(Box::new(ast::Expression::Literal(ast::Literal::Null))),
             }),
         );
 

@@ -1656,10 +1656,19 @@ impl<'a> Algebrizer<'a> {
     }
 
     fn algebrize_case(&self, c: ast::CaseExpr) -> Result<mir::Expression> {
+        // if we don't have an else branch, the resulting case expression _is_ nullable; otherwise, we will
+        // check the then and else expressions to determine nullability
+        let mut is_nullable = c.else_branch.is_none();
         let else_branch = c
             .else_branch
             .map(|e| self.algebrize_expression(*e, false))
             .transpose()?
+            .map(|expr| {
+                is_nullable = is_nullable
+                    || (NULLISH.satisfies(&expr.schema(&self.schema_inference_state()).unwrap())
+                        != Satisfaction::Not);
+                expr
+            })
             .map(Box::new)
             .unwrap_or_else(|| Box::new(mir::Expression::Literal(mir::LiteralValue::Null)));
 
@@ -1672,16 +1681,20 @@ impl<'a> Algebrizer<'a> {
             .into_iter()
             .map(|wb| {
                 let when = self.algebrize_expression(*wb.when, false)?;
+                let then = self.algebrize_expression(*wb.then, false)?;
+                let then_is_nullable = NULLISH
+                    .satisfies(&then.schema(&self.schema_inference_state()).unwrap())
+                    != Satisfaction::Not;
+                is_nullable = is_nullable || then_is_nullable;
                 when_branches_all_strings = when_branches_all_strings
                     && (when
                         .schema(&self.schema_inference_state())?
                         .satisfies(&STRING_OR_NULLISH)
                         == Satisfaction::Must);
                 Ok(mir::WhenBranch {
-                    is_nullable: NULLISH.satisfies(&when.schema(&self.schema_inference_state())?)
-                        != Satisfaction::Not,
+                    is_nullable: then_is_nullable,
                     when: Box::new(when),
-                    then: Box::new(self.algebrize_expression(*wb.then, false)?),
+                    then: Box::new(then),
                 })
             })
             .collect::<Result<_>>()?;
@@ -1708,12 +1721,13 @@ impl<'a> Algebrizer<'a> {
                 .into_iter()
                 .map(|wb| {
                     let when = self.algebrize_expression(*wb.when, true)?;
+                    let then = self.algebrize_expression(*wb.then, false)?;
                     Ok(mir::WhenBranch {
                         is_nullable: NULLISH
-                            .satisfies(&when.schema(&self.schema_inference_state())?)
+                            .satisfies(&then.schema(&self.schema_inference_state())?)
                             != Satisfaction::Not,
                         when: Box::new(when),
-                        then: Box::new(self.algebrize_expression(*wb.then, false)?),
+                        then: Box::new(then),
                     })
                 })
                 .collect::<Result<_>>()?;
@@ -1726,13 +1740,14 @@ impl<'a> Algebrizer<'a> {
                     expr,
                     when_branch,
                     else_branch,
-                    is_nullable: NULLISH.satisfies(&expr_schema.unwrap()) != Satisfaction::Not,
+                    is_nullable,
                 }))
             }
-            None => Ok(mir::Expression::SearchedCase(mir::SearchedCaseExpr::new(
+            None => Ok(mir::Expression::SearchedCase(mir::SearchedCaseExpr {
                 when_branch,
                 else_branch,
-            ))),
+                is_nullable,
+            })),
         }
     }
 
