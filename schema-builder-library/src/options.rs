@@ -14,7 +14,7 @@ pub struct BuilderOptions {
     /// The MongoDB client
     pub client: mongodb::Client,
     /// The notification channel
-    pub tx_notifications: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
+    pub tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
     /// The schema channel
     pub tx_schemata: tokio::sync::mpsc::UnboundedSender<SchemaResult>,
 }

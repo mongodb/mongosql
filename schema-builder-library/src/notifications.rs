@@ -16,9 +16,8 @@ macro_rules! notify {
             SamplerAction::Partitioning { .. } => tracing::trace!("{}", $notification),
             SamplerAction::SamplingView => tracing::trace!("{}", $notification),
         }
-        if let Some(ref channel) = $channel {
-            channel.send($notification).unwrap_or_default();
-        }
+
+        $channel.send($notification).unwrap_or_default();
     }};
 }
 
