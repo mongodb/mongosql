@@ -88,7 +88,7 @@ impl CollectionInfo {
     pub(crate) fn process_collections(
         &self,
         db: &Database,
-        tx_notifications: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
+        tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
         tx_schemata: tokio::sync::mpsc::UnboundedSender<SchemaResult>,
     ) -> Vec<JoinHandle<()>> {
         self.collections
@@ -111,7 +111,7 @@ impl CollectionInfo {
                         Err(Error::EmptyCollection(name)) => {
                             // If the collection is empty, there is nothing to do so we report a warning.
                             notify!(
-                                tx_notifications.as_ref(),
+                                &tx_notifications,
                                 SamplerNotification {
                                     db: db.name().to_string(),
                                     collection_or_view: name.clone(),
@@ -127,7 +127,7 @@ impl CollectionInfo {
                             // If partitioning the collection fails, there is nothing to
                             // do so we report and error and return.
                             notify!(
-                                tx_notifications.as_ref(),
+                                &tx_notifications,
                                 SamplerNotification {
                                     db: db.name().to_string(),
                                     collection_or_view: coll.name().to_string(),
@@ -142,7 +142,7 @@ impl CollectionInfo {
                             // to indicate partitioning is happening, then we
                             // derive schema for the partitions.
                             notify!(
-                                tx_notifications.as_ref(),
+                                &tx_notifications,
                                 SamplerNotification {
                                     db: db.name().to_string(),
                                     collection_or_view: coll.name().to_string(),
@@ -171,7 +171,7 @@ impl CollectionInfo {
                                     // fails, there is nothing to do so we
                                     // report an error.
                                     notify!(
-                                        tx_notifications.as_ref(),
+                                        &tx_notifications,
                                         SamplerNotification {
                                             db: db.name().to_string(),
                                             collection_or_view: coll.name().to_string(),
@@ -231,7 +231,7 @@ impl CollectionInfo {
     pub(crate) fn process_views(
         &self,
         db: &Database,
-        tx_notifications: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
+        tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
         tx_schemata: tokio::sync::mpsc::UnboundedSender<SchemaResult>,
     ) -> Vec<JoinHandle<()>> {
         self.views

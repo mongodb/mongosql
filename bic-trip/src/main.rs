@@ -124,7 +124,7 @@ async fn handle_schema(
                     schema_collection: None,
                     dry_run: false,
                     client: client.clone(),
-                    tx_notifications: Some(tx_notifications),
+                    tx_notifications,
                     tx_schemata,
                 };
                 dcsb::build_schema(builder_options).await;

@@ -89,7 +89,7 @@ pub async fn build_schema(options: BuilderOptions) {
     // error, drop all channels, and return.
     if let Err(e) = databases {
         notify!(
-            options.tx_notifications.as_ref(),
+            &options.tx_notifications,
             SamplerNotification {
                 db: "".to_string(),
                 collection_or_view: "".to_string(),
@@ -128,7 +128,7 @@ pub async fn build_schema(options: BuilderOptions) {
             let (coll_tasks, view_tasks) = match collection_info {
                 Err(e) => {
                     notify!(
-                        tx_notifications.as_ref(),
+                        &tx_notifications,
                         SamplerNotification {
                             db: db.name().to_string(),
                             collection_or_view: "".to_string(),
@@ -180,7 +180,7 @@ pub async fn build_schema(options: BuilderOptions) {
                 .for_each(|coll_schema_res| {
                     if let Err(e) = coll_schema_res {
                         notify!(
-                            tx_notifications.as_ref(),
+                            &tx_notifications,
                             SamplerNotification {
                                 db: db.name().to_string(),
                                 collection_or_view: "".to_string(),
@@ -402,7 +402,7 @@ async fn derive_schema_for_partitions(
     collection: &Collection<Document>,
     col_parts: Vec<Partition>,
     rt_handle: &tokio::runtime::Handle,
-    tx_notifications: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
+    tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
 ) -> Result<Option<Schema>> {
     let partition_tasks = col_parts.into_iter().enumerate().map(|(ix, partition)| {
         let db_name = db_name.clone();
@@ -422,7 +422,7 @@ async fn derive_schema_for_partitions(
             let schema = match schema_res {
                 Err(e) => {
                     notify!(
-                        tx_notifications.as_ref(),
+                        &tx_notifications,
                         SamplerNotification {
                             db: db_name.clone(),
                             collection_or_view: collection.name().to_string(),
@@ -469,7 +469,7 @@ async fn derive_schema_for_partition(
     collection: &Collection<Document>,
     mut partition: Partition,
     initial_schema_doc: Option<Document>,
-    tx_notifications: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
+    tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
     partition_ix: usize,
 ) -> Result<Schema> {
     let mut schema: Option<Schema> = initial_schema_doc
@@ -490,7 +490,7 @@ async fn derive_schema_for_partition(
             first_stage = Some(generate_partition_match(&partition, schema.clone())?);
         };
         notify!(
-            tx_notifications.as_ref(),
+            &tx_notifications,
             SamplerNotification {
                 db: db_name.clone(),
                 collection_or_view: collection.name().to_string(),
@@ -517,7 +517,7 @@ async fn derive_schema_for_partition(
         let mut no_result = true;
         while let Some(doc) = cursor.try_next().await.unwrap() {
             notify!(
-                tx_notifications.as_ref(),
+                &tx_notifications,
                 SamplerNotification {
                     db: db_name.clone(),
                     collection_or_view: collection.name().to_string(),
@@ -546,7 +546,7 @@ async fn derive_schema_for_partition(
 async fn derive_schema_for_view(
     view: &CollectionDoc,
     database: &Database,
-    tx_notification: Option<tokio::sync::mpsc::UnboundedSender<SamplerNotification>>,
+    tx_notification: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
 ) -> Option<Schema> {
     let pipeline = vec![doc! { "$sample": { "size": VIEW_SAMPLE_SIZE } }]
         .into_iter()
@@ -566,7 +566,7 @@ async fn derive_schema_for_view(
                 // Notify every 100 iterations, so it isn't too spammy
                 if iterations % 100 == 0 {
                     notify!(
-                        tx_notification.as_ref(),
+                        &tx_notification,
                         SamplerNotification {
                             db: database.name().to_string(),
                             collection_or_view: view.name.clone(),
@@ -584,7 +584,7 @@ async fn derive_schema_for_view(
         }
         Err(e) => {
             notify!(
-                tx_notification.as_ref(),
+                &tx_notification,
                 SamplerNotification {
                     db: database.name().to_string(),
                     collection_or_view: view.name.clone(),

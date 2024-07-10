@@ -1,6 +1,6 @@
 [package]
 name = "schema-builder-tool"
-version = "0.1.0"
+version = "0.0.0"
 edition = "2021"
 
 [dependencies]
@@ -19,3 +19,4 @@ indicatif = "0.17.8"
 thiserror = "1.0.57"
 serde_yaml = "0.9"
 confy = { version = "0.6", features = ["yaml_conf"], default-features = false }
+lazy_static = "1.4.0"
