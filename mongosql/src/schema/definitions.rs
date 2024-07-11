@@ -36,6 +36,10 @@ pub enum Error {
     InvalidNamespace(String),
     #[error("{0}")]
     UnsupportedBsonType(String),
+    #[error("JsonSchemaFailure")]
+    JsonSchemaFailure,
+    #[error("BsonFailure")]
+    BsonFailure,
 }
 
 impl From<user_schema_error::Error> for Error {
@@ -310,6 +314,34 @@ pub enum Schema {
     Document(Document),
     AnyOf(BTreeSet<Schema>),
     Any,
+}
+
+impl TryFrom<Schema> for bson::Document {
+    type Error = Error;
+    fn try_from(schema: Schema) -> std::result::Result<Self, Self::Error> {
+        let json_schema: json_schema::Schema = schema
+            .clone()
+            .try_into()
+            .map_err(|_| Error::JsonSchemaFailure)?;
+        let bson_schema = bson::to_bson(&json_schema).map_err(|_| Error::BsonFailure)?;
+        let ret = bson::doc! {
+            "$jsonSchema": bson_schema
+        };
+        Ok(ret)
+    }
+}
+
+impl TryFrom<bson::Document> for Schema {
+    type Error = Error;
+    fn try_from(schema_doc: bson::Document) -> std::result::Result<Self, Self::Error> {
+        let json_schema: json_schema::Schema =
+            bson::from_document(schema_doc.get_document("$jsonSchema").unwrap().clone())
+                .map_err(|_| Error::BsonFailure)?;
+        let sampler_schema: Schema = json_schema
+            .try_into()
+            .map_err(|_| Error::JsonSchemaFailure)?;
+        Ok(sampler_schema)
+    }
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord, Debug, Clone, Copy, IntoEnumIterator)]
