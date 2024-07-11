@@ -4,8 +4,8 @@
  */
 use crate::{
     consts::DISALLOWED_COLLECTION_NAMES, derive_schema_for_partitions, derive_schema_for_view,
-    get_partitions, notify, query_for_initial_schemas, Error, NamespaceType, Result, SamplerAction,
-    SamplerNotification, SchemaResult,
+    get_partitions, notify, Error, NamespaceType, Result, SamplerAction, SamplerNotification,
+    SchemaResult,
 };
 use futures::TryStreamExt;
 use mongodb::{
@@ -13,6 +13,7 @@ use mongodb::{
     error, Cursor, Database,
 };
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use tokio::task::JoinHandle;
 use tracing::{info, instrument};
 #[cfg(test)]
@@ -40,6 +41,24 @@ pub(crate) struct ViewOptions {
     pub view_on: String,
     #[serde(default)]
     pub pipeline: Vec<Document>,
+}
+
+#[instrument(level = "trace", skip_all)]
+async fn query_for_initial_schemas(
+    schema_collection: Option<String>,
+    database: &Database,
+) -> Result<HashMap<String, Document>> {
+    let mut intial_collection_schemas = HashMap::new();
+    if let Some(schema_coll) = schema_collection {
+        let coll = database.collection::<Document>(schema_coll.as_str());
+        let mut cursor = coll.find(None, None).await?;
+        while let Some(doc) = cursor.try_next().await.unwrap() {
+            let collection_name = doc.get("_id").unwrap().as_str().unwrap();
+            let collection_schema = doc.get("schema").unwrap().as_document().unwrap().clone();
+            intial_collection_schemas.insert(collection_name.to_string(), collection_schema);
+        }
+    };
+    Ok(intial_collection_schemas)
 }
 
 impl CollectionInfo {
