@@ -4,8 +4,8 @@
  */
 use crate::{
     consts::DISALLOWED_COLLECTION_NAMES, derive_schema_for_partitions, derive_schema_for_view,
-    get_partitions, notify, Error, NamespaceType, Result, SamplerAction, SamplerNotification,
-    SchemaResult,
+    get_partitions, notify, query_for_initial_schemas, Error, NamespaceType, Result, SamplerAction,
+    SamplerNotification, SchemaResult,
 };
 use futures::TryStreamExt;
 use mongodb::{
@@ -88,6 +88,7 @@ impl CollectionInfo {
     pub(crate) fn process_collections(
         &self,
         db: &Database,
+        schema_collection: Option<String>,
         tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
         tx_schemata: tokio::sync::mpsc::UnboundedSender<SchemaResult>,
     ) -> Vec<JoinHandle<()>> {
@@ -97,6 +98,7 @@ impl CollectionInfo {
             .map(|coll_doc| {
                 let db = db.clone();
                 let coll = db.collection::<Document>(coll_doc.name.as_str());
+                let schema_collection = schema_collection.clone();
                 let tx_notifications = tx_notifications.clone();
                 let tx_schemata = tx_schemata.clone();
 
@@ -106,6 +108,10 @@ impl CollectionInfo {
                     // To start computing the schema for a collection, we need
                     // to determine the partitions of this collection.
                     let partitions = get_partitions(&coll).await;
+                    let intial_collection_schemas =
+                        query_for_initial_schemas(schema_collection, &db)
+                            .await
+                            .unwrap();
 
                     match partitions {
                         Err(Error::EmptyCollection(name)) => {
@@ -152,6 +158,12 @@ impl CollectionInfo {
                                 },
                             );
 
+                            // If there was a schema already set in the database for this
+                            // collection, use that to seed the derivation of schemas
+                            // for the partitions
+                            let initial_schema =
+                                intial_collection_schemas.get(coll.name()).cloned();
+
                             // The derive_schema_for_partitions function
                             // parallelizes schema derivation per partition.
                             // So here, we await its result and then send it
@@ -161,6 +173,7 @@ impl CollectionInfo {
                                 db.name().to_string(),
                                 &coll,
                                 partitions,
+                                initial_schema,
                                 &tokio::runtime::Handle::current(),
                                 tx_notifications.clone(),
                             )

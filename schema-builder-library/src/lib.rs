@@ -27,6 +27,7 @@ pub use notifications::{SamplerAction, SamplerNotification};
 
 pub mod options;
 use options::BuilderOptions;
+use std::collections::HashMap;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
@@ -113,6 +114,7 @@ pub async fn build_schema(options: BuilderOptions) {
         // To avoid passing a reference to the mongodb::Client around, we
         // create a mongodb::Database before spawning the db-schema task.
         let db = options.client.database(&db_name);
+        let schema_collection = options.schema_collection.clone();
         let tx_notifications = options.tx_notifications.clone();
         let tx_schemata = options.tx_schemata.clone();
 
@@ -155,6 +157,7 @@ pub async fn build_schema(options: BuilderOptions) {
                 Ok(collection_info) => (
                     collection_info.process_collections(
                         &db,
+                        schema_collection,
                         tx_notifications.clone(),
                         tx_schemata.clone(),
                     ),
@@ -401,6 +404,7 @@ async fn derive_schema_for_partitions(
     db_name: String,
     collection: &Collection<Document>,
     col_parts: Vec<Partition>,
+    initial_schema_doc: Option<Document>,
     rt_handle: &tokio::runtime::Handle,
     tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
 ) -> Result<Option<Schema>> {
@@ -408,12 +412,13 @@ async fn derive_schema_for_partitions(
         let db_name = db_name.clone();
         let tx_notifications = tx_notifications.clone();
         let collection = collection.clone();
+        let initial_schema_doc = initial_schema_doc.clone();
         rt_handle.spawn(async move {
             let schema_res = derive_schema_for_partition(
                 db_name.clone(),
                 &collection,
                 partition,
-                None,
+                initial_schema_doc,
                 tx_notifications.clone(),
                 ix,
             )
@@ -730,34 +735,20 @@ pub struct SchemataId {
     pub collection: String,
 }
 
-// TODO: SQL-2156: Query for initial schema
-// #[instrument(level = "trace", skip_all)]
-// pub async fn gen_partitions_with_initial_schema(
-//     collections_and_schemata: Vec<(String, Document)>,
-//     database: &Database,
-// ) -> HashMap<String, (Document, Vec<Partition>)> {
-//     println!("getting partitions with schemata");
-//     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
-//     rayon::scope(|s| {
-//         for (coll, sch) in collections_and_schemata {
-//             let coll = coll.clone();
-//             let tx = tx.clone();
-//             let rt = tokio::runtime::Runtime::new().unwrap();
-//             let database = database.clone();
-//             s.spawn(move |_| {
-//                 rt.block_on(async move {
-//                     let partitions = get_partitions(&database, &coll).await.unwrap();
-//                     tx.send(((coll, sch), partitions)).unwrap();
-//                     drop(tx)
-//                 });
-//                 drop(rt);
-//             })
-//         }
-//     });
-//     drop(tx);
-//     let mut col_parts = HashMap::new();
-//     while let Some(((coll, sch), partitions)) = rx.recv().await {
-//         col_parts.insert(coll, (sch, partitions));
-//     }
-//     col_parts
-// }
+#[instrument(level = "trace", skip_all)]
+pub async fn query_for_initial_schemas(
+    schema_collection: Option<String>,
+    database: &Database,
+) -> Result<HashMap<String, Document>> {
+    let mut intial_collection_schemas = HashMap::new();
+    if let Some(schema_coll) = schema_collection {
+        let coll = database.collection::<Document>(schema_coll.as_str());
+        let mut cursor = coll.find(None, None).await?;
+        while let Some(doc) = cursor.try_next().await.unwrap() {
+            let collection_name = doc.get("_id").unwrap().as_str().unwrap();
+            let collection_schema = doc.get("schema").unwrap().as_document().unwrap().clone();
+            intial_collection_schemas.insert(collection_name.to_string(), collection_schema);
+        }
+    };
+    Ok(intial_collection_schemas)
+}
