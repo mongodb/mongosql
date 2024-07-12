@@ -151,13 +151,27 @@ async fn handle_schema(
                     }
                     schema = rx_schemata.recv() => {
                         match schema {
-                            Some(schema_res) => {
+                            Some(dcsb::SchemaResult::FullSchema(schema_res)) => {
                                 if !quiet {
-                                    pb.set_message(format!("Schema calculated for database: {}", schema_res.db_name));
+                                    pb.set_message(format!("Schema calculated for namespace: {}.{} ({:?})",
+                                        schema_res.namespace_info.db_name,
+                                        schema_res.namespace_info.coll_or_view_name,
+                                        schema_res.namespace_info.namespace_type,
+                                    ));
                                 }
-                                schemata.entry(schema_res.db_name).and_modify(|v| {
-                                    v.insert(schema_res.coll_or_view_name.clone(), schema_res.namespace_schema.clone());
-                                }).or_insert(HashMap::from([(schema_res.coll_or_view_name, schema_res.namespace_schema)]));
+                                schemata.entry(schema_res.namespace_info.db_name).and_modify(|v| {
+                                    v.insert(schema_res.namespace_info.coll_or_view_name.clone(), schema_res.namespace_schema.clone());
+                                }).or_insert(HashMap::from([(schema_res.namespace_info.coll_or_view_name, schema_res.namespace_schema)]));
+                            }
+                            Some(dcsb::SchemaResult::NamespaceOnly(schema_res)) => {
+                                if !quiet {
+                                    pb.set_message(format!(
+                                        "Namespace acknowledged in dryRun mode: {}.{} ({:?})",
+                                        schema_res.db_name,
+                                        schema_res.coll_or_view_name,
+                                        schema_res.namespace_type,
+                                    ))
+                                }
                             }
                             None => {
                                 // When the channel is closed, terminate the loop.

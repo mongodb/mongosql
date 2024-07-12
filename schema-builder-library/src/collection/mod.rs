@@ -4,8 +4,8 @@
  */
 use crate::{
     consts::DISALLOWED_COLLECTION_NAMES, derive_schema_for_partitions, derive_schema_for_view,
-    get_partitions, notify, Error, NamespaceType, Result, SamplerAction, SamplerNotification,
-    SchemaResult,
+    get_partitions, notify, Error, NamespaceInfo, NamespaceInfoWithSchema, NamespaceType, Result,
+    SamplerAction, SamplerNotification, SchemaResult,
 };
 use futures::TryStreamExt;
 use mongodb::{
@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use tokio::task::JoinHandle;
 use tracing::{info, instrument};
+
 #[cfg(test)]
 mod test;
 
@@ -107,6 +108,7 @@ impl CollectionInfo {
     pub(crate) fn process_collections(
         &self,
         db: &Database,
+        dry_run: bool,
         schema_collection: Option<String>,
         tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
         tx_schemata: tokio::sync::mpsc::UnboundedSender<SchemaResult>,
@@ -124,6 +126,19 @@ impl CollectionInfo {
                 info!(name: "processing collection", collection = ?coll_doc);
 
                 tokio::runtime::Handle::current().spawn(async move {
+                    let namespace_info = NamespaceInfo {
+                        db_name: db.name().to_string(),
+                        coll_or_view_name: coll.name().to_string(),
+                        namespace_type: NamespaceType::Collection,
+                    };
+
+                    if dry_run {
+                        // In dry_run mode, there is no need to partition and derive schema for a
+                        // collection. Instead, we send just the namespace info and return.
+                        let _ = tx_schemata.send(SchemaResult::NamespaceOnly(namespace_info));
+                        return;
+                    }
+
                     // To start computing the schema for a collection, we need
                     // to determine the partitions of this collection.
                     let partitions = get_partitions(&coll).await;
@@ -234,12 +249,12 @@ impl CollectionInfo {
                                 Ok(Some(coll_schema)) => {
                                     // If deriving schema succeeds, we send
                                     // the schema over the schemata channel.
-                                    let _ = tx_schemata.send(SchemaResult {
-                                        db_name: db.name().to_string(),
-                                        coll_or_view_name: coll.name().to_string(),
-                                        namespace_type: NamespaceType::Collection,
-                                        namespace_schema: coll_schema,
-                                    });
+                                    let _ = tx_schemata.send(SchemaResult::FullSchema(
+                                        NamespaceInfoWithSchema {
+                                            namespace_info,
+                                            namespace_schema: coll_schema,
+                                        },
+                                    ));
                                 }
                             }
                             drop(tx_notifications);
@@ -263,6 +278,7 @@ impl CollectionInfo {
     pub(crate) fn process_views(
         &self,
         db: &Database,
+        dry_run: bool,
         tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
         tx_schemata: tokio::sync::mpsc::UnboundedSender<SchemaResult>,
     ) -> Vec<JoinHandle<()>> {
@@ -278,6 +294,19 @@ impl CollectionInfo {
                 info!(name: "processing view", view = ?view_doc);
 
                 tokio::runtime::Handle::current().spawn(async move {
+                    let namespace_info = NamespaceInfo {
+                        db_name: db.name().to_string(),
+                        coll_or_view_name: view_doc.name.clone(),
+                        namespace_type: NamespaceType::View,
+                    };
+
+                    if dry_run {
+                        // In dry_run mode, there is no need to derive schema for a view. Instead,
+                        // we send just the namespace info and return.
+                        let _ = tx_schemata.send(SchemaResult::NamespaceOnly(namespace_info));
+                        return;
+                    }
+
                     let view_doc = view_doc.clone();
                     // Since view schemas depend on sampling, this is a
                     // straightforward task: simply await the result of schema
@@ -294,12 +323,12 @@ impl CollectionInfo {
                             }
                         ),
                         Some(schema) => {
-                            let _ = tx_schemata.send(SchemaResult {
-                                db_name: db.name().to_string(),
-                                coll_or_view_name: view_doc.name.clone(),
-                                namespace_type: NamespaceType::View,
-                                namespace_schema: schema,
-                            });
+                            let _ = tx_schemata.send(SchemaResult::FullSchema(
+                                NamespaceInfoWithSchema {
+                                    namespace_info,
+                                    namespace_schema: schema,
+                                },
+                            ));
                         }
                     }
                     drop(tx_notifications);

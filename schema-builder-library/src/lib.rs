@@ -27,17 +27,33 @@ use options::BuilderOptions;
 
 pub type Result<T> = std::result::Result<T, Error>;
 
-/// A struct representing schema information for a specific namespace (a view
-/// or collection).
-pub struct SchemaResult {
+/// An enum for communicating results of this library to a caller. Results may
+/// be namespace-only, meaning they do not include schema information, or they
+/// may include schema information.
+pub enum SchemaResult {
+    /// SchemaResult without schema info. Used in dry_run mode.
+    NamespaceOnly(NamespaceInfo),
+
+    /// SchemaResult with schema info.
+    FullSchema(NamespaceInfoWithSchema),
+}
+
+/// A struct representing namespace information for a view or collection.
+pub struct NamespaceInfo {
     /// The name of the database.
     pub db_name: String,
 
     /// The name of the collection or view which this schema represents.
     pub coll_or_view_name: String,
 
-    /// The type of namespace (collection or view)
+    /// The type of namespace (collection or view).
     pub namespace_type: NamespaceType,
+}
+
+/// A struct representing schema information for a specific namespace (a view
+/// or collection).
+pub struct NamespaceInfoWithSchema {
+    pub namespace_info: NamespaceInfo,
 
     /// The schema for the namespace.
     pub namespace_schema: Schema,
@@ -45,6 +61,7 @@ pub struct SchemaResult {
 
 /// An enum representing the two namespace types for which this library
 /// can generate schema: Collection and View.
+#[derive(Debug)]
 pub enum NamespaceType {
     Collection,
     View,
@@ -153,12 +170,14 @@ pub async fn build_schema(options: BuilderOptions) {
                 Ok(collection_info) => (
                     collection_info.process_collections(
                         &db,
+                        options.dry_run,
                         schema_collection,
                         tx_notifications.clone(),
                         tx_schemata.clone(),
                     ),
                     collection_info.process_views(
                         &db,
+                        options.dry_run,
                         tx_notifications.clone(),
                         tx_schemata.clone(),
                     ),
