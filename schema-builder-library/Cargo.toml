@@ -9,6 +9,9 @@ edition = "2021"
 name = "schema_builder_library"
 path = "src/lib.rs"
 
+[[bin]]
+name = "schema-builder-data-loader"
+path = "src/data-loader/main.rs"
 
 [dependencies]
 crossbeam = { version = "0.8.2", features = ["crossbeam-channel"] }
@@ -24,3 +27,6 @@ thiserror = "1.0.50"
 lazy_static = "1.4.0"
 glob = "0.3.1"
 tracing = "0.1"
+
+[features]
+integration = []
