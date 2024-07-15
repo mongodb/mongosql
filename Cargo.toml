@@ -9,6 +9,7 @@ members = [
     "mongosql-datastructures",
     "mongosql-c",
     "mongosql",
+    "service",
     "test-utils",
     "schema-builder-tool",
     "schema-builder-library",

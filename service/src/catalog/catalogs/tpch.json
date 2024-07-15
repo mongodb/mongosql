@@ -1,0 +1,609 @@
+{
+  "catalog_schema": {
+    "tpch": {
+      "customer": {
+        "bsonType": "object",
+        "properties": {
+          "c_address": {
+            "bsonType": "string"
+          },
+          "c_acctbal": {
+            "bsonType": "double"
+          },
+          "c_custkey": {
+            "bsonType": "int"
+          },
+          "c_name": {
+            "bsonType": "string"
+          },
+          "_id": {
+            "bsonType": "objectId"
+          },
+          "c_nationkey": {
+            "bsonType": "int"
+          },
+          "c_phone": {
+            "bsonType": "string"
+          },
+          "c_comment": {
+            "bsonType": "string"
+          },
+          "c_mktsegment": {
+            "bsonType": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "lineitem": {
+        "bsonType": "object",
+        "properties": {
+          "l_suppkey": {
+            "bsonType": "int"
+          },
+          "l_returnflag": {
+            "bsonType": "string"
+          },
+          "l_discount": {
+            "bsonType": "double"
+          },
+          "l_quantity": {
+            "bsonType": "int"
+          },
+          "l_extendedprice": {
+            "bsonType": "double"
+          },
+          "_id": {
+            "bsonType": "objectId"
+          },
+          "l_linestatus": {
+            "bsonType": "string"
+          },
+          "l_shipmode": {
+            "bsonType": "string"
+          },
+          "l_shipdate": {
+            "bsonType": "date"
+          },
+          "l_comment": {
+            "bsonType": "string"
+          },
+          "l_orderkey": {
+            "bsonType": "int"
+          },
+          "l_receiptdate": {
+            "bsonType": "date"
+          },
+          "l_shipinstruct": {
+            "bsonType": "string"
+          },
+          "l_commitdate": {
+            "bsonType": "date"
+          },
+          "l_partkey": {
+            "bsonType": "int"
+          },
+          "l_linenumber": {
+            "bsonType": "int"
+          },
+          "l_tax": {
+            "bsonType": "double"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "nation": {
+        "bsonType": ["object"],
+        "properties": {
+          "n_name": {
+            "bsonType": ["string"],
+            "additionalProperties": false
+          },
+          "n_regionkey": {
+            "bsonType": ["int"],
+            "additionalProperties": false
+          },
+          "n_comment": {
+            "bsonType": ["string"],
+            "additionalProperties": false
+          },
+          "_id": {
+            "bsonType": ["objectId"],
+            "additionalProperties": false
+          },
+          "n_nationkey": {
+            "bsonType": ["int"],
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      },
+      "orders": {
+        "bsonType": "object",
+        "properties": {
+          "o_orderpriority": {
+            "bsonType": "string"
+          },
+          "o_comment": {
+            "bsonType": "string"
+          },
+          "o_shippriority": {
+            "bsonType": "int"
+          },
+          "o_clerk": {
+            "bsonType": "string"
+          },
+          "_id": {
+            "bsonType": "objectId"
+          },
+          "o_orderkey": {
+            "bsonType": "int"
+          },
+          "o_orderdate": {
+            "bsonType": "date"
+          },
+          "o_custkey": {
+            "bsonType": "int"
+          },
+          "o_orderstatus": {
+            "bsonType": "string"
+          },
+          "o_totalprice": {
+            "bsonType": "double"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "part": {
+        "bsonType": "object",
+        "properties": {
+          "p_comment": {
+            "bsonType": "string"
+          },
+          "p_partkey": {
+            "bsonType": "int"
+          },
+          "p_type": {
+            "bsonType": "string"
+          },
+          "p_mfgr": {
+            "bsonType": "string"
+          },
+          "_id": {
+            "bsonType": "objectId"
+          },
+          "p_retailprice": {
+            "bsonType": "double"
+          },
+          "p_size": {
+            "bsonType": "int"
+          },
+          "p_brand": {
+            "bsonType": "string"
+          },
+          "p_container": {
+            "bsonType": "string"
+          },
+          "p_name": {
+            "bsonType": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "partsupp": {
+        "bsonType": "object",
+        "properties": {
+          "ps_supplycost": {
+            "bsonType": "double"
+          },
+          "ps_comment": {
+            "bsonType": "string"
+          },
+          "ps_availqty": {
+            "bsonType": "int"
+          },
+          "_id": {
+            "bsonType": "objectId"
+          },
+          "ps_partkey": {
+            "bsonType": "int"
+          },
+          "ps_suppkey": {
+            "bsonType": "int"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "region": {
+        "bsonType": "object",
+        "properties": {
+          "r_comment": {
+            "bsonType": "string"
+          },
+          "r_regionkey": {
+            "bsonType": "int"
+          },
+          "_id": {
+            "bsonType": "objectId"
+          },
+          "r_name": {
+            "bsonType": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "revenue": {
+        "bsonType": "object",
+        "properties": {
+          "supplier_no": {
+            "bsonType": "int"
+          },
+          "total_revenue": {
+            "bsonType": "double"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "supplier": {
+        "bsonType": "object",
+        "properties": {
+          "s_nationkey": {
+            "bsonType": "int"
+          },
+          "s_phone": {
+            "bsonType": "string"
+          },
+          "s_acctbal": {
+            "bsonType": "double"
+          },
+          "s_address": {
+            "bsonType": "string"
+          },
+          "_id": {
+            "bsonType": "objectId"
+          },
+          "s_comment": {
+            "bsonType": "string"
+          },
+          "s_name": {
+            "bsonType": "string"
+          },
+          "s_suppkey": {
+            "bsonType": "int"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  },
+  "denormalized_catalog_schema": {
+    "tpch": {
+      "customer": {
+        "bsonType": "object",
+        "properties": {
+          "orders": {
+            "bsonType": "array",
+            "items": {
+              "bsonType": "object",
+              "properties": {
+                "o_orderdate": {
+                  "bsonType": "date"
+                },
+                "o_totalprice": {
+                  "bsonType": "double"
+                },
+                "lineitem": {
+                  "bsonType": "array",
+                  "items": {
+                    "bsonType": "object",
+                    "properties": {
+                      "l_shipmode": {
+                        "bsonType": "string"
+                      },
+                      "l_tax": {
+                        "bsonType": "double"
+                      },
+                      "l_linestatus": {
+                        "bsonType": "string"
+                      },
+                      "l_extendedprice": {
+                        "bsonType": "double"
+                      },
+                      "l_suppkey": {
+                        "bsonType": "int"
+                      },
+                      "l_linenumber": {
+                        "bsonType": "int"
+                      },
+                      "l_partkey": {
+                        "bsonType": "int"
+                      },
+                      "l_shipinstruct": {
+                        "bsonType": "string"
+                      },
+                      "l_commitdate": {
+                        "bsonType": "date"
+                      },
+                      "_id": {
+                        "bsonType": "objectId"
+                      },
+                      "l_discount": {
+                        "bsonType": "double"
+                      },
+                      "l_orderkey": {
+                        "bsonType": "int"
+                      },
+                      "l_quantity": {
+                        "bsonType": "int"
+                      },
+                      "l_comment": {
+                        "bsonType": "string"
+                      },
+                      "l_shipdate": {
+                        "bsonType": "date"
+                      },
+                      "l_receiptdate": {
+                        "bsonType": "date"
+                      },
+                      "l_returnflag": {
+                        "bsonType": "string"
+                      }
+                    },
+                    "required": [],
+                    "additionalProperties": false
+                  }
+                },
+                "o_orderstatus": {
+                  "bsonType": "string"
+                },
+                "o_orderpriority": {
+                  "bsonType": "string"
+                },
+                "o_comment": {
+                  "bsonType": "string"
+                },
+                "_id": {
+                  "bsonType": "objectId"
+                },
+                "o_custkey": {
+                  "bsonType": "int"
+                },
+                "o_orderkey": {
+                  "bsonType": "int"
+                },
+                "o_shippriority": {
+                  "bsonType": "int"
+                },
+                "o_clerk": {
+                  "bsonType": "string"
+                }
+              },
+              "required": [],
+              "additionalProperties": false
+            }
+          },
+          "c_acctbal": {
+            "bsonType": "double"
+          },
+          "c_mktsegment": {
+            "bsonType": "string"
+          },
+          "c_custkey": {
+            "bsonType": "int"
+          },
+          "c_name": {
+            "bsonType": "string"
+          },
+          "_id": {
+            "bsonType": "objectId"
+          },
+          "c_address": {
+            "bsonType": "string"
+          },
+          "c_phone": {
+            "bsonType": "string"
+          },
+          "nation": {
+            "bsonType": "object",
+            "properties": {
+              "_id": {
+                "bsonType": "objectId"
+              },
+              "n_comment": {
+                "bsonType": "string"
+              },
+              "n_name": {
+                "bsonType": "string"
+              },
+              "n_nationkey": {
+                "bsonType": "int"
+              },
+              "region": {
+                "bsonType": "object",
+                "properties": {
+                  "r_comment": {
+                    "bsonType": "string"
+                  },
+                  "r_name": {
+                    "bsonType": "string"
+                  },
+                  "_id": {
+                    "bsonType": "objectId"
+                  },
+                  "r_regionkey": {
+                    "bsonType": "int"
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          },
+          "c_comment": {
+            "bsonType": "string"
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "part": {
+        "bsonType": "object",
+        "properties": {
+          "part": {
+            "bsonType": "object",
+            "properties": {
+              "p_size": {
+                "bsonType": "int"
+              },
+              "_id": {
+                "bsonType": "objectId"
+              },
+              "p_mfgr": {
+                "bsonType": "string"
+              },
+              "p_name": {
+                "bsonType": "string"
+              },
+              "p_type": {
+                "bsonType": "string"
+              },
+              "p_retailprice": {
+                "bsonType": "double"
+              },
+              "p_container": {
+                "bsonType": "string"
+              },
+              "p_brand": {
+                "bsonType": "string"
+              },
+              "p_comment": {
+                "bsonType": "string"
+              },
+              "p_partkey": {
+                "bsonType": "int"
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "partsupp": {
+        "bsonType": "object",
+        "properties": {
+          "partsupp": {
+            "bsonType": "object",
+            "properties": {
+              "_id": {
+                "bsonType": "objectId"
+              },
+              "ps_suppkey": {
+                "bsonType": "int"
+              },
+              "ps_supplycost": {
+                "bsonType": "double"
+              },
+              "ps_availqty": {
+                "bsonType": "int"
+              },
+              "ps_partkey": {
+                "bsonType": "int"
+              },
+              "ps_comment": {
+                "bsonType": "string"
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      },
+      "supplier": {
+        "bsonType": "object",
+        "properties": {
+          "supplier": {
+            "bsonType": "object",
+            "properties": {
+              "s_address": {
+                "bsonType": "string"
+              },
+              "nation": {
+                "bsonType": "object",
+                "properties": {
+                  "_id": {
+                    "bsonType": "objectId"
+                  },
+                  "n_name": {
+                    "bsonType": "string"
+                  },
+                  "n_nationkey": {
+                    "bsonType": "int"
+                  },
+                  "n_comment": {
+                    "bsonType": "string"
+                  },
+                  "region": {
+                    "bsonType": "object",
+                    "properties": {
+                      "r_name": {
+                        "bsonType": "string"
+                      },
+                      "r_comment": {
+                        "bsonType": "string"
+                      },
+                      "r_regionkey": {
+                        "bsonType": "int"
+                      },
+                      "_id": {
+                        "bsonType": "objectId"
+                      }
+                    },
+                    "required": [],
+                    "additionalProperties": false
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              },
+              "s_suppkey": {
+                "bsonType": "int"
+              },
+              "s_comment": {
+                "bsonType": "string"
+              },
+              "_id": {
+                "bsonType": "objectId"
+              },
+              "s_acctbal": {
+                "bsonType": "double"
+              },
+              "s_name": {
+                "bsonType": "string"
+              },
+              "s_phone": {
+                "bsonType": "string"
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "required": [],
+        "additionalProperties": false
+      }
+    }
+  }
+}

@@ -1,0 +1,58 @@
+syntax = "proto3";
+package translator;
+
+service Translator {
+  rpc TranslateSql(TranslateSqlRequest) returns (TranslateSqlResponse) {}
+  rpc GetNamespaces(GetNamespacesRequest) returns (GetNamespacesResponse) {}
+}
+
+message TranslateSqlRequest {
+  string db = 1;
+  string query = 2;
+  bytes schema_catalog = 3;
+  ExcludeNamespacesOption exclude_namespaces = 4;
+  SchemaCheckingMode schema_checking_mode = 5;
+}
+
+enum ExcludeNamespacesOption {
+  EXCLUDE_NAMESPACES = 0;
+  INCLUDE_NAMESPACES = 1;
+}
+
+enum SchemaCheckingMode {
+  STRICT = 0;
+  RELAXED = 1;
+}
+
+message SelectOrderItem {
+  optional string namespace = 1;
+  string field_name = 2;
+}
+
+message TranslateSqlResponse {
+  Metadata metadata = 1;
+  string db = 2;
+  string target_collection = 3;
+  string pipeline = 4;
+  string result_set_schema = 5;
+  repeated SelectOrderItem select_order = 6;
+}
+
+message GetNamespacesRequest {
+  string db = 1;
+  string query = 2;
+}
+
+message GetNamespacesResponse {
+  Metadata metadata = 1;
+  repeated Namespace namespaces = 2;
+}
+
+message Namespace {
+  string db = 1;
+  string collection = 2;
+}
+
+message Metadata {
+  string version = 1;
+}
