@@ -5,8 +5,8 @@ use chrono::Local;
 use mongosql::schema::Schema;
 use report::{
     csv::generate_csv,
-    html::generate_html,
-    log_parser::handle_logs,
+    html::{generate_html, generate_index},
+    log_parser::{handle_logs, LogParseResult},
     schema::{process_schemata, SchemaAnalysis},
 };
 use std::{collections::HashMap, env, path::PathBuf, process, time::Instant};
@@ -18,36 +18,69 @@ use schema_builder_library as dcsb; // dcsb == Direct Cluster Schema Builder
 
 pub const REPORT_FILE_STEM: &str = "Atlas_SQL_Readiness";
 pub const REPORT_NAME: &str = "Atlas SQL Transition Readiness Report";
+pub const LOG_ANALYSIS_DIR: &str = "log_analysis";
+pub const SCHEMA_ANALYSIS_DIR: &str = "schema_analysis";
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    let date = Local::now().format("%m-%d-%Y_%H%M").to_string();
     let Cli {
         input,
         output,
         uri,
         username,
         quiet,
+        resolver,
+        include,
+        exclude,
     } = Cli::parse();
 
-    let output_path = process_output_path(output)?;
-    let parse_results = handle_logs(input, quiet)?;
-    let analysis = handle_schema(uri, username, quiet).await?;
-    let date = Local::now().format("%m-%d-%Y_%H%M").to_string();
-
-    if parse_results.is_none() && analysis.is_none() {
+    if input.is_none() && uri.is_none() {
         eprintln!("No input logs or URI provided for analysis, exiting...");
         process::exit(1);
     }
 
-    generate_html(
-        &output_path,
-        &date,
-        parse_results.as_ref(),
-        analysis.as_ref(),
-        !quiet,
-        REPORT_FILE_STEM,
-        REPORT_NAME,
-    )?;
+    let output_path = process_output_path(output)?;
+
+    std::fs::create_dir_all(&output_path).context("Failed to create output directory")?;
+
+    let mut parse_results = None;
+    if parse_results.is_some() {
+        std::fs::create_dir_all(output_path.join(LOG_ANALYSIS_DIR))
+            .context("Failed to create log analysis directory")?;
+        parse_results = handle_logs(input, quiet)?;
+        generate_html(
+            &output_path.join(LOG_ANALYSIS_DIR),
+            &date,
+            parse_results.as_ref(),
+            None,
+            !quiet,
+            REPORT_FILE_STEM,
+            REPORT_NAME,
+        )?;
+    }
+
+    let mut analysis = None;
+
+    if uri.is_some() {
+        std::fs::create_dir_all(output_path.join(SCHEMA_ANALYSIS_DIR))
+            .context("Failed to create schema analysis directory")?;
+        let schema_args = SchemaProcessingArgs {
+            uri,
+            username,
+            quiet,
+            resolver,
+            include: include.unwrap_or_default(),
+            exclude: exclude.unwrap_or_default(),
+            file_path: output_path.join("schema_analysis"),
+            date: &date,
+            log_parse: parse_results.as_ref(),
+            report_name: REPORT_NAME.to_string(),
+        };
+
+        analysis = handle_schema(schema_args).await?;
+    }
+
     generate_csv(
         &output_path,
         &date,
@@ -55,6 +88,12 @@ async fn main() -> Result<()> {
         analysis.as_ref(),
         !quiet,
         REPORT_FILE_STEM,
+    )?;
+    generate_index(
+        &output_path,
+        REPORT_NAME,
+        LOG_ANALYSIS_DIR,
+        SCHEMA_ANALYSIS_DIR,
     )
 }
 
@@ -67,14 +106,44 @@ fn process_output_path(output: Option<String>) -> Result<PathBuf> {
     }
 }
 
-async fn handle_schema(
+struct SchemaProcessingArgs<'a> {
+    /// The URI to connect to the MongoDB cluster.
     uri: Option<String>,
+    /// The username to use for authentication. Only if --username is set
     username: Option<String>,
+    /// Whether to suppress output to the console.
     quiet: bool,
-) -> Result<Option<SchemaAnalysis>> {
+    /// The resolver to use for DNS resolution.
+    resolver: Option<cli::Resolver>,
+    /// The list of namespaces to include in the schema analysis.
+    include: Vec<String>,
+    /// The list of namespaces to exclude from the schema analysis.
+    exclude: Vec<String>,
+    /// The path to the output directory.
+    file_path: PathBuf,
+    /// The date and time of the report.
+    date: &'a str,
+    /// The log parsing results.
+    log_parse: Option<&'a LogParseResult>,
+    report_name: String,
+}
+
+async fn handle_schema<'a>(args: SchemaProcessingArgs<'_>) -> Result<Option<SchemaAnalysis>> {
+    let SchemaProcessingArgs {
+        uri,
+        username,
+        quiet,
+        resolver,
+        include,
+        exclude,
+        file_path,
+        date,
+        log_parse,
+        report_name,
+    } = args;
     if let Some(ref uri) = uri {
         if !uri.is_empty() {
-            let mut options = dcsb::client_util::get_opts(uri).await?;
+            let mut options = dcsb::client_util::get_opts(uri, resolver.map(|r| r.into())).await?;
             let password: Option<String>;
             if dcsb::client_util::needs_auth(&options) {
                 if let Some(ref username) = username {
@@ -119,8 +188,8 @@ async fn handle_schema(
 
             tokio::spawn(async move {
                 let builder_options = dcsb::options::BuilderOptions {
-                    include_list: vec![],
-                    exclude_list: vec![],
+                    include_list: include,
+                    exclude_list: exclude,
                     schema_collection: None,
                     dry_run: false,
                     client: client.clone(),
@@ -159,9 +228,12 @@ async fn handle_schema(
                                         schema_res.namespace_info.namespace_type,
                                     ));
                                 }
-                                schemata.entry(schema_res.namespace_info.db_name).and_modify(|v| {
+                                schemata.entry(schema_res.namespace_info.db_name.clone()).and_modify(|v| {
                                     v.insert(schema_res.namespace_info.coll_or_view_name.clone(), schema_res.namespace_schema.clone());
-                                }).or_insert(HashMap::from([(schema_res.namespace_info.coll_or_view_name, schema_res.namespace_schema)]));
+                                }).or_insert(HashMap::from([(schema_res.namespace_info.coll_or_view_name.clone(), schema_res.namespace_schema.clone())]));
+
+                                let schema_analysis = process_schemata(HashMap::from([(schema_res.namespace_info.db_name.clone(), HashMap::from([(schema_res.namespace_info.coll_or_view_name.clone(), schema_res.namespace_schema.clone())]))]));
+                                generate_html(&file_path, date, log_parse, Some(&schema_analysis), !quiet, &schema_res.namespace_info.db_name, &report_name).unwrap();
                             }
                             Some(dcsb::SchemaResult::NamespaceOnly(schema_res)) => {
                                 if !quiet {

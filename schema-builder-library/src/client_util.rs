@@ -26,11 +26,11 @@ pub async fn load_password_auth(
 }
 
 /// Returns a client options with the optimal pool size set.
-pub async fn get_opts(uri: &str) -> Result<ClientOptions> {
-    let mut opts = if cfg!(target_os = "windows") {
+pub async fn get_opts(uri: &str, resolver: Option<ResolverConfig>) -> Result<ClientOptions> {
+    let mut opts = if let Some(resolver) = resolver {
         ClientOptions::parse_connection_string_with_resolver_config(
             ConnectionString::parse(uri)?,
-            ResolverConfig::cloudflare(),
+            resolver,
         )
         .await?
     } else {

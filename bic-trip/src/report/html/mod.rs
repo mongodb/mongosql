@@ -4,7 +4,11 @@ mod schema_html;
 
 use base64::{prelude::BASE64_STANDARD, Engine};
 use build_html::{Container, Html, HtmlContainer, HtmlPage};
-use std::{fs::File, io::Write, path::Path};
+use std::{
+    fs::File,
+    io::Write,
+    path::{Path, PathBuf},
+};
 
 use image::{DynamicImage, ImageOutputFormat};
 
@@ -33,6 +37,96 @@ pub fn generate_html(
     }
     Ok(report_file
         .write_all(generate_html_elements(log_parse, schema_analysis, report_name).as_bytes())?)
+}
+
+pub fn generate_index(
+    file_path: &Path,
+    report_name: &str,
+    log_analysis_dir_name: &str,
+    schema_analysis_dir_name: &str,
+) -> Result<()> {
+    let mut report_file = File::create(file_path.join("index.html"))?;
+    Ok(report_file.write_all(
+        generate_index_elements(
+            file_path,
+            report_name,
+            log_analysis_dir_name,
+            schema_analysis_dir_name,
+        )
+        .as_bytes(),
+    )?)
+}
+
+fn generate_index_elements(
+    file_path: &Path,
+    report_name: &str,
+    log_analysis_dir_name: &str,
+    schema_analysis_dir_name: &str,
+) -> String {
+    let mut page = HtmlPage::new().with_title("Index").with_style(get_css());
+    let mut body = Container::default().with_attributes([("class", "container")]);
+
+    // Add MongoDB logo and title
+    body.add_raw(get_mongodb_icon_html(report_name));
+
+    body.add_raw(&format!(
+        r#"<h2>Schema Reports</h2><ul>{}</ul>"#,
+        find_html_files(&file_path.join(schema_analysis_dir_name))
+            .unwrap_or_default()
+            .iter()
+            .fold(String::new(), |acc, path| {
+                let relative_path = get_relative_path(file_path, path);
+                format!(
+                    r#"{}
+                    <li><a href="{path}">{path}</a></li>"#,
+                    acc,
+                    path = relative_path.display()
+                )
+            })
+    ));
+    body.add_raw(&format!(
+        r#"<h2>Log Reports</h2><ul>{}</ul>"#,
+        find_html_files(&file_path.join(log_analysis_dir_name))
+            .unwrap_or_default()
+            .iter()
+            .fold(String::new(), |acc, path| {
+                let relative_path = get_relative_path(file_path, path);
+                format!(
+                    r#"{}
+                    <li><a href="{path}">{path}</a></li>"#,
+                    acc,
+                    path = relative_path.display()
+                )
+            })
+    ));
+
+    page.add_container(body);
+    page.to_html_string()
+}
+
+fn find_html_files(dir: &Path) -> std::io::Result<Vec<PathBuf>> {
+    let mut html_files = Vec::new();
+
+    for entry in std::fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.is_file() {
+            if let Some(ext) = path.extension() {
+                if ext == "html" {
+                    html_files.push(path);
+                }
+            }
+        }
+    }
+
+    Ok(html_files)
+}
+
+fn get_relative_path(base: &Path, path: &Path) -> PathBuf {
+    path.strip_prefix(base)
+        .ok()
+        .map(|p| p.to_path_buf())
+        .unwrap()
 }
 
 /// encode_image_to_base64 encodes image into a base64 string to be added directly to HTML

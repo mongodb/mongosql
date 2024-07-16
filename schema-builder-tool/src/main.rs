@@ -47,7 +47,8 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
     event!(Level::INFO, "{:?}", cfg);
 
     // Create client
-    let mut client_options = get_opts(cfg.uri.unwrap().as_str()).await?;
+    let mut client_options =
+        get_opts(cfg.uri.unwrap().as_str(), cfg.resolver.map(|r| r.into())).await?;
 
     client_options.app_name = Some(DEFAULT_APP_NAME.clone());
 

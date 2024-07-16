@@ -60,6 +60,27 @@ pub struct Cli {
     /// Default: false
     #[clap(long = "dryRun")]
     pub dry_run: bool,
+
+    #[clap(long)]
+    /// Resolver option for DNS resolution (optional). Specify a resolver if DNS resolution fails or takes too long.
+    pub resolver: Option<Resolver>,
+}
+
+#[derive(clap::ValueEnum, Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub enum Resolver {
+    Cloudflare,
+    Google,
+    Quad9,
+}
+
+impl From<Resolver> for mongodb::options::ResolverConfig {
+    fn from(val: Resolver) -> Self {
+        match val {
+            Resolver::Cloudflare => mongodb::options::ResolverConfig::cloudflare(),
+            Resolver::Google => mongodb::options::ResolverConfig::google(),
+            Resolver::Quad9 => mongodb::options::ResolverConfig::quad9(),
+        }
+    }
 }
 
 #[derive(clap::ValueEnum, Debug, Serialize, Deserialize, Clone, PartialEq)]
@@ -114,6 +135,7 @@ impl Cli {
             verbosity: left.verbosity.or(right.verbosity),
             schema_action: left.schema_action.or(right.schema_action),
             dry_run: left.dry_run || right.dry_run,
+            resolver: left.resolver.or(right.resolver),
         }
     }
 }
@@ -136,6 +158,7 @@ mod test {
             verbosity: Some(Verbosity::Debug),
             schema_action: Some(SchemaAction::Merge),
             dry_run: false,
+            resolver: None,
         };
         let right = Cli {
             config_file: None,
@@ -149,6 +172,7 @@ mod test {
             verbosity: None,
             schema_action: None,
             dry_run: true,
+            resolver: Some(Resolver::Google),
         };
         let cli = Cli::merge(left, right);
         assert_eq!(cli.config_file, Some("foobar.txt".to_string()));
@@ -162,5 +186,6 @@ mod test {
         assert_eq!(cli.verbosity, Some(Verbosity::Debug));
         assert_eq!(cli.schema_action, Some(SchemaAction::Merge));
         assert!(cli.dry_run);
+        assert_eq!(cli.resolver, Some(Resolver::Google));
     }
 }
