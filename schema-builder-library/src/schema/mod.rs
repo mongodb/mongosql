@@ -116,18 +116,20 @@ async fn derive_schema_for_partition(
         .clone()
         .map(Schema::try_from)
         .transpose()?;
+    let mut ignored_ids = vec![];
     let mut first_stage = Some(generate_partition_match_with_doc(
         &partition,
         initial_schema_doc,
+        &ignored_ids,
     )?);
 
     loop {
-        if partition.min == partition.max {
-            break;
-        }
-
         if first_stage.is_none() {
-            first_stage = Some(generate_partition_match(&partition, schema.clone())?);
+            first_stage = Some(generate_partition_match(
+                &partition,
+                schema.clone(),
+                &ignored_ids,
+            )?);
         };
         notify!(
             &tx_notifications,
@@ -167,8 +169,12 @@ async fn derive_schema_for_partition(
                 },
             );
             let id = doc.get("_id").unwrap().clone();
-            partition.min = id;
+            partition.min = id.clone();
+            let old_schema = schema.clone();
             schema = Some(schema_for_document(&doc).union(&schema.unwrap_or(Schema::Unsat)));
+            if old_schema == schema {
+                ignored_ids.push(id);
+            }
             no_result = false;
         }
         if no_result {

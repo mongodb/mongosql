@@ -161,26 +161,35 @@ async fn get_bound(collection: &Collection<Document>, direction: i32) -> Result<
 // generate_partition_match generates the $match stage for sampling based on the partition
 // additional_properties and an optional Schema. If the Schema is None, the $match will only
 // be based on the Partition bounds.
+// This function also accepts a list of ignored_ids which will be used to exclude certain documents.
 #[instrument(level = "trace", skip_all)]
 pub(crate) fn generate_partition_match(
     partition: &Partition,
     schema: Option<Schema>,
+    ignored_ids: &[Bson],
 ) -> Result<Document> {
-    generate_partition_match_with_doc(partition, schema.map(Document::try_from).transpose()?)
+    generate_partition_match_with_doc(
+        partition,
+        schema.map(Document::try_from).transpose()?,
+        ignored_ids,
+    )
 }
 
 // generate_partition_match_with_doc generates the $match stage for sampling based on the partition
 // additional_properties and an optional input jsonSchema. If the jsonSchema doc is None, the $match
 // will only be based on the Partition bounds.
+// This function also accepts a list of ignored_ids which will be used to exclude certain documents.
 #[instrument(level = "trace", skip_all)]
 pub(crate) fn generate_partition_match_with_doc(
     partition: &Partition,
     schema: Option<Document>,
+    ignored_ids: &[Bson],
 ) -> Result<Document> {
     let mut match_body = doc! {
         "_id": {
+            "$nin": ignored_ids,
             "$gte": partition.min.clone(),
-            "$lt": partition.max.clone(),
+            "$lte": partition.max.clone(),
         }
     };
     if let Some(schema) = schema {
