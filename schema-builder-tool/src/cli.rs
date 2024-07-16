@@ -1,5 +1,6 @@
 use clap::Parser;
 use serde::{Deserialize, Serialize};
+use tracing_subscriber::filter::LevelFilter;
 
 #[derive(Parser, Debug, Default, Serialize, Deserialize, Clone)]
 #[command(author, version, about, long_about = None)]
@@ -42,11 +43,11 @@ pub struct Cli {
     #[clap(long)]
     pub quiet: bool,
 
-    /// Output path to write a log file. If not provided, all output goes to the terminal.
+    /// Output path to write a log file. If not provided, logging will be ignored.
     #[clap(long, short = 'o')]
     pub logpath: Option<String>,
 
-    /// The logging level to capture in the log file (optional).
+    /// The logging level to capture in the log file (optional). Requires logpath to be set.
     #[clap(value_enum, long, short = 'v', default_value = "warn")]
     pub verbosity: Option<Verbosity>,
 
@@ -68,6 +69,18 @@ pub enum Verbosity {
     Info,
     Warn,
     Error,
+}
+
+impl From<Verbosity> for LevelFilter {
+    fn from(verbosity: Verbosity) -> Self {
+        match verbosity {
+            Verbosity::Trace => LevelFilter::TRACE,
+            Verbosity::Debug => LevelFilter::DEBUG,
+            Verbosity::Info => LevelFilter::DEBUG,
+            Verbosity::Warn => LevelFilter::DEBUG,
+            Verbosity::Error => LevelFilter::ERROR,
+        }
+    }
 }
 
 #[derive(clap::ValueEnum, Debug, Serialize, Deserialize, Clone, PartialEq)]

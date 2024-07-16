@@ -16,6 +16,7 @@ use schema_builder_library::{
 };
 use std::process;
 use tokio::sync::mpsc::unbounded_channel;
+use tracing::{event, instrument, Level};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -26,10 +27,25 @@ async fn main() -> Result<()> {
             .with_context(|| format!("Failed to load configuration file: {}", config))?;
         cfg = Cli::merge(cfg, file_cfg);
     }
-    run_with_config(cfg).await
+
+    if let (Some(path), Some(verbosity)) = (cfg.logpath.clone(), cfg.verbosity.clone()) {
+        let file_appender = tracing_appender::rolling::hourly(path, "mongo-schema-builder.log");
+        let (non_blocking, _guard) = tracing_appender::non_blocking(file_appender);
+        tracing_subscriber::fmt()
+            .with_ansi(false)
+            .with_max_level(verbosity)
+            .with_writer(non_blocking)
+            .init();
+        run_with_config(cfg).await
+    } else {
+        run_with_config(cfg).await
+    }
 }
 
+#[instrument(skip_all)]
 async fn run_with_config(cfg: Cli) -> Result<()> {
+    event!(Level::INFO, "{:?}", cfg);
+
     // Create client
     let mut client_options = get_opts(cfg.uri.unwrap().as_str()).await?;
 
