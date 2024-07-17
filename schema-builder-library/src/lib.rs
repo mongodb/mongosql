@@ -1,6 +1,7 @@
 use futures::future;
 use mongodb::{bson::doc, options::ListDatabasesOptions};
 use mongosql::schema::Schema;
+use std::fmt::{self, Display, Formatter};
 use tracing::{instrument, span, Level};
 
 pub mod client_util;
@@ -65,6 +66,15 @@ pub struct NamespaceInfoWithSchema {
 pub enum NamespaceType {
     Collection,
     View,
+}
+
+impl Display for NamespaceType {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        match self {
+            NamespaceType::Collection => write!(f, "Collection"),
+            NamespaceType::View => write!(f, "View"),
+        }
+    }
 }
 
 /// build_schema is the entry point for the schema-builder-library. Given a mongodb::Client,
