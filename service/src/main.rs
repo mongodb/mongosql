@@ -1,9 +1,8 @@
 pub mod server;
-pub mod translator;
 use tonic::transport::Server;
 
 use server::TranslateSqlService;
-use translator::translator_server::TranslatorServer;
+use service::translator::translator_service_server::TranslatorServiceServer;
 pub mod version;
 
 mod mongosql_proto {
@@ -26,7 +25,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // TODO SQL-2218: Implement Logging
     println!("Starting SQL translation server");
     Server::builder()
-        .add_service(TranslatorServer::new(inventory))
+        .add_service(TranslatorServiceServer::new(inventory))
         .add_service(reflection_service)
         .serve(addr)
         .await?;

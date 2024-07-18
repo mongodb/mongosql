@@ -1,31 +1,20 @@
-use crate::translator::translator_server::Translator;
-use crate::translator::{
-    self, GetNamespacesRequest, GetNamespacesResponse, Metadata, Namespace, SchemaCheckingMode,
-    SelectOrderItem, TranslateSqlRequest, TranslateSqlResponse,
-};
 use crate::version::VERSION;
 use mongosql;
 use mongosql::options::SqlOptions;
-use mongosql::Translation;
 use serde_json;
+use service::translator::translator_service_server::TranslatorService;
+use service::translator::{
+    self, GetNamespacesRequest, GetNamespacesResponse, Metadata, Namespace, SchemaCheckingMode,
+    SelectOrderItem, TranslateSqlRequest, TranslateSqlResponse,
+};
 use std::collections::BTreeSet;
 use tonic::{Request, Response, Status};
 
 #[derive(Debug)]
 pub struct TranslateSqlService;
 
-impl std::fmt::Display for TranslateSqlRequest {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{{ schema_catalog: ..., db: {}, query: {}, exclude_namespaces: {:?}, schema_checking_mode: {:?} }}",
-            self.db, self.query, self.exclude_namespaces, self.schema_checking_mode
-        )
-    }
-}
-
-impl From<Translation> for TranslateSqlResponse {
-    fn from(translation: Translation) -> Self {
+impl TranslateSqlService {
+    fn create_translate_sql_response(translation: mongosql::Translation) -> TranslateSqlResponse {
         TranslateSqlResponse {
             metadata: Some(Metadata {
                 version: VERSION.to_string(),
@@ -45,10 +34,10 @@ impl From<Translation> for TranslateSqlResponse {
                 .collect(),
         }
     }
-}
 
-impl From<BTreeSet<mongosql::Namespace>> for GetNamespacesResponse {
-    fn from(namespaces: BTreeSet<mongosql::Namespace>) -> Self {
+    fn create_get_namespaces_response(
+        namespaces: BTreeSet<mongosql::Namespace>,
+    ) -> GetNamespacesResponse {
         GetNamespacesResponse {
             metadata: Some(Metadata {
                 version: VERSION.to_string(),
@@ -65,7 +54,7 @@ impl From<BTreeSet<mongosql::Namespace>> for GetNamespacesResponse {
 }
 
 #[tonic::async_trait]
-impl Translator for TranslateSqlService {
+impl TranslatorService for TranslateSqlService {
     async fn translate_sql(
         &self,
         request: Request<TranslateSqlRequest>,
@@ -88,7 +77,7 @@ impl Translator for TranslateSqlService {
             )
             .map_err(|_| Status::invalid_argument("Invalid exclude_namespaces option"))
             .map(|option| match option {
-                translator::ExcludeNamespacesOption::ExcludeNamespaces => {
+                translator::ExcludeNamespacesOption::ExcludeNamespacesUnspecified => {
                     mongosql::options::ExcludeNamespacesOption::ExcludeNamespaces
                 }
                 translator::ExcludeNamespacesOption::IncludeNamespaces => {
@@ -98,13 +87,13 @@ impl Translator for TranslateSqlService {
             schema_checking_mode: SchemaCheckingMode::try_from(req.schema_checking_mode)
                 .map_err(|_| Status::invalid_argument("Invalid schema_checking_mode"))
                 .map(|mode| match mode {
-                    SchemaCheckingMode::Strict => mongosql::SchemaCheckingMode::Strict,
+                    SchemaCheckingMode::StrictUnspecified => mongosql::SchemaCheckingMode::Strict,
                     SchemaCheckingMode::Relaxed => mongosql::SchemaCheckingMode::Relaxed,
                 })?,
         };
 
         let response = match mongosql::translate_sql(&req.db, &req.query, &catalog, options) {
-            Ok(translation) => TranslateSqlResponse::from(translation),
+            Ok(translation) => Self::create_translate_sql_response(translation),
             Err(e) => return Err(Status::internal(e.to_string())),
         };
 
@@ -124,7 +113,7 @@ impl Translator for TranslateSqlService {
             }
         };
 
-        let response = GetNamespacesResponse::from(namespaces);
+        let response = Self::create_get_namespaces_response(namespaces);
 
         Ok(Response::new(response))
     }

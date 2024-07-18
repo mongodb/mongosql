@@ -8,7 +8,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let src_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src");
 
     let descriptor_path = src_dir.join("translator_descriptor.bin");
-    let proto_path = proto_dir.join("translator.proto");
+    let proto_path = proto_dir
+        .join("translator")
+        .join("v1")
+        .join("translator.proto");
 
     tonic_build::configure()
         .protoc_arg("--experimental_allow_proto3_optional")

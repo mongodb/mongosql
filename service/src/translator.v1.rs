@@ -70,7 +70,7 @@ pub struct Metadata {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum ExcludeNamespacesOption {
-    ExcludeNamespaces = 0,
+    ExcludeNamespacesUnspecified = 0,
     IncludeNamespaces = 1,
 }
 impl ExcludeNamespacesOption {
@@ -80,15 +80,21 @@ impl ExcludeNamespacesOption {
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            ExcludeNamespacesOption::ExcludeNamespaces => "EXCLUDE_NAMESPACES",
-            ExcludeNamespacesOption::IncludeNamespaces => "INCLUDE_NAMESPACES",
+            ExcludeNamespacesOption::ExcludeNamespacesUnspecified => {
+                "EXCLUDE_NAMESPACES_OPTION_EXCLUDE_NAMESPACES_UNSPECIFIED"
+            }
+            ExcludeNamespacesOption::IncludeNamespaces => {
+                "EXCLUDE_NAMESPACES_OPTION_INCLUDE_NAMESPACES"
+            }
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "EXCLUDE_NAMESPACES" => Some(Self::ExcludeNamespaces),
-            "INCLUDE_NAMESPACES" => Some(Self::IncludeNamespaces),
+            "EXCLUDE_NAMESPACES_OPTION_EXCLUDE_NAMESPACES_UNSPECIFIED" => {
+                Some(Self::ExcludeNamespacesUnspecified)
+            }
+            "EXCLUDE_NAMESPACES_OPTION_INCLUDE_NAMESPACES" => Some(Self::IncludeNamespaces),
             _ => None,
         }
     }
@@ -96,7 +102,7 @@ impl ExcludeNamespacesOption {
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum SchemaCheckingMode {
-    Strict = 0,
+    StrictUnspecified = 0,
     Relaxed = 1,
 }
 impl SchemaCheckingMode {
@@ -106,29 +112,29 @@ impl SchemaCheckingMode {
     /// (if the ProtoBuf definition does not change) and safe for programmatic use.
     pub fn as_str_name(&self) -> &'static str {
         match self {
-            SchemaCheckingMode::Strict => "STRICT",
-            SchemaCheckingMode::Relaxed => "RELAXED",
+            SchemaCheckingMode::StrictUnspecified => "SCHEMA_CHECKING_MODE_STRICT_UNSPECIFIED",
+            SchemaCheckingMode::Relaxed => "SCHEMA_CHECKING_MODE_RELAXED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
-            "STRICT" => Some(Self::Strict),
-            "RELAXED" => Some(Self::Relaxed),
+            "SCHEMA_CHECKING_MODE_STRICT_UNSPECIFIED" => Some(Self::StrictUnspecified),
+            "SCHEMA_CHECKING_MODE_RELAXED" => Some(Self::Relaxed),
             _ => None,
         }
     }
 }
 /// Generated client implementations.
-pub mod translator_client {
+pub mod translator_service_client {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::http::Uri;
     use tonic::codegen::*;
     #[derive(Debug, Clone)]
-    pub struct TranslatorClient<T> {
+    pub struct TranslatorServiceClient<T> {
         inner: tonic::client::Grpc<T>,
     }
-    impl TranslatorClient<tonic::transport::Channel> {
+    impl TranslatorServiceClient<tonic::transport::Channel> {
         /// Attempt to create a new client by connecting to a given endpoint.
         pub async fn connect<D>(dst: D) -> Result<Self, tonic::transport::Error>
         where
@@ -139,7 +145,7 @@ pub mod translator_client {
             Ok(Self::new(conn))
         }
     }
-    impl<T> TranslatorClient<T>
+    impl<T> TranslatorServiceClient<T>
     where
         T: tonic::client::GrpcService<tonic::body::BoxBody>,
         T::Error: Into<StdError>,
@@ -157,7 +163,7 @@ pub mod translator_client {
         pub fn with_interceptor<F>(
             inner: T,
             interceptor: F,
-        ) -> TranslatorClient<InterceptedService<T, F>>
+        ) -> TranslatorServiceClient<InterceptedService<T, F>>
         where
             F: tonic::service::Interceptor,
             T::ResponseBody: Default,
@@ -170,7 +176,7 @@ pub mod translator_client {
             <T as tonic::codegen::Service<http::Request<tonic::body::BoxBody>>>::Error:
                 Into<StdError> + Send + Sync,
         {
-            TranslatorClient::new(InterceptedService::new(inner, interceptor))
+            TranslatorServiceClient::new(InterceptedService::new(inner, interceptor))
         }
         /// Compress requests with the given encoding.
         ///
@@ -215,10 +221,14 @@ pub mod translator_client {
                 )
             })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static("/translator.Translator/TranslateSql");
+            let path = http::uri::PathAndQuery::from_static(
+                "/translator.v1.TranslatorService/TranslateSql",
+            );
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(GrpcMethod::new("translator.Translator", "TranslateSql"));
+            req.extensions_mut().insert(GrpcMethod::new(
+                "translator.v1.TranslatorService",
+                "TranslateSql",
+            ));
             self.inner.unary(req, path, codec).await
         }
         pub async fn get_namespaces(
@@ -233,21 +243,25 @@ pub mod translator_client {
                 )
             })?;
             let codec = tonic::codec::ProstCodec::default();
-            let path = http::uri::PathAndQuery::from_static("/translator.Translator/GetNamespaces");
+            let path = http::uri::PathAndQuery::from_static(
+                "/translator.v1.TranslatorService/GetNamespaces",
+            );
             let mut req = request.into_request();
-            req.extensions_mut()
-                .insert(GrpcMethod::new("translator.Translator", "GetNamespaces"));
+            req.extensions_mut().insert(GrpcMethod::new(
+                "translator.v1.TranslatorService",
+                "GetNamespaces",
+            ));
             self.inner.unary(req, path, codec).await
         }
     }
 }
 /// Generated server implementations.
-pub mod translator_server {
+pub mod translator_service_server {
     #![allow(unused_variables, dead_code, missing_docs, clippy::let_unit_value)]
     use tonic::codegen::*;
-    /// Generated trait containing gRPC methods that should be implemented for use with TranslatorServer.
+    /// Generated trait containing gRPC methods that should be implemented for use with TranslatorServiceServer.
     #[async_trait]
-    pub trait Translator: Send + Sync + 'static {
+    pub trait TranslatorService: Send + Sync + 'static {
         async fn translate_sql(
             &self,
             request: tonic::Request<super::TranslateSqlRequest>,
@@ -258,7 +272,7 @@ pub mod translator_server {
         ) -> std::result::Result<tonic::Response<super::GetNamespacesResponse>, tonic::Status>;
     }
     #[derive(Debug)]
-    pub struct TranslatorServer<T: Translator> {
+    pub struct TranslatorServiceServer<T: TranslatorService> {
         inner: _Inner<T>,
         accept_compression_encodings: EnabledCompressionEncodings,
         send_compression_encodings: EnabledCompressionEncodings,
@@ -266,7 +280,7 @@ pub mod translator_server {
         max_encoding_message_size: Option<usize>,
     }
     struct _Inner<T>(Arc<T>);
-    impl<T: Translator> TranslatorServer<T> {
+    impl<T: TranslatorService> TranslatorServiceServer<T> {
         pub fn new(inner: T) -> Self {
             Self::from_arc(Arc::new(inner))
         }
@@ -315,9 +329,9 @@ pub mod translator_server {
             self
         }
     }
-    impl<T, B> tonic::codegen::Service<http::Request<B>> for TranslatorServer<T>
+    impl<T, B> tonic::codegen::Service<http::Request<B>> for TranslatorServiceServer<T>
     where
-        T: Translator,
+        T: TranslatorService,
         B: Body + Send + 'static,
         B::Error: Into<StdError> + Send + 'static,
     {
@@ -333,10 +347,13 @@ pub mod translator_server {
         fn call(&mut self, req: http::Request<B>) -> Self::Future {
             let inner = self.inner.clone();
             match req.uri().path() {
-                "/translator.Translator/TranslateSql" => {
+                "/translator.v1.TranslatorService/TranslateSql" => {
                     #[allow(non_camel_case_types)]
-                    struct TranslateSqlSvc<T: Translator>(pub Arc<T>);
-                    impl<T: Translator> tonic::server::UnaryService<super::TranslateSqlRequest> for TranslateSqlSvc<T> {
+                    struct TranslateSqlSvc<T: TranslatorService>(pub Arc<T>);
+                    impl<T: TranslatorService>
+                        tonic::server::UnaryService<super::TranslateSqlRequest>
+                        for TranslateSqlSvc<T>
+                    {
                         type Response = super::TranslateSqlResponse;
                         type Future = BoxFuture<tonic::Response<Self::Response>, tonic::Status>;
                         fn call(
@@ -345,7 +362,7 @@ pub mod translator_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as Translator>::translate_sql(&inner, request).await
+                                <T as TranslatorService>::translate_sql(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -373,10 +390,11 @@ pub mod translator_server {
                     };
                     Box::pin(fut)
                 }
-                "/translator.Translator/GetNamespaces" => {
+                "/translator.v1.TranslatorService/GetNamespaces" => {
                     #[allow(non_camel_case_types)]
-                    struct GetNamespacesSvc<T: Translator>(pub Arc<T>);
-                    impl<T: Translator> tonic::server::UnaryService<super::GetNamespacesRequest>
+                    struct GetNamespacesSvc<T: TranslatorService>(pub Arc<T>);
+                    impl<T: TranslatorService>
+                        tonic::server::UnaryService<super::GetNamespacesRequest>
                         for GetNamespacesSvc<T>
                     {
                         type Response = super::GetNamespacesResponse;
@@ -387,7 +405,7 @@ pub mod translator_server {
                         ) -> Self::Future {
                             let inner = Arc::clone(&self.0);
                             let fut = async move {
-                                <T as Translator>::get_namespaces(&inner, request).await
+                                <T as TranslatorService>::get_namespaces(&inner, request).await
                             };
                             Box::pin(fut)
                         }
@@ -426,7 +444,7 @@ pub mod translator_server {
             }
         }
     }
-    impl<T: Translator> Clone for TranslatorServer<T> {
+    impl<T: TranslatorService> Clone for TranslatorServiceServer<T> {
         fn clone(&self) -> Self {
             let inner = self.inner.clone();
             Self {
@@ -438,7 +456,7 @@ pub mod translator_server {
             }
         }
     }
-    impl<T: Translator> Clone for _Inner<T> {
+    impl<T: TranslatorService> Clone for _Inner<T> {
         fn clone(&self) -> Self {
             Self(Arc::clone(&self.0))
         }
@@ -448,7 +466,7 @@ pub mod translator_server {
             write!(f, "{:?}", self.0)
         }
     }
-    impl<T: Translator> tonic::server::NamedService for TranslatorServer<T> {
-        const NAME: &'static str = "translator.Translator";
+    impl<T: TranslatorService> tonic::server::NamedService for TranslatorServiceServer<T> {
+        const NAME: &'static str = "translator.v1.TranslatorService";
     }
 }

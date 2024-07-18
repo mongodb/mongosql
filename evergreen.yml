@@ -20,6 +20,9 @@ timeout:
       script: |
         ls -la
 
+include: 
+   - filename: grpc.yml
+
 functions:
   "fetch source":
     - command: git.get_project

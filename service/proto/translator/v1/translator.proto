@@ -1,7 +1,7 @@
 syntax = "proto3";
-package translator;
+package translator.v1;
 
-service Translator {
+service TranslatorService {
   rpc TranslateSql(TranslateSqlRequest) returns (TranslateSqlResponse) {}
   rpc GetNamespaces(GetNamespacesRequest) returns (GetNamespacesResponse) {}
 }
@@ -15,13 +15,13 @@ message TranslateSqlRequest {
 }
 
 enum ExcludeNamespacesOption {
-  EXCLUDE_NAMESPACES = 0;
-  INCLUDE_NAMESPACES = 1;
+  EXCLUDE_NAMESPACES_OPTION_EXCLUDE_NAMESPACES_UNSPECIFIED = 0;
+  EXCLUDE_NAMESPACES_OPTION_INCLUDE_NAMESPACES = 1;
 }
 
 enum SchemaCheckingMode {
-  STRICT = 0;
-  RELAXED = 1;
+  SCHEMA_CHECKING_MODE_STRICT_UNSPECIFIED = 0;
+  SCHEMA_CHECKING_MODE_RELAXED = 1;
 }
 
 message SelectOrderItem {

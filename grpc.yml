@@ -1,0 +1,49 @@
+tasks:
+  - name: buf-lint
+    commands:
+      - func: "fetch source"
+      - command: shell.exec
+        type: test
+        params:
+          working_dir: mongosql-rs
+          script: |
+            ${prepare_shell}
+
+            curl -LO https://mongosql-noexpire.s3.us-east-2.amazonaws.com/mongosql/buf-Linux-x86_64
+            mv -f buf-Linux-x86_64 buf
+            chmod +x ./buf
+            ./buf lint service/proto/
+
+  - name: build-and-upload-container
+    commands:
+      - func: "fetch source"
+      - command: shell.exec
+        params:
+          working_dir: mongosql-rs
+          script: |
+            ${prepare_shell}
+            docker build -f service/Dockerfile -t sql-translator-service:${release_version} .
+            docker save sql-translator-service:${release_version} | gzip > sql_translator_service.tar.gz
+      - command: s3.put
+        params:
+          aws_key: ${aws_key}
+          aws_secret: ${aws_secret}
+          local_file: mongosql-rs/sql_translator_service.tar.gz
+          remote_file: mongosql-rs/${version_id}/${build_variant}/sql_translator_service.tar.gz
+          bucket: mciuploads
+          permissions: public-read
+          content_type: application/gzip
+
+buildvariants:
+  - name: grpc-linux-x86_64
+    display_name: "gRPC Linux x86_64"
+    run_on: [ ubuntu2204-large ]
+    tasks:
+      - name: buf-lint
+      - name: build-and-upload-container
+
+  - name: grpc-linux-arm64
+    display_name: "gRPC Linux ARM64"
+    run_on: [ ubuntu2204-arm64-large ]
+    tasks:
+      - name: build-and-upload-container

@@ -1,6 +1,6 @@
 use service::translator::{
-    translator_client::TranslatorClient, ExcludeNamespacesOption, GetNamespacesRequest,
-    SchemaCheckingMode, TranslateSqlRequest,
+    translator_service_client::TranslatorServiceClient, ExcludeNamespacesOption,
+    GetNamespacesRequest, SchemaCheckingMode, TranslateSqlRequest,
 };
 use std::env;
 use std::path::PathBuf;
@@ -10,7 +10,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let hostname = env::var("SERVER_HOSTNAME").unwrap_or("localhost".into());
     let port = env::var("SERVER_PORT").unwrap_or("9001".into());
 
-    let mut client = TranslatorClient::connect(format!("http://{hostname}:{port}")).await?;
+    let mut client = TranslatorServiceClient::connect(format!("http://{hostname}:{port}")).await?;
     let file_name = "tpch.json";
 
     // Test translate_sql
@@ -31,8 +31,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         db: "tpch".to_string(),
         query: "SELECT * FROM customer".to_string(),
         schema_catalog: bson::ser::to_vec(&catalog_bytes).unwrap(),
-        exclude_namespaces: ExcludeNamespacesOption::ExcludeNamespaces.into(),
-        schema_checking_mode: SchemaCheckingMode::Strict.into(),
+        exclude_namespaces: ExcludeNamespacesOption::IncludeNamespaces as i32,
+        schema_checking_mode: SchemaCheckingMode::Relaxed as i32,
     };
     let translate_response = client.translate_sql(translate_request).await?;
 
