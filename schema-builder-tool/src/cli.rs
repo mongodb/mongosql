@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use tracing_subscriber::filter::LevelFilter;
 
 #[derive(Parser, Debug, Default, Serialize, Deserialize, Clone)]
-#[command(author, version, about, long_about = None)]
+#[command(author, version, about, long_about = None, arg_required_else_help = true)]
 pub struct Cli {
     /// The path to the configuration file (optional). If not provided, you must specify --uri to connect to a MongoDB cluster.
     ///

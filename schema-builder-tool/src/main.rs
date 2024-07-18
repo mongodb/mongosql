@@ -2,6 +2,7 @@ mod builder_result;
 mod cli;
 mod consts;
 mod schema_document;
+mod utils;
 
 use anyhow::{Context, Result};
 use builder_result::SchemaBuilderResult::{self, *};
@@ -27,6 +28,7 @@ use std::collections::HashMap;
 use std::process;
 use tokio::sync::mpsc::unbounded_channel;
 use tracing::{event, instrument, Level};
+use utils::check_cluster_type;
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -92,6 +94,8 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
 
     let mdb_client =
         Client::with_options(client_options).with_context(|| "Failed to create MongoDB client.")?;
+
+    check_cluster_type(&mdb_client).await?;
 
     // Create necessary channels for communication
     let (tx_notifications, mut rx_notifications) = unbounded_channel::<SamplerNotification>();
