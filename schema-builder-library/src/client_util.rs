@@ -1,8 +1,8 @@
 use crate::Result;
-use mongodb::options::{ClientOptions, ConnectionString, ResolverConfig};
+use mongodb::options::{ClientOptions, ResolverConfig};
 
 /**
- * This modules contains utility functions for a MongoDB client to make
+ * This module contains utility functions for a MongoDB client to make
  * working with a CLI easier.
  */
 
@@ -28,13 +28,9 @@ pub async fn load_password_auth(
 /// Returns a client options with the optimal pool size set.
 pub async fn get_opts(uri: &str, resolver: Option<ResolverConfig>) -> Result<ClientOptions> {
     let mut opts = if let Some(resolver) = resolver {
-        ClientOptions::parse_connection_string_with_resolver_config(
-            ConnectionString::parse(uri)?,
-            resolver,
-        )
-        .await?
+        ClientOptions::parse(uri).resolver_config(resolver).await?
     } else {
-        ClientOptions::parse_async(uri).await?
+        ClientOptions::parse(uri).await?
     };
     opts.max_pool_size = Some(get_optimal_pool_size());
     opts.max_connecting = Some(2);

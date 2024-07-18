@@ -38,16 +38,13 @@ pub(crate) async fn get_partitions(collection: &Collection<Document>) -> Result<
     };
 
     let mut cursor = collection
-        .aggregate(
-            vec![
-                doc! { "$project": {"_id": 1} },
-                doc! { "$bucketAuto": {
-                    "groupBy": "$_id",
-                    "buckets": buckets as i32
-                }},
-            ],
-            None,
-        )
+        .aggregate(vec![
+            doc! { "$project": {"_id": 1} },
+            doc! { "$bucketAuto": {
+                "groupBy": "$_id",
+                "buckets": buckets as i32
+            }},
+        ])
         .await?;
 
     while let Some(doc) = cursor.try_next().await.unwrap() {
@@ -82,7 +79,7 @@ struct CollectionSizes {
 #[instrument(level = "trace", skip(collection))]
 async fn get_size_counts(collection: &Collection<Document>) -> Result<CollectionSizes> {
     let mut cursor = collection
-        .aggregate(vec![doc! {"$collStats": {"storageStats": {}}}], None)
+        .aggregate(vec![doc! {"$collStats": {"storageStats": {}}}])
         .await
         .map_err(|_| Error::NoCollectionStats(collection.name().to_string()))?;
     if let Some(stats) = cursor.try_next().await.unwrap() {
@@ -139,14 +136,11 @@ async fn get_bounds(collection: &Collection<Document>) -> Result<(Bson, Bson)> {
 #[instrument(level = "trace", skip_all)]
 async fn get_bound(collection: &Collection<Document>, direction: i32) -> Result<Bson> {
     let mut cursor = collection
-        .aggregate(
-            vec![
-                doc! {"$sort": {"_id": direction}},
-                doc! {"$limit": 1},
-                doc! {"$project": {"_id": 1}},
-            ],
-            None,
-        )
+        .aggregate(vec![
+            doc! {"$sort": {"_id": direction}},
+            doc! {"$limit": 1},
+            doc! {"$project": {"_id": 1}},
+        ])
         .await
         .map_err(|e| Error::NoBounds(format!("{}: {e}", collection.name())))?;
     if let Some(doc) = cursor.try_next().await? {

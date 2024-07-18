@@ -49,17 +49,17 @@ async fn query_for_initial_schemas(
     schema_collection: Option<String>,
     database: &Database,
 ) -> Result<HashMap<String, Document>> {
-    let mut intial_collection_schemas = HashMap::new();
+    let mut initial_collection_schemas = HashMap::new();
     if let Some(schema_coll) = schema_collection {
         let coll = database.collection::<Document>(schema_coll.as_str());
-        let mut cursor = coll.find(None, None).await?;
+        let mut cursor = coll.find(doc! {}).await?;
         while let Some(doc) = cursor.try_next().await.unwrap() {
             let collection_name = doc.get("_id").unwrap().as_str().unwrap();
             let collection_schema = doc.get("schema").unwrap().as_document().unwrap().clone();
-            intial_collection_schemas.insert(collection_name.to_string(), collection_schema);
+            initial_collection_schemas.insert(collection_name.to_string(), collection_schema);
         }
     };
-    Ok(intial_collection_schemas)
+    Ok(initial_collection_schemas)
 }
 
 impl CollectionInfo {
@@ -79,10 +79,7 @@ impl CollectionInfo {
         exclude_list: Vec<String>,
     ) -> Result<Self> {
         let collection_info_cursor = db
-            .run_cursor_command(
-                doc! { "listCollections": 1.0, "authorizedCollections": true},
-                None,
-            )
+            .run_cursor_command(doc! { "listCollections": 1.0, "authorizedCollections": true})
             .await
             .map_err(error::Error::from)?;
 
@@ -142,7 +139,7 @@ impl CollectionInfo {
                     // To start computing the schema for a collection, we need
                     // to determine the partitions of this collection.
                     let partitions = get_partitions(&coll).await;
-                    let intial_collection_schemas =
+                    let initial_collection_schemas =
                         query_for_initial_schemas(schema_collection, &db)
                             .await
                             .unwrap();
@@ -196,7 +193,7 @@ impl CollectionInfo {
                             // collection, use that to seed the derivation of schemas
                             // for the partitions
                             let initial_schema =
-                                intial_collection_schemas.get(coll.name()).cloned();
+                                initial_collection_schemas.get(coll.name()).cloned();
 
                             // The derive_schema_for_partitions function
                             // parallelizes schema derivation per partition.

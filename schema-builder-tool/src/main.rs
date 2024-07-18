@@ -173,7 +173,7 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
 
                         let update_options = mongodb::options::UpdateOptions::builder().upsert(true).build();
 
-                        let update_result = collection.update_one(filter_doc, update_doc, update_options).await;
+                        let update_result = collection.update_one(filter_doc, update_doc).with_options(update_options).await;
 
                         let schema_builder_result: SchemaBuilderResult =
                         match update_result {

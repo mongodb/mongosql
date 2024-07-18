@@ -103,10 +103,12 @@ pub async fn build_schema(options: BuilderOptions) {
     // list_database_names method to finish.
     let databases = options
         .client
-        .list_database_names(
-            doc! {"name": { "$nin": DISALLOWED_DB_NAMES.to_vec()} },
-            Some(ListDatabasesOptions::builder().build()),
-        )
+        .list_database_names()
+        .with_options(Some(
+            ListDatabasesOptions::builder()
+                .filter(doc! {"name": { "$nin": DISALLOWED_DB_NAMES.to_vec()} })
+                .build(),
+        ))
         .await;
 
     // If listing the databases fails, there is nothing to do so we report an
