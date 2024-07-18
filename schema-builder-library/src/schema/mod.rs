@@ -142,13 +142,13 @@ async fn derive_schema_for_partition(
             },
         );
         let mut cursor = collection
-            .aggregate(
-                vec![
-                    // first_stage must be Some here.
-                    first_stage.unwrap(),
-                    doc! { "$sort": {"_id": 1}},
-                    doc! { "$limit": PARTITION_DOCS_PER_ITERATION },
-                ],
+            .aggregate(vec![
+                // first_stage must be Some here.
+                first_stage.unwrap(),
+                doc! { "$sort": {"_id": 1}},
+                doc! { "$limit": PARTITION_DOCS_PER_ITERATION },
+            ])
+            .with_options(
                 AggregateOptions::builder()
                     .hint(Some(mongodb::options::Hint::Keys(doc! {"_id": 1})))
                     .build(),
@@ -203,7 +203,7 @@ pub(crate) async fn derive_schema_for_view(
 
     match database
         .collection::<Document>(&view.options.view_on)
-        .aggregate(pipeline, None)
+        .aggregate(pipeline)
         .await
     {
         Ok(mut cursor) => {
