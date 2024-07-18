@@ -4,10 +4,7 @@ use mongodb::{
     options::AggregateOptions,
     Collection, Database,
 };
-use mongosql::{
-    schema::{Atomic, JaccardIndex, Schema},
-    set,
-};
+use mongosql::schema::{Atomic, JaccardIndex, Schema};
 use tracing::instrument;
 
 use crate::{
@@ -15,6 +12,9 @@ use crate::{
     Partition, Result, SamplerAction, SamplerNotification, PARTITION_DOCS_PER_ITERATION,
     VIEW_SAMPLE_SIZE,
 };
+
+#[cfg(test)]
+pub mod test;
 
 /// A utility function for deriving the schema for a collection based on its partitions.
 ///
@@ -266,7 +266,7 @@ fn schema_for_bson(b: &Bson) -> Schema {
     match b {
         Bson::Double(_) => Schema::Atomic(Double),
         Bson::String(_) => Schema::Atomic(String),
-        Bson::Array(a) => Schema::Array(Box::new(schema_for_bson_array(a))),
+        Bson::Array(a) => Schema::Array(Box::new(schema_for_bson_array_elements(a))),
         Bson::Document(d) => schema_for_document(d),
         Bson::Boolean(_) => Schema::Atomic(Boolean),
         Bson::Null => Schema::Atomic(Null),
@@ -291,12 +291,12 @@ fn schema_for_bson(b: &Bson) -> Schema {
 // This may prove costly for very large arrays, and we may want to
 // consider a limit on the number of elements to consider.
 #[instrument(level = "trace", skip_all)]
-fn schema_for_bson_array(bs: &[Bson]) -> Schema {
+fn schema_for_bson_array_elements(bs: &[Bson]) -> Schema {
     // if an array is empty, we can't infer anything about it
     // we're safe to mark it as potentially null, as an empty array
     // satisfies jsonSchema search predicate
     if bs.is_empty() {
-        return Schema::AnyOf(set!(Schema::Atomic(Atomic::Null)));
+        return Schema::Atomic(Atomic::Null);
     }
     bs.iter()
         .map(schema_for_bson)
