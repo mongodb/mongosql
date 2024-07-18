@@ -248,7 +248,7 @@ pub(crate) async fn derive_schema_for_view(
 
 /// Returns a [Schema] for a given BSON document.
 #[instrument(level = "trace", skip_all)]
-fn schema_for_document(doc: &Document) -> Schema {
+pub(crate) fn schema_for_document(doc: &Document) -> Schema {
     Schema::Document(mongosql::schema::Document {
         keys: doc
             .iter()

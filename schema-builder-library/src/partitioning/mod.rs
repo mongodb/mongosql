@@ -6,6 +6,9 @@ use mongodb::{
 use mongosql::schema::Schema;
 use tracing::{instrument, trace};
 
+#[cfg(test)]
+mod test;
+
 use crate::{Error, Result, PARTITION_MIN_DOC_COUNT, PARTITION_SIZE_IN_BYTES};
 
 #[derive(Debug, PartialEq, Clone)]
