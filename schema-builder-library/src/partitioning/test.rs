@@ -1,7 +1,12 @@
 use mongodb::bson::{self, doc, oid::ObjectId, Bson};
 use mongosql::json_schema;
 
-use crate::{generate_partition_match, partitioning::Partition, schema::schema_for_document};
+use crate::{
+    generate_partition_match,
+    partitioning::{get_num_partitions, Partition},
+    schema::schema_for_document,
+    PARTITION_SIZE_IN_BYTES,
+};
 
 #[test]
 fn test_generate_partition_match_without_schema_doc() {
@@ -56,5 +61,33 @@ fn test_generate_partition_match_with_schema_doc() {
                 }]
             }
         }
+    );
+}
+
+#[test]
+fn test_less_than_100_mb() {
+    let collection_size = PARTITION_SIZE_IN_BYTES - 1;
+    let num_partitions = get_num_partitions(collection_size, PARTITION_SIZE_IN_BYTES);
+    assert_eq!(num_partitions, 1);
+}
+
+#[test]
+fn test_exactly_100_mb() {
+    let collection_size = PARTITION_SIZE_IN_BYTES;
+    let num_partitions = get_num_partitions(collection_size, PARTITION_SIZE_IN_BYTES);
+    assert_eq!(num_partitions, 2);
+}
+
+#[test]
+fn test_greater_than_100_mb() {
+    let collection_size_101_mb = 101 * 1024 * 1024;
+    let collection_size_one_gb = 1000 * 1024 * 1024;
+    assert_eq!(
+        get_num_partitions(collection_size_101_mb, PARTITION_SIZE_IN_BYTES),
+        2
+    );
+    assert_eq!(
+        get_num_partitions(collection_size_one_gb, PARTITION_SIZE_IN_BYTES),
+        11
     );
 }
