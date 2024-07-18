@@ -14,7 +14,7 @@ use crate::{
 };
 
 #[cfg(test)]
-pub mod test;
+mod test;
 
 /// A utility function for deriving the schema for a collection based on its partitions.
 ///
