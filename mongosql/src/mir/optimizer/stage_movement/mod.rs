@@ -553,14 +553,8 @@ impl<'a> StageMovementVisitor<'a> {
                 let opaque_field_defines = source.opaque_field_defines();
                 let field_uses = if let Some(field_uses) = field_uses {
                     field_uses
-                } else if opaque_field_defines.is_empty() {
-                    return (
-                        self.bubble_up(Self::handle_def_user, node, BubbleUpSide::Both),
-                        true,
-                    );
                 } else {
-                    // if there is a computed FieldAccess and opaque_field_defines is not empty,
-                    // we just don't do anything to be safe.
+                    // if there is a computed FieldAccess, we just don't do anything to be safe.
                     return (node, false);
                 };
                 // We can check that the intersection is non-empty without collecting by checking
