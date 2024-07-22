@@ -52,7 +52,6 @@ impl From<BuildInfo> for ClusterType {
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 struct BuildInfo {
-    ok: i32,
     version: String,
     modules: Option<Vec<String>>,
     #[serde(rename = "dataLake")]
@@ -76,7 +75,6 @@ mod test {
     #[test]
     fn test_cluster_type_from_build_info() {
         let build_info = BuildInfo {
-            ok: 1,
             version: "4.4.0".to_string(),
             modules: Some(vec!["enterprise".to_string()]),
             data_lake: None,
@@ -85,7 +83,6 @@ mod test {
         assert_eq!(ClusterType::Enterprise, build_info.into());
 
         let build_info = BuildInfo {
-            ok: 1,
             version: "4.4.0".to_string(),
             modules: None,
             data_lake: None,
@@ -94,7 +91,6 @@ mod test {
         assert_eq!(ClusterType::Community, build_info.into());
 
         let build_info = BuildInfo {
-            ok: 1,
             version: "4.4.0".to_string(),
             modules: None,
             data_lake: Some(DataLakeBuildInfo {

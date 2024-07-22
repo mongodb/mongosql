@@ -83,7 +83,7 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
         let password: Option<String>;
         match (&cfg.username, &cfg.password) {
             (None, _) => {
-                println!("No username provided for authentication with URI");
+                eprintln!("No username provided for authentication with URI");
                 process::exit(1);
             }
             (Some(username), None) => {
@@ -95,7 +95,7 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
                             .expect("Failed to read password"),
                     );
                 } else {
-                    println!("Username is required for authentication with URI");
+                    eprintln!("Username is required for authentication with URI");
                     process::exit(1);
                 }
             }
@@ -130,7 +130,7 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
     pb.set_style(spinner_style);
 
     // Keeps track of namespaces with modified or created schemas.
-    let mut modified_namespaces: HashMap<String, Vec<String>> = HashMap::new();
+    let mut accessed_namespaces: HashMap<String, Vec<String>> = HashMap::new();
 
     // The `Cli.schema_action` is handled in the schema_builder_library based on the `BuilderOptions.schema_collection` field.
     // When the value is Some(<name>), the schema_builder_library does the Merge action, and when it is None, the library
@@ -161,24 +161,24 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
     // Keep checking the channels repeatedly until the schema channel closes.
     loop {
         tokio::select! {
-                notification = rx_notifications.recv() => {
-                    if let Some(notification) = notification {
-                        match notification.action {
-                            // If we receive an Error notification, we abort the program.
-                            SamplerAction::Error { message } => anyhow::bail!(message),
-                            // All other notification types are simply logged, depending on the
-                            // value of quiet.
-                            _ => {
-                                if !cfg.quiet {
-                                    pb.set_message(notification.to_string());
-                                }
+            notification = rx_notifications.recv() => {
+                if let Some(notification) = notification {
+                    match notification.action {
+                        // If we receive an Error notification, we abort the program.
+                        SamplerAction::Error { message } => anyhow::bail!(message),
+                        // All other notification types are simply logged, depending on the
+                        // value of quiet.
+                        _ => {
+                            if !cfg.quiet {
+                                pb.set_message(notification.to_string());
                             }
                         }
                     }
                 }
-                schema = rx_schemata.recv() => {
-                    match schema {
-                        Some(SchemaResult::FullSchema(schema_res)) =>{
+            }
+            schema = rx_schemata.recv() => {
+                match schema {
+                    Some(SchemaResult::FullSchema(schema_res)) => {
                         let collection = mdb_client.database(&schema_res.namespace_info.db_name).collection::<SchemaDocument>(SCHEMA_COLLECTION_NAME);
 
                         let filter_doc = doc! {
@@ -189,10 +189,12 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
                         let namespace_bson_schema = bson::to_bson(&namespace_json_schema).map_err(|_| BsonFailure)?;
 
                         let update_doc = doc! {
-                            "_id": schema_res.namespace_info.coll_or_view_name.clone(),
-                            "type": schema_res.namespace_info.namespace_type.to_string(),
-                            "schema": namespace_bson_schema,
-                            "lastUpdated": datetime::DateTime::now(),
+                            "$set": {
+                                "_id": schema_res.namespace_info.coll_or_view_name.clone(),
+                                "type": schema_res.namespace_info.namespace_type.to_string(),
+                                "schema": namespace_bson_schema,
+                                "lastUpdated": datetime::DateTime::now(),
+                            }
                         };
 
                         let update_options = mongodb::options::UpdateOptions::builder().upsert(true).build();
@@ -211,12 +213,9 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
                             Err(e) => Error(e.to_string()),
                         };
 
-                        // Keep track of namespaces with created or modified schemas if quiet is false
-                        if !cfg.quiet && matches!(schema_builder_result, Created | Modified) {
-                            modified_namespaces.entry(schema_res.namespace_info.db_name.clone()).and_modify(|coll_vec| {
-                                coll_vec.push(schema_res.namespace_info.coll_or_view_name.clone());
-                            }).or_insert(vec![schema_res.namespace_info.coll_or_view_name.clone()]);
-                        }
+                        accessed_namespaces.entry(schema_res.namespace_info.db_name.clone()).and_modify(|coll_vec| {
+                            coll_vec.push(schema_res.namespace_info.coll_or_view_name.clone());
+                        }).or_insert(vec![schema_res.namespace_info.coll_or_view_name.clone()]);
 
                         if !cfg.quiet {
                             // log the schema_builder_result
@@ -236,8 +235,8 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
                         }
                     },
                     None => {
-                            // When the channel is closed, terminate the loop.
-                            break;
+                        // When the channel is closed, terminate the loop.
+                        break;
                     }
                 }
             }
@@ -247,7 +246,7 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
     if !cfg.quiet {
         pb.finish_with_message("Schema creation has completed successfully.\nNow printing all namespaces with created or modified schemas:");
 
-        for (db, namespace) in modified_namespaces.iter() {
+        for (db, namespace) in accessed_namespaces.iter() {
             println!("Database: {}. Namespaces: {:?}.", db, namespace);
         }
     }

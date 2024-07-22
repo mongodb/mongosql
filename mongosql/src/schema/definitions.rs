@@ -334,9 +334,10 @@ impl TryFrom<Schema> for bson::Document {
 impl TryFrom<bson::Document> for Schema {
     type Error = Error;
     fn try_from(schema_doc: bson::Document) -> std::result::Result<Self, Self::Error> {
-        let json_schema: json_schema::Schema =
-            bson::from_document(schema_doc.get_document("$jsonSchema").unwrap().clone())
-                .map_err(|_| Error::BsonFailure)?;
+        let json_schema: json_schema::Schema = match schema_doc.get_document("$jsonSchema") {
+            Ok(doc) => bson::from_document(doc.clone()).map_err(|_| Error::BsonFailure),
+            Err(_) => bson::from_document(schema_doc.clone()).map_err(|_| Error::BsonFailure),
+        }?;
         let sampler_schema: Schema = json_schema
             .try_into()
             .map_err(|_| Error::JsonSchemaFailure)?;

@@ -45,7 +45,7 @@ async fn main() -> Result<()> {
     std::fs::create_dir_all(&output_path).context("Failed to create output directory")?;
 
     let mut parse_results = None;
-    if parse_results.is_some() {
+    if input.is_some() {
         std::fs::create_dir_all(output_path.join(LOG_ANALYSIS_DIR))
             .context("Failed to create log analysis directory")?;
         parse_results = handle_logs(input, quiet)?;
