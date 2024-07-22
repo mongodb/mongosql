@@ -20,8 +20,9 @@ timeout:
       script: |
         ls -la
 
-include: 
-   - filename: grpc.yml
+include:
+   - filename: evergreen/grpc.yml
+   - filename: evergreen/schema-builder.yml
 
 functions:
   "fetch source":
@@ -360,7 +361,7 @@ functions:
 
           echo "starting mongodb"
           $MONGODB_TEST_RHEL_VERSION/bin/mongod --dbpath data_db &
-          
+
           if [[ "${load_data_cmd}" != "" ]]; then
             echo "loading data"
             eval ${load_data_cmd}
@@ -1026,19 +1027,6 @@ tasks:
             --package=e2e-tests
             -- --test-threads=1
 
-  - name: test-schema-builder-library-integration
-    commands:
-      - func: "install rust toolchain"
-      - func: "run rust integration tests"
-        vars:
-          description: "run schema-builder-library integration tests"
-          load_data_cmd: "cargo run --bin schema-builder-data-loader"
-          cargo_test_flags: >-
-            --features=integration
-            --package=schema-builder-library
-            --test integration_tests
-            -- --test-threads=1
-
   - name: trr-release
     git_tag_only: true
     depends_on:
@@ -1350,7 +1338,6 @@ buildvariants:
       - name: test-spec-query
       - name: test-rust-e2e
       - name: test-rust-errors
-      - name: test-schema-builder-library-integration
 
   - name: macos
     display_name: "macOS 11"
