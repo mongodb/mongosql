@@ -2994,6 +2994,96 @@ mod constant_folding {
             cache: SchemaCache::new(),
         }),
     );
+    test_constant_fold!(
+        field_access_reference,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Reference(("b", 0u16).into())],
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::FieldAccess(FieldAccess {
+                expr: Expression::Document(
+                    unchecked_unique_linked_hash_map! {"a".into() => Expression::Reference(("b", 0u16).into())}
+                .into())
+                .into(),
+                field: "a".into(),
+                is_nullable: false,
+            })],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_constant_fold!(
+        field_access_nested,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::Reference(("c", 0u16).into())],
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::FieldAccess(FieldAccess {
+                expr: Expression::Document(
+                    unchecked_unique_linked_hash_map! {"a".into() => Expression::FieldAccess(FieldAccess {
+                        expr: Expression::Document(
+                            unchecked_unique_linked_hash_map! {"b".into() => Expression::Reference(("c", 0u16).into())}.into()
+                        ).into(),
+                        field: "b".into(),
+                        is_nullable: false,
+                    })}
+                .into())
+                .into(),
+                field: "a".into(),
+                is_nullable: false,
+            })],
+            cache: SchemaCache::new(),
+        }),
+    );
+    test_constant_fold!(
+        field_access_mqlintrinstic_field_exists,
+        expected = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::MQLIntrinsicFieldExistence(FieldAccess {
+                expr: Expression::Reference(("ITBL", 1u16).into()).into(),
+                field: "baz".into(),
+                is_nullable: true,
+            }),],
+            cache: SchemaCache::new(),
+        }),
+        expected_changed = true,
+        input = Stage::Array(ArraySource {
+            alias: "".into(),
+            array: vec![Expression::MQLIntrinsicFieldExistence(FieldAccess {
+                expr: Expression::Document(
+                    unchecked_unique_linked_hash_map! {
+                        "ofoo".into() => Expression::FieldAccess(FieldAccess {
+                            expr: Expression::Reference(("OTBL", 1u16).into()).into(),
+                            field: "foo".into(),
+                            is_nullable: false,
+                        }),
+                        "ifoo".into() => Expression::FieldAccess(FieldAccess {
+                            expr: Expression::Reference(("ITBL", 1u16).into()).into(),
+                            field: "foo".into(),
+                            is_nullable: true,
+                        }),
+                        "baz".into() => Expression::FieldAccess(FieldAccess {
+                            expr: Expression::Reference(("ITBL", 1u16).into()).into(),
+                            field: "baz".into(),
+                            is_nullable: true,
+                        }),
+                    }
+                    .into()
+                )
+                .into(),
+                field: "baz".into(),
+                is_nullable: false,
+            })],
+            cache: SchemaCache::new(),
+        }),
+    );
     test_constant_fold_no_op!(
         field_access_missing_field,
         Stage::Array(ArraySource {

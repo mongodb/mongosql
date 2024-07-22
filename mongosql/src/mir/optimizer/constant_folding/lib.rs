@@ -1003,7 +1003,21 @@ impl<'a> Visitor for ConstantFoldExprVisitor<'a> {
             Expression::SubqueryComparison(_) => (e, false),
             Expression::Subquery(_) => (e, false),
             Expression::TypeAssertion(_) => (e, false),
-            Expression::MQLIntrinsicFieldExistence(_) => (e, false),
+            Expression::MQLIntrinsicFieldExistence(f) => {
+                // Patrick: we clone in case somehow the field access is mutated into a non-field access by
+                // fold_field_access_expr. This would imply a bug in our code generation, *I
+                // think*, but I am doing this rather than panicking, just to be safe, since I do
+                // not have a proof of this. The clone should be relatively cheap.
+                // Initially, I had a panic, and all of our query tests still pass, but I am not
+                // condifident on removing this clone and possibly breaking some customer query.
+                if let (Expression::FieldAccess(fa), changed) =
+                    self.fold_field_access_expr(f.clone())
+                {
+                    (Expression::MQLIntrinsicFieldExistence(fa), changed)
+                } else {
+                    (Expression::MQLIntrinsicFieldExistence(f), false)
+                }
+            }
         };
 
         self.changed |= changed;
