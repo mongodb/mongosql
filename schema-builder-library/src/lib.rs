@@ -1,8 +1,16 @@
 use futures::future;
-use mongodb::{bson::doc, options::ListDatabasesOptions};
+use mongodb::{
+    bson::{doc, Document},
+    options::ListDatabasesOptions,
+};
 use mongosql::schema::Schema;
-use std::fmt::{self, Display, Formatter};
-use tracing::{instrument, span, Level};
+use std::{
+    collections::HashMap,
+    fmt::{self, Display, Formatter},
+    sync::Arc,
+};
+use tokio::sync::RwLock;
+use tracing::{debug, instrument, span, Level};
 
 pub mod client_util;
 mod consts;
@@ -11,7 +19,7 @@ use consts::{
     PARTITION_SIZE_IN_BYTES, VIEW_SAMPLE_SIZE,
 };
 mod collection;
-use collection::{CollectionDoc, CollectionInfo};
+use collection::{query_for_initial_schemas, CollectionDoc, CollectionInfo};
 mod partitioning;
 use partitioning::{
     generate_partition_match, generate_partition_match_with_doc, get_partitions, Partition,
@@ -31,6 +39,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// An enum for communicating results of this library to a caller. Results may
 /// be namespace-only, meaning they do not include schema information, or they
 /// may include schema information.
+#[derive(Debug)]
 pub enum SchemaResult {
     /// SchemaResult without schema info. Used in dry_run mode.
     NamespaceOnly(NamespaceInfo),
@@ -40,6 +49,7 @@ pub enum SchemaResult {
 }
 
 /// A struct representing namespace information for a view or collection.
+#[derive(Debug)]
 pub struct NamespaceInfo {
     /// The name of the database.
     pub db_name: String,
@@ -53,6 +63,7 @@ pub struct NamespaceInfo {
 
 /// A struct representing schema information for a specific namespace (a view
 /// or collection).
+#[derive(Debug)]
 pub struct NamespaceInfoWithSchema {
     pub namespace_info: NamespaceInfo,
 
@@ -128,6 +139,41 @@ pub async fn build_schema(options: BuilderOptions) {
         drop(options.tx_schemata);
         return;
     }
+    // we've checked the error condition above, so this should be safe
+    let databases = databases.unwrap();
+
+    let span = span!(Level::DEBUG, "initial_schemas", databases = ?databases);
+
+    // If the schema_collection option is set and dry_run is not specified, we query for the initial schemas prior
+    // to starting the schema building process. We store these initial schemas in a
+    // Arc<RwLock<_>> to allow for concurrent access to the initial schemas and free clones
+    // across all tasks.
+    let initial_schemas: Arc<RwLock<HashMap<String, HashMap<String, Document>>>> =
+        Arc::new(RwLock::new(HashMap::new()));
+    if options.schema_collection.is_some() && !options.dry_run {
+        let _enter = span.enter();
+        future::join_all(databases.as_slice().iter().map(|db_name| {
+            let db = options.client.database(db_name);
+            let schema_collection = options.schema_collection.clone();
+            let initial_schemas = initial_schemas.clone();
+            async move {
+                let initial_collection_schemas = query_for_initial_schemas(schema_collection, &db)
+                    .await
+                    .unwrap();
+
+                debug!(
+                    "queried for intial schemas in database {}, found {}",
+                    db_name,
+                    initial_collection_schemas.len()
+                );
+                initial_schemas
+                    .write()
+                    .await
+                    .insert(db_name.clone(), initial_collection_schemas);
+            }
+        }))
+        .await;
+    }
     // Here, we iterate through each database and spawn a new async task to
     // compute each db schema. Importantly, we are not awaiting the spawned
     // tasks. Each async task will start running in the background immediately,
@@ -135,16 +181,17 @@ pub async fn build_schema(options: BuilderOptions) {
     // immediately returns a JoinHandle.
     let span = span!(Level::DEBUG, "database_tasks", databases = ?databases);
     let _enter = span.enter();
-    let db_tasks = databases.unwrap().into_iter().map(|db_name| {
+    let db_tasks = databases.into_iter().map(|db_name| {
         // To avoid passing a reference to the mongodb::Client around, we
         // create a mongodb::Database before spawning the db-schema task.
         let db = options.client.database(&db_name);
-        let schema_collection = options.schema_collection.clone();
+        let initial_schemas = initial_schemas.clone();
         let tx_notifications = options.tx_notifications.clone();
         let tx_schemata = options.tx_schemata.clone();
 
         let include_list = options.include_list.clone();
         let exclude_list = options.exclude_list.clone();
+
         // Spawn the db task.
         tokio::runtime::Handle::current().spawn(async move {
             // To start computing the schema for all collections and views
@@ -183,7 +230,7 @@ pub async fn build_schema(options: BuilderOptions) {
                     collection_info.process_collections(
                         &db,
                         options.dry_run,
-                        schema_collection,
+                        initial_schemas.clone(),
                         tx_notifications.clone(),
                         tx_schemata.clone(),
                     ),

@@ -13,8 +13,8 @@ use mongodb::{
     error, Cursor, Database,
 };
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use tokio::task::JoinHandle;
+use std::{collections::HashMap, sync::Arc};
+use tokio::{sync::RwLock, task::JoinHandle};
 use tracing::{info, instrument};
 
 #[cfg(test)]
@@ -45,7 +45,7 @@ pub(crate) struct ViewOptions {
 }
 
 #[instrument(level = "trace", skip_all)]
-async fn query_for_initial_schemas(
+pub(crate) async fn query_for_initial_schemas(
     schema_collection: Option<String>,
     database: &Database,
 ) -> Result<HashMap<String, Document>> {
@@ -106,7 +106,7 @@ impl CollectionInfo {
         &self,
         db: &Database,
         dry_run: bool,
-        schema_collection: Option<String>,
+        initial_schemas: Arc<RwLock<HashMap<String, HashMap<String, Document>>>>,
         tx_notifications: tokio::sync::mpsc::UnboundedSender<SamplerNotification>,
         tx_schemata: tokio::sync::mpsc::UnboundedSender<SchemaResult>,
     ) -> Vec<JoinHandle<()>> {
@@ -116,9 +116,9 @@ impl CollectionInfo {
             .map(|coll_doc| {
                 let db = db.clone();
                 let coll = db.collection::<Document>(coll_doc.name.as_str());
-                let schema_collection = schema_collection.clone();
                 let tx_notifications = tx_notifications.clone();
                 let tx_schemata = tx_schemata.clone();
+                let initial_schemas = initial_schemas.clone();
 
                 info!(name: "processing collection", collection = ?coll_doc);
 
@@ -139,10 +139,6 @@ impl CollectionInfo {
                     // To start computing the schema for a collection, we need
                     // to determine the partitions of this collection.
                     let partitions = get_partitions(&coll).await;
-                    let initial_collection_schemas =
-                        query_for_initial_schemas(schema_collection, &db)
-                            .await
-                            .unwrap();
 
                     match partitions {
                         Err(Error::EmptyCollection(name)) => {
@@ -192,8 +188,12 @@ impl CollectionInfo {
                             // If there was a schema already set in the database for this
                             // collection, use that to seed the derivation of schemas
                             // for the partitions
-                            let initial_schema =
-                                initial_collection_schemas.get(coll.name()).cloned();
+                            let initial_schema = {
+                                let read_guard = initial_schemas.read().await;
+                                read_guard
+                                    .get(db.name())
+                                    .and_then(|colls| colls.get(&coll.name().to_string()).cloned())
+                            };
 
                             // The derive_schema_for_partitions function
                             // parallelizes schema derivation per partition.
