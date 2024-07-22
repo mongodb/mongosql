@@ -8,8 +8,9 @@ use anyhow::{Context, Result};
 use builder_result::SchemaBuilderResult::{self, *};
 use clap::Parser;
 use cli::{Cli, SchemaAction::*};
-use consts::{DEFAULT_APP_NAME, SCHEMA_COLLECTION_NAME};
+use consts::{DEFAULT_APP_NAME, SCHEMA_COLLECTION_NAME, SUPPORT_TEXT};
 use dialoguer::Password;
+use human_panic::{setup_panic, Metadata};
 use indicatif::{ProgressBar, ProgressStyle};
 use mongodb::bson::{self, datetime, doc};
 use mongodb::Client;
@@ -27,16 +28,23 @@ use schema_document::SchemaDocument;
 use std::collections::HashMap;
 use std::process;
 use tokio::sync::mpsc::unbounded_channel;
-use tracing::{event, instrument, Level};
+use tracing::{info, instrument};
 use utils::check_cluster_type;
 
 #[tokio::main]
 async fn main() -> Result<()> {
+    setup_panic!(
+        Metadata::new("MongoDB Schema Builder", env!("CARGO_PKG_VERSION"))
+            .homepage("")
+            .support(SUPPORT_TEXT)
+    );
     let mut cfg = Cli::parse();
     // command line arguments override configuration file
     if let Some(ref config) = cfg.config_file {
-        let file_cfg: Cli = confy::load_path(config)
-            .with_context(|| format!("Failed to load configuration file: {}", config))?;
+        let file_cfg: Cli = confy::load_path(config).unwrap_or_else(|_| {
+            eprintln!("Failed to load configuration file: {}", config);
+            process::exit(1);
+        });
         cfg = Cli::merge(cfg, file_cfg);
     }
 
@@ -56,11 +64,17 @@ async fn main() -> Result<()> {
 
 #[instrument(skip_all)]
 async fn run_with_config(cfg: Cli) -> Result<()> {
-    event!(Level::INFO, "{:?}", cfg);
+    info!(cfg=?cfg);
+
+    let uri = if let Some(uri) = cfg.uri {
+        uri
+    } else {
+        eprintln!("No URI provided for MongoDB connection.");
+        process::exit(1);
+    };
 
     // Create MongoDB client
-    let mut client_options =
-        get_opts(cfg.uri.unwrap().as_str(), cfg.resolver.map(|r| r.into())).await?;
+    let mut client_options = get_opts(&uri, cfg.resolver.map(|r| r.into())).await?;
 
     client_options.app_name = Some(DEFAULT_APP_NAME.clone());
 
@@ -95,7 +109,13 @@ async fn run_with_config(cfg: Cli) -> Result<()> {
     let mdb_client =
         Client::with_options(client_options).with_context(|| "Failed to create MongoDB client.")?;
 
-    check_cluster_type(&mdb_client).await?;
+    match check_cluster_type(&mdb_client).await {
+        Ok(_) => {}
+        Err(e) => {
+            eprintln!("Error: {}", e);
+            process::exit(1);
+        }
+    }
 
     // Create necessary channels for communication
     let (tx_notifications, mut rx_notifications) = unbounded_channel::<SamplerNotification>();

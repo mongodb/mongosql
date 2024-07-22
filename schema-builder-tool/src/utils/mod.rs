@@ -8,16 +8,15 @@ use serde::{Deserialize, Serialize};
 pub(crate) async fn check_cluster_type(client: &Client) -> Result<()> {
     match get_cluster_type(client).await? {
         ClusterType::AtlasDataFederation => {
-            anyhow::bail!(
+            Err(anyhow::Error::msg(
                 "Atlas Data Federation is not supported. ADF schema is managed through Atlas."
-            );
+            ))
         }
         ClusterType::Community => {
-            anyhow::bail!("Community clusters are not supported. Direct Cluster SQL Interface is only available for Enterprise users.");
+            Err(anyhow::Error::msg("Community clusters are not supported. Direct Cluster SQL Interface is only available for Enterprise users."))
         }
-        ClusterType::Enterprise => {}
+        ClusterType::Enterprise => { Ok(()) }
     }
-    Ok(())
 }
 
 async fn get_cluster_type(client: &Client) -> Result<ClusterType> {

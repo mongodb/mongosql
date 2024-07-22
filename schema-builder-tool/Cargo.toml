@@ -3,6 +3,7 @@ name = "schema-builder-tool"
 version = "0.0.0"
 edition = "2021"
 
+
 [dependencies]
 mongodb = "3.0.1"
 mongosql = { path = "../mongosql" }
@@ -23,3 +24,4 @@ lazy_static = "1.4.0"
 tracing = "0.1"
 tracing-appender = "0.2"
 tracing-subscriber = "0.3"
+human-panic = "2.0.0"
