@@ -16,7 +16,7 @@ use crate::{
     util::unique_linked_hash_map::UniqueLinkedHashMap,
     SchemaCheckingMode,
 };
-use std::collections::BTreeSet;
+use std::{cell::RefCell, collections::BTreeSet};
 
 type Result<T> = std::result::Result<T, Error>;
 
@@ -199,6 +199,18 @@ impl From<crate::ast::ComparisonOp> for mir::SubqueryComparisonOp {
     }
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+pub enum ClauseType {
+    From,
+    Filter,
+    GroupBy,
+    Limit,
+    Offset,
+    OrderBy,
+    Select,
+    Unintialized,
+}
+
 #[derive(Debug, Clone)]
 pub struct Algebrizer<'a> {
     current_db: &'a str,
@@ -206,6 +218,7 @@ pub struct Algebrizer<'a> {
     catalog: &'a Catalog,
     scope_level: u16,
     schema_checking_mode: SchemaCheckingMode,
+    clause_type: RefCell<ClauseType>,
 }
 
 impl<'a> Algebrizer<'a> {
@@ -237,6 +250,7 @@ impl<'a> Algebrizer<'a> {
             catalog,
             scope_level,
             schema_checking_mode,
+            clause_type: RefCell::new(ClauseType::Unintialized),
         }
     }
 
@@ -256,6 +270,10 @@ impl<'a> Algebrizer<'a> {
             catalog: self.catalog,
             scope_level: self.scope_level + 1,
             schema_checking_mode: self.schema_checking_mode,
+            // subquery should use a copy of the current ClauseType, not share a RefCell with the
+            // parent. It probably does not matter, but we do not want subqueries to modify parent
+            // state.
+            clause_type: RefCell::new(*self.clause_type.borrow()),
         }
     }
 
@@ -432,6 +450,7 @@ impl<'a> Algebrizer<'a> {
     }
 
     pub fn algebrize_from_clause(&self, ast_node: Option<ast::Datasource>) -> Result<mir::Stage> {
+        *self.clause_type.borrow_mut() = ClauseType::From;
         let ast_node = ast_node.expect("all SELECT queries must have a FROM clause");
         self.algebrize_datasource(ast_node)
     }
@@ -788,6 +807,7 @@ impl<'a> Algebrizer<'a> {
         ast_node: Option<ast::Expression>,
         source: mir::Stage,
     ) -> Result<mir::Stage> {
+        *self.clause_type.borrow_mut() = ClauseType::Filter;
         let filtered = match ast_node {
             None => source,
             Some(expr) => {
@@ -812,6 +832,7 @@ impl<'a> Algebrizer<'a> {
         ast_node: ast::SelectClause,
         source: mir::Stage,
     ) -> Result<mir::Stage> {
+        *self.clause_type.borrow_mut() = ClauseType::Select;
         match ast_node.set_quantifier {
             ast::SetQuantifier::All => (),
             ast::SetQuantifier::Distinct => return Err(Error::DistinctSelect),
@@ -841,6 +862,7 @@ impl<'a> Algebrizer<'a> {
         ast_node: Option<ast::OrderByClause>,
         source: mir::Stage,
     ) -> Result<mir::Stage> {
+        *self.clause_type.borrow_mut() = ClauseType::OrderBy;
         let expression_algebrizer = self
             .clone()
             .with_merged_mappings(source.schema(&self.schema_inference_state())?.schema_env)?;
@@ -891,6 +913,7 @@ impl<'a> Algebrizer<'a> {
         ast_node: Option<ast::GroupByClause>,
         source: mir::Stage,
     ) -> Result<mir::Stage> {
+        *self.clause_type.borrow_mut() = ClauseType::GroupBy;
         let grouped = match ast_node {
             None => source,
             Some(ast_expr) => {
@@ -1073,6 +1096,7 @@ impl<'a> Algebrizer<'a> {
         ast_node: Option<u32>,
         source: mir::Stage,
     ) -> Result<mir::Stage> {
+        *self.clause_type.borrow_mut() = ClauseType::Limit;
         match ast_node {
             None => Ok(source),
             Some(x) => {
@@ -1092,6 +1116,7 @@ impl<'a> Algebrizer<'a> {
         ast_node: Option<u32>,
         source: mir::Stage,
     ) -> Result<mir::Stage> {
+        *self.clause_type.borrow_mut() = ClauseType::Offset;
         match ast_node {
             None => Ok(source),
             Some(x) => {
@@ -1896,7 +1921,20 @@ impl<'a> Algebrizer<'a> {
             .nearest_scope_for_datasource(&possible_datasource, self.scope_level)
             .map_or_else(
                 move || {
-                    let expr = self.algebrize_unqualified_identifier(q)?;
+                    let expr = self.algebrize_unqualified_identifier(q);
+                    let expr = match expr {
+                        Ok(expr) => expr,
+                        Err(e @ Error::FieldNotFound(_, _)) => {
+                            // If this is an OrderBy clause, try to find the field in the Bottom Data source
+                            // because many dialects of SQL support this. Note: this is a change to
+                            // our original spec and outside of SQL92.
+                            if *self.clause_type.borrow() == ClauseType::OrderBy {
+                                return self.algebrize_unqualified_identifier(cloned_field);
+                            }
+                            return Err(e);
+                        }
+                        Err(e) => return Err(e),
+                    };
                     self.construct_field_access_expr(
                         expr,
                         // combinators make this clone necessary, unfortunately

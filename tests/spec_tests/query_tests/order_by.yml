@@ -150,17 +150,62 @@ tests:
       - {'bar': {'_id': 2, 'a': 1, 'b': {'c': 2}}}
       - {'bar': {'_id': 1, 'a': 2, 'b': {'c': 3}}}
 
+  - description: allow qualified order by fields in ORDER BY because some BI tools require this even though it is not correct SQL92
+    current_db: mydb
+    query: "SELECT a, _id FROM bar AS bar ORDER BY bar.a ASC, _id"
+    ordered: true
+    result:
+      - {'': {'a': 1, '_id': 2}}
+      - {'': {'a': 2, '_id': 1}}
+      - {'': {'a': 3, '_id': 0}}
+
+  - description: qualified order by fields in ORDER BY select the proper data source where there are multiple datasources in scope
+    current_db: mydb
+    query: "SELECT * FROM bar AS a JOIN bar AS b ORDER BY a.a ASC"
+    ordered: true
+    result:
+      - {
+          'a': {'_id': 2, 'a': 1, 'b': {'c': 2}},
+          'b': {'_id': 2, 'a': 1, 'b': {'c': 2}},
+        }
+      - {
+          'a': {'_id': 2, 'a': 1, 'b': {'c': 2}},
+          'b': {'_id': 1, 'a': 2, 'b': {'c': 3}}
+        }
+      - {
+          'a': {'_id': 2, 'a': 1, 'b': {'c': 2}},
+          'b': {'_id': 0, 'a': 3, 'b': {'c': 1}}
+        }
+      - {
+          'a': {'_id': 1, 'a': 2, 'b': {'c': 3}},
+          'b': {'_id': 2, 'a': 1, 'b': {'c': 2}}
+        }
+      - {
+          'a': {'_id': 1, 'a': 2, 'b': {'c': 3}},
+          'b': {'_id': 1, 'a': 2, 'b': {'c': 3}}
+        }
+      - {
+          'a': {'_id': 1, 'a': 2, 'b': {'c': 3}},
+          'b': {'_id': 0, 'a': 3, 'b': {'c': 1}}
+        }
+      - {
+          'a': {'_id': 0, 'a': 3, 'b': {'c': 1}},
+          'b': {'_id': 2, 'a': 1, 'b': {'c': 2}}
+        }
+      - {
+          'a': {'_id': 0, 'a': 3, 'b': {'c': 1}},
+          'b': {'_id': 1, 'a': 2, 'b': {'c': 3}}
+        }
+      - {
+          'a': {'_id': 0, 'a': 3, 'b': {'c': 1}},
+          'b': {'_id': 0, 'a': 3, 'b': {'c': 1}}
+        }
+
   - description: ordering by ambiguous column reference is an error
     current_db: mydb
     query: "SELECT VALUES {'a': 1}, bar.* FROM bar AS bar ORDER BY a ASC"
     should_compile: false
     algebrize_error: "ambiguous field `a`"
-
-  - description: ordering by qualified column reference is an error if qualifier is not in scope
-    current_db: mydb
-    query: "SELECT VALUE {'a': a} FROM nullAndMissing AS n ORDER BY n.a ASC"
-    should_compile: false
-    algebrize_error: "field `n` cannot be resolved to any datasource"
 
   - description: ordering by a non-integer constant expression is an error
     current_db: mydb
