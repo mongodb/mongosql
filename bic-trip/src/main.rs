@@ -232,7 +232,7 @@ async fn handle_schema<'a>(args: SchemaProcessingArgs<'_>) -> Result<Option<Sche
                                     v.insert(schema_res.namespace_info.coll_or_view_name.clone(), schema_res.namespace_schema.clone());
                                 }).or_insert(HashMap::from([(schema_res.namespace_info.coll_or_view_name.clone(), schema_res.namespace_schema.clone())]));
 
-                                let schema_analysis = process_schemata(HashMap::from([(schema_res.namespace_info.db_name.clone(), HashMap::from([(schema_res.namespace_info.coll_or_view_name.clone(), schema_res.namespace_schema.clone())]))]));
+                                let schema_analysis = process_schemata(HashMap::from([(schema_res.namespace_info.db_name.clone(), schemata.get(&schema_res.namespace_info.db_name).unwrap().clone())]));
                                 generate_html(&file_path, date, log_parse, Some(&schema_analysis), !quiet, &schema_res.namespace_info.db_name, &report_name).unwrap();
                             }
                             Some(dcsb::SchemaResult::NamespaceOnly(schema_res)) => {
