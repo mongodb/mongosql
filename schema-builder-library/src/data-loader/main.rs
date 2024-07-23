@@ -87,7 +87,7 @@ async fn main() {
     create_view(
         &nonuniform_db,
         vec![
-            doc! { "$match": { "var": { "$gt": Bson::Null } } },
+            doc! { "$match": { "$expr": { "$gt": ["$var", Bson::Null] } } },
             doc! { "$project": {
                 "_id": "$_id",
                 "var": "$var",
