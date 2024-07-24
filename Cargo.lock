@@ -338,7 +338,7 @@ dependencies = [
 
 [[package]]
 name = "bic-trip"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "base64 0.22.1",
@@ -2434,7 +2434,7 @@ dependencies = [
 
 [[package]]
 name = "mongosql"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "base64 0.21.7",
  "bson",
@@ -2469,6 +2469,7 @@ version = "0.1.0"
 dependencies = [
  "base64 0.13.1",
  "bson",
+ "lazy_static",
  "libc",
  "mongosql",
 ]
@@ -3479,7 +3480,7 @@ dependencies = [
 
 [[package]]
 name = "schema-builder-library"
-version = "0.1.0"
+version = "0.0.0"
 dependencies = [
  "anyhow",
  "crossbeam",

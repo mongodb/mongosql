@@ -57,7 +57,7 @@ functions:
           fi
           export PATH="$GOROOT/bin:$PATH"
           if [[ "${triggered_by_git_tag}" != "" ]]; then
-            export release_version=$(echo ${triggered_by_git_tag} | sed -E 's/^(v|trr)//')
+            export release_version=$(echo ${triggered_by_git_tag} | sed -E 's/^(v|trr|dcsb)//')
           else
             export release_version=test_release
           fi
@@ -106,6 +106,36 @@ functions:
           if [ "Windows_NT" == "$OS" ]; then
                 ln -sf /cygdrive/c/Users/$USER/.rustup/ ~/.rustup
                 ln -sf /cygdrive/c/Users/$USER/.cargo/ ~/.cargo
+          fi
+
+  "set and check packages version":
+    - command: shell.exec
+      type: test
+      params:
+        shell: bash
+        working_dir: mongosql-rs
+        script: |
+          ${prepare_shell}
+          #no-op when not triggered by a tag
+          if [[ "${triggered_by_git_tag}" != "" ]]; then
+            cargo install cargo-edit
+            # we only release one project at a time, so setting the version on all Cargo.toml files is safe
+            cargo set-version $release_version
+          fi
+          cargo install cargo-get
+
+          # check all of the releasable packages in the monorepo to verify that whichever is being released has the correct version
+          MONGOSQL_CARGO_PKGS_VERSION=$(cargo get --entry="mongosql/Cargo.toml" package.version)
+          TRR_CARGO_PKGS_VERSION=$(cargo get --entry="bic-trip/Cargo.toml" package.version)
+          DCSB_CARGO_PKGS_VERSION=$(cargo get --entry="schema-builder-tool/Cargo.toml" package.version)
+          if [[ "${triggered_by_git_tag}" == "" ]]; then
+            EXPECTED_RELEASE_VERSION="0.0.0"
+          else
+            EXPECTED_RELEASE_VERSION="$release_version"
+          fi
+          if [[ "$MONGOSQL_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" || "$TRR_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" || "$DCSB_CARGO_PKGS_VERSION" != "$EXPECTED_RELEASE_VERSION" ]]; then
+            >&2 echo "Expected version $EXPECTED_RELEASE_VERSION doesn't match for at least one package ; mongosql version $MONGOSQL_CARGO_PKGS_VERSION, trr version $TRR_CARGO_PKGS_VERSION, dcsb version $DCSB_CARGO_PKGS_VERSION"
+            exit 1
           fi
 
   "check clippy":
@@ -933,12 +963,14 @@ tasks:
   - name: compile
     commands:
       - func: "install rust toolchain"
+      - func: "set and check packages version"
       - func: "compile release"
       - func: "upload c library"
 
   - name: compile-trr
     commands:
       - func: "install rust toolchain"
+      - func: "set and check packages version"
       - func: "compile release"
       - func: "upload transition readiness report executable"
 

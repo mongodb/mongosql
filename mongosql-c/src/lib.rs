@@ -1,3 +1,4 @@
+use lazy_static::lazy_static;
 use mongosql::{
     build_catalog_from_base_64,
     options::{ExcludeNamespacesOption, SqlOptions},
@@ -13,13 +14,20 @@ use std::{
     sync::mpsc,
 };
 
-mod version;
+lazy_static! {
+    pub static ref MONGOSQL_VERSION: String = format!(
+        "v{}.{}.{}",
+        env!("CARGO_PKG_VERSION_MAJOR"),
+        env!("CARGO_PKG_VERSION_MINOR"),
+        env!("CARGO_PKG_VERSION_PATCH")
+    );
+}
 
 /// Returns the semantic version of this library as a C string.
 /// The caller is responsible for freeing the returned value.
 #[no_mangle]
 pub extern "C" fn version() -> *mut raw::c_char {
-    to_raw_c_string(version::VERSION).expect("semver string contained NUL byte")
+    to_raw_c_string(MONGOSQL_VERSION.as_str()).expect("semver string contained NUL byte")
 }
 
 /// Returns a base64-encoded bson representation of

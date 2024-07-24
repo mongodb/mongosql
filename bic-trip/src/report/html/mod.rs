@@ -239,7 +239,7 @@ fn get_tab_js() -> &'static str {
 
 fn get_version(datetime_str: String) -> String {
     let default = format!("Report was generated at: {datetime_str}");
-    option_env!("release_version").map_or_else(
+    option_env!("CARGO_PKG_VERSION").map_or_else(
         || default.clone(),
         |version| format!("Version: {version}. {default}"),
     )

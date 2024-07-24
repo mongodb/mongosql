@@ -9,6 +9,7 @@ edition = "2021"
 [dependencies]
 base64 = "0.13"
 bson = "2"
+lazy_static = "1"
 libc = "0.2"
 mongosql = { path = "../mongosql" }
 
