@@ -8,6 +8,10 @@ mod get_bounds;
 
 #[cfg(feature = "integration")]
 #[cfg(test)]
+mod get_partitions;
+
+#[cfg(feature = "integration")]
+#[cfg(test)]
 async fn create_mdb_client() -> mongodb::Client {
     let mdb_uri = format!(
         "mongodb://localhost:{}/",
