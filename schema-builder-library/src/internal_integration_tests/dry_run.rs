@@ -7,12 +7,12 @@ async fn enabled() {
 
     // Create communication channels.
     let (tx_notifications, mut rx_notifications) =
-        tokio::sync::mpsc::unbounded_channel::<schema_builder_library::SamplerNotification>();
+        tokio::sync::mpsc::unbounded_channel::<crate::SamplerNotification>();
     let (tx_schemata, mut rx_schemata) =
-        tokio::sync::mpsc::unbounded_channel::<schema_builder_library::SchemaResult>();
+        tokio::sync::mpsc::unbounded_channel::<crate::SchemaResult>();
 
     // Create schema builder options with dry_run set to true.
-    let options = schema_builder_library::options::BuilderOptions {
+    let options = crate::options::BuilderOptions {
         include_list: vec![],
         exclude_list: vec![],
         schema_collection: None,
@@ -23,7 +23,7 @@ async fn enabled() {
     };
 
     // Call build_schema in a separate thread.
-    tokio::spawn(schema_builder_library::build_schema(options));
+    tokio::spawn(crate::build_schema(options));
 
     // Wait on channels to get results. Assert that received collections are as expected. Fail if
     // we get certain notifications.
@@ -41,7 +41,7 @@ async fn enabled() {
             }
             schema = rx_schemata.recv() => {
                 match schema {
-                    Some(schema_builder_library::SchemaResult::FullSchema(schema_res)) => {
+                    Some(crate::SchemaResult::FullSchema(schema_res)) => {
                         // If we receive a FullSchema in dry-run mode, then dry run functionality is
                         // not implemented correctly so the test fails.
                         assert!(
@@ -52,7 +52,7 @@ async fn enabled() {
                             schema_res.namespace_info.coll_or_view_name,
                         );
                     }
-                    Some(schema_builder_library::SchemaResult::NamespaceOnly(_)) => {}
+                    Some(crate::SchemaResult::NamespaceOnly(_)) => {}
                     None => break
                 }
             }
