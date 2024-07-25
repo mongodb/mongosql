@@ -65,6 +65,8 @@ async fn main() {
 
     let rng = &mut StdRng::from_seed(SEED);
 
+    create_test_user(&client).await;
+
     // Generate uniform data.
     let uniform_db = client.database(UNIFORM_DB_NAME);
     generate_db_data(&uniform_db, rng, generate_uniform_data_doc).await;
@@ -97,6 +99,18 @@ async fn main() {
             }},
         ]
     ).await;
+}
+
+/// create_test_user creates a test user in the admin database
+async fn create_test_user(client: &mongodb::Client) {
+    let admin_db = client.database("admin");
+    // if the user already exists, MongoDB will return a duplicate user error
+    // this is uninimportant for the purposes of this tool
+    let _ = admin_db
+        .run_command(
+            doc! { "createUser": "test", "pwd": "test", "roles": ["readWriteAnyDatabase"] },
+        )
+        .await;
 }
 
 /// generate_db_data generates the large and small collection data in the provided database, using
