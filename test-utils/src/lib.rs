@@ -24,6 +24,8 @@ pub use index::*;
 pub mod query;
 pub use query::*;
 pub mod build_utils;
+pub mod schema_builder_library_integration_test_consts;
+
 pub use build_utils::*;
 
 #[derive(Debug, Error)]
@@ -88,7 +90,8 @@ pub fn load_catalog_data(
         for (coll, documents) in coll_data {
             let client_coll = client_db.collection::<Bson>(coll.as_str());
             client_coll
-                .insert_many(documents, None)
+                .insert_many(documents)
+                .run()
                 .map_err(|e| Error::MongoDBInsert(db.clone(), coll, e))?;
         }
     }
@@ -105,7 +108,8 @@ pub fn drop_catalog_data<T: Into<String>>(
         let db = db.into();
         client
             .database(&db)
-            .drop(None)
+            .drop()
+            .run()
             .map_err(|e| Error::MongoDBDrop(db.clone(), e))?;
     }
     Ok(())

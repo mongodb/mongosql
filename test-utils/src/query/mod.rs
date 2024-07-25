@@ -186,11 +186,13 @@ pub fn run_query(client: &Client, translation: Translation) -> Result<Vec<Docume
         client
             .database(translation.target_db.as_str())
             .collection::<Document>(coll.as_str())
-            .aggregate(pipeline, None)
+            .aggregate(pipeline)
+            .run()
     } else {
         client
             .database(translation.target_db.as_str())
-            .aggregate(pipeline, None)
+            .aggregate(pipeline)
+            .run()
     }
     .map_err(Error::MongoDBErr)?;
 

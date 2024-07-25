@@ -325,13 +325,12 @@ tasks:
       - func: "run rust integration tests"
         vars:
           description: "run schema-builder-library integration tests"
-          load_data_cmd: "cargo run --bin schema-builder-data-loader"
+          load_data_cmd: "cargo run --bin data-loader"
           cargo_test_flags: >-
             --features=integration
             --package=schema-builder-library
-            --test integration_tests
+            --lib internal_integration_tests
             -- --test-threads=1
-
 
   - name: sign-schema-builder-tool-executables
     depends_on:
@@ -371,7 +370,7 @@ buildvariants:
       - name: sign-schema-builder-tool-executables
 
   - name: dcsb-integration-test
-    tags: ["schema-builder-test"]
+    tags: [ "schema-builder-test" ]
     display_name: "MongoDB Schema Builder Integration Test"
     run_on: [ rhel76 ]
     tasks:

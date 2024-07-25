@@ -34,6 +34,10 @@ pub use notifications::{SamplerAction, SamplerNotification};
 pub mod options;
 use options::BuilderOptions;
 
+#[cfg(feature = "integration")]
+#[cfg(test)]
+mod internal_integration_tests;
+
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// An enum for communicating results of this library to a caller. Results may

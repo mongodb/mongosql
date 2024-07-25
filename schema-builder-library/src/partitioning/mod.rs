@@ -125,7 +125,7 @@ fn get_num_partitions(coll_size: i64, partition_size: i64) -> i64 {
 
 /// get_bounds determines the minimum and maximum values for the _id field in the argued collection.
 #[instrument(level = "trace", skip_all)]
-async fn get_bounds(collection: &Collection<Document>) -> Result<(Bson, Bson)> {
+pub(crate) async fn get_bounds(collection: &Collection<Document>) -> Result<(Bson, Bson)> {
     Ok((
         get_bound(collection, 1).await?,
         // we actually will just always use MaxKey as our upper bound since we

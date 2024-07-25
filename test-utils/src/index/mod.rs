@@ -130,7 +130,8 @@ pub fn create_indexes(
             let client_coll = client_db.collection::<Bson>(coll.as_str());
 
             client_coll
-                .create_indexes(indexes, None)
+                .create_indexes(indexes)
+                .run()
                 .map_err(|e| Error::MongoDBCreateIndexes(db.clone(), coll, e))?;
         }
     }
@@ -162,7 +163,8 @@ pub fn run_explain_aggregate(
     // Run the aggregation as an `explain` command
     let result = client
         .database(translation.target_db.as_str())
-        .run_command(cmd, None)
+        .run_command(cmd)
+        .run()
         .map_err(Error::MongoDBAggregation)?;
 
     // Deserialize the `explain` result

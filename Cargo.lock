@@ -1382,7 +1382,7 @@ version = "0.1.0"
 dependencies = [
  "itertools 0.10.5",
  "lazy_static",
- "mongodb 2.8.2",
+ "mongodb 3.0.1",
  "mongosql",
  "serde",
  "serde_yaml 0.9.34+deprecated",
@@ -3871,15 +3871,14 @@ version = "0.0.0"
 dependencies = [
  "anyhow",
  "crossbeam",
- "fake",
  "futures",
  "glob",
  "lazy_static",
  "mongodb 3.0.1",
  "mongosql",
- "rand",
  "serde",
  "serde_json",
+ "test-utils",
  "thiserror",
  "tokio",
  "tokio-util",
@@ -4561,13 +4560,16 @@ checksum = "3369f5ac52d5eb6ab48c6b4ffdc8efbcad6b89c765749064ba298f2c68a16a76"
 name = "test-utils"
 version = "0.1.0"
 dependencies = [
+ "fake",
  "itertools 0.10.5",
  "lazy_static",
- "mongodb 2.8.2",
+ "mongodb 3.0.1",
  "mongosql",
+ "rand",
  "serde",
  "serde_yaml 0.9.34+deprecated",
  "thiserror",
+ "tokio",
 ]
 
 [[package]]

@@ -7,19 +7,18 @@ use mongodb::{
 use rand::{rngs::StdRng, SeedableRng};
 use std::{env, str::FromStr};
 
-const SMALL_COLL_SIZE_IN_MB: i64 = 90;
-const LARGE_COLL_SIZE_IN_MB: i64 = 350;
+mod schema_builder_library_integration_test_consts;
+
+use schema_builder_library_integration_test_consts::{
+    LARGE_COLL_NAME, LARGE_COLL_SIZE_IN_MB, LARGE_ID_MIN, NONUNIFORM_DB_NAME, SMALL_COLL_NAME,
+    SMALL_COLL_SIZE_IN_MB, SMALL_ID_MIN, UNIFORM_DB_NAME, VIEW_NAME,
+};
+
 const DATA_DOC_SIZE_IN_BYTES: i64 = 400;
 // 100MB = 100 * 1024 * 1024 = 104857600B
 // 100MB / 400B = 262144 documents
 // Therefore, each partition has at most 262144 documents.
 const NUM_DOCS_PER_PARTITION: i64 = 262144;
-
-const UNIFORM_DB_NAME: &str = "uniform";
-const NONUNIFORM_DB_NAME: &str = "nonuniform";
-const SMALL_COLL_NAME: &str = "small";
-const LARGE_COLL_NAME: &str = "large";
-const VIEW_NAME: &str = "test_view";
 
 const SEED: [u8; 32] = [
     1, 0, 0, 0, 23, 0, 0, 0, 200, 1, 0, 0, 210, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -52,9 +51,9 @@ macro_rules! handle_write_result {
 /// is represented by 1 partition and the latter is represented by 4 partitions.
 ///
 /// All data is arbitrary except for the _id fields, which need to be known for testing purposes.
-/// The _id values in each collection are integers, starting at 0 and increasing by 1 for each
-/// document. Additionally, all documents are the same size, 400 bytes. This ensures known partition
-/// boundaries.
+/// The _id values in each collection are integers, starting at 12345 for the small collections and
+/// 0 for the large collections, and increasing by 1 for each document. Additionally, all documents
+/// are the same size, 400 bytes. This ensures known partition boundaries.
 #[tokio::main]
 async fn main() {
     let mdb_uri = format!(
@@ -104,8 +103,8 @@ async fn main() {
 /// create_test_user creates a test user in the admin database
 async fn create_test_user(client: &mongodb::Client) {
     let admin_db = client.database("admin");
-    // if the user already exists, MongoDB will return a duplicate user error
-    // this is uninimportant for the purposes of this tool
+    // If the user already exists, MongoDB will return a duplicate user error
+    // this is unimportant for the purposes of this tool.
     let _ = admin_db
         .run_command(
             doc! { "createUser": "test", "pwd": "test", "roles": ["readWriteAnyDatabase"] },
@@ -122,14 +121,26 @@ async fn generate_db_data(
 ) {
     // Generate small data.
     let small_coll = db.collection::<Document>(SMALL_COLL_NAME);
-    let small_data_res =
-        generate_collection_data(SMALL_COLL_SIZE_IN_MB, small_coll, rng, generator).await;
+    let small_data_res = generate_collection_data(
+        SMALL_COLL_SIZE_IN_MB,
+        SMALL_ID_MIN,
+        small_coll,
+        rng,
+        generator,
+    )
+    .await;
     handle_write_result!(db.name(), SMALL_COLL_NAME, small_data_res);
 
     // Generate large data.
     let large_coll = db.collection::<Document>(LARGE_COLL_NAME);
-    let large_data_res =
-        generate_collection_data(LARGE_COLL_SIZE_IN_MB, large_coll, rng, generator).await;
+    let large_data_res = generate_collection_data(
+        LARGE_COLL_SIZE_IN_MB,
+        LARGE_ID_MIN,
+        large_coll,
+        rng,
+        generator,
+    )
+    .await;
     handle_write_result!(db.name(), LARGE_COLL_NAME, large_data_res);
 }
 
@@ -138,14 +149,15 @@ async fn generate_db_data(
 /// needed to reach the specified data size.
 async fn generate_collection_data(
     size_in_mb: i64,
+    id_min: i64,
     coll: Collection<Document>,
     rng: &mut StdRng,
     generator: fn(i64, &mut StdRng) -> Document,
 ) -> mongodb::error::Result<InsertManyResult> {
     let size_in_bytes = size_in_mb * 1024 * 1024;
-    let num_docs = size_in_bytes / DATA_DOC_SIZE_IN_BYTES;
+    let num_docs = (size_in_bytes / DATA_DOC_SIZE_IN_BYTES) + id_min;
 
-    let range = 0..num_docs;
+    let range = id_min..num_docs;
     let data = range.map(move |idx| generator(idx, rng));
 
     coll.insert_many(data).await

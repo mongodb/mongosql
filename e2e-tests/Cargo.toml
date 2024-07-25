@@ -17,9 +17,8 @@ test-utils = { path = "../test-utils" }
 test-utils = { path = "../test-utils" }
 
 [dependencies.mongodb]
-version = "2.7"
-default-features = false
-features = ["tokio-sync"]
+version = "3.0.1"
+features = ["sync"]
 
 [features]
 index = []
