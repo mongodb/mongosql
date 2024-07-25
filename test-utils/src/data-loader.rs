@@ -8,17 +8,11 @@ use rand::{rngs::StdRng, SeedableRng};
 use std::{env, str::FromStr};
 
 mod schema_builder_library_integration_test_consts;
-
 use schema_builder_library_integration_test_consts::{
-    LARGE_COLL_NAME, LARGE_COLL_SIZE_IN_MB, LARGE_ID_MIN, NONUNIFORM_DB_NAME, SMALL_COLL_NAME,
-    SMALL_COLL_SIZE_IN_MB, SMALL_ID_MIN, UNIFORM_DB_NAME, VIEW_NAME,
+    DATA_DOC_SIZE_IN_BYTES, LARGE_COLL_NAME, LARGE_COLL_SIZE_IN_MB, LARGE_ID_MIN,
+    NONUNIFORM_DB_NAME, NUM_DOCS_PER_LARGE_PARTITION, SMALL_COLL_NAME, SMALL_COLL_SIZE_IN_MB,
+    SMALL_ID_MIN, UNIFORM_DB_NAME, VIEW_NAME,
 };
-
-const DATA_DOC_SIZE_IN_BYTES: i64 = 400;
-// 100MB = 100 * 1024 * 1024 = 104857600B
-// 100MB / 400B = 262144 documents
-// Therefore, each partition has at most 262144 documents.
-const NUM_DOCS_PER_PARTITION: i64 = 262144;
 
 const SEED: [u8; 32] = [
     1, 0, 0, 0, 23, 0, 0, 0, 200, 1, 0, 0, 210, 30, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -240,7 +234,7 @@ fn generate_nonuniform_data_doc(idx: i64, rng: &mut StdRng) -> Document {
 
     let mut doc = doc! { "_id": Bson::Int64(idx), "var": var_val };
 
-    let partition_desc = if idx < NUM_DOCS_PER_PARTITION {
+    let partition_desc = if idx < *NUM_DOCS_PER_LARGE_PARTITION {
         // First partition
         let padding_size = DATA_DOC_SIZE_IN_BYTES
             - 8 /* size of _id value */
@@ -253,7 +247,7 @@ fn generate_nonuniform_data_doc(idx: i64, rng: &mut StdRng) -> Document {
         doc.insert("padding", Bson::String(padding_faker.fake_with_rng(rng)));
 
         "partition 1"
-    } else if idx < NUM_DOCS_PER_PARTITION * 2 {
+    } else if idx < *NUM_DOCS_PER_LARGE_PARTITION * 2 {
         // Second partition
         doc.insert("second", second_val);
 
@@ -269,7 +263,7 @@ fn generate_nonuniform_data_doc(idx: i64, rng: &mut StdRng) -> Document {
         doc.insert("padding", Bson::String(padding_faker.fake_with_rng(rng)));
 
         "partition 2"
-    } else if idx < NUM_DOCS_PER_PARTITION * 3 {
+    } else if idx < *NUM_DOCS_PER_LARGE_PARTITION * 3 {
         // Third partition
         doc.insert("third", third_val);
 

@@ -106,6 +106,7 @@ impl MqlTranslator {
     /// - `$_foo` is mapped to `__foo`
     /// - `_foo` is mapped to `___foo`
     /// - `bar` is mapped to `bar`
+    ///
     /// So the first 4 datasources must have their original names restored since
     /// the translation otherwise referred to them using their mapped names.
     fn append_name_replacements(&mut self, source: air::Stage) -> Result<air::Stage> {

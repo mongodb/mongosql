@@ -15,6 +15,7 @@ use crate::{Error, Result, PARTITION_MIN_DOC_COUNT, PARTITION_SIZE_IN_BYTES};
 pub(crate) struct Partition {
     pub min: Bson,
     pub max: Bson,
+    pub is_max_bound_inclusive: bool,
 }
 
 /// A utility function for determining the partitions of a collection.
@@ -53,18 +54,18 @@ pub(crate) async fn get_partitions(collection: &Collection<Document>) -> Result<
     while let Some(doc) = cursor.try_next().await.unwrap() {
         let doc = doc.get("_id").unwrap().as_document().unwrap();
         let max = doc.get("max").cloned().unwrap_or(Bson::MaxKey);
+        let is_bucket_max_equal_to_collection_max = max == max_bound;
         partitions.push(Partition {
             min: min_bound.clone(),
             max: max.clone(),
+            // The max bound of Partition should be considered inclusive only
+            // if it is the final partition.
+            is_max_bound_inclusive: is_bucket_max_equal_to_collection_max,
         });
         if max != max_bound {
             min_bound = max;
         }
     }
-    partitions.push(Partition {
-        min: min_bound,
-        max: max_bound,
-    });
 
     trace!("partitions: {:?}", partitions);
 
@@ -128,9 +129,7 @@ fn get_num_partitions(coll_size: i64, partition_size: i64) -> i64 {
 pub(crate) async fn get_bounds(collection: &Collection<Document>) -> Result<(Bson, Bson)> {
     Ok((
         get_bound(collection, 1).await?,
-        // we actually will just always use MaxKey as our upper bound since we
-        // match $lt max bound
-        Bson::MaxKey,
+        get_bound(collection, -1).await?,
     ))
 }
 
@@ -182,11 +181,17 @@ pub(crate) fn generate_partition_match_with_doc(
     schema: Option<Document>,
     ignored_ids: &[Bson],
 ) -> Result<Document> {
+    let lt_op = if partition.is_max_bound_inclusive {
+        "$lte"
+    } else {
+        "$lt"
+    };
+
     let mut match_body = doc! {
         "_id": {
             "$nin": ignored_ids,
             "$gte": partition.min.clone(),
-            "$lte": partition.max.clone(),
+            lt_op: partition.max.clone(),
         }
     };
     if let Some(schema) = schema {
